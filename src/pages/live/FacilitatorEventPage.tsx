@@ -1,7 +1,8 @@
-import { Check, Copy, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
+import { Check, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -18,7 +19,9 @@ import {
   parseStages,
   quizQuestions,
 } from '@/lib/live-event'
-import { copyToClipboard, getEventLinks } from '@/lib/event-links'
+import { getEventLinks } from '@/lib/event-links'
+import { createThrottledTimerSync } from '@/lib/live-timer-sync'
+import type { GameConfig } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables } from '@/types/helpers'
@@ -39,7 +42,7 @@ export function FacilitatorEventPage() {
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [copied, setCopied] = useState(false)
+  const [stateError, setStateError] = useState<string | null>(null)
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
@@ -48,16 +51,36 @@ export function FacilitatorEventPage() {
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const state = bundle?.state
 
+  const isQuizStage = stage?.type === 'quiz'
+
+  async function patchState(patch: Parameters<typeof updateState>[0]) {
+    try {
+      setStateError(null)
+      await updateState(patch)
+    } catch (err) {
+      setStateError(err instanceof Error ? err.message : 'Update failed')
+    }
+  }
+
+  const timerSyncRef = useRef(
+    createThrottledTimerSync((next, stillRunning) => {
+      void patchState({ timer_seconds: next, timer_running: stillRunning })
+    }),
+  )
+
+  const breakSyncRef = useRef(
+    createThrottledTimerSync((next, stillRunning) => {
+      void patchState({
+        break_timer_seconds: next,
+        break_timer_running: stillRunning,
+      })
+    }),
+  )
+
   const timerDisplay = useLiveTimer(
     state?.timer_seconds ?? 0,
     Boolean(state?.timer_running),
-    (next, stillRunning) => {
-      if (!bundle) return
-      void updateState({
-        timer_seconds: next,
-        timer_running: stillRunning,
-      })
-    },
+    (next, stillRunning) => timerSyncRef.current(next, stillRunning),
   )
 
   const breakSeconds =
@@ -67,13 +90,7 @@ export function FacilitatorEventPage() {
   const breakDisplay = useLiveTimer(
     breakSeconds,
     Boolean(state?.break_timer_running),
-    (next, stillRunning) => {
-      if (!bundle) return
-      void updateState({
-        break_timer_seconds: next,
-        break_timer_running: stillRunning,
-      })
-    },
+    (next, stillRunning) => breakSyncRef.current(next, stillRunning),
   )
 
   if (namePrompt) {
@@ -111,8 +128,10 @@ export function FacilitatorEventPage() {
     )
   }
 
-  const { event, teams, games, submissions } = bundle
-  const displayUrl = eventId ? getEventLinks(eventId).display : ''
+  const { event, organization, teams, games, submissions } = bundle
+  const displayUrl = eventId
+    ? getEventLinks(eventId, organization).display
+    : ''
 
   const filteredSubs = submissions.filter((s) => {
     if (subTab === 'all') return true
@@ -124,12 +143,12 @@ export function FacilitatorEventPage() {
       window.clearTimeout(annClearRef.current)
       annClearRef.current = null
     }
-    await updateState({ announcement: null, announcement_target: null })
+    await patchState({ announcement: null, announcement_target: null })
   }
 
   function sendAnnouncement(target: 'display' | 'participants' | 'both') {
     if (annClearRef.current) window.clearTimeout(annClearRef.current)
-    void updateState({
+    void patchState({
       announcement,
       announcement_target: target,
       updated_at: new Date().toISOString(),
@@ -195,10 +214,24 @@ export function FacilitatorEventPage() {
     : null
   const questions = quizGame ? quizQuestions(quizGame) : []
   const question = questions[state.current_question_index]
-  const quizTeams = submissions
-    .filter((s) => s.media_type === 'quiz' && s.game_id === stage?.gameId)
-    .map((s) => teams.find((t) => t.id === s.team_id)?.name)
-    .filter(Boolean)
+  const quizConfig = (quizGame?.config ?? {}) as GameConfig
+  const questionSeconds = quizConfig.timer_seconds ?? 20
+  const namedTeams = teams.filter((t) => t.name?.trim())
+  const quizAnsweredTeamIds = new Set(
+    submissions
+      .filter((s) => s.media_type === 'quiz' && s.game_id === stage?.gameId)
+      .map((s) => s.team_id),
+  )
+
+  function startQuizQuestion(index: number) {
+    const sec = questionSeconds
+    void patchState({
+      current_question_index: index,
+      quiz_state: 'waiting',
+      timer_seconds: sec,
+      timer_running: true,
+    })
+  }
 
   const bingoGame = stage?.type === 'bingo' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
@@ -232,31 +265,10 @@ export function FacilitatorEventPage() {
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
-            <div className="flex items-stretch gap-2 p-2">
-              <div className="aspect-video min-w-0 flex-1 overflow-hidden rounded-md bg-black">
-                <iframe
-                  title="Display preview"
-                  src={displayUrl}
-                  className="size-full border-0"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 self-center px-3"
-                onClick={() => {
-                  void copyToClipboard(displayUrl)
-                  setCopied(true)
-                  window.setTimeout(() => setCopied(false), 2000)
-                }}
-              >
-                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                <span className="sr-only sm:not-sr-only sm:ml-1">Copy display link</span>
-              </Button>
-            </div>
+            <DisplayPreviewFrame displayUrl={displayUrl} />
           </Card>
 
+          {!isQuizStage ? (
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
             <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
             <div className="flex flex-wrap gap-2">
@@ -264,7 +276,7 @@ export function FacilitatorEventPage() {
                 size="sm"
                 variant="outline"
                 onClick={() =>
-                  void updateState({ timer_running: !state.timer_running })
+                  void patchState({ timer_running: !state.timer_running })
                 }
               >
                 {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
@@ -274,7 +286,7 @@ export function FacilitatorEventPage() {
                 size="sm"
                 variant="outline"
                 onClick={() =>
-                  void updateState({ timer_seconds: state.timer_seconds + 900 })
+                  void patchState({ timer_seconds: state.timer_seconds + 900 })
                 }
               >
                 <Plus className="size-4" /> 15m
@@ -283,7 +295,7 @@ export function FacilitatorEventPage() {
                 size="sm"
                 variant="outline"
                 onClick={() =>
-                  void updateState({
+                  void patchState({
                     timer_seconds: Math.max(0, state.timer_seconds - 900),
                   })
                 }
@@ -296,12 +308,34 @@ export function FacilitatorEventPage() {
                 type="checkbox"
                 checked={state.show_timer_on_display}
                 onChange={(e) =>
-                  void updateState({ show_timer_on_display: e.target.checked })
+                  void patchState({ show_timer_on_display: e.target.checked })
                 }
               />
               Show timer on display
             </label>
           </Card>
+          ) : (
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <p className="text-muted-foreground text-sm">Question timer</p>
+            <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  void patchState({ timer_running: !state.timer_running })
+                }
+              >
+                {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
+                {state.timer_running ? 'Pause' : 'Start'}
+              </Button>
+            </div>
+          </Card>
+          )}
+
+          {stateError ? (
+            <p className="text-destructive px-1 text-sm">{stateError}</p>
+          ) : null}
 
           <Card className="border-border/80 bg-card p-4 shadow-sm">
             <p className="mb-2 text-sm font-medium">Stages</p>
@@ -311,7 +345,7 @@ export function FacilitatorEventPage() {
                   key={s.id}
                   size="sm"
                   variant={state.current_stage_index === i ? 'secondary' : 'outline'}
-                  onClick={() => void updateState({ current_stage_index: i })}
+                  onClick={() => void patchState({ current_stage_index: i })}
                 >
                   Stage {i + 1}
                 </Button>
@@ -323,7 +357,7 @@ export function FacilitatorEventPage() {
             <input
               type="checkbox"
               checked={state.show_scores}
-              onChange={(e) => void updateState({ show_scores: e.target.checked })}
+              onChange={(e) => void patchState({ show_scores: e.target.checked })}
             />
             Show scores on display
           </label>
@@ -414,7 +448,7 @@ export function FacilitatorEventPage() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  void updateState({
+                  void patchState({
                     winner_reveal_stage: Math.min(2, state.winner_reveal_stage + 1),
                   })
                 }
@@ -425,7 +459,7 @@ export function FacilitatorEventPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => void updateState({ winner_reveal_stage: 0 })}
+                  onClick={() => void patchState({ winner_reveal_stage: 0 })}
                 >
                   <RotateCcw className="size-4" />
                   Reset winner
@@ -493,50 +527,81 @@ export function FacilitatorEventPage() {
           ) : stage.type === 'quiz' && question ? (
             <div className="space-y-4">
               <p className="text-muted-foreground text-sm">
-                Q {state.current_question_index + 1} / {questions.length}
+                Q {state.current_question_index + 1} / {questions.length} · {questionSeconds}s
               </p>
               <p className="text-lg font-semibold">{question.text}</p>
+              <ul className="space-y-2 text-sm">
+                {question.answers.map((a) => (
+                  <li
+                    key={a.id}
+                    className="border-border/80 rounded-lg border px-3 py-2"
+                  >
+                    {a.text}
+                    {a.id === question.correctAnswerId ? (
+                      <span className="text-muted-foreground ml-2 text-xs">(correct)</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
-                  onClick={() =>
-                    void updateState({
-                      current_question_index: Math.min(
-                        questions.length - 1,
-                        state.current_question_index + 1,
-                      ),
-                      quiz_state: 'waiting',
-                    })
-                  }
+                  onClick={() => {
+                    const next = Math.min(
+                      questions.length - 1,
+                      state.current_question_index + 1,
+                    )
+                    startQuizQuestion(next)
+                  }}
                 >
                   Next Question
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    void updateState({
-                      current_question_index: Math.min(
-                        questions.length - 1,
-                        state.current_question_index + 1,
-                      ),
+                  onClick={() => {
+                    const next = Math.min(
+                      questions.length - 1,
+                      state.current_question_index + 1,
+                    )
+                    void patchState({
+                      current_question_index: next,
                       quiz_state: 'waiting',
                     })
-                  }
+                  }}
                 >
                   Skip
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void updateState({ quiz_state: 'revealed' })}
+                  onClick={() =>
+                    void patchState({
+                      timer_running: false,
+                      quiz_state: 'revealed',
+                    })
+                  }
                 >
                   Show Answer
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startQuizQuestion(state.current_question_index)}
+                >
+                  Restart question
+                </Button>
               </div>
-              <ul className="text-sm">
-                {quizTeams.map((n) => (
-                  <li key={n}>{n}</li>
+              <ul className="space-y-1 text-sm">
+                {namedTeams.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2">
+                    {quizAnsweredTeamIds.has(t.id) ? (
+                      <Check className="text-foreground size-4 shrink-0" />
+                    ) : (
+                      <span className="size-4 shrink-0" />
+                    )}
+                    <span>{t.name}</span>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -549,7 +614,7 @@ export function FacilitatorEventPage() {
                 <Button
                   size="sm"
                   onClick={() =>
-                    void updateState({
+                    void patchState({
                       current_question_index: Math.min(
                         tracks.length - 1,
                         state.current_question_index + 1,
@@ -563,7 +628,7 @@ export function FacilitatorEventPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void updateState({ bingo_state: 'revealed' })}
+                  onClick={() => void patchState({ bingo_state: 'revealed' })}
                 >
                   Reveal
                 </Button>
@@ -579,7 +644,7 @@ export function FacilitatorEventPage() {
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    void updateState({
+                    void patchState({
                       break_timer_running: !state.break_timer_running,
                     })
                   }
@@ -599,7 +664,7 @@ export function FacilitatorEventPage() {
                   variant="outline"
                   onClick={() => {
                     const sec = (stage.durationMinutes ?? 5) * 60
-                    void updateState({
+                    void patchState({
                       break_timer_seconds: sec,
                       break_timer_running: true,
                     })

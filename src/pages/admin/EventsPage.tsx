@@ -34,6 +34,7 @@ import {
   useEvents,
   useUpdateEventStatus,
 } from '@/hooks/use-events'
+import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import type { EventStatus } from '@/types/database'
 import type { EventRow } from '@/hooks/use-events'
@@ -129,6 +130,7 @@ function EventRow({
 
 export function AdminEventsPage() {
   const organizationId = useOrganizationId()
+  const orgQuery = useOrganization(organizationId)
   const eventsQuery = useEvents(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
@@ -225,6 +227,14 @@ export function AdminEventsPage() {
         <EventLinksModal
           eventId={linksModal.id}
           eventName={linksModal.name}
+          organization={
+            orgQuery.data
+              ? {
+                  subdomain: orgQuery.data.subdomain,
+                  custom_domain: orgQuery.data.custom_domain,
+                }
+              : null
+          }
           onClose={() => setLinksModal(null)}
         />
       ) : null}

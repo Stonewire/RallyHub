@@ -6,31 +6,32 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRallyHubClient, useUpdateClientNotes } from '@/hooks/use-rallyhub'
+import { useRallyHubClient, useUpdateClientAdmin } from '@/hooks/use-rallyhub'
+import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
+
+const PLANS = ['starter', 'pro', 'enterprise'] as const
+const STATUSES = ['active', 'suspended', 'trial'] as const
 
 export function RallyHubClientDetailPage() {
   const { clientId } = useParams()
   const { data, isLoading, isError, error } = useRallyHubClient(clientId)
-  const updateNotes = useUpdateClientNotes()
+  const updateClient = useUpdateClientAdmin()
   const [notes, setNotes] = useState('')
+  const [subdomain, setSubdomain] = useState('')
+  const [billingPlan, setBillingPlan] = useState('starter')
+  const [accountStatus, setAccountStatus] = useState('active')
 
   useEffect(() => {
     if (data?.org) {
       setNotes(data.org.internal_notes ?? '')
+      setSubdomain(data.org.subdomain ?? '')
+      setBillingPlan(data.org.billing_plan ?? 'starter')
+      setAccountStatus(data.org.account_status ?? 'active')
     }
   }, [data?.org])
-
-  async function forcePasswordReset(userId: string) {
-    const pw = window.prompt('New password for user')
-    if (!pw) return
-    const { error: err } = await supabase.auth.admin.updateUserById(userId, {
-      password: pw,
-    })
-    if (err) alert('Requires service role: ' + err.message)
-    else alert('Password updated (if admin API is configured).')
-  }
 
   async function sendResetEmail(email: string) {
     const { error: err } = await supabase.auth.resetPasswordForEmail(email)
@@ -55,14 +56,62 @@ export function RallyHubClientDetailPage() {
   }
 
   const org = data.org
+  const tenantUrl = getOrganizationOrigin({
+    subdomain: org.subdomain,
+    custom_domain: org.custom_domain,
+  })
 
   return (
     <AdminPageShell title={org.name} subtitle="Client organization details.">
       <div className="space-y-6">
-        <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
-          <p className="text-muted-foreground text-sm">
-            Plan: <span className="text-foreground capitalize">{org.billing_plan}</span>
-          </p>
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <div>
+            <Label htmlFor="tenant-url">Tenant URL</Label>
+            <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
+              {tenantUrl}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="subdomain">Subdomain</Label>
+            <Input
+              id="subdomain"
+              value={subdomain}
+              onChange={(e) => setSubdomain(e.target.value)}
+              className="bg-background max-w-xs font-mono"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="billing-plan">Billing plan</Label>
+              <select
+                id="billing-plan"
+                value={billingPlan}
+                onChange={(e) => setBillingPlan(e.target.value)}
+                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              >
+                {PLANS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="account-status">Account status</Label>
+              <select
+                id="account-status"
+                value={accountStatus}
+                onChange={(e) => setAccountStatus(e.target.value)}
+                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <p className="text-muted-foreground text-sm">
             Events: {data.events.length} total
           </p>
@@ -80,16 +129,17 @@ export function RallyHubClientDetailPage() {
                   <p className="font-medium">{p.full_name || p.id}</p>
                   <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void forcePasswordReset(p.id)}
-                  >
-                    Force reset
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const email = window.prompt('User email for reset')
+                    if (email) void sendResetEmail(email)
+                  }}
+                >
+                  Send reset email
+                </Button>
               </li>
             ))}
             {data.members.map((m) => (
@@ -121,11 +171,17 @@ export function RallyHubClientDetailPage() {
       </div>
 
       <FormSaveFooter
-        label="Save notes"
-        saving={updateNotes.isPending}
+        label="Save client"
+        saving={updateClient.isPending}
         onSave={() => {
           if (!clientId) return
-          void updateNotes.mutateAsync({ orgId: clientId, notes })
+          void updateClient.mutateAsync({
+            orgId: clientId,
+            notes,
+            subdomain,
+            billing_plan: billingPlan,
+            account_status: accountStatus,
+          })
         }}
       />
     </AdminPageShell>

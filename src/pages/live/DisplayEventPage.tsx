@@ -1,10 +1,12 @@
 import confetti from 'canvas-confetti'
 import { useEffect, useMemo, type ReactNode } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { Leaderboard } from '@/components/live/Leaderboards'
+import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
+import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
   bingoTracks,
   currentStage,
@@ -16,13 +18,52 @@ import {
 
 export function DisplayEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const { bundle, loading, error } = useLiveEvent(eventId)
+  const [searchParams] = useSearchParams()
+  const embed = searchParams.get('embed') === '1'
+  const { bundle, loading, error, updateState } = useLiveEvent(eventId)
 
+  const eventState = bundle?.state
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
+  const isQuizStage = stage?.type === 'quiz'
+
+  const timerSyncRef = useMemo(
+    () =>
+      createThrottledTimerSync((next, stillRunning) => {
+        void updateState({ timer_seconds: next, timer_running: stillRunning })
+      }),
+    [updateState],
+  )
+
+  const breakSyncRef = useMemo(
+    () =>
+      createThrottledTimerSync((next, stillRunning) => {
+        void updateState({
+          break_timer_seconds: next,
+          break_timer_running: stillRunning,
+        })
+      }),
+    [updateState],
+  )
+
+  const timerDisplay = useLiveTimer(
+    eventState?.timer_seconds ?? 0,
+    Boolean(eventState?.timer_running),
+    (next, stillRunning) => timerSyncRef(next, stillRunning),
+  )
+
+  const breakSeconds =
+    eventState?.break_timer_seconds ??
+    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+
+  const breakDisplay = useLiveTimer(
+    breakSeconds,
+    Boolean(eventState?.break_timer_running),
+    (next, stillRunning) => breakSyncRef(next, stillRunning),
+  )
 
   useEffect(() => {
     if (bundle?.state.winner_reveal_stage !== 2) return
@@ -152,7 +193,7 @@ export function DisplayEventPage() {
           Question {state.current_question_index + 1} of {questions.length}
         </p>
         <h2 className="mb-8 text-3xl font-bold md:text-5xl">{question.text}</h2>
-        <div className="mb-8 text-5xl font-mono tabular-nums">{formatTimer(state.timer_seconds)}</div>
+        <div className="mb-8 text-5xl font-mono tabular-nums">{formatTimer(timerDisplay)}</div>
         <div className="grid gap-4 sm:grid-cols-2">
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
@@ -227,19 +268,26 @@ export function DisplayEventPage() {
       </div>
     )
   } else if (stage.type === 'break') {
-    const breakSec = state.break_timer_seconds ?? (stage.durationMinutes ?? 5) * 60
     body = (
       <div className="px-8 text-center">
         <p className="text-4xl font-bold md:text-6xl">{stage.message ?? 'Break time'}</p>
-        <p className="mt-8 font-mono text-6xl tabular-nums">{formatTimer(breakSec)}</p>
+        <p className="mt-8 font-mono text-6xl tabular-nums">{formatTimer(breakDisplay)}</p>
       </div>
     )
   } else {
     body = <Leaderboard teams={teams} showScores={state.show_scores} layout={layout} />
   }
 
+  const showHeaderTimer =
+    state.show_timer_on_display && !isQuizStage && stage?.type !== 'break'
+
   return (
-    <BrandBackground event={event} organization={organization} variant={variant}>
+    <BrandBackground
+      event={event}
+      organization={organization}
+      variant={variant}
+      className={embed ? 'h-screen overflow-hidden' : undefined}
+    >
       <header className="relative flex items-start justify-between px-6 pt-6">
         <div className="flex flex-1 flex-col items-center">
           {logo ? (
@@ -253,15 +301,17 @@ export function DisplayEventPage() {
             {event.name}
           </h1>
         </div>
-        {state.show_timer_on_display ? (
+        {showHeaderTimer ? (
           <div className="font-mono text-2xl tabular-nums text-white/90">
-            {formatTimer(state.timer_seconds)}
+            {formatTimer(timerDisplay)}
           </div>
         ) : (
           <div className="w-24" />
         )}
       </header>
-      <main className="min-h-[70vh]">{body}</main>
+      <main className={embed ? 'h-[calc(100vh-8rem)] overflow-hidden' : 'min-h-[70vh]'}>
+        {body}
+      </main>
       {showAnnouncement ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-8">
           <p className="max-w-4xl text-center text-3xl font-bold md:text-5xl">

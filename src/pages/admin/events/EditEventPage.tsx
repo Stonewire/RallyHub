@@ -169,7 +169,17 @@ export function AdminEventEditPage() {
               <p className="text-muted-foreground text-sm">
                 Share these URLs with facilitators, displays, and participants.
               </p>
-              <EventLinksPanel eventId={eventId} />
+              <EventLinksPanel
+                eventId={eventId}
+                organization={
+                  orgQuery.data
+                    ? {
+                        subdomain: orgQuery.data.subdomain,
+                        custom_domain: orgQuery.data.custom_domain,
+                      }
+                    : null
+                }
+              />
             </Card>
           ) : null}
 

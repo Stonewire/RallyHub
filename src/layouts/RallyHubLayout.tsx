@@ -7,10 +7,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
 
 const links = [
-  { to: '/rallyhub', label: 'Dashboard', end: true },
-  { to: '/rallyhub/clients', label: 'Clients', end: false },
-  { to: '/rallyhub/games', label: 'Games', end: false },
-  { to: '/rallyhub/support', label: 'Support', end: false },
+  { to: '/admin', label: 'Dashboard', end: true },
+  { to: '/admin/clients', label: 'Clients', end: false },
+  { to: '/admin/games', label: 'Games', end: false },
+  { to: '/admin/support', label: 'Support', end: false },
 ] as const
 
 export function RallyHubLayout() {

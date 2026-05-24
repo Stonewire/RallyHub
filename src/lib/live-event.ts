@@ -1,6 +1,7 @@
 import type { Json } from '@/types/json'
 import type { EventStage } from '@/types/game-config'
 import type { GameConfig, MusicTrack, QuizQuestion } from '@/types/game-config'
+import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
 export type DisplayLayout = 'rank_list' | 'orbit_view'
@@ -9,7 +10,7 @@ export type AnnouncementTarget = 'display' | 'participants' | 'both'
 
 export type LiveEventBundle = {
   event: Tables<'events'>
-  organization: Tables<'organizations'> | null
+  organization: TenantPublicOrg | null
   state: Tables<'event_state'>
   teams: Tables<'teams'>[]
   games: Tables<'games'>[]
@@ -30,7 +31,7 @@ export function currentStage(
 
 export function brandColorsForEvent(
   event: Tables<'events'>,
-  org: Tables<'organizations'> | null,
+  org: TenantPublicOrg | Tables<'organizations'> | null,
 ): [string, string, string] {
   if (event.branding_enabled && Array.isArray(event.brand_colors)) {
     const c = event.brand_colors as string[]
@@ -44,7 +45,7 @@ export function brandColorsForEvent(
 
 export function logoForEvent(
   event: Tables<'events'>,
-  org: Tables<'organizations'> | null,
+  org: TenantPublicOrg | Tables<'organizations'> | null,
 ): string | null {
   if (event.logo_url) return event.logo_url
   return org?.logo_url ?? null
@@ -53,7 +54,7 @@ export function logoForEvent(
 /** [primary, secondary, accent] */
 export function brandBlobColors(
   event: Tables<'events'>,
-  org: Tables<'organizations'> | null,
+  org: TenantPublicOrg | Tables<'organizations'> | null,
 ): { base: string; primary: string; accent: string } {
   const [primary, secondary, accent] = brandColorsForEvent(event, org)
   return { base: secondary, primary, accent }
@@ -71,9 +72,14 @@ export function gamePointsDisplay(game: Tables<'games'>): string {
 }
 
 export function formatTimer(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  return `${h}:${String(m).padStart(2, '0')}`
+  const s = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+  }
+  return `${m}:${String(sec).padStart(2, '0')}`
 }
 
 export function gamePointsLabel(game: Tables<'games'>): string {

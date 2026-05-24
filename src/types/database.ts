@@ -23,6 +23,8 @@ type OrgRow = {
   address_country: string | null
   tablet_password: string | null
   tablet_slug: string
+  subdomain: string
+  custom_domain: string | null
   billing_plan: string
   contact_email: string | null
   account_status: string
@@ -413,8 +415,32 @@ export type Database = {
         Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      organization_tenant_public: {
+        Row: {
+          id: string
+          subdomain: string
+          custom_domain: string | null
+          name: string
+          logo_url: string | null
+          primary_color: string
+          secondary_color: string
+          accent_color: string
+          tablet_slug: string
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      verify_tablet_password: {
+        Args: { p_org_id: string; p_password: string }
+        Returns: boolean
+      }
+      resolve_tenant_by_host: {
+        Args: { p_host: string }
+        Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

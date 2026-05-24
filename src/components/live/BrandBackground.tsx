@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 
 import { brandBlobColors } from '@/lib/live-event'
+import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
 type BrandBackgroundProps = {
   event: Tables<'events'>
-  organization: Tables<'organizations'> | null
+  organization: TenantPublicOrg | Tables<'organizations'> | null
   variant?: 'default' | 'disco' | 'relaxed'
   children: ReactNode
   className?: string

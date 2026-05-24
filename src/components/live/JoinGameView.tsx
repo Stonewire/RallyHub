@@ -1,4 +1,4 @@
-import { Camera, MessageCircle, Video, X } from 'lucide-react'
+import { Camera, LogOut, MessageCircle, Video, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { AccentButton } from '@/components/admin/AccentButton'
@@ -18,7 +18,10 @@ import {
   parseStages,
   quizQuestions,
 } from '@/lib/live-event'
+import { useLiveTimer } from '@/hooks/use-live-timer'
+import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { playSubmitSound } from '@/lib/sounds'
+import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
@@ -32,6 +35,7 @@ type JoinGameViewProps = {
   onSendMessage: (text: string) => void
   announcement: string | null
   onDismissAnnouncement: () => void
+  onExitTeam: () => void
 }
 
 export function JoinGameView({
@@ -42,6 +46,7 @@ export function JoinGameView({
   onSendMessage,
   announcement,
   onDismissAnnouncement,
+  onExitTeam,
 }: JoinGameViewProps) {
   const { event, organization, state, games, submissions } = bundle
   const stages = useMemo(() => parseStages(event.stages_config), [event.stages_config])
@@ -64,8 +69,51 @@ export function JoinGameView({
   const [chatText, setChatText] = useState('')
   const mediaRef = useRef<HTMLInputElement>(null)
 
+  const breakSyncRef = useRef(
+    createThrottledTimerSync(() => {
+      /* display-only read; join does not write break timer */
+    }),
+  )
+
+  const breakSeconds =
+    state.break_timer_seconds ??
+    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+
+  const breakDisplay = useLiveTimer(
+    breakSeconds,
+    Boolean(state.break_timer_running),
+    (next, stillRunning) => breakSyncRef.current(next, stillRunning),
+  )
+
   const mySubs = submissions.filter((s) => s.team_id === teamId)
   const live = isEventLive(event)
+
+  const quizRunning =
+    stage?.type === 'quiz' &&
+    state.timer_running &&
+    state.quiz_state !== 'revealed'
+
+  const quizTimerDisplay = useLiveTimer(
+    state.timer_seconds,
+    Boolean(quizRunning),
+    () => {},
+  )
+
+  async function handleExitTeam() {
+    if (!organization?.id) return
+    const pw = window.prompt('Tablet password to leave this team')
+    if (pw == null) return
+    try {
+      const ok = await verifyTabletPassword(organization.id, pw)
+      if (!ok) {
+        window.alert('Incorrect password')
+        return
+      }
+      onExitTeam()
+    } catch {
+      window.alert('Could not verify password')
+    }
+  }
 
   useEffect(() => {
     if (!captureFile) {
@@ -388,9 +436,10 @@ export function JoinGameView({
     const existing = mySubs.find(
       (s) => s.media_type === 'quiz' && s.game_id === stage.gameId,
     )
+    const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
     const timerPct =
-      state.timer_seconds > 0
-        ? Math.min(100, (state.timer_seconds / 7200) * 100)
+      maxSec > 0
+        ? Math.min(100, (state.timer_seconds / maxSec) * 100)
         : 0
 
     if (state.quiz_state === 'revealed' && q) {
@@ -430,7 +479,7 @@ export function JoinGameView({
             />
           </div>
           <p className="mb-1 text-center text-xs text-white/70">
-            {formatTimer(state.timer_seconds)} remaining
+            {formatTimer(quizTimerDisplay)} remaining
           </p>
           <h2 className="mb-6 text-center text-lg font-bold leading-snug">{q.text}</h2>
           <div className="space-y-3">
@@ -497,11 +546,10 @@ export function JoinGameView({
       </div>
     )
   } else if (stage?.type === 'break') {
-    const sec = state.break_timer_seconds ?? (stage.durationMinutes ?? 5) * 60
     body = (
       <div className="px-6 py-12 text-center">
         <p className="text-2xl font-bold sm:text-4xl">{stage.message ?? 'Break'}</p>
-        <p className="mt-8 font-mono text-5xl tabular-nums">{formatTimer(sec)}</p>
+        <p className="mt-8 font-mono text-5xl tabular-nums">{formatTimer(breakDisplay)}</p>
       </div>
     )
   } else {
@@ -510,6 +558,16 @@ export function JoinGameView({
 
   return (
     <BrandBackground event={event} organization={organization} variant="default">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="fixed top-3 left-3 z-40 size-9 rounded-full bg-black/40 text-white hover:bg-black/60"
+        onClick={() => void handleExitTeam()}
+        aria-label="Leave team"
+      >
+        <LogOut className="size-4" />
+      </Button>
       {header}
       {body}
       {toast ? (

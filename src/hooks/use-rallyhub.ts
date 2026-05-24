@@ -90,6 +90,40 @@ export function useRallyHubClient(clientId: string | undefined) {
   })
 }
 
+export function useUpdateClientAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      orgId,
+      notes,
+      account_status,
+      billing_plan,
+      subdomain,
+    }: {
+      orgId: string
+      notes?: string
+      account_status?: string
+      billing_plan?: string
+      subdomain?: string
+    }) => {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          ...(notes !== undefined ? { internal_notes: notes } : {}),
+          ...(account_status ? { account_status } : {}),
+          ...(billing_plan ? { billing_plan } : {}),
+          ...(subdomain ? { subdomain: subdomain.toLowerCase().trim() } : {}),
+        })
+        .eq('id', orgId)
+      if (error) throw error
+    },
+    onSuccess: (_, { orgId }) => {
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', orgId] })
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
+    },
+  })
+}
+
 export function useUpdateClientNotes() {
   const qc = useQueryClient()
   return useMutation({

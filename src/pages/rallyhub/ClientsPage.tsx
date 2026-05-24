@@ -6,6 +6,7 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useRallyHubClients } from '@/hooks/use-rallyhub'
+import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 
 export function RallyHubClientsPage() {
@@ -15,31 +16,34 @@ export function RallyHubClientsPage() {
     const name = window.prompt('Organization name')
     const email = window.prompt('Admin email')
     const password = window.prompt('Default password', 'Welcome123!')
+    const subdomain = window.prompt('Subdomain (e.g. afterglow)', '')
     if (!name?.trim() || !email?.trim() || !password) return
 
-    const { data: org, error: orgErr } = await supabase
-      .from('organizations')
-      .insert({ name: name.trim(), contact_email: email.trim() })
-      .select()
-      .single()
-    if (orgErr) {
-      alert(orgErr.message)
+    const { data: session } = await supabase.auth.getSession()
+    const token = session.session?.access_token
+    if (!token) {
+      alert('Sign in required')
       return
     }
 
-    const { data: auth, error: authErr } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-client`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        subdomain: subdomain?.trim() || undefined,
+      }),
     })
-    if (authErr) {
-      alert(authErr.message)
+    const json = (await res.json()) as { error?: string }
+    if (!res.ok) {
+      alert(json.error ?? 'Failed to create client')
       return
-    }
-    if (auth.user) {
-      await supabase
-        .from('profiles')
-        .update({ organization_id: org.id, role: 'client_admin' })
-        .eq('id', auth.user.id)
     }
     void refetch()
   }
@@ -65,6 +69,7 @@ export function RallyHubClientsPage() {
               <thead>
                 <tr className="border-border/80 border-b text-left">
                   <th className="text-muted-foreground px-4 py-3 font-medium">Name</th>
+                  <th className="text-muted-foreground px-4 py-3 font-medium">Tenant URL</th>
                   <th className="text-muted-foreground px-4 py-3 font-medium">Email</th>
                   <th className="text-muted-foreground px-4 py-3 font-medium">Plan</th>
                   <th className="text-muted-foreground px-4 py-3 font-medium">Completed</th>
@@ -77,6 +82,12 @@ export function RallyHubClientsPage() {
                 {(data ?? []).map((row) => (
                   <tr key={row.id} className="border-border/60 border-b last:border-0">
                     <td className="text-foreground px-4 py-3 font-medium">{row.name}</td>
+                    <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3 font-mono text-xs">
+                      {getOrganizationOrigin({
+                        subdomain: row.subdomain,
+                        custom_domain: row.custom_domain,
+                      })}
+                    </td>
                     <td className="text-muted-foreground px-4 py-3">
                       {row.contact_email ?? '—'}
                     </td>
@@ -86,7 +97,7 @@ export function RallyHubClientsPage() {
                     <td className="px-4 py-3 capitalize">{row.account_status}</td>
                     <td className="px-4 py-3 text-right">
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={`/rallyhub/clients/${row.id}`}>View</Link>
+                        <Link to={`/admin/clients/${row.id}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

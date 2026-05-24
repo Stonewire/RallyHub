@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { getOrganizationOrigin } from '@/lib/tenant'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -55,11 +56,17 @@ export function orgToForm(org: OrganizationRow): OrganizationFormState {
   }
 }
 
-export function getTabletLink(slug: string) {
-  if (typeof window === 'undefined') {
-    return `/tablet?org=${slug}`
-  }
-  return `${window.location.origin}/tablet?org=${slug}`
+export function getTabletLink(
+  tabletSlug: string,
+  org?: { subdomain: string; custom_domain?: string | null },
+) {
+  const base =
+    org != null
+      ? getOrganizationOrigin(org)
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : ''
+  return `${base}/tablet?org=${tabletSlug}`
 }
 
 export function useOrganization(organizationId: string | null) {

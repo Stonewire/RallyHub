@@ -75,7 +75,10 @@ export function AdminSettingsPage() {
   }
 
   const tabletLink = orgQuery.data
-    ? getTabletLink(orgQuery.data.tablet_slug)
+    ? getTabletLink(orgQuery.data.tablet_slug, {
+        subdomain: orgQuery.data.subdomain,
+        custom_domain: orgQuery.data.custom_domain,
+      })
     : ''
 
   async function handleSave() {

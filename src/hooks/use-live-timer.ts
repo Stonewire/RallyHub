@@ -1,21 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Local countdown synced to Supabase each tick.
- * Uses functional updates so the interval is not reset on every realtime reload.
+ * Local countdown synced to Supabase on tick (throttled by caller).
+ * Only resyncs from server when paused or when drift exceeds threshold.
  */
 export function useLiveTimer(
   serverSeconds: number,
   serverRunning: boolean,
   onTick: (next: number, stillRunning: boolean) => void | Promise<void>,
+  options?: { syncThreshold?: number },
 ) {
+  const syncThreshold = options?.syncThreshold ?? 2
   const [displaySeconds, setDisplaySeconds] = useState(serverSeconds)
   const onTickRef = useRef(onTick)
   onTickRef.current = onTick
+  const localRef = useRef(serverSeconds)
 
   useEffect(() => {
-    setDisplaySeconds(serverSeconds)
-  }, [serverSeconds])
+    localRef.current = displaySeconds
+  }, [displaySeconds])
+
+  useEffect(() => {
+    if (!serverRunning) {
+      setDisplaySeconds(serverSeconds)
+      localRef.current = serverSeconds
+      return
+    }
+    const drift = Math.abs(serverSeconds - localRef.current)
+    if (drift > syncThreshold) {
+      setDisplaySeconds(serverSeconds)
+      localRef.current = serverSeconds
+    }
+  }, [serverSeconds, serverRunning, syncThreshold])
 
   useEffect(() => {
     if (!serverRunning) return

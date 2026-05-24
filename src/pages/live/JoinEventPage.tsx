@@ -21,7 +21,7 @@ function teamKey(eventId: string) {
 
 export function JoinEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const { bundle, loading, error, reload } = useLiveEvent(eventId)
+  const { bundle, loading, error, reload, setBundle } = useLiveEvent(eventId)
   const { messages, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
@@ -38,15 +38,6 @@ export function JoinEventPage() {
 
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
   const hasJoined = Boolean(teamId && myTeam?.name?.trim())
-
-  useEffect(() => {
-    if (!bundle || !teamId) return
-    const team = bundle.teams.find((t) => t.id === teamId)
-    if (!team?.name?.trim()) {
-      localStorage.removeItem(teamKey(bundle.event.id))
-      setTeamId(null)
-    }
-  }, [bundle, teamId])
 
   useEffect(() => {
     if (!claimPhoto) {
@@ -106,12 +97,29 @@ export function JoinEventPage() {
 
       if (updateError) throw updateError
 
+      const trimmed = claimName.trim()
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       setTeamId(claimSlot.id)
       setClaimSlot(null)
       setClaimName('')
       setClaimPhoto(null)
-      await reload()
+      setBundle((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          teams: prev.teams.map((t) =>
+            t.id === claimSlot.id
+              ? {
+                  ...t,
+                  name: trimmed,
+                  photo_url: photoUrl,
+                  status: 'active' as const,
+                }
+              : t,
+          ),
+        }
+      })
+      void reload()
     } catch (err) {
       setClaimError(err instanceof Error ? err.message : 'Could not join team')
     } finally {
@@ -129,6 +137,10 @@ export function JoinEventPage() {
         onSendMessage={(text) => void sendMessage(myTeam.name ?? 'Team', text, teamId)}
         announcement={announcement}
         onDismissAnnouncement={() => setAnnouncement(null)}
+        onExitTeam={() => {
+          localStorage.removeItem(teamKey(eventId!))
+          setTeamId(null)
+        }}
       />
     )
   }

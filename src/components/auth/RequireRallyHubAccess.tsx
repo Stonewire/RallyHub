@@ -4,8 +4,8 @@ import { Navigate } from 'react-router-dom'
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccessRallyHub } from '@/lib/auth-routes'
+import { isPlatformHost } from '@/lib/tenant'
 
-/** Extra guard for /rallyhub tree (RequireAuth already redirects non–super-admins). */
 export function RequireRallyHubAccess({ children }: { children: ReactNode }) {
   const { role, loading, profileLoading } = useAuth()
 
@@ -13,8 +13,12 @@ export function RequireRallyHubAccess({ children }: { children: ReactNode }) {
     return <AuthLoadingScreen />
   }
 
-  if (!canAccessRallyHub(role)) {
+  if (!isPlatformHost()) {
     return <Navigate to="/admin" replace />
+  }
+
+  if (!canAccessRallyHub(role)) {
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>

@@ -1,3 +1,6 @@
+import type { TenantPublicOrg } from '@/lib/tenant'
+import { getOrganizationOrigin } from '@/lib/tenant'
+
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
 
 export type EventLinks = Record<EventLinkKey, string>
@@ -8,8 +11,16 @@ export const EVENT_LINK_LABELS: Record<EventLinkKey, string> = {
   join: 'Join',
 }
 
-export function getEventLinks(eventId: string): EventLinks {
-  const base = typeof window !== 'undefined' ? window.location.origin : ''
+export function getEventLinks(
+  eventId: string,
+  organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null,
+): EventLinks {
+  const base = organization
+    ? getOrganizationOrigin(organization)
+    : typeof window !== 'undefined'
+      ? window.location.origin
+      : ''
+
   return {
     facilitator: `${base}/facilitator/${eventId}`,
     display: `${base}/display/${eventId}`,

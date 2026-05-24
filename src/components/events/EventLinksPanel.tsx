@@ -11,16 +11,22 @@ import {
   qrCodeUrl,
   type EventLinkKey,
 } from '@/lib/event-links'
+import type { TenantPublicOrg } from '@/lib/tenant'
 
 const LINK_ORDER: EventLinkKey[] = ['facilitator', 'display', 'join']
 
 type EventLinksPanelProps = {
   eventId: string
+  organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null
   compact?: boolean
 }
 
-export function EventLinksPanel({ eventId, compact }: EventLinksPanelProps) {
-  const links = getEventLinks(eventId)
+export function EventLinksPanel({
+  eventId,
+  organization,
+  compact,
+}: EventLinksPanelProps) {
+  const links = getEventLinks(eventId, organization)
   const [copied, setCopied] = useState<EventLinkKey | null>(null)
 
   async function handleCopy(key: EventLinkKey) {
