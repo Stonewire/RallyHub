@@ -6,9 +6,9 @@ type LivePanelShellProps = {
   title: string
   subtitle?: ReactNode
   headerExtra?: ReactNode
-  aside?: ReactNode
   children: ReactNode
   className?: string
+  titleCentered?: boolean
 }
 
 /** Admin-matched shell for facilitator / join / tablet control panels. */
@@ -16,27 +16,31 @@ export function LivePanelShell({
   title,
   subtitle,
   headerExtra,
-  aside,
   children,
   className,
+  titleCentered,
 }: LivePanelShellProps) {
   return (
     <div className="bg-background text-foreground min-h-screen">
-      <div className={cn('mx-auto w-full max-w-6xl px-6 py-8 sm:px-10', className)}>
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-            {subtitle ? (
-              <div className="text-muted-foreground mt-2 text-base leading-relaxed">
-                {subtitle}
-              </div>
-            ) : null}
-            {headerExtra ? <div className="mt-4">{headerExtra}</div> : null}
-          </div>
-          {aside ? (
-            <div className="w-full shrink-0 lg:w-[min(100%,320px)]">{aside}</div>
+      <div className={cn('mx-auto w-full max-w-6xl px-6 py-6 sm:px-8', className)}>
+        <header
+          className={cn(
+            'mb-6',
+            titleCentered ? 'text-center' : 'flex flex-col gap-2',
+          )}
+        >
+          <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
+            {title}
+          </h1>
+          {subtitle ? (
+            <div className="text-muted-foreground mt-1 text-sm">{subtitle}</div>
           ) : null}
-        </div>
+          {headerExtra ? (
+            <div className={cn('mt-3', titleCentered && 'flex justify-center')}>
+              {headerExtra}
+            </div>
+          ) : null}
+        </header>
         {children}
       </div>
     </div>

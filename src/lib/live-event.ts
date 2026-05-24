@@ -46,8 +46,28 @@ export function logoForEvent(
   event: Tables<'events'>,
   org: Tables<'organizations'> | null,
 ): string | null {
-  if (event.branding_enabled && event.logo_url) return event.logo_url
+  if (event.logo_url) return event.logo_url
   return org?.logo_url ?? null
+}
+
+/** [primary, secondary, accent] */
+export function brandBlobColors(
+  event: Tables<'events'>,
+  org: Tables<'organizations'> | null,
+): { base: string; primary: string; accent: string } {
+  const [primary, secondary, accent] = brandColorsForEvent(event, org)
+  return { base: secondary, primary, accent }
+}
+
+export function isEventLive(event: Tables<'events'>): boolean {
+  return event.status === 'active'
+}
+
+export function gamePointsDisplay(game: Tables<'games'>): string {
+  if (game.points_type === 'range') {
+    return `Up to ${game.points_max ?? 0}`
+  }
+  return `${game.points_static ?? 0} pts`
 }
 
 export function formatTimer(seconds: number): string {
@@ -73,26 +93,26 @@ export function bingoTracks(game: Tables<'games'>): MusicTrack[] {
   return config.tracks ?? []
 }
 
-/** Deterministic 25-cell bingo card from team + game. */
-export function bingoCardTitles(
-  teamId: string,
-  tracks: MusicTrack[],
-): string[] {
+function shuffleWithSeed<T>(items: T[], seed: number): T[] {
+  const arr = [...items]
+  let s = seed
+  for (let i = arr.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff
+    const j = s % (i + 1)
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+/** Unique 25-cell bingo card per team from playlist (needs 25+ tracks). */
+export function bingoCardTitles(teamId: string, tracks: MusicTrack[]): string[] {
   const titles = tracks.map((t) => `${t.title} — ${t.artist}`)
-  const out: string[] = []
+  if (titles.length < 25) {
+    return Array.from({ length: 25 }, (_, i) => titles[i % titles.length] ?? `Song ${i + 1}`)
+  }
   let seed = 0
   for (let i = 0; i < teamId.length; i++) seed += teamId.charCodeAt(i)
-  const pool = [...titles]
-  for (let i = 0; i < 25; i++) {
-    if (pool.length === 0) {
-      out.push(`Square ${i + 1}`)
-      continue
-    }
-    const idx = (seed + i * 7) % pool.length
-    out.push(pool[idx])
-    pool.splice(idx, 1)
-  }
-  return out
+  return shuffleWithSeed(titles, seed).slice(0, 25)
 }
 
 export const FACILITATOR_NAME_KEY = 'rallyhub_facilitator_name'

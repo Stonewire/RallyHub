@@ -1,5 +1,5 @@
-import { Check, Copy, Pause, Play, Plus, Minus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Check, Copy, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
-import { useEventTimerTick } from '@/hooks/use-event-timer'
+import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import {
   FACILITATOR_NAME_KEY,
@@ -23,12 +23,15 @@ import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables } from '@/types/helpers'
 
+const ANNOUNCEMENT_MS = 60_000
+
 export function FacilitatorEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const [name, setName] = useState(() => localStorage.getItem(FACILITATOR_NAME_KEY) ?? '')
   const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
+  const annClearRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [announcement, setAnnouncement] = useState('')
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
@@ -43,26 +46,39 @@ export function FacilitatorEventPage() {
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
+  const state = bundle?.state
 
-  useEventTimerTick(
-    Boolean(bundle?.state.timer_running),
-    bundle?.state.timer_seconds ?? 0,
-    (next) => {
-      if (bundle) void updateState({ timer_seconds: next })
+  const timerDisplay = useLiveTimer(
+    state?.timer_seconds ?? 0,
+    Boolean(state?.timer_running),
+    (next, stillRunning) => {
+      if (!bundle) return
+      void updateState({
+        timer_seconds: next,
+        timer_running: stillRunning,
+      })
     },
   )
 
-  useEventTimerTick(
-    Boolean(bundle?.state.break_timer_running),
-    bundle?.state.break_timer_seconds ?? 0,
-    (next) => {
-      if (bundle) void updateState({ break_timer_seconds: next })
+  const breakSeconds =
+    state?.break_timer_seconds ??
+    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+
+  const breakDisplay = useLiveTimer(
+    breakSeconds,
+    Boolean(state?.break_timer_running),
+    (next, stillRunning) => {
+      if (!bundle) return
+      void updateState({
+        break_timer_seconds: next,
+        break_timer_running: stillRunning,
+      })
     },
   )
 
   if (namePrompt) {
     return (
-      <LivePanelShell title="Facilitator" subtitle="Enter your name to continue">
+      <LivePanelShell title="Facilitator" titleCentered>
         <Card className="border-border/80 mx-auto w-full max-w-sm space-y-4 bg-card p-6 shadow-sm">
           <Label htmlFor="facilitator-name">Your name</Label>
           <Input
@@ -85,22 +101,43 @@ export function FacilitatorEventPage() {
     )
   }
 
-  if (loading || !bundle) {
+  if (loading || !bundle || !state) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        {loading ? 'Loading…' : (error ?? 'Event not found')}
-      </div>
+      <LivePanelShell title="Facilitator" titleCentered>
+        <p className="text-muted-foreground text-center text-sm">
+          {loading ? 'Loading…' : (error ?? 'Event not found')}
+        </p>
+      </LivePanelShell>
     )
   }
 
-  const { event, state, teams, games, submissions } = bundle
-  const links = eventId ? getEventLinks(eventId) : null
-  const displayUrl = links?.display ?? ''
+  const { event, teams, games, submissions } = bundle
+  const displayUrl = eventId ? getEventLinks(eventId).display : ''
 
   const filteredSubs = submissions.filter((s) => {
     if (subTab === 'all') return true
     return s.status === subTab
   })
+
+  async function clearAnnouncement() {
+    if (annClearRef.current) {
+      window.clearTimeout(annClearRef.current)
+      annClearRef.current = null
+    }
+    await updateState({ announcement: null, announcement_target: null })
+  }
+
+  function sendAnnouncement(target: 'display' | 'participants' | 'both') {
+    if (annClearRef.current) window.clearTimeout(annClearRef.current)
+    void updateState({
+      announcement,
+      announcement_target: target,
+      updated_at: new Date().toISOString(),
+    })
+    annClearRef.current = window.setTimeout(() => {
+      void clearAnnouncement()
+    }, ANNOUNCEMENT_MS)
+  }
 
   async function approveSubmission(sub: Tables<'submissions'>) {
     const game = games.find((g) => g.id === sub.game_id)
@@ -153,34 +190,6 @@ export function FacilitatorEventPage() {
     }
   }
 
-  const displayPreview = (
-    <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
-      <p className="text-muted-foreground border-border/80 border-b px-3 py-2 text-xs font-medium">
-        Display preview
-      </p>
-      <div className="aspect-video w-full bg-black">
-        <iframe title="Display preview" src={displayUrl} className="size-full border-0" />
-      </div>
-      <div className="space-y-2 p-3">
-        <Input readOnly value={displayUrl} className="bg-background font-mono text-xs" />
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            void copyToClipboard(displayUrl)
-            setCopied(true)
-            window.setTimeout(() => setCopied(false), 2000)
-          }}
-        >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          Copy display link
-        </Button>
-      </div>
-    </Card>
-  )
-
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
@@ -204,28 +213,52 @@ export function FacilitatorEventPage() {
   return (
     <LivePanelShell
       title={event.name}
+      titleCentered
       subtitle={
         others.length > 0 ? (
           <span>Also viewing: {others.map((o) => o.name).join(', ')}</span>
-        ) : (
-          'Live facilitation controls'
-        )
-      }
-      aside={
-        <div className="lg:sticky lg:top-8">{displayPreview}</div>
+        ) : undefined
       }
     >
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex justify-center">
         <StatusIndicator
           status={event.status as 'active' | 'ready' | 'draft' | 'archived'}
         />
-        <span className="text-muted-foreground text-sm capitalize">{event.status}</span>
+        <span className="text-muted-foreground ml-2 text-sm capitalize">
+          {event.status}
+        </span>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <div className="space-y-6">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
+            <div className="flex items-stretch gap-2 p-2">
+              <div className="aspect-video min-w-0 flex-1 overflow-hidden rounded-md bg-black">
+                <iframe
+                  title="Display preview"
+                  src={displayUrl}
+                  className="size-full border-0"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 self-center px-3"
+                onClick={() => {
+                  void copyToClipboard(displayUrl)
+                  setCopied(true)
+                  window.setTimeout(() => setCopied(false), 2000)
+                }}
+              >
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                <span className="sr-only sm:not-sr-only sm:ml-1">Copy display link</span>
+              </Button>
+            </div>
+          </Card>
+
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-            <p className="font-mono text-3xl tabular-nums">{formatTimer(state.timer_seconds)}</p>
+            <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
@@ -286,7 +319,7 @@ export function FacilitatorEventPage() {
             </div>
           </Card>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 px-1 text-sm">
             <input
               type="checkbox"
               checked={state.show_scores}
@@ -295,13 +328,13 @@ export function FacilitatorEventPage() {
             Show scores on display
           </label>
 
-          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
+          <Card className="border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
             <p className="font-medium">Teams</p>
             <ul className="space-y-2">
               {teams.map((team) => (
                 <li
                   key={team.id}
-                  className="border-border flex items-center gap-3 rounded-lg border p-2"
+                  className="border-border/80 flex items-center gap-3 rounded-lg border p-2"
                 >
                   <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
                   <div
@@ -322,22 +355,11 @@ export function FacilitatorEventPage() {
                     {team.name?.trim() || 'Available'}
                   </button>
                   <span className="text-sm tabular-nums">{team.score}</span>
-                  <StatusIndicator
-                    status={
-                      team.status === 'active'
-                        ? 'active'
-                        : team.status === 'stopped'
-                          ? 'archived'
-                          : 'draft'
-                    }
-                  />
                   <select
-                    className="text-xs"
+                    className="border-input bg-background rounded border px-1 text-xs"
                     value={team.status}
                     onChange={(e) =>
-                      void updateTeam(team.id, {
-                        status: e.target.value,
-                      })
+                      void updateTeam(team.id, { status: e.target.value })
                     }
                   >
                     <option value="idle">idle</option>
@@ -354,40 +376,66 @@ export function FacilitatorEventPage() {
             <Input
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
+              className="bg-background"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(['display', 'participants', 'both'] as const).map((t) => (
                 <Button
                   key={t}
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    void updateState({
-                      announcement,
-                      announcement_target: t,
-                      updated_at: new Date().toISOString(),
-                    })
-                  }
+                  onClick={() => sendAnnouncement(t)}
                 >
                   {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
                 </Button>
               ))}
             </div>
-            <Button
-              variant="outline"
-              onClick={() =>
-                void updateState({
-                  winner_reveal_stage: state.winner_reveal_stage >= 2 ? 0 : state.winner_reveal_stage + 1,
-                })
-              }
-            >
-              Reveal Winner ({state.winner_reveal_stage}/2)
-            </Button>
+            {state.announcement ? (
+              <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                <span className="text-muted-foreground line-clamp-2 flex-1">
+                  Live: {state.announcement}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void clearAnnouncement()}
+                >
+                  <X className="size-4" />
+                  Clear
+                </Button>
+              </div>
+            ) : null}
+            <p className="text-muted-foreground text-xs">
+              Clears automatically after 1 minute, or use Clear.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  void updateState({
+                    winner_reveal_stage: Math.min(2, state.winner_reveal_stage + 1),
+                  })
+                }
+              >
+                Reveal Winner ({state.winner_reveal_stage}/2)
+              </Button>
+              {state.winner_reveal_stage > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void updateState({ winner_reveal_stage: 0 })}
+                >
+                  <RotateCcw className="size-4" />
+                  Reset winner
+                </Button>
+              ) : null}
+            </div>
           </Card>
-
         </div>
 
-        <Card className="border-border/80 min-h-[320px] bg-card p-4 shadow-sm">
+        <Card className="border-border/80 bg-card p-4 shadow-sm">
           {!stage || stage.type === 'open' ? (
             <>
               <div className="mb-3 flex gap-2">
@@ -402,14 +450,14 @@ export function FacilitatorEventPage() {
                   </Button>
                 ))}
               </div>
-              <ul className="max-h-[60vh] space-y-3 overflow-auto">
+              <ul className="max-h-[70vh] space-y-3 overflow-auto">
                 {filteredSubs
                   .filter((s) => s.media_type === 'photo' || s.media_type === 'video')
                   .map((sub) => {
                     const team = teams.find((t) => t.id === sub.team_id)
                     const game = games.find((g) => g.id === sub.game_id)
                     return (
-                      <li key={sub.id} className="flex gap-3 rounded-lg border p-2">
+                      <li key={sub.id} className="border-border/80 flex gap-3 rounded-lg border p-2">
                         {sub.media_url ? (
                           sub.media_type === 'video' ? (
                             <video src={sub.media_url} className="size-16 rounded object-cover" />
@@ -444,7 +492,7 @@ export function FacilitatorEventPage() {
             </>
           ) : stage.type === 'quiz' && question ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Q {state.current_question_index + 1} / {questions.length}
               </p>
               <p className="text-lg font-semibold">{question.text}</p>
@@ -470,8 +518,9 @@ export function FacilitatorEventPage() {
                     void updateState({
                       current_question_index: Math.min(
                         questions.length - 1,
-                        state.current_question_index + 2,
+                        state.current_question_index + 1,
                       ),
+                      quiz_state: 'waiting',
                     })
                   }
                 >
@@ -511,15 +560,12 @@ export function FacilitatorEventPage() {
                 >
                   Next Track
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => void updateState({ bingo_state: 'revealed' })}>
-                  Reveal
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void updateState({ bingo_state: 'finished' })}
+                  onClick={() => void updateState({ bingo_state: 'revealed' })}
                 >
-                  Finish
+                  Reveal
                 </Button>
               </div>
               <ul className="text-sm">{bingoTeams.map((n) => <li key={n}>{n}</li>)}</ul>
@@ -527,21 +573,41 @@ export function FacilitatorEventPage() {
           ) : stage.type === 'break' ? (
             <div className="space-y-4">
               <p className="text-lg">{stage.message}</p>
-              <p className="font-mono text-2xl">
-                {formatTimer(state.break_timer_seconds ?? (stage.durationMinutes ?? 5) * 60)}
-              </p>
-              <Button
-                size="sm"
-                onClick={() => {
-                  const sec = (stage.durationMinutes ?? 5) * 60
-                  void updateState({
-                    break_timer_seconds: state.break_timer_seconds ?? sec,
-                    break_timer_running: true,
-                  })
-                }}
-              >
-                Start break timer
-              </Button>
+              <p className="font-mono text-2xl tabular-nums">{formatTimer(breakDisplay)}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void updateState({
+                      break_timer_running: !state.break_timer_running,
+                    })
+                  }
+                >
+                  {state.break_timer_running ? (
+                    <>
+                      <Pause className="size-4" /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="size-4" /> Start
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const sec = (stage.durationMinutes ?? 5) * 60
+                    void updateState({
+                      break_timer_seconds: sec,
+                      break_timer_running: true,
+                    })
+                  }}
+                >
+                  Start break timer
+                </Button>
+              </div>
             </div>
           ) : null}
         </Card>
@@ -549,19 +615,19 @@ export function FacilitatorEventPage() {
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-md space-y-4 p-6">
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
             <h3 className="font-semibold">Team slot {claimSlot.slot_number}</h3>
-            <Input value={claimName} onChange={(e) => setClaimName(e.target.value)} placeholder="Team name" />
+            <Input
+              value={claimName}
+              onChange={(e) => setClaimName(e.target.value)}
+              placeholder="Team name"
+              className="bg-background"
+            />
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)}
             />
-            {uploading ? (
-              <div className="bg-muted h-2 overflow-hidden rounded">
-                <div className="bg-[#FFCB03] h-full w-1/2 animate-pulse" />
-              </div>
-            ) : null}
             <input
               type="color"
               value={claimSlot.color ?? '#888888'}
@@ -571,10 +637,7 @@ export function FacilitatorEventPage() {
               <Button variant="outline" onClick={() => setClaimSlot(null)}>
                 Cancel
               </Button>
-              <Button
-                disabled={uploading || (claimPhoto != null && uploading)}
-                onClick={() => void saveClaim()}
-              >
+              <Button disabled={uploading} onClick={() => void saveClaim()}>
                 Save
               </Button>
             </div>

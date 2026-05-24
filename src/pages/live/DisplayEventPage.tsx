@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
@@ -7,7 +7,6 @@ import { Leaderboard } from '@/components/live/Leaderboards'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import {
   bingoTracks,
-  brandColorsForEvent,
   currentStage,
   formatTimer,
   logoForEvent,
@@ -18,24 +17,12 @@ import {
 export function DisplayEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const { bundle, loading, error } = useLiveEvent(eventId)
-  const [announcementVisible, setAnnouncementVisible] = useState(false)
-  const [announcementText, setAnnouncementText] = useState('')
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
-
-  useEffect(() => {
-    if (!bundle?.state.announcement) return
-    const target = bundle.state.announcement_target
-    if (target !== 'display' && target !== 'both') return
-    setAnnouncementText(bundle.state.announcement)
-    setAnnouncementVisible(true)
-    const t = window.setTimeout(() => setAnnouncementVisible(false), 4000)
-    return () => window.clearTimeout(t)
-  }, [bundle?.state.announcement, bundle?.state.updated_at, bundle?.state.announcement_target])
 
   useEffect(() => {
     if (bundle?.state.winner_reveal_stage !== 2) return
@@ -65,8 +52,11 @@ export function DisplayEventPage() {
   }
 
   const { event, organization, state, teams, games, submissions } = bundle
-  const colors = brandColorsForEvent(event, organization)
   const logo = logoForEvent(event, organization)
+  const showAnnouncement =
+    Boolean(state.announcement) &&
+    (state.announcement_target === 'display' ||
+      state.announcement_target === 'both')
   const variant =
     stage?.type === 'break'
       ? 'relaxed'
@@ -144,7 +134,7 @@ export function DisplayEventPage() {
   } else if (event.status !== 'active') {
     body = (
       <p className="text-center text-2xl text-white/80">
-        {event.status === 'archived' ? 'Game over — thanks for playing!' : 'The game will start soon…'}
+        Event starting soon…
       </p>
     )
   } else if (!stage || stage.type === 'open') {
@@ -249,7 +239,7 @@ export function DisplayEventPage() {
   }
 
   return (
-    <BrandBackground colors={colors} variant={variant}>
+    <BrandBackground event={event} organization={organization} variant={variant}>
       <header className="relative flex items-start justify-between px-6 pt-6">
         <div className="flex flex-1 flex-col items-center">
           {logo ? (
@@ -272,10 +262,10 @@ export function DisplayEventPage() {
         )}
       </header>
       <main className="min-h-[70vh]">{body}</main>
-      {announcementVisible ? (
+      {showAnnouncement ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-8">
           <p className="max-w-4xl text-center text-3xl font-bold md:text-5xl">
-            {announcementText}
+            {state.announcement}
           </p>
         </div>
       ) : null}
