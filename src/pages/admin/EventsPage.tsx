@@ -1,9 +1,11 @@
 import {
   Calendar,
-  ExternalLink,
+  Link2,
+  Monitor,
   Pencil,
-  RefreshCw,
+  Presentation,
   Trash2,
+  Users,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -20,13 +22,14 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { EventLinksModal } from '@/components/events/EventLinksModal'
+import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import {
   groupEventsByStatus,
-  nextEventStatus,
   useDeleteEvent,
   useEvents,
   useUpdateEventStatus,
@@ -46,13 +49,15 @@ function formatEventDate(iso: string | null) {
 function EventRow({
   event,
   onDelete,
-  onStatusCycle,
+  onStatusChange,
+  onViewLinks,
   deleting,
   statusPending,
 }: {
   event: EventRow
   onDelete: () => void
-  onStatusCycle: () => void
+  onStatusChange: (status: EventStatus) => void
+  onViewLinks: () => void
   deleting: boolean
   statusPending: boolean
 }) {
@@ -60,6 +65,28 @@ function EventRow({
     <CompactListRow
       actions={
         <>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/facilitator/${event.id}`} target="_blank" rel="noreferrer">
+              <Presentation className="size-3.5" />
+              Facilitator
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/display/${event.id}`} target="_blank" rel="noreferrer">
+              <Monitor className="size-3.5" />
+              Display
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/join/${event.id}`} target="_blank" rel="noreferrer">
+              <Users className="size-3.5" />
+              Join
+            </Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onViewLinks}>
+            <Link2 className="size-3.5" />
+            View Links
+          </Button>
           <Button variant="ghost" size="icon-sm" asChild>
             <Link to={`/admin/events/${event.id}`} title="Edit">
               <Pencil className="size-3.5" />
@@ -75,30 +102,11 @@ function EventRow({
           >
             <Trash2 className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" asChild>
-            <Link to={`/facilitator/${event.id}`} target="_blank" title="Facilitator">
-              <ExternalLink className="size-3.5" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon-sm" asChild>
-            <Link to={`/display/${event.id}`} target="_blank" title="Display">
-              <ExternalLink className="size-3.5" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon-sm" asChild>
-            <Link to={`/join/${event.id}`} target="_blank" title="Join">
-              <ExternalLink className="size-3.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <EventStatusMenu
+            status={event.status as EventStatus}
             disabled={statusPending}
-            onClick={onStatusCycle}
-            title="Change status"
-          >
-            <RefreshCw className="size-3.5" />
-          </Button>
+            onSelect={onStatusChange}
+          />
         </>
       }
     >
@@ -128,6 +136,9 @@ export function AdminEventsPage() {
   const groups = groupEventsByStatus(eventsQuery.data ?? [])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     loadCollapsedState(),
+  )
+  const [linksModal, setLinksModal] = useState<{ id: string; name: string } | null>(
+    null,
   )
 
   useEffect(() => {
@@ -196,11 +207,11 @@ export function AdminEventsPage() {
                     deleting={deleteEvent.isPending}
                     statusPending={updateStatus.isPending}
                     onDelete={() => void handleDelete(event.id, event.name)}
-                    onStatusCycle={() =>
-                      void updateStatus.mutateAsync({
-                        eventId: event.id,
-                        status: nextEventStatus(event.status as EventStatus),
-                      })
+                    onStatusChange={(status) =>
+                      void updateStatus.mutateAsync({ eventId: event.id, status })
+                    }
+                    onViewLinks={() =>
+                      setLinksModal({ id: event.id, name: event.name })
                     }
                   />
                 ))}
@@ -209,6 +220,14 @@ export function AdminEventsPage() {
           ))}
         </div>
       )}
+
+      {linksModal ? (
+        <EventLinksModal
+          eventId={linksModal.id}
+          eventName={linksModal.name}
+          onClose={() => setLinksModal(null)}
+        />
+      ) : null}
     </AdminPageShell>
   )
 }

@@ -1,16 +1,18 @@
-import { MessageCircle, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Camera, MessageCircle, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { AccentButton } from '@/components/admin/AccentButton'
+import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import {
   PARTICIPANT_TEAM_KEY,
   bingoCardTitles,
   bingoTracks,
-  brandColorsForEvent,
   currentStage,
   formatTimer,
   gamePointsLabel,
@@ -29,8 +31,9 @@ function teamKey(eventId: string) {
 
 export function JoinEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const { bundle, loading, error, updateTeam } = useLiveEvent(eventId)
+  const { bundle, loading, error, reload } = useLiveEvent(eventId)
   const { messages, sendMessage } = useChatMessages(eventId)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [teamId, setTeamId] = useState<string | null>(() =>
     eventId ? localStorage.getItem(teamKey(eventId)) : null,
@@ -38,7 +41,9 @@ export function JoinEventPage() {
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatText, setChatText] = useState('')
   const [announcement, setAnnouncement] = useState<string | null>(null)
@@ -53,6 +58,26 @@ export function JoinEventPage() {
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
+  const hasJoined = Boolean(teamId && myTeam?.name?.trim())
+
+  useEffect(() => {
+    if (!bundle || !teamId) return
+    const team = bundle.teams.find((t) => t.id === teamId)
+    if (!team?.name?.trim()) {
+      localStorage.removeItem(teamKey(bundle.event.id))
+      setTeamId(null)
+    }
+  }, [bundle, teamId])
+
+  useEffect(() => {
+    if (!claimPhoto) {
+      setPhotoPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(claimPhoto)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [claimPhoto])
 
   useEffect(() => {
     if (!bundle?.state.announcement) return
@@ -83,13 +108,13 @@ export function JoinEventPage() {
 
   const { event, organization, state, teams, games, submissions } = bundle
   const logo = logoForEvent(event, organization)
-  const colors = brandColorsForEvent(event, organization)
 
   async function claimTeam() {
-    if (!claimSlot || !eventId) return
+    if (!claimSlot || !eventId || !claimName.trim()) return
     setUploading(true)
+    setClaimError(null)
     try {
-      let photoUrl: string | null = null
+      let photoUrl: string | null = claimSlot.photo_url
       if (claimPhoto) {
         photoUrl = await uploadAsset(
           'game-assets',
@@ -97,14 +122,25 @@ export function JoinEventPage() {
           claimPhoto,
         )
       }
-      await updateTeam(claimSlot.id, {
-        name: claimName.trim(),
-        photo_url: photoUrl,
-        status: 'active',
-      })
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          name: claimName.trim(),
+          photo_url: photoUrl,
+          status: 'active',
+        })
+        .eq('id', claimSlot.id)
+
+      if (updateError) throw updateError
+
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       setTeamId(claimSlot.id)
       setClaimSlot(null)
+      setClaimName('')
+      setClaimPhoto(null)
+      await reload()
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : 'Could not join team')
     } finally {
       setUploading(false)
     }
@@ -154,24 +190,30 @@ export function JoinEventPage() {
     })
   }
 
-  if (!teamId || !myTeam) {
+  if (!hasJoined) {
     return (
-      <div className="bg-background min-h-screen p-4">
+      <LivePanelShell title={event.name} subtitle="Choose a team slot to join">
         {logo ? (
-          <img src={logo} alt="" className="mx-auto mb-4 max-h-16 object-contain" />
+          <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />
         ) : null}
-        <h1 className="mb-6 text-center text-2xl font-bold">{event.name}</h1>
         <div className="mx-auto grid max-w-lg gap-3 sm:grid-cols-2">
           {teams.map((team) => (
             <button
               key={team.id}
               type="button"
               disabled={Boolean(team.name?.trim())}
-              className="border-border flex flex-col items-center gap-2 rounded-xl border p-4 disabled:opacity-60"
-              onClick={() => !team.name?.trim() && setClaimSlot(team)}
+              className="border-border/80 bg-card hover:bg-muted/40 flex flex-col items-center gap-2 rounded-xl border p-4 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => {
+                if (!team.name?.trim()) {
+                  setClaimSlot(team)
+                  setClaimName('')
+                  setClaimPhoto(null)
+                  setClaimError(null)
+                }
+              }}
             >
               <div
-                className="size-10 rounded-full"
+                className="size-10 rounded-full ring-2 ring-white"
                 style={{ background: team.color ?? '#888' }}
               />
               {team.photo_url && team.name ? (
@@ -185,20 +227,76 @@ export function JoinEventPage() {
         </div>
         {claimSlot ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <Card className="w-full max-w-sm space-y-4 p-6">
-              <h3 className="font-semibold">Join team {claimSlot.slot_number}</h3>
-              <Input value={claimName} onChange={(e) => setClaimName(e.target.value)} placeholder="Team name" />
-              <input type="file" accept="image/*" capture="environment" onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)} />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setClaimSlot(null)}>Cancel</Button>
-                <Button disabled={uploading || !claimName.trim()} onClick={() => void claimTeam()}>
-                  Join
+            <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+              <h3 className="text-foreground font-semibold">
+                Join team {claimSlot.slot_number}
+              </h3>
+              <div className="space-y-2">
+                <Label htmlFor="team-name">Team name</Label>
+                <Input
+                  id="team-name"
+                  value={claimName}
+                  onChange={(e) => setClaimName(e.target.value)}
+                  placeholder="Team name"
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Photo</Label>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  <Camera className="size-4" />
+                  Take Photo
                 </Button>
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="border-border/80 mx-auto max-h-40 rounded-lg border object-contain"
+                  />
+                ) : null}
+              </div>
+              {claimError ? (
+                <p className="text-destructive text-sm" role="alert">
+                  {claimError}
+                </p>
+              ) : null}
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setClaimSlot(null)}>
+                  Cancel
+                </Button>
+                <AccentButton
+                  className="flex-1"
+                  disabled={uploading || !claimName.trim()}
+                  onClick={() => void claimTeam()}
+                >
+                  {uploading ? 'Joining…' : 'Join'}
+                </AccentButton>
               </div>
             </Card>
           </div>
         ) : null}
-      </div>
+      </LivePanelShell>
+    )
+  }
+
+  if (!myTeam) {
+    return (
+      <LivePanelShell title={event.name} subtitle="Loading your team…">
+        <p className="text-muted-foreground text-sm">Please wait…</p>
+      </LivePanelShell>
     )
   }
 
@@ -384,19 +482,16 @@ export function JoinEventPage() {
   }
 
   return (
-    <div className="bg-background min-h-screen pb-20" style={{ ['--brand' as string]: colors[2] }}>
-      <header
-        className="sticky top-0 z-10 border-b px-4 py-3"
-        style={{ background: `linear-gradient(180deg, ${colors[0]}22, transparent)` }}
-      >
-        {logo ? <img src={logo} alt="" className="mx-auto mb-2 max-h-10" /> : null}
-        <h1 className="text-center text-lg font-bold">{event.name}</h1>
-        <div className="mt-2 flex justify-between text-sm">
-          <span>{myTeam.name}</span>
-          <span className="font-bold tabular-nums">{myTeam.score} pts</span>
+    <div className="bg-background min-h-screen pb-20">
+      <div className="border-border/80 bg-card sticky top-0 z-10 border-b px-6 py-4 shadow-sm">
+        {logo ? <img src={logo} alt="" className="mx-auto mb-2 max-h-10 object-contain" /> : null}
+        <h1 className="text-foreground text-center text-lg font-bold">{event.name}</h1>
+        <div className="text-muted-foreground mt-2 flex justify-between text-sm">
+          <span className="text-foreground font-medium">{myTeam.name}</span>
+          <span className="text-foreground font-bold tabular-nums">{myTeam.score} pts</span>
         </div>
-      </header>
-      {main}
+      </div>
+      <div className="mx-auto max-w-6xl px-6 py-6">{main}</div>
       <Button
         className="fixed bottom-4 right-4 rounded-full shadow-lg"
         size="icon"

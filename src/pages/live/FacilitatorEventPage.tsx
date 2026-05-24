@@ -1,7 +1,8 @@
-import { Check, Copy, GripVertical, Pause, Play, Plus, Minus } from 'lucide-react'
+import { Check, Copy, Pause, Play, Plus, Minus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,7 @@ import {
   parseStages,
   quizQuestions,
 } from '@/lib/live-event'
+import { copyToClipboard, getEventLinks } from '@/lib/event-links'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables } from '@/types/helpers'
@@ -33,11 +35,8 @@ export function FacilitatorEventPage() {
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [uploadPct, setUploadPct] = useState(0)
   const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [copied, setCopied] = useState(false)
-  const [previewPos, setPreviewPos] = useState({ x: 24, y: 80 })
-  const [dragging, setDragging] = useState(false)
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
@@ -63,11 +62,15 @@ export function FacilitatorEventPage() {
 
   if (namePrompt) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm space-y-4 p-6">
-          <h1 className="text-lg font-semibold">Facilitator</h1>
-          <Label>Your name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+      <LivePanelShell title="Facilitator" subtitle="Enter your name to continue">
+        <Card className="border-border/80 mx-auto w-full max-w-sm space-y-4 bg-card p-6 shadow-sm">
+          <Label htmlFor="facilitator-name">Your name</Label>
+          <Input
+            id="facilitator-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="bg-background"
+          />
           <Button
             disabled={!name.trim()}
             onClick={() => {
@@ -78,7 +81,7 @@ export function FacilitatorEventPage() {
             Continue
           </Button>
         </Card>
-      </div>
+      </LivePanelShell>
     )
   }
 
@@ -91,10 +94,8 @@ export function FacilitatorEventPage() {
   }
 
   const { event, state, teams, games, submissions } = bundle
-  const displayUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/display/${eventId}`
-      : `/display/${eventId}`
+  const links = eventId ? getEventLinks(eventId) : null
+  const displayUrl = links?.display ?? ''
 
   const filteredSubs = submissions.filter((s) => {
     if (subTab === 'all') return true
@@ -149,9 +150,36 @@ export function FacilitatorEventPage() {
       setClaimPhoto(null)
     } finally {
       setUploading(false)
-      setUploadPct(0)
     }
   }
+
+  const displayPreview = (
+    <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
+      <p className="text-muted-foreground border-border/80 border-b px-3 py-2 text-xs font-medium">
+        Display preview
+      </p>
+      <div className="aspect-video w-full bg-black">
+        <iframe title="Display preview" src={displayUrl} className="size-full border-0" />
+      </div>
+      <div className="space-y-2 p-3">
+        <Input readOnly value={displayUrl} className="bg-background font-mono text-xs" />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            void copyToClipboard(displayUrl)
+            setCopied(true)
+            window.setTimeout(() => setCopied(false), 2000)
+          }}
+        >
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          Copy display link
+        </Button>
+      </div>
+    </Card>
+  )
 
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
@@ -174,25 +202,29 @@ export function FacilitatorEventPage() {
     .filter(Boolean)
 
   return (
-    <div className="bg-background min-h-screen p-4 md:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">{event.name}</h1>
-          <StatusIndicator
-            status={event.status as 'active' | 'ready' | 'draft' | 'archived'}
-            className="mt-1"
-          />
-        </div>
-        {others.length > 0 ? (
-          <p className="text-muted-foreground text-xs">
-            Also viewing: {others.map((o) => o.name).join(', ')}
-          </p>
-        ) : null}
+    <LivePanelShell
+      title={event.name}
+      subtitle={
+        others.length > 0 ? (
+          <span>Also viewing: {others.map((o) => o.name).join(', ')}</span>
+        ) : (
+          'Live facilitation controls'
+        )
+      }
+      aside={
+        <div className="lg:sticky lg:top-8">{displayPreview}</div>
+      }
+    >
+      <div className="mb-4 flex items-center gap-2">
+        <StatusIndicator
+          status={event.status as 'active' | 'ready' | 'draft' | 'archived'}
+        />
+        <span className="text-muted-foreground text-sm capitalize">{event.status}</span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <div className="space-y-6">
-          <Card className="space-y-4 p-4">
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
             <p className="font-mono text-3xl tabular-nums">{formatTimer(state.timer_seconds)}</p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -238,7 +270,7 @@ export function FacilitatorEventPage() {
             </label>
           </Card>
 
-          <Card className="p-4">
+          <Card className="border-border/80 bg-card p-4 shadow-sm">
             <p className="mb-2 text-sm font-medium">Stages</p>
             <div className="flex flex-wrap gap-2">
               {stages.map((s, i) => (
@@ -263,7 +295,7 @@ export function FacilitatorEventPage() {
             Show scores on display
           </label>
 
-          <Card className="space-y-3 p-4">
+          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <p className="font-medium">Teams</p>
             <ul className="space-y-2">
               {teams.map((team) => (
@@ -317,7 +349,7 @@ export function FacilitatorEventPage() {
             </ul>
           </Card>
 
-          <Card className="space-y-3 p-4">
+          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <Label>Announcement</Label>
             <Input
               value={announcement}
@@ -353,24 +385,9 @@ export function FacilitatorEventPage() {
             </Button>
           </Card>
 
-          <div className="space-y-2">
-            <Input readOnly value={displayUrl} className="font-mono text-xs" />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                void navigator.clipboard.writeText(displayUrl)
-                setCopied(true)
-                window.setTimeout(() => setCopied(false), 2000)
-              }}
-            >
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-              Copy display link
-            </Button>
-          </div>
         </div>
 
-        <Card className="min-h-[320px] p-4">
+        <Card className="border-border/80 min-h-[320px] bg-card p-4 shadow-sm">
           {!stage || stage.type === 'open' ? (
             <>
               <div className="mb-3 flex gap-2">
@@ -530,29 +547,6 @@ export function FacilitatorEventPage() {
         </Card>
       </div>
 
-      <div
-        className="border-border fixed z-40 overflow-hidden rounded-lg border bg-black shadow-xl"
-        style={{
-          left: previewPos.x,
-          top: previewPos.y,
-          width: 320,
-          aspectRatio: '16/9',
-        }}
-      >
-        <div
-          className="bg-muted flex cursor-move items-center gap-1 px-2 py-1 text-xs"
-          onMouseDown={() => setDragging(true)}
-          onMouseUp={() => setDragging(false)}
-          onMouseMove={(e) => {
-            if (dragging) setPreviewPos({ x: e.clientX - 160, y: e.clientY - 12 })
-          }}
-        >
-          <GripVertical className="size-3" />
-          Display preview
-        </div>
-        <iframe title="Display" src={displayUrl} className="size-full border-0" />
-      </div>
-
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="w-full max-w-md space-y-4 p-6">
@@ -561,14 +555,11 @@ export function FacilitatorEventPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => {
-                setClaimPhoto(e.target.files?.[0] ?? null)
-                setUploadPct(0)
-              }}
+              onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)}
             />
             {uploading ? (
               <div className="bg-muted h-2 overflow-hidden rounded">
-                <div className="bg-primary h-full transition-all" style={{ width: `${uploadPct || 50}%` }} />
+                <div className="bg-[#FFCB03] h-full w-1/2 animate-pulse" />
               </div>
             ) : null}
             <input
@@ -590,6 +581,6 @@ export function FacilitatorEventPage() {
           </Card>
         </div>
       ) : null}
-    </div>
+    </LivePanelShell>
   )
 }

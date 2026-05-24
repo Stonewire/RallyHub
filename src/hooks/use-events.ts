@@ -225,9 +225,12 @@ export function useUpdateEventStatus(organizationId: string | null) {
 
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.events(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.event(variables.eventId),
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),

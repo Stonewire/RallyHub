@@ -1,19 +1,30 @@
 import { useEffect, useRef } from 'react'
 
-/** Tick event or break timer down while running (facilitator host). */
+/**
+ * Count down every second while `running` is true.
+ * Uses refs so the interval is not reset on each second tick from realtime reloads.
+ */
 export function useEventTimerTick(
   running: boolean,
   seconds: number,
-  onTick: (next: number) => void,
+  onTick: (next: number) => void | Promise<void>,
 ) {
-  const ref = useRef(onTick)
-  ref.current = onTick
+  const secondsRef = useRef(seconds)
+  const onTickRef = useRef(onTick)
+
+  secondsRef.current = seconds
+  onTickRef.current = onTick
 
   useEffect(() => {
-    if (!running || seconds <= 0) return
+    if (!running) return
+
     const id = window.setInterval(() => {
-      ref.current(Math.max(0, seconds - 1))
+      const current = secondsRef.current
+      if (current <= 0) return
+      const next = current - 1
+      void onTickRef.current(next)
     }, 1000)
+
     return () => window.clearInterval(id)
-  }, [running, seconds])
+  }, [running])
 }
