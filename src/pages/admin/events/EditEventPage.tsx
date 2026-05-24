@@ -84,6 +84,7 @@ export function AdminEventEditPage() {
               ].filter((c): c is string => Boolean(c)),
           teams_config: values.teams,
           stages_config: values.stages,
+          display_layout: values.displayLayout,
         },
         gameIds: values.selectedGameIds,
       })

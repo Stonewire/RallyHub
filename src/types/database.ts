@@ -233,6 +233,7 @@ export type Database = {
           brand_colors: Json
           teams_config: Json
           stages_config: Json
+          display_layout: string
           created_at: string
         }
         Insert: {
@@ -247,6 +248,7 @@ export type Database = {
           brand_colors?: Json
           teams_config?: Json
           stages_config?: Json
+          display_layout?: string
         }
         Update: {
           name?: string
@@ -258,7 +260,142 @@ export type Database = {
           brand_colors?: Json
           teams_config?: Json
           stages_config?: Json
+          display_layout?: string
         }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          id: string
+          event_id: string
+          name: string | null
+          color: string | null
+          photo_url: string | null
+          score: number
+          status: string
+          slot_number: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          name?: string | null
+          color?: string | null
+          photo_url?: string | null
+          score?: number
+          status?: string
+          slot_number: number
+        }
+        Update: {
+          name?: string | null
+          color?: string | null
+          photo_url?: string | null
+          score?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          id: string
+          event_id: string
+          team_id: string
+          game_id: string
+          media_url: string | null
+          media_type: string | null
+          status: string
+          points_awarded: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          team_id: string
+          game_id: string
+          media_url?: string | null
+          media_type?: string | null
+          status?: string
+          points_awarded?: number | null
+        }
+        Update: {
+          media_url?: string | null
+          media_type?: string | null
+          status?: string
+          points_awarded?: number | null
+        }
+        Relationships: []
+      }
+      event_state: {
+        Row: {
+          id: string
+          event_id: string
+          current_stage_index: number
+          current_question_index: number
+          timer_seconds: number
+          timer_running: boolean
+          show_scores: boolean
+          show_timer_on_display: boolean
+          quiz_state: string
+          bingo_state: string
+          announcement: string | null
+          announcement_target: string | null
+          winner_reveal_stage: number
+          break_timer_seconds: number | null
+          break_timer_running: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          current_stage_index?: number
+          current_question_index?: number
+          timer_seconds?: number
+          timer_running?: boolean
+          show_scores?: boolean
+          show_timer_on_display?: boolean
+          quiz_state?: string
+          bingo_state?: string
+          announcement?: string | null
+          announcement_target?: string | null
+          winner_reveal_stage?: number
+          break_timer_seconds?: number | null
+          break_timer_running?: boolean
+        }
+        Update: {
+          current_stage_index?: number
+          current_question_index?: number
+          timer_seconds?: number
+          timer_running?: boolean
+          show_scores?: boolean
+          show_timer_on_display?: boolean
+          quiz_state?: string
+          bingo_state?: string
+          announcement?: string | null
+          announcement_target?: string | null
+          winner_reveal_stage?: number
+          break_timer_seconds?: number | null
+          break_timer_running?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          event_id: string
+          team_id: string | null
+          sender: string
+          message: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          team_id?: string | null
+          sender: string
+          message: string
+        }
+        Update: Record<string, never>
         Relationships: []
       }
       event_games: {

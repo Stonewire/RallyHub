@@ -110,6 +110,21 @@ export function EventForm({
             className="bg-background max-w-sm"
           />
         </div>
+        <div className="space-y-2">
+          <Label>Display layout</Label>
+          <select
+            value={values.displayLayout}
+            onChange={(e) =>
+              set({
+                displayLayout: e.target.value as EventFormValues['displayLayout'],
+              })
+            }
+            className="border-input bg-background max-w-sm rounded-lg border px-3 py-2 text-sm"
+          >
+            <option value="rank_list">Rank List</option>
+            <option value="orbit_view">Orbit View</option>
+          </select>
+        </div>
       </Card>
 
       <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">

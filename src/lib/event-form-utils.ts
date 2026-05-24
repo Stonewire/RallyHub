@@ -1,4 +1,5 @@
 import type { Json } from '@/types/json'
+import type { DisplayLayout } from '@/lib/live-event'
 import type { EventStage, EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -10,6 +11,7 @@ export type EventFormValues = {
   brandingEnabled: boolean
   logoUrl: string | null
   brandColors: [string, string, string]
+  displayLayout: DisplayLayout
   selectedGameIds: string[]
   stages: EventStage[]
 }
@@ -91,6 +93,8 @@ export function eventToFormValues(
     brandingEnabled: event.branding_enabled,
     logoUrl: event.logo_url,
     brandColors: parseBrandColors(event.brand_colors),
+    displayLayout:
+      event.display_layout === 'orbit_view' ? 'orbit_view' : 'rank_list',
     selectedGameIds: gameIds,
     stages: stages.length ? stages : defaultStages(),
   }
@@ -105,6 +109,7 @@ export function emptyEventForm(): EventFormValues {
     brandingEnabled: true,
     logoUrl: null,
     brandColors: ['#3E3D3E', '#6f6f6f', '#FFCB03'],
+    displayLayout: 'rank_list',
     selectedGameIds: [],
     stages: defaultStages(),
   }

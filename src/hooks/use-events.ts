@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
+import { syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
@@ -112,6 +113,10 @@ export function useUpdateEvent(organizationId: string | null) {
         )
         if (linkError) throw linkError
       }
+
+      if (event.team_count != null) {
+        await syncTeamSlots(eventId, event.team_count)
+      }
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
@@ -161,6 +166,8 @@ export function useCreateEvent(organizationId: string | null) {
         )
         if (linkError) throw linkError
       }
+
+      await syncTeamSlots(data.id, data.team_count)
 
       return data
     },

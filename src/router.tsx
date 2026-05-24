@@ -12,14 +12,14 @@ import { AdminGamesNewPage } from '@/pages/admin/games/NewGamePage'
 import { AdminGamesPage } from '@/pages/admin/GamesPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
+import { FacilitatorEventPage } from '@/pages/live/FacilitatorEventPage'
+import { JoinEventPage } from '@/pages/live/JoinEventPage'
+import { TabletPage } from '@/pages/live/TabletPage'
 import {
   AdminGameDetailPage,
   AdminSupportPage,
-  DisplayEventPage,
-  FacilitatorEventPage,
-  JoinEventPage,
   PlayTokenPage,
-  TabletPage,
 } from '@/pages/placeholders'
 import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
