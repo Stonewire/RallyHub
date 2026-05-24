@@ -1,0 +1,111 @@
+import type { Json } from '@/types/json'
+import type { EventStage, EventTeam } from '@/types/game-config'
+import type { Tables } from '@/types/helpers'
+
+export type EventFormValues = {
+  name: string
+  eventDate: string
+  teamCount: number
+  teams: EventTeam[]
+  brandingEnabled: boolean
+  logoUrl: string | null
+  brandColors: [string, string, string]
+  selectedGameIds: string[]
+  stages: EventStage[]
+}
+
+export const TEAM_COLORS = [
+  '#E53935',
+  '#1E88E5',
+  '#43A047',
+  '#FB8C00',
+  '#8E24AA',
+  '#00ACC1',
+  '#FDD835',
+  '#6D4C41',
+]
+
+export function defaultTeams(count: number): EventTeam[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: crypto.randomUUID(),
+    name: `Team ${i + 1}`,
+    color: TEAM_COLORS[i % TEAM_COLORS.length],
+  }))
+}
+
+export function defaultStages(): EventStage[] {
+  return [
+    {
+      id: crypto.randomUUID(),
+      name: 'Stage 1',
+      type: 'open',
+      gameId: null,
+      gameIds: [],
+    },
+  ]
+}
+
+export function addStage(stages: EventStage[]): EventStage[] {
+  return [
+    ...stages,
+    {
+      id: crypto.randomUUID(),
+      name: `Stage ${stages.length + 1}`,
+      type: 'open',
+      gameId: null,
+      gameIds: [],
+    },
+  ]
+}
+
+export function toLocalDatetime(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+export function parseBrandColors(raw: Json | null | undefined): [string, string, string] {
+  if (Array.isArray(raw) && raw.length >= 3) {
+    return [String(raw[0]), String(raw[1]), String(raw[2])]
+  }
+  return ['#3E3D3E', '#6f6f6f', '#FFCB03']
+}
+
+export function eventToFormValues(
+  event: Tables<'events'>,
+  gameIds: string[],
+): EventFormValues {
+  const teams = Array.isArray(event.teams_config)
+    ? (event.teams_config as EventTeam[])
+    : defaultTeams(event.team_count)
+  const stages = Array.isArray(event.stages_config)
+    ? (event.stages_config as EventStage[])
+    : defaultStages()
+
+  return {
+    name: event.name,
+    eventDate: toLocalDatetime(event.event_date),
+    teamCount: event.team_count,
+    teams,
+    brandingEnabled: event.branding_enabled,
+    logoUrl: event.logo_url,
+    brandColors: parseBrandColors(event.brand_colors),
+    selectedGameIds: gameIds,
+    stages: stages.length ? stages : defaultStages(),
+  }
+}
+
+export function emptyEventForm(): EventFormValues {
+  return {
+    name: '',
+    eventDate: '',
+    teamCount: 4,
+    teams: defaultTeams(4),
+    brandingEnabled: true,
+    logoUrl: null,
+    brandColors: ['#3E3D3E', '#6f6f6f', '#FFCB03'],
+    selectedGameIds: [],
+    stages: defaultStages(),
+  }
+}
