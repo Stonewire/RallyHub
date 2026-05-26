@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
-import { canAccessRallyHub } from '@/lib/auth-routes'
+import { canAccessRallyHub, isClientRole } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -24,7 +24,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     )
   }
 
-  if (isPlatformHost() && !canAccessRallyHub(role) && location.pathname.startsWith('/admin')) {
+  if (
+    isPlatformHost() &&
+    location.pathname.startsWith('/admin') &&
+    !canAccessRallyHub(role) &&
+    !isClientRole(role)
+  ) {
     return <Navigate to="/login" replace />
   }
 

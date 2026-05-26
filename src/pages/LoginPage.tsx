@@ -10,12 +10,13 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
 import { resolvePostLoginPath } from '@/lib/auth-routes'
-import { isPlatformHost } from '@/lib/tenant'
+import { isPlatformHost, isTenantHost } from '@/lib/tenant'
 
 export function LoginPage() {
   const { user, role, loading, profileLoading, signInWithPassword } = useAuth()
   const { tenantOrg, tenantLoading } = useTenant()
   const location = useLocation()
+
   const from =
     typeof location.state === 'object' &&
     location.state &&
@@ -55,11 +56,16 @@ export function LoginPage() {
     <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 py-12">
       <div className="mb-14 flex w-full max-w-xs flex-col items-center justify-center gap-2 px-4">
         <RallyLogo className="mx-auto max-h-16 w-auto sm:max-h-20" />
-        {!isPlatformHost() && tenantOrg ? (
+        {isTenantHost() && tenantOrg ? (
           <p className="text-muted-foreground text-center text-sm">{tenantOrg.name}</p>
         ) : null}
-        {!isPlatformHost() && tenantLoading ? (
+        {isTenantHost() && tenantLoading ? (
           <p className="text-muted-foreground text-xs">Loading…</p>
+        ) : null}
+        {isPlatformHost() ? (
+          <p className="text-muted-foreground text-center text-xs">
+            Sign in with your organization or RallyHub staff account
+          </p>
         ) : null}
       </div>
 

@@ -1,17 +1,18 @@
 import type { AppRole } from '@/types/database'
 
-import { isPlatformHost } from '@/lib/tenant'
+import { isPlatformHost, isTenantHost } from '@/lib/tenant'
 
 export function defaultPathForRole(role: AppRole | null): string {
-  if (isPlatformHost()) {
-    if (role === 'super_admin') return '/admin'
-    return '/login'
-  }
+  if (!role) return '/login'
   return '/admin'
 }
 
 export function canAccessRallyHub(role: AppRole | null): boolean {
   return role === 'super_admin'
+}
+
+export function isClientRole(role: AppRole | null): boolean {
+  return role === 'client_admin' || role === 'event_manager'
 }
 
 export function resolvePostLoginPath(
@@ -22,26 +23,26 @@ export function resolvePostLoginPath(
 
   if (!from || from === '/login') return fallback
 
-  if (isPlatformHost()) {
-    if (!canAccessRallyHub(role) && from.startsWith('/admin')) {
-      return '/login'
-    }
-    if (from.startsWith('/rallyhub')) {
-      return from.replace(/^\/rallyhub/, '/admin')
-    }
-  } else {
-    if (canAccessRallyHub(role) && from.startsWith('/admin')) {
-      return fallback
-    }
-    if (from.startsWith('/rallyhub')) {
-      return '/admin'
-    }
+  if (from.startsWith('/rallyhub')) {
+    return from.replace(/^\/rallyhub/, '/admin')
   }
 
-  if (!canAccessRallyHub(role) && from.startsWith('/rallyhub')) {
+  if (isTenantHost() && canAccessRallyHub(role) && from.startsWith('/admin')) {
     return '/admin'
   }
 
   if (from.startsWith('/')) return from
   return fallback
+}
+
+/**
+ * When true, client users on the platform apex are sent to a separate tenant host.
+ * Disabled while on Vercel Hobby (single domain). Re-enable when wildcard/custom domain is available.
+ */
+export function shouldRedirectClientOffPlatform(_role: AppRole | null): boolean {
+  return false
+}
+
+export function usesRoleBasedPlatformAdmin(): boolean {
+  return isPlatformHost()
 }

@@ -28,6 +28,23 @@ export function platformHost(): string {
   return import.meta.env.VITE_PLATFORM_HOST ?? 'rallyhubapp.vercel.app'
 }
 
+/** Shared client host for multi-domain setups (optional; not used for redirects on Hobby). */
+export function tenantHost(): string | null {
+  const host = import.meta.env.VITE_TENANT_HOST?.trim()
+  return host || null
+}
+
+/** True when separate tenant host redirect is enabled (future: custom domain + wildcard). */
+export function hasDedicatedTenantHost(): boolean {
+  return Boolean(tenantHost())
+}
+
+export function isLocalDev(): boolean {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1'
+}
+
 export function parseTenantFromHost(hostname: string): TenantContext {
   const host = hostname.split(':')[0]?.toLowerCase() ?? ''
 
@@ -38,17 +55,20 @@ export function parseTenantFromHost(hostname: string): TenantContext {
     }
   }
 
+  const sharedTenantHost = tenantHost()?.split(':')[0]?.toLowerCase()
+  if (sharedTenantHost && host === sharedTenantHost) {
+    return { kind: 'tenant', subdomain: 'client' }
+  }
+
   if (PLATFORM_HOSTS.has(host)) {
     return { kind: 'platform' }
   }
 
-  // {slug}.localhost for dev
   if (host.endsWith('.localhost')) {
     const sub = host.replace(/\.localhost$/, '')
     if (sub) return { kind: 'tenant', subdomain: sub }
   }
 
-  // {slug}.rallyhubapp.vercel.app
   const platformSuffix = `.${platformHost()}`
   if (host.endsWith(platformSuffix)) {
     const sub = host.slice(0, -platformSuffix.length)
@@ -69,11 +89,56 @@ export function isPlatformHost(): boolean {
   return getTenantContext().kind === 'platform'
 }
 
+export function isTenantHost(): boolean {
+  return getTenantContext().kind === 'tenant'
+}
+
+/** Client app URL for a given org subdomain (shared tenant host or per-org subdomain). */
+export function getClientAppUrl(orgSubdomain: string, path = '/admin'): string {
+  const needsTenantQuery = orgSubdomain && orgSubdomain !== 'client'
+
+  if (typeof window === 'undefined') {
+    const shared = tenantHost()
+    if (shared) {
+      return needsTenantQuery
+        ? `https://${shared}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
+        : `https://${shared}${path}`
+    }
+    return `https://${orgSubdomain}.${platformHost()}${path}`
+  }
+
+  const { protocol } = window.location
+
+  if (isLocalDev()) {
+    const origin = `${protocol}//${window.location.host}`
+    return needsTenantQuery
+      ? `${origin}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
+      : `${origin}${path}`
+  }
+
+  // Single-domain production (e.g. Vercel Hobby): stay on platform host
+  if (isPlatformHost()) {
+    return `${protocol}//${window.location.host}${path}`
+  }
+
+  const shared = tenantHost()
+  if (shared) {
+    const base = `${protocol}//${shared}`
+    return needsTenantQuery
+      ? `${base}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
+      : `${base}${path}`
+  }
+
+  return `${protocol}//${orgSubdomain}.${platformHost()}${path}`
+}
+
 export function getOrganizationOrigin(org: {
   subdomain: string
   custom_domain?: string | null
 }): string {
   if (typeof window === 'undefined') {
+    const shared = tenantHost()
+    if (shared) return `https://${shared}?tenant=${org.subdomain}`
     const host = org.custom_domain ?? `${org.subdomain}.${platformHost()}`
     return `https://${host}`
   }
@@ -83,12 +148,27 @@ export function getOrganizationOrigin(org: {
     return `${protocol}//${org.custom_domain}`
   }
 
-  const host = platformHost()
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `${protocol}//${org.subdomain}.localhost:${window.location.port || '5173'}`
+  if (isLocalDev()) {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tenant') === org.subdomain) {
+      return `${protocol}//${window.location.host}`
+    }
+    return `${protocol}//${window.location.host}?tenant=${org.subdomain}`
   }
 
-  return `${protocol}//${org.subdomain}.${host}`
+  if (isPlatformHost()) {
+    return `${protocol}//${window.location.host}`
+  }
+
+  const shared = tenantHost()
+  if (shared) {
+    if (org.subdomain !== 'client') {
+      return `${protocol}//${shared}?tenant=${org.subdomain}`
+    }
+    return `${protocol}//${shared}`
+  }
+
+  return `${protocol}//${org.subdomain}.${platformHost()}`
 }
 
 export function getPlatformOrigin(): string {
@@ -96,7 +176,7 @@ export function getPlatformOrigin(): string {
     return `https://${platformHost()}`
   }
   const { protocol, hostname, port } = window.location
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+  if (isLocalDev()) {
     return `${protocol}//${hostname}${port ? `:${port}` : ''}`
   }
   return `${protocol}//${platformHost()}`
@@ -121,6 +201,16 @@ async function fetchTenantBySubdomain(subdomain: string): Promise<TenantPublicOr
   return data as TenantPublicOrg | null
 }
 
+export async function fetchOrgSubdomain(organizationId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('subdomain')
+    .eq('id', organizationId)
+    .maybeSingle()
+  if (error) throw error
+  return data?.subdomain ?? null
+}
+
 export function useTenantOrganization() {
   const ctx = getTenantContext()
   const host =
@@ -131,6 +221,10 @@ export function useTenantOrganization() {
     enabled: ctx.kind === 'tenant',
     queryFn: async () => {
       if (ctx.kind !== 'tenant') return null
+      if (isLocalDev() && ctx.subdomain) {
+        const bySub = await fetchTenantBySubdomain(ctx.subdomain)
+        if (bySub) return bySub
+      }
       const byHost = await fetchTenantByHost(host)
       if (byHost) return byHost
       return fetchTenantBySubdomain(ctx.subdomain)
