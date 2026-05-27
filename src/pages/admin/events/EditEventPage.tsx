@@ -12,6 +12,7 @@ import { EventLinksPanel } from '@/components/events/EventLinksPanel'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   useEvent,
@@ -28,6 +29,7 @@ import {
   eventToFormValues,
   type EventFormValues,
 } from '@/lib/event-form-utils'
+import { resetLiveEvent, unclaimedTeamSlots } from '@/lib/reset-live-event'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventEditPage() {
@@ -45,6 +47,7 @@ export function AdminEventEditPage() {
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
   const [hydrated, setHydrated] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -99,6 +102,31 @@ export function AdminEventEditPage() {
       setError(err instanceof Error ? err.message : 'Failed to save event')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleResetLiveEvent() {
+    if (!eventId || !eventQuery.data) return
+    const ok = window.confirm(
+      'Reset live event data?\n\n' +
+        'Deletes all submissions and scores. Team slots become available again. ' +
+        'Stages and linked games are not changed.',
+    )
+    if (!ok) return
+    setResetting(true)
+    setError(null)
+    try {
+      const count = eventQuery.data.team_count
+      await resetLiveEvent(eventId, count)
+      await eventQuery.refetch()
+      setValues((v) => ({
+        ...v,
+        teams: unclaimedTeamSlots(count),
+      }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reset failed')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -162,6 +190,25 @@ export function AdminEventEditPage() {
             groups={groupsQuery.data ?? []}
             orgDefaults={orgQuery.data ?? null}
           />
+
+          {eventId ? (
+            <Card className="border-destructive/40 mt-8 space-y-3 bg-card p-6 shadow-sm">
+              <h2 className="text-foreground text-lg font-semibold">Reset live event</h2>
+              <p className="text-muted-foreground text-sm">
+                Clear scores, submissions, chat, and team claims. Participants can claim
+                slots and redo all challenges. Stages and games stay as configured.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                disabled={resetting || saving}
+                onClick={() => void handleResetLiveEvent()}
+              >
+                {resetting ? 'Resetting…' : 'Reset event data'}
+              </Button>
+            </Card>
+          ) : null}
 
           {eventId ? (
             <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">

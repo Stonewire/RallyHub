@@ -38,7 +38,8 @@ export function FacilitatorEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const [name, setName] = useState(() => localStorage.getItem(FACILITATOR_NAME_KEY) ?? '')
   const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
-  const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
+  const { bundle, loading, error, updateState, updateTeam, resetEvent } =
+    useLiveEvent(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -49,6 +50,7 @@ export function FacilitatorEventPage() {
   const [uploading, setUploading] = useState(false)
   const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [stateError, setStateError] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
   const [selectedSub, setSelectedSub] = useState<Tables<'submissions'> | null>(null)
   const { notify } = useNotification()
 
@@ -210,6 +212,27 @@ export function FacilitatorEventPage() {
   async function rejectSubmission(id: string) {
     await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
     notify('Submission rejected')
+  }
+
+  async function handleResetEvent() {
+    const ok = window.confirm(
+      'Reset this event?\n\n' +
+        'All scores and submissions will be deleted. Team slots will be empty again ' +
+        '(anyone can claim a spot). Stages and games stay the same.\n\n' +
+        'This cannot be undone.',
+    )
+    if (!ok) return
+    setResetting(true)
+    setStateError(null)
+    try {
+      await resetEvent()
+      notify('Event reset')
+    } catch (err) {
+      setStateError(err instanceof Error ? err.message : 'Reset failed')
+      notify('Event reset failed')
+    } finally {
+      setResetting(false)
+    }
   }
 
   async function saveClaim() {
@@ -600,6 +623,25 @@ export function FacilitatorEventPage() {
                 </Button>
               ) : null}
             </div>
+          </Card>
+
+          <Card className="border-destructive/40 bg-card space-y-3 p-4 shadow-sm">
+            <p className="text-sm font-medium">Reset event</p>
+            <p className="text-muted-foreground text-xs">
+              Clear all scores, submissions, and team claims. Stages and games are kept.
+              Teams can claim slots and play challenges again from scratch.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              disabled={resetting}
+              onClick={() => void handleResetEvent()}
+            >
+              <RotateCcw className="size-4" />
+              {resetting ? 'Resetting…' : 'Reset event'}
+            </Button>
           </Card>
         </div>
 
