@@ -35,7 +35,9 @@ export function SubmissionDetailModal({
   const isRange = pointsType === 'range'
   const min = pointsMin ?? 0
   const max = pointsMax ?? 0
-  const [points, setPoints] = useState(String(pointsStatic ?? max))
+  const [points, setPoints] = useState(
+    isRange ? '' : String(pointsStatic ?? 0),
+  )
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -48,7 +50,11 @@ export function SubmissionDetailModal({
 
   const parsed = Number(points)
   const rangeValid =
-    !isRange || (!Number.isNaN(parsed) && parsed >= min && parsed <= max)
+    !isRange ||
+    (points.trim() !== '' &&
+      !Number.isNaN(parsed) &&
+      parsed >= min &&
+      parsed <= max)
 
   async function handleApprove() {
     if (isRange && !rangeValid) return

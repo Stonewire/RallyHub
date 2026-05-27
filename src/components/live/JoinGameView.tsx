@@ -28,7 +28,7 @@ import {
   quizQuestions,
   quizLeaderboard,
   quizSubmissionMediaType,
-  latestSubmissionForGame,
+  activeSubmissionForGame,
 } from '@/lib/live-event'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -174,7 +174,7 @@ export function JoinGameView({
     try {
       const ok = await verifyTabletPassword(organization.id, pw)
       if (!ok) {
-        window.alert('Incorrect password')
+        notify('Incorrect password')
         return
       }
       if (exitMode === 'tablet' && onExitToTablet) {
@@ -183,7 +183,7 @@ export function JoinGameView({
         onExitTeam()
       }
     } catch {
-      window.alert('Could not verify password')
+      notify('Could not verify password')
     }
   }
 
@@ -357,13 +357,19 @@ export function JoinGameView({
         />
       ) : null}
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
-      {stage?.type === 'quiz' && state.quiz_state === 'results' && stage.gameId ? (
-        <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
-          {quizLeaderboard(bundle.teams, submissions, stage.gameId).find(
-            (e) => e.team.id === teamId,
-          )?.quizPoints ?? 0}{' '}
-          quiz pts
-        </p>
+      {stage?.type === 'quiz' && stage.gameId ? (
+        state.quiz_state === 'results' ? (
+          <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
+            {quizLeaderboard(bundle.teams, submissions, stage.gameId).find(
+              (e) => e.team.id === teamId,
+            )?.quizPoints ?? 0}{' '}
+            quiz pts
+          </p>
+        ) : state.quiz_state === 'active' && quizRunning ? (
+          <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-mono font-semibold tabular-nums">
+            {formatTimer(quizTimerDisplay)}
+          </p>
+        ) : null
       ) : (
         <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
           {team.score} points
@@ -414,7 +420,7 @@ export function JoinGameView({
     const openGames = games.filter((g) => openGameIds.includes(g.id))
 
     if (selectedGame) {
-      const latestSub = latestSubmissionForGame(mySubs, selectedGame.id)
+      const latestSub = activeSubmissionForGame(mySubs, selectedGame.id)
       const pending = latestSub?.status === 'pending'
       const locked =
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
@@ -554,7 +560,7 @@ export function JoinGameView({
       body = (
         <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 pb-24">
           {openGames.map((g) => {
-            const sub = latestSubmissionForGame(mySubs, g.id)
+            const sub = activeSubmissionForGame(mySubs, g.id)
             const approved = sub?.status === 'approved'
             const rejected = sub?.status === 'rejected'
             const pending = sub?.status === 'pending'
@@ -565,7 +571,11 @@ export function JoinGameView({
                 type="button"
                 disabled={locked}
                 className={`relative flex min-h-[120px] flex-col justify-between rounded-xl p-4 text-left shadow-md transition-transform ${
-                  locked ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'
+                  locked
+                    ? 'cursor-not-allowed opacity-50'
+                    : pending
+                      ? 'ring-2 ring-white/40'
+                      : 'active:scale-[0.98]'
                 }`}
                 style={{ backgroundColor: accent, color: '#3E3D3E' }}
                 onClick={() => !locked && setSelectedGame(g)}

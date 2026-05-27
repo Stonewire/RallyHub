@@ -172,6 +172,16 @@ export function latestSubmissionForGame(
     .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 }
 
+/** Latest non-cancelled submission for open-game flow (pending / approved / rejected). */
+export function activeSubmissionForGame(
+  subs: Tables<'submissions'>[],
+  gameId: string,
+): Tables<'submissions'> | undefined {
+  return subs
+    .filter((s) => s.game_id === gameId && s.status !== 'cancelled')
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+}
+
 export type QuizLeaderboardEntry = {
   team: Tables<'teams'>
   quizPoints: number

@@ -68,3 +68,8 @@ export function useNotification() {
   }
   return ctx
 }
+
+/** Safe notify when provider may be absent (e.g. tests). */
+export function useOptionalNotification() {
+  return useContext(NotificationContext)
+}
