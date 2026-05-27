@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
+import { isPublicLivePath, RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
 import { supabase } from '@/lib/supabase'
 
 export type TenantPublicOrg = {
@@ -49,6 +49,14 @@ export function isLocalDev(): boolean {
 export function parseTenantFromHost(hostname: string): TenantContext {
   const host = hostname.split(':')[0]?.toLowerCase() ?? ''
 
+  if (typeof window !== 'undefined' && isPublicLivePath(window.location.pathname)) {
+    return { kind: 'platform' }
+  }
+
+  if (PLATFORM_HOSTS.has(host)) {
+    return { kind: 'platform' }
+  }
+
   if (typeof window !== 'undefined') {
     const override = new URLSearchParams(window.location.search).get('tenant')
     if (override?.trim()) {
@@ -59,10 +67,6 @@ export function parseTenantFromHost(hostname: string): TenantContext {
   const sharedTenantHost = tenantHost()?.split(':')[0]?.toLowerCase()
   if (sharedTenantHost && host === sharedTenantHost) {
     return { kind: 'tenant', subdomain: 'client' }
-  }
-
-  if (PLATFORM_HOSTS.has(host)) {
-    return { kind: 'platform' }
   }
 
   if (host.endsWith('.localhost')) {

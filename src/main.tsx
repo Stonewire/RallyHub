@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 
 import App from '@/App.tsx'
 import { AuthProvider } from '@/contexts/auth-context'
-import { TenantProvider } from '@/contexts/tenant-context'
 import { queryClient } from '@/lib/query-client'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
@@ -14,11 +13,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TenantProvider>
-          <TooltipProvider>
-            <App />
-          </TooltipProvider>
-        </TenantProvider>
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,
