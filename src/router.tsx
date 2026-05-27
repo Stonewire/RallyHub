@@ -12,7 +12,6 @@ import {
   ClientSettingsRoute,
   SuperAdminOnly,
 } from '@/components/routing/AdminRouteDispatchers'
-import { AppRoot } from '@/components/routing/AppRoot'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
 import { TenantScope } from '@/components/routing/TenantScope'
 import { LoginPage } from '@/pages/LoginPage'
@@ -45,72 +44,71 @@ function NotFoundPage() {
   )
 }
 
+/**
+ * Public live routes are top-level siblings (no layout wrapper) so nothing
+ * can redirect them before the router matches. Do not wrap these in LiveRoute
+ * or TenantOnlyRoutes.
+ */
 export const router = createBrowserRouter([
-  {
-    element: <AppRoot />,
-    children: [
-      // Public live panels — first, no auth, no tenant provider
-      { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
-      { path: '/display/:eventId', element: <DisplayEventPage /> },
-      { path: '/join/:eventId', element: <JoinEventPage /> },
-      { path: '/tablet', element: <TabletPage /> },
+  { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
+  { path: '/display/:eventId', element: <DisplayEventPage /> },
+  { path: '/join/:eventId', element: <JoinEventPage /> },
+  { path: '/tablet', element: <TabletPage /> },
 
-      { path: '/', element: <RootPage /> },
+  { path: '/', element: <RootPage /> },
+  {
+    path: '/login',
+    element: (
+      <TenantScope>
+        <LoginPage />
+      </TenantScope>
+    ),
+  },
+  {
+    path: '/admin',
+    element: (
+      <TenantScope>
+        <HostAdminLayout />
+      </TenantScope>
+    ),
+    children: [
+      { index: true, element: <AdminHomePage /> },
+      { path: 'games', element: <AdminGamesRoute /> },
+      { path: 'games/new', element: <ClientGamesNewRoute /> },
+      { path: 'games/:gameId', element: <ClientGameDetailRoute /> },
+      { path: 'events', element: <ClientEventsRoute /> },
+      { path: 'events/new', element: <ClientEventsNewRoute /> },
+      { path: 'events/:eventId', element: <ClientEventEditRoute /> },
+      { path: 'settings', element: <ClientSettingsRoute /> },
       {
-        path: '/login',
+        path: 'settings/organization',
+        element: <Navigate to="/admin/settings" replace />,
+      },
+      {
+        path: 'settings/billing',
+        element: <Navigate to="/admin/settings?tab=billing" replace />,
+      },
+      { path: 'support', element: <AdminSupportRoute /> },
+      {
+        path: 'clients',
         element: (
-          <TenantScope>
-            <LoginPage />
-          </TenantScope>
+          <SuperAdminOnly>
+            <RallyHubClientsPage />
+          </SuperAdminOnly>
         ),
       },
       {
-        path: '/admin',
+        path: 'clients/:clientId',
         element: (
-          <TenantScope>
-            <HostAdminLayout />
-          </TenantScope>
+          <SuperAdminOnly>
+            <RallyHubClientDetailPage />
+          </SuperAdminOnly>
         ),
-        children: [
-          { index: true, element: <AdminHomePage /> },
-          { path: 'games', element: <AdminGamesRoute /> },
-          { path: 'games/new', element: <ClientGamesNewRoute /> },
-          { path: 'games/:gameId', element: <ClientGameDetailRoute /> },
-          { path: 'events', element: <ClientEventsRoute /> },
-          { path: 'events/new', element: <ClientEventsNewRoute /> },
-          { path: 'events/:eventId', element: <ClientEventEditRoute /> },
-          { path: 'settings', element: <ClientSettingsRoute /> },
-          {
-            path: 'settings/organization',
-            element: <Navigate to="/admin/settings" replace />,
-          },
-          {
-            path: 'settings/billing',
-            element: <Navigate to="/admin/settings?tab=billing" replace />,
-          },
-          { path: 'support', element: <AdminSupportRoute /> },
-          {
-            path: 'clients',
-            element: (
-              <SuperAdminOnly>
-                <RallyHubClientsPage />
-              </SuperAdminOnly>
-            ),
-          },
-          {
-            path: 'clients/:clientId',
-            element: (
-              <SuperAdminOnly>
-                <RallyHubClientDetailPage />
-              </SuperAdminOnly>
-            ),
-          },
-        ],
       },
-      { path: '/rallyhub', element: <Navigate to="/admin" replace /> },
-      { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
-      { path: '/play/:token', element: <PlayTokenPage /> },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
+  { path: '/rallyhub', element: <Navigate to="/admin" replace /> },
+  { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
+  { path: '/play/:token', element: <PlayTokenPage /> },
+  { path: '*', element: <NotFoundPage /> },
 ])
