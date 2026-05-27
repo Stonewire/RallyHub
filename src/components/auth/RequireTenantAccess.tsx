@@ -1,15 +1,21 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
 import { canAccessRallyHub } from '@/lib/auth-routes'
+import { isPublicLivePath } from '@/lib/public-routes'
 import { getPlatformOrigin } from '@/lib/tenant'
 
 export function RequireTenantAccess({ children }: { children: ReactNode }) {
   const { user, role, loading, profileLoading, profile } = useAuth()
   const { tenantOrg, tenantLoading, tenantError } = useTenant()
+  const { pathname } = useLocation()
+
+  if (isPublicLivePath(pathname)) {
+    return <>{children}</>
+  }
 
   if (loading || profileLoading || tenantLoading) {
     return <AuthLoadingScreen />

@@ -13,6 +13,7 @@ import {
   SuperAdminOnly,
 } from '@/components/routing/AdminRouteDispatchers'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
+import { PublicLiveOutlet } from '@/components/routing/PublicLiveOutlet'
 import { LoginPage } from '@/pages/LoginPage'
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorEventPage } from '@/pages/live/FacilitatorEventPage'
@@ -32,7 +33,51 @@ function RootPage() {
   )
 }
 
+function NotFoundPage() {
+  return (
+    <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-foreground text-2xl font-bold">Page not found</h1>
+      <p className="text-muted-foreground mt-2 text-sm">
+        This URL does not match any RallyHub page.
+      </p>
+    </div>
+  )
+}
+
 export const router = createBrowserRouter([
+  // Public live panels — no auth, listed first for explicit precedence
+  {
+    path: '/facilitator/:eventId',
+    element: (
+      <PublicLiveOutlet>
+        <FacilitatorEventPage />
+      </PublicLiveOutlet>
+    ),
+  },
+  {
+    path: '/display/:eventId',
+    element: (
+      <PublicLiveOutlet>
+        <DisplayEventPage />
+      </PublicLiveOutlet>
+    ),
+  },
+  {
+    path: '/join/:eventId',
+    element: (
+      <PublicLiveOutlet>
+        <JoinEventPage />
+      </PublicLiveOutlet>
+    ),
+  },
+  {
+    path: '/tablet',
+    element: (
+      <PublicLiveOutlet>
+        <TabletPage />
+      </PublicLiveOutlet>
+    ),
+  },
   { path: '/', element: <RootPage /> },
   { path: '/login', element: <LoginPage /> },
   {
@@ -76,9 +121,6 @@ export const router = createBrowserRouter([
   },
   { path: '/rallyhub', element: <Navigate to="/admin" replace /> },
   { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
-  { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
-  { path: '/display/:eventId', element: <DisplayEventPage /> },
-  { path: '/join/:eventId', element: <JoinEventPage /> },
-  { path: '/tablet', element: <TabletPage /> },
   { path: '/play/:token', element: <PlayTokenPage /> },
+  { path: '*', element: <NotFoundPage /> },
 ])

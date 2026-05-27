@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
 import { supabase } from '@/lib/supabase'
 
 export type TenantPublicOrg = {
@@ -72,8 +73,11 @@ export function parseTenantFromHost(hostname: string): TenantContext {
   const platformSuffix = `.${platformHost()}`
   if (host.endsWith(platformSuffix)) {
     const sub = host.slice(0, -platformSuffix.length)
-    if (sub && !sub.includes('.')) {
+    if (sub && !sub.includes('.') && !RESERVED_TENANT_SUBDOMAINS.has(sub)) {
       return { kind: 'tenant', subdomain: sub }
+    }
+    if (sub && RESERVED_TENANT_SUBDOMAINS.has(sub)) {
+      return { kind: 'platform' }
     }
   }
 
