@@ -53,6 +53,7 @@ export const router = createBrowserRouter([
   { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
   { path: '/display/:eventId', element: <DisplayEventPage /> },
   { path: '/join/:eventId', element: <JoinEventPage /> },
+  { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage /> },
   { path: '/tablet', element: <TabletPage /> },
 
   { path: '/', element: <RootPage /> },

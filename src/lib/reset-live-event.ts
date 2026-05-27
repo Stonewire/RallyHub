@@ -84,6 +84,7 @@ export async function resetLiveEvent(eventId: string, teamCount: number) {
         winner_reveal_stage: 0,
         break_timer_seconds: 300,
         break_timer_running: false,
+        submissions_open: true,
         updated_at: new Date().toISOString(),
       })
       .eq('id', state.id)

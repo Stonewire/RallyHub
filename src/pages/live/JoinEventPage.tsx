@@ -25,6 +25,7 @@ export function JoinEventPage() {
   const navigate = useNavigate()
   const fromTablet = searchParams.get('from') === 'tablet'
   const tabletOrg = searchParams.get('org')?.trim() ?? ''
+  const tabletSlug = searchParams.get('slug')?.trim() ?? ''
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
   const { messages, sendMessage } = useChatMessages(eventId)
@@ -182,7 +183,12 @@ export function JoinEventPage() {
         tabletOrgSlug={tabletOrg}
         onExitToTablet={
           fromTablet && tabletOrg
-            ? () => navigate(`/tablet?org=${encodeURIComponent(tabletOrg)}`)
+            ? () =>
+                navigate(
+                  tabletSlug
+                    ? `/tablet/${encodeURIComponent(tabletOrg)}/${encodeURIComponent(tabletSlug)}`
+                    : `/tablet?org=${encodeURIComponent(tabletOrg)}`,
+                )
             : undefined
         }
       />

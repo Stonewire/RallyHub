@@ -111,6 +111,20 @@ export function FacilitatorEventPage() {
     (next, stillRunning) => timerSyncRef.current(next, stillRunning),
   )
 
+  const mainEventTimerRanRef = useRef(false)
+  useEffect(() => {
+    if (isQuizStage) return
+    if (state?.timer_running) mainEventTimerRanRef.current = true
+  }, [state?.timer_running, isQuizStage])
+
+  useEffect(() => {
+    if (!state || isQuizStage) return
+    if (!mainEventTimerRanRef.current) return
+    if (state.timer_running || state.timer_seconds > 0) return
+    if (state.submissions_open === false) return
+    void patchState({ submissions_open: false })
+  }, [state?.timer_seconds, state?.timer_running, isQuizStage, state])
+
   const quizAutoRevealKey = useRef('')
 
   useEffect(() => {
@@ -261,7 +275,7 @@ export function FacilitatorEventPage() {
     if (team) {
       await updateTeam(sub.team_id, { score: team.score + points })
     }
-    notify('Submission approved')
+    notify(`Approved +${points} pts`)
   }
 
   async function rejectSubmission(id: string) {

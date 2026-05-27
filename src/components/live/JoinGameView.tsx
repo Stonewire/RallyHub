@@ -27,6 +27,7 @@ import {
   gamePointsDisplay,
   isEventLive,
   logoForEvent,
+  submissionsAllowed,
   parseStages,
   quizQuestions,
   quizLeaderboard,
@@ -110,6 +111,7 @@ export function JoinGameView({
 
   const mySubs = submissions.filter((s) => s.team_id === teamId)
   const live = isEventLive(event)
+  const canSubmit = submissionsAllowed(state)
 
   const quizRunning =
     stage?.type === 'quiz' &&
@@ -216,22 +218,26 @@ export function JoinGameView({
     return () => URL.revokeObjectURL(url)
   }, [captureFile])
 
-  const lastApprovedId = useRef<string | null>(null)
+  const seenApprovedIds = useRef<Set<string> | null>(null)
   const lastRejectedId = useRef<string | null>(null)
   useEffect(() => {
-    const approved = submissions
-      .filter(
-        (s) =>
-          s.team_id === teamId &&
-          s.status === 'approved' &&
-          s.points_awarded != null,
-      )
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
-    if (!approved || approved.id === lastApprovedId.current) return
-    lastApprovedId.current = approved.id
-    const game = games.find((g) => g.id === approved.game_id)
-    if (!game) return
-    notify(`+${approved.points_awarded} pts — ${game.name}`)
+    const mine = submissions.filter(
+      (s) =>
+        s.team_id === teamId &&
+        s.status === 'approved' &&
+        s.points_awarded != null,
+    )
+    if (seenApprovedIds.current === null) {
+      seenApprovedIds.current = new Set(mine.map((s) => s.id))
+      return
+    }
+    for (const s of mine) {
+      if (seenApprovedIds.current.has(s.id)) continue
+      seenApprovedIds.current.add(s.id)
+      const game = games.find((g) => g.id === s.game_id)
+      if (!game || game.type === 'quiz' || game.type === 'music_bingo') continue
+      notify(`+${s.points_awarded} pts — ${game.name}`)
+    }
   }, [submissions, teamId, games, notify])
 
   useEffect(() => {
@@ -247,6 +253,10 @@ export function JoinGameView({
 
   async function submitOpenGame() {
     if (!selectedGame || !captureFile || !event.id) return
+    if (!canSubmit) {
+      notify('This event is now closed')
+      return
+    }
     setSubmitting(true)
     try {
       const url = await uploadAsset(
@@ -340,7 +350,9 @@ export function JoinGameView({
     }
   }
 
-  const header = (
+  const showMainHeader = !selectedGame && state.winner_reveal_stage < 1
+
+  const header = showMainHeader ? (
     <header className="mb-6 flex flex-col items-center gap-2 px-2 text-center">
       {logo ? (
         <img
@@ -369,7 +381,7 @@ export function JoinGameView({
         </p>
       )}
     </header>
-  )
+  ) : null
 
   let body: ReactNode
 
@@ -385,8 +397,14 @@ export function JoinGameView({
     )
   } else if (!live) {
     body = (
-      <p className="px-6 py-16 text-center text-lg font-medium text-white/90">
+      <p className="px-6 py-16 text-center text-lg font-medium opacity-90">
         Event starting soon…
+      </p>
+    )
+  } else if (live && !canSubmit && stage?.type === 'open') {
+    body = (
+      <p className="px-6 py-16 text-center text-lg font-semibold opacity-95">
+        This event is now closed. Submissions are no longer accepted.
       </p>
     )
   } else if (event.status === 'archived') {
@@ -419,11 +437,11 @@ export function JoinGameView({
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
       body = (
-        <div className="mx-auto max-w-lg px-4 pb-24">
+        <div className="mx-auto flex h-[calc(100dvh-3rem)] max-w-lg flex-col px-3 pt-2 pb-4">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="mb-4 text-white hover:bg-white/10"
+            className="mb-3 w-fit shrink-0 border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
             onClick={() => {
               setSelectedGame(null)
               setCaptureFile(null)
@@ -432,25 +450,22 @@ export function JoinGameView({
           >
             ← Back
           </Button>
-          <h2 className="mb-2 text-xl font-bold">{selectedGame.name}</h2>
-          <p className="mb-4 text-sm text-white/80">{selectedGame.description}</p>
-          {selectedGame.cover_url ? (
-            <img
-              src={selectedGame.cover_url}
-              alt=""
-              className="mb-4 w-full rounded-lg object-cover"
-            />
-          ) : null}
-          {selectedGame.type === 'video' &&
-          (selectedGame.config as GameConfig)?.example_video_url ? (
-            <video
-              src={(selectedGame.config as GameConfig).example_video_url!}
-              controls
-              className="mb-4 w-full rounded-lg"
-            />
-          ) : null}
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+            <h2 className="shrink-0 text-lg font-bold leading-tight sm:text-xl">
+              {selectedGame.name}
+            </h2>
+            <p className="shrink-0 text-xs opacity-80 sm:text-sm">
+              {gamePointsDisplay(selectedGame)}
+              {selectedGame.description ? ` · ${selectedGame.description}` : ''}
+            </p>
+            {!canSubmit ? (
+              <p className="shrink-0 text-center text-sm font-semibold text-[#FFCB03]">
+                Event closed — no new submissions
+              </p>
+            ) : null}
+          <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto">
           {pending ? (
-            <div className="space-y-4 text-center">
+            <div className="space-y-3 text-center">
               <p className="text-lg font-semibold text-[#FFCB03]">
                 Submission pending approval
               </p>
@@ -512,10 +527,10 @@ export function JoinGameView({
               </div>
             </div>
           ) : locked ? (
-            <p className="text-center text-white/70">
+            <p className="text-center opacity-70">
               This challenge is closed ({latestSub?.status})
             </p>
-          ) : (
+          ) : !canSubmit ? null : (
             <>
               {selectedGame.type === 'video' ? (
                 <VideoChallengeCapture
@@ -547,6 +562,8 @@ export function JoinGameView({
               )}
             </>
           )}
+          </div>
+          </div>
         </div>
       )
     } else {
@@ -562,7 +579,7 @@ export function JoinGameView({
               <button
                 key={g.id}
                 type="button"
-                disabled={locked}
+                disabled={locked || !canSubmit}
                 className={`relative flex min-h-[120px] flex-col justify-between rounded-xl p-4 text-left shadow-md transition-transform ${
                   locked
                     ? 'cursor-not-allowed opacity-50'
@@ -763,20 +780,27 @@ export function JoinGameView({
   }
 
   return (
-    <BrandBackground event={event} organization={organization} variant="default">
+    <BrandBackground
+      event={event}
+      organization={organization}
+      variant="default"
+      className="flex min-h-dvh flex-col"
+    >
       <NotificationAccentSync color={accent} />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 left-3 z-40 size-7 rounded-full bg-black/20 text-white/40 hover:bg-black/40 hover:text-white/90"
-        onClick={() => void handleExitTeam()}
-        aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
-      >
-        <LogOut className="size-3.5" />
-      </Button>
+      {!selectedGame ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="fixed top-3 left-3 z-40 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+          onClick={() => void handleExitTeam()}
+          aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
+        >
+          <LogOut className="size-4" />
+        </Button>
+      ) : null}
       {header}
-      {body}
+      <div className="flex-1 min-h-0">{body}</div>
       <Button
         className="fixed bottom-4 right-4 size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
@@ -786,24 +810,32 @@ export function JoinGameView({
         <MessageCircle className="size-5" />
       </Button>
       {chatOpen ? (
-        <div className="bg-background fixed inset-0 z-50 flex flex-col">
-          <div className="border-border flex items-center justify-between border-b p-4">
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-white/15 p-4 text-white">
             <span className="font-semibold">Chat with facilitator</span>
-            <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/10"
+              onClick={() => setChatOpen(false)}
+            >
               <X className="size-4" />
             </Button>
           </div>
-          <ul className="flex-1 space-y-2 overflow-auto p-4">
+          <ul className="flex-1 space-y-2 overflow-auto p-4 text-white">
             {messages.map((m) => (
               <li key={m.id} className="text-sm">
-                <span className="font-medium">{m.sender}: </span>
+                <span className="font-medium" style={{ color: accent }}>
+                  {m.sender}:{' '}
+                </span>
                 {m.message}
               </li>
             ))}
           </ul>
-          <div className="flex gap-2 border-t p-4">
+          <div className="flex gap-2 border-t border-white/15 p-4">
             <input
-              className="border-input bg-background flex-1 rounded-lg border px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50"
+              placeholder="Message…"
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
             />

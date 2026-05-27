@@ -38,12 +38,16 @@ export function VideoChallengeCapture({
     }
   }, [])
 
-  function attachPreview(stream: MediaStream) {
+  useEffect(() => {
+    if (!recording || !streamRef.current) return
     const el = previewRef.current
     if (!el) return
-    el.srcObject = stream
+    el.muted = true
+    el.playsInline = true
+    el.setAttribute('playsinline', 'true')
+    el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }
+  }, [recording])
 
   function clearPreview() {
     const el = previewRef.current
@@ -102,7 +106,6 @@ export function VideoChallengeCapture({
         audio: true,
       })
       streamRef.current = stream
-      attachPreview(stream)
       const recorder = new MediaRecorder(stream)
       recorderRef.current = recorder
       chunksRef.current = []

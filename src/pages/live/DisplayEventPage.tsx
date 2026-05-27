@@ -14,6 +14,7 @@ import {
   breakDurationSeconds,
   formatBreakTimer,
   formatTimer,
+  displayTextClass,
   logoForEvent,
   parseStages,
   quizQuestions,
@@ -319,7 +320,14 @@ export function DisplayEventPage() {
       </div>
     )
   } else {
-    body = <Leaderboard teams={teams} showScores={state.show_scores} layout={layout} />
+    body = (
+      <Leaderboard
+        teams={teams}
+        showScores={state.show_scores}
+        layout={layout}
+        textClass={displayTextClass(event)}
+      />
+    )
   }
 
   const showHeaderTimer =
@@ -335,13 +343,13 @@ export function DisplayEventPage() {
       variant={variant}
       className={embed ? 'h-screen overflow-hidden' : undefined}
     >
-      <header className="relative flex items-start justify-between px-6 pt-6">
+      <header className="relative flex items-start justify-between px-8 pt-12 pb-2">
         <div className="flex flex-1 flex-col items-center">
           {logo ? (
             <img
               src={logo}
               alt=""
-              className="mb-4 max-h-20 max-w-[240px] object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
+              className="mb-6 max-h-24 max-w-[280px] object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
             />
           ) : null}
           <h1 className="text-center text-3xl font-bold drop-shadow-md md:text-5xl">
@@ -349,7 +357,9 @@ export function DisplayEventPage() {
           </h1>
         </div>
         {showHeaderTimer ? (
-          <div className="font-mono text-2xl tabular-nums text-white/90">
+          <div
+            className={`font-mono text-2xl tabular-nums ${displayTextClass(event) === 'text-black' ? 'text-black/80' : 'text-white/90'}`}
+          >
             {formatTimer(timerDisplay)}
           </div>
         ) : (

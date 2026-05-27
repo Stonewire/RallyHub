@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { brandBlobColors } from '@/lib/live-event'
+import { brandBlobColors, displayTextClass } from '@/lib/live-event'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
@@ -21,10 +21,11 @@ export function BrandBackground({
 }: BrandBackgroundProps) {
   const { base, primary, accent } = brandBlobColors(event, organization)
   const opacity = variant === 'relaxed' ? 0.4 : variant === 'disco' ? 0.6 : 0.55
+  const textTone = displayTextClass(event)
 
   return (
     <div
-      className={`relative min-h-screen overflow-hidden text-white ${className ?? ''}`}
+      className={`relative min-h-screen overflow-hidden ${textTone} ${className ?? ''}`}
       style={{ backgroundColor: base }}
     >
       <div className="pointer-events-none absolute inset-0">

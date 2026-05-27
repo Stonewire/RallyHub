@@ -85,6 +85,7 @@ export function AdminEventsNewPage() {
           teams_config: values.teams,
           stages_config: values.stages,
           display_layout: values.displayLayout,
+          display_text_color: values.displayTextColor,
         },
         gameIds: values.selectedGameIds,
       })

@@ -236,6 +236,7 @@ export type Database = {
           teams_config: Json
           stages_config: Json
           display_layout: string
+          display_text_color: string
           created_at: string
         }
         Insert: {
@@ -251,6 +252,7 @@ export type Database = {
           teams_config?: Json
           stages_config?: Json
           display_layout?: string
+          display_text_color?: string
         }
         Update: {
           name?: string
@@ -263,6 +265,7 @@ export type Database = {
           teams_config?: Json
           stages_config?: Json
           display_layout?: string
+          display_text_color?: string
         }
         Relationships: []
       }
@@ -344,6 +347,7 @@ export type Database = {
           winner_reveal_stage: number
           break_timer_seconds: number | null
           break_timer_running: boolean
+          submissions_open: boolean
           updated_at: string
         }
         Insert: {
@@ -362,6 +366,7 @@ export type Database = {
           winner_reveal_stage?: number
           break_timer_seconds?: number | null
           break_timer_running?: boolean
+          submissions_open?: boolean
         }
         Update: {
           current_stage_index?: number
@@ -377,6 +382,7 @@ export type Database = {
           winner_reveal_stage?: number
           break_timer_seconds?: number | null
           break_timer_running?: boolean
+          submissions_open?: boolean
           updated_at?: string
         }
         Relationships: []

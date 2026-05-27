@@ -21,6 +21,7 @@ export type OrganizationFormState = {
   address_postal: string
   address_country: string
   tablet_password: string
+  tablet_slug: string
 }
 
 export const EMPTY_ORG_FORM: OrganizationFormState = {
@@ -36,6 +37,7 @@ export const EMPTY_ORG_FORM: OrganizationFormState = {
   address_postal: '',
   address_country: '',
   tablet_password: '',
+  tablet_slug: '',
 }
 
 export function orgToForm(org: OrganizationRow): OrganizationFormState {
@@ -53,20 +55,22 @@ export function orgToForm(org: OrganizationRow): OrganizationFormState {
     address_postal: org.address_postal ?? '',
     address_country: org.address_country ?? '',
     tablet_password: org.tablet_password ?? '',
+    tablet_slug: org.tablet_slug ?? '',
   }
 }
 
 export function getTabletLink(
-  tabletSlug: string,
-  org?: { subdomain: string; custom_domain?: string | null },
+  org: { subdomain: string; tablet_slug: string; custom_domain?: string | null },
 ) {
+  const base = getOrganizationOrigin(org)
+  return `${base}/tablet/${encodeURIComponent(org.subdomain)}/${encodeURIComponent(org.tablet_slug)}`
+}
+
+/** Legacy query URL — still resolves on TabletPage */
+export function getTabletLinkLegacy(tabletSlug: string) {
   const base =
-    org != null
-      ? getOrganizationOrigin(org)
-      : typeof window !== 'undefined'
-        ? window.location.origin
-        : ''
-  return `${base}/tablet?org=${tabletSlug}`
+    typeof window !== 'undefined' ? window.location.origin : ''
+  return `${base}/tablet?org=${encodeURIComponent(tabletSlug)}`
 }
 
 export function useOrganization(organizationId: string | null) {
@@ -128,6 +132,9 @@ export function useSaveOrganization(organizationId: string | null) {
         address_postal: payload.address_postal || null,
         address_country: payload.address_country || null,
         tablet_password: payload.tablet_password || null,
+        ...(payload.tablet_slug.trim()
+          ? { tablet_slug: payload.tablet_slug.trim() }
+          : {}),
       }
 
       const { error } = await supabase

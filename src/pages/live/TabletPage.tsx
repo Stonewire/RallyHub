@@ -1,20 +1,44 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { AccentButton } from '@/components/admin/AccentButton'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { getTabletLink } from '@/hooks/use-organization-settings'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
+import { verifyTabletPassword } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
+const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
+
 async function resolveOrganization(
-  orgParam: string,
+  orgSlug: string | undefined,
+  tabletCode: string | undefined,
+  legacyOrgParam: string,
 ): Promise<TenantPublicOrg | null> {
+  if (orgSlug && tabletCode) {
+    const { data, error } = await supabase
+      .from('organization_tenant_public')
+      .select('*')
+      .eq('subdomain', orgSlug)
+      .eq('tablet_slug', tabletCode)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  }
+
+  if (!legacyOrgParam) return null
+
   const { data, error } = await supabase
     .from('organization_tenant_public')
     .select('*')
-    .or(`tablet_slug.eq.${orgParam},subdomain.eq.${orgParam},id.eq.${orgParam}`)
+    .or(
+      `tablet_slug.eq.${legacyOrgParam},subdomain.eq.${legacyOrgParam},id.eq.${legacyOrgParam}`,
+    )
     .maybeSingle()
 
   if (error) throw error
@@ -22,17 +46,35 @@ async function resolveOrganization(
 }
 
 export function TabletPage() {
+  const { orgSlug, tabletCode } = useParams<{
+    orgSlug?: string
+    tabletCode?: string
+  }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const orgParam = searchParams.get('org')?.trim() ?? ''
+  const legacyOrgParam = searchParams.get('org')?.trim() ?? ''
 
   const [org, setOrg] = useState<TenantPublicOrg | null>(null)
   const [events, setEvents] = useState<Tables<'events'>[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [authed, setAuthed] = useState(false)
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [checkingIn, setCheckingIn] = useState(false)
+
+  const tabletPath =
+    org != null
+      ? `/tablet/${encodeURIComponent(org.subdomain)}/${encodeURIComponent(org.tablet_slug)}`
+      : orgSlug && tabletCode
+        ? `/tablet/${encodeURIComponent(orgSlug)}/${encodeURIComponent(tabletCode)}`
+        : legacyOrgParam
+          ? `/tablet?org=${encodeURIComponent(legacyOrgParam)}`
+          : ''
 
   const loadData = useCallback(async () => {
-    if (!orgParam) {
+    const hasPath = Boolean((orgSlug && tabletCode) || legacyOrgParam)
+    if (!hasPath) {
       setLoading(false)
       setLoadError('Missing organization in URL.')
       return
@@ -42,7 +84,11 @@ export function TabletPage() {
     setLoadError(null)
 
     try {
-      const organization = await resolveOrganization(orgParam)
+      const organization = await resolveOrganization(
+        orgSlug,
+        tabletCode,
+        legacyOrgParam,
+      )
       if (!organization) {
         setLoadError('Organization not found. Check the tablet link.')
         setOrg(null)
@@ -52,6 +98,7 @@ export function TabletPage() {
       }
 
       setOrg(organization)
+      setAuthed(sessionStorage.getItem(tabletSessionKey(organization.id)) === '1')
 
       const { data: ev, error: evError } = await supabase
         .from('events')
@@ -68,18 +115,48 @@ export function TabletPage() {
     } finally {
       setLoading(false)
     }
-  }, [orgParam])
+  }, [orgSlug, tabletCode, legacyOrgParam])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
-  if (!orgParam) {
+  async function handleTabletLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!org) return
+    setCheckingIn(true)
+    setAuthError(null)
+    try {
+      const ok = await verifyTabletPassword(org.id, password)
+      if (!ok) {
+        setAuthError('Incorrect password')
+        return
+      }
+      sessionStorage.setItem(tabletSessionKey(org.id), '1')
+      setAuthed(true)
+      setPassword('')
+      if (orgSlug && tabletCode) return
+      navigate(getTabletLink(org), { replace: true })
+    } catch {
+      setAuthError('Could not verify password')
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
+  function handleLogout() {
+    if (org) sessionStorage.removeItem(tabletSessionKey(org.id))
+    setAuthed(false)
+    setPassword('')
+  }
+
+  if (!orgSlug && !tabletCode && !legacyOrgParam) {
     return (
       <LivePanelShell title="Tablet">
         <Card className="border-border/80 bg-card p-6 text-center shadow-sm">
           <p className="text-muted-foreground text-sm">
-            Add <code className="font-mono">?org=TABLET_SLUG</code> to the URL.
+            Open your organization tablet link from Settings, or use{' '}
+            <code className="font-mono text-xs">/tablet/org-name/access-code</code>
           </p>
         </Card>
       </LivePanelShell>
@@ -89,7 +166,7 @@ export function TabletPage() {
   if (loading) {
     return (
       <LivePanelShell title="Tablet">
-        <p className="text-muted-foreground text-center text-sm">Loading events…</p>
+        <p className="text-muted-foreground text-center text-sm">Loading…</p>
       </LivePanelShell>
     )
   }
@@ -113,8 +190,57 @@ export function TabletPage() {
     )
   }
 
+  if (!authed) {
+    return (
+      <LivePanelShell title={org?.name ?? 'Tablet'}>
+        {org?.logo_url ? (
+          <img
+            src={org.logo_url}
+            alt=""
+            className="mx-auto mb-6 max-h-16 object-contain"
+          />
+        ) : null}
+        <Card className="border-border/80 mx-auto max-w-sm space-y-4 bg-card p-6 shadow-sm">
+          <p className="text-muted-foreground text-center text-sm">
+            Enter the tablet password to view active events.
+          </p>
+          <form className="space-y-4" onSubmit={(e) => void handleTabletLogin(e)}>
+            <div className="space-y-2">
+              <Label htmlFor="tablet-login-pw">Tablet password</Label>
+              <Input
+                id="tablet-login-pw"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            {authError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {authError}
+              </p>
+            ) : null}
+            <AccentButton
+              type="submit"
+              className="w-full"
+              disabled={checkingIn || !password.trim()}
+            >
+              {checkingIn ? 'Signing in…' : 'Continue'}
+            </AccentButton>
+          </form>
+        </Card>
+      </LivePanelShell>
+    )
+  }
+
   return (
     <LivePanelShell title={org?.name ?? 'Tablet'}>
+      <div className="mb-4 flex justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
+          Log out
+        </Button>
+      </div>
       {org?.logo_url ? (
         <img
           src={org.logo_url}
@@ -134,17 +260,25 @@ export function TabletPage() {
               type="button"
               variant="outline"
               className="h-auto py-4"
-              onClick={() =>
-                navigate(
-                  `/join/${ev.id}?from=tablet&org=${encodeURIComponent(orgParam)}`,
-                )
-              }
+              onClick={() => {
+                const q = new URLSearchParams({
+                  from: 'tablet',
+                  org: org!.subdomain,
+                  slug: org!.tablet_slug,
+                })
+                navigate(`/join/${ev.id}?${q.toString()}`)
+              }}
             >
               {ev.name}
             </Button>
           ))
         )}
       </div>
+      {tabletPath ? (
+        <p className="text-muted-foreground mt-8 text-center text-xs">
+          Bookmark: {tabletPath}
+        </p>
+      ) : null}
     </LivePanelShell>
   )
 }

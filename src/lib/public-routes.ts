@@ -4,6 +4,7 @@ const PUBLIC_LIVE_PATTERNS = [
   /^\/display\/[^/]+$/,
   /^\/join\/[^/]+$/,
   /^\/tablet\/?$/,
+  /^\/tablet\/[^/]+\/[^/]+$/,
 ] as const
 
 export function isPublicLivePath(pathname: string): boolean {

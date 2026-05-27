@@ -6,6 +6,21 @@ import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
 export type DisplayLayout = 'rank_list' | 'orbit_view'
+export type DisplayTextColor = 'black' | 'white'
+
+export function displayTextColorForEvent(
+  event: Tables<'events'>,
+): DisplayTextColor {
+  return event.display_text_color === 'black' ? 'black' : 'white'
+}
+
+export function displayTextClass(event: Tables<'events'>): string {
+  return displayTextColorForEvent(event) === 'black' ? 'text-black' : 'text-white'
+}
+
+export function submissionsAllowed(state: Tables<'event_state'>): boolean {
+  return state.submissions_open !== false
+}
 export type TeamStatus = 'idle' | 'active' | 'stopped'
 export type AnnouncementTarget = 'display' | 'participants' | 'both'
 

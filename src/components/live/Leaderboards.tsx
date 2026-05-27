@@ -1,55 +1,87 @@
+import { useMemo } from 'react'
+
 import type { Tables } from '@/types/helpers'
 
 type LeaderboardProps = {
   teams: Tables<'teams'>[]
   showScores: boolean
   layout: 'rank_list' | 'orbit_view'
+  textClass?: string
 }
 
-export function Leaderboard({ teams, showScores, layout }: LeaderboardProps) {
+function orbitGrid(teamCount: number) {
+  if (teamCount <= 2) return { cols: 2, maxPx: 200 }
+  if (teamCount <= 4) return { cols: 2, maxPx: 180 }
+  if (teamCount <= 6) return { cols: 3, maxPx: 150 }
+  if (teamCount <= 9) return { cols: 3, maxPx: 130 }
+  if (teamCount <= 12) return { cols: 4, maxPx: 115 }
+  if (teamCount <= 16) return { cols: 4, maxPx: 100 }
+  return { cols: 5, maxPx: 88 }
+}
+
+export function Leaderboard({
+  teams,
+  showScores,
+  layout,
+  textClass = 'text-white',
+}: LeaderboardProps) {
   const ranked = [...teams]
     .filter((t) => t.name)
     .sort((a, b) => b.score - a.score)
 
+  const orbit = useMemo(() => orbitGrid(ranked.length), [ranked.length])
+
   if (layout === 'orbit_view') {
     const maxScore = Math.max(1, ...ranked.map((t) => t.score))
     return (
-      <div className="flex min-h-[50vh] flex-wrap items-center justify-center gap-6 px-4 py-8">
-        {ranked.map((team, i) => {
-          const size = 72 + (team.score / maxScore) * 56
-          return (
-            <div key={team.id} className="flex flex-col items-center gap-2">
+      <div className="flex min-h-[50vh] flex-1 items-center justify-center px-8 py-10">
+        <div
+          className="grid w-full max-w-6xl place-items-center justify-items-center gap-x-6 gap-y-8"
+          style={{
+            gridTemplateColumns: `repeat(${orbit.cols}, minmax(0, 1fr))`,
+          }}
+        >
+          {ranked.map((team, i) => {
+            const scoreRatio = team.score / maxScore
+            const size = Math.round(orbit.maxPx * (0.72 + scoreRatio * 0.28))
+            return (
               <div
-                className="relative flex items-center justify-center rounded-full"
-                style={{
-                  width: size,
-                  height: size,
-                  boxShadow: `0 0 0 4px ${team.color ?? '#888'}`,
-                }}
+                key={team.id}
+                className={`flex w-full max-w-[${orbit.maxPx}px] flex-col items-center gap-2 ${textClass}`}
+                style={{ maxWidth: orbit.maxPx }}
               >
-                {team.photo_url ? (
-                  <img
-                    src={team.photo_url}
-                    alt=""
-                    className="size-full rounded-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="size-full rounded-full opacity-80"
-                    style={{ background: team.color ?? '#666' }}
-                  />
-                )}
+                <div
+                  className="relative flex shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    width: size,
+                    height: size,
+                    boxShadow: `0 0 0 4px ${team.color ?? '#888'}`,
+                  }}
+                >
+                  {team.photo_url ? (
+                    <img
+                      src={team.photo_url}
+                      alt=""
+                      className="size-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="size-full rounded-full opacity-80"
+                      style={{ background: team.color ?? '#666' }}
+                    />
+                  )}
+                </div>
+                <span className="max-w-full truncate text-center text-sm font-medium">
+                  {team.name}
+                </span>
+                {showScores ? (
+                  <span className="text-xs opacity-70">{team.score}</span>
+                ) : null}
+                <span className="text-[10px] opacity-40">#{i + 1}</span>
               </div>
-              <span className="max-w-[8rem] truncate text-center text-sm font-medium">
-                {team.name}
-              </span>
-              {showScores ? (
-                <span className="text-xs text-white/70">{team.score}</span>
-              ) : null}
-              <span className="text-[10px] text-white/40">#{i + 1}</span>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     )
   }
@@ -57,13 +89,13 @@ export function Leaderboard({ teams, showScores, layout }: LeaderboardProps) {
   const maxScore = Math.max(1, ...ranked.map((t) => t.score))
 
   return (
-    <ul className="mx-auto w-full max-w-2xl space-y-3 px-4 py-6">
+    <ul className={`mx-auto w-full max-w-2xl space-y-3 px-4 py-6 ${textClass}`}>
       {ranked.map((team, i) => (
         <li
           key={team.id}
           className="flex items-center gap-4 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm"
         >
-          <span className="w-8 text-lg font-bold text-white/60">{i + 1}</span>
+          <span className="w-8 text-lg font-bold opacity-60">{i + 1}</span>
           {team.photo_url ? (
             <img
               src={team.photo_url}

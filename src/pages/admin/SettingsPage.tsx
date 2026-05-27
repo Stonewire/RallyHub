@@ -74,12 +74,7 @@ export function AdminSettingsPage() {
     )
   }
 
-  const tabletLink = orgQuery.data
-    ? getTabletLink(orgQuery.data.tablet_slug, {
-        subdomain: orgQuery.data.subdomain,
-        custom_domain: orgQuery.data.custom_domain,
-      })
-    : ''
+  const tabletLink = orgQuery.data ? getTabletLink(orgQuery.data) : ''
 
   async function handleSave() {
     setSaveMessage(null)
@@ -440,6 +435,27 @@ export function AdminSettingsPage() {
             <h2 className="text-foreground text-lg font-semibold">
               Tablet Access
             </h2>
+            <div className="space-y-2">
+              <Label htmlFor="tablet-slug">Tablet link code</Label>
+              <Input
+                id="tablet-slug"
+                value={form.tablet_slug}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    tablet_slug: e.target.value
+                      .replace(/[^a-zA-Z0-9_-]/g, '')
+                      .slice(0, 24),
+                  })
+                }
+                className="bg-background max-w-md font-mono"
+                placeholder="e.g. kiosk01"
+              />
+              <p className="text-muted-foreground text-xs">
+                Unique code in your tablet URL (along with organization name). Leave
+                blank to keep the current code when saving other fields.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="tablet-password">Tablet Password</Label>
               <Input

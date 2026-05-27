@@ -125,6 +125,30 @@ export function EventForm({
             <option value="orbit_view">Orbit View</option>
           </select>
         </div>
+        <div className="space-y-2">
+          <Label>Live UI text color</Label>
+          <select
+            value={values.displayTextColor}
+            onChange={(e) =>
+              set({
+                displayTextColor: e.target.value as EventFormValues['displayTextColor'],
+              })
+            }
+            className="border-input bg-background max-w-sm rounded-lg border px-3 py-2 text-sm"
+          >
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+          <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
+            <strong className="text-foreground">White</strong> — team join screens, challenge
+            cards, display leaderboard and headers on your brand background (recommended for
+            dark or colorful palettes).
+            <br />
+            <strong className="text-foreground">Black</strong> — same surfaces when your
+            secondary/background colors are light; keeps titles and scores readable on pale
+            blobs.
+          </p>
+        </div>
       </Card>
 
       <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
