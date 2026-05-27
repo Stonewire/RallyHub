@@ -92,6 +92,8 @@ Deno.serve(async (req) => {
       })
     }
 
+    await supabaseAdmin.rpc('seed_organization_defaults', { p_org_id: org.id })
+
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim(),
       password,
