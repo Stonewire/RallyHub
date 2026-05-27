@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
+import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
@@ -43,6 +44,7 @@ export function JoinEventPage() {
   const [claimError, setClaimError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [justJoined, setJustJoined] = useState(false)
+  const [mediaReady, setMediaReady] = useState(false)
 
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
   const hasJoined = Boolean(teamId && (myTeam?.name?.trim() || justJoined))
@@ -78,6 +80,11 @@ export function JoinEventPage() {
       setAnnouncement(bundle.state.announcement)
     }
   }, [bundle?.state.announcement, bundle?.state.announcement_target])
+
+  useEffect(() => {
+    if (!hasJoined || mediaReady) return
+    void requestTeamMediaPermissions().then(() => setMediaReady(true))
+  }, [hasJoined, mediaReady])
 
   if (loading || !bundle) {
     return (

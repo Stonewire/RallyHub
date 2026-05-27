@@ -2,18 +2,16 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  GripVertical,
   ImageIcon,
-  Pencil,
   Search,
   Trash2,
   X,
 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
-import { CompactListRow } from '@/components/admin/CompactListRow'
+import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -23,7 +21,6 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { StatusIndicator } from '@/components/ui/status-indicator'
 import {
   useAssignGameToGroup,
   useDeleteGameGroup,
@@ -31,12 +28,10 @@ import {
   useRenameGameGroup,
 } from '@/hooks/use-game-groups'
 import {
-  GAME_TYPE_LABELS,
-  gameStatusTone,
   useCreateGameGroup,
   useDeleteGame,
   useGames,
-  type GameRow,
+  useReorderGames,
 } from '@/hooks/use-games'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import type { GameType } from '@/types/database'
@@ -48,83 +43,6 @@ const FILTERS: { value: 'all' | GameType; label: string }[] = [
   { value: 'quiz', label: 'Quiz' },
   { value: 'music_bingo', label: 'Music Bingo' },
 ]
-
-function GameRow({
-  game,
-  groups,
-  onDelete,
-  onAssignGroup,
-  deleting,
-}: {
-  game: GameRow
-  groups: { id: string; name: string }[]
-  onDelete: () => void
-  onAssignGroup: (groupId: string | null) => void
-  deleting: boolean
-}) {
-  return (
-    <CompactListRow
-      actions={
-        <>
-          {groups.length > 0 ? (
-            <select
-              className="border-input bg-background max-w-[7rem] rounded border px-1.5 py-1 text-xs"
-              defaultValue=""
-              onChange={(e) => {
-                const v = e.target.value
-                onAssignGroup(v === '' ? null : v === '__none' ? null : v)
-                e.target.value = ''
-              }}
-            >
-              <option value="">Group…</option>
-              <option value="__none">Ungroup</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <Button variant="ghost" size="icon-sm" asChild>
-            <Link to={`/admin/games/${game.id}`}>
-              <Pencil className="size-3.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive"
-            disabled={deleting}
-            onClick={onDelete}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </>
-      }
-    >
-      <div className="flex items-center gap-2.5">
-        <GripVertical
-          className="text-muted-foreground size-4 shrink-0 cursor-grab"
-          aria-hidden
-        />
-        {game.cover_url ? (
-          <img
-            src={game.cover_url}
-            alt=""
-            className="border-border/80 size-8 shrink-0 rounded object-cover"
-          />
-        ) : (
-          <div className="bg-muted/50 size-8 shrink-0 rounded" />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-sm font-medium">{game.name}</p>
-          <p className="text-muted-foreground text-xs">{GAME_TYPE_LABELS[game.type]}</p>
-        </div>
-        <StatusIndicator status={gameStatusTone(game.status)} className="shrink-0" />
-      </div>
-    </CompactListRow>
-  )
-}
 
 function GroupHeader({
   name,
@@ -220,6 +138,7 @@ export function AdminGamesPage() {
   const assignGroup = useAssignGameToGroup(organizationId)
   const renameGroup = useRenameGameGroup(organizationId)
   const deleteGroup = useDeleteGameGroup(organizationId)
+  const reorderGames = useReorderGames(organizationId)
 
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [search, setSearch] = useState('')
@@ -301,11 +220,17 @@ export function AdminGamesPage() {
 
   const isLoading = gamesQuery.isLoading || groupsQuery.isLoading
 
-  const listShell = (children: ReactNode) => (
-    <div className="border-border/80 overflow-hidden rounded-lg border bg-card shadow-sm">
-      {children}
-    </div>
-  )
+  function handleReorder(gameId: string, index: number) {
+    const list = [...(gamesQuery.data ?? [])].sort((a, b) => {
+      if (a.list_order !== b.list_order) return a.list_order - b.list_order
+      return a.name.localeCompare(b.name)
+    })
+    const without = list.filter((g) => g.id !== gameId)
+    const next = [...without.slice(0, index), list.find((g) => g.id === gameId)!, ...without.slice(index)]
+      .filter(Boolean)
+      .map((g) => g.id)
+    void reorderGames.mutateAsync(next)
+  }
 
   return (
     <AdminPageShell
@@ -385,23 +310,16 @@ export function AdminGamesPage() {
                   groupGames.length === 0 ? (
                     <p className="text-muted-foreground text-sm">No games in this group.</p>
                   ) : (
-                    listShell(
-                      groupGames.map((game) => (
-                        <GameRow
-                          key={game.id}
-                          game={game}
-                          groups={groupOptions}
-                          deleting={deleteGame.isPending}
-                          onDelete={() => void handleDelete(game.id, game.name)}
-                          onAssignGroup={(gid) =>
-                            void assignGroup.mutateAsync({
-                              gameId: game.id,
-                              groupId: gid,
-                            })
-                          }
-                        />
-                      )),
-                    )
+                    <DraggableGamesGrid
+                      games={groupGames}
+                      groups={groupOptions}
+                      deleting={deleteGame.isPending}
+                      onDelete={(game) => void handleDelete(game.id, game.name)}
+                      onAssignGroup={(gameId, gid) =>
+                        void assignGroup.mutateAsync({ gameId, groupId: gid })
+                      }
+                      onReorder={handleReorder}
+                    />
                   )
                 ) : null}
               </section>
@@ -416,20 +334,16 @@ export function AdminGamesPage() {
                   {ungrouped.length}
                 </span>
               </h2>
-              {listShell(
-                ungrouped.map((game) => (
-                  <GameRow
-                    key={game.id}
-                    game={game}
-                    groups={groupOptions}
-                    deleting={deleteGame.isPending}
-                    onDelete={() => void handleDelete(game.id, game.name)}
-                    onAssignGroup={(gid) =>
-                      void assignGroup.mutateAsync({ gameId: game.id, groupId: gid })
-                    }
-                  />
-                )),
-              )}
+              <DraggableGamesGrid
+                games={ungrouped}
+                groups={groupOptions}
+                deleting={deleteGame.isPending}
+                onDelete={(game) => void handleDelete(game.id, game.name)}
+                onAssignGroup={(gameId, gid) =>
+                  void assignGroup.mutateAsync({ gameId, groupId: gid })
+                }
+                onReorder={handleReorder}
+              />
             </section>
           ) : null}
         </div>

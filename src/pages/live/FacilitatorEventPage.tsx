@@ -1,9 +1,14 @@
-import { Check, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
+import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
+import {
+  FacilitatorChatBubble,
+  FacilitatorChatDrawer,
+  useFacilitatorChatUnread,
+} from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { useNotification } from '@/contexts/notification-context'
@@ -13,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import { useLiveTimer } from '@/hooks/use-live-timer'
-import { useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
+import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import {
   FACILITATOR_NAME_KEY,
   bingoTracks,
@@ -22,6 +27,8 @@ import {
   formatBreakTimer,
   formatTimer,
   parseStages,
+  quizTimerRunning,
+  quizTimerSeconds,
   quizQuestions,
   quizSubmissionMediaType,
   isQuizSubmission,
@@ -42,6 +49,7 @@ export function FacilitatorEventPage() {
   const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
   const { bundle, loading, error, updateState, updateTeam, resetEvent } =
     useLiveEvent(eventId)
+  const { messages, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)
 
@@ -55,7 +63,10 @@ export function FacilitatorEventPage() {
   const [resetting, setResetting] = useState(false)
   const [selectedSub, setSelectedSub] = useState<Tables<'submissions'> | null>(null)
   const [breakHalted, setBreakHalted] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatTeamId, setChatTeamId] = useState<string | null>(null)
   const { notify } = useNotification()
+  const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
@@ -87,8 +98,7 @@ export function FacilitatorEventPage() {
     }
     if (next?.type === 'quiz') {
       patch.quiz_state = 'idle'
-      patch.timer_running = false
-      patch.show_timer_on_display = false
+      patch.quiz_timer_running = false
     }
     void patchState(patch)
   }
@@ -96,6 +106,12 @@ export function FacilitatorEventPage() {
   const timerSyncRef = useRef(
     createThrottledTimerSync((next, stillRunning) => {
       void patchState({ timer_seconds: next, timer_running: stillRunning })
+    }),
+  )
+
+  const quizTimerSyncRef = useRef(
+    createThrottledTimerSync((next, stillRunning) => {
+      void patchState({ quiz_timer_seconds: next, quiz_timer_running: stillRunning })
     }),
   )
 
@@ -112,6 +128,12 @@ export function FacilitatorEventPage() {
     state?.timer_seconds ?? 0,
     Boolean(state?.timer_running),
     (next, stillRunning) => timerSyncRef.current(next, stillRunning),
+  )
+
+  const quizTimerDisplay = useLiveTimer(
+    state ? quizTimerSeconds(state) : 0,
+    state ? quizTimerRunning(state) : false,
+    (next, stillRunning) => quizTimerSyncRef.current(next, stillRunning),
   )
 
   const mainEventTimerRanRef = useRef(false)
@@ -159,7 +181,7 @@ export function FacilitatorEventPage() {
             (s.media_type === mediaType || s.media_type === 'quiz'),
         ),
       )
-    const timerDone = Boolean(state.timer_running) && timerDisplay <= 0
+    const timerDone = quizTimerRunning(state) && quizTimerDisplay <= 0
     if (!timerDone && !allAnswered) return
 
     const key = `${state.current_stage_index}-${state.current_question_index}-reveal`
@@ -175,12 +197,12 @@ export function FacilitatorEventPage() {
           bundle.teams,
           updateTeam,
         )
-        await updateState({ timer_running: false, quiz_state: 'revealed' })
+        await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
       } catch {
         quizAutoRevealKey.current = ''
       }
     })()
-  }, [bundle, state, timerDisplay, updateTeam, updateState])
+  }, [bundle, state, quizTimerDisplay, updateTeam, updateState])
 
   const breakSeconds =
     stage?.type === 'break'
@@ -359,9 +381,8 @@ export function FacilitatorEventPage() {
     void patchState({
       current_question_index: index,
       quiz_state: 'active',
-      timer_seconds: sec,
-      timer_running: true,
-      show_timer_on_display: false,
+      quiz_timer_seconds: sec,
+      quiz_timer_running: true,
     })
   }
 
@@ -374,7 +395,7 @@ export function FacilitatorEventPage() {
       teams,
       updateTeam,
     )
-    await patchState({ timer_running: false, quiz_state: 'revealed' })
+    await patchState({ quiz_timer_running: false, quiz_state: 'revealed' })
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
 
@@ -384,15 +405,15 @@ export function FacilitatorEventPage() {
     if (next >= questions.length) {
       await patchState({
         quiz_state: 'results',
-        timer_running: false,
+        quiz_timer_running: false,
       })
       return
     }
     await patchState({
       current_question_index: next,
       quiz_state: 'active',
-      timer_seconds: questionSeconds,
-      timer_running: true,
+      quiz_timer_seconds: questionSeconds,
+      quiz_timer_running: true,
     })
   }
 
@@ -403,7 +424,7 @@ export function FacilitatorEventPage() {
     quizAutoRevealKey.current = ''
     const next = liveState.current_question_index + 1
     if (next >= questions.length) {
-      await patchState({ quiz_state: 'results', timer_running: false })
+      await patchState({ quiz_state: 'results', quiz_timer_running: false })
       return
     }
     startQuizQuestion(next)
@@ -429,15 +450,15 @@ export function FacilitatorEventPage() {
     await patchState({
       current_question_index: 0,
       quiz_state: 'idle',
-      timer_seconds: questionSeconds,
-      timer_running: false,
+      quiz_timer_seconds: questionSeconds,
+      quiz_timer_running: false,
     })
     notify('Quiz reset')
   }
 
   async function finishQuiz() {
     quizAutoRevealKey.current = ''
-    await patchState({ quiz_state: 'ended', timer_running: false })
+    await patchState({ quiz_state: 'ended', quiz_timer_running: false })
     notify('Quiz finished for all screens')
   }
 
@@ -455,7 +476,7 @@ export function FacilitatorEventPage() {
       if (isLast && liveState.quiz_state === 'revealed') {
         return {
           label: 'Reveal Quiz Results',
-          action: () => void patchState({ quiz_state: 'results', timer_running: false }),
+          action: () => void patchState({ quiz_state: 'results', quiz_timer_running: false }),
         }
       }
       return {
@@ -503,7 +524,6 @@ export function FacilitatorEventPage() {
             <DisplayPreviewFrame displayUrl={displayUrl} />
           </Card>
 
-          {!isQuizStage ? (
           <Card className="border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-muted-foreground text-xs">Event countdown on display</p>
@@ -577,24 +597,6 @@ export function FacilitatorEventPage() {
               ) : null}
             </div>
           </Card>
-          ) : (
-          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-            <p className="text-muted-foreground text-sm">Question timer</p>
-            <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  void patchState({ timer_running: !state.timer_running })
-                }
-              >
-                {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
-                {state.timer_running ? 'Pause' : 'Start'}
-              </Button>
-            </div>
-          </Card>
-          )}
 
           {stateError ? (
             <p className="text-destructive px-1 text-sm">{stateError}</p>
@@ -695,6 +697,19 @@ export function FacilitatorEventPage() {
                     {team.name?.trim() || 'Available'}
                   </button>
                   <span className="text-sm tabular-nums">{team.score}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
+                    onClick={() => {
+                      setChatTeamId(team.id)
+                      setChatOpen(true)
+                    }}
+                  >
+                    <MessageCircle className="size-4" />
+                  </Button>
                   <select
                     className="border-input bg-background rounded border px-1 text-xs"
                     value={team.status}
@@ -851,6 +866,16 @@ export function FacilitatorEventPage() {
                   </li>
                 ))}
               </ul>
+              {state.quiz_state === 'active' || state.quiz_state === 'revealed' ? (
+                <Card className="border-border/80 bg-muted/20 p-6 text-center shadow-inner">
+                  <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
+                    Question timer
+                  </p>
+                  <p className="font-mono text-5xl font-bold tabular-nums md:text-6xl">
+                    {formatTimer(quizTimerDisplay)}
+                  </p>
+                </Card>
+              ) : null}
             </div>
           ) : stage.type === 'bingo' ? (
             <div className="space-y-4">
@@ -939,6 +964,28 @@ export function FacilitatorEventPage() {
           ) : null}
         </Card>
       </div>
+
+      <FacilitatorChatBubble
+        unreadCount={chatUnread}
+        onClick={() => {
+          setChatOpen(true)
+          if (!chatTeamId) {
+            const latest = [...messages].reverse().find((m) => m.team_id)
+            if (latest?.team_id) setChatTeamId(latest.team_id)
+          }
+        }}
+      />
+      <FacilitatorChatDrawer
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        activeTeamId={chatTeamId}
+        onActiveTeamIdChange={setChatTeamId}
+        messages={messages}
+        teams={teams}
+        onSend={async (text, teamId) => {
+          await sendMessage(name, text, teamId)
+        }}
+      />
 
       {selectedSub ? (
         <SubmissionDetailModal

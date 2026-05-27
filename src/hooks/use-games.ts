@@ -113,3 +113,23 @@ export function gameStatusTone(
   if (status === 'archived') return 'archived'
   return 'draft'
 }
+
+export function useReorderGames(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const updates = orderedIds.map((id, list_order) =>
+        supabase.from('games').update({ list_order }).eq('id', id),
+      )
+      const results = await Promise.all(updates)
+      const err = results.find((r) => r.error)?.error
+      if (err) throw err
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.games(organizationId),
+      })
+    },
+  })
+}

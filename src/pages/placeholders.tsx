@@ -86,15 +86,6 @@ export function AdminEventDetailPage() {
   )
 }
 
-export function AdminSupportPage() {
-  return (
-    <AdminDocPage
-      title="Support"
-      subtitle="Reach the RallyHub team and browse help resources."
-    />
-  )
-}
-
 export function RallyHubOverviewPage() {
   return (
     <PlaceholderPage

@@ -8,6 +8,7 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
+import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
 
 type VideoChallengeCaptureProps = {
@@ -119,9 +120,13 @@ export function VideoChallengeCapture({
     })
   }
 
-  async function acceptFile(file: File) {
+  async function queueForReview(file: File) {
     const ok = await validateDuration(file)
-    if (ok) onFileReady(file)
+    if (ok) {
+      stopStream()
+      setRecordedFile(file)
+      setRemaining(maxSec)
+    }
   }
 
   function startRecording() {
@@ -130,19 +135,21 @@ export function VideoChallengeCapture({
       return
     }
     try {
-      const recorder = new MediaRecorder(streamRef.current)
+      const mime = pickVideoRecorderMime()
+      const recorder = new MediaRecorder(streamRef.current, { mimeType: mime })
       recorderRef.current = recorder
       chunksRef.current = []
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' })
+        const blob = new Blob(chunksRef.current, { type: mime })
         chunksRef.current = []
         stopStream()
         if (blob.size > 0) {
-          setRecordedFile(
-            new File([blob], `recording-${Date.now()}.webm`, { type: blob.type }),
+          const ext = videoFileExtension(mime)
+          void queueForReview(
+            new File([blob], `recording-${Date.now()}.${ext}`, { type: mime }),
           )
         } else {
           void openPreview()
@@ -178,12 +185,13 @@ export function VideoChallengeCapture({
           <video
             ref={reviewRef}
             key={reviewUrl}
-            src={reviewUrl}
             controls
             playsInline
             preload="auto"
             className="aspect-[4/3] w-full bg-black object-contain"
-          />
+          >
+            <source src={reviewUrl} type={recordedFile.type || undefined} />
+          </video>
           <div className="flex gap-2 p-3">
             <Button
               type="button"
@@ -198,7 +206,7 @@ export function VideoChallengeCapture({
               className="flex-1"
               accentColor={accentColor}
               disabled={disabled}
-              onClick={() => void acceptFile(recordedFile)}
+              onClick={() => onFileReady(recordedFile)}
             >
               Use this video
             </LiveAccentButton>
@@ -257,7 +265,7 @@ export function VideoChallengeCapture({
         onChange={(e) => {
           const f = e.target.files?.[0]
           e.target.value = ''
-          if (f) void acceptFile(f)
+          if (f) void queueForReview(f)
         }}
       />
       <Button

@@ -191,6 +191,7 @@ export type Database = {
           subject: string
           body: string | null
           status: string
+          ticket_number: string | null
           created_at: string
           updated_at: string
         }
@@ -200,6 +201,7 @@ export type Database = {
           subject: string
           body?: string | null
           status?: string
+          ticket_number?: string | null
         }
         Update: {
           subject?: string
@@ -344,6 +346,8 @@ export type Database = {
           current_question_index: number
           timer_seconds: number
           timer_running: boolean
+          quiz_timer_seconds: number | null
+          quiz_timer_running: boolean
           show_scores: boolean
           show_timer_on_display: boolean
           quiz_state: string
@@ -363,6 +367,8 @@ export type Database = {
           current_question_index?: number
           timer_seconds?: number
           timer_running?: boolean
+          quiz_timer_seconds?: number | null
+          quiz_timer_running?: boolean
           show_scores?: boolean
           show_timer_on_display?: boolean
           quiz_state?: string
@@ -379,6 +385,8 @@ export type Database = {
           current_question_index?: number
           timer_seconds?: number
           timer_running?: boolean
+          quiz_timer_seconds?: number | null
+          quiz_timer_running?: boolean
           show_scores?: boolean
           show_timer_on_display?: boolean
           quiz_state?: string

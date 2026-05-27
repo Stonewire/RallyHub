@@ -75,6 +75,8 @@ export async function resetLiveEvent(eventId: string, teamCount: number) {
         current_question_index: 0,
         timer_seconds: 7200,
         timer_running: false,
+        quiz_timer_seconds: null,
+        quiz_timer_running: false,
         show_scores: true,
         show_timer_on_display: true,
         quiz_state: 'idle',

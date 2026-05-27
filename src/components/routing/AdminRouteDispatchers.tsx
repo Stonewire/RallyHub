@@ -4,17 +4,14 @@ import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccessRallyHub } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
-import { AdminDashboardPage } from '@/pages/admin/DashboardPage'
 import { AdminEventsPage } from '@/pages/admin/EventsPage'
 import { AdminEventEditPage } from '@/pages/admin/events/EditEventPage'
 import { AdminEventsNewPage } from '@/pages/admin/events/NewEventPage'
 import { AdminGamesNewPage } from '@/pages/admin/games/NewGamePage'
 import { AdminGamesPage } from '@/pages/admin/GamesPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
-import {
-  AdminGameDetailPage,
-  AdminSupportPage,
-} from '@/pages/placeholders'
+import { AdminSupportPage } from '@/pages/admin/SupportPage'
+import { AdminGameDetailPage } from '@/pages/placeholders'
 import { RallyHubOverviewPage } from '@/pages/rallyhub/DashboardPage'
 import { RallyHubGamesPage } from '@/pages/rallyhub/GamesPage'
 import { RallyHubSupportPage } from '@/pages/rallyhub/SupportPage'
@@ -29,7 +26,7 @@ function useIsSuperAdminOnPlatform() {
 export function AdminHomePage() {
   const mode = useIsSuperAdminOnPlatform()
   if (mode === null) return <AuthLoadingScreen label="Loading profile" />
-  return mode ? <RallyHubOverviewPage /> : <AdminDashboardPage />
+  return mode ? <RallyHubOverviewPage /> : <Navigate to="/admin/events" replace />
 }
 
 export function AdminGamesRoute() {

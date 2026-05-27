@@ -152,13 +152,24 @@ export function AdminEventEditPage() {
       title="Edit event"
       subtitle="Update event details, teams, games, and stages."
       actions={
-        <AccentButton
-          type="button"
-          disabled={saving || loading}
-          onClick={() => void handleSave()}
-        >
-          {saving ? 'Saving…' : 'Save Changes'}
-        </AccentButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <EventStatusMenu
+            status={eventStatus}
+            size="default"
+            disabled={updateStatus.isPending || loading}
+            onSelect={(status) => {
+              if (!eventId) return
+              void updateStatus.mutateAsync({ eventId, status })
+            }}
+          />
+          <AccentButton
+            type="button"
+            disabled={saving || loading}
+            onClick={() => void handleSave()}
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
+          </AccentButton>
+        </div>
       }
     >
       {eventQuery.isError ? (
@@ -172,19 +183,6 @@ export function AdminEventEditPage() {
               {error}
             </p>
           ) : null}
-
-          <Card className="border-border/80 mb-8 flex flex-wrap items-center gap-4 bg-card p-4 shadow-sm">
-            <span className="text-foreground text-sm font-medium">Event status</span>
-            <EventStatusMenu
-              status={eventStatus}
-              size="default"
-              disabled={updateStatus.isPending}
-              onSelect={(status) => {
-                if (!eventId) return
-                void updateStatus.mutateAsync({ eventId, status })
-              }}
-            />
-          </Card>
 
           <EventForm
             organizationId={organizationId}

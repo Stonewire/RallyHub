@@ -31,6 +31,23 @@ export function displayTextClass(event: Tables<'events'>): string {
   return displayTextColorForEvent(event) === 'black' ? 'text-black' : 'text-white'
 }
 
+/** Quiz question countdown (falls back to legacy timer_seconds when column missing). */
+export function quizTimerSeconds(state: Tables<'event_state'>): number {
+  const row = state as Tables<'event_state'> & {
+    quiz_timer_seconds?: number | null
+  }
+  if (row.quiz_timer_seconds != null) return row.quiz_timer_seconds
+  return state.timer_seconds
+}
+
+export function quizTimerRunning(state: Tables<'event_state'>): boolean {
+  const row = state as Tables<'event_state'> & {
+    quiz_timer_running?: boolean
+  }
+  if (row.quiz_timer_running != null) return row.quiz_timer_running
+  return state.timer_running
+}
+
 export function submissionsAllowed(state: Tables<'event_state'>): boolean {
   return state.submissions_open !== false
 }

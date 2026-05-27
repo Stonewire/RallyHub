@@ -92,7 +92,11 @@ export function DraggableEventsGrid({
               <article
                 key={event.id}
                 draggable
-                onDragStart={() => setDragId(event.id)}
+                onDragStart={(e) => {
+                  setDragId(event.id)
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', event.id)
+                }}
                 onDragEnd={() => setDragId(null)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -109,34 +113,29 @@ export function DraggableEventsGrid({
                 tabIndex={0}
               >
                 <div className="flex items-start gap-2">
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0 cursor-grab active:cursor-grabbing"
-                    draggable={false}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Drag to reorder or change status"
-                  >
-                    <GripVertical className="size-4" />
-                  </button>
-                  <div
-                    className="min-w-0 flex-1"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <EventStatusMenu
-                      status={event.status as EventStatus}
-                      disabled={statusPending}
-                      onSelect={(status) => onStatusChange(event.id, status)}
-                    />
+                  <GripVertical
+                    className="text-muted-foreground mt-0.5 size-4 shrink-0 cursor-grab active:cursor-grabbing"
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-foreground line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug">
+                        {event.name}
+                      </p>
+                      <EventStatusMenu
+                        status={event.status as EventStatus}
+                        disabled={statusPending}
+                        onSelect={(status) => onStatusChange(event.id, status)}
+                      />
+                    </div>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {formatEventDate(event.event_date)} · {event.team_count} teams
+                    </p>
                   </div>
-                </div>
-                <div className="min-w-0 pl-6">
-                  <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
-                    {event.name}
-                  </p>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    {formatEventDate(event.event_date)} · {event.team_count} teams
-                  </p>
                 </div>
                 <div
                   className="flex flex-wrap gap-1.5 pl-6"

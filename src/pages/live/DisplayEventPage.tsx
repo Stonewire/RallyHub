@@ -23,6 +23,8 @@ import {
   quizQuestions,
   quizLeaderboard,
   quizSubmissionMediaType,
+  quizTimerRunning,
+  quizTimerSeconds,
 } from '@/lib/live-event'
 
 export function DisplayEventPage() {
@@ -37,7 +39,6 @@ export function DisplayEventPage() {
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
-  const isQuizStage = stage?.type === 'quiz'
 
   const timerSyncRef = useMemo(
     () =>
@@ -62,6 +63,20 @@ export function DisplayEventPage() {
     eventState?.timer_seconds ?? 0,
     Boolean(eventState?.timer_running),
     (next, stillRunning) => timerSyncRef(next, stillRunning),
+  )
+
+  const quizTimerSyncRef = useMemo(
+    () =>
+      createThrottledTimerSync((next, stillRunning) => {
+        void updateState({ quiz_timer_seconds: next, quiz_timer_running: stillRunning })
+      }),
+    [updateState],
+  )
+
+  const quizTimerDisplay = useLiveTimer(
+    eventState ? quizTimerSeconds(eventState) : 0,
+    eventState ? quizTimerRunning(eventState) : false,
+    (next, stillRunning) => quizTimerSyncRef(next, stillRunning),
   )
 
   const breakSeconds =
@@ -195,10 +210,7 @@ export function DisplayEventPage() {
         <p className="font-display text-2xl font-bold opacity-80 md:text-4xl">
           Get ready for
         </p>
-        <p
-          className="font-display mt-4 text-4xl font-bold md:text-6xl"
-          style={{ color: STANDBY_ACCENT }}
-        >
+        <p className="font-display mt-4 text-4xl font-bold md:text-6xl">
           {quizGame.name}
         </p>
         <p className="font-display mt-2 text-2xl font-bold opacity-90 md:text-4xl">
@@ -224,9 +236,9 @@ export function DisplayEventPage() {
         <h2 className="font-display mb-6 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
           {question.text}
         </h2>
-        {state.quiz_state === 'active' && state.timer_running ? (
+        {state.quiz_state === 'active' && quizTimerRunning(state) ? (
           <p className="font-display mb-8 text-6xl font-bold tabular-nums md:text-8xl">
-            {formatTimer(timerDisplay)}
+            {formatTimer(quizTimerDisplay)}
           </p>
         ) : null}
         <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
@@ -353,9 +365,7 @@ export function DisplayEventPage() {
 
   const showHeaderTimer =
     state.show_timer_on_display &&
-    !isQuizStage &&
     stage?.type !== 'break' &&
-    state.quiz_state !== 'results' &&
     state.winner_reveal_stage < 1
 
   const headerTimer = showHeaderTimer ? (

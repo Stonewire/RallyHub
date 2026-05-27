@@ -99,26 +99,29 @@ export function EventForm({
 
   return (
     <div className="space-y-8">
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <div className="space-y-2">
-          <Label>Event name</Label>
-          <Input
-            value={name}
-            onChange={(e) => set({ name: e.target.value })}
-            className="bg-background"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Event date & time</Label>
-          <Input
-            type="datetime-local"
-            value={eventDate}
-            onChange={(e) => set({ eventDate: e.target.value })}
-            className="bg-background max-w-sm"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Display layout</Label>
+      <Card className="border-border/80 bg-card p-6 shadow-sm">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+          <div className="space-y-4">
+            <h2 className="text-foreground text-lg font-semibold">Event details</h2>
+            <div className="space-y-2">
+              <Label>Event name</Label>
+              <Input
+                value={name}
+                onChange={(e) => set({ name: e.target.value })}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Event date & time</Label>
+              <Input
+                type="datetime-local"
+                value={eventDate}
+                onChange={(e) => set({ eventDate: e.target.value })}
+                className="bg-background max-w-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Display layout</Label>
           <select
             value={values.displayLayout}
             onChange={(e) =>
@@ -148,8 +151,74 @@ export function EventForm({
           </select>
           <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
             Controls title and score readability on top of your event background (not button
-            colors). Use white on dark palettes; black on light secondary colors.
+            colors).             Use white on dark palettes; black on light secondary colors.
           </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-foreground text-lg font-semibold">Event branding</h2>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={brandingEnabled}
+                onChange={(e) => set({ brandingEnabled: e.target.checked })}
+              />
+              Custom branding for this event
+            </label>
+            {brandingEnabled ? (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  Override your organization profile for this event only.
+                </p>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="max-w-xs"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    void uploadAsset(
+                      'organization-logos',
+                      `${organizationId}/events/${crypto.randomUUID()}`,
+                      file,
+                    ).then((url) => set({ logoUrl: url }))
+                  }}
+                />
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Event logo"
+                    className="border-border/80 size-16 rounded-lg border object-contain"
+                  />
+                ) : null}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {brandColors.map((c, i) => (
+                    <div key={BRAND_LABELS[i]} className="space-y-2">
+                      <Label>{BRAND_LABELS[i]}</Label>
+                      <p className="text-muted-foreground text-xs leading-snug">
+                        {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
+                      </p>
+                      <input
+                        type="color"
+                        value={c}
+                        onChange={(e) => {
+                          const next = [...brandColors] as [string, string, string]
+                          next[i] = e.target.value
+                          set({ brandColors: next })
+                        }}
+                        className="h-10 w-full cursor-pointer rounded border"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : orgDefaults ? (
+              <p className="text-muted-foreground text-sm">
+                Using organization logo and colors from Settings.
+              </p>
+            ) : null}
+          </div>
         </div>
       </Card>
 
@@ -231,72 +300,6 @@ export function EventForm({
             </li>
           ))}
         </ul>
-      </Card>
-
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={brandingEnabled}
-            onChange={(e) => set({ brandingEnabled: e.target.checked })}
-          />
-          Custom branding for this event
-        </label>
-        {brandingEnabled ? (
-          <>
-            <p className="text-muted-foreground text-sm">
-              Override your organization profile for this event only.
-            </p>
-            <Input
-              type="file"
-              accept="image/*"
-              className="max-w-xs"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                void uploadAsset(
-                  'organization-logos',
-                  `${organizationId}/events/${crypto.randomUUID()}`,
-                  file,
-                ).then((url) => set({ logoUrl: url }))
-              }}
-            />
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Event logo"
-                className="border-border/80 size-16 rounded-lg border object-contain"
-              />
-            ) : null}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {brandColors.map((c, i) => (
-                <div key={BRAND_LABELS[i]} className="space-y-2">
-                  <Label>{BRAND_LABELS[i]}</Label>
-                  <p className="text-muted-foreground text-xs leading-snug">
-                    {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
-                  </p>
-                  <input
-                    type="color"
-                    value={c}
-                    onChange={(e) => {
-                      const next = [...brandColors] as [string, string, string]
-                      next[i] = e.target.value
-                      set({ brandColors: next })
-                    }}
-                    className="h-10 w-full cursor-pointer rounded border"
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Uses logo and colors from Organization Profile (Settings).
-            {orgDefaults
-              ? ` (${orgDefaults.primary_color}, ${orgDefaults.secondary_color}, ${orgDefaults.accent_color}).`
-              : '.'}
-          </p>
-        )}
       </Card>
 
       <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">

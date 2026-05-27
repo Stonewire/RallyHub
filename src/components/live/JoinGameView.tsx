@@ -30,6 +30,8 @@ import {
   logoForEvent,
   submissionsAllowed,
   STANDBY_ACCENT,
+  quizTimerRunning,
+  quizTimerSeconds,
   textOnAccent,
   parseStages,
   quizQuestions,
@@ -118,13 +120,18 @@ export function JoinGameView({
 
   const quizRunning =
     stage?.type === 'quiz' &&
-    state.timer_running &&
+    quizTimerRunning(state) &&
     (state.quiz_state === 'active' || state.quiz_state === 'waiting')
 
   const quizTimerDisplay = useLiveTimer(
-    state.timer_seconds,
+    quizTimerSeconds(state),
     Boolean(quizRunning),
     () => {},
+  )
+
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => m.team_id == null || m.team_id === teamId),
+    [messages, teamId],
   )
 
   const quizGame = stage?.type === 'quiz' && stage.gameId
@@ -513,12 +520,16 @@ export function JoinGameView({
               {selectedGame.type === 'video' ? (
                 <video
                   key={capturePreview}
-                  src={capturePreview}
                   controls
                   playsInline
                   preload="auto"
                   className="w-full rounded-lg bg-black"
-                />
+                >
+                  <source
+                    src={capturePreview}
+                    type={captureFile?.type || 'video/mp4'}
+                  />
+                </video>
               ) : (
                 <img src={capturePreview} alt="" className="w-full rounded-lg" />
               )}
@@ -650,9 +661,7 @@ export function JoinGameView({
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
           <p className="text-lg text-white/80">Get ready for</p>
-          <p className="mt-3 text-3xl font-bold" style={{ color: STANDBY_ACCENT }}>
-            {quizGame.name}
-          </p>
+          <p className="mt-3 text-3xl font-bold text-white">{quizGame.name}</p>
           <p className="mt-2 text-xl font-semibold text-white">Quiz</p>
           <p className="text-muted-foreground mt-8 text-sm text-white/50">
             Waiting for the facilitator to start…
@@ -850,7 +859,7 @@ export function JoinGameView({
             </Button>
           </div>
           <ul className="flex-1 space-y-2 overflow-auto p-4 text-white">
-            {messages.map((m) => (
+            {visibleMessages.map((m) => (
               <li key={m.id} className="text-sm">
                 <span className="font-medium" style={{ color: accent }}>
                   {m.sender}:{' '}
