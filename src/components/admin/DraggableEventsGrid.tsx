@@ -1,0 +1,185 @@
+import { GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+
+import { EventStatusMenu } from '@/components/events/EventStatusMenu'
+import { Button } from '@/components/ui/button'
+import {
+  EVENT_STATUS_LABELS,
+  groupEventsByStatus,
+  type EventRow,
+} from '@/hooks/use-events'
+import type { EventStatus } from '@/types/database'
+
+function formatEventDate(iso: string | null) {
+  if (!iso) return 'Date not set'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(iso))
+}
+
+type DraggableEventsGridProps = {
+  events: EventRow[]
+  statusPending: boolean
+  deleting: boolean
+  onStatusChange: (eventId: string, status: EventStatus) => void
+  onDelete: (event: EventRow) => void
+  onViewLinks: (event: EventRow) => void
+  onReorder: (eventId: string, status: EventStatus, indexInGroup: number) => void
+}
+
+export function DraggableEventsGrid({
+  events,
+  statusPending,
+  deleting,
+  onStatusChange,
+  onDelete,
+  onViewLinks,
+  onReorder,
+}: DraggableEventsGridProps) {
+  const navigate = useNavigate()
+  const [dragId, setDragId] = useState<string | null>(null)
+
+  const sorted = [...events].sort((a, b) => {
+    if (a.list_order !== b.list_order) return a.list_order - b.list_order
+    const da = a.event_date ?? ''
+    const db = b.event_date ?? ''
+    return da.localeCompare(db)
+  })
+
+  const groups = groupEventsByStatus(sorted)
+
+  function handleDrop(targetStatus: EventStatus, targetEventId: string | null) {
+    if (!dragId) return
+    const dragged = events.find((e) => e.id === dragId)
+    if (!dragged) return
+
+    const groupEvents = sorted
+      .filter((e) => e.status === targetStatus)
+      .filter((e) => e.id !== dragId)
+
+    let index = groupEvents.length
+    if (targetEventId) {
+      const idx = groupEvents.findIndex((e) => e.id === targetEventId)
+      if (idx >= 0) index = idx
+    }
+
+    onReorder(dragId, targetStatus, index)
+    setDragId(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <section key={group.status}>
+          <h3 className="text-foreground mb-3 text-sm font-semibold">
+            {group.label}{' '}
+            <span className="text-muted-foreground font-normal">({group.events.length})</span>
+          </h3>
+          <div
+            className="grid gap-3 sm:grid-cols-2"
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              handleDrop(group.status, null)
+            }}
+          >
+            {group.events.map((event) => (
+              <article
+                key={event.id}
+                draggable
+                onDragStart={() => setDragId(event.id)}
+                onDragEnd={() => setDragId(null)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDrop(group.status, event.id)
+                }}
+                className="border-border/80 bg-card hover:border-border flex cursor-pointer flex-col gap-2 rounded-lg border p-3 shadow-sm transition-colors"
+                onClick={() => navigate(`/admin/events/${event.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') navigate(`/admin/events/${event.id}`)
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0 cursor-grab active:cursor-grabbing"
+                    draggable={false}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Drag to reorder or change status"
+                  >
+                    <GripVertical className="size-4" />
+                  </button>
+                  <div
+                    className="min-w-0 flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <EventStatusMenu
+                      status={event.status as EventStatus}
+                      disabled={statusPending}
+                      onSelect={(status) => onStatusChange(event.id, status)}
+                    />
+                  </div>
+                </div>
+                <div className="min-w-0 pl-6">
+                  <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
+                    {event.name}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {formatEventDate(event.event_date)} · {event.team_count} teams
+                  </p>
+                </div>
+                <div
+                  className="flex flex-wrap gap-1.5 pl-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => onViewLinks(event)}
+                  >
+                    <Link2 className="size-3" />
+                    View Links
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+                    <Link to={`/admin/events/${event.id}`}>
+                      <Pencil className="size-3" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive h-7 text-xs"
+                    disabled={deleting}
+                    onClick={() => onDelete(event)}
+                  >
+                    <Trash2 className="size-3" />
+                    Delete
+                  </Button>
+                </div>
+              </article>
+            ))}
+            {group.events.length === 0 ? (
+              <p className="text-muted-foreground col-span-2 py-4 text-center text-xs">
+                Drop events here to set status to {EVENT_STATUS_LABELS[group.status]}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}

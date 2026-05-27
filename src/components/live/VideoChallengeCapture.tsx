@@ -27,8 +27,11 @@ export function VideoChallengeCapture({
   const maxSec = getMaxVideoDurationSeconds(config)
   const fileRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLVideoElement>(null)
+  const reviewRef = useRef<HTMLVideoElement>(null)
   const [previewReady, setPreviewReady] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [recordedFile, setRecordedFile] = useState<File | null>(null)
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null)
   const [remaining, setRemaining] = useState(maxSec)
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -36,13 +39,33 @@ export function VideoChallengeCapture({
   const tickRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    void openPreview()
-    return () => {
-      stopAll(false)
+    if (!recordedFile) {
+      setReviewUrl(null)
+      return
     }
-  }, [])
+    const url = URL.createObjectURL(recordedFile)
+    setReviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [recordedFile])
 
   useEffect(() => {
+    if (!reviewUrl || !reviewRef.current) return
+    const el = reviewRef.current
+    el.src = reviewUrl
+    el.load()
+    void el.play().catch(() => {})
+  }, [reviewUrl])
+
+  useEffect(() => {
+    if (recordedFile) return
+    void openPreview()
+    return () => {
+      stopStream()
+    }
+  }, [recordedFile])
+
+  useEffect(() => {
+    if (recordedFile) return
     const el = previewRef.current
     if (!el || !streamRef.current) return
     el.muted = true
@@ -50,7 +73,19 @@ export function VideoChallengeCapture({
     el.setAttribute('playsinline', 'true')
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [previewReady, recording])
+  }, [previewReady, recording, recordedFile])
+
+  function stopStream() {
+    if (tickRef.current != null) {
+      window.clearInterval(tickRef.current)
+      tickRef.current = undefined
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (previewRef.current) previewRef.current.srcObject = null
+    setPreviewReady(false)
+    setRecording(false)
+  }
 
   async function openPreview() {
     if (!navigator.mediaDevices?.getUserMedia) return
@@ -64,11 +99,6 @@ export function VideoChallengeCapture({
     } catch {
       notify('Could not access camera — use upload instead')
     }
-  }
-
-  function clearVideoEl() {
-    const el = previewRef.current
-    if (el) el.srcObject = null
   }
 
   function validateDuration(file: File): Promise<boolean> {
@@ -89,30 +119,9 @@ export function VideoChallengeCapture({
     })
   }
 
-  async function handleFileInput(file: File | undefined) {
-    if (!file) return
+  async function acceptFile(file: File) {
     const ok = await validateDuration(file)
     if (ok) onFileReady(file)
-  }
-
-  function stopAll(saveRecording: boolean) {
-    if (tickRef.current != null) {
-      window.clearInterval(tickRef.current)
-      tickRef.current = undefined
-    }
-    if (recording) {
-      recorderRef.current?.stop()
-      recorderRef.current = null
-      setRecording(false)
-      setRemaining(maxSec)
-      if (!saveRecording) chunksRef.current = []
-    }
-    if (!saveRecording) {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-      clearVideoEl()
-      setPreviewReady(false)
-    }
   }
 
   function startRecording() {
@@ -130,16 +139,11 @@ export function VideoChallengeCapture({
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' })
         chunksRef.current = []
-        streamRef.current?.getTracks().forEach((t) => t.stop())
-        streamRef.current = null
-        clearVideoEl()
-        setPreviewReady(false)
-        setRecording(false)
+        stopStream()
         if (blob.size > 0) {
-          const file = new File([blob], `recording-${Date.now()}.webm`, {
-            type: blob.type,
-          })
-          void handleFileInput(file)
+          setRecordedFile(
+            new File([blob], `recording-${Date.now()}.webm`, { type: blob.type }),
+          )
         } else {
           void openPreview()
         }
@@ -151,14 +155,57 @@ export function VideoChallengeCapture({
         const elapsed = Math.floor((Date.now() - started) / 1000)
         const left = Math.max(0, maxSec - elapsed)
         setRemaining(left)
-        if (left <= 0) {
-          if (tickRef.current) window.clearInterval(tickRef.current)
-          recorderRef.current?.stop()
-        }
+        if (left <= 0) recorderRef.current?.stop()
       }, 200)
     } catch {
       notify('Could not start recording')
     }
+  }
+
+  function discardRecording() {
+    setRecordedFile(null)
+    setRemaining(maxSec)
+    void openPreview()
+  }
+
+  if (recordedFile && reviewUrl) {
+    return (
+      <div className="space-y-3">
+        <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
+          Review your recording
+        </p>
+        <div className="overflow-hidden rounded-xl bg-black">
+          <video
+            ref={reviewRef}
+            key={reviewUrl}
+            src={reviewUrl}
+            controls
+            playsInline
+            preload="auto"
+            className="aspect-[4/3] w-full bg-black object-contain"
+          />
+          <div className="flex gap-2 p-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 border-white/30 bg-white/10 text-white"
+              onClick={discardRecording}
+            >
+              Retake
+            </Button>
+            <LiveAccentButton
+              type="button"
+              className="flex-1"
+              accentColor={accentColor}
+              disabled={disabled}
+              onClick={() => void acceptFile(recordedFile)}
+            >
+              Use this video
+            </LiveAccentButton>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -206,12 +253,11 @@ export function VideoChallengeCapture({
         ref={fileRef}
         type="file"
         accept="video/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0]
           e.target.value = ''
-          void handleFileInput(f)
+          if (f) void acceptFile(f)
         }}
       />
       <Button

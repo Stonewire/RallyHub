@@ -8,7 +8,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventForm } from '@/components/events/EventForm'
-import { EventLinksModal } from '@/components/events/EventLinksModal'
+import { EventLinksPanel } from '@/components/events/EventLinksPanel'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -51,7 +51,6 @@ export function AdminEventEditPage() {
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [linksOpen, setLinksOpen] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
@@ -215,51 +214,54 @@ export function AdminEventEditPage() {
             </Card>
           ) : null}
 
-          {eventId ? (
-            <Card className="border-border/80 mt-8 flex flex-wrap gap-3 bg-card p-6 shadow-sm">
-              <Button type="button" variant="outline" onClick={() => setLinksOpen(true)}>
-                View links & QR codes
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={downloading}
-                onClick={() => {
-                  setDownloading(true)
-                  void downloadEventPackage(eventId).finally(() => setDownloading(false))
+          {eventId && eventQuery.data ? (
+            <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-foreground text-lg font-semibold">Event links</h2>
+                  <p className="text-muted-foreground text-sm">
+                    QR codes and URLs for facilitator, display, and team join.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={downloading}
+                  onClick={() => {
+                    setDownloading(true)
+                    void downloadEventPackage(eventId).finally(() =>
+                      setDownloading(false),
+                    )
+                  }}
+                >
+                  {downloading ? 'Preparing…' : 'Download media & PDF'}
+                </Button>
+              </div>
+              <EventLinksPanel
+                eventId={eventId}
+                eventName={eventQuery.data.name}
+                organization={
+                  orgQuery.data
+                    ? {
+                        subdomain: orgQuery.data.subdomain,
+                        custom_domain: orgQuery.data.custom_domain,
+                      }
+                    : null
+                }
+                branding={{
+                  eventName: eventQuery.data.name,
+                  logoUrl: logoForEvent(eventQuery.data, orgQuery.data ?? null),
+                  primaryColor: brandColorsForEvent(
+                    eventQuery.data,
+                    orgQuery.data ?? null,
+                  )[0],
+                  accentColor: brandColorsForEvent(
+                    eventQuery.data,
+                    orgQuery.data ?? null,
+                  )[2],
                 }}
-              >
-                {downloading ? 'Preparing download…' : 'Download media & PDF'}
-              </Button>
+              />
             </Card>
-          ) : null}
-
-          {linksOpen && eventId && eventQuery.data ? (
-            <EventLinksModal
-              eventId={eventId}
-              eventName={eventQuery.data.name}
-              organization={
-                orgQuery.data
-                  ? {
-                      subdomain: orgQuery.data.subdomain,
-                      custom_domain: orgQuery.data.custom_domain,
-                    }
-                  : null
-              }
-              branding={{
-                eventName: eventQuery.data.name,
-                logoUrl: logoForEvent(eventQuery.data, orgQuery.data ?? null),
-                primaryColor: brandColorsForEvent(
-                  eventQuery.data,
-                  orgQuery.data ?? null,
-                )[0],
-                accentColor: brandColorsForEvent(
-                  eventQuery.data,
-                  orgQuery.data ?? null,
-                )[2],
-              }}
-              onClose={() => setLinksOpen(false)}
-            />
           ) : null}
 
           <FormSaveFooter

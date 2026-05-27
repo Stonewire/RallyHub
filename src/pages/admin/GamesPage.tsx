@@ -2,6 +2,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  GripVertical,
   ImageIcon,
   Pencil,
   Search,
@@ -102,6 +103,10 @@ function GameRow({
       }
     >
       <div className="flex items-center gap-2.5">
+        <GripVertical
+          className="text-muted-foreground size-4 shrink-0 cursor-grab"
+          aria-hidden
+        />
         {game.cover_url ? (
           <img
             src={game.cover_url}

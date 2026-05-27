@@ -142,6 +142,7 @@ export type Database = {
           is_default_for_new_clients: boolean
           is_platform_template: boolean
           source_template_id: string | null
+          list_order: number
           created_at: string
         }
         Insert: {
@@ -162,6 +163,7 @@ export type Database = {
           is_default_for_new_clients?: boolean
           is_platform_template?: boolean
           source_template_id?: string | null
+          list_order?: number
         }
         Update: {
           name?: string
@@ -178,6 +180,7 @@ export type Database = {
           config?: Json
           is_default_for_new_clients?: boolean
           is_platform_template?: boolean
+          list_order?: number
         }
         Relationships: []
       }
@@ -237,6 +240,7 @@ export type Database = {
           stages_config: Json
           display_layout: string
           display_text_color: string
+          list_order: number
           created_at: string
         }
         Insert: {
@@ -253,6 +257,7 @@ export type Database = {
           stages_config?: Json
           display_layout?: string
           display_text_color?: string
+          list_order?: number
         }
         Update: {
           name?: string
@@ -266,6 +271,7 @@ export type Database = {
           stages_config?: Json
           display_layout?: string
           display_text_color?: string
+          list_order?: number
         }
         Relationships: []
       }

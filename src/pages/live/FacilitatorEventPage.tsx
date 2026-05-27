@@ -2,6 +2,7 @@ import { Check, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
@@ -53,6 +54,7 @@ export function FacilitatorEventPage() {
   const [stateError, setStateError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [selectedSub, setSelectedSub] = useState<Tables<'submissions'> | null>(null)
+  const [breakHalted, setBreakHalted] = useState(false)
   const { notify } = useNotification()
 
   const stages = useMemo(
@@ -81,6 +83,7 @@ export function FacilitatorEventPage() {
     if (next?.type === 'break') {
       patch.break_timer_seconds = breakDurationSeconds(next, null)
       patch.break_timer_running = false
+      setBreakHalted(false)
     }
     if (next?.type === 'quiz') {
       patch.quiz_state = 'idle'
@@ -432,6 +435,12 @@ export function FacilitatorEventPage() {
     notify('Quiz reset')
   }
 
+  async function finishQuiz() {
+    quizAutoRevealKey.current = ''
+    await patchState({ quiz_state: 'ended', timer_running: false })
+    notify('Quiz finished for all screens')
+  }
+
   function quizPrimaryButton(): { label: string; action: () => void } | null {
     if (liveState.quiz_state === 'results') return null
     if (liveState.quiz_state === 'idle' || liveState.quiz_state === 'waiting') {
@@ -495,50 +504,78 @@ export function FacilitatorEventPage() {
           </Card>
 
           {!isQuizStage ? (
-          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-            <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  void patchState({ timer_running: !state.timer_running })
-                }
-              >
-                {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
-                {state.timer_running ? 'Pause' : 'Start'}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  void patchState({ timer_seconds: state.timer_seconds + 900 })
-                }
-              >
-                <Plus className="size-4" /> 15m
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
+          <Card className="border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-xs">Event countdown on display</p>
+              <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
+              <div className="flex flex-wrap gap-2">
+                <FacilitatorButton
+                  size="sm"
+                  onClick={() =>
+                    void patchState({ timer_running: !state.timer_running })
+                  }
+                >
+                  {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
+                  {state.timer_running ? 'Pause' : 'Start'}
+                </FacilitatorButton>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void patchState({ timer_seconds: state.timer_seconds + 900 })
+                  }
+                >
+                  <Plus className="size-4" /> 15m
+                </FacilitatorButton>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void patchState({
+                      timer_seconds: Math.max(0, state.timer_seconds - 900),
+                    })
+                  }
+                >
+                  <Minus className="size-4" /> 15m
+                </FacilitatorButton>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={state.show_timer_on_display}
+                  onChange={(e) =>
+                    void patchState({ show_timer_on_display: e.target.checked })
+                  }
+                />
+                Show timer on display
+              </label>
+            </div>
+            <div className="flex flex-col justify-center gap-2">
+              <p className="text-muted-foreground text-xs">
+                Run the winner ceremony on display and team phones
+              </p>
+              <FacilitatorButtonLarge
+                className="w-full"
                 onClick={() =>
                   void patchState({
-                    timer_seconds: Math.max(0, state.timer_seconds - 900),
+                    winner_reveal_stage: Math.min(2, state.winner_reveal_stage + 1),
                   })
                 }
               >
-                <Minus className="size-4" /> 15m
-              </Button>
+                Reveal Winner ({state.winner_reveal_stage}/2)
+              </FacilitatorButtonLarge>
+              {state.winner_reveal_stage > 0 ? (
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => void patchState({ winner_reveal_stage: 0 })}
+                >
+                  <RotateCcw className="size-4" />
+                  Reset winner
+                </FacilitatorButton>
+              ) : null}
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={state.show_timer_on_display}
-                onChange={(e) =>
-                  void patchState({ show_timer_on_display: e.target.checked })
-                }
-              />
-              Show timer on display
-            </label>
           </Card>
           ) : (
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
@@ -588,8 +625,51 @@ export function FacilitatorEventPage() {
             Show scores on display
           </label>
 
+          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
+            <Label>Announcement</Label>
+            <p className="text-muted-foreground text-xs">
+              Send a message to the display, participants, or both. Clears after 1 minute.
+            </p>
+            <Input
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+              className="bg-background"
+            />
+            <div className="flex flex-wrap gap-2">
+              {(['display', 'participants', 'both'] as const).map((t) => (
+                <FacilitatorButton
+                  key={t}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => sendAnnouncement(t)}
+                >
+                  {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
+                </FacilitatorButton>
+              ))}
+            </div>
+            {state.announcement ? (
+              <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                <span className="text-muted-foreground line-clamp-2 flex-1">
+                  Live: {state.announcement}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void clearAnnouncement()}
+                >
+                  <X className="size-4" />
+                  Clear
+                </Button>
+              </div>
+            ) : null}
+          </Card>
+
           <Card className="border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
             <p className="font-medium">Teams</p>
+            <p className="text-muted-foreground text-xs">
+              Tap a slot to set name/photo. Scores update when you approve submissions.
+            </p>
             <ul className="space-y-2">
               {teams.map((team) => (
                 <li
@@ -629,69 +709,6 @@ export function FacilitatorEventPage() {
                 </li>
               ))}
             </ul>
-          </Card>
-
-          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
-            <Label>Announcement</Label>
-            <Input
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-              className="bg-background"
-            />
-            <div className="flex flex-wrap gap-2">
-              {(['display', 'participants', 'both'] as const).map((t) => (
-                <Button
-                  key={t}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => sendAnnouncement(t)}
-                >
-                  {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
-                </Button>
-              ))}
-            </div>
-            {state.announcement ? (
-              <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-                <span className="text-muted-foreground line-clamp-2 flex-1">
-                  Live: {state.announcement}
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void clearAnnouncement()}
-                >
-                  <X className="size-4" />
-                  Clear
-                </Button>
-              </div>
-            ) : null}
-            <p className="text-muted-foreground text-xs">
-              Clears automatically after 1 minute, or use Clear.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  void patchState({
-                    winner_reveal_stage: Math.min(2, state.winner_reveal_stage + 1),
-                  })
-                }
-              >
-                Reveal Winner ({state.winner_reveal_stage}/2)
-              </Button>
-              {state.winner_reveal_stage > 0 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void patchState({ winner_reveal_stage: 0 })}
-                >
-                  <RotateCcw className="size-4" />
-                  Reset winner
-                </Button>
-              ) : null}
-            </div>
           </Card>
 
           <Card className="border-destructive/40 bg-card space-y-3 p-4 shadow-sm">
@@ -796,26 +813,31 @@ export function FacilitatorEventPage() {
               </ul>
               <div className="flex flex-wrap gap-2">
                 {quizPrimary ? (
-                  <Button size="sm" onClick={quizPrimary.action}>
+                  <FacilitatorButton size="sm" onClick={quizPrimary.action}>
                     {quizPrimary.label}
-                  </Button>
+                  </FacilitatorButton>
                 ) : null}
-                {state.quiz_state !== 'results' ? (
-                  <Button
+                {state.quiz_state !== 'results' && state.quiz_state !== 'ended' ? (
+                  <FacilitatorButton
                     size="sm"
                     variant="outline"
                     onClick={() => void skipQuizQuestion()}
                   >
                     Skip
-                  </Button>
+                  </FacilitatorButton>
                 ) : null}
-                <Button
+                <FacilitatorButton
                   size="sm"
                   variant="outline"
                   onClick={() => void restartQuiz()}
                 >
                   Restart Quiz
-                </Button>
+                </FacilitatorButton>
+                {state.quiz_state === 'results' ? (
+                  <FacilitatorButton size="sm" onClick={() => void finishQuiz()}>
+                    Finish Quiz
+                  </FacilitatorButton>
+                ) : null}
               </div>
               <ul className="space-y-1 text-sm">
                 {namedTeams.map((t) => (
@@ -864,10 +886,14 @@ export function FacilitatorEventPage() {
             <div className="space-y-4">
               <p className="text-lg">{stage.message}</p>
               <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
+              <p className="text-muted-foreground text-xs">
+                Start/pause the break timer. Stop freezes the countdown; Reset restores full
+                duration.
+              </p>
               <div className="flex flex-wrap gap-2">
-                <Button
+                <FacilitatorButton
                   size="sm"
-                  variant="outline"
+                  disabled={breakHalted}
                   onClick={() =>
                     void patchState({
                       break_timer_running: !state.break_timer_running,
@@ -883,19 +909,31 @@ export function FacilitatorEventPage() {
                       <Play className="size-4" /> Start
                     </>
                   )}
-                </Button>
-                <Button
+                </FacilitatorButton>
+                <FacilitatorButton
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    void patchState({
-                      break_timer_seconds: breakDurationSeconds(stage, null),
-                      break_timer_running: true,
-                    })
+                    if (breakHalted) {
+                      setBreakHalted(false)
+                      void patchState({
+                        break_timer_seconds: breakDurationSeconds(stage, null),
+                        break_timer_running: false,
+                      })
+                    } else {
+                      setBreakHalted(true)
+                      void patchState({ break_timer_running: false })
+                    }
                   }}
                 >
-                  Start
-                </Button>
+                  {breakHalted ? (
+                    <>
+                      <RotateCcw className="size-4" /> Reset
+                    </>
+                  ) : (
+                    'Stop'
+                  )}
+                </FacilitatorButton>
               </div>
             </div>
           ) : null}

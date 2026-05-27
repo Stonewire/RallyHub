@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import { PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
+import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables } from '@/types/helpers'
@@ -186,7 +187,7 @@ export function JoinEventPage() {
             ? () =>
                 navigate(
                   tabletSlug
-                    ? `/tablet/${encodeURIComponent(tabletOrg)}/${encodeURIComponent(tabletSlug)}`
+                    ? `/tablet/${encodeURIComponent(slugifyOrgName(tabletOrg) || tabletOrg)}/${encodeURIComponent(tabletSlug)}`
                     : `/tablet?org=${encodeURIComponent(tabletOrg)}`,
                 )
             : undefined

@@ -1,9 +1,10 @@
-import { Camera, Check, LogOut, MessageCircle, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Check, LogOut, MessageCircle, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
+import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
 import {
   WinnerRevealPanel,
@@ -93,7 +94,6 @@ export function JoinGameView({
   const [cancelling, setCancelling] = useState(false)
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
-  const mediaRef = useRef<HTMLInputElement>(null)
 
   const breakSyncRef = useRef(
     createThrottledTimerSync(() => {
@@ -356,7 +356,7 @@ export function JoinGameView({
   const showMainHeader = !selectedGame && state.winner_reveal_stage < 1
 
   const header = showMainHeader ? (
-    <header className="mb-6 flex flex-col items-center gap-2 px-2 text-center">
+    <header className="mb-6 flex flex-col items-center gap-2 px-2 pt-10 text-center sm:pt-12">
       {logo ? (
         <img
           src={logo}
@@ -511,7 +511,14 @@ export function JoinGameView({
           ) : capturePreview ? (
             <div className="space-y-4">
               {selectedGame.type === 'video' ? (
-                <video src={capturePreview} controls className="w-full rounded-lg" />
+                <video
+                  key={capturePreview}
+                  src={capturePreview}
+                  controls
+                  playsInline
+                  preload="auto"
+                  className="w-full rounded-lg bg-black"
+                />
               ) : (
                 <img src={capturePreview} alt="" className="w-full rounded-lg" />
               )}
@@ -547,27 +554,11 @@ export function JoinGameView({
                   onFileReady={setCaptureFile}
                 />
               ) : (
-                <>
-                  <input
-                    ref={mediaRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) setCaptureFile(f)
-                    }}
-                  />
-                  <LiveAccentButton
-                    className="w-full"
-                    accentColor={accent}
-                    onClick={() => mediaRef.current?.click()}
-                  >
-                    <Camera className="size-4" />
-                    Take photo
-                  </LiveAccentButton>
-                </>
+                <PhotoChallengeCapture
+                  accentColor={accent}
+                  disabled={submitting}
+                  onFileReady={setCaptureFile}
+                />
               )}
             </>
           )}
@@ -645,6 +636,13 @@ export function JoinGameView({
           highlightTeamId={teamId}
         />
       )
+    } else if (state.quiz_state === 'ended' && quizGame) {
+      body = (
+        <div className="mx-auto max-w-lg px-6 py-20 text-center">
+          <p className="text-2xl font-bold">Quiz has ended</p>
+          <p className="mt-3 text-white/70">Thanks for playing!</p>
+        </div>
+      )
     } else if (
       (state.quiz_state === 'idle' || state.quiz_state === 'waiting') &&
       quizGame
@@ -701,21 +699,33 @@ export function JoinGameView({
             {q.answers.map((a) => {
               const selected = quizAnswer === a.id
               const faded = quizLocked && !selected
+              const revealed = state.quiz_state === 'revealed'
+              const isCorrect = a.id === q.correctAnswerId
+              let cls =
+                'w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors '
+              let style: CSSProperties | undefined
+              if (revealed) {
+                if (isCorrect) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
+                else if (selected) cls += 'bg-red-600/90 text-white'
+                else cls += 'bg-white/10 text-white/50'
+              } else if (selected) {
+                cls += 'ring-2 ring-white/40'
+                style = {
+                  backgroundColor: STANDBY_ACCENT,
+                  color: textOnAccent(STANDBY_ACCENT),
+                }
+              } else if (faded) {
+                cls += 'cursor-not-allowed bg-white/10 text-white/40'
+              } else {
+                cls += 'bg-white/15 text-white hover:bg-white/25'
+              }
               return (
                 <button
                   key={a.id}
                   type="button"
                   disabled={quizLocked}
-                  className={`w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors ${
-                    selected
-                      ? 'text-[#3E3D3E] ring-2 ring-white/30'
-                      : faded
-                        ? 'cursor-not-allowed bg-white/10 text-white/40'
-                        : 'bg-white/15 text-white hover:bg-white/25'
-                  }`}
-                  style={
-                    selected ? { backgroundColor: accent } : undefined
-                  }
+                  className={cls}
+                  style={style}
                   onClick={() => void submitQuizAnswer(a.id, stage.gameId!, q.id)}
                 >
                   {a.text}

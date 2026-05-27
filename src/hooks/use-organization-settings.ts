@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { getOrganizationOrigin } from '@/lib/tenant'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -59,19 +58,7 @@ export function orgToForm(org: OrganizationRow): OrganizationFormState {
   }
 }
 
-export function getTabletLink(
-  org: { subdomain: string; tablet_slug: string; custom_domain?: string | null },
-) {
-  const base = getOrganizationOrigin(org)
-  return `${base}/tablet/${encodeURIComponent(org.subdomain)}/${encodeURIComponent(org.tablet_slug)}`
-}
-
-/** Legacy query URL — still resolves on TabletPage */
-export function getTabletLinkLegacy(tabletSlug: string) {
-  const base =
-    typeof window !== 'undefined' ? window.location.origin : ''
-  return `${base}/tablet?org=${encodeURIComponent(tabletSlug)}`
-}
+export { getTabletLink, validateTabletCode } from '@/lib/tablet-link'
 
 export function useOrganization(organizationId: string | null) {
   return useQuery({
@@ -132,9 +119,7 @@ export function useSaveOrganization(organizationId: string | null) {
         address_postal: payload.address_postal || null,
         address_country: payload.address_country || null,
         tablet_password: payload.tablet_password || null,
-        ...(payload.tablet_slug.trim()
-          ? { tablet_slug: payload.tablet_slug.trim() }
-          : {}),
+        tablet_slug: payload.tablet_slug.trim(),
       }
 
       const { error } = await supabase

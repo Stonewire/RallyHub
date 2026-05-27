@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import { TabletLinkEditor } from '@/components/admin/TabletLinkEditor'
 import {
   EMPTY_ORG_FORM,
   getTabletLink,
@@ -29,13 +30,10 @@ import {
   type MemberRole,
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
+import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 
 type SettingsTab = 'profile' | 'billing'
-
-function qrUrl(link: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(link)}`
-}
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
@@ -78,6 +76,11 @@ export function AdminSettingsPage() {
 
   async function handleSave() {
     setSaveMessage(null)
+    const tabletErr = validateTabletCode(form.tablet_slug)
+    if (tabletErr) {
+      setSaveMessage(tabletErr)
+      return
+    }
     try {
       await saveOrg.mutateAsync(form)
       setSaveMessage('Settings saved.')
@@ -435,27 +438,15 @@ export function AdminSettingsPage() {
             <h2 className="text-foreground text-lg font-semibold">
               Tablet Access
             </h2>
-            <div className="space-y-2">
-              <Label htmlFor="tablet-slug">Tablet link code</Label>
-              <Input
-                id="tablet-slug"
-                value={form.tablet_slug}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    tablet_slug: e.target.value
-                      .replace(/[^a-zA-Z0-9_-]/g, '')
-                      .slice(0, 24),
-                  })
-                }
-                className="bg-background max-w-md font-mono"
-                placeholder="e.g. kiosk01"
+            {orgQuery.data ? (
+              <TabletLinkEditor
+                orgName={form.name || orgQuery.data.name}
+                tabletCode={form.tablet_slug}
+                onCodeChange={(tablet_slug) => setForm({ ...form, tablet_slug })}
+                subdomain={orgQuery.data.subdomain}
+                customDomain={orgQuery.data.custom_domain}
               />
-              <p className="text-muted-foreground text-xs">
-                Unique code in your tablet URL (along with organization name). Leave
-                blank to keep the current code when saving other fields.
-              </p>
-            </div>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="tablet-password">Tablet Password</Label>
               <Input
@@ -470,38 +461,19 @@ export function AdminSettingsPage() {
                 className="bg-background max-w-md"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Tablet Link</Label>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  readOnly
-                  value={tabletLink}
-                  className="bg-background min-w-[min(100%,20rem)] flex-1 font-mono text-xs"
-                />
+            {tabletLink ? (
+              <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => void handleCopyLink()}>
-                  {copied ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  Copy
+                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  Copy link
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link to={tabletLink} target="_blank">
-                    Open
+                    Open tablet page
                   </Link>
                 </Button>
               </div>
-              {tabletLink ? (
-                <img
-                  src={qrUrl(tabletLink)}
-                  alt="QR code for tablet link"
-                  width={128}
-                  height={128}
-                  className="border-border/80 mt-3 rounded-lg border"
-                />
-              ) : null}
-            </div>
+            ) : null}
           </Card>
         </div>
       )}

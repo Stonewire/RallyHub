@@ -18,6 +18,7 @@ export function useGames(organizationId: string | null) {
         .from('games')
         .select('*')
         .eq('organization_id', organizationId)
+        .order('list_order', { ascending: true })
         .order('created_at', { ascending: false })
 
       if (error) throw error

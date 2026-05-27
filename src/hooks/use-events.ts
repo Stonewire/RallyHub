@@ -8,7 +8,7 @@ import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type EventRow = Tables<'events'>
 
-const STATUS_ORDER: EventStatus[] = ['active', 'ready', 'draft', 'archived']
+export const STATUS_ORDER: EventStatus[] = ['active', 'ready', 'draft', 'archived']
 
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   active: 'Active',
@@ -36,6 +36,7 @@ export function useEvents(organizationId: string | null) {
         .from('events')
         .select('*')
         .eq('organization_id', organizationId)
+        .order('list_order', { ascending: true })
         .order('event_date', { ascending: true, nullsFirst: false })
 
       if (error) throw error
@@ -202,6 +203,33 @@ export function useDeleteEvent(organizationId: string | null) {
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.recentEvents(organizationId),
+      })
+    },
+  })
+}
+
+export function useReorderEvents(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      status,
+      listOrder,
+    }: {
+      eventId: string
+      status: EventStatus
+      listOrder: number
+    }) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ status, list_order: listOrder })
+        .eq('id', eventId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.events(organizationId),
       })
     },
   })

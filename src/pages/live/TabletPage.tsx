@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getTabletLink } from '@/hooks/use-organization-settings'
+import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import { verifyTabletPassword } from '@/lib/tenant'
@@ -24,11 +24,12 @@ async function resolveOrganization(
     const { data, error } = await supabase
       .from('organization_tenant_public')
       .select('*')
-      .eq('subdomain', orgSlug)
       .eq('tablet_slug', tabletCode)
-      .maybeSingle()
     if (error) throw error
-    return data
+    const normalized = orgSlug.toLowerCase()
+    return (
+      (data ?? []).find((o) => slugifyOrgName(o.name) === normalized) ?? null
+    )
   }
 
   if (!legacyOrgParam) return null
@@ -263,7 +264,7 @@ export function TabletPage() {
               onClick={() => {
                 const q = new URLSearchParams({
                   from: 'tablet',
-                  org: org!.subdomain,
+                  org: slugifyOrgName(org!.name),
                   slug: org!.tablet_slug,
                 })
                 navigate(`/join/${ev.id}?${q.toString()}`)

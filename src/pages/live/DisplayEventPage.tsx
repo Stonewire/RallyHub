@@ -178,6 +178,13 @@ export function DisplayEventPage() {
         textClass={textClass}
       />
     )
+  } else if (stage.type === 'quiz' && state.quiz_state === 'ended' && quizGame) {
+    body = (
+      <div className={`text-center ${textClass}`}>
+        <p className="font-display text-4xl font-bold md:text-6xl">Quiz has ended</p>
+        <p className="mt-4 text-xl opacity-80">Thanks for playing!</p>
+      </div>
+    )
   } else if (
     stage.type === 'quiz' &&
     (state.quiz_state === 'idle' || state.quiz_state === 'waiting') &&
@@ -226,14 +233,27 @@ export function DisplayEventPage() {
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
             const correct = a.id === question.correctAnswerId
+            const anySelected = quizSubs.some((s) => s.media_url === a.id)
+            let cls =
+              'rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
+            if (revealed) {
+              if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
+              else if (anySelected) cls += 'bg-red-600/90 text-white'
+              else cls += 'bg-white/15 text-white/50 backdrop-blur-sm'
+            } else if (anySelected) {
+              cls += 'ring-2 ring-white/40'
+            } else {
+              cls += 'bg-white/15 backdrop-blur-sm'
+            }
             return (
               <div
                 key={a.id}
-                className={`rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl ${
-                  revealed && correct
-                    ? 'bg-green-600/90 text-white'
-                    : 'bg-white/15 backdrop-blur-sm'
-                }`}
+                className={cls}
+                style={
+                  !revealed && anySelected
+                    ? { backgroundColor: STANDBY_ACCENT, color: '#3E3D3E' }
+                    : undefined
+                }
               >
                 {a.text}
               </div>

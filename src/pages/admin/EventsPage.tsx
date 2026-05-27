@@ -1,107 +1,30 @@
-import { Calendar, Link2, Pencil, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Calendar } from 'lucide-react'
+import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
-import { CompactListRow } from '@/components/admin/CompactListRow'
-import {
-  CollapsibleSection,
-  loadCollapsedState,
-  saveCollapsedState,
-} from '@/components/admin/CollapsibleSection'
+import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
 import {
   NoOrganizationMessage,
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventLinksModal } from '@/components/events/EventLinksModal'
-import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { StatusIndicator } from '@/components/ui/status-indicator'
 import {
-  groupEventsByStatus,
+  STATUS_ORDER,
   useDeleteEvent,
   useEvents,
   useUpdateEventStatus,
+  type EventRow,
 } from '@/hooks/use-events'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
-import type { EventStatus } from '@/types/database'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
-import type { EventRow } from '@/hooks/use-events'
-
-function formatEventDate(iso: string | null) {
-  if (!iso) return 'Date not set'
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(iso))
-}
-
-function EventRow({
-  event,
-  onDelete,
-  onStatusChange,
-  onViewLinks,
-  deleting,
-  statusPending,
-}: {
-  event: EventRow
-  onDelete: () => void
-  onStatusChange: (status: EventStatus) => void
-  onViewLinks: () => void
-  deleting: boolean
-  statusPending: boolean
-}) {
-  return (
-    <CompactListRow
-      actions={
-        <>
-          <Button type="button" variant="outline" size="sm" onClick={onViewLinks}>
-            <Link2 className="size-3.5" />
-            View Links
-          </Button>
-          <Button variant="ghost" size="icon-sm" asChild>
-            <Link to={`/admin/events/${event.id}`} title="Edit">
-              <Pencil className="size-3.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive"
-            disabled={deleting}
-            onClick={onDelete}
-            title="Delete"
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-          <EventStatusMenu
-            status={event.status as EventStatus}
-            disabled={statusPending}
-            onSelect={onStatusChange}
-          />
-        </>
-      }
-    >
-      <div className="flex items-center gap-2.5">
-        <StatusIndicator
-          status={event.status as 'active' | 'ready' | 'draft' | 'archived'}
-          className="shrink-0"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-sm font-medium">{event.name}</p>
-          <p className="text-muted-foreground truncate text-xs">
-            {formatEventDate(event.event_date)} · {event.team_count}{' '}
-            {event.team_count === 1 ? 'team' : 'teams'}
-          </p>
-        </div>
-      </div>
-    </CompactListRow>
-  )
-}
+import { supabase } from '@/lib/supabase'
+import type { EventStatus } from '@/types/database'
+import { useState } from 'react'
 
 export function AdminEventsPage() {
   const organizationId = useOrganizationId()
@@ -110,23 +33,51 @@ export function AdminEventsPage() {
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
 
-  const groups = groupEventsByStatus(eventsQuery.data ?? [])
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
-    loadCollapsedState(),
-  )
   const [linksModal, setLinksModal] = useState<EventRow | null>(null)
 
-  useEffect(() => {
-    saveCollapsedState(collapsed)
-  }, [collapsed])
+  const applyReorder = useCallback(
+    async (eventId: string, newStatus: EventStatus, indexInGroup: number) => {
+      const all = eventsQuery.data ?? []
+      const moving = all.find((e) => e.id === eventId)
+      if (!moving) return
 
-  function toggleGroup(status: string) {
-    setCollapsed((c) => ({ ...c, [status]: !c[status] }))
-  }
+      const rest = all.filter((e) => e.id !== eventId)
+      const byStatus: Record<EventStatus, EventRow[]> = {
+        active: [],
+        ready: [],
+        draft: [],
+        archived: [],
+      }
+      for (const e of rest) {
+        const s = e.status as EventStatus
+        if (byStatus[s]) byStatus[s].push(e)
+      }
+      const updated = { ...moving, status: newStatus }
+      byStatus[newStatus].splice(indexInGroup, 0, updated)
 
-  async function handleDelete(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
-    await deleteEvent.mutateAsync(id)
+      const updates: { id: string; status: EventStatus; list_order: number }[] = []
+      for (const status of STATUS_ORDER) {
+        byStatus[status].forEach((e, i) => {
+          updates.push({ id: e.id, status, list_order: i })
+        })
+      }
+
+      await Promise.all(
+        updates.map((u) =>
+          supabase
+            .from('events')
+            .update({ status: u.status, list_order: u.list_order })
+            .eq('id', u.id),
+        ),
+      )
+      await eventsQuery.refetch()
+    },
+    [eventsQuery],
+  )
+
+  async function handleDelete(event: EventRow) {
+    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return
+    await deleteEvent.mutateAsync(event.id)
   }
 
   if (!organizationId) {
@@ -137,10 +88,12 @@ export function AdminEventsPage() {
     )
   }
 
+  const events = eventsQuery.data ?? []
+
   return (
     <AdminPageShell
       title="Events"
-      subtitle="Schedule and oversee live team events."
+      subtitle="Drag cards to reorder or move between status groups. Click a card to edit."
       actions={
         <AccentButton asChild>
           <Link to="/admin/events/new">Create New Event</Link>
@@ -151,7 +104,7 @@ export function AdminEventsPage() {
         <QueryLoading rows={5} />
       ) : eventsQuery.isError ? (
         <QueryError message={eventsQuery.error.message} />
-      ) : groups.length === 0 ? (
+      ) : events.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <Calendar className="text-muted-foreground size-10 opacity-60" />
           <p className="text-foreground font-medium">No events yet</p>
@@ -163,35 +116,17 @@ export function AdminEventsPage() {
           </AccentButton>
         </Card>
       ) : (
-        <div className="border-border/80 divide-y rounded-lg border bg-card shadow-sm">
-          {groups.map((group) => (
-            <CollapsibleSection
-              key={group.status}
-              id={group.status}
-              title={group.label}
-              count={group.events.length}
-              collapsed={Boolean(collapsed[group.status])}
-              onToggle={() => toggleGroup(group.status)}
-              className="px-3 py-3"
-            >
-              <div className="border-border/80 overflow-hidden rounded-md border">
-                {group.events.map((event) => (
-                  <EventRow
-                    key={event.id}
-                    event={event}
-                    deleting={deleteEvent.isPending}
-                    statusPending={updateStatus.isPending}
-                    onDelete={() => void handleDelete(event.id, event.name)}
-                    onStatusChange={(status) =>
-                      void updateStatus.mutateAsync({ eventId: event.id, status })
-                    }
-                    onViewLinks={() => setLinksModal(event)}
-                  />
-                ))}
-              </div>
-            </CollapsibleSection>
-          ))}
-        </div>
+        <DraggableEventsGrid
+          events={events}
+          deleting={deleteEvent.isPending}
+          statusPending={updateStatus.isPending}
+          onStatusChange={(eventId, status) =>
+            void updateStatus.mutateAsync({ eventId, status })
+          }
+          onDelete={(e) => void handleDelete(e)}
+          onViewLinks={setLinksModal}
+          onReorder={(id, status, index) => void applyReorder(id, status, index)}
+        />
       )}
 
       {linksModal ? (
