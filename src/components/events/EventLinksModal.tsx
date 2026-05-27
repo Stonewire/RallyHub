@@ -3,12 +3,14 @@ import { Link2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EventLinksPanel } from '@/components/events/EventLinksPanel'
+import type { EventLinksPdfBranding } from '@/lib/event-links'
 import type { TenantPublicOrg } from '@/lib/tenant'
 
 type EventLinksModalProps = {
   eventId: string
   eventName: string
   organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null
+  branding?: EventLinksPdfBranding
   onClose: () => void
 }
 
@@ -16,6 +18,7 @@ export function EventLinksModal({
   eventId,
   eventName,
   organization,
+  branding,
   onClose,
 }: EventLinksModalProps) {
   return (
@@ -31,7 +34,12 @@ export function EventLinksModal({
           </Button>
         </div>
         <p className="text-muted-foreground mb-6 text-sm">{eventName}</p>
-        <EventLinksPanel eventId={eventId} organization={organization} />
+        <EventLinksPanel
+          eventId={eventId}
+          eventName={eventName}
+          organization={organization}
+          branding={branding ?? { eventName }}
+        />
       </Card>
     </div>
   )

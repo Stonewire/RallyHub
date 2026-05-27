@@ -8,6 +8,19 @@ import type { Tables } from '@/types/helpers'
 export type DisplayLayout = 'rank_list' | 'orbit_view'
 export type DisplayTextColor = 'black' | 'white'
 
+/** Quiz / bingo “stand by” highlight — not event branding. */
+export const STANDBY_ACCENT = '#FFCB03'
+
+export function textOnAccent(accentHex: string): string {
+  const hex = accentHex.replace('#', '').slice(0, 6)
+  if (hex.length !== 6) return '#3E3D3E'
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.62 ? '#3E3D3E' : '#ffffff'
+}
+
 export function displayTextColorForEvent(
   event: Tables<'events'>,
 ): DisplayTextColor {
@@ -63,8 +76,8 @@ export function logoForEvent(
   event: Tables<'events'>,
   org: TenantPublicOrg | Tables<'organizations'> | null,
 ): string | null {
-  if (event.logo_url) return event.logo_url
-  return org?.logo_url ?? null
+  if (event.branding_enabled && event.logo_url) return event.logo_url
+  return org?.logo_url ?? event.logo_url ?? null
 }
 
 /** [primary, secondary, accent] */

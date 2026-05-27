@@ -1,7 +1,7 @@
 import { Camera, Check, LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
@@ -28,6 +28,8 @@ import {
   isEventLive,
   logoForEvent,
   submissionsAllowed,
+  STANDBY_ACCENT,
+  textOnAccent,
   parseStages,
   quizQuestions,
   quizLeaderboard,
@@ -74,6 +76,7 @@ export function JoinGameView({
   const stage = currentStage(stages, state.current_stage_index)
   const colors = brandColorsForEvent(event, organization)
   const accent = colors[2]
+  const onAccent = textOnAccent(accent)
   const logo = logoForEvent(event, organization)
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
@@ -459,14 +462,17 @@ export function JoinGameView({
               {selectedGame.description ? ` · ${selectedGame.description}` : ''}
             </p>
             {!canSubmit ? (
-              <p className="shrink-0 text-center text-sm font-semibold text-[#FFCB03]">
+              <p
+                className="shrink-0 text-center text-sm font-semibold"
+                style={{ color: accent }}
+              >
                 Event closed — no new submissions
               </p>
             ) : null}
           <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto">
           {pending ? (
             <div className="space-y-3 text-center">
-              <p className="text-lg font-semibold text-[#FFCB03]">
+              <p className="text-lg font-semibold" style={{ color: accent }}>
                 Submission pending approval
               </p>
               {latestSub?.media_url ? (
@@ -499,7 +505,7 @@ export function JoinGameView({
               </p>
             </div>
           ) : submitDone ? (
-            <p className="text-center text-lg font-semibold text-[#FFCB03]">
+            <p className="text-center text-lg font-semibold" style={{ color: accent }}>
               Submitted! Waiting for approval…
             </p>
           ) : capturePreview ? (
@@ -517,13 +523,14 @@ export function JoinGameView({
                 >
                   Retake
                 </Button>
-                <AccentButton
+                <LiveAccentButton
                   className="flex-1"
+                  accentColor={accent}
                   disabled={submitting}
                   onClick={() => void submitOpenGame()}
                 >
                   {submitting ? 'Submitting…' : 'Submit'}
-                </AccentButton>
+                </LiveAccentButton>
               </div>
             </div>
           ) : locked ? (
@@ -535,6 +542,7 @@ export function JoinGameView({
               {selectedGame.type === 'video' ? (
                 <VideoChallengeCapture
                   config={selectedGame.config as GameConfig}
+                  accentColor={accent}
                   disabled={submitting}
                   onFileReady={setCaptureFile}
                 />
@@ -551,13 +559,14 @@ export function JoinGameView({
                       if (f) setCaptureFile(f)
                     }}
                   />
-                  <AccentButton
+                  <LiveAccentButton
                     className="w-full"
+                    accentColor={accent}
                     onClick={() => mediaRef.current?.click()}
                   >
                     <Camera className="size-4" />
                     Take photo
-                  </AccentButton>
+                  </LiveAccentButton>
                 </>
               )}
             </>
@@ -587,7 +596,7 @@ export function JoinGameView({
                       ? 'ring-2 ring-white/40'
                       : 'active:scale-[0.98]'
                 }`}
-                style={{ backgroundColor: accent, color: '#3E3D3E' }}
+                style={{ backgroundColor: accent, color: onAccent }}
                 onClick={() => !locked && setSelectedGame(g)}
               >
                 {approved ? (
@@ -643,7 +652,7 @@ export function JoinGameView({
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
           <p className="text-lg text-white/80">Get ready for</p>
-          <p className="mt-3 text-3xl font-bold" style={{ color: accent }}>
+          <p className="mt-3 text-3xl font-bold" style={{ color: STANDBY_ACCENT }}>
             {quizGame.name}
           </p>
           <p className="mt-2 text-xl font-semibold text-white">Quiz</p>
@@ -752,13 +761,21 @@ export function JoinGameView({
                   ? 'bg-green-500/80 text-white'
                   : 'bg-red-500/80 text-white'
             else if (revealed) cls = 'bg-white/10 text-white/50'
-            else if (bingoPick === i) cls = 'bg-[#FFCB03]/90 text-[#3E3D3E]'
+            else if (bingoPick === i) cls = 'font-semibold'
+            const pickStyle =
+              bingoPick === i && !revealed
+                ? {
+                    backgroundColor: STANDBY_ACCENT,
+                    color: textOnAccent(STANDBY_ACCENT),
+                  }
+                : undefined
             return (
               <button
                 key={i}
                 type="button"
                 disabled={revealed}
                 className={`aspect-square p-0.5 text-[8px] leading-tight ${cls}`}
+                style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
                 {title}
@@ -804,7 +821,7 @@ export function JoinGameView({
       <Button
         className="fixed bottom-4 right-4 size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
-        style={{ backgroundColor: accent, color: '#3E3D3E' }}
+        style={{ backgroundColor: accent, color: onAccent }}
         onClick={() => setChatOpen(true)}
       >
         <MessageCircle className="size-5" />
@@ -839,14 +856,15 @@ export function JoinGameView({
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
             />
-            <AccentButton
+            <LiveAccentButton
+              accentColor={accent}
               onClick={() => {
                 onSendMessage(chatText)
                 setChatText('')
               }}
             >
               Send
-            </AccentButton>
+            </LiveAccentButton>
           </div>
         </div>
       ) : null}
@@ -854,7 +872,9 @@ export function JoinGameView({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-6">
           <Card className="max-w-md space-y-4 p-6 text-center">
             <p className="text-lg">{announcement}</p>
-            <AccentButton onClick={onDismissAnnouncement}>Dismiss</AccentButton>
+            <LiveAccentButton accentColor={accent} onClick={onDismissAnnouncement}>
+              Dismiss
+            </LiveAccentButton>
           </Card>
         </div>
       ) : null}

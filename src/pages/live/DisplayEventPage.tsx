@@ -3,18 +3,21 @@ import { useEffect, useMemo, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { DisplayPodium } from '@/components/live/DisplayPodium'
+import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
+  STANDBY_ACCENT,
   bingoTracks,
   currentStage,
   breakDurationSeconds,
+  displayTextClass,
   formatBreakTimer,
   formatTimer,
-  displayTextClass,
   logoForEvent,
   parseStages,
   quizQuestions,
@@ -107,6 +110,7 @@ export function DisplayEventPage() {
 
   const { event, organization, state, teams, games, submissions } = bundle
   const logo = logoForEvent(event, organization)
+  const textClass = displayTextClass(event)
   const showAnnouncement =
     Boolean(state.announcement) &&
     (state.announcement_target === 'display' ||
@@ -118,7 +122,6 @@ export function DisplayEventPage() {
         ? 'disco'
         : 'default'
 
-  const ranked = [...teams].filter((t) => t.name).sort((a, b) => b.score - a.score)
   const layout =
     event.display_layout === 'orbit_view' ? 'orbit_view' : 'rank_list'
 
@@ -152,49 +155,17 @@ export function DisplayEventPage() {
 
   if (state.winner_reveal_stage === 1) {
     body = (
-      <p className="animate-pulse px-8 text-center text-4xl font-bold md:text-6xl">
+      <p
+        className={`animate-pulse text-center font-display text-4xl font-bold md:text-6xl ${textClass}`}
+      >
         It is time to announce the winners…
       </p>
     )
   } else if (state.winner_reveal_stage === 2) {
-    const podium = ranked.slice(0, 3)
-    body = (
-      <div className="flex w-full flex-col items-center gap-10 px-4 py-8">
-        <div className="flex items-end justify-center gap-6">
-          {podium.map((team, i) => (
-            <div key={team.id} className="flex flex-col items-center gap-2">
-              <div
-                className="flex items-center justify-center rounded-full"
-                style={{
-                  width: 120 - i * 20,
-                  height: 120 - i * 20,
-                  boxShadow: `0 0 0 6px ${team.color}`,
-                }}
-              >
-                {team.photo_url ? (
-                  <img src={team.photo_url} alt="" className="size-full rounded-full object-cover" />
-                ) : (
-                  <div className="size-full rounded-full" style={{ background: team.color ?? '#666' }} />
-                )}
-              </div>
-              <span className="text-2xl font-bold">#{i + 1}</span>
-              <span>{team.name}</span>
-              <span className="text-lg text-white/80">{team.score} pts</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap justify-center gap-4">
-          {ranked.slice(3).map((t) => (
-            <div key={t.id} className="rounded-lg bg-white/10 px-3 py-2 text-sm">
-              {t.name}: {t.score}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
+    body = <DisplayPodium event={event} teams={teams} />
   } else if (event.status !== 'active') {
     body = (
-      <p className="text-center text-2xl text-white/80">
+      <p className={`text-center font-display text-3xl font-bold opacity-80 ${textClass}`}>
         Event starting soon…
       </p>
     )
@@ -204,6 +175,7 @@ export function DisplayEventPage() {
         teams={teams}
         showScores={state.show_scores}
         layout={layout}
+        textClass={textClass}
       />
     )
   } else if (
@@ -212,10 +184,19 @@ export function DisplayEventPage() {
     quizGame
   ) {
     body = (
-      <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-        <p className="text-2xl text-white/80 md:text-4xl">Get ready for</p>
-        <p className="mt-4 text-4xl font-bold md:text-6xl">{quizGame.name}</p>
-        <p className="mt-2 text-2xl font-semibold text-white/90 md:text-4xl">Quiz</p>
+      <div className={`text-center ${textClass}`}>
+        <p className="font-display text-2xl font-bold opacity-80 md:text-4xl">
+          Get ready for
+        </p>
+        <p
+          className="font-display mt-4 text-4xl font-bold md:text-6xl"
+          style={{ color: STANDBY_ACCENT }}
+        >
+          {quizGame.name}
+        </p>
+        <p className="font-display mt-2 text-2xl font-bold opacity-90 md:text-4xl">
+          Quiz
+        </p>
       </div>
     )
   } else if (stage.type === 'quiz' && state.quiz_state === 'results' && stage.gameId) {
@@ -232,24 +213,26 @@ export function DisplayEventPage() {
     (state.quiz_state === 'active' || state.quiz_state === 'revealed')
   ) {
     body = (
-      <div className="mx-auto max-w-4xl px-6 py-8 text-center">
-        <h2 className="mb-8 text-3xl font-bold md:text-5xl">{question.text}</h2>
+      <div className={`w-full max-w-4xl text-center ${textClass}`}>
+        <h2 className="font-display mb-6 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
+          {question.text}
+        </h2>
         {state.quiz_state === 'active' && state.timer_running ? (
-          <div className="mb-8 text-5xl font-mono tabular-nums">
+          <p className="font-display mb-8 text-6xl font-bold tabular-nums md:text-8xl">
             {formatTimer(timerDisplay)}
-          </div>
+          </p>
         ) : null}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
             const correct = a.id === question.correctAnswerId
             return (
               <div
                 key={a.id}
-                className={`rounded-xl px-6 py-4 text-lg font-semibold ${
+                className={`rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl ${
                   revealed && correct
-                    ? 'bg-green-600/80'
-                    : 'bg-white/15'
+                    ? 'bg-green-600/90 text-white'
+                    : 'bg-white/15 backdrop-blur-sm'
                 }`}
               >
                 {a.text}
@@ -264,13 +247,21 @@ export function DisplayEventPage() {
             if (state.quiz_state === 'revealed') {
               const ok = s.media_url === question.correctAnswerId
               return (
-                <li key={s.id} className="rounded-full bg-white/10 px-3 py-1 text-sm">
-                  {team.name} {ok ? '✓' : '✗'}
+                <li
+                  key={s.id}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+                    ok ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'
+                  }`}
+                >
+                  {team.name}
                 </li>
               )
             }
             return (
-              <li key={s.id} className="rounded-full bg-white/10 px-3 py-1 text-sm">
+              <li
+                key={s.id}
+                className="rounded-full bg-white/15 px-4 py-1.5 text-sm backdrop-blur-sm"
+              >
                 {team.name}
               </li>
             )
@@ -280,7 +271,7 @@ export function DisplayEventPage() {
     )
   } else if (stage.type === 'bingo') {
     body = (
-      <div className="flex flex-col items-center justify-center px-6 py-16">
+      <div className={`flex flex-col items-center justify-center ${textClass}`}>
         <div className="mb-12 flex h-32 items-end justify-center gap-1">
           {Array.from({ length: 12 }).map((_, i) => (
             <div
@@ -288,22 +279,28 @@ export function DisplayEventPage() {
               className="w-3 animate-pulse rounded-t bg-white/60"
               style={{
                 height: `${20 + Math.sin(Date.now() / 200 + i) * 40}px`,
-                animationDelay: `${i * 0.05}s`,
               }}
             />
           ))}
         </div>
         {state.bingo_state === 'revealed' && track ? (
           <>
-            <p className="text-4xl font-bold">{track.title}</p>
-            <p className="mt-2 text-2xl text-white/70">{track.artist}</p>
+            <p className="font-display text-4xl font-bold md:text-6xl">{track.title}</p>
+            <p className="mt-2 font-display text-2xl opacity-70 md:text-4xl">
+              {track.artist}
+            </p>
             <ul className="mt-8 flex flex-wrap justify-center gap-2">
               {bingoSubs.map((s) => {
                 const team = teams.find((t) => t.id === s.team_id)
                 const ok = s.status === 'approved'
                 return team?.name ? (
-                  <li key={s.id} className="rounded-full bg-white/10 px-3 py-1">
-                    {team.name} {ok ? '✓' : '✗'}
+                  <li
+                    key={s.id}
+                    className={`rounded-full px-3 py-1 text-sm ${
+                      ok ? 'bg-green-600/80' : 'bg-red-600/80'
+                    }`}
+                  >
+                    {team.name}
                   </li>
                 ) : null
               })}
@@ -314,9 +311,13 @@ export function DisplayEventPage() {
     )
   } else if (stage.type === 'break') {
     body = (
-      <div className="px-8 text-center">
-        <p className="text-4xl font-bold md:text-6xl">{stage.message ?? 'Break time'}</p>
-        <p className="mt-8 font-mono text-6xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
+      <div className={`flex flex-col items-center justify-center text-center ${textClass}`}>
+        <p className="font-display text-4xl font-bold md:text-6xl lg:text-7xl">
+          {stage.message ?? 'Break time'}
+        </p>
+        <p className="font-display mt-10 text-7xl font-bold tabular-nums md:text-9xl">
+          {formatBreakTimer(breakDisplay)}
+        </p>
       </div>
     )
   } else {
@@ -325,7 +326,7 @@ export function DisplayEventPage() {
         teams={teams}
         showScores={state.show_scores}
         layout={layout}
-        textClass={displayTextClass(event)}
+        textClass={textClass}
       />
     )
   }
@@ -334,7 +335,18 @@ export function DisplayEventPage() {
     state.show_timer_on_display &&
     !isQuizStage &&
     stage?.type !== 'break' &&
-    state.quiz_state !== 'results'
+    state.quiz_state !== 'results' &&
+    state.winner_reveal_stage < 1
+
+  const headerTimer = showHeaderTimer ? (
+    <span
+      className={`font-display text-2xl font-bold tabular-nums md:text-3xl ${
+        textClass === 'text-black' ? 'text-black/80' : 'text-white/90'
+      }`}
+    >
+      {formatTimer(timerDisplay)}
+    </span>
+  ) : null
 
   return (
     <BrandBackground
@@ -343,35 +355,12 @@ export function DisplayEventPage() {
       variant={variant}
       className={embed ? 'h-screen overflow-hidden' : undefined}
     >
-      <header className="relative flex items-start justify-between px-8 pt-12 pb-2">
-        <div className="flex flex-1 flex-col items-center">
-          {logo ? (
-            <img
-              src={logo}
-              alt=""
-              className="mb-6 max-h-24 max-w-[280px] object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
-            />
-          ) : null}
-          <h1 className="text-center text-3xl font-bold drop-shadow-md md:text-5xl">
-            {event.name}
-          </h1>
-        </div>
-        {showHeaderTimer ? (
-          <div
-            className={`font-mono text-2xl tabular-nums ${displayTextClass(event) === 'text-black' ? 'text-black/80' : 'text-white/90'}`}
-          >
-            {formatTimer(timerDisplay)}
-          </div>
-        ) : (
-          <div className="w-24" />
-        )}
-      </header>
-      <main className={embed ? 'h-[calc(100vh-8rem)] overflow-hidden' : 'min-h-[70vh]'}>
+      <DisplayShell logo={logo} title={event.name} headerRight={headerTimer}>
         {body}
-      </main>
+      </DisplayShell>
       {showAnnouncement ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-8">
-          <p className="max-w-4xl text-center text-3xl font-bold md:text-5xl">
+          <p className="font-display max-w-4xl text-center text-3xl font-bold text-white md:text-5xl">
             {state.announcement}
           </p>
         </div>

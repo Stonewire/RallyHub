@@ -8,7 +8,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventForm } from '@/components/events/EventForm'
-import { EventLinksPanel } from '@/components/events/EventLinksPanel'
+import { EventLinksModal } from '@/components/events/EventLinksModal'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -29,6 +29,8 @@ import {
   eventToFormValues,
   type EventFormValues,
 } from '@/lib/event-form-utils'
+import { downloadEventPackage } from '@/lib/event-export'
+import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
 import { resetLiveEvent, unclaimedTeamSlots } from '@/lib/reset-live-event'
 import type { EventStatus } from '@/types/database'
 
@@ -49,6 +51,8 @@ export function AdminEventEditPage() {
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [linksOpen, setLinksOpen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (eventQuery.data && gameIdsQuery.data !== undefined && !hydrated) {
@@ -212,23 +216,50 @@ export function AdminEventEditPage() {
           ) : null}
 
           {eventId ? (
-            <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
-              <h2 className="text-foreground text-lg font-semibold">Links</h2>
-              <p className="text-muted-foreground text-sm">
-                Share these URLs with facilitators, displays, and participants.
-              </p>
-              <EventLinksPanel
-                eventId={eventId}
-                organization={
-                  orgQuery.data
-                    ? {
-                        subdomain: orgQuery.data.subdomain,
-                        custom_domain: orgQuery.data.custom_domain,
-                      }
-                    : null
-                }
-              />
+            <Card className="border-border/80 mt-8 flex flex-wrap gap-3 bg-card p-6 shadow-sm">
+              <Button type="button" variant="outline" onClick={() => setLinksOpen(true)}>
+                View links & QR codes
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={downloading}
+                onClick={() => {
+                  setDownloading(true)
+                  void downloadEventPackage(eventId).finally(() => setDownloading(false))
+                }}
+              >
+                {downloading ? 'Preparing download…' : 'Download media & PDF'}
+              </Button>
             </Card>
+          ) : null}
+
+          {linksOpen && eventId && eventQuery.data ? (
+            <EventLinksModal
+              eventId={eventId}
+              eventName={eventQuery.data.name}
+              organization={
+                orgQuery.data
+                  ? {
+                      subdomain: orgQuery.data.subdomain,
+                      custom_domain: orgQuery.data.custom_domain,
+                    }
+                  : null
+              }
+              branding={{
+                eventName: eventQuery.data.name,
+                logoUrl: logoForEvent(eventQuery.data, orgQuery.data ?? null),
+                primaryColor: brandColorsForEvent(
+                  eventQuery.data,
+                  orgQuery.data ?? null,
+                )[0],
+                accentColor: brandColorsForEvent(
+                  eventQuery.data,
+                  orgQuery.data ?? null,
+                )[2],
+              }}
+              onClose={() => setLinksOpen(false)}
+            />
           ) : null}
 
           <FormSaveFooter

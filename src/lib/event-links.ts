@@ -1,7 +1,11 @@
+import { jsPDF } from 'jspdf'
+
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { getOrganizationOrigin } from '@/lib/tenant'
 
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
+
+export const EVENT_LINK_ORDER: EventLinkKey[] = ['facilitator', 'display', 'join']
 
 export type EventLinks = Record<EventLinkKey, string>
 
@@ -45,4 +49,97 @@ export async function downloadQrPng(link: string, filename: string) {
 
 export async function copyToClipboard(text: string) {
   await navigator.clipboard.writeText(text)
+}
+
+async function loadImageUrl(url: string): Promise<HTMLImageElement> {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = url
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Image load failed'))
+  })
+  return img
+}
+
+async function loadQrImage(link: string, size: number): Promise<HTMLImageElement> {
+  return loadImageUrl(qrCodeUrl(link, size))
+}
+
+export type EventLinksPdfBranding = {
+  eventName: string
+  logoUrl?: string | null
+  primaryColor?: string
+  accentColor?: string
+}
+
+export async function downloadAllEventQrsPdf(
+  links: EventLinks,
+  branding: EventLinksPdfBranding,
+) {
+  const w = 1200
+  const h = 1700
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const primary = branding.primaryColor ?? '#3E3D3E'
+  const accent = branding.accentColor ?? '#FFCB03'
+
+  ctx.fillStyle = '#f8f8f8'
+  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = primary
+  ctx.fillRect(0, 0, w, 140)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 42px Montserrat, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText(branding.eventName, w / 2, 88)
+
+  if (branding.logoUrl) {
+    try {
+      const logo = await loadImageUrl(branding.logoUrl)
+      const lw = 100
+      const lh = (logo.height / logo.width) * lw
+      ctx.drawImage(logo, w / 2 - lw / 2, 160, lw, Math.min(lh, 80))
+    } catch {
+      /* skip */
+    }
+  }
+
+  const qrSize = 280
+  const cols = 3
+  const gap = (w - cols * qrSize) / (cols + 1)
+  let yBase = branding.logoUrl ? 280 : 220
+
+  for (let i = 0; i < EVENT_LINK_ORDER.length; i++) {
+    const key = EVENT_LINK_ORDER[i]
+    const x = gap + i * (qrSize + gap)
+    const qr = await loadQrImage(links[key], 320)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(x - 12, yBase - 12, qrSize + 24, qrSize + 80)
+    ctx.drawImage(qr, x, yBase, qrSize, qrSize)
+    ctx.fillStyle = primary
+    ctx.font = 'bold 22px Montserrat, sans-serif'
+    ctx.fillText(EVENT_LINK_LABELS[key], x + qrSize / 2, yBase + qrSize + 36)
+    ctx.fillStyle = accent
+    ctx.font = '14px monospace'
+    const short = links[key].length > 42 ? `${links[key].slice(0, 40)}…` : links[key]
+    ctx.fillText(short, x + qrSize / 2, yBase + qrSize + 58)
+  }
+
+  ctx.strokeStyle = accent
+  ctx.lineWidth = 4
+  ctx.strokeRect(24, 24, w - 48, h - 48)
+
+  const dataUrl = canvas.toDataURL('image/png')
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'px',
+    format: [w, h],
+  })
+  pdf.addImage(dataUrl, 'PNG', 0, 0, w, h)
+  pdf.save(`${branding.eventName.replace(/[^\w.-]+/g, '_')}-event-qr-codes.pdf`)
 }

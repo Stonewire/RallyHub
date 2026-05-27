@@ -42,7 +42,7 @@ export function FacilitatorEventPage() {
   const { bundle, loading, error, updateState, updateTeam, resetEvent } =
     useLiveEvent(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
-  const annClearRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const annClearRef = useRef<number | undefined>(undefined)
 
   const [announcement, setAnnouncement] = useState('')
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
@@ -239,7 +239,7 @@ export function FacilitatorEventPage() {
   async function clearAnnouncement() {
     if (annClearRef.current) {
       window.clearTimeout(annClearRef.current)
-      annClearRef.current = null
+      annClearRef.current = undefined
     }
     await patchState({ announcement: null, announcement_target: null })
   }

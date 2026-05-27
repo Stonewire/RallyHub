@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Video } from 'lucide-react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
@@ -12,12 +12,14 @@ import type { GameConfig } from '@/types/game-config'
 
 type VideoChallengeCaptureProps = {
   config: GameConfig | null | undefined
+  accentColor: string
   disabled?: boolean
   onFileReady: (file: File) => void
 }
 
 export function VideoChallengeCapture({
   config,
+  accentColor,
   disabled,
   onFileReady,
 }: VideoChallengeCaptureProps) {
@@ -25,35 +27,48 @@ export function VideoChallengeCapture({
   const maxSec = getMaxVideoDurationSeconds(config)
   const fileRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLVideoElement>(null)
+  const [previewReady, setPreviewReady] = useState(false)
   const [recording, setRecording] = useState(false)
   const [remaining, setRemaining] = useState(maxSec)
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const tickRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
+    void openPreview()
     return () => {
-      stopRecording(false)
+      stopAll(false)
     }
   }, [])
 
   useEffect(() => {
-    if (!recording || !streamRef.current) return
     const el = previewRef.current
-    if (!el) return
+    if (!el || !streamRef.current) return
     el.muted = true
     el.playsInline = true
     el.setAttribute('playsinline', 'true')
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [recording])
+  }, [previewReady, recording])
 
-  function clearPreview() {
-    const el = previewRef.current
-    if (el) {
-      el.srcObject = null
+  async function openPreview() {
+    if (!navigator.mediaDevices?.getUserMedia) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: true,
+      })
+      streamRef.current = stream
+      setPreviewReady(true)
+    } catch {
+      notify('Could not access camera — use upload instead')
     }
+  }
+
+  function clearVideoEl() {
+    const el = previewRef.current
+    if (el) el.srcObject = null
   }
 
   function validateDuration(file: File): Promise<boolean> {
@@ -80,33 +95,33 @@ export function VideoChallengeCapture({
     if (ok) onFileReady(file)
   }
 
-  function stopRecording(save: boolean) {
-    if (tickRef.current) {
+  function stopAll(saveRecording: boolean) {
+    if (tickRef.current != null) {
       window.clearInterval(tickRef.current)
-      tickRef.current = null
+      tickRef.current = undefined
     }
-    recorderRef.current?.stop()
-    recorderRef.current = null
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    streamRef.current = null
-    clearPreview()
-    setRecording(false)
-    setRemaining(maxSec)
-    if (!save) chunksRef.current = []
+    if (recording) {
+      recorderRef.current?.stop()
+      recorderRef.current = null
+      setRecording(false)
+      setRemaining(maxSec)
+      if (!saveRecording) chunksRef.current = []
+    }
+    if (!saveRecording) {
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+      clearVideoEl()
+      setPreviewReady(false)
+    }
   }
 
-  async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) {
+  function startRecording() {
+    if (!streamRef.current) {
       fileRef.current?.click()
       return
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: true,
-      })
-      streamRef.current = stream
-      const recorder = new MediaRecorder(stream)
+      const recorder = new MediaRecorder(streamRef.current)
       recorderRef.current = recorder
       chunksRef.current = []
       recorder.ondataavailable = (e) => {
@@ -115,92 +130,99 @@ export function VideoChallengeCapture({
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' })
         chunksRef.current = []
+        streamRef.current?.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
+        clearVideoEl()
+        setPreviewReady(false)
+        setRecording(false)
         if (blob.size > 0) {
           const file = new File([blob], `recording-${Date.now()}.webm`, {
             type: blob.type,
           })
           void handleFileInput(file)
+        } else {
+          void openPreview()
         }
       }
       recorder.start(200)
       setRecording(true)
-      setRemaining(maxSec)
       const started = Date.now()
       tickRef.current = window.setInterval(() => {
         const elapsed = Math.floor((Date.now() - started) / 1000)
         const left = Math.max(0, maxSec - elapsed)
         setRemaining(left)
         if (left <= 0) {
-          stopRecording(true)
+          if (tickRef.current) window.clearInterval(tickRef.current)
+          recorderRef.current?.stop()
         }
       }, 200)
     } catch {
-      notify('Could not access camera — use upload instead')
-      fileRef.current?.click()
+      notify('Could not start recording')
     }
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm font-medium text-[#FFCB03]">
+      <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
         Max video length: {formatVideoDurationLabel(maxSec)}
       </p>
-      {recording ? (
-        <div className="space-y-3 overflow-hidden rounded-xl bg-black">
-          <video
-            ref={previewRef}
-            autoPlay
-            playsInline
-            muted
-            className="aspect-[4/3] w-full bg-black object-cover"
-          />
-          <div className="space-y-2 px-4 pb-4 text-center">
+      <div className="overflow-hidden rounded-xl bg-black">
+        <video
+          ref={previewRef}
+          autoPlay
+          playsInline
+          muted
+          className="aspect-[4/3] w-full bg-black object-cover"
+        />
+        {recording ? (
+          <div className="space-y-2 border-t border-white/10 px-4 py-3 text-center">
             <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
             <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
             <Button
               type="button"
               variant="outline"
               className="w-full border-white/30 bg-white/10 text-white"
-              onClick={() => stopRecording(true)}
+              onClick={() => recorderRef.current?.stop()}
             >
               Stop recording
             </Button>
           </div>
-        </div>
-      ) : (
-        <>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="video/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              e.target.value = ''
-              void handleFileInput(f)
-            }}
-          />
-          <AccentButton
-            type="button"
-            className="w-full"
-            disabled={disabled}
-            onClick={() => void startRecording()}
-          >
-            <Video className="size-4" />
-            Record video
-          </AccentButton>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-white/30 bg-white/10 text-white"
-            disabled={disabled}
-            onClick={() => fileRef.current?.click()}
-          >
-            Upload video
-          </Button>
-        </>
-      )}
+        ) : previewReady ? (
+          <div className="space-y-2 p-3">
+            <LiveAccentButton
+              type="button"
+              className="w-full"
+              accentColor={accentColor}
+              disabled={disabled}
+              onClick={() => startRecording()}
+            >
+              <Video className="size-4" />
+              Record video
+            </LiveAccentButton>
+          </div>
+        ) : null}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          void handleFileInput(f)
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full border-white/30 bg-white/10 text-white"
+        disabled={disabled}
+        onClick={() => fileRef.current?.click()}
+      >
+        Upload video
+      </Button>
     </div>
   )
 }

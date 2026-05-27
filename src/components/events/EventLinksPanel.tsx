@@ -1,33 +1,40 @@
-import { Check, Copy, Download } from 'lucide-react'
+import { Check, Copy, Download, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
   copyToClipboard,
+  downloadAllEventQrsPdf,
   downloadQrPng,
   EVENT_LINK_LABELS,
+  EVENT_LINK_ORDER,
   getEventLinks,
   qrCodeUrl,
   type EventLinkKey,
+  type EventLinksPdfBranding,
 } from '@/lib/event-links'
 import type { TenantPublicOrg } from '@/lib/tenant'
 
-const LINK_ORDER: EventLinkKey[] = ['facilitator', 'display', 'join']
-
 type EventLinksPanelProps = {
   eventId: string
+  eventName: string
   organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null
+  branding?: EventLinksPdfBranding
   compact?: boolean
 }
 
 export function EventLinksPanel({
   eventId,
+  eventName,
   organization,
+  branding,
   compact,
 }: EventLinksPanelProps) {
   const links = getEventLinks(eventId, organization)
   const [copied, setCopied] = useState<EventLinkKey | null>(null)
+  const [downloadingAll, setDownloadingAll] = useState(false)
 
   async function handleCopy(key: EventLinkKey) {
     await copyToClipboard(links[key])
@@ -35,54 +42,78 @@ export function EventLinksPanel({
     window.setTimeout(() => setCopied(null), 2000)
   }
 
+  const pdfBranding: EventLinksPdfBranding = branding ?? { eventName }
+
   return (
-    <div className={compact ? 'space-y-4' : 'grid gap-6 sm:grid-cols-3'}>
-      {LINK_ORDER.map((key) => (
-        <div
-          key={key}
-          className="border-border/80 space-y-3 rounded-lg border bg-card p-4 shadow-sm"
-        >
-          <Label className="text-foreground font-semibold">
-            {EVENT_LINK_LABELS[key]}
-          </Label>
-          <img
-            src={qrCodeUrl(links[key], 160)}
-            alt={`QR code for ${EVENT_LINK_LABELS[key]}`}
-            width={160}
-            height={160}
-            className="mx-auto rounded border bg-white"
-          />
-          <p className="text-muted-foreground break-all font-mono text-xs">
-            {links[key]}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void handleCopy(key)}
-            >
-              {copied === key ? (
-                <Check className="size-4" />
-              ) : (
-                <Copy className="size-4" />
-              )}
-              Copy
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                void downloadQrPng(links[key], `rallyhub-${key}-${eventId}.png`)
-              }
-            >
-              <Download className="size-4" />
-              QR PNG
-            </Button>
+    <div className="space-y-6">
+      <div className={compact ? 'space-y-4' : 'grid gap-6 sm:grid-cols-3'}>
+        {EVENT_LINK_ORDER.map((key) => (
+          <div
+            key={key}
+            className="border-border/80 space-y-3 rounded-lg border bg-card p-4 shadow-sm"
+          >
+            <Label className="text-foreground font-semibold">
+              {EVENT_LINK_LABELS[key]}
+            </Label>
+            <img
+              src={qrCodeUrl(links[key], 200)}
+              alt={`QR code for ${EVENT_LINK_LABELS[key]}`}
+              width={200}
+              height={200}
+              className="mx-auto rounded border bg-white p-2"
+            />
+            <p className="text-muted-foreground break-all font-mono text-xs">
+              {links[key]}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleCopy(key)}
+              >
+                {copied === key ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+                Copy
+              </Button>
+              <Button type="button" size="sm" variant="outline" asChild>
+                <Link to={links[key]} target="_blank" rel="noreferrer">
+                  <ExternalLink className="size-4" />
+                  Open
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  void downloadQrPng(links[key], `rallyhub-${key}-${eventId}.png`)
+                }
+              >
+                <Download className="size-4" />
+                QR PNG
+              </Button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={downloadingAll}
+        onClick={() => {
+          setDownloadingAll(true)
+          void downloadAllEventQrsPdf(links, pdfBranding).finally(() =>
+            setDownloadingAll(false),
+          )
+        }}
+      >
+        <Download className="size-4" />
+        {downloadingAll ? 'Building PDF…' : 'Download all QR codes (PDF)'}
+      </Button>
     </div>
   )
 }

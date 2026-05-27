@@ -20,6 +20,13 @@ import { cn } from '@/lib/utils'
 
 const BRAND_LABELS = ['Primary', 'Secondary', 'Accent'] as const
 
+const BRAND_COLOR_HELP: Record<(typeof BRAND_LABELS)[number], string> = {
+  Primary: 'Animated brand blobs on team join and display screens.',
+  Secondary: 'Base background behind the live gradient (join + display).',
+  Accent:
+    'Buttons, challenge cards, chat actions, and notification accents on team devices.',
+}
+
 type EventFormProps = {
   organizationId: string
   values: EventFormValues
@@ -140,13 +147,8 @@ export function EventForm({
             <option value="black">Black</option>
           </select>
           <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-            <strong className="text-foreground">White</strong> — team join screens, challenge
-            cards, display leaderboard and headers on your brand background (recommended for
-            dark or colorful palettes).
-            <br />
-            <strong className="text-foreground">Black</strong> — same surfaces when your
-            secondary/background colors are light; keeps titles and scores readable on pale
-            blobs.
+            Controls title and score readability on top of your event background (not button
+            colors). Use white on dark palettes; black on light secondary colors.
           </p>
         </div>
       </Card>
@@ -208,6 +210,24 @@ export function EventForm({
                 }
                 className="bg-background w-24 font-mono text-xs"
               />
+              {teams.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-destructive shrink-0"
+                  title="Remove team"
+                  onClick={() =>
+                    onChange((prev) => ({
+                      ...prev,
+                      teamCount: Math.max(1, prev.teamCount - 1),
+                      teams: prev.teams.filter((x) => x.id !== team.id),
+                    }))
+                  }
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -224,6 +244,9 @@ export function EventForm({
         </label>
         {brandingEnabled ? (
           <>
+            <p className="text-muted-foreground text-sm">
+              Override your organization profile for this event only.
+            </p>
             <Input
               type="file"
               accept="image/*"
@@ -249,6 +272,9 @@ export function EventForm({
               {brandColors.map((c, i) => (
                 <div key={BRAND_LABELS[i]} className="space-y-2">
                   <Label>{BRAND_LABELS[i]}</Label>
+                  <p className="text-muted-foreground text-xs leading-snug">
+                    {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
+                  </p>
                   <input
                     type="color"
                     value={c}
@@ -265,7 +291,7 @@ export function EventForm({
           </>
         ) : (
           <p className="text-muted-foreground text-sm">
-            Organization defaults will be used
+            Uses logo and colors from Organization Profile (Settings).
             {orgDefaults
               ? ` (${orgDefaults.primary_color}, ${orgDefaults.secondary_color}, ${orgDefaults.accent_color}).`
               : '.'}

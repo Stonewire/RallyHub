@@ -1,12 +1,4 @@
-import {
-  Calendar,
-  Link2,
-  Monitor,
-  Pencil,
-  Presentation,
-  Trash2,
-  Users,
-} from 'lucide-react'
+import { Calendar, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -37,6 +29,7 @@ import {
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import type { EventStatus } from '@/types/database'
+import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
 import type { EventRow } from '@/hooks/use-events'
 
 function formatEventDate(iso: string | null) {
@@ -66,24 +59,6 @@ function EventRow({
     <CompactListRow
       actions={
         <>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/facilitator/${event.id}`} target="_blank" rel="noreferrer">
-              <Presentation className="size-3.5" />
-              Facilitator
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/display/${event.id}`} target="_blank" rel="noreferrer">
-              <Monitor className="size-3.5" />
-              Display
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/join/${event.id}`} target="_blank" rel="noreferrer">
-              <Users className="size-3.5" />
-              Join
-            </Link>
-          </Button>
           <Button type="button" variant="outline" size="sm" onClick={onViewLinks}>
             <Link2 className="size-3.5" />
             View Links
@@ -139,9 +114,7 @@ export function AdminEventsPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     loadCollapsedState(),
   )
-  const [linksModal, setLinksModal] = useState<{ id: string; name: string } | null>(
-    null,
-  )
+  const [linksModal, setLinksModal] = useState<EventRow | null>(null)
 
   useEffect(() => {
     saveCollapsedState(collapsed)
@@ -212,9 +185,7 @@ export function AdminEventsPage() {
                     onStatusChange={(status) =>
                       void updateStatus.mutateAsync({ eventId: event.id, status })
                     }
-                    onViewLinks={() =>
-                      setLinksModal({ id: event.id, name: event.name })
-                    }
+                    onViewLinks={() => setLinksModal(event)}
                   />
                 ))}
               </div>
@@ -235,6 +206,12 @@ export function AdminEventsPage() {
                 }
               : null
           }
+          branding={{
+            eventName: linksModal.name,
+            logoUrl: logoForEvent(linksModal, orgQuery.data ?? null),
+            primaryColor: brandColorsForEvent(linksModal, orgQuery.data ?? null)[0],
+            accentColor: brandColorsForEvent(linksModal, orgQuery.data ?? null)[2],
+          }}
           onClose={() => setLinksModal(null)}
         />
       ) : null}
