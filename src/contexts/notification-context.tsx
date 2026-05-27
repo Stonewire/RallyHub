@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -15,31 +16,52 @@ type Notification = {
 
 type NotificationContextValue = {
   notify: (message: string) => void
+  accentColor: string
+  setAccentColor: (color: string) => void
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 const DISPLAY_MS = 5000
+const DEFAULT_ACCENT = '#FFCB03'
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<Notification | null>(null)
+  const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT)
   const idRef = useRef(0)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const queueRef = useRef<string[]>([])
+  const drainingRef = useRef(false)
 
-  const notify = useCallback((message: string) => {
-    const text = message.trim().slice(0, 120)
-    if (!text) return
-    if (timeoutRef.current) window.clearTimeout(timeoutRef.current)
-    idRef.current += 1
-    const id = idRef.current
-    setCurrent({ id, message: text })
-    timeoutRef.current = window.setTimeout(() => {
+  const drainQueue = useCallback(async () => {
+    if (drainingRef.current) return
+    drainingRef.current = true
+    while (queueRef.current.length > 0) {
+      const message = queueRef.current.shift()!
+      idRef.current += 1
+      const id = idRef.current
+      setCurrent({ id, message })
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, DISPLAY_MS)
+      })
       setCurrent((c) => (c?.id === id ? null : c))
-      timeoutRef.current = null
-    }, DISPLAY_MS)
+    }
+    drainingRef.current = false
   }, [])
 
-  const value = useMemo(() => ({ notify }), [notify])
+  const notify = useCallback(
+    (message: string) => {
+      const text = message.trim().slice(0, 120)
+      if (!text) return
+      queueRef.current.push(text)
+      void drainQueue()
+    },
+    [drainQueue],
+  )
+
+  const value = useMemo(
+    () => ({ notify, accentColor, setAccentColor }),
+    [notify, accentColor],
+  )
 
   return (
     <NotificationContext.Provider value={value}>
@@ -51,7 +73,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-4 pt-[max(0.5rem,env(safe-area-inset-top))]"
         >
           <div className="pointer-events-auto w-full max-w-md">
-            <div className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-[#1c1c1e]/92 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg backdrop-blur-xl">
+            <div
+              className="flex items-center justify-center gap-2 rounded-full border border-black/15 px-4 py-2.5 text-center text-sm font-semibold shadow-lg backdrop-blur-xl"
+              style={{
+                backgroundColor: accentColor,
+                color: '#3E3D3E',
+              }}
+            >
               <span className="line-clamp-2">{current.message}</span>
             </div>
           </div>
@@ -59,6 +87,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       ) : null}
     </NotificationContext.Provider>
   )
+}
+
+export function NotificationAccentSync({ color }: { color: string }) {
+  const ctx = useContext(NotificationContext)
+  useEffect(() => {
+    ctx?.setAccentColor(color)
+  }, [color, ctx])
+  return null
 }
 
 export function useNotification() {
@@ -69,7 +105,6 @@ export function useNotification() {
   return ctx
 }
 
-/** Safe notify when provider may be absent (e.g. tests). */
 export function useOptionalNotification() {
   return useContext(NotificationContext)
 }

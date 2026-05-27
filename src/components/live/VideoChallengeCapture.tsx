@@ -24,6 +24,7 @@ export function VideoChallengeCapture({
   const { notify } = useNotification()
   const maxSec = getMaxVideoDurationSeconds(config)
   const fileRef = useRef<HTMLInputElement>(null)
+  const previewRef = useRef<HTMLVideoElement>(null)
   const [recording, setRecording] = useState(false)
   const [remaining, setRemaining] = useState(maxSec)
   const streamRef = useRef<MediaStream | null>(null)
@@ -36,6 +37,20 @@ export function VideoChallengeCapture({
       stopRecording(false)
     }
   }, [])
+
+  function attachPreview(stream: MediaStream) {
+    const el = previewRef.current
+    if (!el) return
+    el.srcObject = stream
+    void el.play().catch(() => {})
+  }
+
+  function clearPreview() {
+    const el = previewRef.current
+    if (el) {
+      el.srcObject = null
+    }
+  }
 
   function validateDuration(file: File): Promise<boolean> {
     return new Promise((resolve) => {
@@ -70,6 +85,7 @@ export function VideoChallengeCapture({
     recorderRef.current = null
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
+    clearPreview()
     setRecording(false)
     setRemaining(maxSec)
     if (!save) chunksRef.current = []
@@ -86,6 +102,7 @@ export function VideoChallengeCapture({
         audio: true,
       })
       streamRef.current = stream
+      attachPreview(stream)
       const recorder = new MediaRecorder(stream)
       recorderRef.current = recorder
       chunksRef.current = []
@@ -126,19 +143,26 @@ export function VideoChallengeCapture({
         Max video length: {formatVideoDurationLabel(maxSec)}
       </p>
       {recording ? (
-        <div className="space-y-3 rounded-xl bg-black/40 p-4 text-center">
-          <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
-          <p className="font-mono text-4xl tabular-nums text-white">
-            {remaining}s
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-white/30 bg-white/10 text-white"
-            onClick={() => stopRecording(true)}
-          >
-            Stop recording
-          </Button>
+        <div className="space-y-3 overflow-hidden rounded-xl bg-black">
+          <video
+            ref={previewRef}
+            autoPlay
+            playsInline
+            muted
+            className="aspect-[4/3] w-full bg-black object-cover"
+          />
+          <div className="space-y-2 px-4 pb-4 text-center">
+            <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
+            <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-white/30 bg-white/10 text-white"
+              onClick={() => stopRecording(true)}
+            >
+              Stop recording
+            </Button>
+          </div>
         </div>
       ) : (
         <>

@@ -1,6 +1,7 @@
 import type { Json } from '@/types/json'
 import type { EventStage } from '@/types/game-config'
 import type { GameConfig, MusicTrack, QuizQuestion } from '@/types/game-config'
+import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
@@ -185,6 +186,36 @@ export function activeSubmissionForGame(
 export type QuizLeaderboardEntry = {
   team: Tables<'teams'>
   quizPoints: number
+}
+
+export async function scoreCurrentQuizQuestion(
+  quizGame: Tables<'games'>,
+  question: QuizQuestion,
+  submissions: Tables<'submissions'>[],
+  teams: Tables<'teams'>[],
+  updateTeam: (teamId: string, patch: { score: number }) => Promise<void>,
+) {
+  const points = quizGame.points_static ?? 10
+  const mediaType = quizSubmissionMediaType(question.id)
+  const subs = submissions.filter(
+    (s) => s.game_id === quizGame.id && s.media_type === mediaType,
+  )
+  for (const sub of subs) {
+    if (sub.status === 'approved' && sub.points_awarded != null) continue
+    const correct = sub.media_url === question.correctAnswerId
+    const awarded = correct ? points : 0
+    const { error } = await supabase
+      .from('submissions')
+      .update({ status: 'approved', points_awarded: awarded })
+      .eq('id', sub.id)
+    if (error) throw error
+    if (correct && awarded > 0) {
+      const team = teams.find((t) => t.id === sub.team_id)
+      if (team) {
+        await updateTeam(sub.team_id, { score: team.score + awarded })
+      }
+    }
+  }
 }
 
 export function quizLeaderboard(

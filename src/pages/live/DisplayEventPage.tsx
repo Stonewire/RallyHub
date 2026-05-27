@@ -205,6 +205,18 @@ export function DisplayEventPage() {
         layout={layout}
       />
     )
+  } else if (
+    stage.type === 'quiz' &&
+    (state.quiz_state === 'idle' || state.quiz_state === 'waiting') &&
+    quizGame
+  ) {
+    body = (
+      <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <p className="text-2xl text-white/80 md:text-4xl">Get ready for</p>
+        <p className="mt-4 text-4xl font-bold md:text-6xl">{quizGame.name}</p>
+        <p className="mt-2 text-2xl font-semibold text-white/90 md:text-4xl">Quiz</p>
+      </div>
+    )
   } else if (stage.type === 'quiz' && state.quiz_state === 'results' && stage.gameId) {
     body = (
       <QuizResultsPanel
@@ -213,11 +225,15 @@ export function DisplayEventPage() {
         large
       />
     )
-  } else if (stage.type === 'quiz' && question) {
+  } else if (
+    stage.type === 'quiz' &&
+    question &&
+    (state.quiz_state === 'active' || state.quiz_state === 'revealed')
+  ) {
     body = (
       <div className="mx-auto max-w-4xl px-6 py-8 text-center">
         <h2 className="mb-8 text-3xl font-bold md:text-5xl">{question.text}</h2>
-        {state.quiz_state === 'active' || state.timer_running ? (
+        {state.quiz_state === 'active' && state.timer_running ? (
           <div className="mb-8 text-5xl font-mono tabular-nums">
             {formatTimer(timerDisplay)}
           </div>

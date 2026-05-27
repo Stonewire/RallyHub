@@ -1,5 +1,5 @@
 import { Check, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
@@ -24,6 +24,7 @@ import {
   quizQuestions,
   quizSubmissionMediaType,
   isQuizSubmission,
+  scoreCurrentQuizQuestion,
 } from '@/lib/live-event'
 import { getEventLinks } from '@/lib/event-links'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -109,6 +110,60 @@ export function FacilitatorEventPage() {
     Boolean(state?.timer_running),
     (next, stillRunning) => timerSyncRef.current(next, stillRunning),
   )
+
+  const quizAutoRevealKey = useRef('')
+
+  useEffect(() => {
+    if (!bundle || !state) {
+      quizAutoRevealKey.current = ''
+      return
+    }
+    if (state.quiz_state !== 'active') {
+      quizAutoRevealKey.current = ''
+      return
+    }
+    const st = currentStage(parseStages(bundle.event.stages_config), state.current_stage_index)
+    if (st?.type !== 'quiz' || !st.gameId) return
+
+    const quizGame = bundle.games.find((g) => g.id === st.gameId)
+    const questions = quizGame ? quizQuestions(quizGame) : []
+    const question = questions[state.current_question_index]
+    if (!quizGame || !question) return
+
+    const mediaType = quizSubmissionMediaType(question.id)
+    const named = bundle.teams.filter((t) => t.name?.trim())
+    const allAnswered =
+      named.length > 0 &&
+      named.every((t) =>
+        bundle.submissions.some(
+          (s) =>
+            s.team_id === t.id &&
+            s.game_id === st.gameId &&
+            (s.media_type === mediaType || s.media_type === 'quiz'),
+        ),
+      )
+    const timerDone = Boolean(state.timer_running) && timerDisplay <= 0
+    if (!timerDone && !allAnswered) return
+
+    const key = `${state.current_stage_index}-${state.current_question_index}-reveal`
+    if (quizAutoRevealKey.current === key) return
+    quizAutoRevealKey.current = key
+
+    void (async () => {
+      try {
+        await scoreCurrentQuizQuestion(
+          quizGame,
+          question,
+          bundle.submissions,
+          bundle.teams,
+          updateTeam,
+        )
+        await updateState({ timer_running: false, quiz_state: 'revealed' })
+      } catch {
+        quizAutoRevealKey.current = ''
+      }
+    })()
+  }, [bundle, state, timerDisplay, updateTeam, updateState])
 
   const breakSeconds =
     stage?.type === 'break'
@@ -282,6 +337,7 @@ export function FacilitatorEventPage() {
   )
 
   function startQuizQuestion(index: number) {
+    quizAutoRevealKey.current = ''
     const sec = questionSeconds
     void patchState({
       current_question_index: index,
@@ -294,30 +350,19 @@ export function FacilitatorEventPage() {
 
   async function revealQuizAnswers() {
     if (!quizGame || !question) return
-    const points = quizGame.points_static ?? 10
-    const mediaType = quizSubmissionMediaType(question.id)
-    const subs = submissions.filter(
-      (s) => s.game_id === quizGame.id && s.media_type === mediaType,
+    await scoreCurrentQuizQuestion(
+      quizGame,
+      question,
+      submissions,
+      teams,
+      updateTeam,
     )
-    for (const sub of subs) {
-      if (sub.status === 'approved' && sub.points_awarded != null) continue
-      const correct = sub.media_url === question.correctAnswerId
-      const awarded = correct ? points : 0
-      await supabase
-        .from('submissions')
-        .update({ status: 'approved', points_awarded: awarded })
-        .eq('id', sub.id)
-      if (correct && awarded > 0) {
-        const team = teams.find((t) => t.id === sub.team_id)
-        if (team) {
-          await updateTeam(sub.team_id, { score: team.score + awarded })
-        }
-      }
-    }
     await patchState({ timer_running: false, quiz_state: 'revealed' })
+    quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
 
   async function skipQuizQuestion() {
+    quizAutoRevealKey.current = ''
     const next = liveState.current_question_index + 1
     if (next >= questions.length) {
       await patchState({
@@ -328,10 +373,23 @@ export function FacilitatorEventPage() {
     }
     await patchState({
       current_question_index: next,
-      quiz_state: 'idle',
+      quiz_state: 'active',
       timer_seconds: questionSeconds,
-      timer_running: false,
+      timer_running: true,
     })
+  }
+
+  async function goToNextQuestion() {
+    if (liveState.quiz_state === 'active') {
+      await revealQuizAnswers()
+    }
+    quizAutoRevealKey.current = ''
+    const next = liveState.current_question_index + 1
+    if (next >= questions.length) {
+      await patchState({ quiz_state: 'results', timer_running: false })
+      return
+    }
+    startQuizQuestion(next)
   }
 
   async function restartQuiz() {
@@ -369,20 +427,17 @@ export function FacilitatorEventPage() {
         action: () => startQuizQuestion(liveState.current_question_index),
       }
     }
-    if (liveState.quiz_state === 'active') {
-      return { label: 'Reveal Answers', action: () => void revealQuizAnswers() }
-    }
-    if (liveState.quiz_state === 'revealed') {
+    if (liveState.quiz_state === 'active' || liveState.quiz_state === 'revealed') {
       const isLast = liveState.current_question_index >= questions.length - 1
+      if (isLast && liveState.quiz_state === 'revealed') {
+        return {
+          label: 'Reveal Quiz Results',
+          action: () => void patchState({ quiz_state: 'results', timer_running: false }),
+        }
+      }
       return {
-        label: isLast ? 'Reveal Quiz Results' : 'Next Question',
-        action: () => {
-          if (isLast) {
-            void patchState({ quiz_state: 'results', timer_running: false })
-          } else {
-            startQuizQuestion(liveState.current_question_index + 1)
-          }
-        },
+        label: 'Next Question',
+        action: () => void goToNextQuestion(),
       }
     }
     return null

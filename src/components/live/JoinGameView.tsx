@@ -11,7 +11,10 @@ import {
 } from '@/components/live/WinnerRevealPanel'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useNotification } from '@/contexts/notification-context'
+import {
+  NotificationAccentSync,
+  useNotification,
+} from '@/contexts/notification-context'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   bingoCardTitles,
@@ -80,6 +83,7 @@ export function JoinGameView({
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
+  const quizChangeDeadlineRef = useRef<number | null>(null)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -125,33 +129,48 @@ export function JoinGameView({
   const currentQuizQ = quizQs[state.current_question_index]
 
   useEffect(() => {
+    quizChangeDeadlineRef.current = null
     setQuizAnswer(null)
     setQuizLocked(false)
     setQuizChangeLeft(null)
-  }, [state.current_question_index, stage?.gameId])
+  }, [state.current_question_index, stage?.gameId, state.quiz_state])
 
   useEffect(() => {
     if (stage?.type !== 'quiz' || !stage.gameId || !currentQuizQ) return
+    if (state.quiz_state !== 'active') return
     const mediaType = quizSubmissionMediaType(currentQuizQ.id)
-    const existing =
-      mySubs.find(
-        (s) => s.media_type === mediaType && s.game_id === stage.gameId,
-      ) ??
-      mySubs.find((s) => s.media_type === 'quiz' && s.game_id === stage.gameId)
+    const existing = mySubs.find(
+      (s) => s.media_type === mediaType && s.game_id === stage.gameId,
+    )
     if (existing?.media_url) {
       setQuizAnswer(existing.media_url)
-      if (!quizRunning || state.quiz_state === 'revealed' || state.quiz_state === 'results') {
+    }
+  }, [stage?.type, stage?.gameId, mySubs, state.quiz_state, currentQuizQ?.id])
+
+  useEffect(() => {
+    if (!quizAnswer || quizChangeDeadlineRef.current == null) return
+    const tick = () => {
+      const left = Math.ceil(
+        (quizChangeDeadlineRef.current! - Date.now()) / 1000,
+      )
+      if (left <= 0) {
         setQuizLocked(true)
+        setQuizChangeLeft(null)
+      } else {
+        setQuizChangeLeft(left)
       }
     }
-  }, [
-    stage?.type,
-    stage?.gameId,
-    mySubs,
-    quizRunning,
-    state.quiz_state,
-    currentQuizQ?.id,
-  ])
+    tick()
+    const id = window.setInterval(tick, 200)
+    return () => window.clearInterval(id)
+  }, [quizAnswer])
+
+  useEffect(() => {
+    if (state.quiz_state === 'revealed' || state.quiz_state === 'results') {
+      setQuizLocked(true)
+      setQuizChangeLeft(null)
+    }
+  }, [state.quiz_state])
 
   useEffect(() => {
     if (stage?.type !== 'bingo' || !stage.gameId) return
@@ -226,35 +245,6 @@ export function JoinGameView({
     notify(`${game.name} was not approved`)
   }, [submissions, teamId, games, notify])
 
-  useEffect(() => {
-    if (!quizAnswer || quizLocked) return
-    const left = Math.min(5, quizTimerDisplay)
-    if (left <= 0) {
-      setQuizLocked(true)
-      setQuizChangeLeft(null)
-      return
-    }
-    setQuizChangeLeft(left)
-    const id = window.setInterval(() => {
-      setQuizChangeLeft((n) => {
-        if (n == null || n <= 1) {
-          setQuizLocked(true)
-          return null
-        }
-        return n - 1
-      })
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [quizAnswer, quizLocked, quizTimerDisplay])
-
-  useEffect(() => {
-    if (stage?.type !== 'quiz' || state.quiz_state === 'revealed') return
-    if (quizRunning && quizTimerDisplay <= 0) {
-      setQuizLocked(true)
-      setQuizChangeLeft(null)
-    }
-  }, [stage?.type, state.quiz_state, quizRunning, quizTimerDisplay])
-
   async function submitOpenGame() {
     if (!selectedGame || !captureFile || !event.id) return
     setSubmitting(true)
@@ -286,7 +276,11 @@ export function JoinGameView({
   }
 
   async function submitQuizAnswer(answerId: string, gameId: string, questionId: string) {
-    if (quizLocked) return
+    if (quizLocked || state.quiz_state !== 'active') return
+    if (quizChangeDeadlineRef.current == null) {
+      const windowSec = Math.min(5, Math.max(0, quizTimerDisplay))
+      quizChangeDeadlineRef.current = Date.now() + windowSec * 1000
+    }
     const mediaType = quizSubmissionMediaType(questionId)
     const existing = mySubs.find(
       (s) => s.media_type === mediaType && s.game_id === gameId,
@@ -307,7 +301,6 @@ export function JoinGameView({
       })
     }
     setQuizAnswer(answerId)
-    setQuizLocked(false)
     playSubmitSound()
   }
 
@@ -626,6 +619,22 @@ export function JoinGameView({
           highlightTeamId={teamId}
         />
       )
+    } else if (
+      (state.quiz_state === 'idle' || state.quiz_state === 'waiting') &&
+      quizGame
+    ) {
+      body = (
+        <div className="mx-auto max-w-lg px-6 py-20 text-center">
+          <p className="text-lg text-white/80">Get ready for</p>
+          <p className="mt-3 text-3xl font-bold" style={{ color: accent }}>
+            {quizGame.name}
+          </p>
+          <p className="mt-2 text-xl font-semibold text-white">Quiz</p>
+          <p className="text-muted-foreground mt-8 text-sm text-white/50">
+            Waiting for the facilitator to start…
+          </p>
+        </div>
+      )
     } else if (state.quiz_state === 'revealed' && q) {
       const ok = existing?.media_url === q.correctAnswerId
       body = (
@@ -649,17 +658,13 @@ export function JoinGameView({
           </div>
         </div>
       )
-    } else if (quizLocked || (existing && !quizAnswer)) {
-      body = (
-        <p className="py-16 text-center text-white/80">Answer locked — waiting…</p>
-      )
-    } else if (q) {
+    } else if (q && state.quiz_state === 'active') {
       body = (
         <div className="mx-auto max-w-lg px-4 pb-24">
           <div className="mb-4 h-2 overflow-hidden rounded-full bg-black/30">
             <div
-              className="h-full bg-[#FFCB03] transition-all duration-1000"
-              style={{ width: `${timerPct}%` }}
+              className="h-full transition-all duration-1000"
+              style={{ width: `${timerPct}%`, backgroundColor: accent }}
             />
           </div>
           <p className="mb-1 text-center text-xs text-white/70">
@@ -669,6 +674,7 @@ export function JoinGameView({
           <div className="space-y-3">
             {q.answers.map((a) => {
               const selected = quizAnswer === a.id
+              const faded = quizLocked && !selected
               return (
                 <button
                   key={a.id}
@@ -676,9 +682,14 @@ export function JoinGameView({
                   disabled={quizLocked}
                   className={`w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors ${
                     selected
-                      ? 'bg-[#FFCB03] text-[#3E3D3E]'
-                      : 'bg-white/15 text-white hover:bg-white/25'
+                      ? 'text-[#3E3D3E] ring-2 ring-white/30'
+                      : faded
+                        ? 'cursor-not-allowed bg-white/10 text-white/40'
+                        : 'bg-white/15 text-white hover:bg-white/25'
                   }`}
+                  style={
+                    selected ? { backgroundColor: accent } : undefined
+                  }
                   onClick={() => void submitQuizAnswer(a.id, stage.gameId!, q.id)}
                 >
                   {a.text}
@@ -687,11 +698,17 @@ export function JoinGameView({
             })}
           </div>
           {quizChangeLeft != null && !quizLocked ? (
-            <div className="mt-4 rounded-xl bg-[#FFCB03]/20 px-4 py-3 text-center">
+            <div
+              className="mt-4 rounded-xl px-4 py-3 text-center"
+              style={{ backgroundColor: `${accent}33` }}
+            >
               <p className="text-xs font-medium uppercase tracking-wide text-white/80">
                 Change answer
               </p>
-              <p className="font-mono text-3xl font-bold tabular-nums text-[#FFCB03]">
+              <p
+                className="font-mono text-3xl font-bold tabular-nums"
+                style={{ color: accent }}
+              >
                 {quizChangeLeft}s
               </p>
             </div>
@@ -747,6 +764,7 @@ export function JoinGameView({
 
   return (
     <BrandBackground event={event} organization={organization} variant="default">
+      <NotificationAccentSync color={accent} />
       <Button
         type="button"
         variant="ghost"
@@ -760,8 +778,9 @@ export function JoinGameView({
       {header}
       {body}
       <Button
-        className="fixed bottom-4 right-4 size-12 rounded-full bg-[#FFCB03] text-[#3E3D3E] shadow-lg hover:bg-[#e6b803]"
+        className="fixed bottom-4 right-4 size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
+        style={{ backgroundColor: accent, color: '#3E3D3E' }}
         onClick={() => setChatOpen(true)}
       >
         <MessageCircle className="size-5" />
