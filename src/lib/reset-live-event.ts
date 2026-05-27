@@ -100,5 +100,7 @@ export async function resetLiveEvent(eventId: string, teamCount: number) {
     if (insertErr) throw insertErr
   }
 
+  await supabase.from('bingo_runs').delete().eq('event_id', eventId)
+
   await syncTeamSlots(eventId, teamCount)
 }

@@ -16,8 +16,10 @@ import {
   NotificationAccentSync,
   useNotification,
 } from '@/contexts/notification-context'
+import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
+  bingoCellLabels,
   bingoCardTitles,
   bingoTracks,
   brandColorsForEvent,
@@ -77,6 +79,11 @@ export function JoinGameView({
   const { event, organization, state, games, submissions } = bundle
   const stages = useMemo(() => parseStages(event.stages_config), [event.stages_config])
   const stage = currentStage(stages, state.current_stage_index)
+  const bingoRunQuery = useBingoRun(
+    event.id,
+    stage?.type === 'bingo' ? state.current_stage_index : undefined,
+  )
+  const bingoCardQuery = useBingoTeamCard(bingoRunQuery.data?.id, teamId)
   const colors = brandColorsForEvent(event, organization)
   const accent = colors[2]
   const onAccent = textOnAccent(accent)
@@ -341,23 +348,24 @@ export function JoinGameView({
     if (state.bingo_state === 'revealed') return
     setBingoPick(index)
     const existing = mySubs.find(
-      (s) => s.media_type === 'bingo' && s.game_id === gameId,
+      (s) =>
+        s.media_type === 'bingo' &&
+        s.game_id === gameId &&
+        s.media_url === String(index),
     )
     if (existing) {
-      await supabase
-        .from('submissions')
-        .update({ media_url: String(index) })
-        .eq('id', existing.id)
-    } else {
-      await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: gameId,
-        media_url: String(index),
-        media_type: 'bingo',
-        status: 'pending',
-      })
+      await supabase.from('submissions').delete().eq('id', existing.id)
+      setBingoPick(null)
+      return
     }
+    await supabase.from('submissions').insert({
+      event_id: event.id,
+      team_id: teamId,
+      game_id: gameId,
+      media_url: String(index),
+      media_type: 'bingo',
+      status: 'pending',
+    })
   }
 
   const showMainHeader = !selectedGame && state.winner_reveal_stage < 1
@@ -764,7 +772,9 @@ export function JoinGameView({
   } else if (stage?.type === 'bingo' && stage.gameId) {
     const game = games.find((g) => g.id === stage.gameId)
     const tracks = game ? bingoTracks(game) : []
-    const titles = bingoCardTitles(teamId, tracks)
+    const titles = bingoCardQuery.data
+      ? bingoCellLabels(bingoCardQuery.data)
+      : bingoCardTitles(teamId, tracks)
     const revealed = state.bingo_state === 'revealed'
     body = (
       <div className="mx-auto max-w-md px-2 pb-24">

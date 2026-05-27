@@ -401,6 +401,94 @@ export type Database = {
         }
         Relationships: []
       }
+      music_catalog: {
+        Row: {
+          id: string
+          organization_id: string
+          artist: string
+          title: string
+          audio_url: string
+          clip_url: string | null
+          clip_start_seconds: number
+          clip_duration_seconds: number
+          duration_seconds: number | null
+          source_filename: string | null
+          parse_confidence: number | null
+          license_confirmed_at: string | null
+          license_confirmed_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          artist?: string
+          title?: string
+          audio_url: string
+          clip_url?: string | null
+          clip_start_seconds?: number
+          clip_duration_seconds?: number
+          duration_seconds?: number | null
+          source_filename?: string | null
+          parse_confidence?: number | null
+          license_confirmed_at?: string | null
+          license_confirmed_by?: string | null
+        }
+        Update: {
+          artist?: string
+          title?: string
+          audio_url?: string
+          clip_url?: string | null
+          clip_start_seconds?: number
+          clip_duration_seconds?: number
+          duration_seconds?: number | null
+          license_confirmed_at?: string | null
+        }
+        Relationships: []
+      }
+      bingo_runs: {
+        Row: {
+          id: string
+          event_id: string
+          game_id: string
+          stage_index: number
+          play_order: Json
+          current_play_index: number
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          game_id: string
+          stage_index: number
+          play_order?: Json
+          current_play_index?: number
+          status?: string
+        }
+        Update: {
+          play_order?: Json
+          current_play_index?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      bingo_team_cards: {
+        Row: {
+          run_id: string
+          team_id: string
+          cells: Json
+        }
+        Insert: {
+          run_id: string
+          team_id: string
+          cells: Json
+        }
+        Update: {
+          cells?: Json
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           id: string

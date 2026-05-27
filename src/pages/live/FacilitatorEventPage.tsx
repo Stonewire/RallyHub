@@ -17,8 +17,10 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
+import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
+import { activateBingoRun } from '@/lib/activate-bingo-run'
 import {
   FACILITATOR_NAME_KEY,
   bingoTracks,
@@ -77,6 +79,11 @@ export function FacilitatorEventPage() {
 
   const isQuizStage = stage?.type === 'quiz'
 
+  const bingoRunQuery = useBingoRun(
+    eventId,
+    stage?.type === 'bingo' ? bundle?.state.current_stage_index : undefined,
+  )
+
   async function patchState(patch: Parameters<typeof updateState>[0]) {
     try {
       setStateError(null)
@@ -99,6 +106,13 @@ export function FacilitatorEventPage() {
     if (next?.type === 'quiz') {
       patch.quiz_state = 'idle'
       patch.quiz_timer_running = false
+    }
+    if (next?.type === 'bingo' && next.gameId && eventId) {
+      void activateBingoRun(eventId, next.gameId, index).catch((err) => {
+        setStateError(err instanceof Error ? err.message : 'Could not start bingo')
+      })
+      patch.bingo_state = 'active'
+      patch.current_question_index = 0
     }
     void patchState(patch)
   }
@@ -493,7 +507,12 @@ export function FacilitatorEventPage() {
     ? games.find((g) => g.id === stage.gameId)
     : null
   const tracks = bingoGame ? bingoTracks(bingoGame) : []
-  const track = tracks[liveState.current_question_index]
+  const bingoPlayOrder = bingoRunQuery.data?.playOrder ?? []
+  const bingoPlayIndex = liveState.current_question_index
+  const playTrackId = bingoPlayOrder[bingoPlayIndex]
+  const track = playTrackId
+    ? tracks.find((t) => t.id === playTrackId) ?? tracks[bingoPlayIndex]
+    : tracks[bingoPlayIndex]
   const bingoTeams = submissions
     .filter((s) => s.media_type === 'bingo' && s.game_id === stage?.gameId)
     .map((s) => teams.find((t) => t.id === s.team_id)?.name)
@@ -879,20 +898,36 @@ export function FacilitatorEventPage() {
             </div>
           ) : stage.type === 'bingo' ? (
             <div className="space-y-4">
+              <p className="text-muted-foreground text-xs">
+                Now playing {bingoPlayIndex + 1}
+                {bingoPlayOrder.length > 0 ? ` / ${bingoPlayOrder.length}` : ''}
+              </p>
               <p className="font-semibold">
                 {track ? `${track.title} — ${track.artist}` : 'No track'}
               </p>
+              {track?.audioUrl ? (
+                <audio
+                  key={`${track.id}-${bingoPlayIndex}`}
+                  src={track.audioUrl}
+                  controls
+                  className="w-full"
+                />
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   onClick={() =>
                     void patchState({
                       current_question_index: Math.min(
-                        tracks.length - 1,
+                        Math.max(0, bingoPlayOrder.length - 1),
                         state.current_question_index + 1,
                       ),
                       bingo_state: 'waiting',
                     })
+                  }
+                  disabled={
+                    bingoPlayOrder.length > 0 &&
+                    state.current_question_index >= bingoPlayOrder.length - 1
                   }
                 >
                   Next Track

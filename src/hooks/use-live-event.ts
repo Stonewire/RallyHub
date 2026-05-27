@@ -119,6 +119,11 @@ export function useLiveEvent(eventId: string | undefined) {
         { event: '*', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
         () => void reload(),
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
+        () => void reload(),
+      )
       .subscribe()
 
     return () => {

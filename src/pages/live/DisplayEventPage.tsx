@@ -7,6 +7,7 @@ import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
+import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -39,6 +40,11 @@ export function DisplayEventPage() {
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
+
+  const bingoRunQuery = useBingoRun(
+    eventId,
+    stage?.type === 'bingo' ? bundle?.state.current_stage_index : undefined,
+  )
 
   const timerSyncRef = useMemo(
     () =>
@@ -161,7 +167,11 @@ export function DisplayEventPage() {
     : null
   const tracks = bingoGame ? bingoTracks(bingoGame) : []
   const trackIdx = state.current_question_index
-  const track = tracks[trackIdx]
+  const bingoPlayOrder = bingoRunQuery.data?.playOrder ?? []
+  const playTrackId = bingoPlayOrder[trackIdx]
+  const track = playTrackId
+    ? tracks.find((t) => t.id === playTrackId) ?? tracks[trackIdx]
+    : tracks[trackIdx]
   const bingoSubs = submissions.filter(
     (s) => s.media_type === 'bingo' && s.game_id === stage?.gameId,
   )

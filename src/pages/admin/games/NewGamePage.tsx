@@ -9,6 +9,7 @@ import { useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
+import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -521,6 +522,15 @@ function MusicBingoEditor({
         preview={config.background_url ?? null}
       />
       <ColorPickers config={config} setConfig={setConfig} />
+      <MusicCatalogUploader
+        organizationId={organizationId}
+        onTracksReady={(newTracks) =>
+          setConfig((c) => ({
+            ...c,
+            tracks: [...(c.tracks ?? []), ...newTracks],
+          }))
+        }
+      />
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-foreground font-semibold">Tracks</h3>

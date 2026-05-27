@@ -161,6 +161,9 @@ export function bingoTracks(game: Tables<'games'>): MusicTrack[] {
   return config.tracks ?? []
 }
 
+export type { BingoCell } from '@/lib/bingo-engine'
+export { bingoCellLabels, trackForPlayIndex } from '@/lib/bingo-engine'
+
 function shuffleWithSeed<T>(items: T[], seed: number): T[] {
   const arr = [...items]
   let s = seed
