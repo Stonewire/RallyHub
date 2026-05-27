@@ -20,6 +20,10 @@ export type MusicTrack = {
   title: string
   artist: string
   audioUrl: string
+  /** 30s clip URL for live bingo (falls back to audioUrl). */
+  clipUrl?: string | null
+  clipStartSeconds?: number
+  clipDurationSeconds?: number
 }
 
 export type BonusChallenge = {

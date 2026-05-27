@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { GameType } from '@/types/database'
-import type { Tables, TablesInsert } from '@/types/helpers'
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type GameRow = Tables<'games'>
 
@@ -112,6 +112,46 @@ export function gameStatusTone(
   if (status === 'ready') return 'ready'
   if (status === 'archived') return 'archived'
   return 'draft'
+}
+
+export function useGame(gameId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.game(gameId),
+    enabled: Boolean(gameId),
+    queryFn: async (): Promise<GameRow | null> => {
+      if (!gameId) return null
+      const { data, error } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useUpdateGame(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      gameId,
+      patch,
+    }: {
+      gameId: string
+      patch: TablesUpdate<'games'>
+    }) => {
+      const { data, error } = await supabase
+        .from('games')
+        .update(patch)
+        .eq('id', gameId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_data, { gameId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.games(organizationId) })
+    },
+  })
 }
 
 export function useReorderGames(organizationId: string | null) {

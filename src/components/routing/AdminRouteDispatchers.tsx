@@ -7,11 +7,11 @@ import { isPlatformHost } from '@/lib/tenant'
 import { AdminEventsPage } from '@/pages/admin/EventsPage'
 import { AdminEventEditPage } from '@/pages/admin/events/EditEventPage'
 import { AdminEventsNewPage } from '@/pages/admin/events/NewEventPage'
+import { AdminGameEditPage } from '@/pages/admin/games/EditGamePage'
 import { AdminGamesNewPage } from '@/pages/admin/games/NewGamePage'
 import { AdminGamesPage } from '@/pages/admin/GamesPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
 import { AdminSupportPage } from '@/pages/admin/SupportPage'
-import { AdminGameDetailPage } from '@/pages/placeholders'
 import { RallyHubOverviewPage } from '@/pages/rallyhub/DashboardPage'
 import { RallyHubGamesPage } from '@/pages/rallyhub/GamesPage'
 import { RallyHubSupportPage } from '@/pages/rallyhub/SupportPage'
@@ -66,7 +66,7 @@ export function ClientGamesNewRoute() {
 export function ClientGameDetailRoute() {
   return (
     <ClientAdminOnly>
-      <AdminGameDetailPage />
+      <AdminGameEditPage />
     </ClientAdminOnly>
   )
 }

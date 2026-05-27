@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
 import { useInsertMusicCatalog } from '@/hooks/use-music-catalog'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
+import { extractAudioClipWav } from '@/lib/extract-audio-clip'
 import { parseAudioFilename } from '@/lib/parse-audio-filename'
 import { uploadAsset } from '@/lib/storage'
 import type { MusicTrack } from '@/types/game-config'
@@ -68,19 +69,29 @@ export function MusicCatalogUploader({
       for (const item of pending) {
         const duration = await readAudioDuration(item.file).catch(() => 0)
         const clipStart = suggestClipStart(duration)
+        const clipDuration = 30
         const audioUrl = await uploadAsset(
           'game-assets',
-          `${organizationId}/catalog/${crypto.randomUUID()}-${item.file.name}`,
+          `${organizationId}/catalog/${crypto.randomUUID()}-full-${item.file.name}`,
           item.file,
+        )
+        const clipBlob = await extractAudioClipWav(item.file, clipStart, clipDuration)
+        const clipFile = new File([clipBlob], `clip-${item.file.name}.wav`, {
+          type: 'audio/wav',
+        })
+        const clipUrl = await uploadAsset(
+          'game-assets',
+          `${organizationId}/catalog/${crypto.randomUUID()}-clip-${item.file.name}.wav`,
+          clipFile,
         )
         const row = await insertCatalog.mutateAsync({
           organization_id: organizationId,
           artist: item.artist.trim() || 'Unknown',
           title: item.title.trim() || item.file.name,
           audio_url: audioUrl,
-          clip_url: audioUrl,
-          clip_start_seconds: clipStart,
-          clip_duration_seconds: 30,
+          clip_url: clipUrl,
+          clip_start_seconds: 0,
+          clip_duration_seconds: clipDuration,
           duration_seconds: duration || null,
           source_filename: item.file.name,
           parse_confidence: item.confidence,
@@ -92,6 +103,9 @@ export function MusicCatalogUploader({
           title: row.title,
           artist: row.artist,
           audioUrl: row.audio_url,
+          clipUrl: row.clip_url ?? clipUrl,
+          clipStartSeconds: 0,
+          clipDurationSeconds: clipDuration,
         })
       }
       onTracksReady(gameTracks)
@@ -109,7 +123,7 @@ export function MusicCatalogUploader({
         <h3 className="text-foreground font-semibold">Upload playlist (MP3)</h3>
         <p className="text-muted-foreground text-sm">
           We match filenames like &quot;Artist - Title.mp3&quot;. Low-confidence rows need a quick
-          review. Clips play from ~30s into each track during bingo.
+          review. Each track gets a dedicated 30-second clip for live bingo.
         </p>
       </div>
 

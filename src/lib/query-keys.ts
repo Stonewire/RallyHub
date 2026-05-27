@@ -6,6 +6,7 @@ export const queryKeys = {
   dashboardStats: (orgId: string | null) => ['dashboard-stats', orgId] as const,
   recentEvents: (orgId: string | null) => ['recent-events', orgId] as const,
   games: (orgId: string | null) => ['games', orgId] as const,
+  game: (gameId: string | undefined) => ['game', gameId] as const,
   gameGroups: (orgId: string | null) => ['game-groups', orgId] as const,
   events: (orgId: string | null) => ['events', orgId] as const,
   event: (eventId: string) => ['event', eventId] as const,

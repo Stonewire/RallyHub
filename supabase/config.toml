@@ -1,0 +1,2 @@
+[functions.activate-bingo-run]
+verify_jwt = false

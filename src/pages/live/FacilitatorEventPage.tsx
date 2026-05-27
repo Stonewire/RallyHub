@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
+import { BingoClipPlayer } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import {
   FacilitatorChatBubble,
@@ -21,6 +22,8 @@ import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
+import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
+import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
   FACILITATOR_NAME_KEY,
   bingoTracks,
@@ -905,12 +908,10 @@ export function FacilitatorEventPage() {
               <p className="font-semibold">
                 {track ? `${track.title} — ${track.artist}` : 'No track'}
               </p>
-              {track?.audioUrl ? (
-                <audio
-                  key={`${track.id}-${bingoPlayIndex}`}
-                  src={track.audioUrl}
-                  controls
-                  className="w-full"
+              {track ? (
+                <BingoClipPlayer
+                  src={bingoTrackPlaybackUrl(track)}
+                  playKey={`${track.id}-${bingoPlayIndex}`}
                 />
               ) : null}
               <div className="flex flex-wrap gap-2">
@@ -935,9 +936,22 @@ export function FacilitatorEventPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void patchState({ bingo_state: 'revealed' })}
+                  onClick={() => {
+                    const trackId = bingoPlayOrder[bingoPlayIndex]
+                    const runId = bingoRunQuery.data?.id
+                    if (trackId && runId && stage.gameId && eventId) {
+                      void scoreBingoRound({
+                        eventId,
+                        gameId: stage.gameId,
+                        runId,
+                        trackId,
+                      }).then(() => void patchState({ bingo_state: 'revealed' }))
+                    } else {
+                      void patchState({ bingo_state: 'revealed' })
+                    }
+                  }}
                 >
-                  Reveal
+                  Reveal & score
                 </Button>
               </div>
               <ul className="text-sm">{bingoTeams.map((n) => <li key={n}>{n}</li>)}</ul>
