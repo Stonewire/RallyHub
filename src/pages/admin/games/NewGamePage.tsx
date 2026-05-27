@@ -79,10 +79,13 @@ export function AdminGamesNewPage() {
   const [solutionDescription, setSolutionDescription] = useState('')
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null)
   const [exampleVideoUrl, setExampleVideoUrl] = useState<string | null>(null)
+  const [videoMaxMinutes, setVideoMaxMinutes] = useState(2)
+  const [videoMaxSeconds, setVideoMaxSeconds] = useState(0)
 
   // Quiz / music bingo config
   const [config, setConfig] = useState<GameConfig>({
     timer_seconds: 20,
+    max_video_duration_seconds: 120,
     questions: [emptyQuestion()],
     rounds_enabled: false,
     rounds: [],
@@ -144,6 +147,10 @@ export function AdminGamesNewPage() {
         config: {
           ...config,
           example_video_url: gameType === 'video' ? exampleVideoUrl : undefined,
+          max_video_duration_seconds:
+            gameType === 'video'
+              ? Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)
+              : undefined,
         },
       })
       navigate('/admin/games', { replace: true })
@@ -239,14 +246,53 @@ export function AdminGamesNewPage() {
               setPointsMax={setPointsMax}
             />
             {gameType === 'video' && (
-              <FileField
-                label="Example video (visible to participants)"
-                accept="video/*"
-                onFile={(f) =>
-                  void handleFile(f, setExampleVideoUrl, `videos/${newId()}`)
-                }
-                preview={exampleVideoUrl}
-              />
+              <>
+                <div className="space-y-2">
+                  <Label>Max video duration</Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={videoMaxMinutes}
+                        onChange={(e) =>
+                          setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
+                        }
+                        className="bg-background w-20"
+                      />
+                      <span className="text-muted-foreground text-sm">min</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={videoMaxSeconds}
+                        onChange={(e) =>
+                          setVideoMaxSeconds(
+                            Math.min(59, Math.max(0, Number(e.target.value) || 0)),
+                          )
+                        }
+                        className="bg-background w-20"
+                      />
+                      <span className="text-muted-foreground text-sm">sec</span>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Stored as{' '}
+                    {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds total
+                  </p>
+                </div>
+                <FileField
+                  label="Example video (visible to participants)"
+                  accept="video/*"
+                  onFile={(f) =>
+                    void handleFile(f, setExampleVideoUrl, `videos/${newId()}`)
+                  }
+                  preview={exampleVideoUrl}
+                />
+              </>
             )}
           </Card>
         )}

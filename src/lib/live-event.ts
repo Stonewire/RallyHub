@@ -139,3 +139,61 @@ export function bingoCardTitles(teamId: string, tracks: MusicTrack[]): string[] 
 
 export const FACILITATOR_NAME_KEY = 'rallyhub_facilitator_name'
 export const PARTICIPANT_TEAM_KEY = 'rallyhub_team_id'
+
+export function getMaxVideoDurationSeconds(config: GameConfig | null | undefined): number {
+  const max = config?.max_video_duration_seconds
+  if (max != null && max > 0) return max
+  return 120
+}
+
+export function formatVideoDurationLabel(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  if (m > 0 && sec > 0) return `${m} min ${sec} sec`
+  if (m > 0) return `${m} min`
+  return `${sec} sec`
+}
+
+export function quizSubmissionMediaType(questionId: string): string {
+  return `quiz:${questionId}`
+}
+
+export function isQuizSubmission(mediaType: string | null | undefined): boolean {
+  return mediaType === 'quiz' || Boolean(mediaType?.startsWith('quiz:'))
+}
+
+export function latestSubmissionForGame(
+  subs: Tables<'submissions'>[],
+  gameId: string,
+): Tables<'submissions'> | undefined {
+  return subs
+    .filter((s) => s.game_id === gameId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+}
+
+export type QuizLeaderboardEntry = {
+  team: Tables<'teams'>
+  quizPoints: number
+}
+
+export function quizLeaderboard(
+  teams: Tables<'teams'>[],
+  submissions: Tables<'submissions'>[],
+  gameId: string,
+): QuizLeaderboardEntry[] {
+  const pointsByTeam = new Map<string, number>()
+  for (const s of submissions) {
+    if (s.game_id !== gameId || !isQuizSubmission(s.media_type)) continue
+    const pts = s.points_awarded ?? 0
+    if (pts <= 0) continue
+    pointsByTeam.set(s.team_id, (pointsByTeam.get(s.team_id) ?? 0) + pts)
+  }
+  return teams
+    .filter((t) => t.name?.trim())
+    .map((team) => ({
+      team,
+      quizPoints: pointsByTeam.get(team.id) ?? 0,
+    }))
+    .sort((a, b) => b.quizPoints - a.quizPoints)
+}

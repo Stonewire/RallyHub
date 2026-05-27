@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { Leaderboard } from '@/components/live/Leaderboards'
+import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -16,6 +17,8 @@ import {
   logoForEvent,
   parseStages,
   quizQuestions,
+  quizLeaderboard,
+  quizSubmissionMediaType,
 } from '@/lib/live-event'
 
 export function DisplayEventPage() {
@@ -124,8 +127,15 @@ export function DisplayEventPage() {
   const questions = quizGame ? quizQuestions(quizGame) : []
   const question = questions[state.current_question_index]
   const quizSubs = submissions.filter(
-    (s) => s.media_type === 'quiz' && s.game_id === stage?.gameId,
+    (s) =>
+      s.game_id === stage?.gameId &&
+      (s.media_type === 'quiz' ||
+        (question && s.media_type === quizSubmissionMediaType(question.id))),
   )
+  const quizResultsEntries =
+    stage?.type === 'quiz' && stage.gameId
+      ? quizLeaderboard(teams, submissions, stage.gameId)
+      : []
 
   const bingoGame = stage?.type === 'bingo' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
@@ -195,11 +205,23 @@ export function DisplayEventPage() {
         layout={layout}
       />
     )
+  } else if (stage.type === 'quiz' && state.quiz_state === 'results' && stage.gameId) {
+    body = (
+      <QuizResultsPanel
+        title="Quiz leaderboard"
+        entries={quizResultsEntries}
+        large
+      />
+    )
   } else if (stage.type === 'quiz' && question) {
     body = (
       <div className="mx-auto max-w-4xl px-6 py-8 text-center">
         <h2 className="mb-8 text-3xl font-bold md:text-5xl">{question.text}</h2>
-        <div className="mb-8 text-5xl font-mono tabular-nums">{formatTimer(timerDisplay)}</div>
+        {state.quiz_state === 'active' || state.timer_running ? (
+          <div className="mb-8 text-5xl font-mono tabular-nums">
+            {formatTimer(timerDisplay)}
+          </div>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
@@ -285,7 +307,10 @@ export function DisplayEventPage() {
   }
 
   const showHeaderTimer =
-    state.show_timer_on_display && !isQuizStage && stage?.type !== 'break'
+    state.show_timer_on_display &&
+    !isQuizStage &&
+    stage?.type !== 'break' &&
+    state.quiz_state !== 'results'
 
   return (
     <BrandBackground

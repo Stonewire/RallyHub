@@ -35,6 +35,8 @@ export type BonusChallenge = {
 
 export type GameConfig = {
   example_video_url?: string | null
+  /** Max length for participant video submissions (seconds). */
+  max_video_duration_seconds?: number
   background_url?: string | null
   primary_color?: string
   secondary_color?: string

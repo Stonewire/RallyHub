@@ -1,10 +1,17 @@
-import { Camera, LogOut, MessageCircle, Video, X } from 'lucide-react'
+import { Camera, Check, LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
+import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
+import {
+  WinnerRevealPanel,
+  eventRankedTeams,
+} from '@/components/live/WinnerRevealPanel'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useNotification } from '@/contexts/notification-context'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   bingoCardTitles,
@@ -19,6 +26,9 @@ import {
   logoForEvent,
   parseStages,
   quizQuestions,
+  quizLeaderboard,
+  quizSubmissionMediaType,
+  latestSubmissionForGame,
 } from '@/lib/live-event'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -71,8 +81,9 @@ export function JoinGameView({
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
   const mediaRef = useRef<HTMLInputElement>(null)
 
@@ -99,7 +110,7 @@ export function JoinGameView({
   const quizRunning =
     stage?.type === 'quiz' &&
     state.timer_running &&
-    state.quiz_state !== 'revealed'
+    (state.quiz_state === 'active' || state.quiz_state === 'waiting')
 
   const quizTimerDisplay = useLiveTimer(
     state.timer_seconds,
@@ -107,18 +118,40 @@ export function JoinGameView({
     () => {},
   )
 
+  const quizGame = stage?.type === 'quiz' && stage.gameId
+    ? games.find((g) => g.id === stage.gameId)
+    : null
+  const quizQs = quizGame ? quizQuestions(quizGame) : []
+  const currentQuizQ = quizQs[state.current_question_index]
+
   useEffect(() => {
-    if (stage?.type !== 'quiz' || !stage.gameId) return
-    const existing = mySubs.find(
-      (s) => s.media_type === 'quiz' && s.game_id === stage.gameId,
-    )
+    setQuizAnswer(null)
+    setQuizLocked(false)
+    setQuizChangeLeft(null)
+  }, [state.current_question_index, stage?.gameId])
+
+  useEffect(() => {
+    if (stage?.type !== 'quiz' || !stage.gameId || !currentQuizQ) return
+    const mediaType = quizSubmissionMediaType(currentQuizQ.id)
+    const existing =
+      mySubs.find(
+        (s) => s.media_type === mediaType && s.game_id === stage.gameId,
+      ) ??
+      mySubs.find((s) => s.media_type === 'quiz' && s.game_id === stage.gameId)
     if (existing?.media_url) {
       setQuizAnswer(existing.media_url)
-      if (!quizRunning || state.quiz_state === 'revealed') {
+      if (!quizRunning || state.quiz_state === 'revealed' || state.quiz_state === 'results') {
         setQuizLocked(true)
       }
     }
-  }, [stage?.type, stage?.gameId, mySubs, quizRunning, state.quiz_state])
+  }, [
+    stage?.type,
+    stage?.gameId,
+    mySubs,
+    quizRunning,
+    state.quiz_state,
+    currentQuizQ?.id,
+  ])
 
   useEffect(() => {
     if (stage?.type !== 'bingo' || !stage.gameId) return
@@ -164,7 +197,8 @@ export function JoinGameView({
     return () => URL.revokeObjectURL(url)
   }, [captureFile])
 
-  const lastApprovalId = useRef<string | null>(null)
+  const lastApprovedId = useRef<string | null>(null)
+  const lastRejectedId = useRef<string | null>(null)
   useEffect(() => {
     const approved = submissions
       .filter(
@@ -174,16 +208,23 @@ export function JoinGameView({
           s.points_awarded != null,
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
-    if (!approved || approved.id === lastApprovalId.current) return
-    lastApprovalId.current = approved.id
+    if (!approved || approved.id === lastApprovedId.current) return
+    lastApprovedId.current = approved.id
     const game = games.find((g) => g.id === approved.game_id)
     if (!game) return
-    setToast(
-      `Challenge ${game.name} earned ${approved.points_awarded} points`,
-    )
-    const t = window.setTimeout(() => setToast(null), 5000)
-    return () => window.clearTimeout(t)
-  }, [submissions, teamId, games])
+    notify(`+${approved.points_awarded} pts — ${game.name}`)
+  }, [submissions, teamId, games, notify])
+
+  useEffect(() => {
+    const rejected = submissions
+      .filter((s) => s.team_id === teamId && s.status === 'rejected')
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    if (!rejected || rejected.id === lastRejectedId.current) return
+    const game = games.find((g) => g.id === rejected.game_id)
+    if (!game || game.type === 'quiz' || game.type === 'music_bingo') return
+    lastRejectedId.current = rejected.id
+    notify(`${game.name} was not approved`)
+  }, [submissions, teamId, games, notify])
 
   useEffect(() => {
     if (!quizAnswer || quizLocked) return
@@ -232,6 +273,7 @@ export function JoinGameView({
         status: 'pending',
       })
       playSubmitSound()
+      notify('Submitted — waiting for approval')
       setSubmitDone(true)
       window.setTimeout(() => {
         setSelectedGame(null)
@@ -243,10 +285,11 @@ export function JoinGameView({
     }
   }
 
-  async function submitQuizAnswer(answerId: string, gameId: string) {
+  async function submitQuizAnswer(answerId: string, gameId: string, questionId: string) {
     if (quizLocked) return
+    const mediaType = quizSubmissionMediaType(questionId)
     const existing = mySubs.find(
-      (s) => s.media_type === 'quiz' && s.game_id === gameId,
+      (s) => s.media_type === mediaType && s.game_id === gameId,
     )
     if (existing) {
       await supabase
@@ -259,12 +302,26 @@ export function JoinGameView({
         team_id: teamId,
         game_id: gameId,
         media_url: answerId,
-        media_type: 'quiz',
+        media_type: mediaType,
         status: 'pending',
       })
     }
     setQuizAnswer(answerId)
+    setQuizLocked(false)
     playSubmitSound()
+  }
+
+  async function cancelPendingSubmission(subId: string) {
+    setCancelling(true)
+    try {
+      await supabase.from('submissions').update({ status: 'cancelled' }).eq('id', subId)
+      notify('Submission cancelled')
+      setSelectedGame(null)
+      setCaptureFile(null)
+      setSubmitDone(false)
+    } finally {
+      setCancelling(false)
+    }
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
@@ -300,15 +357,34 @@ export function JoinGameView({
         />
       ) : null}
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
-      <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
-        {team.score} points
-      </p>
+      {stage?.type === 'quiz' && state.quiz_state === 'results' && stage.gameId ? (
+        <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
+          {quizLeaderboard(bundle.teams, submissions, stage.gameId).find(
+            (e) => e.team.id === teamId,
+          )?.quizPoints ?? 0}{' '}
+          quiz pts
+        </p>
+      ) : (
+        <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
+          {team.score} points
+        </p>
+      )}
     </header>
   )
 
   let body: ReactNode
 
-  if (!live) {
+  const eventRanked = eventRankedTeams(bundle.teams)
+
+  if (state.winner_reveal_stage >= 1) {
+    body = (
+      <WinnerRevealPanel
+        stage={state.winner_reveal_stage as 1 | 2}
+        ranked={eventRanked}
+        myTeamId={teamId}
+      />
+    )
+  } else if (!live) {
     body = (
       <p className="px-6 py-16 text-center text-lg font-medium text-white/90">
         Event starting soon…
@@ -338,9 +414,10 @@ export function JoinGameView({
     const openGames = games.filter((g) => openGameIds.includes(g.id))
 
     if (selectedGame) {
-      const latestSub = mySubs
-        .filter((s) => s.game_id === selectedGame.id)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+      const latestSub = latestSubmissionForGame(mySubs, selectedGame.id)
+      const pending = latestSub?.status === 'pending'
+      const locked =
+        latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
       body = (
         <div className="mx-auto max-w-lg px-4 pb-24">
@@ -373,7 +450,41 @@ export function JoinGameView({
               className="mb-4 w-full rounded-lg"
             />
           ) : null}
-          {submitDone ? (
+          {pending ? (
+            <div className="space-y-4 text-center">
+              <p className="text-lg font-semibold text-[#FFCB03]">
+                Submission pending approval
+              </p>
+              {latestSub?.media_url ? (
+                latestSub.media_type === 'video' ? (
+                  <video
+                    src={latestSub.media_url}
+                    controls
+                    className="w-full rounded-lg opacity-90"
+                  />
+                ) : (
+                  <img
+                    src={latestSub.media_url}
+                    alt=""
+                    className="w-full rounded-lg opacity-90"
+                  />
+                )
+              ) : null}
+              <Button
+                className="w-full border-white/30 bg-white/10 text-white"
+                variant="outline"
+                disabled={cancelling}
+                onClick={() =>
+                  latestSub && void cancelPendingSubmission(latestSub.id)
+                }
+              >
+                {cancelling ? 'Cancelling…' : 'Cancel Submission'}
+              </Button>
+              <p className="text-xs text-white/60">
+                Cancel to retake this challenge from scratch
+              </p>
+            </div>
+          ) : submitDone ? (
             <p className="text-center text-lg font-semibold text-[#FFCB03]">
               Submitted! Waiting for approval…
             </p>
@@ -401,55 +512,40 @@ export function JoinGameView({
                 </AccentButton>
               </div>
             </div>
+          ) : locked ? (
+            <p className="text-center text-white/70">
+              This challenge is closed ({latestSub?.status})
+            </p>
           ) : (
             <>
-              <input
-                ref={mediaRef}
-                type="file"
-                accept={selectedGame.type === 'video' ? 'video/*' : 'image/*'}
-                capture={selectedGame.type === 'video' ? 'environment' : 'environment'}
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (!f) return
-                  if (selectedGame.type === 'video') {
-                    const max = (selectedGame.config as GameConfig)?.timer_seconds ?? 120
-                    const vid = document.createElement('video')
-                    vid.preload = 'metadata'
-                    vid.onloadedmetadata = () => {
-                      if (vid.duration > max) {
-                        window.alert(`Video must be ${max} seconds or less`)
-                        return
-                      }
-                      setCaptureFile(f)
-                    }
-                    vid.src = URL.createObjectURL(f)
-                  } else {
-                    setCaptureFile(f)
-                  }
-                }}
-              />
-              <AccentButton
-                className="w-full"
-                onClick={() => mediaRef.current?.click()}
-              >
-                {selectedGame.type === 'video' ? (
-                  <>
-                    <Video className="size-4" />
-                    Record / upload video
-                  </>
-                ) : (
-                  <>
+              {selectedGame.type === 'video' ? (
+                <VideoChallengeCapture
+                  config={selectedGame.config as GameConfig}
+                  disabled={submitting}
+                  onFileReady={setCaptureFile}
+                />
+              ) : (
+                <>
+                  <input
+                    ref={mediaRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) setCaptureFile(f)
+                    }}
+                  />
+                  <AccentButton
+                    className="w-full"
+                    onClick={() => mediaRef.current?.click()}
+                  >
                     <Camera className="size-4" />
                     Take photo
-                  </>
-                )}
-              </AccentButton>
-              {latestSub?.status === 'approved' ? (
-                <p className="mt-2 text-center text-xs text-white/70">
-                  Approved — you can submit again to improve
-                </p>
-              ) : null}
+                  </AccentButton>
+                </>
+              )}
             </>
           )}
         </div>
@@ -458,25 +554,37 @@ export function JoinGameView({
       body = (
         <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 pb-24">
           {openGames.map((g) => {
-            const sub = mySubs.find((s) => s.game_id === g.id)
-            const done = sub?.status === 'approved'
+            const sub = latestSubmissionForGame(mySubs, g.id)
+            const approved = sub?.status === 'approved'
+            const rejected = sub?.status === 'rejected'
             const pending = sub?.status === 'pending'
+            const locked = approved || rejected
             return (
               <button
                 key={g.id}
                 type="button"
-                className="flex min-h-[120px] flex-col justify-between rounded-xl p-4 text-left shadow-md transition-transform active:scale-[0.98]"
+                disabled={locked}
+                className={`relative flex min-h-[120px] flex-col justify-between rounded-xl p-4 text-left shadow-md transition-transform ${
+                  locked ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'
+                }`}
                 style={{ backgroundColor: accent, color: '#3E3D3E' }}
-                onClick={() => setSelectedGame(g)}
+                onClick={() => !locked && setSelectedGame(g)}
               >
-                <span className="line-clamp-2 font-bold leading-snug">{g.name}</span>
+                {approved ? (
+                  <Check className="absolute top-2 right-2 size-6 opacity-80" />
+                ) : rejected ? (
+                  <X className="absolute top-2 right-2 size-6 opacity-80" />
+                ) : null}
+                <span className="line-clamp-2 font-bold leading-snug pr-6">{g.name}</span>
                 <span className="mt-2 text-sm font-medium opacity-90">
                   {gamePointsDisplay(g)}
                 </span>
-                {done ? (
-                  <span className="mt-1 text-xs font-semibold">✓ Done</span>
-                ) : pending ? (
-                  <span className="mt-1 text-xs">Pending…</span>
+                {pending ? (
+                  <span className="mt-1 text-xs font-semibold">Pending…</span>
+                ) : approved ? (
+                  <span className="mt-1 text-xs font-semibold">Approved</span>
+                ) : rejected ? (
+                  <span className="mt-1 text-xs font-semibold">Rejected</span>
                 ) : null}
               </button>
             )
@@ -485,18 +593,30 @@ export function JoinGameView({
       )
     }
   } else if (stage?.type === 'quiz' && stage.gameId) {
-    const game = games.find((g) => g.id === stage.gameId)
-    const q = game ? quizQuestions(game)[state.current_question_index] : null
-    const existing = mySubs.find(
-      (s) => s.media_type === 'quiz' && s.game_id === stage.gameId,
-    )
+    const game = quizGame
+    const q = currentQuizQ
+    const existing = q
+      ? mySubs.find(
+          (s) =>
+            s.media_type === quizSubmissionMediaType(q.id) &&
+            s.game_id === stage.gameId,
+        )
+      : undefined
     const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
     const timerPct =
       maxSec > 0
         ? Math.min(100, (quizTimerDisplay / maxSec) * 100)
         : 0
 
-    if (state.quiz_state === 'revealed' && q) {
+    if (state.quiz_state === 'results') {
+      body = (
+        <QuizResultsPanel
+          title="Your quiz results"
+          entries={quizLeaderboard(bundle.teams, submissions, stage.gameId)}
+          highlightTeamId={teamId}
+        />
+      )
+    } else if (state.quiz_state === 'revealed' && q) {
       const ok = existing?.media_url === q.correctAnswerId
       body = (
         <div className="mx-auto max-w-lg px-4 pb-24">
@@ -549,17 +669,22 @@ export function JoinGameView({
                       ? 'bg-[#FFCB03] text-[#3E3D3E]'
                       : 'bg-white/15 text-white hover:bg-white/25'
                   }`}
-                  onClick={() => void submitQuizAnswer(a.id, stage.gameId!)}
+                  onClick={() => void submitQuizAnswer(a.id, stage.gameId!, q.id)}
                 >
                   {a.text}
                 </button>
               )
             })}
           </div>
-          {quizChangeLeft != null ? (
-            <p className="mt-4 text-center text-xs text-white/70">
-              Change answer: {quizChangeLeft}s
-            </p>
+          {quizChangeLeft != null && !quizLocked ? (
+            <div className="mt-4 rounded-xl bg-[#FFCB03]/20 px-4 py-3 text-center">
+              <p className="text-xs font-medium uppercase tracking-wide text-white/80">
+                Change answer
+              </p>
+              <p className="font-mono text-3xl font-bold tabular-nums text-[#FFCB03]">
+                {quizChangeLeft}s
+              </p>
+            </div>
           ) : null}
         </div>
       )
@@ -624,11 +749,6 @@ export function JoinGameView({
       </Button>
       {header}
       {body}
-      {toast ? (
-        <div className="fixed top-4 left-1/2 z-50 max-w-sm -translate-x-1/2 rounded-lg bg-[#FFCB03] px-4 py-3 text-center text-sm font-semibold text-[#3E3D3E] shadow-lg">
-          {toast}
-        </div>
-      ) : null}
       <Button
         className="fixed bottom-4 right-4 size-12 rounded-full bg-[#FFCB03] text-[#3E3D3E] shadow-lg hover:bg-[#e6b803]"
         size="icon"

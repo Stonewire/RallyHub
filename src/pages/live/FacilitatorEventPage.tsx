@@ -3,7 +3,9 @@ import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
+import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
+import { useNotification } from '@/contexts/notification-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,6 +22,8 @@ import {
   formatTimer,
   parseStages,
   quizQuestions,
+  quizSubmissionMediaType,
+  isQuizSubmission,
 } from '@/lib/live-event'
 import { getEventLinks } from '@/lib/event-links'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -45,6 +49,8 @@ export function FacilitatorEventPage() {
   const [uploading, setUploading] = useState(false)
   const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [stateError, setStateError] = useState<string | null>(null)
+  const [selectedSub, setSelectedSub] = useState<Tables<'submissions'> | null>(null)
+  const { notify } = useNotification()
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
@@ -72,6 +78,11 @@ export function FacilitatorEventPage() {
     if (next?.type === 'break') {
       patch.break_timer_seconds = breakDurationSeconds(next, null)
       patch.break_timer_running = false
+    }
+    if (next?.type === 'quiz') {
+      patch.quiz_state = 'idle'
+      patch.timer_running = false
+      patch.show_timer_on_display = false
     }
     void patchState(patch)
   }
@@ -144,6 +155,7 @@ export function FacilitatorEventPage() {
   }
 
   const { event, organization, teams, games, submissions } = bundle
+  const liveState = state
   const displayUrl = eventId
     ? getEventLinks(eventId, organization).display
     : ''
@@ -173,17 +185,16 @@ export function FacilitatorEventPage() {
     }, ANNOUNCEMENT_MS)
   }
 
-  async function approveSubmission(sub: Tables<'submissions'>) {
+  async function approveSubmission(sub: Tables<'submissions'>, points: number) {
     const game = games.find((g) => g.id === sub.game_id)
     if (!game) return
-    let points = game.points_static ?? 0
     if (game.points_type === 'range') {
-      const raw = window.prompt(
-        `Points (${game.points_min}–${game.points_max})`,
-        String(game.points_max ?? 0),
-      )
-      if (raw == null) return
-      points = Number(raw)
+      const min = game.points_min ?? 0
+      const max = game.points_max ?? 0
+      if (points < min || points > max) {
+        notify(`Points must be ${min}–${max}`)
+        return
+      }
     }
     await supabase
       .from('submissions')
@@ -193,10 +204,12 @@ export function FacilitatorEventPage() {
     if (team) {
       await updateTeam(sub.team_id, { score: team.score + points })
     }
+    notify('Submission approved')
   }
 
   async function rejectSubmission(id: string) {
     await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
+    notify('Submission rejected')
   }
 
   async function saveClaim() {
@@ -228,13 +241,20 @@ export function FacilitatorEventPage() {
     ? games.find((g) => g.id === stage.gameId)
     : null
   const questions = quizGame ? quizQuestions(quizGame) : []
-  const question = questions[state.current_question_index]
+  const question = questions[liveState.current_question_index]
   const quizConfig = (quizGame?.config ?? {}) as GameConfig
   const questionSeconds = quizConfig.timer_seconds ?? 20
   const namedTeams = teams.filter((t) => t.name?.trim())
+  const currentQuizMediaType = question
+    ? quizSubmissionMediaType(question.id)
+    : null
   const quizAnsweredTeamIds = new Set(
     submissions
-      .filter((s) => s.media_type === 'quiz' && s.game_id === stage?.gameId)
+      .filter(
+        (s) =>
+          s.game_id === stage?.gameId &&
+          (s.media_type === currentQuizMediaType || s.media_type === 'quiz'),
+      )
       .map((s) => s.team_id),
   )
 
@@ -242,17 +262,116 @@ export function FacilitatorEventPage() {
     const sec = questionSeconds
     void patchState({
       current_question_index: index,
-      quiz_state: 'waiting',
+      quiz_state: 'active',
       timer_seconds: sec,
       timer_running: true,
+      show_timer_on_display: false,
     })
   }
+
+  async function revealQuizAnswers() {
+    if (!quizGame || !question) return
+    const points = quizGame.points_static ?? 10
+    const mediaType = quizSubmissionMediaType(question.id)
+    const subs = submissions.filter(
+      (s) => s.game_id === quizGame.id && s.media_type === mediaType,
+    )
+    for (const sub of subs) {
+      if (sub.status === 'approved' && sub.points_awarded != null) continue
+      const correct = sub.media_url === question.correctAnswerId
+      const awarded = correct ? points : 0
+      await supabase
+        .from('submissions')
+        .update({ status: 'approved', points_awarded: awarded })
+        .eq('id', sub.id)
+      if (correct && awarded > 0) {
+        const team = teams.find((t) => t.id === sub.team_id)
+        if (team) {
+          await updateTeam(sub.team_id, { score: team.score + awarded })
+        }
+      }
+    }
+    await patchState({ timer_running: false, quiz_state: 'revealed' })
+  }
+
+  async function skipQuizQuestion() {
+    const next = liveState.current_question_index + 1
+    if (next >= questions.length) {
+      await patchState({
+        quiz_state: 'results',
+        timer_running: false,
+      })
+      return
+    }
+    await patchState({
+      current_question_index: next,
+      quiz_state: 'idle',
+      timer_seconds: questionSeconds,
+      timer_running: false,
+    })
+  }
+
+  async function restartQuiz() {
+    if (!stage?.gameId) return
+    const quizSubs = submissions.filter(
+      (s) => s.game_id === stage.gameId && isQuizSubmission(s.media_type),
+    )
+    for (const sub of quizSubs) {
+      const pts = sub.points_awarded ?? 0
+      if (pts > 0 && sub.status === 'approved') {
+        const team = teams.find((t) => t.id === sub.team_id)
+        if (team) {
+          await updateTeam(sub.team_id, {
+            score: Math.max(0, team.score - pts),
+          })
+        }
+      }
+      await supabase.from('submissions').delete().eq('id', sub.id)
+    }
+    await patchState({
+      current_question_index: 0,
+      quiz_state: 'idle',
+      timer_seconds: questionSeconds,
+      timer_running: false,
+    })
+    notify('Quiz reset')
+  }
+
+  function quizPrimaryButton(): { label: string; action: () => void } | null {
+    if (liveState.quiz_state === 'results') return null
+    if (liveState.quiz_state === 'idle' || liveState.quiz_state === 'waiting') {
+      const n = liveState.current_question_index + 1
+      return {
+        label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
+        action: () => startQuizQuestion(liveState.current_question_index),
+      }
+    }
+    if (liveState.quiz_state === 'active') {
+      return { label: 'Reveal Answers', action: () => void revealQuizAnswers() }
+    }
+    if (liveState.quiz_state === 'revealed') {
+      const isLast = liveState.current_question_index >= questions.length - 1
+      return {
+        label: isLast ? 'Reveal Quiz Results' : 'Next Question',
+        action: () => {
+          if (isLast) {
+            void patchState({ quiz_state: 'results', timer_running: false })
+          } else {
+            startQuizQuestion(liveState.current_question_index + 1)
+          }
+        },
+      }
+    }
+    return null
+  }
+
+  const quizPrimary = quizPrimaryButton()
 
   const bingoGame = stage?.type === 'bingo' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
   const tracks = bingoGame ? bingoTracks(bingoGame) : []
-  const track = tracks[state.current_question_index]
+  const track = tracks[liveState.current_question_index]
   const bingoTeams = submissions
     .filter((s) => s.media_type === 'bingo' && s.game_id === stage?.gameId)
     .map((s) => teams.find((t) => t.id === s.team_id)?.name)
@@ -501,39 +620,45 @@ export function FacilitatorEventPage() {
               </div>
               <ul className="max-h-[70vh] space-y-3 overflow-auto">
                 {filteredSubs
-                  .filter((s) => s.media_type === 'photo' || s.media_type === 'video')
+                  .filter(
+                    (s) =>
+                      (s.media_type === 'photo' || s.media_type === 'video') &&
+                      s.status !== 'cancelled',
+                  )
                   .map((sub) => {
                     const team = teams.find((t) => t.id === sub.team_id)
                     const game = games.find((g) => g.id === sub.game_id)
                     return (
-                      <li key={sub.id} className="border-border/80 flex gap-3 rounded-lg border p-2">
-                        {sub.media_url ? (
-                          sub.media_type === 'video' ? (
-                            <video src={sub.media_url} className="size-16 rounded object-cover" />
+                      <li key={sub.id}>
+                        <button
+                          type="button"
+                          className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
+                          onClick={() => setSelectedSub(sub)}
+                        >
+                          {sub.media_url ? (
+                            sub.media_type === 'video' ? (
+                              <video
+                                src={sub.media_url}
+                                className="size-16 rounded object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={sub.media_url}
+                                alt=""
+                                className="size-16 rounded object-cover"
+                              />
+                            )
                           ) : (
-                            <img src={sub.media_url} alt="" className="size-16 rounded object-cover" />
-                          )
-                        ) : null}
-                        <div className="flex-1 text-sm">
-                          <p className="font-medium">{team?.name ?? 'Team'}</p>
-                          <p className="text-muted-foreground">{game?.name}</p>
-                        </div>
-                        {sub.status === 'pending' ? (
-                          <div className="flex gap-1">
-                            <Button size="sm" onClick={() => void approveSubmission(sub)}>
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void rejectSubmission(sub.id)}
-                            >
-                              Reject
-                            </Button>
+                            <div className="bg-muted size-16 shrink-0 rounded" />
+                          )}
+                          <div className="min-w-0 flex-1 text-sm">
+                            <p className="font-medium">{team?.name ?? 'Team'}</p>
+                            <p className="text-muted-foreground truncate">{game?.name}</p>
+                            <p className="text-muted-foreground text-xs capitalize">
+                              {sub.status}
+                            </p>
                           </div>
-                        ) : (
-                          <span className="text-xs capitalize">{sub.status}</span>
-                        )}
+                        </button>
                       </li>
                     )
                   })}
@@ -559,52 +684,26 @@ export function FacilitatorEventPage() {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const next = Math.min(
-                      questions.length - 1,
-                      state.current_question_index + 1,
-                    )
-                    startQuizQuestion(next)
-                  }}
-                >
-                  Next Question
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const next = Math.min(
-                      questions.length - 1,
-                      state.current_question_index + 1,
-                    )
-                    void patchState({
-                      current_question_index: next,
-                      quiz_state: 'waiting',
-                    })
-                  }}
-                >
-                  Skip
-                </Button>
+                {quizPrimary ? (
+                  <Button size="sm" onClick={quizPrimary.action}>
+                    {quizPrimary.label}
+                  </Button>
+                ) : null}
+                {state.quiz_state !== 'results' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void skipQuizQuestion()}
+                  >
+                    Skip
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    void patchState({
-                      timer_running: false,
-                      quiz_state: 'revealed',
-                    })
-                  }
+                  onClick={() => void restartQuiz()}
                 >
-                  Show Answer
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => startQuizQuestion(state.current_question_index)}
-                >
-                  Restart question
+                  Restart Quiz
                 </Button>
               </div>
               <ul className="space-y-1 text-sm">
@@ -691,6 +790,29 @@ export function FacilitatorEventPage() {
           ) : null}
         </Card>
       </div>
+
+      {selectedSub ? (
+        <SubmissionDetailModal
+          sub={selectedSub}
+          teamName={
+            teams.find((t) => t.id === selectedSub.team_id)?.name ?? 'Team'
+          }
+          gameName={
+            games.find((g) => g.id === selectedSub.game_id)?.name ?? 'Game'
+          }
+          pointsType={
+            games.find((g) => g.id === selectedSub.game_id)?.points_type ?? 'static'
+          }
+          pointsMin={games.find((g) => g.id === selectedSub.game_id)?.points_min ?? null}
+          pointsMax={games.find((g) => g.id === selectedSub.game_id)?.points_max ?? null}
+          pointsStatic={
+            games.find((g) => g.id === selectedSub.game_id)?.points_static ?? null
+          }
+          onClose={() => setSelectedSub(null)}
+          onApprove={(points) => approveSubmission(selectedSub, points)}
+          onReject={() => rejectSubmission(selectedSub.id)}
+        />
+      ) : null}
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
