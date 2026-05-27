@@ -15,6 +15,8 @@ import {
   FACILITATOR_NAME_KEY,
   bingoTracks,
   currentStage,
+  breakDurationSeconds,
+  formatBreakTimer,
   formatTimer,
   parseStages,
   quizQuestions,
@@ -62,6 +64,18 @@ export function FacilitatorEventPage() {
     }
   }
 
+  function selectStage(index: number) {
+    const next = stages[index]
+    const patch: Parameters<typeof updateState>[0] = {
+      current_stage_index: index,
+    }
+    if (next?.type === 'break') {
+      patch.break_timer_seconds = breakDurationSeconds(next, null)
+      patch.break_timer_running = false
+    }
+    void patchState(patch)
+  }
+
   const timerSyncRef = useRef(
     createThrottledTimerSync((next, stillRunning) => {
       void patchState({ timer_seconds: next, timer_running: stillRunning })
@@ -84,8 +98,9 @@ export function FacilitatorEventPage() {
   )
 
   const breakSeconds =
-    state?.break_timer_seconds ??
-    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+    stage?.type === 'break'
+      ? breakDurationSeconds(stage, state?.break_timer_seconds)
+      : (state?.break_timer_seconds ?? 0)
 
   const breakDisplay = useLiveTimer(
     breakSeconds,
@@ -345,7 +360,7 @@ export function FacilitatorEventPage() {
                   key={s.id}
                   size="sm"
                   variant={state.current_stage_index === i ? 'secondary' : 'outline'}
-                  onClick={() => void patchState({ current_stage_index: i })}
+                  onClick={() => selectStage(i)}
                 >
                   Stage {i + 1}
                 </Button>
@@ -638,7 +653,7 @@ export function FacilitatorEventPage() {
           ) : stage.type === 'break' ? (
             <div className="space-y-4">
               <p className="text-lg">{stage.message}</p>
-              <p className="font-mono text-2xl tabular-nums">{formatTimer(breakDisplay)}</p>
+              <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -663,14 +678,13 @@ export function FacilitatorEventPage() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    const sec = (stage.durationMinutes ?? 5) * 60
                     void patchState({
-                      break_timer_seconds: sec,
+                      break_timer_seconds: breakDurationSeconds(stage, null),
                       break_timer_running: true,
                     })
                   }}
                 >
-                  Start break timer
+                  Start
                 </Button>
               </div>
             </div>

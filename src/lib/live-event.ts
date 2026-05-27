@@ -82,6 +82,22 @@ export function formatTimer(seconds: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
+/** Break / stage timers: always M:SS (e.g. 5:00 for five minutes). */
+export function formatBreakTimer(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
+}
+
+export function breakDurationSeconds(
+  stage: { durationMinutes?: number } | null,
+  storedSeconds: number | null | undefined,
+): number {
+  if (storedSeconds != null && storedSeconds >= 60) return storedSeconds
+  return (stage?.durationMinutes ?? 5) * 60
+}
+
 export function gamePointsLabel(game: Tables<'games'>): string {
   if (game.points_type === 'range') {
     return `MAX ${game.points_max ?? 0}`

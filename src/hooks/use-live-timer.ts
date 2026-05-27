@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 
 /**
  * Local countdown synced to Supabase on tick (throttled by caller).
- * Only resyncs from server when paused or when drift exceeds threshold.
+ * Uses a wall-clock deadline so the interval keeps ticking smoothly
+ * even when serverSeconds updates from realtime.
  */
 export function useLiveTimer(
   serverSeconds: number,
@@ -14,40 +15,59 @@ export function useLiveTimer(
   const [displaySeconds, setDisplaySeconds] = useState(serverSeconds)
   const onTickRef = useRef(onTick)
   onTickRef.current = onTick
-  const localRef = useRef(serverSeconds)
+  const deadlineRef = useRef<number | null>(null)
+  const displayRef = useRef(serverSeconds)
+  const wasRunningRef = useRef(false)
 
   useEffect(() => {
-    localRef.current = displaySeconds
+    displayRef.current = displaySeconds
   }, [displaySeconds])
 
   useEffect(() => {
     if (!serverRunning) {
+      deadlineRef.current = null
+      wasRunningRef.current = false
       setDisplaySeconds(serverSeconds)
-      localRef.current = serverSeconds
+      displayRef.current = serverSeconds
       return
     }
-    const drift = Math.abs(serverSeconds - localRef.current)
-    if (drift > syncThreshold) {
+
+    const justStarted = !wasRunningRef.current
+    wasRunningRef.current = true
+
+    const drift =
+      deadlineRef.current == null
+        ? syncThreshold + 1
+        : Math.abs(serverSeconds - displayRef.current)
+
+    if (justStarted || deadlineRef.current == null || drift > syncThreshold) {
+      deadlineRef.current = Date.now() + serverSeconds * 1000
       setDisplaySeconds(serverSeconds)
-      localRef.current = serverSeconds
+      displayRef.current = serverSeconds
     }
   }, [serverSeconds, serverRunning, syncThreshold])
 
   useEffect(() => {
     if (!serverRunning) return
 
-    const id = window.setInterval(() => {
-      setDisplaySeconds((prev) => {
-        if (prev <= 0) {
-          void onTickRef.current(0, false)
-          return 0
-        }
-        const next = prev - 1
-        void onTickRef.current(next, next > 0)
-        return next
-      })
-    }, 1000)
+    const tick = () => {
+      const deadline = deadlineRef.current
+      if (deadline == null) return
 
+      const next = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      setDisplaySeconds(next)
+      displayRef.current = next
+
+      if (next <= 0) {
+        deadlineRef.current = null
+        void onTickRef.current(0, false)
+        return
+      }
+      void onTickRef.current(next, true)
+    }
+
+    tick()
+    const id = window.setInterval(tick, 1000)
     return () => window.clearInterval(id)
   }, [serverRunning])
 

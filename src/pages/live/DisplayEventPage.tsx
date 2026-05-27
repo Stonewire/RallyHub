@@ -10,6 +10,8 @@ import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
   bingoTracks,
   currentStage,
+  breakDurationSeconds,
+  formatBreakTimer,
   formatTimer,
   logoForEvent,
   parseStages,
@@ -56,8 +58,9 @@ export function DisplayEventPage() {
   )
 
   const breakSeconds =
-    eventState?.break_timer_seconds ??
-    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+    stage?.type === 'break'
+      ? breakDurationSeconds(stage, eventState?.break_timer_seconds)
+      : (eventState?.break_timer_seconds ?? 0)
 
   const breakDisplay = useLiveTimer(
     breakSeconds,
@@ -78,7 +81,10 @@ export function DisplayEventPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+      <div
+        className="flex min-h-screen items-center justify-center text-white"
+        style={{ backgroundColor: '#6f6f6f' }}
+      >
         Loading…
       </div>
     )
@@ -86,7 +92,10 @@ export function DisplayEventPage() {
 
   if (error || !bundle) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+      <div
+        className="flex min-h-screen items-center justify-center text-white"
+        style={{ backgroundColor: '#6f6f6f' }}
+      >
         {error ?? 'Event not found'}
       </div>
     )
@@ -189,9 +198,6 @@ export function DisplayEventPage() {
   } else if (stage.type === 'quiz' && question) {
     body = (
       <div className="mx-auto max-w-4xl px-6 py-8 text-center">
-        <p className="mb-2 text-sm text-white/60">
-          Question {state.current_question_index + 1} of {questions.length}
-        </p>
         <h2 className="mb-8 text-3xl font-bold md:text-5xl">{question.text}</h2>
         <div className="mb-8 text-5xl font-mono tabular-nums">{formatTimer(timerDisplay)}</div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -271,7 +277,7 @@ export function DisplayEventPage() {
     body = (
       <div className="px-8 text-center">
         <p className="text-4xl font-bold md:text-6xl">{stage.message ?? 'Break time'}</p>
-        <p className="mt-8 font-mono text-6xl tabular-nums">{formatTimer(breakDisplay)}</p>
+        <p className="mt-8 font-mono text-6xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
       </div>
     )
   } else {

@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { copyToClipboard } from '@/lib/event-links'
 
 const PREVIEW_W = 1920
@@ -31,8 +26,9 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
 
     const update = () => {
       const w = el.clientWidth
-      if (w <= 0) return
-      setScale(w / PREVIEW_W)
+      const h = el.clientHeight
+      if (w <= 0 || h <= 0) return
+      setScale(Math.min(w / PREVIEW_W, h / PREVIEW_H))
     }
 
     update()
@@ -41,43 +37,52 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
     return () => ro.disconnect()
   }, [])
 
+  const scaledW = PREVIEW_W * scale
+  const scaledH = PREVIEW_H * scale
+
   return (
-    <div className="flex items-stretch gap-1.5 p-2">
+    <div className="flex items-center gap-2 p-2">
       <div
         ref={containerRef}
-        className="aspect-video min-w-0 flex-1 overflow-hidden rounded-md bg-black"
-        style={{ height: 'auto' }}
+        className="relative min-w-0 flex-1 overflow-hidden rounded-md bg-black"
+        style={{ aspectRatio: '16 / 9' }}
       >
-        <iframe
-          title="Display preview"
-          src={src}
-          className="pointer-events-none border-0"
+        <div
+          className="absolute top-1/2 left-1/2 overflow-hidden"
           style={{
-            width: PREVIEW_W,
-            height: PREVIEW_H,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
+            width: scaledW,
+            height: scaledH,
+            marginLeft: -scaledW / 2,
+            marginTop: -scaledH / 2,
           }}
-        />
-      </div>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8 shrink-0 self-center"
-            onClick={() => {
-              void copyToClipboard(displayUrl)
-              setCopied(true)
-              window.setTimeout(() => setCopied(false), 2000)
+        >
+          <iframe
+            title="Display preview"
+            src={src}
+            className="pointer-events-none border-0"
+            style={{
+              width: PREVIEW_W,
+              height: PREVIEW_H,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
             }}
-          >
-            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Copy display link</TooltipContent>
-      </Tooltip>
+          />
+        </div>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+        onClick={() => {
+          void copyToClipboard(displayUrl)
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 2000)
+        }}
+      >
+        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        Copy Link
+      </Button>
     </div>
   )
 }

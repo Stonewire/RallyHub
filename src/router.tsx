@@ -1,7 +1,5 @@
-import type { ReactNode } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 
-import { TenantOnlyRoutes } from '@/components/auth/TenantOnlyRoutes'
 import {
   AdminGamesRoute,
   AdminHomePage,
@@ -32,13 +30,6 @@ function RootPage() {
   ) : (
     <Navigate to="/admin" replace />
   )
-}
-
-function LiveRoute({ children }: { children: ReactNode }) {
-  if (isPlatformHost()) {
-    return <Navigate to="/" replace />
-  }
-  return <TenantOnlyRoutes>{children}</TenantOnlyRoutes>
 }
 
 export const router = createBrowserRouter([
@@ -85,37 +76,9 @@ export const router = createBrowserRouter([
   },
   { path: '/rallyhub', element: <Navigate to="/admin" replace /> },
   { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
-  {
-    path: '/facilitator/:eventId',
-    element: (
-      <LiveRoute>
-        <FacilitatorEventPage />
-      </LiveRoute>
-    ),
-  },
-  {
-    path: '/display/:eventId',
-    element: (
-      <LiveRoute>
-        <DisplayEventPage />
-      </LiveRoute>
-    ),
-  },
-  {
-    path: '/join/:eventId',
-    element: (
-      <LiveRoute>
-        <JoinEventPage />
-      </LiveRoute>
-    ),
-  },
-  {
-    path: '/tablet',
-    element: (
-      <LiveRoute>
-        <TabletPage />
-      </LiveRoute>
-    ),
-  },
+  { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
+  { path: '/display/:eventId', element: <DisplayEventPage /> },
+  { path: '/join/:eventId', element: <JoinEventPage /> },
+  { path: '/tablet', element: <TabletPage /> },
   { path: '/play/:token', element: <PlayTokenPage /> },
 ])

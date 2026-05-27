@@ -1,27 +1,35 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import type { TenantPublicOrg } from '@/lib/tenant'
-import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
+async function resolveOrganization(
+  orgParam: string,
+): Promise<TenantPublicOrg | null> {
+  const { data, error } = await supabase
+    .from('organization_tenant_public')
+    .select('*')
+    .or(`tablet_slug.eq.${orgParam},subdomain.eq.${orgParam},id.eq.${orgParam}`)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export function TabletPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const orgParam = searchParams.get('org')?.trim() ?? ''
 
-  const [org, setOrg] = useState<(TenantPublicOrg & { id: string }) | null>(null)
+  const [org, setOrg] = useState<TenantPublicOrg | null>(null)
   const [events, setEvents] = useState<Tables<'events'>[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [inEvent, setInEvent] = useState<string | null>(null)
-  const [exitOpen, setExitOpen] = useState(false)
-  const [password, setPassword] = useState('')
-  const [shake, setShake] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!orgParam) {
@@ -33,72 +41,38 @@ export function TabletPage() {
     setLoading(true)
     setLoadError(null)
 
-    const bySlug = await supabase
-      .from('organization_tenant_public')
-      .select('*')
-      .eq('tablet_slug', orgParam)
-      .maybeSingle()
-
-    let organization = bySlug.data
-
-    if (!organization && !bySlug.error) {
-      const byId = await supabase
-        .from('organization_tenant_public')
-        .select('*')
-        .eq('id', orgParam)
-        .maybeSingle()
-      if (byId.error) {
-        setLoadError(byId.error.message)
+    try {
+      const organization = await resolveOrganization(orgParam)
+      if (!organization) {
+        setLoadError('Organization not found. Check the tablet link.')
+        setOrg(null)
+        setEvents([])
         setLoading(false)
         return
       }
-      organization = byId.data
-    } else if (bySlug.error) {
-      setLoadError(bySlug.error.message)
-      setLoading(false)
-      return
-    }
 
-    if (!organization) {
-      setLoadError('Organization not found. Check the tablet link.')
-      setLoading(false)
-      return
-    }
+      setOrg(organization)
 
-    setOrg(organization)
+      const { data: ev, error: evError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_id', organization.id)
+        .in('status', ['active', 'ready'])
+        .order('event_date', { ascending: true, nullsFirst: false })
 
-    const { data: ev, error: evError } = await supabase
-      .from('events')
-      .select('*')
-      .eq('organization_id', organization.id)
-      .eq('status', 'active')
-      .order('event_date', { ascending: true, nullsFirst: false })
-
-    if (evError) {
-      setLoadError(evError.message)
-    } else {
+      if (evError) throw evError
       setEvents(ev ?? [])
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load events')
+      setEvents([])
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }, [orgParam])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
-
-  async function confirmExit() {
-    if (!org) return
-    const ok = await verifyTabletPassword(org.id, password)
-    if (!ok) {
-      setShake(true)
-      window.setTimeout(() => setShake(false), 400)
-      return
-    }
-    setPassword('')
-    setExitOpen(false)
-    setInEvent(null)
-  }
 
   if (!orgParam) {
     return (
@@ -125,52 +99,17 @@ export function TabletPage() {
       <LivePanelShell title="Tablet">
         <Card className="border-border/80 bg-card p-6 text-center shadow-sm">
           <p className="text-destructive text-sm">{loadError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => void loadData()}
+          >
+            Retry
+          </Button>
         </Card>
       </LivePanelShell>
-    )
-  }
-
-  if (inEvent) {
-    return (
-      <div className="bg-background relative min-h-svh">
-        <iframe
-          title="Join event"
-          src={`/join/${inEvent}`}
-          className="size-full min-h-svh border-0"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="absolute top-3 right-3 z-10"
-          onClick={() => setExitOpen(true)}
-        >
-          Exit
-        </Button>
-        {exitOpen ? (
-          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/50 p-4">
-            <Card
-              className={`border-border/80 w-full max-w-xs space-y-3 bg-card p-6 shadow-lg ${shake ? 'animate-pulse' : ''}`}
-            >
-              <p className="font-medium">Tablet password</p>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background"
-              />
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setExitOpen(false)}>
-                  Cancel
-                </Button>
-                <Button className="flex-1" onClick={() => void confirmExit()}>
-                  Confirm
-                </Button>
-              </div>
-            </Card>
-          </div>
-        ) : null}
-      </div>
     )
   }
 
@@ -185,7 +124,9 @@ export function TabletPage() {
       ) : null}
       <div className="mx-auto grid max-w-lg gap-3">
         {events.length === 0 ? (
-          <p className="text-muted-foreground text-center text-sm">No active events.</p>
+          <p className="text-muted-foreground text-center text-sm">
+            No active events right now.
+          </p>
         ) : (
           events.map((ev) => (
             <Button
@@ -193,7 +134,11 @@ export function TabletPage() {
               type="button"
               variant="outline"
               className="h-auto py-4"
-              onClick={() => setInEvent(ev.id)}
+              onClick={() =>
+                navigate(
+                  `/join/${ev.id}?from=tablet&org=${encodeURIComponent(orgParam)}`,
+                )
+              }
             >
               {ev.name}
             </Button>

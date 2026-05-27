@@ -1,6 +1,6 @@
 import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { JoinGameView } from '@/components/live/JoinGameView'
@@ -21,7 +21,12 @@ function teamKey(eventId: string) {
 
 export function JoinEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const { bundle, loading, error, reload, setBundle } = useLiveEvent(eventId)
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const fromTablet = searchParams.get('from') === 'tablet'
+  const tabletOrg = searchParams.get('org')?.trim() ?? ''
+
+  const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
   const { messages, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
@@ -35,9 +40,21 @@ export function JoinEventPage() {
   const [uploading, setUploading] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState<string | null>(null)
+  const [justJoined, setJustJoined] = useState(false)
 
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
-  const hasJoined = Boolean(teamId && myTeam?.name?.trim())
+  const hasJoined = Boolean(teamId && (myTeam?.name?.trim() || justJoined))
+
+  useEffect(() => {
+    if (!eventId || !bundle) return
+    const saved = localStorage.getItem(teamKey(eventId))
+    if (!saved) return
+    const team = bundle.teams.find((t) => t.id === saved)
+    if (team?.name?.trim()) {
+      setTeamId(saved)
+      setJustJoined(false)
+    }
+  }, [eventId, bundle])
 
   useEffect(() => {
     if (!claimPhoto) {
@@ -86,10 +103,11 @@ export function JoinEventPage() {
           claimPhoto,
         )
       }
+      const trimmed = claimName.trim()
       const { error: updateError } = await supabase
         .from('teams')
         .update({
-          name: claimName.trim(),
+          name: trimmed,
           photo_url: photoUrl,
           status: 'active',
         })
@@ -97,9 +115,9 @@ export function JoinEventPage() {
 
       if (updateError) throw updateError
 
-      const trimmed = claimName.trim()
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       setTeamId(claimSlot.id)
+      setJustJoined(true)
       setClaimSlot(null)
       setClaimName('')
       setClaimPhoto(null)
@@ -119,7 +137,6 @@ export function JoinEventPage() {
           ),
         }
       })
-      void reload()
     } catch (err) {
       setClaimError(err instanceof Error ? err.message : 'Could not join team')
     } finally {
@@ -127,20 +144,47 @@ export function JoinEventPage() {
     }
   }
 
-  if (hasJoined && myTeam) {
+  function clearTeamSession() {
+    if (!eventId) return
+    localStorage.removeItem(teamKey(eventId))
+    setTeamId(null)
+    setJustJoined(false)
+  }
+
+  if (hasJoined && teamId && (myTeam || justJoined)) {
+    const teamForView =
+      myTeam ??
+      ({
+        id: teamId,
+        name: 'Team',
+        score: 0,
+        event_id: event.id,
+        slot_number: 0,
+        color: null,
+        photo_url: null,
+        status: 'active',
+        created_at: '',
+      } as Tables<'teams'>)
+
     return (
       <JoinGameView
         bundle={bundle}
-        teamId={teamId!}
-        team={myTeam}
+        teamId={teamId}
+        team={teamForView}
         messages={messages}
-        onSendMessage={(text) => void sendMessage(myTeam.name ?? 'Team', text, teamId)}
+        onSendMessage={(text) =>
+          void sendMessage(teamForView.name ?? 'Team', text, teamId)
+        }
         announcement={announcement}
         onDismissAnnouncement={() => setAnnouncement(null)}
-        onExitTeam={() => {
-          localStorage.removeItem(teamKey(eventId!))
-          setTeamId(null)
-        }}
+        onExitTeam={clearTeamSession}
+        exitMode={fromTablet ? 'tablet' : 'team'}
+        tabletOrgSlug={tabletOrg}
+        onExitToTablet={
+          fromTablet && tabletOrg
+            ? () => navigate(`/tablet?org=${encodeURIComponent(tabletOrg)}`)
+            : undefined
+        }
       />
     )
   }

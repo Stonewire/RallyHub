@@ -10,7 +10,9 @@ import {
   bingoCardTitles,
   bingoTracks,
   brandColorsForEvent,
+  breakDurationSeconds,
   currentStage,
+  formatBreakTimer,
   formatTimer,
   gamePointsDisplay,
   isEventLive,
@@ -36,6 +38,9 @@ type JoinGameViewProps = {
   announcement: string | null
   onDismissAnnouncement: () => void
   onExitTeam: () => void
+  exitMode?: 'team' | 'tablet'
+  tabletOrgSlug?: string
+  onExitToTablet?: () => void
 }
 
 export function JoinGameView({
@@ -47,6 +52,8 @@ export function JoinGameView({
   announcement,
   onDismissAnnouncement,
   onExitTeam,
+  exitMode = 'team',
+  onExitToTablet,
 }: JoinGameViewProps) {
   const { event, organization, state, games, submissions } = bundle
   const stages = useMemo(() => parseStages(event.stages_config), [event.stages_config])
@@ -76,8 +83,9 @@ export function JoinGameView({
   )
 
   const breakSeconds =
-    state.break_timer_seconds ??
-    (stage?.type === 'break' ? (stage.durationMinutes ?? 5) * 60 : 0)
+    stage?.type === 'break'
+      ? breakDurationSeconds(stage, state.break_timer_seconds)
+      : (state.break_timer_seconds ?? 0)
 
   const breakDisplay = useLiveTimer(
     breakSeconds,
@@ -99,9 +107,36 @@ export function JoinGameView({
     () => {},
   )
 
+  useEffect(() => {
+    if (stage?.type !== 'quiz' || !stage.gameId) return
+    const existing = mySubs.find(
+      (s) => s.media_type === 'quiz' && s.game_id === stage.gameId,
+    )
+    if (existing?.media_url) {
+      setQuizAnswer(existing.media_url)
+      if (!quizRunning || state.quiz_state === 'revealed') {
+        setQuizLocked(true)
+      }
+    }
+  }, [stage?.type, stage?.gameId, mySubs, quizRunning, state.quiz_state])
+
+  useEffect(() => {
+    if (stage?.type !== 'bingo' || !stage.gameId) return
+    const existing = mySubs.find(
+      (s) => s.media_type === 'bingo' && s.game_id === stage.gameId,
+    )
+    if (existing?.media_url != null) {
+      setBingoPick(Number(existing.media_url))
+    }
+  }, [stage?.type, stage?.gameId, mySubs])
+
   async function handleExitTeam() {
     if (!organization?.id) return
-    const pw = window.prompt('Tablet password to leave this team')
+    const pw = window.prompt(
+      exitMode === 'tablet'
+        ? 'Tablet password to return to events'
+        : 'Tablet password to leave this team',
+    )
     if (pw == null) return
     try {
       const ok = await verifyTabletPassword(organization.id, pw)
@@ -109,7 +144,11 @@ export function JoinGameView({
         window.alert('Incorrect password')
         return
       }
-      onExitTeam()
+      if (exitMode === 'tablet' && onExitToTablet) {
+        onExitToTablet()
+      } else {
+        onExitTeam()
+      }
     } catch {
       window.alert('Could not verify password')
     }
@@ -140,7 +179,7 @@ export function JoinGameView({
     const game = games.find((g) => g.id === approved.game_id)
     if (!game) return
     setToast(
-      `Challenge "${game.name}" earned ${approved.points_awarded} points!`,
+      `Challenge ${game.name} earned ${approved.points_awarded} points`,
     )
     const t = window.setTimeout(() => setToast(null), 5000)
     return () => window.clearTimeout(t)
@@ -148,7 +187,7 @@ export function JoinGameView({
 
   useEffect(() => {
     if (!quizAnswer || quizLocked) return
-    const left = Math.min(5, state.timer_seconds)
+    const left = Math.min(5, quizTimerDisplay)
     if (left <= 0) {
       setQuizLocked(true)
       setQuizChangeLeft(null)
@@ -165,7 +204,15 @@ export function JoinGameView({
       })
     }, 1000)
     return () => window.clearInterval(id)
-  }, [quizAnswer, quizLocked, state.timer_seconds])
+  }, [quizAnswer, quizLocked, quizTimerDisplay])
+
+  useEffect(() => {
+    if (stage?.type !== 'quiz' || state.quiz_state === 'revealed') return
+    if (quizRunning && quizTimerDisplay <= 0) {
+      setQuizLocked(true)
+      setQuizChangeLeft(null)
+    }
+  }, [stage?.type, state.quiz_state, quizRunning, quizTimerDisplay])
 
   async function submitOpenGame() {
     if (!selectedGame || !captureFile || !event.id) return
@@ -311,6 +358,13 @@ export function JoinGameView({
           </Button>
           <h2 className="mb-2 text-xl font-bold">{selectedGame.name}</h2>
           <p className="mb-4 text-sm text-white/80">{selectedGame.description}</p>
+          {selectedGame.cover_url ? (
+            <img
+              src={selectedGame.cover_url}
+              alt=""
+              className="mb-4 w-full rounded-lg object-cover"
+            />
+          ) : null}
           {selectedGame.type === 'video' &&
           (selectedGame.config as GameConfig)?.example_video_url ? (
             <video
@@ -439,7 +493,7 @@ export function JoinGameView({
     const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
     const timerPct =
       maxSec > 0
-        ? Math.min(100, (state.timer_seconds / maxSec) * 100)
+        ? Math.min(100, (quizTimerDisplay / maxSec) * 100)
         : 0
 
     if (state.quiz_state === 'revealed' && q) {
@@ -465,7 +519,7 @@ export function JoinGameView({
           </div>
         </div>
       )
-    } else if (quizLocked || existing) {
+    } else if (quizLocked || (existing && !quizAnswer)) {
       body = (
         <p className="py-16 text-center text-white/80">Answer locked — waiting…</p>
       )
@@ -549,7 +603,7 @@ export function JoinGameView({
     body = (
       <div className="px-6 py-12 text-center">
         <p className="text-2xl font-bold sm:text-4xl">{stage.message ?? 'Break'}</p>
-        <p className="mt-8 font-mono text-5xl tabular-nums">{formatTimer(breakDisplay)}</p>
+        <p className="mt-8 font-mono text-5xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
       </div>
     )
   } else {
@@ -562,11 +616,11 @@ export function JoinGameView({
         type="button"
         variant="ghost"
         size="icon"
-        className="fixed top-3 left-3 z-40 size-9 rounded-full bg-black/40 text-white hover:bg-black/60"
+        className="fixed top-3 left-3 z-40 size-7 rounded-full bg-black/20 text-white/40 hover:bg-black/40 hover:text-white/90"
         onClick={() => void handleExitTeam()}
-        aria-label="Leave team"
+        aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
       >
-        <LogOut className="size-4" />
+        <LogOut className="size-3.5" />
       </Button>
       {header}
       {body}
