@@ -56,8 +56,16 @@ export const router = createBrowserRouter([
     element: <FacilitatorEventPage />,
     errorElement: <RouteErrorBoundary />,
   },
-  { path: '/display/:eventId', element: <DisplayEventPage /> },
-  { path: '/join/:eventId', element: <JoinEventPage /> },
+  {
+    path: '/display/:eventId',
+    element: <DisplayEventPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/join/:eventId',
+    element: <JoinEventPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
   { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage /> },
   { path: '/tablet', element: <TabletPage /> },
 
