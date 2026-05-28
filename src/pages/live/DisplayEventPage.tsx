@@ -13,6 +13,7 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { bingoSongProgress } from '@/lib/bingo-facilitator'
+import { playWinnerSound } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
   bingoBonusChallenge,
@@ -101,6 +102,7 @@ export function DisplayEventPage() {
 
   useEffect(() => {
     if (bundle?.state.winner_reveal_stage !== 2) return
+    playWinnerSound()
     const end = Date.now() + 3000
     const frame = () => {
       confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })

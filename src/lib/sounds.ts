@@ -134,3 +134,15 @@ export function playVideoStopSound() {
     tone(ctx, 560, t + 0.08, 0.08, 'triangle', 0.08)
   })
 }
+
+/** Celebratory winner fanfare. */
+export function playWinnerSound() {
+  withAudio((ctx) => {
+    const t = ctx.currentTime
+    tone(ctx, 523.25, t, 0.18, 'triangle', 0.11)
+    tone(ctx, 659.25, t + 0.16, 0.18, 'triangle', 0.11)
+    tone(ctx, 783.99, t + 0.32, 0.2, 'triangle', 0.12)
+    tone(ctx, 1046.5, t + 0.5, 0.36, 'sawtooth', 0.14)
+    tone(ctx, 1318.5, t + 0.5, 0.34, 'sine', 0.08)
+  })
+}

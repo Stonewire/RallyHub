@@ -65,6 +65,7 @@ import {
   playQuizTimerWarningSound,
   playQuizWrongSound,
   playSubmitSound,
+  playWinnerSound,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
@@ -300,44 +301,37 @@ export function JoinGameView({
     return () => URL.revokeObjectURL(url)
   }, [captureFile])
 
-  const seenApprovedIds = useRef<Set<string> | null>(null)
-  const lastRejectedId = useRef<string | null>(null)
+  const previousSubmissionStatusRef = useRef<Map<string, string>>(new Map())
   useEffect(() => {
-    const mine = submissions.filter(
-      (s) =>
-        s.team_id === teamId &&
-        s.status === 'approved' &&
-        s.points_awarded != null,
-    )
-    if (seenApprovedIds.current === null) {
-      seenApprovedIds.current = new Set(mine.map((s) => s.id))
+    const mine = submissions.filter((s) => s.team_id === teamId)
+    if (previousSubmissionStatusRef.current.size === 0) {
+      previousSubmissionStatusRef.current = new Map(mine.map((s) => [s.id, s.status]))
       return
     }
+
+    const nextStatusMap = new Map<string, string>()
     for (const s of mine) {
-      if (seenApprovedIds.current.has(s.id)) continue
-      seenApprovedIds.current.add(s.id)
       const game = games.find((g) => g.id === s.game_id)
-      if (!game || game.type === 'quiz') continue
-      if (game.type === 'music_bingo') {
+      const previous = previousSubmissionStatusRef.current.get(s.id)
+      nextStatusMap.set(s.id, s.status)
+      if (!previous) continue
+      if (previous === 'pending' && s.status === 'approved' && game && game.type !== 'quiz') {
         playPushNotificationSound()
-        notify(`+${s.points_awarded} pts — Music bingo`)
-      } else {
+        if (game.type === 'music_bingo') notify(`+${s.points_awarded ?? 0} pts — Music bingo`)
+        else notify(`+${s.points_awarded ?? 0} pts — ${game.name}`)
+      }
+      if (
+        previous === 'pending' &&
+        s.status === 'rejected' &&
+        game &&
+        game.type !== 'quiz' &&
+        game.type !== 'music_bingo'
+      ) {
         playPushNotificationSound()
-        notify(`+${s.points_awarded} pts — ${game.name}`)
+        notify(`${game.name} was not approved`)
       }
     }
-  }, [submissions, teamId, games, notify])
-
-  useEffect(() => {
-    const rejected = submissions
-      .filter((s) => s.team_id === teamId && s.status === 'rejected')
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
-    if (!rejected || rejected.id === lastRejectedId.current) return
-    const game = games.find((g) => g.id === rejected.game_id)
-    if (!game || game.type === 'quiz' || game.type === 'music_bingo') return
-    lastRejectedId.current = rejected.id
-    playPushNotificationSound()
-    notify(`${game.name} was not approved`)
+    previousSubmissionStatusRef.current = nextStatusMap
   }, [submissions, teamId, games, notify])
 
   const lastAnnouncementRef = useRef<string | null>(null)
@@ -351,6 +345,15 @@ export function JoinGameView({
       playAnnouncementSound()
     }
   }, [announcement])
+
+  const winnerSoundStageRef = useRef(0)
+  useEffect(() => {
+    const next = state.winner_reveal_stage ?? 0
+    if (next >= 1 && next !== winnerSoundStageRef.current) {
+      playWinnerSound()
+    }
+    winnerSoundStageRef.current = next
+  }, [state.winner_reveal_stage])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
@@ -1129,7 +1132,7 @@ export function JoinGameView({
       {header}
       <div className="flex-1 min-h-0">{body}</div>
       <Button
-        className="fixed bottom-4 right-4 relative size-12 rounded-full shadow-lg hover:brightness-95"
+        className="fixed right-4 bottom-4 z-40 relative size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
         style={{ backgroundColor: accent, color: onAccent }}
         onClick={() => {
