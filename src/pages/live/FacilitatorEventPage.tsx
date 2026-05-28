@@ -81,6 +81,7 @@ export function FacilitatorEventPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatTeamId, setChatTeamId] = useState<string | null>(null)
   const [audioPlayNonce, setAudioPlayNonce] = useState(0)
+  const bingoStateRef = useRef('waiting')
   const { notify } = useNotification()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
 
@@ -529,7 +530,6 @@ export function FacilitatorEventPage() {
     : tracks[bingoPlayIndex]
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
   const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
-  const bingoStateRef = useRef(liveState.bingo_state)
   bingoStateRef.current = liveState.bingo_state
 
   const bingoMarkedTeams = (() => {
