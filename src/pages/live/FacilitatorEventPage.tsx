@@ -96,6 +96,7 @@ export function FacilitatorEventPage() {
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const state = bundle?.state
+  const liveSubmissions = bundle?.submissions ?? []
 
   const isQuizStage = stage?.type === 'quiz'
 
@@ -249,6 +250,40 @@ export function FacilitatorEventPage() {
     (next, stillRunning) => breakSyncRef.current(next, stillRunning),
   )
 
+  const pendingSubmissionCountRef = useRef<number>(0)
+  const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
+
+  useEffect(() => {
+    const pendingCount = liveSubmissions
+      .filter(
+        (s) =>
+          s.status === 'pending' &&
+          (s.media_type === 'photo' || s.media_type === 'video'),
+      )
+      .length
+    if (pendingSubmissionCountRef.current === 0) {
+      pendingSubmissionCountRef.current = pendingCount
+      return
+    }
+    if (pendingCount > pendingSubmissionCountRef.current) {
+      playNewSubmissionSound()
+    }
+    pendingSubmissionCountRef.current = pendingCount
+  }, [liveSubmissions])
+
+  useEffect(() => {
+    const incoming = messages.filter((m) => Boolean(m.team_id)).map((m) => m.id)
+    if (seenTeamMessageIdsRef.current === null) {
+      seenTeamMessageIdsRef.current = new Set(incoming)
+      return
+    }
+    for (const id of incoming) {
+      if (seenTeamMessageIdsRef.current.has(id)) continue
+      seenTeamMessageIdsRef.current.add(id)
+      playNewMessageSound()
+    }
+  }, [messages])
+
   if (namePrompt) {
     return (
       <LivePanelShell title="Facilitator" titleCentered>
@@ -294,39 +329,6 @@ export function FacilitatorEventPage() {
     if (subTab === 'all') return true
     return s.status === subTab
   })
-  const pendingSubmissionCountRef = useRef<number>(0)
-  const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
-
-  useEffect(() => {
-    const pendingCount = submissions
-      .filter(
-        (s) =>
-          s.status === 'pending' &&
-          (s.media_type === 'photo' || s.media_type === 'video'),
-      )
-      .length
-    if (pendingSubmissionCountRef.current === 0) {
-      pendingSubmissionCountRef.current = pendingCount
-      return
-    }
-    if (pendingCount > pendingSubmissionCountRef.current) {
-      playNewSubmissionSound()
-    }
-    pendingSubmissionCountRef.current = pendingCount
-  }, [submissions])
-
-  useEffect(() => {
-    const incoming = messages.filter((m) => Boolean(m.team_id)).map((m) => m.id)
-    if (seenTeamMessageIdsRef.current === null) {
-      seenTeamMessageIdsRef.current = new Set(incoming)
-      return
-    }
-    for (const id of incoming) {
-      if (seenTeamMessageIdsRef.current.has(id)) continue
-      seenTeamMessageIdsRef.current.add(id)
-      playNewMessageSound()
-    }
-  }, [messages])
 
   async function clearAnnouncement() {
     if (annClearRef.current) {

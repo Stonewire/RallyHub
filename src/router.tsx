@@ -1,5 +1,6 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 
+import { RouteErrorBoundary } from '@/components/errors/RouteErrorBoundary'
 import {
   AdminGamesRoute,
   AdminHomePage,
@@ -50,7 +51,11 @@ function NotFoundPage() {
  * or TenantOnlyRoutes.
  */
 export const router = createBrowserRouter([
-  { path: '/facilitator/:eventId', element: <FacilitatorEventPage /> },
+  {
+    path: '/facilitator/:eventId',
+    element: <FacilitatorEventPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
   { path: '/display/:eventId', element: <DisplayEventPage /> },
   { path: '/join/:eventId', element: <JoinEventPage /> },
   { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage /> },
