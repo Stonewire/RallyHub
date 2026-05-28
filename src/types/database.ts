@@ -352,6 +352,7 @@ export type Database = {
           show_timer_on_display: boolean
           quiz_state: string
           bingo_state: string
+          bingo_bonus_id: string | null
           announcement: string | null
           announcement_target: string | null
           winner_reveal_stage: number
@@ -373,6 +374,7 @@ export type Database = {
           show_timer_on_display?: boolean
           quiz_state?: string
           bingo_state?: string
+          bingo_bonus_id?: string | null
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
@@ -391,6 +393,7 @@ export type Database = {
           show_timer_on_display?: boolean
           quiz_state?: string
           bingo_state?: string
+          bingo_bonus_id?: string | null
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number

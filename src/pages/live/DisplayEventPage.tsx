@@ -2,6 +2,7 @@ import confetti from 'canvas-confetti'
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
+import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
@@ -14,6 +15,7 @@ import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { BINGO_CLAIM_MARK } from '@/lib/bingo-claims'
 import {
   STANDBY_ACCENT,
+  bingoBonusChallenge,
   bingoTracks,
   currentStage,
   breakDurationSeconds,
@@ -315,6 +317,54 @@ export function DisplayEventPage() {
         </ul>
       </div>
     )
+  } else if (
+    stage.type === 'bingo' &&
+    bingoGame &&
+    (state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed')
+  ) {
+    const bonus = bingoBonusChallenge(bingoGame, state.bingo_bonus_id)
+    body = bonus ? (
+      <div className={textClass}>
+        <BingoBonusPanel
+          challenge={bonus}
+          accentColor={STANDBY_ACCENT}
+          revealed={state.bingo_state === 'bonus_revealed'}
+          selectedAnswerId={null}
+          locked
+          existingAnswerId={null}
+          onSelect={() => {}}
+          large
+        />
+        <ul className="mt-8 flex flex-wrap justify-center gap-2">
+          {submissions
+            .filter(
+              (s) =>
+                s.game_id === stage.gameId &&
+                s.media_type?.startsWith('bingo-bonus:'),
+            )
+            .map((s) => {
+              const team = teams.find((t) => t.id === s.team_id)
+              if (!team?.name) return null
+              const ok = state.bingo_state === 'bonus_revealed' && s.status === 'approved'
+              const bad = state.bingo_state === 'bonus_revealed' && s.status === 'rejected'
+              return (
+                <li
+                  key={s.id}
+                  className={`rounded-full px-3 py-1 text-sm ${
+                    ok ? 'bg-green-600/80' : bad ? 'bg-red-600/80' : 'bg-white/15'
+                  }`}
+                >
+                  {team.name}
+                </li>
+              )
+            })}
+        </ul>
+      </div>
+    ) : (
+      <p className={`text-center font-display text-3xl font-bold ${textClass}`}>
+        Bonus challenge…
+      </p>
+    )
   } else if (stage.type === 'bingo' && bingoGame && state.bingo_state === 'waiting') {
     body = (
       <div className={`text-center ${textClass}`}>
@@ -332,6 +382,15 @@ export function DisplayEventPage() {
   } else if (stage.type === 'bingo') {
     body = (
       <div className={`flex flex-col items-center justify-center ${textClass}`}>
+        {state.bingo_state === 'active' && track ? (
+          <>
+            <p className="font-display text-2xl font-bold opacity-80 md:text-3xl">
+              Now playing
+            </p>
+            <p className="font-display mt-4 text-4xl font-bold md:text-6xl">{track.title}</p>
+            <p className="font-display mt-2 text-2xl opacity-70 md:text-4xl">{track.artist}</p>
+          </>
+        ) : null}
         <div className="mb-12 flex h-32 items-end justify-center gap-1">
           {Array.from({ length: 12 }).map((_, i) => (
             <div

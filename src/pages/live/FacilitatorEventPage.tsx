@@ -24,10 +24,14 @@ import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/u
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
 import { BINGO_CLAIM_MARK, evaluateBingoClaims } from '@/lib/bingo-claims'
+import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
+import { advanceBingoTrack } from '@/lib/bingo-round-advance'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import { revealBingoWinner } from '@/lib/reveal-bingo-winner'
 import {
   FACILITATOR_NAME_KEY,
+  bingoBonusChallenges,
+  bingoBonusChallenge,
   bingoTracks,
   currentStage,
   breakDurationSeconds,
@@ -927,37 +931,121 @@ export function FacilitatorEventPage() {
             </div>
           ) : stage.type === 'bingo' ? (
             <div className="space-y-4">
+              {bingoGame && bingoBonusChallenges(bingoGame).length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-xs font-medium uppercase">
+                    Bonus challenges
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {bingoBonusChallenges(bingoGame).map((ch) => (
+                      <Button
+                        key={ch.id}
+                        size="sm"
+                        variant={
+                          state.bingo_bonus_id === ch.id ? 'secondary' : 'outline'
+                        }
+                        disabled={
+                          state.bingo_state === 'bonus' ||
+                          state.bingo_state === 'bonus_revealed'
+                        }
+                        onClick={() =>
+                          void patchState({
+                            bingo_state: 'bonus',
+                            bingo_bonus_id: ch.id,
+                          })
+                        }
+                      >
+                        {ch.question.slice(0, 36)}
+                        {ch.question.length > 36 ? '…' : ''}
+                      </Button>
+                    ))}
+                  </div>
+                  {state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed' ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={state.bingo_state === 'bonus_revealed'}
+                        onClick={() => {
+                          const ch = bingoBonusChallenge(bingoGame, state.bingo_bonus_id)
+                          if (!ch || !stage.gameId || !eventId) return
+                          void scoreBingoBonusRound({
+                            eventId,
+                            gameId: stage.gameId,
+                            challengeId: ch.id,
+                            correctAnswerId: ch.correctAnswerId,
+                          }).then(() =>
+                            void patchState({ bingo_state: 'bonus_revealed' }),
+                          )
+                        }}
+                      >
+                        Reveal bonus answers
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          void patchState({
+                            bingo_state: 'waiting',
+                            bingo_bonus_id: null,
+                          })
+                        }
+                      >
+                        End bonus — back to bingo
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <p className="text-muted-foreground text-xs">
                 Now playing {bingoPlayIndex + 1}
                 {bingoPlayOrder.length > 0 ? ` / ${bingoPlayOrder.length}` : ''}
+                {liveState.bingo_state === 'active' ? ' · playing' : ''}
               </p>
               <p className="font-semibold">
                 {track ? `${track.title} — ${track.artist}` : 'No track'}
               </p>
-              {track ? (
+              {track && liveState.bingo_state !== 'bonus' ? (
                 <BingoClipPlayer
                   src={bingoTrackPlaybackUrl(track)}
                   playKey={`${track.id}-${bingoPlayIndex}`}
                 />
               ) : null}
               <div className="flex flex-wrap gap-2">
+                {liveState.bingo_state !== 'bonus' &&
+                liveState.bingo_state !== 'bonus_revealed' ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!track}
+                    onClick={() => void patchState({ bingo_state: 'active' })}
+                  >
+                    Play clip
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
-                  onClick={() =>
-                    void patchState({
-                      current_question_index: Math.min(
-                        Math.max(0, bingoPlayOrder.length - 1),
-                        state.current_question_index + 1,
-                      ),
-                      bingo_state: 'waiting',
-                    })
-                  }
+                  onClick={() => {
+                    if (!stage.gameId || !eventId) return
+                    void advanceBingoTrack({
+                      eventId,
+                      gameId: stage.gameId,
+                      runId: bingoRunQuery.data?.id,
+                      playOrder: bingoPlayOrder,
+                      currentIndex: bingoPlayIndex,
+                      scoreCurrent: liveState.bingo_state !== 'revealed',
+                    }).then((nextIndex) =>
+                      void patchState({
+                        current_question_index: nextIndex,
+                        bingo_state: 'waiting',
+                      }),
+                    )
+                  }}
                   disabled={
                     bingoPlayOrder.length > 0 &&
                     state.current_question_index >= bingoPlayOrder.length - 1
                   }
                 >
-                  Next Track
+                  Next track
                 </Button>
                 <Button
                   size="sm"

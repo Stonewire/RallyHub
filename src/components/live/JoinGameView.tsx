@@ -1,6 +1,7 @@
 import { Check, LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
+import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
@@ -21,6 +22,8 @@ import { approvedBingoCellIndices, cellsOnBingoLine } from '@/lib/bingo-lines'
 import { BINGO_CLAIM_MARK, teamHasBingoClaim } from '@/lib/bingo-claims'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
+  bingoBonusChallenge,
+  bingoBonusMediaType,
   bingoCellLabels,
   bingoCardTitles,
   bingoTracks,
@@ -344,6 +347,31 @@ export function JoinGameView({
     } finally {
       setCancelling(false)
     }
+  }
+
+  async function submitBingoBonusAnswer(
+    answerId: string,
+    gameId: string,
+    challengeId: string,
+  ) {
+    if (state.bingo_state !== 'bonus') return
+    const mediaType = bingoBonusMediaType(challengeId)
+    const existing = mySubs.find(
+      (s) => s.media_type === mediaType && s.game_id === gameId,
+    )
+    if (existing) {
+      await supabase.from('submissions').update({ media_url: answerId }).eq('id', existing.id)
+    } else {
+      await supabase.from('submissions').insert({
+        event_id: event.id,
+        team_id: teamId,
+        game_id: gameId,
+        media_url: answerId,
+        media_type: mediaType,
+        status: 'pending',
+      })
+    }
+    playSubmitSound()
   }
 
   async function submitBingoClaim(gameId: string) {
@@ -800,6 +828,31 @@ export function JoinGameView({
     }
   } else if (stage?.type === 'bingo' && stage.gameId) {
     const game = games.find((g) => g.id === stage.gameId)
+    const bonusChallenge = game
+      ? bingoBonusChallenge(game, state.bingo_bonus_id)
+      : null
+    const bonusRevealed = state.bingo_state === 'bonus_revealed'
+    const bonusActive = state.bingo_state === 'bonus' || bonusRevealed
+
+    if (bonusChallenge && bonusActive) {
+      const mediaType = bingoBonusMediaType(bonusChallenge.id)
+      const existing = mySubs.find(
+        (s) => s.media_type === mediaType && s.game_id === stage.gameId,
+      )
+      body = (
+        <BingoBonusPanel
+          challenge={bonusChallenge}
+          accentColor={accent}
+          revealed={bonusRevealed}
+          selectedAnswerId={null}
+          locked={bonusRevealed || Boolean(existing)}
+          existingAnswerId={existing?.media_url}
+          onSelect={(answerId) =>
+            void submitBingoBonusAnswer(answerId, stage.gameId!, bonusChallenge.id)
+          }
+        />
+      )
+    } else {
     const tracks = game ? bingoTracks(game) : []
     const titles = bingoCardQuery.data
       ? bingoCellLabels(bingoCardQuery.data)
@@ -872,6 +925,7 @@ export function JoinGameView({
         </div>
       </div>
     )
+    }
   } else if (stage?.type === 'break') {
     body = (
       <div className="px-6 py-12 text-center">
