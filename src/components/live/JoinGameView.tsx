@@ -287,8 +287,9 @@ export function JoinGameView({
     notify(`${game.name} was not approved`)
   }, [submissions, teamId, games, notify])
 
-  async function submitOpenGame() {
-    if (!selectedGame || !captureFile || !event.id) return
+  async function submitOpenGame(fileOverride?: File) {
+    const file = fileOverride ?? captureFile
+    if (!selectedGame || !file || !event.id) return
     if (!canSubmit) {
       notify('This event is now closed')
       return
@@ -298,7 +299,7 @@ export function JoinGameView({
       const url = await uploadAsset(
         'game-assets',
         `${event.id}/submissions/${teamId}/${Date.now()}`,
-        captureFile,
+        file,
       )
       await supabase.from('submissions').insert({
         event_id: event.id,
@@ -587,24 +588,9 @@ export function JoinGameView({
             <p className="text-center text-lg font-semibold" style={{ color: accent }}>
               Submitted! Waiting for approval…
             </p>
-          ) : capturePreview ? (
+          ) : capturePreview && selectedGame.type !== 'video' ? (
             <div className="space-y-4">
-              {selectedGame.type === 'video' ? (
-                <video
-                  key={capturePreview}
-                  controls
-                  playsInline
-                  preload="auto"
-                  className="w-full rounded-lg bg-black"
-                >
-                  <source
-                    src={capturePreview}
-                    type={captureFile?.type || 'video/mp4'}
-                  />
-                </video>
-              ) : (
-                <img src={capturePreview} alt="" className="w-full rounded-lg" />
-              )}
+              <img src={capturePreview} alt="" className="w-full rounded-lg" />
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -634,7 +620,10 @@ export function JoinGameView({
                   config={selectedGame.config as GameConfig}
                   accentColor={accent}
                   disabled={submitting}
-                  onFileReady={setCaptureFile}
+                  onFileReady={(file) => {
+                    setCaptureFile(file)
+                    void submitOpenGame(file)
+                  }}
                 />
               ) : (
                 <PhotoChallengeCapture
@@ -987,15 +976,15 @@ export function JoinGameView({
                 key={i}
                 type="button"
                 disabled={disabled}
-                className={`aspect-square flex flex-col items-center justify-center p-0.5 text-center leading-tight ${cls}`}
+                className={`aspect-square overflow-hidden rounded-sm px-0.5 py-1 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
-                <span className="line-clamp-2 text-[9px] font-semibold sm:text-[10px]">
+                <span className="line-clamp-2 w-full overflow-hidden text-ellipsis break-words text-[8px] font-semibold sm:text-[9px]">
                   {cell.title}
                 </span>
                 {cell.artist ? (
-                  <span className="line-clamp-1 text-[7px] opacity-80 sm:text-[8px]">
+                  <span className="line-clamp-1 w-full overflow-hidden text-ellipsis break-words text-[7px] opacity-80">
                     {cell.artist}
                   </span>
                 ) : null}

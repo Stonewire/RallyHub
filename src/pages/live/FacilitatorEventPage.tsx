@@ -673,16 +673,26 @@ export function FacilitatorEventPage() {
                   <Minus className="size-4" /> 15m
                 </FacilitatorButton>
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={state.show_timer_on_display}
-                  onChange={(e) =>
-                    void patchState({ show_timer_on_display: e.target.checked })
-                  }
-                />
-                Show timer on display
-              </label>
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={state.show_timer_on_display}
+                    onChange={(e) =>
+                      void patchState({ show_timer_on_display: e.target.checked })
+                    }
+                  />
+                  Show timer on display
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={state.show_scores}
+                    onChange={(e) => void patchState({ show_scores: e.target.checked })}
+                  />
+                  Show scores on display
+                </label>
+              </div>
             </div>
             <div className="flex flex-col justify-center gap-2">
               <p className="text-muted-foreground text-xs">
@@ -731,15 +741,6 @@ export function FacilitatorEventPage() {
               ))}
             </div>
           </Card>
-
-          <label className="flex items-center gap-2 px-1 text-sm">
-            <input
-              type="checkbox"
-              checked={state.show_scores}
-              onChange={(e) => void patchState({ show_scores: e.target.checked })}
-            />
-            Show scores on display
-          </label>
 
           <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <Label>Announcement</Label>

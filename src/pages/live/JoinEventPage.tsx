@@ -83,7 +83,7 @@ export function JoinEventPage() {
 
   useEffect(() => {
     if (!hasJoined || mediaReady) return
-    void requestTeamMediaPermissions().then(() => setMediaReady(true))
+    void requestTeamMediaPermissions().then((granted) => setMediaReady(granted))
   }, [hasJoined, mediaReady])
 
   if (loading || !bundle) {

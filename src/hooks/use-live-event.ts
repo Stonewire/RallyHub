@@ -138,7 +138,7 @@ export function useLiveEvent(eventId: string | undefined) {
     if (!eventId) return
 
     const channel = supabase
-      .channel(`live:${eventId}`)
+      .channel(`live:event:${eventId}:bundle`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` },
@@ -210,7 +210,15 @@ export function useLiveEvent(eventId: string | undefined) {
         { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
         () => scheduleReload(),
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void reload()
+          return
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          scheduleReload()
+        }
+      })
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
