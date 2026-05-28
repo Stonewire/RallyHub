@@ -105,7 +105,9 @@ export function useLiveEvent(eventId: string | undefined) {
   const [bundle, setBundle] = useState<LiveEventBundle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [channelCycle, setChannelCycle] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bundleRef = useRef(bundle)
   bundleRef.current = bundle
 
@@ -130,6 +132,11 @@ export function useLiveEvent(eventId: string | undefined) {
     }, RELOAD_DEBOUNCE_MS)
   }, [reload])
 
+  const reloadRef = useRef(reload)
+  reloadRef.current = reload
+  const scheduleReloadRef = useRef(scheduleReload)
+  scheduleReloadRef.current = scheduleReload
+
   useEffect(() => {
     void reload()
   }, [reload])
@@ -142,7 +149,7 @@ export function useLiveEvent(eventId: string | undefined) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` },
-        () => scheduleReload(),
+        () => scheduleReloadRef.current(),
       )
       .on(
         'postgres_changes',
@@ -153,7 +160,7 @@ export function useLiveEvent(eventId: string | undefined) {
             setBundle((b) => (b ? { ...b, state: row } : b))
             return
           }
-          scheduleReload()
+          scheduleReloadRef.current()
         },
       )
       .on(
@@ -180,7 +187,7 @@ export function useLiveEvent(eventId: string | undefined) {
             })
             return
           }
-          scheduleReload()
+          scheduleReloadRef.current()
         },
       )
       .on(
@@ -203,28 +210,37 @@ export function useLiveEvent(eventId: string | undefined) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
-        () => scheduleReload(),
+        () => scheduleReloadRef.current(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
-        () => scheduleReload(),
+        () => scheduleReloadRef.current(),
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          void reload()
+          if (reconnectRef.current) {
+            clearTimeout(reconnectRef.current)
+            reconnectRef.current = null
+          }
+          void reloadRef.current()
           return
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          scheduleReload()
+          scheduleReloadRef.current()
+          if (reconnectRef.current) clearTimeout(reconnectRef.current)
+          reconnectRef.current = setTimeout(() => {
+            setChannelCycle((n) => n + 1)
+          }, 600)
         }
       })
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (reconnectRef.current) clearTimeout(reconnectRef.current)
       void supabase.removeChannel(channel)
     }
-  }, [eventId, scheduleReload])
+  }, [eventId, channelCycle])
 
   const updateState = useCallback(
     async (patch: TablesUpdate<'event_state'>) => {
