@@ -78,7 +78,7 @@ export function FacilitatorEventPage() {
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [subTab, setSubTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
   const [stateError, setStateError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [selectedSub, setSelectedSub] = useState<Tables<'submissions'> | null>(null)
@@ -294,26 +294,25 @@ export function FacilitatorEventPage() {
     if (subTab === 'all') return true
     return s.status === subTab
   })
-  const seenPendingSubmissionIdsRef = useRef<Set<string> | null>(null)
+  const pendingSubmissionCountRef = useRef<number>(0)
   const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
 
   useEffect(() => {
-    const pendingIds = submissions
+    const pendingCount = submissions
       .filter(
         (s) =>
           s.status === 'pending' &&
           (s.media_type === 'photo' || s.media_type === 'video'),
       )
-      .map((s) => s.id)
-    if (seenPendingSubmissionIdsRef.current === null) {
-      seenPendingSubmissionIdsRef.current = new Set(pendingIds)
+      .length
+    if (pendingSubmissionCountRef.current === 0) {
+      pendingSubmissionCountRef.current = pendingCount
       return
     }
-    for (const id of pendingIds) {
-      if (seenPendingSubmissionIdsRef.current.has(id)) continue
-      seenPendingSubmissionIdsRef.current.add(id)
+    if (pendingCount > pendingSubmissionCountRef.current) {
       playNewSubmissionSound()
     }
+    pendingSubmissionCountRef.current = pendingCount
   }, [submissions])
 
   useEffect(() => {
@@ -773,7 +772,12 @@ export function FacilitatorEventPage() {
                 <Button
                   key={s.id}
                   size="sm"
-                  variant={state.current_stage_index === i ? 'secondary' : 'outline'}
+                  variant={state.current_stage_index === i ? 'default' : 'outline'}
+                  className={
+                    state.current_stage_index === i
+                      ? 'bg-[#FFCB03] text-[#3E3D3E] hover:bg-[#e6b803]'
+                      : undefined
+                  }
                   onClick={() => selectStage(i)}
                 >
                   Stage {i + 1}
@@ -926,6 +930,12 @@ export function FacilitatorEventPage() {
                   .map((sub) => {
                     const team = teams.find((t) => t.id === sub.team_id)
                     const game = games.find((g) => g.id === sub.game_id)
+                    const statusBadgeClass =
+                      sub.status === 'approved'
+                        ? 'bg-green-100 text-green-800 border-green-300'
+                        : sub.status === 'rejected'
+                          ? 'bg-red-100 text-red-800 border-red-300'
+                          : 'bg-yellow-100 text-yellow-900 border-yellow-300'
                     return (
                       <li key={sub.id}>
                         <button
@@ -952,7 +962,9 @@ export function FacilitatorEventPage() {
                           <div className="min-w-0 flex-1 text-sm">
                             <p className="font-medium">{team?.name ?? 'Team'}</p>
                             <p className="text-muted-foreground truncate">{game?.name}</p>
-                            <p className="text-muted-foreground text-xs capitalize">
+                            <p
+                              className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClass}`}
+                            >
                               {sub.status}
                             </p>
                           </div>

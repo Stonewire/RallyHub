@@ -8,6 +8,7 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
+import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
 
@@ -143,6 +144,7 @@ export function VideoChallengeCapture({
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
       recorder.onstop = () => {
+        playVideoStopSound()
         const blob = new Blob(chunksRef.current, { type: mime })
         chunksRef.current = []
         stopStream()
@@ -156,6 +158,7 @@ export function VideoChallengeCapture({
         }
       }
       recorder.start(200)
+      playVideoStartSound()
       setRecording(true)
       const started = Date.now()
       tickRef.current = window.setInterval(() => {

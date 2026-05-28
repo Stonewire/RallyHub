@@ -108,3 +108,29 @@ export function playQuizTimerWarningSound() {
     tone(ctx, 980, t, 0.045, 'square', 0.07)
   })
 }
+
+/** Mechanical camera shutter click for photo capture. */
+export function playShutterSound() {
+  withAudio((ctx) => {
+    const t = ctx.currentTime
+    tone(ctx, 2200, t, 0.018, 'square', 0.08)
+    tone(ctx, 280, t + 0.014, 0.05, 'triangle', 0.06)
+  })
+}
+
+/** Short record-start beep for video recording begin. */
+export function playVideoStartSound() {
+  withAudio((ctx) => {
+    const t = ctx.currentTime
+    tone(ctx, 990, t, 0.08, 'sine', 0.1)
+  })
+}
+
+/** Double tone for video recording stop. */
+export function playVideoStopSound() {
+  withAudio((ctx) => {
+    const t = ctx.currentTime
+    tone(ctx, 720, t, 0.06, 'triangle', 0.08)
+    tone(ctx, 560, t + 0.08, 0.08, 'triangle', 0.08)
+  })
+}

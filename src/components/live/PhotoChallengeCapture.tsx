@@ -4,6 +4,7 @@ import { Camera } from 'lucide-react'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
+import { playShutterSound } from '@/lib/sounds'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
@@ -65,6 +66,7 @@ export function PhotoChallengeCapture({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0, w, h)
+    playShutterSound()
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
     setSnapshot(dataUrl)
     streamRef.current?.getTracks().forEach((t) => t.stop())
