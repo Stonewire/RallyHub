@@ -598,18 +598,11 @@ export function FacilitatorEventPage() {
   async function nextBingoSong() {
     if (bingoAdvancing) return
     if (!stage?.gameId || !eventId) return
+    if (bingoPlayOrder.length === 0) return
     setBingoAdvancing(true)
     try {
-      const nextIndexRaw = Math.min(Math.max(0, bingoPlayOrder.length - 1), bingoPlayIndex + 1)
-      const nextTrackId = bingoPlayOrder[nextIndexRaw]
-      const nextTrack = nextTrackId
-        ? tracks.find((t) => t.id === nextTrackId) ?? tracks[nextIndexRaw]
-        : tracks[nextIndexRaw]
-      if (track && nextTrack && bingoPlayOrder.length > 1) {
-        await bingoAudioRef.current?.crossfadeTo(bingoTrackPlaybackUrl(nextTrack), 3500)
-      }
-      const runId = bingoRunQuery.data?.id
       const currentTrackId = bingoPlayOrder[bingoPlayIndex]
+      const runId = bingoRunQuery.data?.id
       if (runId && currentTrackId) {
         const result = await scoreBingoRound({
           eventId,
@@ -629,20 +622,40 @@ export function FacilitatorEventPage() {
           }
         }
       }
+
+      const atLastTrack = bingoPlayIndex >= bingoPlayOrder.length - 1
+      if (atLastTrack) {
+        await patchState({ bingo_state: 'ended' })
+        return
+      }
+
+      const nextIndexRaw = bingoPlayIndex + 1
+      const nextTrackId = bingoPlayOrder[nextIndexRaw]
+      const nextTrack = nextTrackId
+        ? tracks.find((t) => t.id === nextTrackId) ?? tracks[nextIndexRaw]
+        : tracks[nextIndexRaw]
+
       const nextIndex = await advanceBingoTrack({
         eventId,
         gameId: stage.gameId,
-        runId: bingoRunQuery.data?.id,
+        runId,
         playOrder: bingoPlayOrder,
         currentIndex: bingoPlayIndex,
         scoreCurrent: false,
       })
-      const isLast = bingoPlayOrder.length > 0 && bingoPlayIndex >= bingoPlayOrder.length - 1
       await patchState({
         current_question_index: nextIndex,
-        bingo_state: isLast ? 'ended' : 'playing',
+        bingo_state: 'playing',
       })
-      if (!track || !nextTrack) setAudioPlayNonce((n) => n + 1)
+      if (track && nextTrack) {
+        const crossed = await bingoAudioRef.current?.crossfadeTo(
+          bingoTrackPlaybackUrl(nextTrack),
+          4000,
+        )
+        if (!crossed) setAudioPlayNonce((n) => n + 1)
+      } else {
+        setAudioPlayNonce((n) => n + 1)
+      }
     } finally {
       setBingoAdvancing(false)
     }
@@ -1141,6 +1154,7 @@ export function FacilitatorEventPage() {
                   autoPlay
                   crossfadeSeconds={4}
                   onAutoAdvance={() => void autoAdvanceBingoSong()}
+                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
                 />
               ) : null}
               {liveState.bingo_state !== 'bonus' &&
@@ -1157,7 +1171,9 @@ export function FacilitatorEventPage() {
                       void nextBingoSong()
                     }}
                   >
-                    Next song
+                    {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'
+                      ? 'Start'
+                      : 'Next Song'}
                   </FacilitatorButton>
                 </div>
               ) : null}

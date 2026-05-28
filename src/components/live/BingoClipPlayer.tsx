@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 type BingoClipPlayerProps = {
   src: string
@@ -8,10 +8,11 @@ type BingoClipPlayerProps = {
   autoPlay?: boolean
   crossfadeSeconds?: number
   onAutoAdvance?: () => void
+  onPlaybackError?: (message: string) => void
 }
 
 export type BingoClipPlayerHandle = {
-  crossfadeTo: (nextSrc: string, ms?: number) => Promise<void>
+  crossfadeTo: (nextSrc: string, ms?: number) => Promise<boolean>
 }
 
 export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayerProps>(function BingoClipPlayer({
@@ -22,6 +23,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
   autoPlay = true,
   crossfadeSeconds = 4,
   onAutoAdvance,
+  onPlaybackError,
 }: BingoClipPlayerProps, ref) {
   const audioARef = useRef<HTMLAudioElement>(null)
   const audioBRef = useRef<HTMLAudioElement>(null)
@@ -33,7 +35,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
   const sourceARef = useRef<MediaElementAudioSourceNode | null>(null)
   const sourceBRef = useRef<MediaElementAudioSourceNode | null>(null)
   const autoFadeTriggeredRef = useRef(false)
+  const [activeDeck, setActiveDeck] = useState<'a' | 'b'>('a')
+  const onPlaybackErrorRef = useRef(onPlaybackError)
   onAutoAdvanceRef.current = onAutoAdvance
+  onPlaybackErrorRef.current = onPlaybackError
 
   async function ensureGraph(): Promise<boolean> {
     const elA = audioARef.current
@@ -89,27 +94,41 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     return activeRef.current === 'a' ? gainBRef.current : gainARef.current
   }
 
-  async function crossfadeTo(url: string, ms = 4000): Promise<void> {
-    if (!url) return
+  async function playWithReporting(el: HTMLAudioElement): Promise<boolean> {
+    try {
+      await el.play()
+      return true
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Audio playback blocked'
+      onPlaybackErrorRef.current?.(message)
+      return false
+    }
+  }
+
+  async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
+    if (!url) return false
     const ok = await ensureGraph()
-    if (!ok) return
+    if (!ok) return false
     const from = currentAudio()
     const to = standbyAudio()
     const fromGain = currentGain()
     const toGain = standbyGain()
-    if (!from || !to || !fromGain || !toGain) return
+    if (!from || !to || !fromGain || !toGain) return false
     to.src = url
     to.currentTime = 0
     to.load()
     await rampGain(toGain, 0.0001, 0)
-    await to.play().catch(() => {})
+    const started = await playWithReporting(to)
+    if (!started) return false
     await Promise.all([rampGain(fromGain, 0.0001, ms), rampGain(toGain, 1, ms)])
     window.setTimeout(() => {
       from.pause()
       from.currentTime = 0
       activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
+      setActiveDeck(activeRef.current)
       autoFadeTriggeredRef.current = false
     }, ms)
+    return true
   }
 
   useImperativeHandle(ref, () => ({
@@ -129,7 +148,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       await rampGain(curGain, 1, 0)
       await rampGain(sbGain, 0.0001, 0)
       autoFadeTriggeredRef.current = false
-      if (autoPlay) await cur.play().catch(() => {})
+      if (autoPlay) await playWithReporting(cur)
     }
     void init()
   }, [src, playKey, autoPlay])
@@ -144,8 +163,9 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       const remaining = cur.duration - cur.currentTime
       if (remaining <= crossfadeSeconds && remaining > 0) {
         autoFadeTriggeredRef.current = true
-        void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000)))
-        window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
+        void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000))).then((ok) => {
+          if (ok) window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
+        })
       }
     }
     cur.addEventListener('timeupdate', handleTime)
@@ -158,8 +178,18 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
 
   return (
     <div className={className ?? 'w-full'}>
-      <audio ref={audioARef} controls preload="auto" className="w-full" />
-      <audio ref={audioBRef} preload="auto" className="hidden" />
+      <audio
+        ref={audioARef}
+        controls={activeDeck === 'a'}
+        preload="auto"
+        className={activeDeck === 'a' ? 'w-full' : 'hidden'}
+      />
+      <audio
+        ref={audioBRef}
+        controls={activeDeck === 'b'}
+        preload="auto"
+        className={activeDeck === 'b' ? 'w-full' : 'hidden'}
+      />
     </div>
   )
 })

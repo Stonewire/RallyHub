@@ -493,8 +493,7 @@ export function JoinGameView({
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
-    if (state.bingo_state === 'revealed') return
-    if (state.bingo_state !== 'waiting' && state.bingo_state !== 'playing') return
+    if (state.bingo_state !== 'playing') return
     const lockedByHistory = mySubs.some(
       (s) =>
         s.media_type === 'bingo' &&
@@ -516,7 +515,11 @@ export function JoinGameView({
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 
     if (existingPending) {
-      if (existingPending.media_url === String(index)) return
+      if (existingPending.media_url === String(index)) {
+        setBingoPick(null)
+        await supabase.from('submissions').delete().eq('id', existingPending.id)
+        return
+      }
       await supabase
         .from('submissions')
         .update({ media_url: String(index) })
@@ -531,6 +534,7 @@ export function JoinGameView({
         s.media_url === String(index),
     )
     if (existingSameIndex?.status === 'pending') {
+      setBingoPick(null)
       await supabase.from('submissions').delete().eq('id', existingSameIndex.id)
       return
     }
@@ -1029,12 +1033,8 @@ export function JoinGameView({
     const cellLabels = bingoCardQuery.data
       ? bingoCellDisplay(bingoCardQuery.data)
       : bingoCardTitles(teamId, tracks).map((title) => ({ title, artist: '' }))
-    const revealed = state.bingo_state === 'revealed'
+    const roundActive = state.bingo_state === 'playing'
     const playOrder = bingoRunQuery.data?.playOrder ?? []
-    const playTrackId = playOrder[state.current_question_index]
-    const correctIndex = bingoCardQuery.data
-      ? bingoCardQuery.data.findIndex((c) => c.trackId === playTrackId)
-      : -1
     const gameConfig = parseBingoGameConfig(game?.config)
     const winningLines = gameConfig.bingo_winning_lines ?? defaultWinningLines()
     const historicalByIndex = new Map<number, 'approved' | 'rejected'>()
@@ -1053,22 +1053,8 @@ export function JoinGameView({
         historicalByIndex.set(idx, s.status)
       }
     }
-    const markedIndices = mySubs
-      .filter(
-        (s) =>
-          s.media_type === 'bingo' &&
-          s.game_id === stage.gameId &&
-          s.media_url != null &&
-          s.media_url !== 'claim',
-      )
-      .map((s) => Number(s.media_url))
-      .filter((n) => !Number.isNaN(n))
-    const approvedIndices = revealed
-      ? approvedBingoCellIndices(mySubs, stage.gameId)
-      : markedIndices
-    const winningCells = revealed
-      ? cellsOnConfiguredBingoLine(approvedIndices, winningLines)
-      : new Set<number>()
+    const approvedIndices = approvedBingoCellIndices(mySubs, stage.gameId)
+    const winningCells = cellsOnConfiguredBingoLine(approvedIndices, winningLines)
     const playedTrackIds = new Set(
       playOrder.slice(
         0,
@@ -1085,7 +1071,7 @@ export function JoinGameView({
         missedLockedIndices.add(idx)
       })
     }
-    const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
+    const canMark = roundActive
     body = (
       <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
@@ -1110,16 +1096,13 @@ export function JoinGameView({
             } else if (finalStatus === 'rejected') {
               cls = 'bg-red-500/80 text-white rounded-sm'
               disabled = true
-            } else if (missedLockedIndices.has(i) || (revealed && i === correctIndex)) {
+            } else if (missedLockedIndices.has(i)) {
               cls = 'bg-gray-500/70 text-white/90 rounded-sm'
-              disabled = true
-            } else if (revealed) {
-              cls = 'bg-white/10 text-white/40 rounded-sm'
               disabled = true
             }
             if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
             const pickStyle =
-              !revealed && bingoPick === i
+              roundActive && bingoPick === i
                 ? {
                     backgroundColor: STANDBY_ACCENT,
                     color: textOnAccent(STANDBY_ACCENT),
