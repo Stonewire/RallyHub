@@ -451,19 +451,23 @@ export function EventForm({
                         type="checkbox"
                         checked={checked}
                         onChange={() =>
-                          onChange((prev) => ({
-                            ...prev,
-                            stages: prev.stages.map((x) =>
-                              x.id === stage.id
-                                ? {
-                                    ...x,
-                                    gameIds: checked
-                                      ? ids.filter((id) => id !== g.id)
-                                      : [...ids, g.id],
-                                  }
-                                : x,
-                            ),
-                          }))
+                          onChange((prev) => {
+                            const nextGameIds = checked
+                              ? ids.filter((id) => id !== g.id)
+                              : [...ids, g.id]
+                            const nextSelected = checked
+                              ? prev.selectedGameIds.filter((id) => id !== g.id)
+                              : [...new Set([...prev.selectedGameIds, g.id])]
+                            return {
+                              ...prev,
+                              selectedGameIds: nextSelected,
+                              stages: prev.stages.map((x) =>
+                                x.id === stage.id
+                                  ? { ...x, gameIds: nextGameIds }
+                                  : x,
+                              ),
+                            }
+                          })
                         }
                       />
                       {g.name}
@@ -474,16 +478,21 @@ export function EventForm({
             ) : (
               <select
                 value={stage.gameId ?? ''}
-                onChange={(e) =>
-                  onChange((prev) => ({
-                    ...prev,
-                    stages: prev.stages.map((x) =>
-                      x.id === stage.id
-                        ? { ...x, gameId: e.target.value || null }
-                        : x,
-                    ),
-                  }))
-                }
+                onChange={(e) => {
+                  const gameId = e.target.value || null
+                  onChange((prev) => {
+                    const nextIds = gameId
+                      ? [...new Set([...prev.selectedGameIds, gameId])]
+                      : prev.selectedGameIds
+                    return {
+                      ...prev,
+                      selectedGameIds: nextIds,
+                      stages: prev.stages.map((x) =>
+                        x.id === stage.id ? { ...x, gameId } : x,
+                      ),
+                    }
+                  })
+                }}
                 className="border-input bg-background w-full rounded-lg border px-2 py-1.5 text-sm"
               >
                 <option value="">Select game…</option>

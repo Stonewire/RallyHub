@@ -1,3 +1,5 @@
+import { applySubmissionPoints } from '@/lib/apply-submission-points'
+import { parseBingoBonusSubmission } from '@/lib/bingo-submission-url'
 import { bingoBonusMediaType } from '@/lib/live-event'
 import { supabase } from '@/lib/supabase'
 
@@ -13,18 +15,21 @@ export async function scoreBingoBonusRound(params: {
 
   const { data: subs } = await supabase
     .from('submissions')
-    .select('id, media_url, status')
+    .select('id, team_id, media_url, status')
     .eq('event_id', eventId)
     .eq('game_id', gameId)
     .eq('media_type', mediaType)
     .eq('status', 'pending')
 
   for (const sub of subs ?? []) {
-    if (sub.media_url === correctAnswerId) {
+    const { answerId } = parseBingoBonusSubmission(sub.media_url)
+    if (answerId === correctAnswerId) {
+      const points = 2
       await supabase
         .from('submissions')
-        .update({ status: 'approved', points_awarded: 2 })
+        .update({ status: 'approved', points_awarded: points })
         .eq('id', sub.id)
+      await applySubmissionPoints(sub.team_id, points)
     } else {
       await supabase.from('submissions').update({ status: 'rejected' }).eq('id', sub.id)
     }

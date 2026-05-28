@@ -25,6 +25,7 @@ import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import {
+  collectEventGameIds,
   emptyEventForm,
   eventToFormValues,
   type EventFormValues,
@@ -99,7 +100,7 @@ export function AdminEventEditPage() {
           display_layout: values.displayLayout,
           display_text_color: values.displayTextColor,
         },
-        gameIds: values.selectedGameIds,
+        gameIds: collectEventGameIds(values.selectedGameIds, values.stages),
       })
       navigate('/admin/events', { replace: true })
     } catch (err) {

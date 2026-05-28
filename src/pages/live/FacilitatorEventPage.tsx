@@ -26,6 +26,7 @@ import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
 import { BINGO_CLAIM_MARK, evaluateBingoClaims } from '@/lib/bingo-claims'
 import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
 import { advanceBingoTrack } from '@/lib/bingo-round-advance'
+import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import { revealBingoWinner } from '@/lib/reveal-bingo-winner'
 import {
@@ -997,6 +998,11 @@ export function FacilitatorEventPage() {
                 </div>
               ) : null}
               <p className="text-muted-foreground text-xs">
+                {bingoRunQuery.data
+                  ? `Run active · ${bingoRunQuery.data.playOrder.length} songs in script`
+                  : 'No bingo run — switch to this stage to activate'}
+              </p>
+              <p className="text-muted-foreground text-xs">
                 Now playing {bingoPlayIndex + 1}
                 {bingoPlayOrder.length > 0 ? ` / ${bingoPlayOrder.length}` : ''}
                 {liveState.bingo_state === 'active' ? ' · playing' : ''}
@@ -1105,6 +1111,31 @@ export function FacilitatorEventPage() {
                   </ul>
                 </div>
               ) : null}
+              <FacilitatorButton
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!eventId || !stage.gameId) return
+                  const ok = window.confirm(
+                    'Restart bingo for this stage? New cards and a new secret winner. Clears all marks for this game.',
+                  )
+                  if (!ok) return
+                  void restartBingoRun(eventId, stage.gameId, liveState.current_stage_index)
+                    .then(() => {
+                      notify('Bingo run restarted')
+                      void patchState({
+                        current_question_index: 0,
+                        bingo_state: 'waiting',
+                        bingo_bonus_id: null,
+                      })
+                    })
+                    .catch((err) =>
+                      notify(err instanceof Error ? err.message : 'Restart failed'),
+                    )
+                }}
+              >
+                Restart bingo run
+              </FacilitatorButton>
               <FacilitatorButton
                 size="sm"
                 variant="outline"

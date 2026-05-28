@@ -103,6 +103,19 @@ export function eventToFormValues(
   }
 }
 
+/** All game ids needed for live bundle (selected + referenced in stages). */
+export function collectEventGameIds(
+  selectedGameIds: string[],
+  stages: EventStage[],
+): string[] {
+  const ids = new Set(selectedGameIds)
+  for (const stage of stages) {
+    if (stage.gameId) ids.add(stage.gameId)
+    for (const id of stage.gameIds ?? []) ids.add(id)
+  }
+  return [...ids]
+}
+
 export function emptyEventForm(): EventFormValues {
   return {
     name: '',

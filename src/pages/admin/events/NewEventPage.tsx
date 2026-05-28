@@ -15,7 +15,11 @@ import { useGameGroups } from '@/hooks/use-game-groups'
 import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
-import { emptyEventForm, type EventFormValues } from '@/lib/event-form-utils'
+import {
+  collectEventGameIds,
+  emptyEventForm,
+  type EventFormValues,
+} from '@/lib/event-form-utils'
 import type { EventStatus } from '@/types/database'
 
 function qrUrl(link: string) {
@@ -87,7 +91,7 @@ export function AdminEventsNewPage() {
           display_layout: values.displayLayout,
           display_text_color: values.displayTextColor,
         },
-        gameIds: values.selectedGameIds,
+        gameIds: collectEventGameIds(values.selectedGameIds, values.stages),
       })
       setStatusPrompt({ eventId: row.id })
     } catch (err) {

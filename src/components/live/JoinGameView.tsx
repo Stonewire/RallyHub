@@ -20,6 +20,10 @@ import {
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import { approvedBingoCellIndices, cellsOnBingoLine } from '@/lib/bingo-lines'
 import { BINGO_CLAIM_MARK, teamHasBingoClaim } from '@/lib/bingo-claims'
+import {
+  encodeBingoBonusSubmission,
+  parseBingoBonusSubmission,
+} from '@/lib/bingo-submission-url'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   bingoBonusChallenge,
@@ -104,6 +108,8 @@ export function JoinGameView({
   const [quizLocked, setQuizLocked] = useState(false)
   const quizChangeDeadlineRef = useRef<number | null>(null)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
+  const [bonusAnswerId, setBonusAnswerId] = useState<string | null>(null)
+  const [bonusCaptureFile, setBonusCaptureFile] = useState<File | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const { notify } = useNotification()
@@ -257,8 +263,12 @@ export function JoinGameView({
       if (seenApprovedIds.current.has(s.id)) continue
       seenApprovedIds.current.add(s.id)
       const game = games.find((g) => g.id === s.game_id)
-      if (!game || game.type === 'quiz' || game.type === 'music_bingo') continue
-      notify(`+${s.points_awarded} pts — ${game.name}`)
+      if (!game || game.type === 'quiz') continue
+      if (game.type === 'music_bingo') {
+        notify(`+${s.points_awarded} pts — Music bingo`)
+      } else {
+        notify(`+${s.points_awarded} pts — ${game.name}`)
+      }
     }
   }, [submissions, teamId, games, notify])
 
@@ -353,25 +363,44 @@ export function JoinGameView({
     answerId: string,
     gameId: string,
     challengeId: string,
+    challenge: { mediaType: 'photo' | 'video' },
+    proofFile?: File | null,
   ) {
     if (state.bingo_state !== 'bonus') return
+    if (challenge.mediaType === 'photo' || challenge.mediaType === 'video') {
+      if (!proofFile) {
+        notify('Add a photo or video first')
+        return
+      }
+    }
+    let proofUrl: string | null = null
+    if (proofFile) {
+      proofUrl = await uploadAsset(
+        'game-assets',
+        `${event.organization_id}/bingo-bonus/${crypto.randomUUID()}-${proofFile.name}`,
+        proofFile,
+      )
+    }
+    const mediaUrl = encodeBingoBonusSubmission(answerId, proofUrl)
     const mediaType = bingoBonusMediaType(challengeId)
     const existing = mySubs.find(
       (s) => s.media_type === mediaType && s.game_id === gameId,
     )
     if (existing) {
-      await supabase.from('submissions').update({ media_url: answerId }).eq('id', existing.id)
+      await supabase.from('submissions').update({ media_url: mediaUrl }).eq('id', existing.id)
     } else {
       await supabase.from('submissions').insert({
         event_id: event.id,
         team_id: teamId,
         game_id: gameId,
-        media_url: answerId,
+        media_url: mediaUrl,
         media_type: mediaType,
         status: 'pending',
       })
     }
+    setBonusCaptureFile(null)
     playSubmitSound()
+    notify('Bonus answer submitted')
   }
 
   async function submitBingoClaim(gameId: string) {
@@ -839,18 +868,82 @@ export function JoinGameView({
       const existing = mySubs.find(
         (s) => s.media_type === mediaType && s.game_id === stage.gameId,
       )
+      const parsed = parseBingoBonusSubmission(existing?.media_url ?? null)
+      const locked = bonusRevealed || Boolean(existing)
+      const needsMedia =
+        bonusChallenge.mediaType === 'photo' || bonusChallenge.mediaType === 'video'
       body = (
-        <BingoBonusPanel
-          challenge={bonusChallenge}
-          accentColor={accent}
-          revealed={bonusRevealed}
-          selectedAnswerId={null}
-          locked={bonusRevealed || Boolean(existing)}
-          existingAnswerId={existing?.media_url}
-          onSelect={(answerId) =>
-            void submitBingoBonusAnswer(answerId, stage.gameId!, bonusChallenge.id)
-          }
-        />
+        <div className="mx-auto max-w-lg px-4 pb-24">
+          <BingoBonusPanel
+            challenge={bonusChallenge}
+            accentColor={accent}
+            revealed={bonusRevealed}
+            selectedAnswerId={bonusAnswerId}
+            locked={locked}
+            existingAnswerId={parsed.answerId || null}
+            onSelect={(answerId) => setBonusAnswerId(answerId)}
+          />
+          {parsed.mediaProofUrl && bonusRevealed ? (
+            bonusChallenge.mediaType === 'video' ? (
+              <video
+                src={parsed.mediaProofUrl}
+                controls
+                className="mt-4 w-full rounded-lg"
+              />
+            ) : (
+              <img
+                src={parsed.mediaProofUrl}
+                alt=""
+                className="mt-4 w-full rounded-lg"
+              />
+            )
+          ) : null}
+          {!locked && needsMedia ? (
+            <div className="mt-4 space-y-3">
+              {bonusChallenge.mediaType === 'video' ? (
+                <VideoChallengeCapture
+                  config={(game?.config as GameConfig) ?? {}}
+                  accentColor={accent}
+                  disabled={submitting}
+                  onFileReady={setBonusCaptureFile}
+                />
+              ) : (
+                <PhotoChallengeCapture
+                  accentColor={accent}
+                  disabled={submitting}
+                  onFileReady={setBonusCaptureFile}
+                />
+              )}
+            </div>
+          ) : null}
+          {!locked && bonusAnswerId ? (
+            <LiveAccentButton
+              accentColor={accent}
+              className="mt-6 w-full"
+              disabled={submitting || (needsMedia && !bonusCaptureFile)}
+              onClick={() =>
+                void submitBingoBonusAnswer(
+                  bonusAnswerId,
+                  stage.gameId!,
+                  bonusChallenge.id,
+                  bonusChallenge,
+                  bonusCaptureFile,
+                )
+              }
+            >
+              Submit bonus answer
+            </LiveAccentButton>
+          ) : null}
+        </div>
+      )
+    } else if (!bingoRunQuery.data && !bingoCardQuery.data) {
+      body = (
+        <div className="mx-auto max-w-lg px-6 py-20 text-center">
+          <p className="text-lg font-bold text-white">{game?.name ?? 'Music Bingo'}</p>
+          <p className="mt-4 text-white/70">
+            Waiting for the facilitator to start this round…
+          </p>
+        </div>
       )
     } else {
     const tracks = game ? bingoTracks(game) : []
@@ -901,6 +994,7 @@ export function JoinGameView({
                   : 'bg-red-500/80 text-white'
             else if (revealed) cls = 'bg-white/10 text-white/50'
             if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
+            else if (sub?.status === 'pending') cls = 'ring-2 ring-white/50 bg-white/30'
             else if (bingoPick === i) cls = 'font-semibold'
             const pickStyle =
               bingoPick === i && !revealed
