@@ -2,141 +2,164 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 
 type BingoClipPlayerProps = {
   src: string
+  nextSrc?: string
   playKey: string
   className?: string
-  /** When true, auto-play on mount/key change. */
   autoPlay?: boolean
-  onEnded?: () => void
-  autoAdvanceEnabled?: boolean
-  autoFadeSeconds?: number
+  crossfadeSeconds?: number
   onAutoAdvance?: () => void
 }
 
 export type BingoClipPlayerHandle = {
-  fadeOutAndStop: (ms?: number) => Promise<void>
-  runRevealReplay: (opts?: { fadeMs?: number; onDone?: () => void }) => Promise<void>
+  crossfadeTo: (nextSrc: string, ms?: number) => Promise<void>
 }
 
 export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayerProps>(function BingoClipPlayer({
   src,
+  nextSrc,
   playKey,
   className,
   autoPlay = true,
-  onEnded,
-  autoAdvanceEnabled = true,
-  autoFadeSeconds = 3,
+  crossfadeSeconds = 4,
   onAutoAdvance,
 }: BingoClipPlayerProps, ref) {
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const onEndedRef = useRef(onEnded)
+  const audioARef = useRef<HTMLAudioElement>(null)
+  const audioBRef = useRef<HTMLAudioElement>(null)
+  const activeRef = useRef<'a' | 'b'>('a')
   const onAutoAdvanceRef = useRef(onAutoAdvance)
   const audioCtxRef = useRef<AudioContext | null>(null)
-  const gainRef = useRef<GainNode | null>(null)
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
+  const gainARef = useRef<GainNode | null>(null)
+  const gainBRef = useRef<GainNode | null>(null)
+  const sourceARef = useRef<MediaElementAudioSourceNode | null>(null)
+  const sourceBRef = useRef<MediaElementAudioSourceNode | null>(null)
   const autoFadeTriggeredRef = useRef(false)
-  onEndedRef.current = onEnded
   onAutoAdvanceRef.current = onAutoAdvance
 
-  async function ensureGraph(el: HTMLAudioElement): Promise<GainNode | null> {
+  async function ensureGraph(): Promise<boolean> {
+    const elA = audioARef.current
+    const elB = audioBRef.current
+    if (!elA || !elB) return false
     if (!audioCtxRef.current) audioCtxRef.current = new AudioContext()
     const ctx = audioCtxRef.current
-    if (!gainRef.current) {
-      gainRef.current = ctx.createGain()
-      gainRef.current.connect(ctx.destination)
+    if (!gainARef.current) {
+      gainARef.current = ctx.createGain()
+      gainARef.current.connect(ctx.destination)
     }
-    if (!sourceRef.current) {
-      sourceRef.current = ctx.createMediaElementSource(el)
-      sourceRef.current.connect(gainRef.current)
+    if (!gainBRef.current) {
+      gainBRef.current = ctx.createGain()
+      gainBRef.current.connect(ctx.destination)
+    }
+    if (!sourceARef.current) {
+      sourceARef.current = ctx.createMediaElementSource(elA)
+      sourceARef.current.connect(gainARef.current)
+    }
+    if (!sourceBRef.current) {
+      sourceBRef.current = ctx.createMediaElementSource(elB)
+      sourceBRef.current.connect(gainBRef.current)
     }
     if (ctx.state === 'suspended') await ctx.resume().catch(() => {})
-    return gainRef.current
+    return true
   }
 
-  async function fadeGain(target: number, ms: number) {
-    const el = audioRef.current
-    if (!el) return
-    const gain = await ensureGraph(el)
+  async function rampGain(gain: GainNode | null, target: number, ms: number) {
+    if (!gain) return
+    await ensureGraph()
     const ctx = audioCtxRef.current
-    if (!gain || !ctx) return
+    if (!ctx) return
     const now = ctx.currentTime
     gain.gain.cancelScheduledValues(now)
-    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now)
+    gain.gain.setValueAtTime(Math.max(0, gain.gain.value), now)
+    if (ms <= 0) {
+      gain.gain.setValueAtTime(Math.max(0, target), now)
+      return
+    }
     gain.gain.linearRampToValueAtTime(Math.max(0.0001, target), now + ms / 1000)
   }
 
-  async function fadeOutAndStop(ms = 2500): Promise<void> {
-    const el = audioRef.current
-    if (!el) return
-    await fadeGain(0.0001, ms)
-    await new Promise((resolve) => window.setTimeout(resolve, ms))
-    el.pause()
+  function currentAudio() {
+    return activeRef.current === 'a' ? audioARef.current : audioBRef.current
+  }
+  function standbyAudio() {
+    return activeRef.current === 'a' ? audioBRef.current : audioARef.current
+  }
+  function currentGain() {
+    return activeRef.current === 'a' ? gainARef.current : gainBRef.current
+  }
+  function standbyGain() {
+    return activeRef.current === 'a' ? gainBRef.current : gainARef.current
   }
 
-  async function runRevealReplay(opts?: { fadeMs?: number; onDone?: () => void }) {
-    const el = audioRef.current
-    if (!el) return
-    const fadeMs = opts?.fadeMs ?? 2500
-    await fadeOutAndStop(fadeMs)
-    el.currentTime = 0
-    await fadeGain(1, fadeMs)
-    await el.play().catch(() => {})
-    const onTime = () => {
-      if (!el.duration || Number.isNaN(el.duration)) return
-      if (el.duration - el.currentTime <= 2.8) {
-        el.removeEventListener('timeupdate', onTime)
-        void fadeGain(0.0001, fadeMs)
-      }
-    }
-    el.addEventListener('timeupdate', onTime)
-    const done = () => {
-      el.removeEventListener('ended', done)
-      opts?.onDone?.()
-    }
-    el.addEventListener('ended', done)
+  async function crossfadeTo(url: string, ms = 4000): Promise<void> {
+    if (!url) return
+    const ok = await ensureGraph()
+    if (!ok) return
+    const from = currentAudio()
+    const to = standbyAudio()
+    const fromGain = currentGain()
+    const toGain = standbyGain()
+    if (!from || !to || !fromGain || !toGain) return
+    to.src = url
+    to.currentTime = 0
+    to.load()
+    await rampGain(toGain, 0.0001, 0)
+    await to.play().catch(() => {})
+    await Promise.all([rampGain(fromGain, 0.0001, ms), rampGain(toGain, 1, ms)])
+    window.setTimeout(() => {
+      from.pause()
+      from.currentTime = 0
+      activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
+      autoFadeTriggeredRef.current = false
+    }, ms)
   }
 
   useImperativeHandle(ref, () => ({
-    fadeOutAndStop,
-    runRevealReplay,
+    crossfadeTo,
   }))
 
   useEffect(() => {
-    const el = audioRef.current
-    if (!el || !src) return
-    const handleEnded = () => onEndedRef.current?.()
+    const init = async () => {
+      const ok = await ensureGraph()
+      if (!ok) return
+      const cur = currentAudio()
+      const curGain = currentGain()
+      const sbGain = standbyGain()
+      if (!cur || !curGain || !sbGain) return
+      cur.src = src
+      cur.load()
+      await rampGain(curGain, 1, 0)
+      await rampGain(sbGain, 0.0001, 0)
+      autoFadeTriggeredRef.current = false
+      if (autoPlay) await cur.play().catch(() => {})
+    }
+    void init()
+  }, [src, playKey, autoPlay])
+
+  useEffect(() => {
+    const cur = currentAudio()
+    if (!cur) return
     const handleTime = () => {
-      if (!autoAdvanceEnabled || autoFadeTriggeredRef.current) return
-      if (!el.duration || Number.isNaN(el.duration)) return
-      const remaining = el.duration - el.currentTime
-      if (remaining <= autoFadeSeconds && remaining > 0) {
+      if (autoFadeTriggeredRef.current) return
+      if (!nextSrc) return
+      if (!cur.duration || Number.isNaN(cur.duration)) return
+      const remaining = cur.duration - cur.currentTime
+      if (remaining <= crossfadeSeconds && remaining > 0) {
         autoFadeTriggeredRef.current = true
-        void fadeGain(0.0001, Math.max(300, Math.floor(remaining * 1000)))
-        window.setTimeout(() => {
-          onAutoAdvanceRef.current?.()
-        }, Math.max(100, Math.floor(remaining * 1000)))
+        void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000)))
+        window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
       }
     }
-    el.addEventListener('ended', handleEnded)
-    el.addEventListener('timeupdate', handleTime)
-    el.load()
-    autoFadeTriggeredRef.current = false
-    if (autoPlay) void el.play().catch(() => {})
+    cur.addEventListener('timeupdate', handleTime)
     return () => {
-      el.removeEventListener('ended', handleEnded)
-      el.removeEventListener('timeupdate', handleTime)
+      cur.removeEventListener('timeupdate', handleTime)
     }
-  }, [src, playKey, autoPlay, autoAdvanceEnabled, autoFadeSeconds])
+  }, [nextSrc, crossfadeSeconds, playKey, src])
 
   if (!src) return null
 
   return (
-    <audio
-      ref={audioRef}
-      key={playKey}
-      src={src}
-      controls
-      className={className ?? 'w-full'}
-      preload="auto"
-    />
+    <div className={className ?? 'w-full'}>
+      <audio ref={audioARef} controls preload="auto" className="w-full" />
+      <audio ref={audioBRef} preload="auto" className="hidden" />
+    </div>
   )
 })

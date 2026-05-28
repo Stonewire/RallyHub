@@ -1069,9 +1069,25 @@ export function JoinGameView({
     const winningCells = revealed
       ? cellsOnConfiguredBingoLine(approvedIndices, winningLines)
       : new Set<number>()
+    const playedTrackIds = new Set(
+      playOrder.slice(
+        0,
+        state.bingo_state === 'ended'
+          ? Math.min(playOrder.length, state.current_question_index + 1)
+          : Math.min(playOrder.length, state.current_question_index),
+      ),
+    )
+    const missedLockedIndices = new Set<number>()
+    if (bingoCardQuery.data) {
+      bingoCardQuery.data.forEach((cell, idx) => {
+        if (!playedTrackIds.has(cell.trackId)) return
+        if (historicalByIndex.has(idx)) return
+        missedLockedIndices.add(idx)
+      })
+    }
     const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
     body = (
-      <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pb-2">
+      <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="min-w-0 flex items-center gap-2">
             {logo ? (
@@ -1083,7 +1099,7 @@ export function JoinGameView({
             {team.score} pts
           </p>
         </div>
-        <div className="grid h-[calc(100%-34px)] grid-cols-5 grid-rows-5 gap-1">
+        <div className="grid h-[calc(100%-58px)] grid-cols-5 grid-rows-5 gap-1">
           {cellLabels.map((cell, i) => {
             const finalStatus = historicalByIndex.get(i)
             let cls = 'bg-white/20 text-white rounded-sm'
@@ -1094,7 +1110,7 @@ export function JoinGameView({
             } else if (finalStatus === 'rejected') {
               cls = 'bg-red-500/80 text-white rounded-sm'
               disabled = true
-            } else if (revealed && i === correctIndex) {
+            } else if (missedLockedIndices.has(i) || (revealed && i === correctIndex)) {
               cls = 'bg-gray-500/70 text-white/90 rounded-sm'
               disabled = true
             } else if (revealed) {
@@ -1130,6 +1146,12 @@ export function JoinGameView({
             )
           })}
         </div>
+        <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-white/85 sm:text-xs">
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFCB03]" />Your selection</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-green-500" />Correct</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-red-500" />Wrong</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-gray-500" />Missed</span>
+        </div>
       </div>
     )
     }
@@ -1149,7 +1171,7 @@ export function JoinGameView({
       event={event}
       organization={organization}
       variant="default"
-      className="flex min-h-dvh flex-col"
+      className="flex min-h-dvh flex-col pt-3 pb-20"
     >
       <NotificationAccentSync color={accent} />
       {!selectedGame ? (
@@ -1157,7 +1179,7 @@ export function JoinGameView({
           type="button"
           variant="outline"
           size="icon"
-          className="fixed top-3 left-3 z-40 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+          className="fixed right-4 bottom-4 z-40 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
           onClick={() => void handleExitTeam()}
           aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
         >
@@ -1167,7 +1189,7 @@ export function JoinGameView({
       {header}
       <div className="flex-1 min-h-0">{body}</div>
       <Button
-        className="fixed right-4 bottom-4 z-40 relative size-12 rounded-full shadow-lg hover:brightness-95"
+        className="fixed bottom-4 left-4 z-40 relative size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
         style={{ backgroundColor: accent, color: onAccent }}
         onClick={() => {

@@ -2,22 +2,17 @@ import confetti from 'canvas-confetti'
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
-import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
-import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { bingoSongProgress } from '@/lib/bingo-facilitator'
 import { playWinnerSound } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
-  bingoBonusChallenge,
-  bingoTracks,
   currentStage,
   breakDurationSeconds,
   displayTextClass,
@@ -44,11 +39,6 @@ export function DisplayEventPage() {
     [bundle],
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
-
-  const bingoRunQuery = useBingoRun(
-    eventId,
-    stage?.type === 'bingo' ? bundle?.state.current_stage_index : undefined,
-  )
 
   const timerSyncRef = useMemo(
     () =>
@@ -167,34 +157,6 @@ export function DisplayEventPage() {
       ? quizLeaderboard(teams, submissions, stage.gameId)
       : []
 
-  const bingoGame = stage?.type === 'bingo' && stage.gameId
-    ? games.find((g) => g.id === stage.gameId)
-    : null
-  const tracks = bingoGame ? bingoTracks(bingoGame) : []
-  const trackIdx = state.current_question_index
-  const bingoPlayOrder = bingoRunQuery.data?.playOrder ?? []
-  const playTrackId = bingoPlayOrder[trackIdx]
-  const track = playTrackId
-    ? tracks.find((t) => t.id === playTrackId) ?? tracks[trackIdx]
-    : tracks[trackIdx]
-  const bingoSubs = (() => {
-    const all = submissions.filter(
-      (s) =>
-        s.media_type === 'bingo' &&
-        s.game_id === stage?.gameId &&
-        s.media_url != null &&
-        s.media_url !== 'claim',
-    )
-    const latestByTeam = new Map<string, (typeof all)[number]>()
-    for (const sub of all) {
-      const prev = latestByTeam.get(sub.team_id)
-      if (!prev || sub.created_at > prev.created_at) {
-        latestByTeam.set(sub.team_id, sub)
-      }
-    }
-    return [...latestByTeam.values()]
-  })()
-
   let body: ReactNode
 
   if (state.winner_reveal_stage === 1) {
@@ -213,7 +175,7 @@ export function DisplayEventPage() {
         Event starting soon…
       </p>
     )
-  } else if (!stage || stage.type === 'open') {
+  } else if (!stage || stage.type === 'open' || stage.type === 'bingo') {
     body = (
       <Leaderboard
         teams={teams}
@@ -328,120 +290,6 @@ export function DisplayEventPage() {
             )
           })}
         </ul>
-      </div>
-    )
-  } else if (
-    stage.type === 'bingo' &&
-    bingoGame &&
-    (state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed')
-  ) {
-    const bonus = bingoBonusChallenge(bingoGame, state.bingo_bonus_id)
-    body = bonus ? (
-      <div className={textClass}>
-        <BingoBonusPanel
-          challenge={bonus}
-          accentColor={STANDBY_ACCENT}
-          revealed={state.bingo_state === 'bonus_revealed'}
-          selectedAnswerId={null}
-          locked
-          existingAnswerId={null}
-          onSelect={() => {}}
-          large
-        />
-        <ul className="mt-8 flex flex-wrap justify-center gap-2">
-          {submissions
-            .filter(
-              (s) =>
-                s.game_id === stage.gameId &&
-                s.media_type?.startsWith('bingo-bonus:'),
-            )
-            .map((s) => {
-              const team = teams.find((t) => t.id === s.team_id)
-              if (!team?.name) return null
-              const ok = state.bingo_state === 'bonus_revealed' && s.status === 'approved'
-              const bad = state.bingo_state === 'bonus_revealed' && s.status === 'rejected'
-              return (
-                <li
-                  key={s.id}
-                  className={`rounded-full px-3 py-1 text-sm ${
-                    ok ? 'bg-green-600/80' : bad ? 'bg-red-600/80' : 'bg-white/15'
-                  }`}
-                >
-                  {team.name}
-                </li>
-              )
-            })}
-        </ul>
-      </div>
-    ) : (
-      <p className={`text-center font-display text-3xl font-bold ${textClass}`}>
-        Bonus challenge…
-      </p>
-    )
-  } else if (stage.type === 'bingo' && bingoGame && state.bingo_state === 'waiting') {
-    body = (
-      <div className={`text-center ${textClass}`}>
-        <p className="font-display text-2xl font-bold text-white md:text-4xl">
-          Get ready for
-        </p>
-        <p className="font-display mt-4 text-4xl font-bold text-white md:text-6xl">
-          {bingoGame.name}
-        </p>
-        <p className="font-display mt-2 text-2xl font-bold text-white opacity-90 md:text-4xl">
-          Music Bingo
-        </p>
-      </div>
-    )
-  } else if (stage.type === 'bingo') {
-    const showWaves =
-      state.bingo_state === 'playing' || state.bingo_state === 'active'
-    body = (
-      <div className={`flex flex-col items-center justify-center ${textClass}`}>
-        {bingoPlayOrder.length > 0 ? (
-          <p className="font-display mb-6 text-xl font-semibold tabular-nums opacity-80 md:text-2xl">
-            {bingoSongProgress(trackIdx, bingoPlayOrder.length)}
-          </p>
-        ) : null}
-        {showWaves ? (
-          <div className="mb-12 flex h-40 items-end justify-center gap-1.5">
-            {Array.from({ length: 16 }).map((_, i) => (
-              <div
-                key={i}
-                className="w-4 animate-pulse rounded-t bg-white/70"
-                style={{
-                  height: `${24 + Math.sin(Date.now() / 180 + i * 0.7) * 56}px`,
-                  animationDelay: `${i * 40}ms`,
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-        {state.bingo_state === 'revealed' && track ? (
-          <>
-            <p className="font-display text-4xl font-bold md:text-6xl">{track.title}</p>
-            <p className="mt-2 font-display text-2xl opacity-70 md:text-4xl">
-              {track.artist}
-            </p>
-            <ul className="mt-8 flex flex-wrap justify-center gap-2">
-              {bingoSubs.map((s) => {
-                const team = teams.find((t) => t.id === s.team_id)
-                const ok = s.status === 'approved'
-                const bad = s.status === 'rejected'
-                if (!team?.name || (!ok && !bad)) return null
-                return (
-                  <li
-                    key={s.id}
-                    className={`rounded-full px-3 py-1 text-sm ${
-                      ok ? 'bg-green-600/80' : 'bg-red-600/80'
-                    }`}
-                  >
-                    {team.name}
-                  </li>
-                )
-              })}
-            </ul>
-          </>
-        ) : null}
       </div>
     )
   } else if (stage.type === 'break') {
