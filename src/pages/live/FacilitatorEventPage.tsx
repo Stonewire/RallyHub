@@ -51,6 +51,11 @@ import {
 } from '@/lib/live-event'
 import { getEventLinks } from '@/lib/event-links'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
+import {
+  playAnnouncementSound,
+  playNewMessageSound,
+  playNewSubmissionSound,
+} from '@/lib/sounds'
 import type { GameConfig } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
@@ -289,6 +294,40 @@ export function FacilitatorEventPage() {
     if (subTab === 'all') return true
     return s.status === subTab
   })
+  const seenPendingSubmissionIdsRef = useRef<Set<string> | null>(null)
+  const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
+
+  useEffect(() => {
+    const pendingIds = submissions
+      .filter(
+        (s) =>
+          s.status === 'pending' &&
+          (s.media_type === 'photo' || s.media_type === 'video'),
+      )
+      .map((s) => s.id)
+    if (seenPendingSubmissionIdsRef.current === null) {
+      seenPendingSubmissionIdsRef.current = new Set(pendingIds)
+      return
+    }
+    for (const id of pendingIds) {
+      if (seenPendingSubmissionIdsRef.current.has(id)) continue
+      seenPendingSubmissionIdsRef.current.add(id)
+      playNewSubmissionSound()
+    }
+  }, [submissions])
+
+  useEffect(() => {
+    const incoming = messages.filter((m) => Boolean(m.team_id)).map((m) => m.id)
+    if (seenTeamMessageIdsRef.current === null) {
+      seenTeamMessageIdsRef.current = new Set(incoming)
+      return
+    }
+    for (const id of incoming) {
+      if (seenTeamMessageIdsRef.current.has(id)) continue
+      seenTeamMessageIdsRef.current.add(id)
+      playNewMessageSound()
+    }
+  }, [messages])
 
   async function clearAnnouncement() {
     if (annClearRef.current) {
@@ -300,6 +339,7 @@ export function FacilitatorEventPage() {
 
   function sendAnnouncement(target: 'display' | 'participants' | 'both') {
     if (annClearRef.current) window.clearTimeout(annClearRef.current)
+    playAnnouncementSound()
     void patchState({
       announcement,
       announcement_target: target,

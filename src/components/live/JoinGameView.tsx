@@ -56,7 +56,16 @@ import {
 } from '@/lib/live-event'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { playSubmitSound } from '@/lib/sounds'
+import {
+  playAnnouncementSound,
+  playNewMessageSound,
+  playPushNotificationSound,
+  playQuizCorrectSound,
+  playQuizSelectSound,
+  playQuizTimerWarningSound,
+  playQuizWrongSound,
+  playSubmitSound,
+} from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
@@ -118,6 +127,7 @@ export function JoinGameView({
   const [cancelling, setCancelling] = useState(false)
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   const breakSyncRef = useRef(
     createThrottledTimerSync(() => {
@@ -155,6 +165,7 @@ export function JoinGameView({
     () => messages.filter((m) => m.team_id == null || m.team_id === teamId),
     [messages, teamId],
   )
+  const seenIncomingMessageIdsRef = useRef<Set<string> | null>(null)
 
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
@@ -207,6 +218,12 @@ export function JoinGameView({
   }, [state.quiz_state])
 
   useEffect(() => {
+    if (state.quiz_state !== 'active') return
+    if (quizTimerDisplay >= 5 || quizTimerDisplay <= 0) return
+    playQuizTimerWarningSound()
+  }, [quizTimerDisplay, state.quiz_state])
+
+  useEffect(() => {
     if (stage?.type !== 'bingo' || !stage.gameId) return
     const existing = mySubs.find(
       (s) => s.media_type === 'bingo' && s.game_id === stage.gameId,
@@ -215,6 +232,30 @@ export function JoinGameView({
       setBingoPick(Number(existing.media_url))
     }
   }, [stage?.type, stage?.gameId, mySubs])
+
+  useEffect(() => {
+    if (chatOpen) setUnreadMessages(0)
+  }, [chatOpen])
+
+  useEffect(() => {
+    const incoming = visibleMessages
+      .filter((m) => m.team_id === teamId && m.sender !== (team.name ?? 'Team'))
+      .map((m) => m.id)
+    if (seenIncomingMessageIdsRef.current === null) {
+      seenIncomingMessageIdsRef.current = new Set(incoming)
+      return
+    }
+    let newCount = 0
+    for (const id of incoming) {
+      if (seenIncomingMessageIdsRef.current.has(id)) continue
+      seenIncomingMessageIdsRef.current.add(id)
+      newCount++
+      playNewMessageSound()
+    }
+    if (newCount > 0 && !chatOpen) {
+      setUnreadMessages((n) => n + newCount)
+    }
+  }, [visibleMessages, teamId, team.name, chatOpen])
 
   async function handleExitTeam() {
     if (!organization?.id) return
@@ -269,8 +310,10 @@ export function JoinGameView({
       const game = games.find((g) => g.id === s.game_id)
       if (!game || game.type === 'quiz') continue
       if (game.type === 'music_bingo') {
+        playPushNotificationSound()
         notify(`+${s.points_awarded} pts — Music bingo`)
       } else {
+        playPushNotificationSound()
         notify(`+${s.points_awarded} pts — ${game.name}`)
       }
     }
@@ -284,8 +327,37 @@ export function JoinGameView({
     const game = games.find((g) => g.id === rejected.game_id)
     if (!game || game.type === 'quiz' || game.type === 'music_bingo') return
     lastRejectedId.current = rejected.id
+    playPushNotificationSound()
     notify(`${game.name} was not approved`)
   }, [submissions, teamId, games, notify])
+
+  const lastAnnouncementRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!announcement) {
+      lastAnnouncementRef.current = null
+      return
+    }
+    if (announcement !== lastAnnouncementRef.current) {
+      lastAnnouncementRef.current = announcement
+      playAnnouncementSound()
+    }
+  }, [announcement])
+
+  const lastQuizRevealKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (state.quiz_state !== 'revealed' || !currentQuizQ) return
+    const key = `${stage?.gameId ?? 'quiz'}:${state.current_question_index}`
+    if (lastQuizRevealKeyRef.current === key) return
+    lastQuizRevealKeyRef.current = key
+    const isCorrect =
+      mySubs.find(
+        (s) =>
+          s.media_type === quizSubmissionMediaType(currentQuizQ.id) &&
+          s.game_id === stage?.gameId,
+      )?.media_url === currentQuizQ.correctAnswerId
+    if (isCorrect) playQuizCorrectSound()
+    else playQuizWrongSound()
+  }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
 
   async function submitOpenGame(fileOverride?: File) {
     const file = fileOverride ?? captureFile
@@ -348,7 +420,7 @@ export function JoinGameView({
       })
     }
     setQuizAnswer(answerId)
-    playSubmitSound()
+    playQuizSelectSound()
   }
 
   async function cancelPendingSubmission(subId: string) {
@@ -1029,12 +1101,20 @@ export function JoinGameView({
       {header}
       <div className="flex-1 min-h-0">{body}</div>
       <Button
-        className="fixed bottom-4 right-4 size-12 rounded-full shadow-lg hover:brightness-95"
+        className="fixed bottom-4 right-4 relative size-12 rounded-full shadow-lg hover:brightness-95"
         size="icon"
         style={{ backgroundColor: accent, color: onAccent }}
-        onClick={() => setChatOpen(true)}
+        onClick={() => {
+          setChatOpen(true)
+          setUnreadMessages(0)
+        }}
       >
         <MessageCircle className="size-5" />
+        {unreadMessages > 0 ? (
+          <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
+            {unreadMessages > 9 ? '9+' : unreadMessages}
+          </span>
+        ) : null}
       </Button>
       {chatOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md">
@@ -1061,7 +1141,7 @@ export function JoinGameView({
           </ul>
           <div className="flex gap-2 border-t border-white/15 p-4">
             <input
-              className="flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50"
+              className="flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
               placeholder="Message…"
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
