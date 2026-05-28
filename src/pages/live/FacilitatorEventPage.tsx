@@ -23,7 +23,9 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
+import { BINGO_CLAIM_MARK, evaluateBingoClaims } from '@/lib/bingo-claims'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
+import { revealBingoWinner } from '@/lib/reveal-bingo-winner'
 import {
   FACILITATOR_NAME_KEY,
   bingoTracks,
@@ -516,10 +518,34 @@ export function FacilitatorEventPage() {
   const track = playTrackId
     ? tracks.find((t) => t.id === playTrackId) ?? tracks[bingoPlayIndex]
     : tracks[bingoPlayIndex]
-  const bingoTeams = submissions
-    .filter((s) => s.media_type === 'bingo' && s.game_id === stage?.gameId)
-    .map((s) => teams.find((t) => t.id === s.team_id)?.name)
-    .filter(Boolean)
+  const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
+  const bingoMarkedTeams = (() => {
+    if (!bingoGameId) return [] as string[]
+    const ids = new Set(
+      submissions
+        .filter(
+          (s) =>
+            s.media_type === 'bingo' &&
+            s.game_id === bingoGameId &&
+            s.media_url !== BINGO_CLAIM_MARK &&
+            s.status === 'pending',
+        )
+        .map((s) => s.team_id),
+    )
+    return [...ids]
+      .map((id) => teams.find((t) => t.id === id)?.name)
+      .filter(Boolean) as string[]
+  })()
+
+  const bingoClaims = (() => {
+    if (!bingoGameId) return []
+    const names = new Map(teams.map((t) => [t.id, t.name ?? 'Team']))
+    return evaluateBingoClaims({
+      submissions,
+      gameId: bingoGameId,
+      teamNames: names,
+    })
+  })()
 
   return (
     <LivePanelShell
@@ -945,7 +971,9 @@ export function FacilitatorEventPage() {
                         gameId: stage.gameId,
                         runId,
                         trackId,
-                      }).then(() => void patchState({ bingo_state: 'revealed' }))
+                      }).then(() =>
+                      void patchState({ bingo_state: 'revealed' }),
+                    )
                     } else {
                       void patchState({ bingo_state: 'revealed' })
                     }
@@ -953,8 +981,66 @@ export function FacilitatorEventPage() {
                 >
                   Reveal & score
                 </Button>
+                {liveState.bingo_state === 'revealed' ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void patchState({ bingo_state: 'active' })}
+                  >
+                    Hide answers
+                  </Button>
+                ) : null}
               </div>
-              <ul className="text-sm">{bingoTeams.map((n) => <li key={n}>{n}</li>)}</ul>
+              {bingoMarkedTeams.length > 0 ? (
+                <div>
+                  <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
+                  <ul className="text-sm">
+                    {bingoMarkedTeams.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {bingoClaims.length > 0 ? (
+                <div>
+                  <p className="text-muted-foreground mb-1 text-xs">BINGO calls</p>
+                  <ul className="space-y-1 text-sm">
+                    {bingoClaims.map((c) => (
+                      <li key={c.teamId}>
+                        {c.teamName}
+                        <span className={c.valid ? ' text-green-700' : ' text-red-700'}>
+                          {' '}
+                          — {c.valid ? 'valid line' : 'no line yet'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <FacilitatorButton
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!eventId) return
+                  void revealBingoWinner(eventId, liveState.current_stage_index)
+                    .then((result) => {
+                      notify(
+                        `Stage winner: ${result.winnerName} (+${result.pointsAwarded} pts)`,
+                      )
+                      void patchState({
+                        announcement: `Music bingo winner: ${result.winnerName}!`,
+                        announcement_target: 'both',
+                      })
+                    })
+                    .catch((err) =>
+                      notify(
+                        err instanceof Error ? err.message : 'Could not reveal winner',
+                      ),
+                    )
+                }}
+              >
+                Announce stage winner
+              </FacilitatorButton>
             </div>
           ) : stage.type === 'break' ? (
             <div className="space-y-4">

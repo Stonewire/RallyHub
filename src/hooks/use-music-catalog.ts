@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
-import type { Tables, TablesInsert } from '@/types/helpers'
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type MusicCatalogRow = Tables<'music_catalog'>
 
@@ -34,6 +34,30 @@ export function useInsertMusicCatalog(organizationId: string | null) {
         .single()
       if (error) throw error
       return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.musicCatalog(organizationId),
+      })
+    },
+  })
+}
+
+export function useUpdateMusicCatalog(organizationId: string | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string
+      patch: TablesUpdate<'music_catalog'>
+    }) => {
+      const { error } = await supabase
+        .from('music_catalog')
+        .update(patch)
+        .eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({

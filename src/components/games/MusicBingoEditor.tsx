@@ -1,13 +1,18 @@
 import { Plus } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
+import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
+import { extractAudioClipWav } from '@/lib/extract-audio-clip'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
-import type { BonusChallenge, GameConfig } from '@/types/game-config'
+import { ensureMusicTrackClip } from '@/lib/music-track-clips'
+import { uploadAsset } from '@/lib/storage'
+import type { BonusChallenge, GameConfig, MusicTrack } from '@/types/game-config'
 
 type MusicBingoEditorProps = {
   config: GameConfig
@@ -26,6 +31,58 @@ export function MusicBingoEditor({
 }: MusicBingoEditorProps) {
   const tracks = config.tracks ?? []
   const bonuses = config.bonus_challenges ?? []
+  const [clipBusy, setClipBusy] = useState(false)
+  const [clipError, setClipError] = useState<string | null>(null)
+  const existingTrackIds = useMemo(() => new Set(tracks.map((t) => t.id)), [tracks])
+  const missingClips = tracks.filter((t) => t.audioUrl?.trim() && !t.clipUrl?.trim())
+
+  async function generateMissingClips() {
+    if (missingClips.length === 0) return
+    setClipBusy(true)
+    setClipError(null)
+    try {
+      const updated = new Map<string, MusicTrack>()
+      for (const track of missingClips) {
+        updated.set(track.id, await ensureMusicTrackClip(track, organizationId))
+      }
+      setConfig((c) => ({
+        ...c,
+        tracks: (c.tracks ?? []).map((t) => updated.get(t.id) ?? t),
+      }))
+    } catch (err) {
+      setClipError(err instanceof Error ? err.message : 'Clip generation failed')
+    } finally {
+      setClipBusy(false)
+    }
+  }
+
+  async function uploadTrackAudio(trackId: string, file: File) {
+    const duration = await readAudioDuration(file).catch(() => 0)
+    const clipStart = suggestClipStart(duration)
+    const clipDuration = 30
+    const audioUrl = await uploadGameFile(organizationId, `bingo/audio-${trackId}`, file)
+    const clipBlob = await extractAudioClipWav(file, clipStart, clipDuration)
+    const clipFile = new File([clipBlob], `clip-${file.name}.wav`, { type: 'audio/wav' })
+    const clipUrl = await uploadAsset(
+      'game-assets',
+      `${organizationId}/catalog/${crypto.randomUUID()}-clip-${file.name}.wav`,
+      clipFile,
+    )
+    setConfig((c) => ({
+      ...c,
+      tracks: (c.tracks ?? []).map((tr) =>
+        tr.id === trackId
+          ? {
+              ...tr,
+              audioUrl,
+              clipUrl,
+              clipStartSeconds: clipStart,
+              clipDurationSeconds: clipDuration,
+            }
+          : tr,
+      ),
+    }))
+  }
 
   return (
     <Card className="border-border/80 space-y-6 bg-card p-6 shadow-sm">
@@ -47,6 +104,16 @@ export function MusicBingoEditor({
         preview={config.background_url ?? null}
       />
       <ColorPickers config={config} setConfig={setConfig} />
+      <MusicCatalogPicker
+        organizationId={organizationId}
+        existingTrackIds={existingTrackIds}
+        onAdd={(newTracks) =>
+          setConfig((c) => ({
+            ...c,
+            tracks: [...(c.tracks ?? []), ...newTracks],
+          }))
+        }
+      />
       <MusicCatalogUploader
         organizationId={organizationId}
         onTracksReady={(newTracks) =>
@@ -82,6 +149,30 @@ export function MusicBingoEditor({
             Add at least 5 tracks for bingo (25+ recommended for larger events).
           </p>
         ) : null}
+        {missingClips.length > 0 ? (
+          <div className="mb-3 space-y-2">
+            <p className="text-amber-700 text-sm">
+              {missingClips.length} track{missingClips.length === 1 ? '' : 's'} need a 30s live
+              clip before bingo will play correctly.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={clipBusy}
+              onClick={() => void generateMissingClips()}
+            >
+              {clipBusy ? 'Generating clips…' : `Generate clips (${missingClips.length})`}
+            </Button>
+            {clipError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {clipError}
+              </p>
+            ) : null}
+          </div>
+        ) : tracks.some((t) => t.audioUrl) ? (
+          <p className="text-muted-foreground mb-3 text-sm">All tracks have 30s clips ready.</p>
+        ) : null}
         {tracks.map((t) => (
           <Card key={t.id} className="border-border/80 mb-3 space-y-2 p-4">
             <Input
@@ -112,6 +203,8 @@ export function MusicBingoEditor({
             />
             {t.clipUrl ? (
               <p className="text-muted-foreground text-xs">30s clip ready for live play</p>
+            ) : t.audioUrl ? (
+              <p className="text-amber-700 text-xs">Full audio uploaded — generate clip above</p>
             ) : null}
             <Input
               type="file"
@@ -119,15 +212,8 @@ export function MusicBingoEditor({
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (!file) return
-                void uploadGameFile(organizationId, `bingo/audio-${t.id}`, file).then((url) =>
-                  setConfig((c) => ({
-                    ...c,
-                    tracks: tracks.map((tr) =>
-                      tr.id === t.id
-                        ? { ...tr, audioUrl: url, clipUrl: url, clipStartSeconds: 0 }
-                        : tr,
-                    ),
-                  })),
+                void uploadTrackAudio(t.id, file).catch((err) =>
+                  setClipError(err instanceof Error ? err.message : 'Upload failed'),
                 )
               }}
             />

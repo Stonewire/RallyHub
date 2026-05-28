@@ -11,6 +11,7 @@ import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
+import { BINGO_CLAIM_MARK } from '@/lib/bingo-claims'
 import {
   STANDBY_ACCENT,
   bingoTracks,
@@ -173,7 +174,10 @@ export function DisplayEventPage() {
     ? tracks.find((t) => t.id === playTrackId) ?? tracks[trackIdx]
     : tracks[trackIdx]
   const bingoSubs = submissions.filter(
-    (s) => s.media_type === 'bingo' && s.game_id === stage?.gameId,
+    (s) =>
+      s.media_type === 'bingo' &&
+      s.game_id === stage?.gameId &&
+      s.media_url !== BINGO_CLAIM_MARK,
   )
 
   let body: ReactNode
@@ -309,6 +313,20 @@ export function DisplayEventPage() {
             )
           })}
         </ul>
+      </div>
+    )
+  } else if (stage.type === 'bingo' && bingoGame && state.bingo_state === 'waiting') {
+    body = (
+      <div className={`text-center ${textClass}`}>
+        <p className="font-display text-2xl font-bold text-white md:text-4xl">
+          Get ready for
+        </p>
+        <p className="font-display mt-4 text-4xl font-bold text-white md:text-6xl">
+          {bingoGame.name}
+        </p>
+        <p className="font-display mt-2 text-2xl font-bold text-white opacity-90 md:text-4xl">
+          Music Bingo
+        </p>
       </div>
     )
   } else if (stage.type === 'bingo') {

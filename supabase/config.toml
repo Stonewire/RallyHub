@@ -1,2 +1,5 @@
 [functions.activate-bingo-run]
 verify_jwt = false
+
+[functions.reveal-bingo-winner]
+verify_jwt = false

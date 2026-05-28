@@ -17,6 +17,8 @@ import {
   useNotification,
 } from '@/contexts/notification-context'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
+import { approvedBingoCellIndices, cellsOnBingoLine } from '@/lib/bingo-lines'
+import { BINGO_CLAIM_MARK, teamHasBingoClaim } from '@/lib/bingo-claims'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   bingoCellLabels,
@@ -342,6 +344,33 @@ export function JoinGameView({
     } finally {
       setCancelling(false)
     }
+  }
+
+  async function submitBingoClaim(gameId: string) {
+    if (state.bingo_state === 'revealed') return
+    if (teamHasBingoClaim(mySubs, gameId, teamId)) {
+      const existing = mySubs.find(
+        (s) =>
+          s.media_type === 'bingo' &&
+          s.game_id === gameId &&
+          s.media_url === BINGO_CLAIM_MARK,
+      )
+      if (existing) {
+        await supabase.from('submissions').delete().eq('id', existing.id)
+        notify('BINGO call cancelled')
+      }
+      return
+    }
+    await supabase.from('submissions').insert({
+      event_id: event.id,
+      team_id: teamId,
+      game_id: gameId,
+      media_url: BINGO_CLAIM_MARK,
+      media_type: 'bingo',
+      status: 'pending',
+    })
+    notify('BINGO! Facilitator will verify your card.')
+    playSubmitSound()
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
@@ -776,8 +805,36 @@ export function JoinGameView({
       ? bingoCellLabels(bingoCardQuery.data)
       : bingoCardTitles(teamId, tracks)
     const revealed = state.bingo_state === 'revealed'
+    const markedIndices = mySubs
+      .filter(
+        (s) =>
+          s.media_type === 'bingo' &&
+          s.game_id === stage.gameId &&
+          s.media_url !== BINGO_CLAIM_MARK,
+      )
+      .map((s) => Number(s.media_url))
+      .filter((n) => !Number.isNaN(n))
+    const approvedIndices = revealed
+      ? approvedBingoCellIndices(mySubs, stage.gameId)
+      : markedIndices
+    const winningCells =
+      revealed ? cellsOnBingoLine(approvedIndices) : new Set<number>()
+    const hasClaim = teamHasBingoClaim(mySubs, stage.gameId, teamId)
     body = (
       <div className="mx-auto max-w-md px-2 pb-24">
+        {!revealed ? (
+          <div className="mb-4 flex justify-center">
+            <LiveAccentButton
+              type="button"
+              accentColor={accent}
+              className="px-8 text-lg font-bold"
+              variant={hasClaim ? 'outline' : 'default'}
+              onClick={() => void submitBingoClaim(stage.gameId!)}
+            >
+              {hasClaim ? 'Cancel BINGO' : 'BINGO!'}
+            </LiveAccentButton>
+          </div>
+        ) : null}
         <div className="grid grid-cols-5 gap-1">
           {titles.map((title, i) => {
             const sub = mySubs.find(
@@ -790,6 +847,7 @@ export function JoinGameView({
                   ? 'bg-green-500/80 text-white'
                   : 'bg-red-500/80 text-white'
             else if (revealed) cls = 'bg-white/10 text-white/50'
+            if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
             else if (bingoPick === i) cls = 'font-semibold'
             const pickStyle =
               bingoPick === i && !revealed
