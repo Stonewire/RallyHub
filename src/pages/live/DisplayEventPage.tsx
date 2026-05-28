@@ -177,13 +177,23 @@ export function DisplayEventPage() {
   const track = playTrackId
     ? tracks.find((t) => t.id === playTrackId) ?? tracks[trackIdx]
     : tracks[trackIdx]
-  const bingoSubs = submissions.filter(
-    (s) =>
-      s.media_type === 'bingo' &&
-      s.game_id === stage?.gameId &&
-      s.media_url != null &&
-      s.media_url !== 'claim',
-  )
+  const bingoSubs = (() => {
+    const all = submissions.filter(
+      (s) =>
+        s.media_type === 'bingo' &&
+        s.game_id === stage?.gameId &&
+        s.media_url != null &&
+        s.media_url !== 'claim',
+    )
+    const latestByTeam = new Map<string, (typeof all)[number]>()
+    for (const sub of all) {
+      const prev = latestByTeam.get(sub.team_id)
+      if (!prev || sub.created_at > prev.created_at) {
+        latestByTeam.set(sub.team_id, sub)
+      }
+    }
+    return [...latestByTeam.values()]
+  })()
 
   let body: ReactNode
 

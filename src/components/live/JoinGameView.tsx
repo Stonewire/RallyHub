@@ -129,7 +129,6 @@ export function JoinGameView({
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
   const [unreadMessages, setUnreadMessages] = useState(0)
-  const [isPortrait, setIsPortrait] = useState(false)
 
   const breakSyncRef = useRef(
     createThrottledTimerSync(() => {
@@ -227,25 +226,26 @@ export function JoinGameView({
 
   useEffect(() => {
     if (stage?.type !== 'bingo' || !stage.gameId) return
-    const existing = mySubs.find(
-      (s) => s.media_type === 'bingo' && s.game_id === stage.gameId,
+    const pending = mySubs
+      .filter(
+        (s) =>
+          s.media_type === 'bingo' &&
+          s.game_id === stage.gameId &&
+          s.status === 'pending' &&
+          s.media_url != null &&
+          s.media_url !== 'claim',
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    setBingoPick(
+      pending?.media_url != null && !Number.isNaN(Number(pending.media_url))
+        ? Number(pending.media_url)
+        : null,
     )
-    if (existing?.media_url != null) {
-      setBingoPick(Number(existing.media_url))
-    }
   }, [stage?.type, stage?.gameId, mySubs])
 
   useEffect(() => {
     if (chatOpen) setUnreadMessages(0)
   }, [chatOpen])
-
-  useEffect(() => {
-    const mq = window.matchMedia('(orientation: portrait)')
-    const sync = () => setIsPortrait(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
 
   useEffect(() => {
     const incoming = visibleMessages
@@ -495,16 +495,43 @@ export function JoinGameView({
   async function submitBingoSquare(index: number, gameId: string) {
     if (state.bingo_state === 'revealed') return
     if (state.bingo_state !== 'waiting' && state.bingo_state !== 'playing') return
+    const lockedByHistory = mySubs.some(
+      (s) =>
+        s.media_type === 'bingo' &&
+        s.game_id === gameId &&
+        s.media_url === String(index) &&
+        (s.status === 'approved' || s.status === 'rejected'),
+    )
+    if (lockedByHistory) return
     setBingoPick(index)
-    const existing = mySubs.find(
+    const existingPending = mySubs
+      .filter(
+        (s) =>
+          s.media_type === 'bingo' &&
+          s.game_id === gameId &&
+          s.status === 'pending' &&
+          s.media_url != null &&
+          s.media_url !== 'claim',
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+
+    if (existingPending) {
+      if (existingPending.media_url === String(index)) return
+      await supabase
+        .from('submissions')
+        .update({ media_url: String(index) })
+        .eq('id', existingPending.id)
+      return
+    }
+
+    const existingSameIndex = mySubs.find(
       (s) =>
         s.media_type === 'bingo' &&
         s.game_id === gameId &&
         s.media_url === String(index),
     )
-    if (existing) {
-      await supabase.from('submissions').delete().eq('id', existing.id)
-      setBingoPick(null)
+    if (existingSameIndex?.status === 'pending') {
+      await supabase.from('submissions').delete().eq('id', existingSameIndex.id)
       return
     }
     await supabase.from('submissions').insert({
@@ -1009,6 +1036,22 @@ export function JoinGameView({
       : -1
     const gameConfig = parseBingoGameConfig(game?.config)
     const winningLines = gameConfig.bingo_winning_lines ?? defaultWinningLines()
+    const historicalByIndex = new Map<number, 'approved' | 'rejected'>()
+    for (const s of mySubs) {
+      if (
+        s.media_type !== 'bingo' ||
+        s.game_id !== stage.gameId ||
+        s.media_url == null ||
+        s.media_url === 'claim'
+      ) {
+        continue
+      }
+      const idx = Number(s.media_url)
+      if (Number.isNaN(idx)) continue
+      if (s.status === 'approved' || s.status === 'rejected') {
+        historicalByIndex.set(idx, s.status)
+      }
+    }
     const markedIndices = mySubs
       .filter(
         (s) =>
@@ -1028,14 +1071,6 @@ export function JoinGameView({
     const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
     body = (
       <div className="mx-auto w-full max-w-5xl px-2 pb-16">
-        {isPortrait ? (
-          <div className="mx-auto mt-10 max-w-md rounded-xl border border-white/20 bg-black/40 p-6 text-center">
-            <p className="text-lg font-bold">Rotate your device</p>
-            <p className="mt-2 text-sm text-white/70">
-              Music bingo cards are optimized for landscape mode.
-            </p>
-          </div>
-        ) : null}
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="min-w-0 flex items-center gap-2">
             {logo ? (
@@ -1049,16 +1084,15 @@ export function JoinGameView({
         </div>
         <div className="grid h-[calc(100dvh-150px)] grid-cols-5 gap-1 md:h-[calc(100dvh-180px)]">
           {cellLabels.map((cell, i) => {
-            const sub = mySubs.find(
-              (s) => s.media_type === 'bingo' && s.media_url === String(i),
-            )
+            const finalStatus = historicalByIndex.get(i)
             let cls = 'bg-white/20 text-white rounded-sm'
-            let disabled = revealed || !canMark
-            if (revealed && sub) {
-              cls =
-                sub.status === 'approved'
-                  ? 'bg-green-500/80 text-white rounded-sm'
-                  : 'bg-red-500/80 text-white rounded-sm'
+            let disabled = !canMark
+            if (finalStatus === 'approved') {
+              cls = 'bg-green-500/80 text-white rounded-sm'
+              disabled = true
+            } else if (finalStatus === 'rejected') {
+              cls = 'bg-red-500/80 text-white rounded-sm'
+              disabled = true
             } else if (revealed && i === correctIndex) {
               cls = 'bg-gray-500/70 text-white/90 rounded-sm'
               disabled = true
