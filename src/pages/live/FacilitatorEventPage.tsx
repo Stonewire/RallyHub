@@ -23,12 +23,15 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
-import { BINGO_CLAIM_MARK, evaluateBingoClaims } from '@/lib/bingo-claims'
 import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
+import {
+  bingoPrimaryAction,
+  bingoSongProgress,
+  parseBingoGameConfig,
+} from '@/lib/bingo-facilitator'
 import { advanceBingoTrack } from '@/lib/bingo-round-advance'
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
-import { revealBingoWinner } from '@/lib/reveal-bingo-winner'
 import {
   FACILITATOR_NAME_KEY,
   bingoBonusChallenges,
@@ -77,6 +80,7 @@ export function FacilitatorEventPage() {
   const [breakHalted, setBreakHalted] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatTeamId, setChatTeamId] = useState<string | null>(null)
+  const [audioPlayNonce, setAudioPlayNonce] = useState(0)
   const { notify } = useNotification()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
 
@@ -121,7 +125,7 @@ export function FacilitatorEventPage() {
       void activateBingoRun(eventId, next.gameId, index).catch((err) => {
         setStateError(err instanceof Error ? err.message : 'Could not start bingo')
       })
-      patch.bingo_state = 'active'
+      patch.bingo_state = 'waiting'
       patch.current_question_index = 0
     }
     void patchState(patch)
@@ -524,6 +528,10 @@ export function FacilitatorEventPage() {
     ? tracks.find((t) => t.id === playTrackId) ?? tracks[bingoPlayIndex]
     : tracks[bingoPlayIndex]
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
+  const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
+  const bingoStateRef = useRef(liveState.bingo_state)
+  bingoStateRef.current = liveState.bingo_state
+
   const bingoMarkedTeams = (() => {
     if (!bingoGameId) return [] as string[]
     const ids = new Set(
@@ -532,8 +540,9 @@ export function FacilitatorEventPage() {
           (s) =>
             s.media_type === 'bingo' &&
             s.game_id === bingoGameId &&
-            s.media_url !== BINGO_CLAIM_MARK &&
-            s.status === 'pending',
+            s.status === 'pending' &&
+            s.media_url != null &&
+            s.media_url !== 'claim',
         )
         .map((s) => s.team_id),
     )
@@ -542,15 +551,67 @@ export function FacilitatorEventPage() {
       .filter(Boolean) as string[]
   })()
 
-  const bingoClaims = (() => {
-    if (!bingoGameId) return []
-    const names = new Map(teams.map((t) => [t.id, t.name ?? 'Team']))
-    return evaluateBingoClaims({
-      submissions,
-      gameId: bingoGameId,
-      teamNames: names,
+  async function revealCurrentBingoSong() {
+    if (!stage?.gameId || !eventId || !bingoRunQuery.data) return
+    const trackId = bingoPlayOrder[bingoPlayIndex]
+    if (!trackId) {
+      await patchState({ bingo_state: 'revealed' })
+      return
+    }
+    await scoreBingoRound({
+      eventId,
+      gameId: stage.gameId,
+      runId: bingoRunQuery.data.id,
+      trackId,
+      gameConfig: bingoConfig,
     })
-  })()
+    await patchState({ bingo_state: 'revealed' })
+  }
+
+  async function playCurrentBingoSong() {
+    await patchState({ bingo_state: 'playing' })
+    setAudioPlayNonce((n) => n + 1)
+  }
+
+  async function nextBingoSong() {
+    if (!stage?.gameId || !eventId) return
+    const nextIndex = await advanceBingoTrack({
+      eventId,
+      gameId: stage.gameId,
+      runId: bingoRunQuery.data?.id,
+      playOrder: bingoPlayOrder,
+      currentIndex: bingoPlayIndex,
+      scoreCurrent: false,
+    })
+    await patchState({
+      current_question_index: nextIndex,
+      bingo_state: 'playing',
+    })
+    setAudioPlayNonce((n) => n + 1)
+  }
+
+  const songsStarted =
+    bingoPlayIndex > 0 ||
+    liveState.bingo_state === 'playing' ||
+    liveState.bingo_state === 'revealed'
+
+  const bingoPrimary = bingoPrimaryAction({
+    bingoState: liveState.bingo_state,
+    playIndex: bingoPlayIndex,
+    playOrderLength: bingoPlayOrder.length,
+    songsStarted,
+  })
+
+  async function runBingoPrimary() {
+    if (!bingoPrimary) return
+    if (bingoPrimary.action === 'play') await playCurrentBingoSong()
+    else if (bingoPrimary.action === 'reveal') await revealCurrentBingoSong()
+    else if (bingoPrimary.action === 'next') await nextBingoSong()
+    else if (bingoPrimary.action === 'end') {
+      await patchState({ bingo_state: 'ended' })
+      notify('Bingo round complete')
+    }
+  }
 
   return (
     <LivePanelShell
@@ -1002,89 +1063,39 @@ export function FacilitatorEventPage() {
                   ? `Run active · ${bingoRunQuery.data.playOrder.length} songs in script`
                   : 'No bingo run — switch to this stage to activate'}
               </p>
-              <p className="text-muted-foreground text-xs">
-                Now playing {bingoPlayIndex + 1}
-                {bingoPlayOrder.length > 0 ? ` / ${bingoPlayOrder.length}` : ''}
-                {liveState.bingo_state === 'active' ? ' · playing' : ''}
+              <p className="text-muted-foreground text-sm font-medium tabular-nums">
+                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
               </p>
-              <p className="font-semibold">
-                {track ? `${track.title} — ${track.artist}` : 'No track'}
-              </p>
-              {track && liveState.bingo_state !== 'bonus' ? (
+              {liveState.bingo_state === 'revealed' && track ? (
+                <p className="font-semibold">
+                  {track.title} — {track.artist}
+                </p>
+              ) : liveState.bingo_state === 'playing' ? (
+                <p className="text-muted-foreground text-sm">Clip playing — title hidden on display</p>
+              ) : null}
+              {track && liveState.bingo_state === 'playing' ? (
                 <BingoClipPlayer
                   src={bingoTrackPlaybackUrl(track)}
-                  playKey={`${track.id}-${bingoPlayIndex}`}
-                />
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                {liveState.bingo_state !== 'bonus' &&
-                liveState.bingo_state !== 'bonus_revealed' ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={!track}
-                    onClick={() => void patchState({ bingo_state: 'active' })}
-                  >
-                    Play clip
-                  </Button>
-                ) : null}
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!stage.gameId || !eventId) return
-                    void advanceBingoTrack({
-                      eventId,
-                      gameId: stage.gameId,
-                      runId: bingoRunQuery.data?.id,
-                      playOrder: bingoPlayOrder,
-                      currentIndex: bingoPlayIndex,
-                      scoreCurrent: liveState.bingo_state !== 'revealed',
-                    }).then((nextIndex) =>
-                      void patchState({
-                        current_question_index: nextIndex,
-                        bingo_state: 'waiting',
-                      }),
-                    )
-                  }}
-                  disabled={
-                    bingoPlayOrder.length > 0 &&
-                    state.current_question_index >= bingoPlayOrder.length - 1
-                  }
-                >
-                  Next track
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const trackId = bingoPlayOrder[bingoPlayIndex]
-                    const runId = bingoRunQuery.data?.id
-                    if (trackId && runId && stage.gameId && eventId) {
-                      void scoreBingoRound({
-                        eventId,
-                        gameId: stage.gameId,
-                        runId,
-                        trackId,
-                      }).then(() =>
-                      void patchState({ bingo_state: 'revealed' }),
-                    )
-                    } else {
-                      void patchState({ bingo_state: 'revealed' })
+                  playKey={`${track.id}-${bingoPlayIndex}-${audioPlayNonce}`}
+                  autoPlay
+                  onEnded={() => {
+                    if (bingoStateRef.current === 'playing') {
+                      void revealCurrentBingoSong()
                     }
                   }}
+                />
+              ) : null}
+              {liveState.bingo_state !== 'bonus' &&
+              liveState.bingo_state !== 'bonus_revealed' &&
+              bingoPrimary ? (
+                <FacilitatorButton
+                  size="sm"
+                  disabled={!track && bingoPrimary.action === 'play'}
+                  onClick={() => void runBingoPrimary()}
                 >
-                  Reveal & score
-                </Button>
-                {liveState.bingo_state === 'revealed' ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void patchState({ bingo_state: 'active' })}
-                  >
-                    Hide answers
-                  </Button>
-                ) : null}
-              </div>
+                  {bingoPrimary.label}
+                </FacilitatorButton>
+              ) : null}
               {bingoMarkedTeams.length > 0 ? (
                 <div>
                   <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
@@ -1095,29 +1106,13 @@ export function FacilitatorEventPage() {
                   </ul>
                 </div>
               ) : null}
-              {bingoClaims.length > 0 ? (
-                <div>
-                  <p className="text-muted-foreground mb-1 text-xs">BINGO calls</p>
-                  <ul className="space-y-1 text-sm">
-                    {bingoClaims.map((c) => (
-                      <li key={c.teamId}>
-                        {c.teamName}
-                        <span className={c.valid ? ' text-green-700' : ' text-red-700'}>
-                          {' '}
-                          — {c.valid ? 'valid line' : 'no line yet'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
               <FacilitatorButton
                 size="sm"
                 variant="outline"
                 onClick={() => {
                   if (!eventId || !stage.gameId) return
                   const ok = window.confirm(
-                    'Restart bingo for this stage? New cards and a new secret winner. Clears all marks for this game.',
+                    'Restart bingo for this stage? New cards and play order. Clears all marks for this game.',
                   )
                   if (!ok) return
                   void restartBingoRun(eventId, stage.gameId, liveState.current_stage_index)
@@ -1135,30 +1130,6 @@ export function FacilitatorEventPage() {
                 }}
               >
                 Restart bingo run
-              </FacilitatorButton>
-              <FacilitatorButton
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (!eventId) return
-                  void revealBingoWinner(eventId, liveState.current_stage_index)
-                    .then((result) => {
-                      notify(
-                        `Stage winner: ${result.winnerName} (+${result.pointsAwarded} pts)`,
-                      )
-                      void patchState({
-                        announcement: `Music bingo winner: ${result.winnerName}!`,
-                        announcement_target: 'both',
-                      })
-                    })
-                    .catch((err) =>
-                      notify(
-                        err instanceof Error ? err.message : 'Could not reveal winner',
-                      ),
-                    )
-                }}
-              >
-                Announce stage winner
               </FacilitatorButton>
             </div>
           ) : stage.type === 'break' ? (

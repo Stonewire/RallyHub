@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
 import { resetLiveEvent } from '@/lib/reset-live-event'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
+
+const RELOAD_DEBOUNCE_MS = 280
 
 async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
   const { data: event, error: eErr } = await supabase
@@ -67,10 +69,45 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
   }
 }
 
+type SubmissionPayload = {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+  new: Tables<'submissions'> | null
+  old: Tables<'submissions'> | null
+}
+
+function mergeSubmission(
+  subs: Tables<'submissions'>[],
+  payload: SubmissionPayload,
+): Tables<'submissions'>[] {
+  const { eventType, new: row, old } = payload
+  if (eventType === 'DELETE' && old) {
+    return subs.filter((s) => s.id !== old.id)
+  }
+  if (!row) return subs
+  const idx = subs.findIndex((s) => s.id === row.id)
+  if (eventType === 'INSERT') {
+    if (idx >= 0) {
+      const next = [...subs]
+      next[idx] = row
+      return next
+    }
+    return [row, ...subs]
+  }
+  if (idx >= 0) {
+    const next = [...subs]
+    next[idx] = row
+    return next
+  }
+  return [row, ...subs]
+}
+
 export function useLiveEvent(eventId: string | undefined) {
   const [bundle, setBundle] = useState<LiveEventBundle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bundleRef = useRef(bundle)
+  bundleRef.current = bundle
 
   const reload = useCallback(async () => {
     if (!eventId) return
@@ -85,6 +122,14 @@ export function useLiveEvent(eventId: string | undefined) {
     }
   }, [eventId])
 
+  const scheduleReload = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      void reload()
+    }, RELOAD_DEBOUNCE_MS)
+  }, [reload])
+
   useEffect(() => {
     void reload()
   }, [reload])
@@ -97,70 +142,132 @@ export function useLiveEvent(eventId: string | undefined) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` },
-        () => void reload(),
+        () => scheduleReload(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'event_state', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
+        (payload) => {
+          const row = payload.new as Tables<'event_state'> | null
+          if (row?.id && bundleRef.current?.state.id === row.id) {
+            setBundle((b) => (b ? { ...b, state: row } : b))
+            return
+          }
+          scheduleReload()
+        },
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'teams', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
+        (payload) => {
+          const row = payload.new as Tables<'teams'> | null
+          const old = payload.old as Tables<'teams'> | null
+          if (payload.eventType === 'DELETE' && old) {
+            setBundle((b) =>
+              b ? { ...b, teams: b.teams.filter((t) => t.id !== old.id) } : b,
+            )
+            return
+          }
+          if (row) {
+            setBundle((b) => {
+              if (!b) return b
+              const idx = b.teams.findIndex((t) => t.id === row.id)
+              const teams =
+                idx >= 0
+                  ? b.teams.map((t) => (t.id === row.id ? row : t))
+                  : [...b.teams, row].sort((a, c) => a.slot_number - c.slot_number)
+              return { ...b, teams }
+            })
+            return
+          }
+          scheduleReload()
+        },
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'submissions', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
+        (payload) => {
+          setBundle((b) => {
+            if (!b) return b
+            return {
+              ...b,
+              submissions: mergeSubmission(b.submissions, {
+                eventType: payload.eventType as SubmissionPayload['eventType'],
+                new: payload.new as Tables<'submissions'> | null,
+                old: payload.old as Tables<'submissions'> | null,
+              }),
+            }
+          })
+        },
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
+        () => scheduleReload(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bingo_team_cards' },
-        () => void reload(),
+        () => scheduleReload(),
       )
       .subscribe()
 
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
       void supabase.removeChannel(channel)
     }
-  }, [eventId, reload])
+  }, [eventId, scheduleReload])
 
   const updateState = useCallback(
     async (patch: TablesUpdate<'event_state'>) => {
-      if (!bundle?.state.id) return
+      if (!bundleRef.current?.state.id) return
+      const merged = {
+        ...bundleRef.current.state,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      } as Tables<'event_state'>
+      setBundle((b) => (b ? { ...b, state: merged } : b))
       const { error } = await supabase
         .from('event_state')
-        .update({ ...patch, updated_at: new Date().toISOString() })
-        .eq('id', bundle.state.id)
-      if (error) throw error
+        .update({ ...patch, updated_at: merged.updated_at })
+        .eq('id', bundleRef.current.state.id)
+      if (error) {
+        void reload()
+        throw error
+      }
     },
-    [bundle?.state.id],
+    [reload],
   )
 
   const updateTeam = useCallback(
     async (teamId: string, patch: TablesUpdate<'teams'>) => {
+      const prev = bundleRef.current?.teams.find((t) => t.id === teamId)
+      if (prev) {
+        setBundle((b) =>
+          b
+            ? {
+                ...b,
+                teams: b.teams.map((t) =>
+                  t.id === teamId ? ({ ...t, ...patch } as Tables<'teams'>) : t,
+                ),
+              }
+            : b,
+        )
+      }
       const { error } = await supabase.from('teams').update(patch).eq('id', teamId)
-      if (error) throw error
+      if (error) {
+        void reload()
+        throw error
+      }
     },
-    [],
+    [reload],
   )
 
   const resetEvent = useCallback(async () => {
-    if (!eventId || !bundle) return
-    await resetLiveEvent(eventId, bundle.event.team_count)
+    if (!eventId || !bundleRef.current) return
+    await resetLiveEvent(eventId, bundleRef.current.event.team_count)
     await reload()
-  }, [eventId, bundle, reload])
+  }, [eventId, reload])
 
   return {
     bundle,
@@ -199,13 +306,16 @@ export function useChatMessages(eventId: string | undefined) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
-        () => void reload(),
+        (payload) => {
+          const row = payload.new as Tables<'chat_messages'>
+          if (row) setMessages((m) => [...m, row])
+        },
       )
       .subscribe()
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [eventId, reload])
+  }, [eventId])
 
   const sendMessage = useCallback(
     async (sender: string, message: string, teamId?: string | null) => {
@@ -217,9 +327,8 @@ export function useChatMessages(eventId: string | undefined) {
         team_id: teamId ?? null,
       })
       if (error) throw error
-      await reload()
     },
-    [eventId, reload],
+    [eventId],
   )
 
   return { messages, sendMessage, reload }

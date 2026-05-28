@@ -1,4 +1,4 @@
-const LINES: number[][] = [
+export const ALL_BINGO_LINES: number[][] = [
   [0, 1, 2, 3, 4],
   [5, 6, 7, 8, 9],
   [10, 11, 12, 13, 14],
@@ -13,24 +13,52 @@ const LINES: number[][] = [
   [4, 8, 12, 16, 20],
 ]
 
-/** True when five marked cells form any row, column, or diagonal on a 5×5 card. */
-export function hasBingoLine(markedIndices: Iterable<number>): boolean {
-  const marked = new Set(markedIndices)
-  if (marked.size < 5) return false
-  return LINES.some((line) => line.every((i) => marked.has(i)))
+export function lineKey(line: number[]): string {
+  return line.join(',')
 }
 
-/** Indices that belong to the first completed line, if any. */
-export function cellsOnBingoLine(markedIndices: Iterable<number>): Set<number> {
+export function defaultWinningLines(): number[][] {
+  return [[0, 1, 2, 3, 4]]
+}
+
+/** True when marked cells complete any allowed line. */
+export function hasConfiguredBingoLine(
+  markedIndices: Iterable<number>,
+  allowedLines: number[][],
+): boolean {
   const marked = new Set(markedIndices)
-  for (const line of LINES) {
-    if (line.every((i) => marked.has(i))) return new Set(line)
+  if (marked.size < 5 || allowedLines.length === 0) return false
+  return allowedLines.some((line) => line.length === 5 && line.every((i) => marked.has(i)))
+}
+
+export function cellsOnConfiguredBingoLine(
+  markedIndices: Iterable<number>,
+  allowedLines: number[][],
+): Set<number> {
+  const marked = new Set(markedIndices)
+  for (const line of allowedLines) {
+    if (line.length === 5 && line.every((i) => marked.has(i))) return new Set(line)
   }
   return new Set()
 }
 
+/** @deprecated use hasConfiguredBingoLine */
+export function hasBingoLine(markedIndices: Iterable<number>): boolean {
+  return hasConfiguredBingoLine(markedIndices, ALL_BINGO_LINES)
+}
+
+/** @deprecated use cellsOnConfiguredBingoLine */
+export function cellsOnBingoLine(markedIndices: Iterable<number>): Set<number> {
+  return cellsOnConfiguredBingoLine(markedIndices, ALL_BINGO_LINES)
+}
+
 export function approvedBingoCellIndices(
-  submissions: { media_type: string | null; media_url: string | null; status: string; game_id: string }[],
+  submissions: {
+    media_type: string | null
+    media_url: string | null
+    status: string
+    game_id: string
+  }[],
   gameId: string,
 ): number[] {
   return submissions

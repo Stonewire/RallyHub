@@ -12,7 +12,7 @@ import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { BINGO_CLAIM_MARK } from '@/lib/bingo-claims'
+import { bingoSongProgress } from '@/lib/bingo-facilitator'
 import {
   STANDBY_ACCENT,
   bingoBonusChallenge,
@@ -179,7 +179,8 @@ export function DisplayEventPage() {
     (s) =>
       s.media_type === 'bingo' &&
       s.game_id === stage?.gameId &&
-      s.media_url !== BINGO_CLAIM_MARK,
+      s.media_url != null &&
+      s.media_url !== 'claim',
   )
 
   let body: ReactNode
@@ -380,28 +381,29 @@ export function DisplayEventPage() {
       </div>
     )
   } else if (stage.type === 'bingo') {
+    const showWaves =
+      state.bingo_state === 'playing' || state.bingo_state === 'active'
     body = (
       <div className={`flex flex-col items-center justify-center ${textClass}`}>
-        {state.bingo_state === 'active' && track ? (
-          <>
-            <p className="font-display text-2xl font-bold opacity-80 md:text-3xl">
-              Now playing
-            </p>
-            <p className="font-display mt-4 text-4xl font-bold md:text-6xl">{track.title}</p>
-            <p className="font-display mt-2 text-2xl opacity-70 md:text-4xl">{track.artist}</p>
-          </>
+        {bingoPlayOrder.length > 0 ? (
+          <p className="font-display mb-6 text-xl font-semibold tabular-nums opacity-80 md:text-2xl">
+            {bingoSongProgress(trackIdx, bingoPlayOrder.length)}
+          </p>
         ) : null}
-        <div className="mb-12 flex h-32 items-end justify-center gap-1">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="w-3 animate-pulse rounded-t bg-white/60"
-              style={{
-                height: `${20 + Math.sin(Date.now() / 200 + i) * 40}px`,
-              }}
-            />
-          ))}
-        </div>
+        {showWaves ? (
+          <div className="mb-12 flex h-40 items-end justify-center gap-1.5">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-4 animate-pulse rounded-t bg-white/70"
+                style={{
+                  height: `${24 + Math.sin(Date.now() / 180 + i * 0.7) * 56}px`,
+                  animationDelay: `${i * 40}ms`,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
         {state.bingo_state === 'revealed' && track ? (
           <>
             <p className="font-display text-4xl font-bold md:text-6xl">{track.title}</p>
@@ -412,7 +414,9 @@ export function DisplayEventPage() {
               {bingoSubs.map((s) => {
                 const team = teams.find((t) => t.id === s.team_id)
                 const ok = s.status === 'approved'
-                return team?.name ? (
+                const bad = s.status === 'rejected'
+                if (!team?.name || (!ok && !bad)) return null
+                return (
                   <li
                     key={s.id}
                     className={`rounded-full px-3 py-1 text-sm ${
@@ -421,7 +425,7 @@ export function DisplayEventPage() {
                   >
                     {team.name}
                   </li>
-                ) : null
+                )
               })}
             </ul>
           </>

@@ -1,6 +1,6 @@
-import { BINGO_CLAIM_MARK } from '@/lib/bingo-claims'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import { supabase } from '@/lib/supabase'
+import type { GameConfig } from '@/types/game-config'
 
 /** Score current song (if needed), clear pending cell marks, advance play index. */
 export async function advanceBingoTrack(params: {
@@ -10,12 +10,20 @@ export async function advanceBingoTrack(params: {
   playOrder: string[]
   currentIndex: number
   scoreCurrent: boolean
+  gameConfig?: GameConfig
 }): Promise<number> {
-  const { eventId, gameId, runId, playOrder, currentIndex, scoreCurrent } = params
+  const { eventId, gameId, runId, playOrder, currentIndex, scoreCurrent, gameConfig } =
+    params
   const trackId = playOrder[currentIndex]
 
   if (scoreCurrent && trackId && runId) {
-    await scoreBingoRound({ eventId, gameId, runId, trackId })
+    await scoreBingoRound({
+      eventId,
+      gameId,
+      runId,
+      trackId,
+      gameConfig: gameConfig ?? {},
+    })
   }
 
   const { data: pending } = await supabase
@@ -26,7 +34,9 @@ export async function advanceBingoTrack(params: {
     .eq('media_type', 'bingo')
     .eq('status', 'pending')
 
-  const toClear = (pending ?? []).filter((s) => s.media_url !== BINGO_CLAIM_MARK)
+  const toClear = (pending ?? []).filter(
+    (s) => s.media_url != null && s.media_url !== 'claim',
+  )
   if (toClear.length > 0) {
     await supabase
       .from('submissions')

@@ -27,7 +27,6 @@ export async function activateBingoRun(
   }
 }
 
-/** Fallback when edge function is not deployed (winner secret not persisted). */
 async function activateBingoRunLocal(
   eventId: string,
   gameId: string,
@@ -63,7 +62,6 @@ async function activateBingoRunLocal(
     tracks,
     teams: teams ?? [],
     activationSeed,
-    targetPlayCount: Math.min(32, Math.max(25, tracks.length)),
   })
 
   const { data: run, error: runErr } = await supabase
@@ -93,7 +91,7 @@ async function activateBingoRunLocal(
     .from('event_state')
     .update({
       current_question_index: 0,
-      bingo_state: 'active',
+      bingo_state: 'waiting',
       updated_at: new Date().toISOString(),
     })
     .eq('event_id', eventId)

@@ -65,7 +65,6 @@ Deno.serve(async (req) => {
       tracks,
       teams: teams ?? [],
       activationSeed,
-      targetPlayCount: Math.min(32, Math.max(25, tracks.length)),
     })
 
     const { data: run, error: runErr } = await supabase
@@ -83,12 +82,6 @@ Deno.serve(async (req) => {
 
     if (runErr) throw runErr
 
-    const { error: secretErr } = await supabase.from('bingo_run_secrets').insert({
-      run_id: run.id,
-      winner_team_id: plan.winnerTeamId,
-    })
-    if (secretErr) throw secretErr
-
     const cardRows = Object.entries(plan.cardsByTeamId).map(([teamId, cells]) => ({
       run_id: run.id,
       team_id: teamId,
@@ -101,7 +94,7 @@ Deno.serve(async (req) => {
       .from('event_state')
       .update({
         current_question_index: 0,
-        bingo_state: 'active',
+        bingo_state: 'waiting',
         updated_at: new Date().toISOString(),
       })
       .eq('event_id', eventId)

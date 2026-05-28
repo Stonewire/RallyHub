@@ -1,17 +1,24 @@
 import { Plus } from 'lucide-react'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
+import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
 import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
-import { extractAudioClipWav } from '@/lib/extract-audio-clip'
+import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
-import { ensureMusicTrackClip } from '@/lib/music-track-clips'
+import {
+  bingoClipLength,
+  clearAllTrackClips,
+  downloadUrl,
+  ensureMusicTrackClip,
+} from '@/lib/music-track-clips'
+import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
+import { defaultWinningLines } from '@/lib/bingo-lines'
 import type { BonusChallenge, GameConfig, MusicTrack } from '@/types/game-config'
 
 type MusicBingoEditorProps = {
@@ -34,16 +41,39 @@ export function MusicBingoEditor({
   const [clipBusy, setClipBusy] = useState(false)
   const [clipError, setClipError] = useState<string | null>(null)
   const existingTrackIds = useMemo(() => new Set(tracks.map((t) => t.id)), [tracks])
-  const missingClips = tracks.filter((t) => t.audioUrl?.trim() && !t.clipUrl?.trim())
+  const clipLen = bingoClipLength(config)
+  const missingClips = tracks.filter(
+    (t) =>
+      t.audioUrl?.trim() &&
+      (!t.clipUrl?.trim() || t.clipDurationSeconds !== clipLen),
+  )
+
+  function onClipLengthChange(value: string) {
+    const next =
+      value === '30' ? 30 : value === '90' ? 90 : null
+    if (next === config.bingo_clip_length) return
+    const hadClips = tracks.some((t) => t.clipUrl)
+    if (hadClips && !window.confirm('Change clip length? Existing generated clips will be cleared.')) {
+      return
+    }
+    setConfig((c) => ({
+      ...clearAllTrackClips(c),
+      bingo_clip_length: next,
+    }))
+  }
 
   async function generateMissingClips() {
+    if (!clipLen) {
+      setClipError('Select clip length (30 or 90 sec) first.')
+      return
+    }
     if (missingClips.length === 0) return
     setClipBusy(true)
     setClipError(null)
     try {
       const updated = new Map<string, MusicTrack>()
       for (const track of missingClips) {
-        updated.set(track.id, await ensureMusicTrackClip(track, organizationId))
+        updated.set(track.id, await ensureMusicTrackClip(track, organizationId, clipLen))
       }
       setConfig((c) => ({
         ...c,
@@ -56,32 +86,53 @@ export function MusicBingoEditor({
     }
   }
 
-  async function uploadTrackAudio(trackId: string, file: File) {
-    const duration = await readAudioDuration(file).catch(() => 0)
-    const clipStart = suggestClipStart(duration)
-    const clipDuration = 30
+  async function uploadTrackAudio(trackId: string, file: File, withClip: boolean) {
     const audioUrl = await uploadGameFile(organizationId, `bingo/audio-${trackId}`, file)
-    const clipBlob = await extractAudioClipWav(file, clipStart, clipDuration)
-    const clipFile = new File([clipBlob], `clip-${file.name}.wav`, { type: 'audio/wav' })
-    const clipUrl = await uploadAsset(
-      'game-assets',
-      `${organizationId}/catalog/${crypto.randomUUID()}-clip-${file.name}.wav`,
-      clipFile,
-    )
+    let patch: Partial<MusicTrack> = { audioUrl, clipUrl: null }
+    if (withClip && clipLen) {
+      const duration = await readAudioDuration(file).catch(() => 0)
+      const clipStart = suggestClipStart(duration)
+      const extracted = await extractAudioClip(file, clipLen, clipStart)
+      const clipFile = new File(
+        [extracted.blob],
+        `clip-${file.name}.${extracted.extension}`,
+        { type: extracted.mimeType },
+      )
+      const clipUrl = await uploadAsset(
+        'game-assets',
+        `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLen}s-${file.name}.${extracted.extension}`,
+        clipFile,
+      )
+      patch = {
+        audioUrl,
+        clipUrl,
+        clipStartSeconds: clipStart,
+        clipDurationSeconds: clipLen,
+      }
+    }
     setConfig((c) => ({
       ...c,
-      tracks: (c.tracks ?? []).map((tr) =>
-        tr.id === trackId
-          ? {
-              ...tr,
-              audioUrl,
-              clipUrl,
-              clipStartSeconds: clipStart,
-              clipDurationSeconds: clipDuration,
-            }
-          : tr,
-      ),
+      tracks: (c.tracks ?? []).map((tr) => (tr.id === trackId ? { ...tr, ...patch } : tr)),
     }))
+  }
+
+  async function generateOneClip(track: MusicTrack) {
+    if (!clipLen) {
+      setClipError('Select clip length first.')
+      return
+    }
+    setClipBusy(true)
+    try {
+      const next = await ensureMusicTrackClip(track, organizationId, clipLen)
+      setConfig((c) => ({
+        ...c,
+        tracks: (c.tracks ?? []).map((t) => (t.id === track.id ? next : t)),
+      }))
+    } catch (err) {
+      setClipError(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setClipBusy(false)
+    }
   }
 
   return (
@@ -104,6 +155,30 @@ export function MusicBingoEditor({
         preview={config.background_url ?? null}
       />
       <ColorPickers config={config} setConfig={setConfig} />
+
+      <div className="space-y-2">
+        <Label>Clip length for live bingo</Label>
+        <select
+          value={config.bingo_clip_length == null ? '' : String(config.bingo_clip_length)}
+          onChange={(e) => onClipLengthChange(e.target.value)}
+          className="border-input bg-background max-w-xs rounded-lg border px-3 py-2 text-sm"
+        >
+          <option value="">Select length</option>
+          <option value="30">30 seconds</option>
+          <option value="90">90 seconds</option>
+        </select>
+      </div>
+
+      <BingoWinningComboEditor
+        config={{
+          ...config,
+          bingo_winning_lines: config.bingo_winning_lines ?? defaultWinningLines(),
+          bingo_line_points: config.bingo_line_points ?? 100,
+          bingo_points_per_correct: config.bingo_points_per_correct ?? 10,
+        }}
+        setConfig={setConfig}
+      />
+
       <MusicCatalogPicker
         organizationId={organizationId}
         existingTrackIds={existingTrackIds}
@@ -116,6 +191,7 @@ export function MusicBingoEditor({
       />
       <MusicCatalogUploader
         organizationId={organizationId}
+        clipLengthSeconds={clipLen}
         onTracksReady={(newTracks) =>
           setConfig((c) => ({
             ...c,
@@ -152,17 +228,17 @@ export function MusicBingoEditor({
         {missingClips.length > 0 ? (
           <div className="mb-3 space-y-2">
             <p className="text-amber-700 text-sm">
-              {missingClips.length} track{missingClips.length === 1 ? '' : 's'} need a 30s live
-              clip before bingo will play correctly.
+              {missingClips.length} track{missingClips.length === 1 ? '' : 's'} need a{' '}
+              {clipLen ?? '…'}s clip before live bingo.
             </p>
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              disabled={clipBusy}
+              disabled={clipBusy || !clipLen}
               onClick={() => void generateMissingClips()}
             >
-              {clipBusy ? 'Generating clips…' : `Generate clips (${missingClips.length})`}
+              {clipBusy ? 'Generating clips…' : `Generate all clips (${missingClips.length})`}
             </Button>
             {clipError ? (
               <p className="text-destructive text-sm" role="alert">
@@ -201,22 +277,74 @@ export function MusicBingoEditor({
               }
               className="bg-background"
             />
+            <div className="flex flex-wrap gap-2 text-xs">
+              {t.audioUrl ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => downloadUrl(t.audioUrl, `${t.title}-full.mp3`)}
+                >
+                  Download full
+                </Button>
+              ) : null}
+              {t.clipUrl ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => downloadUrl(t.clipUrl!, `${t.title}-clip.mp3`)}
+                >
+                  Download clip ({t.clipDurationSeconds ?? clipLen}s)
+                </Button>
+              ) : null}
+              {t.audioUrl ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={clipBusy || !clipLen}
+                  onClick={() => void generateOneClip(t)}
+                >
+                  Generate clip
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() =>
+                  setConfig((c) => ({
+                    ...c,
+                    tracks: (c.tracks ?? []).filter((x) => x.id !== t.id),
+                  }))
+                }
+              >
+                Remove
+              </Button>
+            </div>
             {t.clipUrl ? (
-              <p className="text-muted-foreground text-xs">30s clip ready for live play</p>
+              <p className="text-muted-foreground text-xs">
+                Clip ready ({t.clipDurationSeconds ?? clipLen}s) for live play
+              </p>
             ) : t.audioUrl ? (
-              <p className="text-amber-700 text-xs">Full audio uploaded — generate clip above</p>
+              <p className="text-amber-700 text-xs">Full song uploaded — generate clip</p>
             ) : null}
-            <Input
-              type="file"
-              accept="audio/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                void uploadTrackAudio(t.id, file).catch((err) =>
-                  setClipError(err instanceof Error ? err.message : 'Upload failed'),
-                )
-              }}
-            />
+            <div className="space-y-1">
+              <Label className="text-xs">Replace full song</Label>
+              <Input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  void uploadTrackAudio(t.id, file, Boolean(clipLen)).catch((err) =>
+                    setClipError(err instanceof Error ? err.message : 'Upload failed'),
+                  )
+                }}
+              />
+            </div>
           </Card>
         ))}
       </div>

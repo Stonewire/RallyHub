@@ -38,7 +38,7 @@ export function useBingoRun(eventId: string | undefined, stageIndex: number | un
         status: data.status,
       }
     },
-    refetchInterval: 3000,
+    staleTime: 60_000,
   })
 }
 
@@ -57,6 +57,6 @@ export function useBingoTeamCard(runId: string | undefined, teamId: string | und
       if (error) throw error
       return (data?.cells as BingoCell[]) ?? null
     },
-    refetchInterval: 5000,
+    staleTime: 60_000,
   })
 }

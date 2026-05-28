@@ -1,76 +1,108 @@
-/** Extract a 30s WAV clip in the browser for bingo playback. */
+import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { fetchFile, toBlobURL } from '@ffmpeg/util'
+
+import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
+import { encodeWav } from '@/lib/extract-audio-wav-fallback'
+
+let ffmpeg: FFmpeg | null = null
+let loadPromise: Promise<FFmpeg> | null = null
+
+async function getFfmpeg(): Promise<FFmpeg> {
+  if (ffmpeg?.loaded) return ffmpeg
+  if (!loadPromise) {
+    loadPromise = (async () => {
+      const instance = new FFmpeg()
+      const base = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm'
+      await instance.load({
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+      })
+      ffmpeg = instance
+      return instance
+    })()
+  }
+  return loadPromise
+}
+
+export type ExtractedClip = {
+  blob: Blob
+  mimeType: string
+  extension: string
+  startSeconds: number
+  durationSeconds: number
+}
+
+/** Extract MP3 clip (falls back to WAV if ffmpeg fails). */
+export async function extractAudioClip(
+  file: File,
+  durationSeconds: number,
+  startSecondsOverride?: number,
+): Promise<ExtractedClip> {
+  const duration = await readAudioDuration(file).catch(() => 0)
+  const startSeconds = startSecondsOverride ?? suggestClipStart(duration)
+
+  try {
+    const ff = await getFfmpeg()
+    const inputName = `in-${crypto.randomUUID()}.${file.name.split('.').pop() ?? 'mp3'}`
+    const outputName = 'out.mp3'
+    await ff.writeFile(inputName, await fetchFile(file))
+    await ff.exec([
+      '-ss',
+      String(startSeconds),
+      '-i',
+      inputName,
+      '-t',
+      String(durationSeconds),
+      '-acodec',
+      'libmp3lame',
+      '-b:a',
+      '128k',
+      '-ar',
+      '44100',
+      '-ac',
+      '2',
+      outputName,
+    ])
+    const data = await ff.readFile(outputName)
+    await ff.deleteFile(inputName)
+    await ff.deleteFile(outputName)
+    const bytes =
+      data instanceof Uint8Array
+        ? data
+        : new TextEncoder().encode(String(data))
+    return {
+      blob: new Blob([new Uint8Array(bytes)], { type: 'audio/mpeg' }),
+      mimeType: 'audio/mpeg',
+      extension: 'mp3',
+      startSeconds,
+      durationSeconds,
+    }
+  } catch {
+    const wav = await extractAudioClipWavFallback(file, startSeconds, durationSeconds)
+    return {
+      blob: wav,
+      mimeType: 'audio/wav',
+      extension: 'wav',
+      startSeconds,
+      durationSeconds,
+    }
+  }
+}
+
+async function extractAudioClipWavFallback(
+  file: File,
+  startSeconds: number,
+  durationSeconds: number,
+): Promise<Blob> {
+  return encodeWav(file, startSeconds, durationSeconds)
+}
+
+/** @deprecated use extractAudioClip */
 export async function extractAudioClipWav(
   file: File,
   startSeconds: number,
   durationSeconds: number,
 ): Promise<Blob> {
-  const arrayBuffer = await file.arrayBuffer()
-  const ctx = new AudioContext()
-  try {
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0))
-    const sampleRate = audioBuffer.sampleRate
-    const startSample = Math.min(
-      Math.floor(startSeconds * sampleRate),
-      Math.max(0, audioBuffer.length - 1),
-    )
-    const clipSamples = Math.min(
-      Math.floor(durationSeconds * sampleRate),
-      audioBuffer.length - startSample,
-    )
-    const channels = audioBuffer.numberOfChannels
-    const clipBuffer = ctx.createBuffer(channels, clipSamples, sampleRate)
-    for (let ch = 0; ch < channels; ch++) {
-      const src = audioBuffer.getChannelData(ch)
-      const dest = clipBuffer.getChannelData(ch)
-      dest.set(src.subarray(startSample, startSample + clipSamples))
-    }
-    return encodeWav(clipBuffer)
-  } finally {
-    void ctx.close()
-  }
-}
-
-function encodeWav(buffer: AudioBuffer): Blob {
-  const numChannels = buffer.numberOfChannels
-  const sampleRate = buffer.sampleRate
-  const format = 1
-  const bitDepth = 16
-  const samples = buffer.length
-  const blockAlign = (numChannels * bitDepth) / 8
-  const byteRate = sampleRate * blockAlign
-  const dataSize = samples * blockAlign
-  const header = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(header)
-
-  function writeString(offset: number, str: string) {
-    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i))
-  }
-
-  writeString(0, 'RIFF')
-  view.setUint32(4, 36 + dataSize, true)
-  writeString(8, 'WAVE')
-  writeString(12, 'fmt ')
-  view.setUint32(16, 16, true)
-  view.setUint16(20, format, true)
-  view.setUint16(22, numChannels, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, byteRate, true)
-  view.setUint16(32, blockAlign, true)
-  view.setUint16(34, bitDepth, true)
-  writeString(36, 'data')
-  view.setUint32(40, dataSize, true)
-
-  let offset = 44
-  const channelData: Float32Array[] = []
-  for (let ch = 0; ch < numChannels; ch++) channelData.push(buffer.getChannelData(ch))
-
-  for (let i = 0; i < samples; i++) {
-    for (let ch = 0; ch < numChannels; ch++) {
-      const sample = Math.max(-1, Math.min(1, channelData[ch][i]))
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
-      offset += 2
-    }
-  }
-
-  return new Blob([header], { type: 'audio/wav' })
+  const result = await extractAudioClip(file, durationSeconds, startSeconds)
+  return result.blob
 }

@@ -18,8 +18,13 @@ import {
   useNotification,
 } from '@/contexts/notification-context'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
-import { approvedBingoCellIndices, cellsOnBingoLine } from '@/lib/bingo-lines'
-import { BINGO_CLAIM_MARK, teamHasBingoClaim } from '@/lib/bingo-claims'
+import { bingoCellDisplay } from '@/lib/bingo-engine'
+import {
+  approvedBingoCellIndices,
+  cellsOnConfiguredBingoLine,
+  defaultWinningLines,
+} from '@/lib/bingo-lines'
+import { parseBingoGameConfig } from '@/lib/bingo-facilitator'
 import {
   encodeBingoBonusSubmission,
   parseBingoBonusSubmission,
@@ -28,7 +33,6 @@ import type { LiveEventBundle } from '@/lib/live-event'
 import {
   bingoBonusChallenge,
   bingoBonusMediaType,
-  bingoCellLabels,
   bingoCardTitles,
   bingoTracks,
   brandColorsForEvent,
@@ -403,35 +407,9 @@ export function JoinGameView({
     notify('Bonus answer submitted')
   }
 
-  async function submitBingoClaim(gameId: string) {
-    if (state.bingo_state === 'revealed') return
-    if (teamHasBingoClaim(mySubs, gameId, teamId)) {
-      const existing = mySubs.find(
-        (s) =>
-          s.media_type === 'bingo' &&
-          s.game_id === gameId &&
-          s.media_url === BINGO_CLAIM_MARK,
-      )
-      if (existing) {
-        await supabase.from('submissions').delete().eq('id', existing.id)
-        notify('BINGO call cancelled')
-      }
-      return
-    }
-    await supabase.from('submissions').insert({
-      event_id: event.id,
-      team_id: teamId,
-      game_id: gameId,
-      media_url: BINGO_CLAIM_MARK,
-      media_type: 'bingo',
-      status: 'pending',
-    })
-    notify('BINGO! Facilitator will verify your card.')
-    playSubmitSound()
-  }
-
   async function submitBingoSquare(index: number, gameId: string) {
     if (state.bingo_state === 'revealed') return
+    if (state.bingo_state !== 'waiting' && state.bingo_state !== 'playing') return
     setBingoPick(index)
     const existing = mySubs.find(
       (s) =>
@@ -947,57 +925,58 @@ export function JoinGameView({
       )
     } else {
     const tracks = game ? bingoTracks(game) : []
-    const titles = bingoCardQuery.data
-      ? bingoCellLabels(bingoCardQuery.data)
-      : bingoCardTitles(teamId, tracks)
+    const cellLabels = bingoCardQuery.data
+      ? bingoCellDisplay(bingoCardQuery.data)
+      : bingoCardTitles(teamId, tracks).map((title) => ({ title, artist: '' }))
     const revealed = state.bingo_state === 'revealed'
+    const playOrder = bingoRunQuery.data?.playOrder ?? []
+    const playTrackId = playOrder[state.current_question_index]
+    const correctIndex = bingoCardQuery.data
+      ? bingoCardQuery.data.findIndex((c) => c.trackId === playTrackId)
+      : -1
+    const gameConfig = parseBingoGameConfig(game?.config)
+    const winningLines = gameConfig.bingo_winning_lines ?? defaultWinningLines()
     const markedIndices = mySubs
       .filter(
         (s) =>
           s.media_type === 'bingo' &&
           s.game_id === stage.gameId &&
-          s.media_url !== BINGO_CLAIM_MARK,
+          s.media_url != null &&
+          s.media_url !== 'claim',
       )
       .map((s) => Number(s.media_url))
       .filter((n) => !Number.isNaN(n))
     const approvedIndices = revealed
       ? approvedBingoCellIndices(mySubs, stage.gameId)
       : markedIndices
-    const winningCells =
-      revealed ? cellsOnBingoLine(approvedIndices) : new Set<number>()
-    const hasClaim = teamHasBingoClaim(mySubs, stage.gameId, teamId)
+    const winningCells = revealed
+      ? cellsOnConfiguredBingoLine(approvedIndices, winningLines)
+      : new Set<number>()
+    const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
     body = (
       <div className="mx-auto max-w-md px-2 pb-24">
-        {!revealed ? (
-          <div className="mb-4 flex justify-center">
-            <LiveAccentButton
-              type="button"
-              accentColor={accent}
-              className="px-8 text-lg font-bold"
-              variant={hasClaim ? 'outline' : 'default'}
-              onClick={() => void submitBingoClaim(stage.gameId!)}
-            >
-              {hasClaim ? 'Cancel BINGO' : 'BINGO!'}
-            </LiveAccentButton>
-          </div>
-        ) : null}
         <div className="grid grid-cols-5 gap-1">
-          {titles.map((title, i) => {
+          {cellLabels.map((cell, i) => {
             const sub = mySubs.find(
               (s) => s.media_type === 'bingo' && s.media_url === String(i),
             )
-            let cls = 'bg-white/20 text-white'
-            if (revealed && sub)
+            let cls = 'bg-white/20 text-white rounded-sm'
+            let disabled = revealed || !canMark
+            if (revealed && sub) {
               cls =
                 sub.status === 'approved'
-                  ? 'bg-green-500/80 text-white'
-                  : 'bg-red-500/80 text-white'
-            else if (revealed) cls = 'bg-white/10 text-white/50'
+                  ? 'bg-green-500/80 text-white rounded-sm'
+                  : 'bg-red-500/80 text-white rounded-sm'
+            } else if (revealed && i === correctIndex) {
+              cls = 'bg-gray-500/70 text-white/90 rounded-sm'
+              disabled = true
+            } else if (revealed) {
+              cls = 'bg-white/10 text-white/40 rounded-sm'
+              disabled = true
+            }
             if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
-            else if (sub?.status === 'pending') cls = 'ring-2 ring-white/50 bg-white/30'
-            else if (bingoPick === i) cls = 'font-semibold'
             const pickStyle =
-              bingoPick === i && !revealed
+              !revealed && bingoPick === i
                 ? {
                     backgroundColor: STANDBY_ACCENT,
                     color: textOnAccent(STANDBY_ACCENT),
@@ -1007,12 +986,19 @@ export function JoinGameView({
               <button
                 key={i}
                 type="button"
-                disabled={revealed}
-                className={`aspect-square p-0.5 text-[8px] leading-tight ${cls}`}
+                disabled={disabled}
+                className={`aspect-square flex flex-col items-center justify-center p-0.5 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
-                {title}
+                <span className="line-clamp-2 text-[9px] font-semibold sm:text-[10px]">
+                  {cell.title}
+                </span>
+                {cell.artist ? (
+                  <span className="line-clamp-1 text-[7px] opacity-80 sm:text-[8px]">
+                    {cell.artist}
+                  </span>
+                ) : null}
               </button>
             )
           })}

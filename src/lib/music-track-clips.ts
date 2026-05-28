@@ -1,10 +1,25 @@
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
-import { extractAudioClipWav } from '@/lib/extract-audio-clip'
+import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { uploadAsset } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
-import type { MusicTrack } from '@/types/game-config'
+import type { GameConfig, MusicTrack } from '@/types/game-config'
 
-const CLIP_DURATION = 30
+export function bingoClipLength(config: GameConfig): 30 | 90 | null {
+  const n = config.bingo_clip_length
+  return n === 30 || n === 90 ? n : null
+}
+
+export function clearAllTrackClips(config: GameConfig): GameConfig {
+  return {
+    ...config,
+    tracks: (config.tracks ?? []).map((t) => ({
+      ...t,
+      clipUrl: null,
+      clipStartSeconds: 0,
+      clipDurationSeconds: undefined,
+    })),
+  }
+}
 
 async function fetchAudioFile(url: string, filename: string): Promise<File> {
   const res = await fetch(url)
@@ -13,41 +28,51 @@ async function fetchAudioFile(url: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: blob.type || 'audio/mpeg' })
 }
 
-/** Build a 30s clip from full audio and upload to game-assets. */
 export async function generateClipForAudioUrl(
   organizationId: string,
   audioUrl: string,
   label: string,
+  clipLengthSeconds: 30 | 90,
 ): Promise<{ clipUrl: string; clipStartSeconds: number; clipDurationSeconds: number }> {
   const file = await fetchAudioFile(audioUrl, label)
   const duration = await readAudioDuration(file).catch(() => 0)
   const clipStart = suggestClipStart(duration)
-  const clipBlob = await extractAudioClipWav(file, clipStart, CLIP_DURATION)
-  const clipFile = new File([clipBlob], `clip-${label}.wav`, { type: 'audio/wav' })
+  const extracted = await extractAudioClip(file, clipLengthSeconds, clipStart)
+  const clipFile = new File(
+    [extracted.blob],
+    `clip-${label}.${extracted.extension}`,
+    { type: extracted.mimeType },
+  )
   const clipUrl = await uploadAsset(
     'game-assets',
-    `${organizationId}/catalog/${crypto.randomUUID()}-clip-${label}`,
+    `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLengthSeconds}s-${label}.${extracted.extension}`,
     clipFile,
   )
   return {
     clipUrl,
-    clipStartSeconds: clipStart,
-    clipDurationSeconds: CLIP_DURATION,
+    clipStartSeconds: extracted.startSeconds,
+    clipDurationSeconds: clipLengthSeconds,
   }
 }
 
-/** Ensure a game track has clipUrl; updates music_catalog when track id matches a catalog row. */
 export async function ensureMusicTrackClip(
   track: MusicTrack,
   organizationId: string,
+  clipLengthSeconds: 30 | 90,
 ): Promise<MusicTrack> {
-  if (track.clipUrl?.trim()) return track
+  if (
+    track.clipUrl?.trim() &&
+    track.clipDurationSeconds === clipLengthSeconds
+  ) {
+    return track
+  }
   if (!track.audioUrl?.trim()) throw new Error(`"${track.title}" has no audio file`)
 
   const clip = await generateClipForAudioUrl(
     organizationId,
     track.audioUrl,
     `${track.artist}-${track.title}.mp3`,
+    clipLengthSeconds,
   )
 
   const { data: catalogRow } = await supabase
@@ -74,4 +99,15 @@ export async function ensureMusicTrackClip(
     clipStartSeconds: clip.clipStartSeconds,
     clipDurationSeconds: clip.clipDurationSeconds,
   }
+}
+
+export function downloadUrl(url: string, filename: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.rel = 'noopener'
+  a.target = '_blank'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }

@@ -20,7 +20,7 @@ export type MusicTrack = {
   title: string
   artist: string
   audioUrl: string
-  /** 30s clip URL for live bingo (falls back to audioUrl). */
+  /** MP3 clip for live bingo. */
   clipUrl?: string | null
   clipStartSeconds?: number
   clipDurationSeconds?: number
@@ -33,13 +33,11 @@ export type BonusChallenge = {
   answers: QuizAnswer[]
   correctAnswerId: string
   mediaUrl?: string | null
-  /** Photo shown with the question (photo challenges). */
   questionImageUrl?: string | null
 }
 
 export type GameConfig = {
   example_video_url?: string | null
-  /** Max length for participant video submissions (seconds). */
   max_video_duration_seconds?: number
   background_url?: string | null
   primary_color?: string
@@ -51,6 +49,12 @@ export type GameConfig = {
   rounds?: QuizRound[]
   tracks?: MusicTrack[]
   bonus_challenges?: BonusChallenge[]
+  /** null = not chosen yet; 30 or 90 sec clips to generate. */
+  bingo_clip_length?: 30 | 90 | null
+  /** Each entry is five cell indices (0–24) for a winning line. */
+  bingo_winning_lines?: number[][]
+  bingo_line_points?: number
+  bingo_points_per_correct?: number
 }
 
 export type EventTeam = {
@@ -64,7 +68,6 @@ export type EventStage = {
   name: string
   type: 'open' | 'quiz' | 'bingo' | 'break'
   gameId?: string | null
-  /** Open stages: multiple photo/video games. */
   gameIds?: string[]
   message?: string
   durationMinutes?: number

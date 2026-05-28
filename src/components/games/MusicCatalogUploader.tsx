@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
 import { useInsertMusicCatalog } from '@/hooks/use-music-catalog'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
-import { extractAudioClipWav } from '@/lib/extract-audio-clip'
+import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { parseAudioFilename } from '@/lib/parse-audio-filename'
 import { uploadAsset } from '@/lib/storage'
 import type { MusicTrack } from '@/types/game-config'
@@ -24,11 +24,13 @@ type PendingTrack = {
 
 type MusicCatalogUploaderProps = {
   organizationId: string
+  clipLengthSeconds: 30 | 90 | null
   onTracksReady: (tracks: MusicTrack[]) => void
 }
 
 export function MusicCatalogUploader({
   organizationId,
+  clipLengthSeconds,
   onTracksReady,
 }: MusicCatalogUploaderProps) {
   const { user } = useAuth()
@@ -61,6 +63,10 @@ export function MusicCatalogUploader({
       setError('Confirm you have rights to use these recordings.')
       return
     }
+    if (!clipLengthSeconds) {
+      setError('Select clip length (30 or 90 sec) before uploading.')
+      return
+    }
     if (pending.length === 0) return
     setUploading(true)
     setError(null)
@@ -69,19 +75,21 @@ export function MusicCatalogUploader({
       for (const item of pending) {
         const duration = await readAudioDuration(item.file).catch(() => 0)
         const clipStart = suggestClipStart(duration)
-        const clipDuration = 30
+        const clipDuration = clipLengthSeconds
         const audioUrl = await uploadAsset(
           'game-assets',
           `${organizationId}/catalog/${crypto.randomUUID()}-full-${item.file.name}`,
           item.file,
         )
-        const clipBlob = await extractAudioClipWav(item.file, clipStart, clipDuration)
-        const clipFile = new File([clipBlob], `clip-${item.file.name}.wav`, {
-          type: 'audio/wav',
-        })
+        const extracted = await extractAudioClip(item.file, clipDuration, clipStart)
+        const clipFile = new File(
+          [extracted.blob],
+          `clip-${item.file.name}.${extracted.extension}`,
+          { type: extracted.mimeType },
+        )
         const clipUrl = await uploadAsset(
           'game-assets',
-          `${organizationId}/catalog/${crypto.randomUUID()}-clip-${item.file.name}.wav`,
+          `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipDuration}s-${item.file.name}.${extracted.extension}`,
           clipFile,
         )
         const row = await insertCatalog.mutateAsync({
@@ -123,7 +131,7 @@ export function MusicCatalogUploader({
         <h3 className="text-foreground font-semibold">Upload playlist (MP3)</h3>
         <p className="text-muted-foreground text-sm">
           We match filenames like &quot;Artist - Title.mp3&quot;. Low-confidence rows need a quick
-          review. Each track gets a dedicated 30-second clip for live bingo.
+          review. Each track gets a dedicated MP3 clip for live bingo (length set above).
         </p>
       </div>
 
@@ -202,7 +210,7 @@ export function MusicCatalogUploader({
         <div className="flex flex-wrap gap-2">
           <AccentButton
             type="button"
-            disabled={uploading || !licenseOk}
+            disabled={uploading || !licenseOk || !clipLengthSeconds}
             onClick={() => void confirmUpload()}
           >
             {uploading ? 'Uploading…' : `Add ${pending.length} to game`}
