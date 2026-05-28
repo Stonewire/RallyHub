@@ -47,9 +47,10 @@ export function buildUniquePlayOrder(trackIds: string[], seed: number): string[]
 export function generateBingoRun(opts: {
   tracks: BingoTrack[]
   teams: BingoTeam[]
+  gameId: string
   activationSeed: string
 }): { cardsByTeamId: Record<string, BingoCell[]>; playOrder: string[] } {
-  const { tracks, teams, activationSeed } = opts
+  const { tracks, teams, gameId, activationSeed } = opts
   const active = teams.filter((t) => t.name?.trim())
   if (active.length === 0) throw new Error('No active teams for bingo')
   if (tracks.length < 5) throw new Error('Need at least 5 tracks for bingo')
@@ -62,7 +63,7 @@ export function generateBingoRun(opts: {
 
   const cardsByTeamId: Record<string, BingoCell[]> = {}
   for (const team of active) {
-    let card = pick25(tracks, hashSeed(team.id + activationSeed))
+    let card = pick25(tracks, hashSeed(`${team.id}:${gameId}`))
     let attempts = 0
     while (attempts < 8) {
       const duplicate = Object.values(cardsByTeamId).some(
@@ -71,7 +72,10 @@ export function generateBingoRun(opts: {
           JSON.stringify(card.map((c) => c.trackId)),
       )
       if (!duplicate) break
-      card = pick25(tracks, hashSeed(team.id + activationSeed + String(attempts)))
+      card = pick25(
+        tracks,
+        hashSeed(`${team.id}:${gameId}:${activationSeed}:${String(attempts)}`),
+      )
       attempts++
     }
     cardsByTeamId[team.id] = card

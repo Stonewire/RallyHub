@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
     const plan = generateBingoRun({
       tracks,
       teams: teams ?? [],
+      gameId,
       activationSeed,
     })
 

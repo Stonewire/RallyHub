@@ -10,6 +10,7 @@ import type { GameConfig } from '@/types/game-config'
 export type ScoreBingoRoundResult = {
   correctIndex: number
   trackId: string
+  winningTeamIds: string[]
 }
 
 /** Approve/reject pending cell marks for the track that was just played. */
@@ -40,7 +41,7 @@ export async function scoreBingoRound(params: {
   const correctIndex = firstCard?.findIndex((c) => c.trackId === trackId) ?? -1
 
   if (!cards?.length || correctIndex < 0) {
-    return { correctIndex, trackId }
+    return { correctIndex, trackId, winningTeamIds: [] }
   }
 
   const approveUpdates: { id: string; teamId: string; points: number }[] = []
@@ -85,6 +86,7 @@ export async function scoreBingoRound(params: {
     await applySubmissionPoints(teamId, delta)
   }
 
+  const winningTeamIds: string[] = []
   if (linePoints > 0 && winningLines.length > 0) {
     const { data: allSubs } = await supabase
       .from('submissions')
@@ -99,9 +101,10 @@ export async function scoreBingoRound(params: {
       if (!hasConfiguredBingoLine(approved, winningLines)) continue
       if (lineAwarded.has(row.team_id)) continue
       lineAwarded.add(row.team_id)
+      winningTeamIds.push(row.team_id)
       await applySubmissionPoints(row.team_id, linePoints)
     }
   }
 
-  return { correctIndex, trackId }
+  return { correctIndex, trackId, winningTeamIds }
 }

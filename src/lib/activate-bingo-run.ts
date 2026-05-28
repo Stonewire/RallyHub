@@ -61,6 +61,7 @@ async function activateBingoRunLocal(
   const plan = generateBingoRun({
     tracks,
     teams: teams ?? [],
+    gameId,
     activationSeed,
   })
 

@@ -128,6 +128,7 @@ export function JoinGameView({
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [isPortrait, setIsPortrait] = useState(false)
 
   const breakSyncRef = useRef(
     createThrottledTimerSync(() => {
@@ -236,6 +237,14 @@ export function JoinGameView({
   useEffect(() => {
     if (chatOpen) setUnreadMessages(0)
   }, [chatOpen])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)')
+    const sync = () => setIsPortrait(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   useEffect(() => {
     const incoming = visibleMessages
@@ -1015,8 +1024,27 @@ export function JoinGameView({
       : new Set<number>()
     const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
     body = (
-      <div className="mx-auto max-w-md px-2 pb-24">
-        <div className="grid grid-cols-5 gap-1">
+      <div className="mx-auto w-full max-w-5xl px-2 pb-16">
+        {isPortrait ? (
+          <div className="mx-auto mt-10 max-w-md rounded-xl border border-white/20 bg-black/40 p-6 text-center">
+            <p className="text-lg font-bold">Rotate your device</p>
+            <p className="mt-2 text-sm text-white/70">
+              Music bingo cards are optimized for landscape mode.
+            </p>
+          </div>
+        ) : null}
+        <div className="mb-2 flex items-center justify-between gap-3 px-1">
+          <div className="min-w-0 flex items-center gap-2">
+            {logo ? (
+              <img src={logo} alt="" className="h-6 w-auto max-w-[84px] object-contain" />
+            ) : null}
+            <p className="truncate text-sm font-semibold">{event.name}</p>
+          </div>
+          <p className="shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
+            {team.score} pts
+          </p>
+        </div>
+        <div className="grid h-[calc(100dvh-150px)] grid-cols-5 gap-1 md:h-[calc(100dvh-180px)]">
           {cellLabels.map((cell, i) => {
             const sub = mySubs.find(
               (s) => s.media_type === 'bingo' && s.media_url === String(i),
@@ -1048,7 +1076,7 @@ export function JoinGameView({
                 key={i}
                 type="button"
                 disabled={disabled}
-                className={`aspect-square overflow-hidden rounded-sm px-0.5 py-1 text-center leading-tight ${cls}`}
+                className={`h-full min-h-0 overflow-hidden rounded-sm px-0.5 py-1 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >

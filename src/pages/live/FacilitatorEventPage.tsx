@@ -597,13 +597,23 @@ export function FacilitatorEventPage() {
       await patchState({ bingo_state: 'revealed' })
       return
     }
-    await scoreBingoRound({
+    const result = await scoreBingoRound({
       eventId,
       gameId: stage.gameId,
       runId: bingoRunQuery.data.id,
       trackId,
       gameConfig: bingoConfig,
     })
+    if (result.winningTeamIds.length > 0) {
+      const winnerNames = result.winningTeamIds
+        .map((id) => teams.find((t) => t.id === id)?.name)
+        .filter(Boolean)
+      if (winnerNames.length > 0) {
+        const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
+        notify(text)
+        await patchState({ announcement: text, announcement_target: 'both' })
+      }
+    }
     await patchState({ bingo_state: 'revealed' })
   }
 
@@ -1154,7 +1164,10 @@ export function FacilitatorEventPage() {
                   <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
                   <ul className="text-sm">
                     {bingoMarkedTeams.map((n) => (
-                      <li key={n}>{n}</li>
+                      <li key={n} className="flex items-center gap-1.5">
+                        <Check className="size-3.5 text-green-600" />
+                        <span>{n}</span>
+                      </li>
                     ))}
                   </ul>
                 </div>
