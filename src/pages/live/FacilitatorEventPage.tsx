@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
-import { BingoClipPlayer } from '@/components/live/BingoClipPlayer'
+import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import {
   FacilitatorChatBubble,
@@ -86,7 +86,10 @@ export function FacilitatorEventPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatTeamId, setChatTeamId] = useState<string | null>(null)
   const [audioPlayNonce, setAudioPlayNonce] = useState(0)
+  const [bingoAutoAdvancePaused, setBingoAutoAdvancePaused] = useState(false)
+  const [bingoRevealBusy, setBingoRevealBusy] = useState(false)
   const bingoStateRef = useRef('waiting')
+  const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   const { notify } = useNotification()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
 
@@ -593,30 +596,38 @@ export function FacilitatorEventPage() {
   })()
 
   async function revealCurrentBingoSong() {
-    if (!stage?.gameId || !eventId || !bingoRunQuery.data) return
-    const trackId = bingoPlayOrder[bingoPlayIndex]
-    if (!trackId) {
-      await patchState({ bingo_state: 'revealed' })
-      return
-    }
-    const result = await scoreBingoRound({
-      eventId,
-      gameId: stage.gameId,
-      runId: bingoRunQuery.data.id,
-      trackId,
-      gameConfig: bingoConfig,
-    })
-    if (result.winningTeamIds.length > 0) {
-      const winnerNames = result.winningTeamIds
-        .map((id) => teams.find((t) => t.id === id)?.name)
-        .filter(Boolean)
-      if (winnerNames.length > 0) {
-        const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
-        notify(text)
-        await patchState({ announcement: text, announcement_target: 'both' })
+    if (bingoRevealBusy) return
+    setBingoRevealBusy(true)
+    try {
+      if (!stage?.gameId || !eventId || !bingoRunQuery.data) return
+      const trackId = bingoPlayOrder[bingoPlayIndex]
+      if (!trackId) {
+        await patchState({ bingo_state: 'revealed' })
+        return
       }
+      await bingoAudioRef.current?.fadeOutAndStop(2500)
+      const result = await scoreBingoRound({
+        eventId,
+        gameId: stage.gameId,
+        runId: bingoRunQuery.data.id,
+        trackId,
+        gameConfig: bingoConfig,
+      })
+      if (result.winningTeamIds.length > 0) {
+        const winnerNames = result.winningTeamIds
+          .map((id) => teams.find((t) => t.id === id)?.name)
+          .filter(Boolean)
+        if (winnerNames.length > 0) {
+          const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
+          notify(text)
+          await patchState({ announcement: text, announcement_target: 'both' })
+        }
+      }
+      await patchState({ bingo_state: 'revealed' })
+      await bingoAudioRef.current?.runRevealReplay({ fadeMs: 2500 })
+    } finally {
+      setBingoRevealBusy(false)
     }
-    await patchState({ bingo_state: 'revealed' })
   }
 
   async function playCurrentBingoSong() {
@@ -626,6 +637,7 @@ export function FacilitatorEventPage() {
 
   async function nextBingoSong() {
     if (!stage?.gameId || !eventId) return
+    await bingoAudioRef.current?.fadeOutAndStop(3000)
     const nextIndex = await advanceBingoTrack({
       eventId,
       gameId: stage.gameId,
@@ -662,6 +674,18 @@ export function FacilitatorEventPage() {
       await patchState({ bingo_state: 'ended' })
       notify('Bingo round complete')
     }
+  }
+
+  async function autoAdvanceBingoSong() {
+    if (bingoAutoAdvancePaused) return
+    if (liveState.bingo_state !== 'playing') return
+    if (!stage?.gameId || !eventId) return
+    if (bingoPlayOrder.length > 0 && bingoPlayIndex >= bingoPlayOrder.length - 1) {
+      await revealCurrentBingoSong()
+      return
+    }
+    await revealCurrentBingoSong()
+    await nextBingoSong()
   }
 
   return (
@@ -1140,9 +1164,13 @@ export function FacilitatorEventPage() {
               ) : null}
               {track && liveState.bingo_state === 'playing' ? (
                 <BingoClipPlayer
+                  ref={bingoAudioRef}
                   src={bingoTrackPlaybackUrl(track)}
                   playKey={`${track.id}-${bingoPlayIndex}-${audioPlayNonce}`}
                   autoPlay
+                  autoAdvanceEnabled={!bingoAutoAdvancePaused}
+                  autoFadeSeconds={3}
+                  onAutoAdvance={() => void autoAdvanceBingoSong()}
                   onEnded={() => {
                     if (bingoStateRef.current === 'playing') {
                       void revealCurrentBingoSong()
@@ -1153,13 +1181,24 @@ export function FacilitatorEventPage() {
               {liveState.bingo_state !== 'bonus' &&
               liveState.bingo_state !== 'bonus_revealed' &&
               bingoPrimary ? (
-                <FacilitatorButton
-                  size="sm"
-                  disabled={!track && bingoPrimary.action === 'play'}
-                  onClick={() => void runBingoPrimary()}
-                >
-                  {bingoPrimary.label}
-                </FacilitatorButton>
+                <div className="flex flex-wrap gap-2">
+                  <FacilitatorButton
+                    size="sm"
+                    disabled={!track && bingoPrimary.action === 'play'}
+                    onClick={() => void runBingoPrimary()}
+                  >
+                    {bingoPrimary.label}
+                  </FacilitatorButton>
+                  {liveState.bingo_state === 'playing' ? (
+                    <FacilitatorButton
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setBingoAutoAdvancePaused((p) => !p)}
+                    >
+                      {bingoAutoAdvancePaused ? 'Resume Bingo' : 'Pause Bingo'}
+                    </FacilitatorButton>
+                  ) : null}
+                </div>
               ) : null}
               {bingoMarkedTeams.length > 0 ? (
                 <div>

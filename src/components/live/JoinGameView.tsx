@@ -544,7 +544,8 @@ export function JoinGameView({
     })
   }
 
-  const showMainHeader = !selectedGame && state.winner_reveal_stage < 1
+  const showMainHeader =
+    !selectedGame && state.winner_reveal_stage < 1 && stage?.type !== 'bingo'
 
   const header = showMainHeader ? (
     <header className="mb-6 flex flex-col items-center gap-2 px-2 pt-10 text-center sm:pt-12">
@@ -1070,7 +1071,7 @@ export function JoinGameView({
       : new Set<number>()
     const canMark = state.bingo_state === 'waiting' || state.bingo_state === 'playing'
     body = (
-      <div className="mx-auto w-full max-w-5xl px-2 pb-16">
+      <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="min-w-0 flex items-center gap-2">
             {logo ? (
@@ -1082,7 +1083,7 @@ export function JoinGameView({
             {team.score} pts
           </p>
         </div>
-        <div className="grid h-[calc(100dvh-150px)] grid-cols-5 gap-1 md:h-[calc(100dvh-180px)]">
+        <div className="grid h-[calc(100%-34px)] grid-cols-5 grid-rows-5 gap-1">
           {cellLabels.map((cell, i) => {
             const finalStatus = historicalByIndex.get(i)
             let cls = 'bg-white/20 text-white rounded-sm'
