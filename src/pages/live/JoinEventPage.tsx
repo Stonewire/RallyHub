@@ -82,9 +82,9 @@ export function JoinEventPage() {
   }, [bundle?.state.announcement, bundle?.state.announcement_target])
 
   useEffect(() => {
-    if (!hasJoined || mediaReady) return
+    if (mediaReady) return
     void requestTeamMediaPermissions().then((granted) => setMediaReady(granted))
-  }, [hasJoined, mediaReady])
+  }, [mediaReady])
 
   if (loading || !bundle) {
     return (

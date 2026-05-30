@@ -1,6 +1,8 @@
 import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
@@ -18,7 +20,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
-import { useBingoRun } from '@/hooks/use-bingo-run'
+import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
@@ -48,7 +50,9 @@ import {
   isQuizSubmission,
   scoreCurrentQuizQuestion,
 } from '@/lib/live-event'
+import { bingoRunRowFromActivation } from '@/lib/bingo-run-cache'
 import { getEventLinks } from '@/lib/event-links'
+import { queryKeys } from '@/lib/query-keys'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
   playAnnouncementSound,
@@ -86,8 +90,10 @@ export function FacilitatorEventPage() {
   const [chatTeamId, setChatTeamId] = useState<string | null>(null)
   const [audioPlayNonce, setAudioPlayNonce] = useState(0)
   const [bingoAdvancing, setBingoAdvancing] = useState(false)
+  const [bingoRunOverride, setBingoRunOverride] = useState<BingoRunRow | null>(null)
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   const { notify } = useNotification()
+  const queryClient = useQueryClient()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
 
   const stages = useMemo(
@@ -129,9 +135,16 @@ export function FacilitatorEventPage() {
       patch.quiz_timer_running = false
     }
     if (next?.type === 'bingo' && next.gameId && eventId) {
-      void activateBingoRun(eventId, next.gameId, index).catch((err) => {
-        setStateError(err instanceof Error ? err.message : 'Could not start bingo')
-      })
+      setBingoRunOverride(null)
+      void activateBingoRun(eventId, next.gameId, index)
+        .then((result) => {
+          const row = bingoRunRowFromActivation(eventId, next.gameId!, index, result)
+          setBingoRunOverride(row)
+          queryClient.setQueryData(queryKeys.bingoRun(eventId, index), row)
+        })
+        .catch((err) => {
+          setStateError(err instanceof Error ? err.message : 'Could not start bingo')
+        })
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
     }
@@ -563,12 +576,24 @@ export function FacilitatorEventPage() {
     ? games.find((g) => g.id === stage.gameId)
     : null
   const tracks = bingoGame ? bingoTracks(bingoGame) : []
-  const bingoPlayOrder = bingoRunQuery.data?.playOrder ?? []
+  const effectiveBingoRun = bingoRunOverride ?? bingoRunQuery.data
+  const bingoPlayOrder = effectiveBingoRun?.playOrder ?? []
   const bingoPlayIndex = liveState.current_question_index
   const playTrackId = bingoPlayOrder[bingoPlayIndex]
   const track = playTrackId
     ? tracks.find((t) => t.id === playTrackId) ?? tracks[bingoPlayIndex]
     : tracks[bingoPlayIndex]
+  const trackPlaybackUrl = track ? bingoTrackPlaybackUrl(track) : ''
+  const nextTrackForCrossfade = (() => {
+    const nextId = bingoPlayOrder[bingoPlayIndex + 1]
+    if (!nextId) return undefined
+    const nextTrack = tracks.find((t) => t.id === nextId) ?? tracks[bingoPlayIndex + 1]
+    return nextTrack ? bingoTrackPlaybackUrl(nextTrack) : undefined
+  })()
+  const showBingoPlayer =
+    stage?.type === 'bingo' &&
+    liveState.bingo_state !== 'bonus' &&
+    liveState.bingo_state !== 'bonus_revealed'
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
   const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
   const bingoMarkedTeams = (() => {
@@ -590,19 +615,67 @@ export function FacilitatorEventPage() {
       .filter(Boolean) as string[]
   })()
 
-  async function playCurrentBingoSong() {
-    await patchState({ bingo_state: 'playing' })
-    setAudioPlayNonce((n) => n + 1)
+  async function ensureBingoRunReady(): Promise<BingoRunRow | null> {
+    if (!eventId || !stage?.gameId) return null
+    if (effectiveBingoRun?.playOrder.length) return effectiveBingoRun
+    const result = await activateBingoRun(
+      eventId,
+      stage.gameId,
+      liveState.current_stage_index,
+    )
+    const row = bingoRunRowFromActivation(
+      eventId,
+      stage.gameId,
+      liveState.current_stage_index,
+      result,
+    )
+    flushSync(() => setBingoRunOverride(row))
+    queryClient.setQueryData(
+      queryKeys.bingoRun(eventId, liveState.current_stage_index),
+      row,
+    )
+    return row
   }
 
-  async function nextBingoSong() {
+  function resolveTrackForIndex(run: BingoRunRow, index: number) {
+    const id = run.playOrder[index]
+    if (!id) return tracks[index] ?? null
+    return tracks.find((t) => t.id === id) ?? tracks[index] ?? null
+  }
+
+  async function handleBingoStartClick() {
+    void bingoAudioRef.current?.primeAudioContext()
+    const run = await ensureBingoRunReady()
+    if (!run?.playOrder.length) {
+      notify('Bingo run is not ready — check that the game has tracks and teams are set up')
+      return
+    }
+    const currentTrack = resolveTrackForIndex(run, bingoPlayIndex)
+    if (!currentTrack) {
+      notify('No track found for this round')
+      return
+    }
+    const url = bingoTrackPlaybackUrl(currentTrack)
+    flushSync(() => setBingoRunOverride(run))
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    const played = (await bingoAudioRef.current?.playFromUserGesture(url)) ?? false
+    await patchState({ bingo_state: 'playing' })
+    if (!played) setAudioPlayNonce((n) => n + 1)
+  }
+
+  async function handleBingoNextClick() {
     if (bingoAdvancing) return
     if (!stage?.gameId || !eventId) return
-    if (bingoPlayOrder.length === 0) return
+    void bingoAudioRef.current?.primeAudioContext()
+    const run = await ensureBingoRunReady()
+    if (!run?.playOrder.length) {
+      notify('Bingo run is not ready')
+      return
+    }
     setBingoAdvancing(true)
     try {
-      const currentTrackId = bingoPlayOrder[bingoPlayIndex]
-      const runId = bingoRunQuery.data?.id
+      const currentTrackId = run.playOrder[bingoPlayIndex]
+      const runId = run.id
       if (runId && currentTrackId) {
         const result = await scoreBingoRound({
           eventId,
@@ -623,23 +696,25 @@ export function FacilitatorEventPage() {
         }
       }
 
-      const atLastTrack = bingoPlayIndex >= bingoPlayOrder.length - 1
+      const atLastTrack = bingoPlayIndex >= run.playOrder.length - 1
       if (atLastTrack) {
         await patchState({ bingo_state: 'ended' })
         return
       }
 
-      const nextIndexRaw = bingoPlayIndex + 1
-      const nextTrackId = bingoPlayOrder[nextIndexRaw]
-      const nextTrack = nextTrackId
-        ? tracks.find((t) => t.id === nextTrackId) ?? tracks[nextIndexRaw]
-        : tracks[nextIndexRaw]
+      const nextTrack = resolveTrackForIndex(run, bingoPlayIndex + 1)
+      const nextUrl = nextTrack ? bingoTrackPlaybackUrl(nextTrack) : ''
+      if (nextUrl && liveState.bingo_state === 'playing') {
+        await bingoAudioRef.current?.crossfadeTo(nextUrl, 4000)
+      } else if (nextUrl) {
+        await bingoAudioRef.current?.playFromUserGesture(nextUrl)
+      }
 
       const nextIndex = await advanceBingoTrack({
         eventId,
         gameId: stage.gameId,
         runId,
-        playOrder: bingoPlayOrder,
+        playOrder: run.playOrder,
         currentIndex: bingoPlayIndex,
         scoreCurrent: false,
       })
@@ -647,15 +722,7 @@ export function FacilitatorEventPage() {
         current_question_index: nextIndex,
         bingo_state: 'playing',
       })
-      if (track && nextTrack) {
-        const crossed = await bingoAudioRef.current?.crossfadeTo(
-          bingoTrackPlaybackUrl(nextTrack),
-          4000,
-        )
-        if (!crossed) setAudioPlayNonce((n) => n + 1)
-      } else {
-        setAudioPlayNonce((n) => n + 1)
-      }
+      if (!nextUrl) setAudioPlayNonce((n) => n + 1)
     } finally {
       setBingoAdvancing(false)
     }
@@ -665,7 +732,7 @@ export function FacilitatorEventPage() {
     if (bingoAdvancing) return
     if (liveState.bingo_state !== 'playing') return
     if (!stage?.gameId || !eventId) return
-    await nextBingoSong()
+    await handleBingoNextClick()
   }
 
   return (
@@ -1128,30 +1195,27 @@ export function FacilitatorEventPage() {
                 </div>
               ) : null}
               <p className="text-muted-foreground text-xs">
-                {bingoRunQuery.data
-                  ? `Run active · ${bingoRunQuery.data.playOrder.length} songs in script`
-                  : 'No bingo run — switch to this stage to activate'}
+                {effectiveBingoRun
+                  ? `Run active · ${effectiveBingoRun.playOrder.length} songs in script`
+                  : bingoRunQuery.isLoading
+                    ? 'Loading bingo run…'
+                    : 'No bingo run — switch to this stage to activate'}
               </p>
               <p className="text-muted-foreground text-sm font-medium tabular-nums">
                 {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
               </p>
-              {liveState.bingo_state === 'playing' ? (
-                <p className="text-muted-foreground text-sm">Clip playing — title hidden on display</p>
-              ) : null}
               {track && liveState.bingo_state === 'playing' ? (
+                <p className="font-semibold">
+                  Now playing: {track.title} — {track.artist}
+                </p>
+              ) : null}
+              {showBingoPlayer ? (
                 <BingoClipPlayer
                   ref={bingoAudioRef}
-                  src={bingoTrackPlaybackUrl(track)}
-                  nextSrc={
-                    bingoPlayOrder[bingoPlayIndex + 1]
-                      ? bingoTrackPlaybackUrl(
-                          tracks.find((t) => t.id === bingoPlayOrder[bingoPlayIndex + 1]) ??
-                            tracks[bingoPlayIndex + 1],
-                        )
-                      : undefined
-                  }
-                  playKey={`${track.id}-${bingoPlayIndex}-${audioPlayNonce}`}
-                  autoPlay
+                  src={trackPlaybackUrl}
+                  nextSrc={nextTrackForCrossfade}
+                  playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
+                  autoPlay={false}
                   crossfadeSeconds={4}
                   onAutoAdvance={() => void autoAdvanceBingoSong()}
                   onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
@@ -1162,13 +1226,16 @@ export function FacilitatorEventPage() {
                 <div className="flex flex-wrap gap-2">
                   <FacilitatorButton
                     size="sm"
-                    disabled={liveState.bingo_state === 'ended'}
+                    disabled={liveState.bingo_state === 'ended' || bingoAdvancing}
                     onClick={() => {
-                      if (liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active') {
-                        void playCurrentBingoSong()
+                      if (
+                        liveState.bingo_state === 'waiting' ||
+                        liveState.bingo_state === 'active'
+                      ) {
+                        void handleBingoStartClick()
                         return
                       }
-                      void nextBingoSong()
+                      void handleBingoNextClick()
                     }}
                   >
                     {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'

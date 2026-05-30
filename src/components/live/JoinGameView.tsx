@@ -1,5 +1,6 @@
 import { Check, LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
@@ -122,6 +123,7 @@ export function JoinGameView({
   const [quizLocked, setQuizLocked] = useState(false)
   const quizChangeDeadlineRef = useRef<number | null>(null)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
+  const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
   const [bonusAnswerId, setBonusAnswerId] = useState<string | null>(null)
   const [bonusCaptureFile, setBonusCaptureFile] = useState<File | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
@@ -226,6 +228,7 @@ export function JoinGameView({
 
   useEffect(() => {
     if (stage?.type !== 'bingo' || !stage.gameId) return
+    if (bingoPickOptimisticRef.current !== undefined) return
     const pending = mySubs
       .filter(
         (s) =>
@@ -242,6 +245,12 @@ export function JoinGameView({
         : null,
     )
   }, [stage?.type, stage?.gameId, mySubs])
+
+  useEffect(() => {
+    if (stage?.type !== 'bingo') return
+    bingoPickOptimisticRef.current = undefined
+    setBingoPick(null)
+  }, [stage?.type, stage?.gameId, state.current_question_index, state.bingo_state])
 
   useEffect(() => {
     if (chatOpen) setUnreadMessages(0)
@@ -502,7 +511,7 @@ export function JoinGameView({
         (s.status === 'approved' || s.status === 'rejected'),
     )
     if (lockedByHistory) return
-    setBingoPick(index)
+
     const existingPending = mySubs
       .filter(
         (s) =>
@@ -514,38 +523,55 @@ export function JoinGameView({
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 
-    if (existingPending) {
-      if (existingPending.media_url === String(index)) {
-        setBingoPick(null)
-        await supabase.from('submissions').delete().eq('id', existingPending.id)
-        return
-      }
-      await supabase
+    if (existingPending?.media_url === String(index)) {
+      bingoPickOptimisticRef.current = null
+      setBingoPick(null)
+      void supabase
         .from('submissions')
-        .update({ media_url: String(index) })
+        .delete()
         .eq('id', existingPending.id)
+        .then(() => {
+          bingoPickOptimisticRef.current = undefined
+        })
       return
     }
 
-    const existingSameIndex = mySubs.find(
-      (s) =>
-        s.media_type === 'bingo' &&
-        s.game_id === gameId &&
-        s.media_url === String(index),
-    )
-    if (existingSameIndex?.status === 'pending') {
-      setBingoPick(null)
-      await supabase.from('submissions').delete().eq('id', existingSameIndex.id)
-      return
+    bingoPickOptimisticRef.current = index
+    setBingoPick(index)
+
+    try {
+      if (existingPending) {
+        await supabase
+          .from('submissions')
+          .update({ media_url: String(index) })
+          .eq('id', existingPending.id)
+        return
+      }
+
+      const existingSameIndex = mySubs.find(
+        (s) =>
+          s.media_type === 'bingo' &&
+          s.game_id === gameId &&
+          s.media_url === String(index),
+      )
+      if (existingSameIndex?.status === 'pending') {
+        bingoPickOptimisticRef.current = null
+        setBingoPick(null)
+        await supabase.from('submissions').delete().eq('id', existingSameIndex.id)
+        return
+      }
+
+      await supabase.from('submissions').insert({
+        event_id: event.id,
+        team_id: teamId,
+        game_id: gameId,
+        media_url: String(index),
+        media_type: 'bingo',
+        status: 'pending',
+      })
+    } finally {
+      bingoPickOptimisticRef.current = undefined
     }
-    await supabase.from('submissions').insert({
-      event_id: event.id,
-      team_id: teamId,
-      game_id: gameId,
-      media_url: String(index),
-      media_type: 'bingo',
-      status: 'pending',
-    })
   }
 
   const showMainHeader =
@@ -1157,36 +1183,42 @@ export function JoinGameView({
       className="flex min-h-dvh flex-col pt-3 pb-20"
     >
       <NotificationAccentSync color={accent} />
-      {!selectedGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="fixed right-4 bottom-4 z-40 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
-          onClick={() => void handleExitTeam()}
-          aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
-        >
-          <LogOut className="size-4" />
-        </Button>
-      ) : null}
+      {!selectedGame
+        ? createPortal(
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="fixed right-4 bottom-4 z-50 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+              onClick={() => void handleExitTeam()}
+              aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
+            >
+              <LogOut className="size-4" />
+            </Button>,
+            document.body,
+          )
+        : null}
       {header}
       <div className="flex-1 min-h-0">{body}</div>
-      <Button
-        className="fixed bottom-4 left-4 z-40 relative size-12 rounded-full shadow-lg hover:brightness-95"
-        size="icon"
-        style={{ backgroundColor: accent, color: onAccent }}
-        onClick={() => {
-          setChatOpen(true)
-          setUnreadMessages(0)
-        }}
-      >
-        <MessageCircle className="size-5" />
-        {unreadMessages > 0 ? (
-          <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-            {unreadMessages > 9 ? '9+' : unreadMessages}
-          </span>
-        ) : null}
-      </Button>
+      {createPortal(
+        <Button
+          className="fixed bottom-4 left-4 z-50 relative size-12 rounded-full shadow-lg hover:brightness-95"
+          size="icon"
+          style={{ backgroundColor: accent, color: onAccent }}
+          onClick={() => {
+            setChatOpen(true)
+            setUnreadMessages(0)
+          }}
+        >
+          <MessageCircle className="size-5" />
+          {unreadMessages > 0 ? (
+            <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </span>
+          ) : null}
+        </Button>,
+        document.body,
+      )}
       {chatOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/15 p-4 text-white">

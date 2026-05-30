@@ -1,6 +1,6 @@
 const TEAM_MEDIA_PERMISSION_KEY = 'rallyhub:team-media-permission-granted'
 
-function hasStoredGrant(): boolean {
+export function hasStoredMediaGrant(): boolean {
   try {
     return localStorage.getItem(TEAM_MEDIA_PERMISSION_KEY) === '1'
   } catch {
@@ -29,14 +29,19 @@ async function isAlreadyGrantedByPermissionsApi(): Promise<boolean> {
   }
 }
 
-/** Request camera + mic once after a team joins so video challenges do not stall mid-game. */
-export async function requestTeamMediaPermissions(): Promise<boolean> {
-  if (!navigator.mediaDevices?.getUserMedia) return false
-  if (hasStoredGrant()) return true
+export async function mediaPermissionsAlreadyGranted(): Promise<boolean> {
+  if (hasStoredMediaGrant()) return true
   if (await isAlreadyGrantedByPermissionsApi()) {
     storeGrant()
     return true
   }
+  return false
+}
+
+/** Request camera + mic once when the join app opens (user gesture not required for first prompt). */
+export async function requestTeamMediaPermissions(): Promise<boolean> {
+  if (!navigator.mediaDevices?.getUserMedia) return false
+  if (await mediaPermissionsAlreadyGranted()) return true
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
@@ -47,5 +52,26 @@ export async function requestTeamMediaPermissions(): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+type MediaStreamConstraints = {
+  video?: boolean | MediaTrackConstraints
+  audio?: boolean | MediaTrackConstraints
+}
+
+/**
+ * Open camera/mic for a challenge without re-prompting when permission was already granted.
+ * Does not request permission — call requestTeamMediaPermissions() once at app open.
+ */
+export async function getTeamMediaStream(
+  constraints: MediaStreamConstraints,
+): Promise<MediaStream | null> {
+  if (!navigator.mediaDevices?.getUserMedia) return null
+  if (!(await mediaPermissionsAlreadyGranted())) return null
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints)
+  } catch {
+    return null
   }
 }

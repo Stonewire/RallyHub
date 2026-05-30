@@ -4,6 +4,7 @@ import { Camera } from 'lucide-react'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
+import { getTeamMediaStream } from '@/lib/media-permissions'
 import { playShutterSound } from '@/lib/sounds'
 
 type PhotoChallengeCaptureProps = {
@@ -39,20 +40,16 @@ export function PhotoChallengeCapture({
   }, [ready, snapshot])
 
   async function startCamera() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      notify('Camera not available in this browser')
+    const stream = await getTeamMediaStream({
+      video: { facingMode: 'environment' },
+      audio: false,
+    })
+    if (!stream) {
+      notify('Camera access not granted — allow camera when the app opens')
       return
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      })
-      streamRef.current = stream
-      setReady(true)
-    } catch {
-      notify('Could not access camera')
-    }
+    streamRef.current = stream
+    setReady(true)
   }
 
   function capturePhoto() {

@@ -8,6 +8,7 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
+import { getTeamMediaStream } from '@/lib/media-permissions'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
@@ -90,17 +91,16 @@ export function VideoChallengeCapture({
   }
 
   async function openPreview() {
-    if (!navigator.mediaDevices?.getUserMedia) return
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: true,
-      })
-      streamRef.current = stream
-      setPreviewReady(true)
-    } catch {
-      notify('Could not access camera — use upload instead')
+    const stream = await getTeamMediaStream({
+      video: { facingMode: 'environment' },
+      audio: true,
+    })
+    if (!stream) {
+      notify('Camera access not granted — allow camera when the app opens, or upload a video')
+      return
     }
+    streamRef.current = stream
+    setPreviewReady(true)
   }
 
   function validateDuration(file: File): Promise<boolean> {

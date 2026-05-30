@@ -38,7 +38,8 @@ export function useBingoRun(eventId: string | undefined, stageIndex: number | un
         status: data.status,
       }
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 

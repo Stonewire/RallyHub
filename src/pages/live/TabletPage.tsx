@@ -15,6 +15,14 @@ import type { Tables } from '@/types/helpers'
 
 const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
 
+function matchesOrgSlug(org: TenantPublicOrg, orgSlug: string): boolean {
+  const normalized = orgSlug.toLowerCase()
+  return (
+    slugifyOrgName(org.name) === normalized ||
+    org.subdomain.toLowerCase() === normalized
+  )
+}
+
 async function resolveOrganization(
   orgSlug: string | undefined,
   tabletCode: string | undefined,
@@ -28,22 +36,35 @@ async function resolveOrganization(
     if (error) throw error
     const normalized = orgSlug.toLowerCase()
     return (
-      (data ?? []).find((o) => slugifyOrgName(o.name) === normalized) ?? null
+      (data ?? []).find((o) => matchesOrgSlug(o, normalized)) ?? null
     )
   }
 
   if (!legacyOrgParam) return null
 
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      legacyOrgParam,
+    )
+
+  const filters = [`tablet_slug.eq.${legacyOrgParam}`, `subdomain.eq.${legacyOrgParam}`]
+  if (isUuid) filters.push(`id.eq.${legacyOrgParam}`)
+
   const { data, error } = await supabase
     .from('organization_tenant_public')
     .select('*')
-    .or(
-      `tablet_slug.eq.${legacyOrgParam},subdomain.eq.${legacyOrgParam},id.eq.${legacyOrgParam}`,
-    )
-    .maybeSingle()
+    .or(filters.join(','))
 
   if (error) throw error
-  return data
+  if (!data?.length) return null
+  if (data.length === 1) return data[0]
+
+  const normalized = legacyOrgParam.toLowerCase()
+  return (
+    data.find((o) => matchesOrgSlug(o, normalized)) ??
+    data.find((o) => o.tablet_slug === legacyOrgParam) ??
+    data[0]
+  )
 }
 
 export function TabletPage() {
@@ -66,7 +87,7 @@ export function TabletPage() {
 
   const tabletPath =
     org != null
-      ? `/tablet/${encodeURIComponent(org.subdomain)}/${encodeURIComponent(org.tablet_slug)}`
+      ? `/tablet/${encodeURIComponent(slugifyOrgName(org.name))}/${encodeURIComponent(org.tablet_slug)}`
       : orgSlug && tabletCode
         ? `/tablet/${encodeURIComponent(orgSlug)}/${encodeURIComponent(tabletCode)}`
         : legacyOrgParam
