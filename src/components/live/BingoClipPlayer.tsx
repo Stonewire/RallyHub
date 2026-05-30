@@ -1,5 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
+const LOG = '[BingoClipPlayer]'
+
 type BingoClipPlayerProps = {
   src: string
   nextSrc?: string
@@ -15,6 +17,20 @@ export type BingoClipPlayerHandle = {
   crossfadeTo: (nextSrc: string, ms?: number) => Promise<boolean>
   playFromUserGesture: (src: string) => Promise<boolean>
   primeAudioContext: () => Promise<void>
+  isMounted: () => boolean
+}
+
+async function probeUrl(url: string): Promise<void> {
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    console.log(`${LOG} URL probe`, { url, status: res.status, ok: res.ok })
+  } catch (err) {
+    console.warn(`${LOG} URL probe failed`, { url, err })
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 }
 
 export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayerProps>(
@@ -35,57 +51,11 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     const audioBRef = useRef<HTMLAudioElement>(null)
     const activeRef = useRef<'a' | 'b'>('a')
     const onAutoAdvanceRef = useRef(onAutoAdvance)
-    const audioCtxRef = useRef<AudioContext | null>(null)
-    const gainARef = useRef<GainNode | null>(null)
-    const gainBRef = useRef<GainNode | null>(null)
-    const sourceARef = useRef<MediaElementAudioSourceNode | null>(null)
-    const sourceBRef = useRef<MediaElementAudioSourceNode | null>(null)
     const autoFadeTriggeredRef = useRef(false)
     const [activeDeck, setActiveDeck] = useState<'a' | 'b'>('a')
     const onPlaybackErrorRef = useRef(onPlaybackError)
     onAutoAdvanceRef.current = onAutoAdvance
     onPlaybackErrorRef.current = onPlaybackError
-
-    async function ensureGraph(): Promise<boolean> {
-      const elA = audioARef.current
-      const elB = audioBRef.current
-      if (!elA || !elB) return false
-      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext()
-      const ctx = audioCtxRef.current
-      if (!gainARef.current) {
-        gainARef.current = ctx.createGain()
-        gainARef.current.connect(ctx.destination)
-      }
-      if (!gainBRef.current) {
-        gainBRef.current = ctx.createGain()
-        gainBRef.current.connect(ctx.destination)
-      }
-      if (!sourceARef.current) {
-        sourceARef.current = ctx.createMediaElementSource(elA)
-        sourceARef.current.connect(gainARef.current)
-      }
-      if (!sourceBRef.current) {
-        sourceBRef.current = ctx.createMediaElementSource(elB)
-        sourceBRef.current.connect(gainBRef.current)
-      }
-      if (ctx.state === 'suspended') await ctx.resume()
-      return true
-    }
-
-    async function rampGain(gain: GainNode | null, target: number, ms: number) {
-      if (!gain) return
-      await ensureGraph()
-      const ctx = audioCtxRef.current
-      if (!ctx) return
-      const now = ctx.currentTime
-      gain.gain.cancelScheduledValues(now)
-      gain.gain.setValueAtTime(Math.max(0, gain.gain.value), now)
-      if (ms <= 0) {
-        gain.gain.setValueAtTime(Math.max(0, target), now)
-        return
-      }
-      gain.gain.linearRampToValueAtTime(Math.max(0.0001, target), now + ms / 1000)
-    }
 
     function currentAudio() {
       return activeRef.current === 'a' ? audioARef.current : audioBRef.current
@@ -93,68 +63,88 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     function standbyAudio() {
       return activeRef.current === 'a' ? audioBRef.current : audioARef.current
     }
-    function currentGain() {
-      return activeRef.current === 'a' ? gainARef.current : gainBRef.current
-    }
-    function standbyGain() {
-      return activeRef.current === 'a' ? gainBRef.current : gainARef.current
-    }
 
-    async function playWithReporting(el: HTMLAudioElement): Promise<boolean> {
+    async function playElement(el: HTMLAudioElement, label: string): Promise<boolean> {
+      console.log(`${LOG} playElement(${label})`, {
+        src: el.src,
+        paused: el.paused,
+        readyState: el.readyState,
+        volume: el.volume,
+      })
       try {
         await el.play()
+        console.log(`${LOG} playElement(${label}) succeeded`, {
+          paused: el.paused,
+          currentTime: el.currentTime,
+        })
         return true
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Audio playback blocked'
+        console.error(`${LOG} playElement(${label}) failed`, err)
         onPlaybackErrorRef.current?.(message)
         return false
       }
     }
 
     async function primeAudioContext(): Promise<void> {
-      await ensureGraph()
+      console.log(`${LOG} primeAudioContext (native audio — no AudioContext needed)`)
     }
 
     async function playFromUserGesture(url: string): Promise<boolean> {
-      if (!url) return false
-      const ok = await ensureGraph()
-      if (!ok) return false
-      const cur = currentAudio()
-      const curGain = currentGain()
-      const sbGain = standbyGain()
-      if (!cur || !curGain || !sbGain) return false
-      cur.src = url
-      cur.currentTime = 0
-      cur.load()
-      await rampGain(curGain, 1, 0)
-      await rampGain(sbGain, 0.0001, 0)
+      console.log(`${LOG} playFromUserGesture called`, {
+        url,
+        mountedA: Boolean(audioARef.current),
+        mountedB: Boolean(audioBRef.current),
+        activeDeck: activeRef.current,
+      })
+      if (!url?.trim()) {
+        console.warn(`${LOG} playFromUserGesture aborted — empty url`)
+        return false
+      }
+      void probeUrl(url)
+      const el = currentAudio()
+      if (!el) {
+        console.error(`${LOG} playFromUserGesture aborted — no active audio element in DOM`)
+        return false
+      }
+      el.volume = 1
+      el.muted = false
+      if (el.src !== url) {
+        el.src = url
+        el.load()
+      }
       autoFadeTriggeredRef.current = false
-      return playWithReporting(cur)
+      return playElement(el, 'gesture')
     }
 
     async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
-      if (!url) return false
-      const ok = await ensureGraph()
-      if (!ok) return false
+      console.log(`${LOG} crossfadeTo`, { url, ms })
+      if (!url?.trim()) return false
       const from = currentAudio()
       const to = standbyAudio()
-      const fromGain = currentGain()
-      const toGain = standbyGain()
-      if (!from || !to || !fromGain || !toGain) return false
+      if (!from || !to) return false
+      to.volume = 0
+      to.muted = false
       to.src = url
       to.currentTime = 0
       to.load()
-      await rampGain(toGain, 0.0001, 0)
-      const started = await playWithReporting(to)
+      const started = await playElement(to, 'crossfade-in')
       if (!started) return false
-      await Promise.all([rampGain(fromGain, 0.0001, ms), rampGain(toGain, 1, ms)])
-      window.setTimeout(() => {
-        from.pause()
-        from.currentTime = 0
-        activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
-        setActiveDeck(activeRef.current)
-        autoFadeTriggeredRef.current = false
-      }, ms)
+      const steps = Math.max(8, Math.floor(ms / 100))
+      const stepMs = ms / steps
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps
+        from.volume = Math.max(0, 1 - t)
+        to.volume = Math.min(1, t)
+        await sleep(stepMs)
+      }
+      from.pause()
+      from.volume = 1
+      from.currentTime = 0
+      activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
+      setActiveDeck(activeRef.current)
+      autoFadeTriggeredRef.current = false
+      console.log(`${LOG} crossfadeTo complete`, { activeDeck: activeRef.current })
       return true
     }
 
@@ -162,24 +152,19 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       crossfadeTo,
       playFromUserGesture,
       primeAudioContext,
+      isMounted: () => Boolean(audioARef.current && audioBRef.current),
     }))
 
     useEffect(() => {
-      const init = async () => {
-        const ok = await ensureGraph()
-        if (!ok) return
-        const cur = currentAudio()
-        const curGain = currentGain()
-        const sbGain = standbyGain()
-        if (!cur || !curGain || !sbGain) return
-        cur.src = src
-        cur.load()
-        await rampGain(curGain, 1, 0)
-        await rampGain(sbGain, 0.0001, 0)
-        autoFadeTriggeredRef.current = false
-        if (autoPlay) await playWithReporting(cur)
-      }
-      void init()
+      if (!src?.trim() || !autoPlay) return
+      const el = currentAudio()
+      if (!el) return
+      console.log(`${LOG} autoPlay effect`, { src, playKey })
+      el.volume = 1
+      el.src = src
+      el.load()
+      autoFadeTriggeredRef.current = false
+      void playElement(el, 'autoPlay')
     }, [src, playKey, autoPlay])
 
     useEffect(() => {
@@ -192,38 +177,30 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         const remaining = cur.duration - cur.currentTime
         if (remaining <= crossfadeSeconds && remaining > 0) {
           autoFadeTriggeredRef.current = true
+          console.log(`${LOG} auto-fade trigger`, { remaining, nextSrc })
           void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000))).then((ok) => {
             if (ok) window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
           })
         }
       }
       cur.addEventListener('timeupdate', handleTime)
-      return () => {
-        cur.removeEventListener('timeupdate', handleTime)
-      }
-    }, [nextSrc, crossfadeSeconds, playKey, src])
-
-    if (!src?.trim()) {
-    return (
-      <div className={className ?? 'w-full'}>
-        <audio ref={audioARef} controls preload="auto" className="w-full" />
-        <audio ref={audioBRef} preload="auto" className="hidden" />
-      </div>
-    )
-  }
+      return () => cur.removeEventListener('timeupdate', handleTime)
+    }, [nextSrc, crossfadeSeconds, playKey, activeDeck])
 
     return (
-      <div className={className ?? 'w-full'}>
+      <div className={className ?? 'w-full'} data-bingo-player="true">
         <audio
           ref={audioARef}
           controls={activeDeck === 'a'}
           preload="auto"
+          playsInline
           className={activeDeck === 'a' ? 'w-full' : 'hidden'}
         />
         <audio
           ref={audioBRef}
           controls={activeDeck === 'b'}
           preload="auto"
+          playsInline
           className={activeDeck === 'b' ? 'w-full' : 'hidden'}
         />
       </div>

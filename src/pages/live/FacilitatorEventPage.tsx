@@ -643,30 +643,78 @@ export function FacilitatorEventPage() {
     return tracks.find((t) => t.id === id) ?? tracks[index] ?? null
   }
 
-  async function handleBingoStartClick() {
-    void bingoAudioRef.current?.primeAudioContext()
-    const run = await ensureBingoRunReady()
-    if (!run?.playOrder.length) {
-      notify('Bingo run is not ready — check that the game has tracks and teams are set up')
+  function resolvePlaybackUrlForIndex(run: BingoRunRow | null | undefined, index: number): string {
+    if (!run?.playOrder.length) return ''
+    const t = resolveTrackForIndex(run, index)
+    if (!t) return ''
+    const url = bingoTrackPlaybackUrl(t)
+    console.log('[bingo-audio] resolvePlaybackUrlForIndex', {
+      index,
+      trackId: run.playOrder[index],
+      title: t.title,
+      url,
+      hasClip: Boolean(t.clipUrl?.trim()),
+      hasAudio: Boolean(t.audioUrl?.trim()),
+    })
+    return url
+  }
+
+  function handleBingoStartClick() {
+    console.log('[bingo-audio] Start clicked', {
+      playerMounted: bingoAudioRef.current?.isMounted() ?? false,
+      playOrderLength: bingoPlayOrder.length,
+      trackPlaybackUrl,
+      bingoState: liveState.bingo_state,
+    })
+
+    const player = bingoAudioRef.current
+    if (!player?.isMounted()) {
+      notify('Audio player is not mounted — switch to bingo stage and try again')
+      console.error('[bingo-audio] player ref missing or audio elements not in DOM')
       return
     }
-    const currentTrack = resolveTrackForIndex(run, bingoPlayIndex)
-    if (!currentTrack) {
-      notify('No track found for this round')
+
+    void player.primeAudioContext()
+
+    const syncUrl = trackPlaybackUrl || resolvePlaybackUrlForIndex(effectiveBingoRun, bingoPlayIndex)
+    if (syncUrl) {
+      console.log('[bingo-audio] playing synchronously in click handler:', syncUrl)
+      void player.playFromUserGesture(syncUrl).then((played) => {
+        console.log('[bingo-audio] synchronous play result:', played)
+        if (played) {
+          void patchState({ bingo_state: 'playing' })
+        } else {
+          notify('Could not start playback — check console for details')
+        }
+      })
       return
     }
-    const url = bingoTrackPlaybackUrl(currentTrack)
-    flushSync(() => setBingoRunOverride(run))
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-    const played = (await bingoAudioRef.current?.playFromUserGesture(url)) ?? false
-    await patchState({ bingo_state: 'playing' })
-    if (!played) setAudioPlayNonce((n) => n + 1)
+
+    console.warn('[bingo-audio] no URL yet — loading run, will need second Start press')
+    void (async () => {
+      const run = await ensureBingoRunReady()
+      const url = resolvePlaybackUrlForIndex(run, bingoPlayIndex)
+      if (!url) {
+        notify('No playable track URL — ensure MP3 clips are uploaded for this bingo game')
+        return
+      }
+      const played = await player.playFromUserGesture(url)
+      console.log('[bingo-audio] delayed play after run load:', played)
+      if (played) await patchState({ bingo_state: 'playing' })
+      else notify('Run loaded — press Start again to play')
+    })()
   }
 
   async function handleBingoNextClick() {
     if (bingoAdvancing) return
     if (!stage?.gameId || !eventId) return
-    void bingoAudioRef.current?.primeAudioContext()
+    console.log('[bingo-audio] Next Song clicked')
+    const player = bingoAudioRef.current
+    if (!player?.isMounted()) {
+      notify('Audio player is not mounted')
+      return
+    }
+    void player.primeAudioContext()
     const run = await ensureBingoRunReady()
     if (!run?.playOrder.length) {
       notify('Bingo run is not ready')
@@ -704,10 +752,11 @@ export function FacilitatorEventPage() {
 
       const nextTrack = resolveTrackForIndex(run, bingoPlayIndex + 1)
       const nextUrl = nextTrack ? bingoTrackPlaybackUrl(nextTrack) : ''
+      console.log('[bingo-audio] next track URL:', nextUrl)
       if (nextUrl && liveState.bingo_state === 'playing') {
-        await bingoAudioRef.current?.crossfadeTo(nextUrl, 4000)
+        await player.crossfadeTo(nextUrl, 4000)
       } else if (nextUrl) {
-        await bingoAudioRef.current?.playFromUserGesture(nextUrl)
+        await player.playFromUserGesture(nextUrl)
       }
 
       const nextIndex = await advanceBingoTrack({
@@ -1226,13 +1275,17 @@ export function FacilitatorEventPage() {
                 <div className="flex flex-wrap gap-2">
                   <FacilitatorButton
                     size="sm"
-                    disabled={liveState.bingo_state === 'ended' || bingoAdvancing}
+                    disabled={
+                      liveState.bingo_state === 'ended' ||
+                      bingoAdvancing ||
+                      (bingoPlayOrder.length === 0 && bingoRunQuery.isLoading)
+                    }
                     onClick={() => {
                       if (
                         liveState.bingo_state === 'waiting' ||
                         liveState.bingo_state === 'active'
                       ) {
-                        void handleBingoStartClick()
+                        handleBingoStartClick()
                         return
                       }
                       void handleBingoNextClick()

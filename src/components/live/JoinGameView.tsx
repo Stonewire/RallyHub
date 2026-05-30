@@ -1189,7 +1189,7 @@ export function JoinGameView({
               type="button"
               variant="outline"
               size="icon"
-              className="fixed right-4 bottom-4 z-50 size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+              className="fixed right-4 bottom-4 z-[9999] size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
               onClick={() => void handleExitTeam()}
               aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
             >
@@ -1200,25 +1200,31 @@ export function JoinGameView({
         : null}
       {header}
       <div className="flex-1 min-h-0">{body}</div>
-      {createPortal(
-        <Button
-          className="fixed bottom-4 left-4 z-50 relative size-12 rounded-full shadow-lg hover:brightness-95"
-          size="icon"
-          style={{ backgroundColor: accent, color: onAccent }}
-          onClick={() => {
-            setChatOpen(true)
-            setUnreadMessages(0)
-          }}
-        >
-          <MessageCircle className="size-5" />
-          {unreadMessages > 0 ? (
-            <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-              {unreadMessages > 9 ? '9+' : unreadMessages}
-            </span>
-          ) : null}
-        </Button>,
-        document.body,
-      )}
+      {typeof document !== 'undefined'
+        ? createPortal(
+            <div className="fixed bottom-4 left-4 z-[9999]">
+              <Button
+                type="button"
+                className="relative size-12 rounded-full shadow-lg hover:brightness-95"
+                size="icon"
+                style={{ backgroundColor: accent, color: onAccent }}
+                onClick={() => {
+                  setChatOpen(true)
+                  setUnreadMessages(0)
+                }}
+                aria-label="Open chat"
+              >
+                <MessageCircle className="size-5" />
+                {unreadMessages > 0 ? (
+                  <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                ) : null}
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
       {chatOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/15 p-4 text-white">
