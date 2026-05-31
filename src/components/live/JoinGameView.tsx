@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { createPortal } from 'react-dom'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
+import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
@@ -126,6 +127,7 @@ export function JoinGameView({
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
+  const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
   const quizChangeDeadlineRef = useRef<number | null>(null)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
   const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
@@ -1188,6 +1190,12 @@ export function JoinGameView({
     body = <p className="py-16 text-center text-white/80">Stand by…</p>
   }
 
+  const winnerTeamId = state.bingo_winner_team_id ?? null
+  const winnerTeam = winnerTeamId
+    ? bundle.teams.find((t) => t.id === winnerTeamId)
+    : null
+  const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
+
   return (
     <BrandBackground
       event={event}
@@ -1196,6 +1204,17 @@ export function JoinGameView({
       className="flex min-h-dvh flex-col pt-3 pb-20"
     >
       <NotificationAccentSync color={accent} />
+      {showWinner && winnerTeam && typeof document !== 'undefined'
+        ? createPortal(
+            <BingoWinCelebration
+              teamName={winnerTeam.name ?? 'Team'}
+              teamColor={winnerTeam.color}
+              mine={winnerTeamId === teamId}
+              onDismiss={() => setDismissedWinnerId(winnerTeamId)}
+            />,
+            document.body,
+          )
+        : null}
       {!selectedGame
         ? createPortal(
             <Button

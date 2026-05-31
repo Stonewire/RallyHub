@@ -353,6 +353,8 @@ export type Database = {
           quiz_state: string
           bingo_state: string
           bingo_revealed_track_ids: unknown
+          bingo_winner_team_id: string | null
+          bingo_announced_winner_ids: unknown
           bingo_bonus_id: string | null
           announcement: string | null
           announcement_target: string | null
@@ -376,6 +378,8 @@ export type Database = {
           quiz_state?: string
           bingo_state?: string
           bingo_revealed_track_ids?: unknown
+          bingo_winner_team_id?: string | null
+          bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
           announcement?: string | null
           announcement_target?: string | null
@@ -396,6 +400,8 @@ export type Database = {
           quiz_state?: string
           bingo_state?: string
           bingo_revealed_track_ids?: unknown
+          bingo_winner_team_id?: string | null
+          bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
           announcement?: string | null
           announcement_target?: string | null

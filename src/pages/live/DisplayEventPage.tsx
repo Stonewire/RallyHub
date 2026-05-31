@@ -1,7 +1,8 @@
 import confetti from 'canvas-confetti'
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
+import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
@@ -32,6 +33,8 @@ export function DisplayEventPage() {
   const [searchParams] = useSearchParams()
   const embed = searchParams.get('embed') === '1'
   const { bundle, loading, error, updateState } = useLiveEvent(eventId)
+
+  const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
 
   const eventState = bundle?.state
   const stages = useMemo(
@@ -125,6 +128,9 @@ export function DisplayEventPage() {
   }
 
   const { event, organization, state, teams, games, submissions } = bundle
+  const winnerTeamId = state.bingo_winner_team_id ?? null
+  const winnerTeam = winnerTeamId ? teams.find((t) => t.id === winnerTeamId) : null
+  const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
   const logo = logoForEvent(event, organization)
   const textClass = displayTextClass(event)
   const showAnnouncement =
@@ -345,6 +351,13 @@ export function DisplayEventPage() {
             {state.announcement}
           </p>
         </div>
+      ) : null}
+      {showWinner && winnerTeam ? (
+        <BingoWinCelebration
+          teamName={winnerTeam.name ?? 'Team'}
+          teamColor={winnerTeam.color}
+          onDismiss={() => setDismissedWinnerId(winnerTeamId)}
+        />
       ) : null}
     </BrandBackground>
   )

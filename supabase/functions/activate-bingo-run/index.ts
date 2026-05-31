@@ -97,6 +97,8 @@ Deno.serve(async (req) => {
         current_question_index: 0,
         bingo_state: 'waiting',
         bingo_revealed_track_ids: [],
+        bingo_winner_team_id: null,
+        bingo_announced_winner_ids: [],
         updated_at: new Date().toISOString(),
       })
       .eq('event_id', eventId)

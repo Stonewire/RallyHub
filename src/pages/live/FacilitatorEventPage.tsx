@@ -31,7 +31,7 @@ import {
   parseBingoGameConfig,
 } from '@/lib/bingo-facilitator'
 import { advanceBingoTrack } from '@/lib/bingo-round-advance'
-import { parseRevealedTrackIds } from '@/lib/bingo-cell-match'
+import { parseAnnouncedWinnerIds, parseRevealedTrackIds } from '@/lib/bingo-cell-match'
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
@@ -63,7 +63,7 @@ import {
 import type { GameConfig } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
-import type { Tables } from '@/types/helpers'
+import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
 
@@ -149,6 +149,8 @@ export function FacilitatorEventPage() {
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
       patch.bingo_revealed_track_ids = []
+      patch.bingo_winner_team_id = null
+      patch.bingo_announced_winner_ids = []
     }
     void patchState(patch)
   }
@@ -684,7 +686,12 @@ export function FacilitatorEventPage() {
       void player.playFromUserGesture(syncUrl).then((played) => {
         console.log('[bingo-audio] synchronous play result:', played)
         if (played) {
-          void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
+          void patchState({
+            bingo_state: 'playing',
+            bingo_revealed_track_ids: [],
+            bingo_winner_team_id: null,
+            bingo_announced_winner_ids: [],
+          })
         } else {
           notify('Could not start playback — check console for details')
         }
@@ -702,7 +709,13 @@ export function FacilitatorEventPage() {
       }
       const played = await player.playFromUserGesture(url)
       console.log('[bingo-audio] delayed play after run load:', played)
-      if (played) await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
+      if (played)
+        await patchState({
+          bingo_state: 'playing',
+          bingo_revealed_track_ids: [],
+          bingo_winner_team_id: null,
+          bingo_announced_winner_ids: [],
+        })
       else notify('Run loaded — press Start again to play')
     })()
   }
@@ -722,23 +735,25 @@ export function FacilitatorEventPage() {
       trackId: currentTrackId,
       gameConfig: bingoConfig,
     })
-    if (result.winningTeamIds.length > 0) {
-      const winnerNames = result.winningTeamIds
-        .map((id) => teams.find((t) => t.id === id)?.name)
-        .filter(Boolean)
-      if (winnerNames.length > 0) {
-        const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
-        notify(text)
-        await patchState({ announcement: text, announcement_target: 'both' })
-      }
-    }
 
     const prev = parseRevealedTrackIds(liveState.bingo_revealed_track_ids)
     const revealed = prev.includes(currentTrackId) ? prev : [...prev, currentTrackId]
-    await patchState({
+    const patch: TablesUpdate<'event_state'> = {
       bingo_state: 'revealed',
       bingo_revealed_track_ids: revealed,
-    })
+    }
+
+    // Announce each winning team only once, ever.
+    const announced = parseAnnouncedWinnerIds(liveState.bingo_announced_winner_ids)
+    const newWinnerId = result.winningTeamIds.find((id) => !announced.includes(id))
+    if (newWinnerId) {
+      const winnerName = teams.find((t) => t.id === newWinnerId)?.name
+      patch.bingo_winner_team_id = newWinnerId
+      patch.bingo_announced_winner_ids = [...announced, newWinnerId]
+      if (winnerName) notify(`Bingo winner: ${winnerName}`)
+    }
+
+    await patchState(patch)
     return true
   }
 
@@ -791,6 +806,7 @@ export function FacilitatorEventPage() {
       await patchState({
         current_question_index: nextIndex,
         bingo_state: 'playing',
+        bingo_winner_team_id: null,
       })
       if (!nextUrl) setAudioPlayNonce((n) => n + 1)
     } finally {
@@ -1359,6 +1375,8 @@ export function FacilitatorEventPage() {
                         bingo_state: 'waiting',
                         bingo_bonus_id: null,
                         bingo_revealed_track_ids: [],
+                        bingo_winner_team_id: null,
+                        bingo_announced_winner_ids: [],
                       })
                     })
                     .catch((err) =>

@@ -50,3 +50,9 @@ export function parseRevealedTrackIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []
   return raw.filter((id): id is string => typeof id === 'string' && id.length > 0)
 }
+
+/** Team ids already announced as bingo winners (dedup the celebration). */
+export function parseAnnouncedWinnerIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((id): id is string => typeof id === 'string' && id.length > 0)
+}
