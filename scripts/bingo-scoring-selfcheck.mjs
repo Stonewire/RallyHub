@@ -94,6 +94,39 @@ assert(missed4b.has(2) && !missed4b.has(0), 'Scenario 4 — revealing track-a-du
 assert(resolveBingoSubmissionCellIndex('1', cells) === 1, 'Legacy — index "1" resolves to cell 1')
 assert(resolveBingoSubmissionTrackId('1', cells) === 'track-b', 'Legacy — index resolves to track id')
 
+// Regression: scoring must not gate on the first team's card containing the track.
+// Simulate the scoreBingoRound decision per team for a played track absent from card[0].
+function decideTeamMarks(teamCards, playedTrackId, submissionsByTeam) {
+  const approvedTeams = []
+  const rejectedTeams = []
+  for (const { teamId, cells: teamCells } of teamCards) {
+    const sub = submissionsByTeam[teamId]
+    if (sub == null) continue
+    const marked = resolveBingoSubmissionTrackId(sub, teamCells)
+    if (!marked) continue
+    if (marked === playedTrackId) approvedTeams.push(teamId)
+    else rejectedTeams.push(teamId)
+  }
+  return { approvedTeams, rejectedTeams }
+}
+
+const teamCards = [
+  // card[0] does NOT contain the played track "track-z"
+  { teamId: 'team-1', cells: [{ trackId: 'track-x', title: 'X', artist: '' }, { trackId: 'track-y', title: 'Y', artist: '' }] },
+  // card[1] DOES contain it
+  { teamId: 'team-2', cells: [{ trackId: 'track-z', title: 'Z', artist: '' }, { trackId: 'track-q', title: 'Q', artist: '' }] },
+]
+const subsByTeam = { 'team-1': 'track-y', 'team-2': 'track-z' }
+const decision = decideTeamMarks(teamCards, 'track-z', subsByTeam)
+assert(
+  decision.approvedTeams.includes('team-2'),
+  'Regression — team-2 correct pick approved even though played track is absent from card[0]',
+)
+assert(
+  decision.rejectedTeams.includes('team-1'),
+  'Regression — team-1 wrong pick rejected; scoring no longer early-returns on card[0] miss',
+)
+
 // Scenario 5: crossfade does not restart (code-path verification)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

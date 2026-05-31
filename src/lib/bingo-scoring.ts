@@ -38,12 +38,15 @@ export async function scoreBingoRound(params: {
       .eq('status', 'pending'),
   ])
 
-  const firstCard = cards?.[0]?.cells as BingoCell[] | undefined
-  const correctIndex = firstCard?.findIndex((c) => c.trackId === trackId) ?? -1
-
-  if (!cards?.length || correctIndex < 0) {
-    return { correctIndex, trackId, winningTeamIds: [] }
+  if (!cards?.length) {
+    return { correctIndex: -1, trackId, winningTeamIds: [] }
   }
+
+  // Index of the played track on the first card (informational only). Each team
+  // card is a random subset, so this may be -1 even when other teams have the
+  // track — scoring below matches every team's submission by trackId regardless.
+  const firstCard = cards[0]?.cells as BingoCell[] | undefined
+  const correctIndex = firstCard?.findIndex((c) => c.trackId === trackId) ?? -1
 
   const approveUpdates: { id: string; teamId: string; points: number }[] = []
   const rejectIds: string[] = []
