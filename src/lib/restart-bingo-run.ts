@@ -1,12 +1,12 @@
-import { activateBingoRun } from '@/lib/activate-bingo-run'
+import { activateBingoRun, type ActivateBingoRunResult } from '@/lib/activate-bingo-run'
 import { supabase } from '@/lib/supabase'
 
-/** Delete existing run for a stage and create a fresh one (new cards + secret winner). */
+/** Delete existing run for a stage and create a fresh one (new cards + play order). */
 export async function restartBingoRun(
   eventId: string,
   gameId: string,
   stageIndex: number,
-): Promise<void> {
+): Promise<ActivateBingoRunResult> {
   await supabase
     .from('bingo_runs')
     .delete()
@@ -15,5 +15,5 @@ export async function restartBingoRun(
 
   await supabase.from('submissions').delete().eq('event_id', eventId).eq('game_id', gameId)
 
-  await activateBingoRun(eventId, gameId, stageIndex)
+  return activateBingoRun(eventId, gameId, stageIndex)
 }

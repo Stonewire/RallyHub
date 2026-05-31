@@ -749,7 +749,29 @@ export function FacilitatorEventPage() {
       console.log('[bingo-score] lockAndReveal abort — no run')
       return false
     }
-    const currentTrackId = run.playOrder[bingoPlayIndex]
+
+    // Reconcile against the authoritative DB run (same source the participants read)
+    // so a stale client-side run override can never make scoring read the wrong run.
+    let scoringRunId = run.id
+    let scoringPlayOrder = run.playOrder
+    const { data: dbRun } = await supabase
+      .from('bingo_runs')
+      .select('id, play_order')
+      .eq('event_id', eventId)
+      .eq('stage_index', liveState.current_stage_index)
+      .maybeSingle()
+    if (dbRun?.id) {
+      if (dbRun.id !== run.id) {
+        console.warn('[bingo-score] lockAndReveal run id mismatch — using DB run', {
+          overrideRunId: run.id,
+          dbRunId: dbRun.id,
+        })
+      }
+      scoringRunId = dbRun.id
+      scoringPlayOrder = (dbRun.play_order as string[]) ?? run.playOrder
+    }
+
+    const currentTrackId = scoringPlayOrder[bingoPlayIndex]
     if (!currentTrackId) {
       console.log('[bingo-score] lockAndReveal abort — no trackId at index', bingoPlayIndex)
       return false
@@ -757,12 +779,12 @@ export function FacilitatorEventPage() {
 
     console.log('[bingo-score] lockAndReveal calling scoreBingoRound', {
       playedTrackId: currentTrackId,
-      runId: run.id,
+      runId: scoringRunId,
     })
     const result = await scoreBingoRound({
       eventId,
       gameId: stage.gameId,
-      runId: run.id,
+      runId: scoringRunId,
       trackId: currentTrackId,
       gameConfig: bingoConfig,
     })
@@ -1401,8 +1423,19 @@ export function FacilitatorEventPage() {
                     'Restart bingo for this stage? New cards and play order. Clears all marks for this game.',
                   )
                   if (!ok) return
-                  void restartBingoRun(eventId, stage.gameId, liveState.current_stage_index)
-                    .then(() => {
+                  const gameId = stage.gameId
+                  const stageIndex = liveState.current_stage_index
+                  void restartBingoRun(eventId, gameId, stageIndex)
+                    .then((result) => {
+                      // Refresh the facilitator's run to the NEW run id + play order so
+                      // scoring reads the same cards/run the participants now see.
+                      const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
+                      flushSync(() => setBingoRunOverride(row))
+                      queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
+                      void queryClient.invalidateQueries({
+                        queryKey: queryKeys.bingoRun(eventId, stageIndex),
+                      })
+                      setAudioPlayNonce((n) => n + 1)
                       notify('Bingo run restarted')
                       void patchState({
                         current_question_index: 0,
