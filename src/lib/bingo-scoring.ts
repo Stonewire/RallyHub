@@ -3,7 +3,8 @@ import { resolveBingoSubmissionTrackId } from '@/lib/bingo-cell-match'
 import type { BingoCell } from '@/lib/bingo-engine'
 import {
   approvedBingoCellIndices,
-  hasConfiguredBingoLine,
+  bingoWinAchieved,
+  resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
@@ -25,7 +26,7 @@ export async function scoreBingoRound(params: {
   const { eventId, gameId, runId, trackId, gameConfig } = params
   const pointsPerCorrect = gameConfig.bingo_points_per_correct ?? 10
   const linePoints = gameConfig.bingo_line_points ?? 0
-  const winningLines = gameConfig.bingo_winning_lines ?? []
+  const winConfig = resolveBingoWinConfig(gameConfig)
 
   const [{ data: cards }, { data: subs }] = await Promise.all([
     supabase.from('bingo_team_cards').select('team_id, cells').eq('run_id', runId),
@@ -91,7 +92,7 @@ export async function scoreBingoRound(params: {
   }
 
   const winningTeamIds: string[] = []
-  if (linePoints > 0 && winningLines.length > 0) {
+  if (linePoints > 0) {
     const { data: allSubs } = await supabase
       .from('submissions')
       .select('team_id, media_url, status, game_id, media_type')
@@ -103,7 +104,7 @@ export async function scoreBingoRound(params: {
       const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
       const teamCells = row.cells as BingoCell[]
       const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
-      if (!hasConfiguredBingoLine(approved, winningLines)) continue
+      if (!bingoWinAchieved(approved, winConfig)) continue
       if (lineAwarded.has(row.team_id)) continue
       lineAwarded.add(row.team_id)
       winningTeamIds.push(row.team_id)

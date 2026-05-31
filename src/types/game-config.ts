@@ -51,7 +51,13 @@ export type GameConfig = {
   bonus_challenges?: BonusChallenge[]
   /** null = not chosen yet; 30 or 90 sec clips to generate. */
   bingo_clip_length?: 30 | 90 | null
-  /** Each entry is five cell indices (0–24) for a winning line. */
+  /** Win condition mode. 'lines' = complete N lines; 'full_house' = all 25 cells. */
+  bingo_win_mode?: 'lines' | 'full_house'
+  /** How many complete lines are required to win in 'lines' mode (1–12). */
+  bingo_lines_required?: number
+  /** When true, the two diagonals also count as lines toward the requirement. */
+  bingo_include_diagonals?: boolean
+  /** @deprecated legacy explicit line picker; read for backward compatibility only. */
   bingo_winning_lines?: number[][]
   bingo_line_points?: number
   bingo_points_per_correct?: number

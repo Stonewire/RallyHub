@@ -3,109 +3,143 @@ import type { Dispatch, SetStateAction } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import {
-  ALL_BINGO_LINES,
-  defaultWinningLines,
-  lineKey,
+  BINGO_DIAGONAL_LINES,
+  MAX_BINGO_LINES_REQUIRED,
+  MIN_BINGO_LINES_REQUIRED,
+  resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { cn } from '@/lib/utils'
 import type { GameConfig } from '@/types/game-config'
-
-const ROW_LABELS = ['R1', 'R2', 'R3', 'R4', 'R5']
-const COL_LABELS = ['C1', 'C2', 'C3', 'C4', 'C5']
 
 type BingoWinningComboEditorProps = {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
 }
 
-function selectedKeys(config: GameConfig): Set<string> {
-  const lines = config.bingo_winning_lines ?? defaultWinningLines()
-  return new Set(lines.map(lineKey))
+function clamp(n: number): number {
+  if (!Number.isFinite(n)) return MIN_BINGO_LINES_REQUIRED
+  return Math.min(MAX_BINGO_LINES_REQUIRED, Math.max(MIN_BINGO_LINES_REQUIRED, Math.round(n)))
 }
 
 export function BingoWinningComboEditor({ config, setConfig }: BingoWinningComboEditorProps) {
-  const selected = selectedKeys(config)
+  const win = resolveBingoWinConfig(config)
+  const diagSet = new Set(BINGO_DIAGONAL_LINES.flat())
 
-  function toggleLine(line: number[]) {
-    const key = lineKey(line)
-    setConfig((c) => {
-      const current = c.bingo_winning_lines ?? defaultWinningLines()
-      const keys = new Set(current.map(lineKey))
-      if (keys.has(key)) keys.delete(key)
-      else keys.add(key)
-      const next = ALL_BINGO_LINES.filter((l) => keys.has(lineKey(l)))
-      return {
-        ...c,
-        bingo_winning_lines: next.length ? next : defaultWinningLines(),
-      }
-    })
+  function setMode(mode: 'lines' | 'full_house') {
+    setConfig((c) => ({
+      ...c,
+      bingo_win_mode: mode,
+      bingo_lines_required: mode === 'lines' ? clamp(c.bingo_lines_required ?? win.linesRequired) : c.bingo_lines_required,
+    }))
   }
 
-  const rows = ALL_BINGO_LINES.slice(0, 5)
-  const cols = ALL_BINGO_LINES.slice(5, 10)
-  const diags = ALL_BINGO_LINES.slice(10, 12)
+  function setLinesRequired(n: number) {
+    setConfig((c) => ({ ...c, bingo_win_mode: 'lines', bingo_lines_required: clamp(n) }))
+  }
+
+  function setIncludeDiagonals(value: boolean) {
+    setConfig((c) => ({ ...c, bingo_include_diagonals: value }))
+  }
+
+  const lineWord = win.linesRequired === 1 ? 'line' : 'lines'
+  const linesHelper =
+    `Teams win when they complete any ${win.linesRequired} ${lineWord} ` +
+    `(${win.includeDiagonals ? 'rows, columns, or diagonals' : 'rows or columns'}).`
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-foreground font-semibold">Winning combo</h3>
+        <h3 className="text-foreground font-semibold">Winning condition</h3>
         <p className="text-muted-foreground text-sm">
-          Click rows or columns that count as bingo. Teams earn line points when they fill any
-          selected line with correct songs.
+          Choose how teams win this bingo game.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {rows.map((line, i) => (
+      <div className="space-y-2">
+        <Label>Win mode</Label>
+        <div className="flex flex-wrap gap-2">
           <button
-            key={lineKey(line)}
             type="button"
             className={cn(
               'rounded-md border px-3 py-1.5 text-sm font-medium',
-              selected.has(lineKey(line))
+              win.mode === 'lines'
                 ? 'border-[#FFCB03] bg-[#FFCB03]/20'
                 : 'border-border/80 hover:bg-muted/40',
             )}
-            onClick={() => toggleLine(line)}
+            onClick={() => setMode('lines')}
           >
-            Row {ROW_LABELS[i]}
+            Number of lines
           </button>
-        ))}
-        {cols.map((line, i) => (
           <button
-            key={lineKey(line)}
             type="button"
             className={cn(
               'rounded-md border px-3 py-1.5 text-sm font-medium',
-              selected.has(lineKey(line))
+              win.mode === 'full_house'
                 ? 'border-[#FFCB03] bg-[#FFCB03]/20'
                 : 'border-border/80 hover:bg-muted/40',
             )}
-            onClick={() => toggleLine(line)}
+            onClick={() => setMode('full_house')}
           >
-            Col {COL_LABELS[i]}
+            Full house
           </button>
-        ))}
-        {diags.map((line, i) => (
-          <button
-            key={lineKey(line)}
-            type="button"
-            className={cn(
-              'rounded-md border px-3 py-1.5 text-sm font-medium',
-              selected.has(lineKey(line))
-                ? 'border-[#FFCB03] bg-[#FFCB03]/20'
-                : 'border-border/80 hover:bg-muted/40',
-            )}
-            onClick={() => toggleLine(line)}
-          >
-            Diag {i + 1}
-          </button>
-        ))}
+        </div>
       </div>
+
+      {win.mode === 'lines' ? (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Lines required to win</Label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="border-border/80 hover:bg-muted/40 size-9 rounded-md border text-lg font-semibold disabled:opacity-40"
+                disabled={win.linesRequired <= MIN_BINGO_LINES_REQUIRED}
+                onClick={() => setLinesRequired(win.linesRequired - 1)}
+                aria-label="Decrease lines"
+              >
+                −
+              </button>
+              <Input
+                type="number"
+                min={MIN_BINGO_LINES_REQUIRED}
+                max={MAX_BINGO_LINES_REQUIRED}
+                className="bg-background w-20 text-center"
+                value={win.linesRequired}
+                onChange={(e) => setLinesRequired(Number(e.target.value))}
+              />
+              <button
+                type="button"
+                className="border-border/80 hover:bg-muted/40 size-9 rounded-md border text-lg font-semibold disabled:opacity-40"
+                disabled={win.linesRequired >= MAX_BINGO_LINES_REQUIRED}
+                onClick={() => setLinesRequired(win.linesRequired + 1)}
+                aria-label="Increase lines"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              className="size-4 accent-[#FFCB03]"
+              checked={win.includeDiagonals}
+              onChange={(e) => setIncludeDiagonals(e.target.checked)}
+            />
+            Include diagonals as lines
+          </label>
+
+          <p className="text-muted-foreground text-sm">{linesHelper}</p>
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          Teams win only when the entire card is complete — all 25 songs correct.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Bingo line points</Label>
+          <Label>Bingo win points</Label>
           <Input
             type="number"
             min={0}
@@ -138,15 +172,14 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
 
       <div className="inline-grid grid-cols-5 gap-0.5 rounded-lg border p-2">
         {Array.from({ length: 25 }).map((_, i) => {
-          const inLine = ALL_BINGO_LINES.some(
-            (line) => selected.has(lineKey(line)) && line.includes(i),
-          )
+          const highlight =
+            win.mode === 'full_house' || (win.includeDiagonals && diagSet.has(i))
           return (
             <div
               key={i}
               className={cn(
                 'aspect-square rounded-sm text-[8px]',
-                inLine ? 'bg-[#FFCB03]/40' : 'bg-muted/30',
+                highlight ? 'bg-[#FFCB03]/40' : 'bg-muted/30',
               )}
             />
           )

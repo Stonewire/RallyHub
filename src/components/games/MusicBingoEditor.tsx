@@ -18,7 +18,6 @@ import {
 } from '@/lib/music-track-clips'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
-import { defaultWinningLines } from '@/lib/bingo-lines'
 import type { BonusChallenge, GameConfig, MusicTrack } from '@/types/game-config'
 
 type MusicBingoEditorProps = {
@@ -172,7 +171,6 @@ export function MusicBingoEditor({
       <BingoWinningComboEditor
         config={{
           ...config,
-          bingo_winning_lines: config.bingo_winning_lines ?? defaultWinningLines(),
           bingo_line_points: config.bingo_line_points ?? 100,
           bingo_points_per_correct: config.bingo_points_per_correct ?? 10,
         }}

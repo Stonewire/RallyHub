@@ -27,8 +27,8 @@ import {
 } from '@/lib/bingo-cell-match'
 import {
   approvedBingoCellIndices,
-  cellsOnConfiguredBingoLine,
-  defaultWinningLines,
+  bingoWinningHighlightCells,
+  resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { parseBingoGameConfig } from '@/lib/bingo-facilitator'
 import {
@@ -1084,7 +1084,7 @@ export function JoinGameView({
       : bingoCardTitles(teamId, tracks).map((title) => ({ title, artist: '' }))
     const roundActive = state.bingo_state === 'playing'
     const gameConfig = parseBingoGameConfig(game?.config)
-    const winningLines = gameConfig.bingo_winning_lines ?? defaultWinningLines()
+    const winConfig = resolveBingoWinConfig(gameConfig)
     const cardCells = bingoCardQuery.data ?? []
     const historicalByIndex = new Map<number, 'approved' | 'rejected'>()
     for (const s of mySubs) {
@@ -1105,7 +1105,7 @@ export function JoinGameView({
       }
     }
     const approvedIndices = approvedBingoCellIndices(mySubs, stage.gameId, cardCells)
-    const winningCells = cellsOnConfiguredBingoLine(approvedIndices, winningLines)
+    const winningCells = bingoWinningHighlightCells(approvedIndices, winConfig)
     const revealedTrackIds = parseRevealedTrackIds(state.bingo_revealed_track_ids)
     const missedLockedIndices = cardCells.length
       ? missedBingoCellIndices(cardCells, revealedTrackIds, historicalByIndex)
