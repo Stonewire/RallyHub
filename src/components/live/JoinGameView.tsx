@@ -21,6 +21,11 @@ import {
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
+  missedBingoCellIndices,
+  parseRevealedTrackIds,
+  resolveBingoSubmissionCellIndex,
+} from '@/lib/bingo-cell-match'
+import {
   approvedBingoCellIndices,
   cellsOnConfiguredBingoLine,
   defaultWinningLines,
@@ -239,12 +244,19 @@ export function JoinGameView({
           s.media_url !== 'claim',
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
-    setBingoPick(
-      pending?.media_url != null && !Number.isNaN(Number(pending.media_url))
-        ? Number(pending.media_url)
-        : null,
-    )
-  }, [stage?.type, stage?.gameId, mySubs])
+    if (!pending?.media_url) {
+      setBingoPick(null)
+      return
+    }
+    const cells = bingoCardQuery.data
+    if (cells?.length) {
+      const idx = resolveBingoSubmissionCellIndex(pending.media_url, cells)
+      setBingoPick(idx >= 0 ? idx : null)
+      return
+    }
+    const n = Number(pending.media_url)
+    setBingoPick(Number.isNaN(n) ? null : n)
+  }, [stage?.type, stage?.gameId, mySubs, bingoCardQuery.data])
 
   useEffect(() => {
     if (stage?.type !== 'bingo') return
@@ -503,12 +515,17 @@ export function JoinGameView({
 
   async function submitBingoSquare(index: number, gameId: string) {
     if (state.bingo_state !== 'playing') return
+    const cells = bingoCardQuery.data
+    if (!cells?.length) return
+    const trackId = cells[index]?.trackId
+    if (!trackId) return
+
     const lockedByHistory = mySubs.some(
       (s) =>
         s.media_type === 'bingo' &&
         s.game_id === gameId &&
-        s.media_url === String(index) &&
-        (s.status === 'approved' || s.status === 'rejected'),
+        (s.status === 'approved' || s.status === 'rejected') &&
+        resolveBingoSubmissionCellIndex(s.media_url ?? '', cells) === index,
     )
     if (lockedByHistory) return
 
@@ -523,13 +540,18 @@ export function JoinGameView({
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 
-    if (existingPending?.media_url === String(index)) {
+    const pendingIndex =
+      existingPending?.media_url != null
+        ? resolveBingoSubmissionCellIndex(existingPending.media_url, cells)
+        : -1
+
+    if (pendingIndex === index) {
       bingoPickOptimisticRef.current = null
       setBingoPick(null)
       void supabase
         .from('submissions')
         .delete()
-        .eq('id', existingPending.id)
+        .eq('id', existingPending!.id)
         .then(() => {
           bingoPickOptimisticRef.current = undefined
         })
@@ -543,21 +565,22 @@ export function JoinGameView({
       if (existingPending) {
         await supabase
           .from('submissions')
-          .update({ media_url: String(index) })
+          .update({ media_url: trackId })
           .eq('id', existingPending.id)
         return
       }
 
-      const existingSameIndex = mySubs.find(
+      const existingSameCell = mySubs.find(
         (s) =>
           s.media_type === 'bingo' &&
           s.game_id === gameId &&
-          s.media_url === String(index),
+          s.status === 'pending' &&
+          resolveBingoSubmissionCellIndex(s.media_url ?? '', cells) === index,
       )
-      if (existingSameIndex?.status === 'pending') {
+      if (existingSameCell) {
         bingoPickOptimisticRef.current = null
         setBingoPick(null)
-        await supabase.from('submissions').delete().eq('id', existingSameIndex.id)
+        await supabase.from('submissions').delete().eq('id', existingSameCell.id)
         return
       }
 
@@ -565,7 +588,7 @@ export function JoinGameView({
         event_id: event.id,
         team_id: teamId,
         game_id: gameId,
-        media_url: String(index),
+        media_url: trackId,
         media_type: 'bingo',
         status: 'pending',
       })
@@ -1060,9 +1083,9 @@ export function JoinGameView({
       ? bingoCellDisplay(bingoCardQuery.data)
       : bingoCardTitles(teamId, tracks).map((title) => ({ title, artist: '' }))
     const roundActive = state.bingo_state === 'playing'
-    const playOrder = bingoRunQuery.data?.playOrder ?? []
     const gameConfig = parseBingoGameConfig(game?.config)
     const winningLines = gameConfig.bingo_winning_lines ?? defaultWinningLines()
+    const cardCells = bingoCardQuery.data ?? []
     const historicalByIndex = new Map<number, 'approved' | 'rejected'>()
     for (const s of mySubs) {
       if (
@@ -1073,30 +1096,20 @@ export function JoinGameView({
       ) {
         continue
       }
-      const idx = Number(s.media_url)
-      if (Number.isNaN(idx)) continue
+      const idx = cardCells.length
+        ? resolveBingoSubmissionCellIndex(s.media_url, cardCells)
+        : Number(s.media_url)
+      if (Number.isNaN(idx) || idx < 0) continue
       if (s.status === 'approved' || s.status === 'rejected') {
         historicalByIndex.set(idx, s.status)
       }
     }
-    const approvedIndices = approvedBingoCellIndices(mySubs, stage.gameId)
+    const approvedIndices = approvedBingoCellIndices(mySubs, stage.gameId, cardCells)
     const winningCells = cellsOnConfiguredBingoLine(approvedIndices, winningLines)
-    const playedTrackIds = new Set(
-      playOrder.slice(
-        0,
-        state.bingo_state === 'ended'
-          ? Math.min(playOrder.length, state.current_question_index + 1)
-          : Math.min(playOrder.length, state.current_question_index),
-      ),
-    )
-    const missedLockedIndices = new Set<number>()
-    if (bingoCardQuery.data) {
-      bingoCardQuery.data.forEach((cell, idx) => {
-        if (!playedTrackIds.has(cell.trackId)) return
-        if (historicalByIndex.has(idx)) return
-        missedLockedIndices.add(idx)
-      })
-    }
+    const revealedTrackIds = parseRevealedTrackIds(state.bingo_revealed_track_ids)
+    const missedLockedIndices = cardCells.length
+      ? missedBingoCellIndices(cardCells, revealedTrackIds, historicalByIndex)
+      : new Set<number>()
     const canMark = roundActive
     body = (
       <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">

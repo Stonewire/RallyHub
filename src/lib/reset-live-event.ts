@@ -82,6 +82,7 @@ export async function resetLiveEvent(eventId: string, teamCount: number) {
         quiz_state: 'idle',
         bingo_state: 'waiting',
         bingo_bonus_id: null,
+        bingo_revealed_track_ids: [],
         announcement: null,
         announcement_target: null,
         winner_reveal_stage: 0,

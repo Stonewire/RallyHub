@@ -1,4 +1,5 @@
 import { applySubmissionPoints } from '@/lib/apply-submission-points'
+import { resolveBingoSubmissionTrackId } from '@/lib/bingo-cell-match'
 import type { BingoCell } from '@/lib/bingo-engine'
 import {
   approvedBingoCellIndices,
@@ -51,14 +52,14 @@ export async function scoreBingoRound(params: {
 
   for (const row of cards) {
     const cells = row.cells as BingoCell[]
-    const rowCorrectIndex = cells.findIndex((c) => c.trackId === trackId)
     const teamSubs = (subs ?? []).filter((s) => s.team_id === row.team_id)
 
     for (const sub of teamSubs) {
-      const markedIndex = Number(sub.media_url)
-      if (Number.isNaN(markedIndex)) continue
+      if (sub.media_url == null) continue
+      const markedTrackId = resolveBingoSubmissionTrackId(sub.media_url, cells)
+      if (!markedTrackId) continue
 
-      if (markedIndex === rowCorrectIndex) {
+      if (markedTrackId === trackId) {
         approveUpdates.push({ id: sub.id, teamId: row.team_id, points: pointsPerCorrect })
         teamScoreDeltas.set(
           row.team_id,
@@ -97,7 +98,8 @@ export async function scoreBingoRound(params: {
 
     for (const row of cards) {
       const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
-      const approved = approvedBingoCellIndices(teamSubs, gameId)
+      const teamCells = row.cells as BingoCell[]
+      const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
       if (!hasConfiguredBingoLine(approved, winningLines)) continue
       if (lineAwarded.has(row.team_id)) continue
       lineAwarded.add(row.team_id)

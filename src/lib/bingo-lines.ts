@@ -60,6 +60,7 @@ export function approvedBingoCellIndices(
     game_id: string
   }[],
   gameId: string,
+  cells?: { trackId: string }[],
 ): number[] {
   return submissions
     .filter(
@@ -70,6 +71,14 @@ export function approvedBingoCellIndices(
         s.media_url != null &&
         s.media_url !== 'claim',
     )
-    .map((s) => Number(s.media_url))
-    .filter((n) => !Number.isNaN(n) && n >= 0 && n < 25)
+    .map((s) => {
+      if (cells?.length) {
+        const asNum = Number(s.media_url)
+        if (!Number.isNaN(asNum) && asNum >= 0 && asNum < cells.length) return asNum
+        return cells.findIndex((c) => c.trackId === s.media_url)
+      }
+      const n = Number(s.media_url)
+      return Number.isNaN(n) ? -1 : n
+    })
+    .filter((n) => n >= 0 && n < 25)
 }

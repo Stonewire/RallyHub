@@ -31,6 +31,7 @@ import {
   parseBingoGameConfig,
 } from '@/lib/bingo-facilitator'
 import { advanceBingoTrack } from '@/lib/bingo-round-advance'
+import { parseRevealedTrackIds } from '@/lib/bingo-cell-match'
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
@@ -147,6 +148,7 @@ export function FacilitatorEventPage() {
         })
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
+      patch.bingo_revealed_track_ids = []
     }
     void patchState(patch)
   }
@@ -682,7 +684,7 @@ export function FacilitatorEventPage() {
       void player.playFromUserGesture(syncUrl).then((played) => {
         console.log('[bingo-audio] synchronous play result:', played)
         if (played) {
-          void patchState({ bingo_state: 'playing' })
+          void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
         } else {
           notify('Could not start playback — check console for details')
         }
@@ -700,15 +702,50 @@ export function FacilitatorEventPage() {
       }
       const played = await player.playFromUserGesture(url)
       console.log('[bingo-audio] delayed play after run load:', played)
-      if (played) await patchState({ bingo_state: 'playing' })
+      if (played) await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
       else notify('Run loaded — press Start again to play')
     })()
   }
 
-  async function handleBingoNextClick() {
+  async function lockAndRevealBingoRound(): Promise<boolean> {
+    if (!stage?.gameId || !eventId) return false
+    if (liveState.bingo_state === 'revealed') return true
+    const run = await ensureBingoRunReady()
+    if (!run?.id) return false
+    const currentTrackId = run.playOrder[bingoPlayIndex]
+    if (!currentTrackId) return false
+
+    const result = await scoreBingoRound({
+      eventId,
+      gameId: stage.gameId,
+      runId: run.id,
+      trackId: currentTrackId,
+      gameConfig: bingoConfig,
+    })
+    if (result.winningTeamIds.length > 0) {
+      const winnerNames = result.winningTeamIds
+        .map((id) => teams.find((t) => t.id === id)?.name)
+        .filter(Boolean)
+      if (winnerNames.length > 0) {
+        const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
+        notify(text)
+        await patchState({ announcement: text, announcement_target: 'both' })
+      }
+    }
+
+    const prev = parseRevealedTrackIds(liveState.bingo_revealed_track_ids)
+    const revealed = prev.includes(currentTrackId) ? prev : [...prev, currentTrackId]
+    await patchState({
+      bingo_state: 'revealed',
+      bingo_revealed_track_ids: revealed,
+    })
+    return true
+  }
+
+  async function handleBingoNextClick(opts?: { skipCrossfade?: boolean; skipScore?: boolean }) {
     if (bingoAdvancing) return
     if (!stage?.gameId || !eventId) return
-    console.log('[bingo-audio] Next Song clicked')
+    console.log('[bingo-audio] Next Song clicked', opts)
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
       notify('Audio player is not mounted')
@@ -722,26 +759,8 @@ export function FacilitatorEventPage() {
     }
     setBingoAdvancing(true)
     try {
-      const currentTrackId = run.playOrder[bingoPlayIndex]
-      const runId = run.id
-      if (runId && currentTrackId) {
-        const result = await scoreBingoRound({
-          eventId,
-          gameId: stage.gameId,
-          runId,
-          trackId: currentTrackId,
-          gameConfig: bingoConfig,
-        })
-        if (result.winningTeamIds.length > 0) {
-          const winnerNames = result.winningTeamIds
-            .map((id) => teams.find((t) => t.id === id)?.name)
-            .filter(Boolean)
-          if (winnerNames.length > 0) {
-            const text = `Bingo winner${winnerNames.length > 1 ? 's' : ''}: ${winnerNames.join(', ')}`
-            notify(text)
-            await patchState({ announcement: text, announcement_target: 'both' })
-          }
-        }
+      if (!opts?.skipScore && liveState.bingo_state !== 'revealed') {
+        await lockAndRevealBingoRound()
       }
 
       const atLastTrack = bingoPlayIndex >= run.playOrder.length - 1
@@ -753,12 +772,14 @@ export function FacilitatorEventPage() {
       const nextTrack = resolveTrackForIndex(run, bingoPlayIndex + 1)
       const nextUrl = nextTrack ? bingoTrackPlaybackUrl(nextTrack) : ''
       console.log('[bingo-audio] next track URL:', nextUrl)
-      if (nextUrl && liveState.bingo_state === 'playing') {
+
+      if (!opts?.skipCrossfade && nextUrl) {
         await player.crossfadeTo(nextUrl, 4000)
-      } else if (nextUrl) {
+      } else if (!opts?.skipCrossfade && nextUrl && liveState.bingo_state !== 'playing') {
         await player.playFromUserGesture(nextUrl)
       }
 
+      const runId = run.id
       const nextIndex = await advanceBingoTrack({
         eventId,
         gameId: stage.gameId,
@@ -777,11 +798,21 @@ export function FacilitatorEventPage() {
     }
   }
 
-  async function autoAdvanceBingoSong() {
+  async function handleBingoLockAndReveal() {
     if (bingoAdvancing) return
     if (liveState.bingo_state !== 'playing') return
-    if (!stage?.gameId || !eventId) return
-    await handleBingoNextClick()
+    setBingoAdvancing(true)
+    try {
+      await lockAndRevealBingoRound()
+    } finally {
+      setBingoAdvancing(false)
+    }
+  }
+
+  async function autoAdvanceBingoSong() {
+    if (bingoAdvancing) return
+    if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
+    await handleBingoNextClick({ skipCrossfade: true, skipScore: true })
   }
 
   return (
@@ -1266,6 +1297,7 @@ export function FacilitatorEventPage() {
                   playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
                   autoPlay={false}
                   crossfadeSeconds={4}
+                  onLockAndReveal={() => void handleBingoLockAndReveal()}
                   onAutoAdvance={() => void autoAdvanceBingoSong()}
                   onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
                 />
@@ -1326,6 +1358,7 @@ export function FacilitatorEventPage() {
                         current_question_index: 0,
                         bingo_state: 'waiting',
                         bingo_bonus_id: null,
+                        bingo_revealed_track_ids: [],
                       })
                     })
                     .catch((err) =>

@@ -93,6 +93,7 @@ async function activateBingoRunLocal(
     .update({
       current_question_index: 0,
       bingo_state: 'waiting',
+      bingo_revealed_track_ids: [],
       updated_at: new Date().toISOString(),
     })
     .eq('event_id', eventId)

@@ -9,6 +9,9 @@ type BingoClipPlayerProps = {
   className?: string
   autoPlay?: boolean
   crossfadeSeconds?: number
+  /** Fired once ~1s before crossfade out (selections lock + reveal). */
+  onLockAndReveal?: () => void
+  /** Fired after crossfade completes; advance round only — do not crossfade again. */
   onAutoAdvance?: () => void
   onPlaybackError?: (message: string) => void
 }
@@ -42,6 +45,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       className,
       autoPlay = true,
       crossfadeSeconds = 4,
+      onLockAndReveal,
       onAutoAdvance,
       onPlaybackError,
     }: BingoClipPlayerProps,
@@ -51,10 +55,14 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     const audioBRef = useRef<HTMLAudioElement>(null)
     const activeRef = useRef<'a' | 'b'>('a')
     const onAutoAdvanceRef = useRef(onAutoAdvance)
+    const onLockAndRevealRef = useRef(onLockAndReveal)
     const autoFadeTriggeredRef = useRef(false)
+    const lockRevealTriggeredRef = useRef(false)
+    const crossfadeInProgressRef = useRef(false)
     const [activeDeck, setActiveDeck] = useState<'a' | 'b'>('a')
     const onPlaybackErrorRef = useRef(onPlaybackError)
     onAutoAdvanceRef.current = onAutoAdvance
+    onLockAndRevealRef.current = onLockAndReveal
     onPlaybackErrorRef.current = onPlaybackError
 
     function currentAudio() {
@@ -114,22 +122,40 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         el.load()
       }
       autoFadeTriggeredRef.current = false
+      lockRevealTriggeredRef.current = false
       return playElement(el, 'gesture')
     }
 
     async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
       console.log(`${LOG} crossfadeTo`, { url, ms })
       if (!url?.trim()) return false
+      if (crossfadeInProgressRef.current) {
+        console.warn(`${LOG} crossfadeTo skipped — already in progress`)
+        return false
+      }
       const from = currentAudio()
       const to = standbyAudio()
       if (!from || !to) return false
+
+      crossfadeInProgressRef.current = true
       to.volume = 0
       to.muted = false
-      to.src = url
-      to.currentTime = 0
-      to.load()
+
+      const sameSrc = to.src === url || to.currentSrc === url
+      if (!sameSrc) {
+        to.src = url
+        to.currentTime = 0
+        to.load()
+      } else if (to.paused) {
+        to.currentTime = 0
+      }
+
       const started = await playElement(to, 'crossfade-in')
-      if (!started) return false
+      if (!started) {
+        crossfadeInProgressRef.current = false
+        return false
+      }
+
       const steps = Math.max(8, Math.floor(ms / 100))
       const stepMs = ms / steps
       for (let i = 1; i <= steps; i++) {
@@ -144,7 +170,12 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
       setActiveDeck(activeRef.current)
       autoFadeTriggeredRef.current = false
-      console.log(`${LOG} crossfadeTo complete`, { activeDeck: activeRef.current })
+      lockRevealTriggeredRef.current = false
+      crossfadeInProgressRef.current = false
+      console.log(`${LOG} crossfadeTo complete`, {
+        activeDeck: activeRef.current,
+        incomingTime: to.currentTime,
+      })
       return true
     }
 
@@ -156,7 +187,12 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     }))
 
     useEffect(() => {
-      if (!src?.trim() || !autoPlay) return
+      autoFadeTriggeredRef.current = false
+      lockRevealTriggeredRef.current = false
+    }, [playKey])
+
+    useEffect(() => {
+      if (!src?.trim() || !autoPlay || crossfadeInProgressRef.current) return
       const el = currentAudio()
       if (!el) return
       console.log(`${LOG} autoPlay effect`, { src, playKey })
@@ -164,17 +200,32 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       el.src = src
       el.load()
       autoFadeTriggeredRef.current = false
+      lockRevealTriggeredRef.current = false
       void playElement(el, 'autoPlay')
     }, [src, playKey, autoPlay])
 
     useEffect(() => {
       const cur = currentAudio()
       if (!cur) return
+      const revealLeadSeconds = crossfadeSeconds + 1
+
       const handleTime = () => {
-        if (autoFadeTriggeredRef.current) return
-        if (!nextSrc) return
         if (!cur.duration || Number.isNaN(cur.duration)) return
         const remaining = cur.duration - cur.currentTime
+
+        if (
+          onLockAndRevealRef.current &&
+          !lockRevealTriggeredRef.current &&
+          remaining <= revealLeadSeconds &&
+          remaining > crossfadeSeconds
+        ) {
+          lockRevealTriggeredRef.current = true
+          console.log(`${LOG} lock-and-reveal trigger`, { remaining, nextSrc })
+          onLockAndRevealRef.current()
+        }
+
+        if (autoFadeTriggeredRef.current) return
+        if (!nextSrc) return
         if (remaining <= crossfadeSeconds && remaining > 0) {
           autoFadeTriggeredRef.current = true
           console.log(`${LOG} auto-fade trigger`, { remaining, nextSrc })
