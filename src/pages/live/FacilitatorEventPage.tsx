@@ -149,8 +149,10 @@ export function FacilitatorEventPage() {
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
       patch.bingo_revealed_track_ids = []
-      patch.bingo_winner_team_id = null
-      patch.bingo_announced_winner_ids = []
+      void patchWinnerFieldsSafe({
+        bingo_winner_team_id: null,
+        bingo_announced_winner_ids: [],
+      })
     }
     void patchState(patch)
   }
@@ -686,9 +688,8 @@ export function FacilitatorEventPage() {
       void player.playFromUserGesture(syncUrl).then((played) => {
         console.log('[bingo-audio] synchronous play result:', played)
         if (played) {
-          void patchState({
-            bingo_state: 'playing',
-            bingo_revealed_track_ids: [],
+          void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
+          void patchWinnerFieldsSafe({
             bingo_winner_team_id: null,
             bingo_announced_winner_ids: [],
           })
@@ -709,15 +710,24 @@ export function FacilitatorEventPage() {
       }
       const played = await player.playFromUserGesture(url)
       console.log('[bingo-audio] delayed play after run load:', played)
-      if (played)
-        await patchState({
-          bingo_state: 'playing',
-          bingo_revealed_track_ids: [],
+      if (played) {
+        await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
+        void patchWinnerFieldsSafe({
           bingo_winner_team_id: null,
           bingo_announced_winner_ids: [],
         })
-      else notify('Run loaded — press Start again to play')
+      } else notify('Run loaded — press Start again to play')
     })()
+  }
+
+  // Winner-announcement columns are non-critical. A failure here (e.g. migration
+  // not yet applied) must never revert or short-circuit scoring/reveal/advance.
+  async function patchWinnerFieldsSafe(patch: TablesUpdate<'event_state'>) {
+    try {
+      await patchState(patch)
+    } catch (err) {
+      console.warn('[bingo] winner-field patch failed (non-fatal):', err)
+    }
   }
 
   async function lockAndRevealBingoRound(): Promise<boolean> {
@@ -736,24 +746,26 @@ export function FacilitatorEventPage() {
       gameConfig: bingoConfig,
     })
 
+    // Core reveal uses only existing columns and must always succeed so the
+    // round advances and the participant's green/red/grey states show.
     const prev = parseRevealedTrackIds(liveState.bingo_revealed_track_ids)
     const revealed = prev.includes(currentTrackId) ? prev : [...prev, currentTrackId]
-    const patch: TablesUpdate<'event_state'> = {
+    await patchState({
       bingo_state: 'revealed',
       bingo_revealed_track_ids: revealed,
-    }
+    })
 
-    // Announce each winning team only once, ever.
+    // Winner announcement reads the scoring result afterward, best-effort only.
     const announced = parseAnnouncedWinnerIds(liveState.bingo_announced_winner_ids)
     const newWinnerId = result.winningTeamIds.find((id) => !announced.includes(id))
     if (newWinnerId) {
       const winnerName = teams.find((t) => t.id === newWinnerId)?.name
-      patch.bingo_winner_team_id = newWinnerId
-      patch.bingo_announced_winner_ids = [...announced, newWinnerId]
+      await patchWinnerFieldsSafe({
+        bingo_winner_team_id: newWinnerId,
+        bingo_announced_winner_ids: [...announced, newWinnerId],
+      })
       if (winnerName) notify(`Bingo winner: ${winnerName}`)
     }
-
-    await patchState(patch)
     return true
   }
 
@@ -806,8 +818,8 @@ export function FacilitatorEventPage() {
       await patchState({
         current_question_index: nextIndex,
         bingo_state: 'playing',
-        bingo_winner_team_id: null,
       })
+      void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
       if (!nextUrl) setAudioPlayNonce((n) => n + 1)
     } finally {
       setBingoAdvancing(false)
@@ -1375,6 +1387,8 @@ export function FacilitatorEventPage() {
                         bingo_state: 'waiting',
                         bingo_bonus_id: null,
                         bingo_revealed_track_ids: [],
+                      })
+                      void patchWinnerFieldsSafe({
                         bingo_winner_team_id: null,
                         bingo_announced_winner_ids: [],
                       })
