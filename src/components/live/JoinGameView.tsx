@@ -516,11 +516,27 @@ export function JoinGameView({
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
-    if (state.bingo_state !== 'playing') return
+    console.log('[bingo-score] TAP', {
+      index,
+      gameId,
+      bingoState: state.bingo_state,
+      hasCard: Boolean(bingoCardQuery.data?.length),
+    })
+    if (state.bingo_state !== 'playing') {
+      console.log('[bingo-score] TAP ignored — not playing', state.bingo_state)
+      return
+    }
     const cells = bingoCardQuery.data
-    if (!cells?.length) return
+    if (!cells?.length) {
+      console.log('[bingo-score] TAP ignored — no card cells loaded')
+      return
+    }
     const trackId = cells[index]?.trackId
-    if (!trackId) return
+    if (!trackId) {
+      console.log('[bingo-score] TAP ignored — cell has no trackId', { index })
+      return
+    }
+    console.log('[bingo-score] TAP storing', { index, trackId, title: cells[index]?.title })
 
     const lockedByHistory = mySubs.some(
       (s) =>
@@ -565,10 +581,15 @@ export function JoinGameView({
 
     try {
       if (existingPending) {
-        await supabase
+        const { error } = await supabase
           .from('submissions')
           .update({ media_url: trackId })
           .eq('id', existingPending.id)
+        if (error) {
+          console.error('[bingo-score] TAP update FAILED', { index, trackId, error })
+        } else {
+          console.log('[bingo-score] TAP update OK', { id: existingPending.id, index, trackId })
+        }
         return
       }
 
@@ -586,7 +607,7 @@ export function JoinGameView({
         return
       }
 
-      await supabase.from('submissions').insert({
+      const { error } = await supabase.from('submissions').insert({
         event_id: event.id,
         team_id: teamId,
         game_id: gameId,
@@ -594,6 +615,11 @@ export function JoinGameView({
         media_type: 'bingo',
         status: 'pending',
       })
+      if (error) {
+        console.error('[bingo-score] TAP insert FAILED', { index, trackId, error })
+      } else {
+        console.log('[bingo-score] TAP insert OK', { index, trackId, teamId })
+      }
     } finally {
       bingoPickOptimisticRef.current = undefined
     }
@@ -1113,6 +1139,28 @@ export function JoinGameView({
       ? missedBingoCellIndices(cardCells, revealedTrackIds, historicalByIndex)
       : new Set<number>()
     const canMark = roundActive
+    const pickStatus = bingoPick != null ? historicalByIndex.get(bingoPick) ?? 'pending/none' : null
+    const pickMasked = bingoPick != null && roundActive && historicalByIndex.has(bingoPick)
+    console.log('[bingo-score] RENDER card', {
+      bingoState: state.bingo_state,
+      roundActive,
+      bingoPick,
+      currentIndex: state.current_question_index,
+      historicalByIndex: Array.from(historicalByIndex.entries()),
+      mySubsBingo: mySubs
+        .filter((s) => s.media_type === 'bingo' && s.game_id === stage.gameId)
+        .map((s) => ({ media_url: s.media_url, status: s.status })),
+      revealedTrackIds,
+      missed: Array.from(missedLockedIndices),
+      pickStatus,
+      pickMasked,
+    })
+    if (pickMasked) {
+      console.warn(
+        '[bingo-score] RENDER masking — picked cell has a final status but the yellow pick style is still applied because roundActive is true',
+        { bingoPick, pickStatus },
+      )
+    }
     body = (
       <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">

@@ -731,13 +731,34 @@ export function FacilitatorEventPage() {
   }
 
   async function lockAndRevealBingoRound(): Promise<boolean> {
-    if (!stage?.gameId || !eventId) return false
-    if (liveState.bingo_state === 'revealed') return true
+    console.log('[bingo-score] lockAndReveal START', {
+      bingoState: liveState.bingo_state,
+      playIndex: bingoPlayIndex,
+      gameId: stage?.gameId,
+    })
+    if (!stage?.gameId || !eventId) {
+      console.log('[bingo-score] lockAndReveal abort — no stage/event')
+      return false
+    }
+    if (liveState.bingo_state === 'revealed') {
+      console.log('[bingo-score] lockAndReveal skip — already revealed')
+      return true
+    }
     const run = await ensureBingoRunReady()
-    if (!run?.id) return false
+    if (!run?.id) {
+      console.log('[bingo-score] lockAndReveal abort — no run')
+      return false
+    }
     const currentTrackId = run.playOrder[bingoPlayIndex]
-    if (!currentTrackId) return false
+    if (!currentTrackId) {
+      console.log('[bingo-score] lockAndReveal abort — no trackId at index', bingoPlayIndex)
+      return false
+    }
 
+    console.log('[bingo-score] lockAndReveal calling scoreBingoRound', {
+      playedTrackId: currentTrackId,
+      runId: run.id,
+    })
     const result = await scoreBingoRound({
       eventId,
       gameId: stage.gameId,
@@ -745,6 +766,7 @@ export function FacilitatorEventPage() {
       trackId: currentTrackId,
       gameConfig: bingoConfig,
     })
+    console.log('[bingo-score] lockAndReveal scoreBingoRound returned', result)
 
     // Core reveal uses only existing columns and must always succeed so the
     // round advances and the participant's green/red/grey states show.
