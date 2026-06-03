@@ -4,6 +4,7 @@ import type { BingoCell } from '@/lib/bingo-engine'
 import {
   approvedBingoCellIndices,
   bingoWinAchieved,
+  countCompleteBingoLines,
   resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { supabase } from '@/lib/supabase'
@@ -145,26 +146,45 @@ export async function scoreBingoRound(params: {
     await applySubmissionPoints(teamId, delta)
   }
 
+  // Win detection runs every round on the team's FULL set of approved cells
+  // (all rounds, not just this one) and is independent of line points — the
+  // celebration must fire on a completed win even when no points are configured.
   const winningTeamIds: string[] = []
-  if (linePoints > 0) {
-    const { data: allSubs } = await supabase
-      .from('submissions')
-      .select('team_id, media_url, status, game_id, media_type')
-      .eq('event_id', eventId)
-      .eq('game_id', gameId)
-      .eq('media_type', 'bingo')
+  const { data: allSubs } = await supabase
+    .from('submissions')
+    .select('team_id, media_url, status, game_id, media_type')
+    .eq('event_id', eventId)
+    .eq('game_id', gameId)
+    .eq('media_type', 'bingo')
 
-    for (const row of cards) {
-      const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
-      const teamCells = row.cells as BingoCell[]
-      const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
-      if (!bingoWinAchieved(approved, winConfig)) continue
-      if (lineAwarded.has(row.team_id)) continue
-      lineAwarded.add(row.team_id)
-      winningTeamIds.push(row.team_id)
-      await applySubmissionPoints(row.team_id, linePoints)
-    }
+  console.log('[bingo-score] win check START', {
+    winConfig,
+    linePoints,
+    allApprovedSubs: (allSubs ?? []).filter((s) => s.status === 'approved').length,
+  })
+
+  for (const row of cards) {
+    const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
+    const teamCells = row.cells as BingoCell[]
+    const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
+    const lineCount = countCompleteBingoLines(approved, winConfig.includeDiagonals)
+    const achieved = bingoWinAchieved(approved, winConfig)
+    console.log('[bingo-score] win check team', {
+      teamId: row.team_id,
+      approvedCount: approved.length,
+      completeLines: lineCount,
+      mode: winConfig.mode,
+      required: winConfig.mode === 'lines' ? winConfig.linesRequired : 'full_house',
+      achieved,
+    })
+    if (!achieved) continue
+    if (lineAwarded.has(row.team_id)) continue
+    lineAwarded.add(row.team_id)
+    winningTeamIds.push(row.team_id)
+    if (linePoints > 0) await applySubmissionPoints(row.team_id, linePoints)
   }
+
+  console.log('[bingo-score] win check RESULT', { winningTeamIds })
 
   return { correctIndex, trackId, winningTeamIds }
 }

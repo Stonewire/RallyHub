@@ -802,13 +802,28 @@ export function FacilitatorEventPage() {
     // Winner announcement reads the scoring result afterward, best-effort only.
     const announced = parseAnnouncedWinnerIds(liveState.bingo_announced_winner_ids)
     const newWinnerId = result.winningTeamIds.find((id) => !announced.includes(id))
+    console.log('[bingo-score] winner announce check', {
+      winningTeamIds: result.winningTeamIds,
+      alreadyAnnounced: announced,
+      newWinnerId: newWinnerId ?? null,
+    })
     if (newWinnerId) {
       const winnerName = teams.find((t) => t.id === newWinnerId)?.name
-      await patchWinnerFieldsSafe({
+      const writePatch = {
         bingo_winner_team_id: newWinnerId,
         bingo_announced_winner_ids: [...announced, newWinnerId],
-      })
-      if (winnerName) notify(`Bingo winner: ${winnerName}`)
+      }
+      console.log('[bingo-score] writing winner fields', { winnerName, ...writePatch })
+      try {
+        await patchState(writePatch)
+        console.log('[bingo-score] winner fields write OK', { newWinnerId })
+        if (winnerName) notify(`Bingo winner: ${winnerName}`)
+      } catch (err) {
+        console.error(
+          '[bingo-score] winner fields write FAILED — is migration 017 applied? (non-fatal)',
+          err,
+        )
+      }
     }
     return true
   }

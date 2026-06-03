@@ -271,6 +271,12 @@ export function JoinGameView({
   }, [chatOpen])
 
   useEffect(() => {
+    console.log('[bingo-score] PARTICIPANT bingo_winner_team_id changed', {
+      winnerTeamId: state.bingo_winner_team_id ?? null,
+    })
+  }, [state.bingo_winner_team_id])
+
+  useEffect(() => {
     const incoming = visibleMessages
       .filter((m) => m.team_id === teamId && m.sender !== (team.name ?? 'Team'))
       .map((m) => m.id)
@@ -1243,6 +1249,13 @@ export function JoinGameView({
     ? bundle.teams.find((t) => t.id === winnerTeamId)
     : null
   const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
+  console.log('[bingo-score] PARTICIPANT render celebration', {
+    winnerTeamId,
+    foundTeam: Boolean(winnerTeam),
+    isMine: winnerTeamId === teamId,
+    dismissedWinnerId,
+    showWinner,
+  })
 
   return (
     <BrandBackground
