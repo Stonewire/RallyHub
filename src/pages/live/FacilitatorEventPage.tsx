@@ -93,6 +93,8 @@ export function FacilitatorEventPage() {
   const [bingoAdvancing, setBingoAdvancing] = useState(false)
   const [bingoRunOverride, setBingoRunOverride] = useState<BingoRunRow | null>(null)
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
+  // True while a bingo win has halted auto-progression (cleared when facilitator continues).
+  const bingoWinHaltRef = useRef(false)
   const { notify } = useNotification()
   const queryClient = useQueryClient()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
@@ -672,6 +674,7 @@ export function FacilitatorEventPage() {
       trackPlaybackUrl,
       bingoState: liveState.bingo_state,
     })
+    bingoWinHaltRef.current = false
 
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
@@ -808,6 +811,16 @@ export function FacilitatorEventPage() {
       newWinnerId: newWinnerId ?? null,
     })
     if (newWinnerId) {
+      // A win halts auto-progression and pauses audio so the celebration can play.
+      // This works even if the winner columns (migration 017) are missing.
+      bingoWinHaltRef.current = true
+      try {
+        bingoAudioRef.current?.pause()
+        console.log('[bingo-score] win halt — audio paused, auto-advance stopped')
+      } catch (err) {
+        console.warn('[bingo-score] audio pause on win failed (non-fatal)', err)
+      }
+
       const winnerName = teams.find((t) => t.id === newWinnerId)?.name
       const writePatch = {
         bingo_winner_team_id: newWinnerId,
@@ -817,12 +830,13 @@ export function FacilitatorEventPage() {
       try {
         await patchState(writePatch)
         console.log('[bingo-score] winner fields write OK', { newWinnerId })
-        if (winnerName) notify(`Bingo winner: ${winnerName}`)
+        if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
       } catch (err) {
         console.error(
           '[bingo-score] winner fields write FAILED — is migration 017 applied? (non-fatal)',
           err,
         )
+        if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
       }
     }
     return true
@@ -845,8 +859,22 @@ export function FacilitatorEventPage() {
     }
     setBingoAdvancing(true)
     try {
+      // If a win previously halted the game, this press is the facilitator
+      // choosing to continue: clear the halt + winner and proceed normally.
+      const continuingPastWin = bingoWinHaltRef.current
+      if (continuingPastWin) {
+        bingoWinHaltRef.current = false
+        void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
+      }
+
       if (!opts?.skipScore && liveState.bingo_state !== 'revealed') {
         await lockAndRevealBingoRound()
+        if (bingoWinHaltRef.current && !continuingPastWin) {
+          // A new winner was just detected on this press — halt and show the
+          // celebration instead of advancing. Press again to continue.
+          console.log('[bingo-score] Next press detected a new win — halting, not advancing')
+          return
+        }
       }
 
       const atLastTrack = bingoPlayIndex >= run.playOrder.length - 1
@@ -898,6 +926,10 @@ export function FacilitatorEventPage() {
 
   async function autoAdvanceBingoSong() {
     if (bingoAdvancing) return
+    if (bingoWinHaltRef.current) {
+      console.log('[bingo-score] auto-advance halted — bingo won, awaiting facilitator')
+      return
+    }
     if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
     await handleBingoNextClick({ skipCrossfade: true, skipScore: true })
   }
@@ -1389,6 +1421,11 @@ export function FacilitatorEventPage() {
                   onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
                 />
               ) : null}
+              {liveState.bingo_winner_team_id ? (
+                <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
+                  🏆 Bingo! <strong>{teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'}</strong> won — game paused. Press Continue to keep playing.
+                </div>
+              ) : null}
               {liveState.bingo_state !== 'bonus' &&
               liveState.bingo_state !== 'bonus_revealed' ? (
                 <div className="flex flex-wrap gap-2">
@@ -1412,7 +1449,9 @@ export function FacilitatorEventPage() {
                   >
                     {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'
                       ? 'Start'
-                      : 'Next Song'}
+                      : liveState.bingo_winner_team_id
+                        ? 'Continue'
+                        : 'Next Song'}
                   </FacilitatorButton>
                 </div>
               ) : null}
@@ -1451,6 +1490,7 @@ export function FacilitatorEventPage() {
                         queryKey: queryKeys.bingoRun(eventId, stageIndex),
                       })
                       setAudioPlayNonce((n) => n + 1)
+                      bingoWinHaltRef.current = false
                       notify('Bingo run restarted')
                       void patchState({
                         current_question_index: 0,

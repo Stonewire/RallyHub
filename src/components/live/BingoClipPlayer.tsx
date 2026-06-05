@@ -21,6 +21,7 @@ export type BingoClipPlayerHandle = {
   playFromUserGesture: (src: string) => Promise<boolean>
   primeAudioContext: () => Promise<void>
   isMounted: () => boolean
+  pause: () => void
 }
 
 async function probeUrl(url: string): Promise<void> {
@@ -184,6 +185,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       playFromUserGesture,
       primeAudioContext,
       isMounted: () => Boolean(audioARef.current && audioBRef.current),
+      pause: () => {
+        audioARef.current?.pause()
+        audioBRef.current?.pause()
+      },
     }))
 
     useEffect(() => {

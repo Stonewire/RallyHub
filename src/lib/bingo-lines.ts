@@ -109,10 +109,12 @@ export function bingoWinningHighlightCells(
   if (win.mode === 'full_house') {
     return isBingoFullHouse(marked) ? new Set(Array.from({ length: 25 }, (_, i) => i)) : new Set()
   }
+  // Use the exact same evaluation as the win check so the highlight and the
+  // win-fire decision can never disagree.
+  if (!bingoWinAchieved(marked, win)) return new Set()
   const complete = activeBingoLines(win.includeDiagonals).filter((line) =>
     line.every((i) => marked.has(i)),
   )
-  if (complete.length < win.linesRequired) return new Set()
   const cells = new Set<number>()
   for (const line of complete) for (const i of line) cells.add(i)
   return cells

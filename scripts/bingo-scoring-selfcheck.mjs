@@ -127,6 +127,64 @@ assert(
   'Regression — team-1 wrong pick rejected; scoring no longer early-returns on card[0] miss',
 )
 
+// Win condition: 2 lines. Replicate bingo-lines.ts logic locally and confirm the
+// win check AND the highlight agree (highlight is gated on the same win check).
+const ROW_COL_LINES = [
+  [0, 1, 2, 3, 4],
+  [5, 6, 7, 8, 9],
+  [10, 11, 12, 13, 14],
+  [15, 16, 17, 18, 19],
+  [20, 21, 22, 23, 24],
+  [0, 5, 10, 15, 20],
+  [1, 6, 11, 16, 21],
+  [2, 7, 12, 17, 22],
+  [3, 8, 13, 18, 23],
+  [4, 9, 14, 19, 24],
+]
+const DIAGONALS = [
+  [0, 6, 12, 18, 24],
+  [4, 8, 12, 16, 20],
+]
+function activeLines(includeDiagonals) {
+  return includeDiagonals ? [...ROW_COL_LINES, ...DIAGONALS] : ROW_COL_LINES
+}
+function countCompleteLines(marked, includeDiagonals) {
+  const set = new Set(marked)
+  return activeLines(includeDiagonals).filter((l) => l.every((i) => set.has(i))).length
+}
+function isFullHouse(marked) {
+  const set = new Set(marked)
+  for (let i = 0; i < 25; i++) if (!set.has(i)) return false
+  return true
+}
+function winAchieved(marked, win) {
+  if (win.mode === 'full_house') return isFullHouse(marked)
+  return countCompleteLines(marked, win.includeDiagonals) >= win.linesRequired
+}
+function highlightCells(marked, win) {
+  if (win.mode === 'full_house') {
+    return isFullHouse(marked) ? new Set(Array.from({ length: 25 }, (_, i) => i)) : new Set()
+  }
+  if (!winAchieved(marked, win)) return new Set()
+  const set = new Set(marked)
+  const cells = new Set()
+  for (const l of activeLines(win.includeDiagonals)) if (l.every((i) => set.has(i)))
+    for (const i of l) cells.add(i)
+  return cells
+}
+
+const win2 = { mode: 'lines', linesRequired: 2, includeDiagonals: false }
+// One complete line (row 0): not yet a win.
+const oneLine = [0, 1, 2, 3, 4]
+assert(countCompleteLines(oneLine, false) === 1, 'Win — single completed row counts as 1 line')
+assert(!winAchieved(oneLine, win2), 'Win — 1 line does NOT satisfy a 2-line requirement')
+assert(highlightCells(oneLine, win2).size === 0, 'Win — highlight stays empty at 1 line (same logic)')
+// Two complete lines (row 0 + col 0): a win.
+const twoLines = [0, 1, 2, 3, 4, 5, 10, 15, 20]
+assert(countCompleteLines(twoLines, false) === 2, 'Win — completeLines reaches 2')
+assert(winAchieved(twoLines, win2), 'Win — bingoWinAchieved returns true at 2 lines')
+assert(highlightCells(twoLines, win2).size > 0, 'Win — highlight fires exactly when win fires (same logic)')
+
 // Scenario 5: crossfade does not restart (code-path verification)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -147,4 +205,23 @@ assert(
   'Scenario 5 — player guards crossfade overlap and fires lock/reveal before fade',
 )
 
-console.log('\nAll 5 bingo self-check scenarios passed.')
+// Stop-the-game-on-win wiring (code-path verification)
+assert(
+  playerSrc.includes('pause: () => {') && playerSrc.includes('pause: () => void'),
+  'Win-stop — player exposes an additive pause() control',
+)
+assert(
+  facilitatorSrc.includes('bingoWinHaltRef.current = true') &&
+    facilitatorSrc.includes('bingoAudioRef.current?.pause()'),
+  'Win-stop — a win sets the halt flag and pauses audio',
+)
+assert(
+  facilitatorSrc.includes('auto-advance halted — bingo won'),
+  'Win-stop — auto-advance is blocked while a win is pending',
+)
+assert(
+  facilitatorSrc.includes('continuingPastWin'),
+  'Win-stop — facilitator can Continue past a win to resume play',
+)
+
+console.log('\nAll bingo self-check scenarios passed (scoring, win detection, win-stop).')
