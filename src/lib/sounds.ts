@@ -2,16 +2,21 @@
 // Files live in public/sounds/ and are served from /sounds/<name>.mp3.
 //
 // Latency: every sound keeps a preloaded pool of HTMLAudioElements. Playing
-// resets currentTime to 0 and calls play() immediately on an already-loaded
-// element, so there is no per-tap element-creation / network delay. When all
-// pooled elements for a sound are still playing (rapid-fire taps), a clone is
-// added so overlapping plays never wait.
+// resets currentTime and calls play() immediately on an already-loaded element,
+// so there is no per-tap element-creation / network delay. When all pooled
+// elements for a sound are still playing (rapid-fire taps), a clone is added so
+// overlapping plays never wait.
+//
+// Autoplay: mobile browsers block programmatic play() until a sound element has
+// been played once inside a user gesture. We prime (unlock) every pooled element
+// on the first user interaction so later realtime-triggered sounds (announcement,
+// chat message, win) actually play.
 
 const SOUND_DIR = '/sounds'
 
 /**
  * Balanced per-sound volumes (0..1). Short feedback/notification sounds are kept
- * gentle (~0.4–0.5) so nothing is jarring; celebratory moments stay fuller.
+ * gentle so nothing is jarring; celebratory moments are fuller but not blasting.
  */
 const SOUND_VOLUME: Record<string, number> = {
   // Short feedback / notifications — subtle.
@@ -27,11 +32,20 @@ const SOUND_VOLUME: Record<string, number> = {
   'video-start': 0.45,
   'video-stop': 0.45,
   loser: 0.5,
-  // Celebratory — fuller.
-  winner: 0.9,
-  celebration: 0.85,
-  cheer: 0.8,
-  fireworks: 0.8,
+  // Celebratory — fuller, but tuned so the combined mix is pleasant.
+  winner: 0.7,
+  celebration: 0.7,
+  cheer: 0.5,
+  fireworks: 0.5,
+}
+
+/**
+ * Per-sound trims to make short clicks snappy: start a touch past any leading
+ * silence and cap the effective playback so the sound is brief and punchy.
+ */
+const SOUND_TRIM: Record<string, { start: number; maxMs: number }> = {
+  shutter: { start: 0.02, maxMs: 250 },
+  'quiz-select': { start: 0.02, maxMs: 250 },
 }
 
 const ALL_SOUNDS = Object.keys(SOUND_VOLUME)
@@ -61,6 +75,8 @@ function createEl(name: string): HTMLAudioElement | null {
 
 // A pool of preloaded elements per sound so playback is instant and overlap-safe.
 const pools = new Map<string, HTMLAudioElement[]>()
+// Auto-stop timers for capped (trimmed) sounds, keyed by element.
+const capTimers = new WeakMap<HTMLAudioElement, number>()
 
 function preloadAll() {
   if (typeof Audio === 'undefined') return
@@ -71,6 +87,53 @@ function preloadAll() {
 }
 
 preloadAll()
+
+// ---- Autoplay unlock -------------------------------------------------------
+
+let soundsUnlocked = false
+
+function primeElement(el: HTMLAudioElement) {
+  try {
+    el.muted = false
+    const prevVolume = el.volume
+    el.volume = 0
+    const reset = () => {
+      try {
+        el.pause()
+        el.currentTime = 0
+      } catch {
+        // ignore
+      }
+      el.volume = prevVolume
+    }
+    const p = el.play()
+    if (p && typeof p.then === 'function') {
+      p.then(reset).catch(reset)
+    } else {
+      reset()
+    }
+  } catch {
+    // ignore — playback will simply remain locked for this element
+  }
+}
+
+function unlockSounds() {
+  if (soundsUnlocked || typeof window === 'undefined') return
+  soundsUnlocked = true
+  for (const pool of pools.values()) {
+    const el = pool[0]
+    if (el) primeElement(el)
+  }
+}
+
+if (typeof window !== 'undefined') {
+  const handler = () => unlockSounds()
+  window.addEventListener('pointerdown', handler, { once: true, passive: true })
+  window.addEventListener('touchend', handler, { once: true, passive: true })
+  window.addEventListener('keydown', handler, { once: true })
+}
+
+// ---- Core playback ---------------------------------------------------------
 
 /** Get a free (paused/ended) pooled element, cloning a fresh one if all are busy. */
 function acquire(name: string): HTMLAudioElement | null {
@@ -104,11 +167,20 @@ export function playSound(name: string, volume?: number): HTMLAudioElement | nul
   const el = acquire(name)
   if (!el) return null
   el.volume = clampVolume(volume ?? SOUND_VOLUME[name] ?? DEFAULT_VOLUME)
+
+  const trim = SOUND_TRIM[name]
   try {
-    el.currentTime = 0
+    el.currentTime = trim?.start ?? 0
   } catch {
     // Seeking before metadata is loaded can throw on some browsers — ignore.
   }
+
+  const prevCap = capTimers.get(el)
+  if (prevCap) {
+    window.clearTimeout(prevCap)
+    capTimers.delete(el)
+  }
+
   try {
     const result = el.play()
     if (result && typeof result.then === 'function') {
@@ -119,6 +191,19 @@ export function playSound(name: string, volume?: number): HTMLAudioElement | nul
   } catch (err) {
     console.warn(`[sounds] failed to play "${name}.mp3"`, err)
   }
+
+  if (trim) {
+    const id = window.setTimeout(() => {
+      try {
+        el.pause()
+      } catch {
+        // ignore
+      }
+      capTimers.delete(el)
+    }, trim.maxMs)
+    capTimers.set(el, id)
+  }
+
   return el
 }
 
@@ -191,6 +276,8 @@ export function playCelebrationSound() {
   return playSound('celebration')
 }
 
+// ---- Bingo win sequence ----------------------------------------------------
+
 // Track the active bingo celebration sequence so a new win stops the previous
 // one instead of stacking multiple songs on top of each other.
 let activeWinSequenceStop: (() => void) | null = null
@@ -199,45 +286,60 @@ const WIN_CROSSFADE_SEC = 5
 
 /**
  * Bingo win audio sequence for the winning side (display panel + winner phone):
- * winner.mp3 (~17s) plays, then over its final 5 seconds it crossfades into
- * celebration.mp3 (the long song) via volume ramping, which then continues at
- * full volume. On the display panel, cheer.mp3 + fireworks.mp3 also layer at the
- * start for atmosphere. Returns a stop() that halts the whole sequence.
+ * winner.mp3 + cheer.mp3 start together immediately. Over winner.mp3's final 5
+ * seconds it crossfades into celebration.mp3 (the long song) via volume ramping,
+ * which then continues at full volume. On the display panel, fireworks.mp3 also
+ * layers in. Returns a stop() that halts the whole sequence.
  *
- * This is fully self-contained and does NOT touch the bingo track crossfade.
+ * Uses the preloaded (and gesture-unlocked) pooled elements so playback is not
+ * blocked by autoplay policy. Fully self-contained — does NOT touch the bingo
+ * track crossfade.
  */
 export function playBingoWinSequence(isDisplay: boolean): () => void {
-  // Stop any previous celebration before starting a new one.
+  // Stop any previous celebration before starting a new one (frees its element).
   activeWinSequenceStop?.()
 
   if (typeof Audio === 'undefined') {
     return () => {}
   }
 
-  const winnerVol = clampVolume(SOUND_VOLUME.winner ?? 0.9)
-  const celebVol = clampVolume(SOUND_VOLUME.celebration ?? 0.85)
+  const winnerVol = clampVolume(SOUND_VOLUME.winner ?? 0.7)
+  const celebVol = clampVolume(SOUND_VOLUME.celebration ?? 0.7)
 
-  const winner = createEl('winner') ?? new Audio(soundUrl('winner'))
-  winner.volume = winnerVol
-  const celebration = createEl('celebration') ?? new Audio(soundUrl('celebration'))
-  celebration.volume = 0
-
-  if (isDisplay) {
-    playSound('cheer')
-    playSound('fireworks')
+  const winner = acquire('winner') ?? createEl('winner')
+  const celebration = acquire('celebration') ?? createEl('celebration')
+  if (!winner || !celebration) {
+    // Fallback: at least play the fanfare via the normal path.
+    playWinnerSound()
+    return () => {}
   }
 
+  winner.volume = winnerVol
+  celebration.volume = 0
+  try {
+    winner.currentTime = 0
+  } catch {
+    // ignore
+  }
+
+  // Crowd cheer plays together with the fanfare on BOTH the display and the
+  // winning phone. Fireworks only on the display.
+  playSound('cheer')
+  if (isDisplay) playSound('fireworks')
+
   let fadeTimer: number | undefined
+  let safetyTimer: number | undefined
   let crossfading = false
   let celebrationStarted = false
 
-  const startCelebration = () => {
+  const startCelebration = (atFullVolume: boolean) => {
     if (celebrationStarted) return
     celebrationStarted = true
+    if (atFullVolume) celebration.volume = celebVol
     try {
       celebration.currentTime = 0
     } catch {
-      // ignore seek errors
+      // ignore
     }
     const p = celebration.play()
     if (p && typeof p.then === 'function') {
@@ -248,7 +350,7 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   const beginCrossfade = () => {
     if (crossfading) return
     crossfading = true
-    startCelebration()
+    startCelebration(false)
     const steps = 50
     const stepMs = (WIN_CROSSFADE_SEC * 1000) / steps
     let i = 0
@@ -277,27 +379,35 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   }
   winner.addEventListener('timeupdate', onTime)
 
-  // Safety: if winner.mp3 ends without a crossfade (e.g. duration unknown or
-  // shorter than the fade window), start the celebration song at full volume.
+  // Fallback 1: if the crossfade window never triggers, start celebration when
+  // winner.mp3 ends, at full volume.
   winner.addEventListener(
     'ended',
     () => {
-      if (!celebrationStarted) {
-        celebration.volume = celebVol
-        startCelebration()
-      }
+      if (!celebrationStarted) startCelebration(true)
     },
     { once: true },
   )
 
   const wp = winner.play()
   if (wp && typeof wp.then === 'function') {
-    wp.catch((err) => console.warn('[sounds] could not play "winner.mp3"', err))
+    wp.catch((err) => {
+      console.warn('[sounds] could not play "winner.mp3"', err)
+      // Fallback 2: if the fanfare is blocked, go straight to the celebration.
+      startCelebration(true)
+    })
   }
+
+  // Fallback 3: hard safety — if nothing started the song within 20s, start it.
+  safetyTimer = window.setTimeout(() => {
+    if (!celebrationStarted) startCelebration(true)
+  }, 20_000)
 
   const stop = () => {
     if (fadeTimer) window.clearInterval(fadeTimer)
+    if (safetyTimer) window.clearTimeout(safetyTimer)
     fadeTimer = undefined
+    safetyTimer = undefined
     winner.removeEventListener('timeupdate', onTime)
     try {
       winner.pause()

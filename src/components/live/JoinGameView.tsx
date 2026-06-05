@@ -1245,7 +1245,7 @@ export function JoinGameView({
             document.body,
           )
         : null}
-      {!selectedGame
+      {!selectedGame && !chatOpen
         ? createPortal(
             <Button
               type="button"
@@ -1262,7 +1262,7 @@ export function JoinGameView({
         : null}
       {header}
       <div className="flex-1 min-h-0">{body}</div>
-      {typeof document !== 'undefined'
+      {typeof document !== 'undefined' && !chatOpen
         ? createPortal(
             <div className="fixed bottom-4 left-4 z-[9999]">
               <Button

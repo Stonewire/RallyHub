@@ -50,17 +50,28 @@ export function BingoWinCelebration({
       }
     }
 
-    const end = Date.now() + 3200
+    // Continuous confetti for the whole celebration: streaming side-cannons every
+    // frame plus a big center burst on a steady interval, until the overlay
+    // dismisses.
+    const confettiEnd = Date.now() + durationMs
+    let rafId = 0
     const frame = () => {
       confetti({ particleCount: 5, angle: 60, spread: 60, origin: { x: 0 } })
       confetti({ particleCount: 5, angle: 120, spread: 60, origin: { x: 1 } })
-      if (Date.now() < end) requestAnimationFrame(frame)
+      if (Date.now() < confettiEnd) rafId = requestAnimationFrame(frame)
     }
     frame()
     confetti({ particleCount: 140, spread: 100, startVelocity: 45, origin: { y: 0.5 } })
+    const burst = window.setInterval(() => {
+      confetti({ particleCount: 90, spread: 110, startVelocity: 42, origin: { y: 0.6 } })
+    }, 1200)
 
     const timer = window.setTimeout(() => onDismissRef.current(), durationMs)
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(burst)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
     // Run once when the celebration appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

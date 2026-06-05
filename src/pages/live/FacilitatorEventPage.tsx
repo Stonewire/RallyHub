@@ -293,7 +293,12 @@ export function FacilitatorEventPage() {
   }, [liveSubmissions])
 
   useEffect(() => {
-    const incoming = messages.filter((m) => Boolean(m.team_id)).map((m) => m.id)
+    // Only chime for messages coming FROM a team, never for the facilitator's
+    // own sent messages (those share the team_id of the recipient but carry the
+    // facilitator's name as the sender).
+    const incoming = messages
+      .filter((m) => Boolean(m.team_id) && m.sender !== name)
+      .map((m) => m.id)
     if (seenTeamMessageIdsRef.current === null) {
       seenTeamMessageIdsRef.current = new Set(incoming)
       return
@@ -303,7 +308,7 @@ export function FacilitatorEventPage() {
       seenTeamMessageIdsRef.current.add(id)
       playNewMessageSound()
     }
-  }, [messages])
+  }, [messages, name])
 
   if (namePrompt) {
     return (
