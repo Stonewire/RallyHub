@@ -1,148 +1,201 @@
-function withAudio(run: (ctx: AudioContext) => void) {
-  try {
-    const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
-    const now = ctx.currentTime
-    run(ctx)
-    window.setTimeout(() => void ctx.close(), 1200)
-    if (ctx.state === 'suspended') void ctx.resume()
-    void now
-  } catch {
-    // ignore if audio blocked
+// Real sound-file playback (replaces the old Web Audio tone generator).
+// Files live in public/sounds/ and are served from /sounds/<name>.mp3.
+
+const SOUND_DIR = '/sounds'
+
+/** Sensible per-sound volumes (0..1). UI blips are quieter than celebrations. */
+const SOUND_VOLUME: Record<string, number> = {
+  shutter: 0.5,
+  submit: 0.5,
+  'new-submission': 0.5,
+  'new-message': 0.4,
+  announcement: 0.6,
+  'quiz-select': 0.4,
+  'quiz-correct': 0.55,
+  'quiz-wrong': 0.5,
+  'timer-warning': 0.5,
+  'video-start': 0.5,
+  'video-stop': 0.5,
+  winner: 0.8,
+  loser: 0.6,
+  cheer: 0.6,
+  fireworks: 0.6,
+  celebration: 0.7,
+}
+
+const ALL_SOUNDS = Object.keys(SOUND_VOLUME)
+
+const DEFAULT_VOLUME = 0.5
+
+function soundUrl(name: string): string {
+  return `${SOUND_DIR}/${name}.mp3`
+}
+
+function clampVolume(v: number): number {
+  if (Number.isNaN(v)) return DEFAULT_VOLUME
+  return Math.min(1, Math.max(0, v))
+}
+
+// Keep one preloaded element per sound to warm the browser/HTTP cache so the
+// first real play has low latency.
+const preloaded = new Map<string, HTMLAudioElement>()
+
+function preloadAll() {
+  if (typeof Audio === 'undefined') return
+  for (const name of ALL_SOUNDS) {
+    try {
+      const el = new Audio(soundUrl(name))
+      el.preload = 'auto'
+      el.load()
+      preloaded.set(name, el)
+    } catch {
+      // Ignore preload failures; playback will retry on demand.
+    }
   }
 }
 
-function tone(ctx: AudioContext, frequency: number, start: number, duration: number, type: OscillatorType = 'sine', gainPeak = 0.14) {
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.type = type
-  osc.frequency.setValueAtTime(frequency, start)
-  gain.gain.setValueAtTime(0.0001, start)
-  gain.gain.exponentialRampToValueAtTime(gainPeak, start + 0.012)
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.start(start)
-  osc.stop(start + duration + 0.02)
+preloadAll()
+
+/**
+ * Play a sound file by name from /sounds/. Returns the audio element (so callers
+ * can chain on 'ended' or stop it), or null if audio is unavailable.
+ * Never throws and never blocks — autoplay rejections are logged, not fatal.
+ */
+export function playSound(name: string, volume?: number): HTMLAudioElement | null {
+  if (typeof Audio === 'undefined') return null
+  try {
+    // A fresh element per call allows overlapping playback (e.g. winner + cheer).
+    const el = new Audio(soundUrl(name))
+    el.volume = clampVolume(volume ?? SOUND_VOLUME[name] ?? DEFAULT_VOLUME)
+    const result = el.play()
+    if (result && typeof result.then === 'function') {
+      result.catch((err) => {
+        console.warn(`[sounds] could not play "${name}.mp3"`, err)
+      })
+    }
+    return el
+  } catch (err) {
+    console.warn(`[sounds] failed to create audio for "${name}.mp3"`, err)
+    return null
+  }
 }
 
-/** Exciting, upbeat ascending chime for team submissions. */
-export function playSubmitSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 740, t, 0.11, 'triangle', 0.12)
-    tone(ctx, 988, t + 0.08, 0.12, 'triangle', 0.14)
-    tone(ctx, 1319, t + 0.16, 0.15, 'sine', 0.16)
-  })
-}
-
-/** Distinct facilitator alert for newly arrived pending submissions. */
-export function playNewSubmissionSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 520, t, 0.12, 'square', 0.11)
-    tone(ctx, 780, t + 0.14, 0.14, 'square', 0.1)
-  })
-}
-
-/** Soft short message chime for chat. */
-export function playNewMessageSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 660, t, 0.08, 'sine', 0.08)
-    tone(ctx, 880, t + 0.06, 0.1, 'sine', 0.08)
-  })
-}
-
-/** Gentle push toast pop/ding sound. */
-export function playPushNotificationSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 540, t, 0.09, 'triangle', 0.1)
-  })
-}
-
-/** Longer dramatic fanfare for announcements. */
-export function playAnnouncementSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 392, t, 0.2, 'sawtooth', 0.08)
-    tone(ctx, 523.25, t + 0.16, 0.2, 'sawtooth', 0.09)
-    tone(ctx, 659.25, t + 0.32, 0.24, 'triangle', 0.11)
-    tone(ctx, 784, t + 0.48, 0.34, 'triangle', 0.13)
-  })
-}
-
-/** Soft click for quiz option selection. */
-export function playQuizSelectSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 420, t, 0.05, 'square', 0.06)
-  })
-}
-
-/** Happy ascending melody for correct reveal. */
-export function playQuizCorrectSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 523.25, t, 0.11, 'triangle', 0.1)
-    tone(ctx, 659.25, t + 0.1, 0.12, 'triangle', 0.1)
-    tone(ctx, 783.99, t + 0.2, 0.16, 'triangle', 0.12)
-  })
-}
-
-/** Short descending tone for wrong reveal. */
-export function playQuizWrongSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 440, t, 0.1, 'sawtooth', 0.09)
-    tone(ctx, 329.63, t + 0.09, 0.16, 'sawtooth', 0.08)
-  })
-}
-
-/** Urgent pulse for quiz timer under 5 seconds. */
-export function playQuizTimerWarningSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 980, t, 0.045, 'square', 0.07)
-  })
-}
-
-/** Mechanical camera shutter click for photo capture. */
 export function playShutterSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 2200, t, 0.018, 'square', 0.08)
-    tone(ctx, 280, t + 0.014, 0.05, 'triangle', 0.06)
-  })
+  return playSound('shutter')
 }
 
-/** Short record-start beep for video recording begin. */
+export function playSubmitSound() {
+  return playSound('submit')
+}
+
+export function playNewSubmissionSound() {
+  return playSound('new-submission')
+}
+
+export function playNewMessageSound() {
+  return playSound('new-message')
+}
+
+/** Reuses the new-submission sound for generic push toasts. */
+export function playPushNotificationSound() {
+  return playSound('new-submission')
+}
+
+export function playAnnouncementSound() {
+  return playSound('announcement')
+}
+
+export function playQuizSelectSound() {
+  return playSound('quiz-select')
+}
+
+export function playQuizCorrectSound() {
+  return playSound('quiz-correct')
+}
+
+export function playQuizWrongSound() {
+  return playSound('quiz-wrong')
+}
+
+export function playQuizTimerWarningSound() {
+  return playSound('timer-warning')
+}
+
 export function playVideoStartSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 990, t, 0.08, 'sine', 0.1)
-  })
+  return playSound('video-start')
 }
 
-/** Double tone for video recording stop. */
 export function playVideoStopSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 720, t, 0.06, 'triangle', 0.08)
-    tone(ctx, 560, t + 0.08, 0.08, 'triangle', 0.08)
-  })
+  return playSound('video-stop')
 }
 
-/** Celebratory winner fanfare. */
 export function playWinnerSound() {
-  withAudio((ctx) => {
-    const t = ctx.currentTime
-    tone(ctx, 523.25, t, 0.18, 'triangle', 0.11)
-    tone(ctx, 659.25, t + 0.16, 0.18, 'triangle', 0.11)
-    tone(ctx, 783.99, t + 0.32, 0.2, 'triangle', 0.12)
-    tone(ctx, 1046.5, t + 0.5, 0.36, 'sawtooth', 0.14)
-    tone(ctx, 1318.5, t + 0.5, 0.34, 'sine', 0.08)
-  })
+  return playSound('winner')
+}
+
+export function playLoserSound() {
+  return playSound('loser')
+}
+
+export function playCheerSound() {
+  return playSound('cheer')
+}
+
+export function playFireworksSound() {
+  return playSound('fireworks')
+}
+
+export function playCelebrationSound() {
+  return playSound('celebration')
+}
+
+// Track the active bingo celebration sequence so a new win stops the previous
+// one instead of stacking multiple songs on top of each other.
+let activeWinSequenceStop: (() => void) | null = null
+
+/**
+ * Bingo win audio sequence for the winning side (display panel + winner phone):
+ * winner.mp3 immediately, then celebration.mp3 once winner.mp3 ends (or ~3s).
+ * On the display panel, also layer cheer.mp3 + fireworks.mp3 at the start.
+ * Returns a stop() that halts the sequence.
+ */
+export function playBingoWinSequence(isDisplay: boolean): () => void {
+  // Stop any previous celebration before starting a new one.
+  activeWinSequenceStop?.()
+
+  const winner = playWinnerSound()
+  if (isDisplay) {
+    playCheerSound()
+    playFireworksSound()
+  }
+
+  let celebration: HTMLAudioElement | null = null
+  let started = false
+  const startCelebration = () => {
+    if (started) return
+    started = true
+    celebration = playCelebrationSound()
+  }
+
+  // Start the long song when the fanfare ends, or after ~3s as a fallback.
+  const fallback = window.setTimeout(startCelebration, 3000)
+  winner?.addEventListener('ended', startCelebration, { once: true })
+
+  const stop = () => {
+    window.clearTimeout(fallback)
+    try {
+      winner?.pause()
+    } catch {
+      // ignore
+    }
+    try {
+      celebration?.pause()
+    } catch {
+      // ignore
+    }
+    if (activeWinSequenceStop === stop) activeWinSequenceStop = null
+  }
+
+  activeWinSequenceStop = stop
+  return stop
 }

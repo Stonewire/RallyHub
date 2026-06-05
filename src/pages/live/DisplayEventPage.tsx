@@ -356,6 +356,7 @@ export function DisplayEventPage() {
         <BingoWinCelebration
           teamName={winnerTeam.name ?? 'Team'}
           teamColor={winnerTeam.color}
+          display
           onDismiss={() => setDismissedWinnerId(winnerTeamId)}
         />
       ) : null}

@@ -1,9 +1,9 @@
 import confetti from 'canvas-confetti'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { textOnAccent } from '@/lib/live-event'
-import { playWinnerSound } from '@/lib/sounds'
+import { playBingoWinSequence, playLoserSound } from '@/lib/sounds'
 
 const DEFAULT_ACCENT = '#FFCB03'
 
@@ -12,6 +12,8 @@ type BingoWinCelebrationProps = {
   teamColor?: string | null
   /** When true, show the personal "You got BINGO!" version on the winner's own device. */
   mine?: boolean
+  /** When true, this is the display panel (always plays the full winner sequence). */
+  display?: boolean
   /** Auto-dismiss after this many ms (default 8000). */
   durationMs?: number
   onDismiss: () => void
@@ -23,14 +25,30 @@ export function BingoWinCelebration({
   teamName,
   teamColor,
   mine = false,
+  display = false,
   durationMs = 8000,
   onDismiss,
 }: BingoWinCelebrationProps) {
   const accent = teamColor?.trim() || DEFAULT_ACCENT
   const onColor = textOnAccent(accent)
+  const onDismissRef = useRef(onDismiss)
+  onDismissRef.current = onDismiss
+  // Ensure the celebration sound sequence fires exactly once per win, never on
+  // re-render.
+  const soundFiredRef = useRef(false)
 
   useEffect(() => {
-    playWinnerSound()
+    if (!soundFiredRef.current) {
+      soundFiredRef.current = true
+      // Display panel always plays the full winner sequence (with cheer +
+      // fireworks). On phones: the winning team hears winner→celebration, every
+      // other team hears the loser sound.
+      if (display || mine) {
+        playBingoWinSequence(display)
+      } else {
+        playLoserSound()
+      }
+    }
 
     const end = Date.now() + 3200
     const frame = () => {
@@ -41,9 +59,11 @@ export function BingoWinCelebration({
     frame()
     confetti({ particleCount: 140, spread: 100, startVelocity: 45, origin: { y: 0.5 } })
 
-    const timer = window.setTimeout(onDismiss, durationMs)
+    const timer = window.setTimeout(() => onDismissRef.current(), durationMs)
     return () => window.clearTimeout(timer)
-  }, [durationMs, onDismiss, teamName])
+    // Run once when the celebration appears.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <AnimatePresence>
