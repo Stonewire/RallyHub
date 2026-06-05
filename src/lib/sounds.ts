@@ -332,6 +332,29 @@ let activeWinSequenceStop: (() => void) | null = null
 
 const WIN_CROSSFADE_SEC = 5
 
+function logWinAudio(message: string, detail?: Record<string, unknown>) {
+  if (detail) {
+    console.log('[win-audio]', message, detail)
+  } else {
+    console.log('[win-audio]', message)
+  }
+}
+
+function winAudioElementState(el: HTMLAudioElement, label: string) {
+  return {
+    label,
+    src: el.currentSrc || el.src,
+    readyState: el.readyState,
+    volume: el.volume,
+    muted: el.muted,
+    paused: el.paused,
+    duration: el.duration,
+    currentTime: el.currentTime,
+    primed: primedElements.has(el),
+    inPool: pools.get(label)?.includes(el) ?? false,
+  }
+}
+
 /**
  * Bingo win audio sequence for the winning side (display panel + winner phone):
  * winner.mp3 + cheer.mp3 start together immediately. Over winner.mp3's final 5
@@ -344,24 +367,70 @@ const WIN_CROSSFADE_SEC = 5
  * track crossfade.
  */
 export function playBingoWinSequence(isDisplay: boolean): () => void {
+  logWinAudio('playBingoWinSequence called', { isDisplay })
   unlockSounds()
   // Stop any previous celebration before starting a new one (frees its element).
   activeWinSequenceStop?.()
 
   if (typeof Audio === 'undefined') {
+    logWinAudio('abort — Audio API unavailable')
     return () => {}
   }
+
+  void fetch(soundUrl('celebration'), { method: 'HEAD' })
+    .then((res) => {
+      logWinAudio('celebration.mp3 HEAD check', {
+        status: res.status,
+        ok: res.ok,
+        contentType: res.headers.get('content-type'),
+        contentLength: res.headers.get('content-length'),
+      })
+    })
+    .catch((err) => {
+      logWinAudio('celebration.mp3 HEAD check FAILED', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    })
 
   const winnerVol = clampVolume(SOUND_VOLUME.winner ?? 0.7)
   const celebVol = clampVolume(SOUND_VOLUME.celebration ?? 0.7)
 
-  const winner = acquire('winner') ?? createEl('winner')
-  const celebration = acquire('celebration') ?? createEl('celebration')
+  const winnerFromPool = acquire('winner')
+  const celebrationFromPool = acquire('celebration')
+  const winner = winnerFromPool ?? createEl('winner')
+  const celebration = celebrationFromPool ?? createEl('celebration')
+  logWinAudio('element acquisition', {
+    winnerFromPool: Boolean(winnerFromPool),
+    celebrationFromPool: Boolean(celebrationFromPool),
+    winnerIsFreshElement: !winnerFromPool,
+    celebrationIsFreshElement: !celebrationFromPool,
+    celebrationPrimedBeforeStart: celebration ? primedElements.has(celebration) : false,
+    celebrationSoundsUnlocked: celebrationSoundsUnlocked,
+    operationalSoundsUnlocked: operationalSoundsUnlocked,
+    winnerState: winner ? winAudioElementState(winner, 'winner') : null,
+    celebrationState: celebration ? winAudioElementState(celebration, 'celebration') : null,
+  })
+
   if (!winner || !celebration) {
-    // Fallback: at least play the fanfare via the normal path.
+    logWinAudio('abort — missing winner or celebration element, falling back to playWinnerSound')
     playWinnerSound()
     return () => {}
   }
+
+  celebration.addEventListener(
+    'loadedmetadata',
+    () => {
+      logWinAudio('celebration loadedmetadata', winAudioElementState(celebration, 'celebration'))
+    },
+    { once: true },
+  )
+  celebration.addEventListener(
+    'canplaythrough',
+    () => {
+      logWinAudio('celebration canplaythrough', winAudioElementState(celebration, 'celebration'))
+    },
+    { once: true },
+  )
 
   ensureElementPrimed(winner)
   ensureElementPrimed(celebration)
@@ -375,6 +444,13 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     // ignore
   }
 
+  logWinAudio('winner duration before play', {
+    duration: winner.duration,
+    isNaN: Number.isNaN(winner.duration),
+    isZero: winner.duration === 0,
+    readyState: winner.readyState,
+  })
+
   // Crowd cheer plays together with the fanfare on BOTH the display and the
   // winning phone. Fireworks only on the display.
   playSound('cheer')
@@ -386,31 +462,69 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   let crossfading = false
   let celebrationStarted = false
 
-  const startCelebration = (atFullVolume: boolean) => {
-    if (celebrationStarted) return
+  const startCelebration = (atFullVolume: boolean, reason: string) => {
+    if (celebrationStarted) {
+      logWinAudio('startCelebration skipped — already started', { reason })
+      return
+    }
     celebrationStarted = true
     ensureElementPrimed(celebration)
     celebration.muted = false
     if (atFullVolume) celebration.volume = celebVol
+    logWinAudio('startCelebration — calling celebration.play()', {
+      reason,
+      atFullVolume,
+      beforePlay: winAudioElementState(celebration, 'celebration'),
+    })
     try {
       celebration.currentTime = 0
-    } catch {
-      // ignore
+    } catch (err) {
+      logWinAudio('startCelebration — currentTime=0 threw', {
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
+    logWinAudio('startCelebration — state immediately before play()', {
+      ...winAudioElementState(celebration, 'celebration'),
+    })
     const p = celebration.play()
     if (p && typeof p.then === 'function') {
-      p.catch((err) => console.warn('[sounds] could not play "celebration.mp3"', err))
+      p.then(() => {
+        logWinAudio('celebration.play() RESOLVED', {
+          reason,
+          afterPlay: winAudioElementState(celebration, 'celebration'),
+        })
+      }).catch((err) => {
+        logWinAudio('celebration.play() REJECTED', {
+          reason,
+          error: err instanceof Error ? err.message : String(err),
+          err,
+          afterReject: winAudioElementState(celebration, 'celebration'),
+        })
+      })
+    } else {
+      logWinAudio('celebration.play() returned no promise (sync path)', {
+        reason,
+        afterPlay: winAudioElementState(celebration, 'celebration'),
+      })
     }
   }
 
   const beginCrossfade = () => {
-    if (crossfading) return
+    if (crossfading) {
+      logWinAudio('beginCrossfade skipped — already crossfading')
+      return
+    }
     crossfading = true
+    logWinAudio('beginCrossfade starting', {
+      winnerCurrentTime: winner.currentTime,
+      winnerDuration: winner.duration,
+      celebrationPaused: celebration.paused,
+    })
     if (crossfadeTimer) {
       window.clearTimeout(crossfadeTimer)
       crossfadeTimer = undefined
     }
-    startCelebration(false)
+    startCelebration(false, 'crossfade')
     const steps = 50
     const stepMs = (WIN_CROSSFADE_SEC * 1000) / steps
     let i = 0
@@ -422,6 +536,9 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
       if (t >= 1) {
         if (fadeTimer) window.clearInterval(fadeTimer)
         fadeTimer = undefined
+        logWinAudio('crossfade interval complete — pausing winner', {
+          celebrationState: winAudioElementState(celebration, 'celebration'),
+        })
         try {
           winner.pause()
         } catch {
@@ -432,57 +549,122 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     }, stepMs)
   }
 
-  const scheduleCrossfadeFromDuration = () => {
+  const scheduleCrossfadeFromDuration = (source: string) => {
     const dur = winner.duration
+    logWinAudio('scheduleCrossfadeFromDuration attempt', {
+      source,
+      duration: dur,
+      isNaN: Number.isNaN(dur),
+      isZero: dur === 0,
+      isFinite: Number.isFinite(dur),
+      crossfadeWindowSec: WIN_CROSSFADE_SEC,
+    })
     if (!dur || Number.isNaN(dur) || !Number.isFinite(dur) || dur <= WIN_CROSSFADE_SEC) {
+      logWinAudio('scheduleCrossfadeFromDuration FAILED — invalid duration', {
+        source,
+        duration: dur,
+      })
       return false
     }
     if (crossfadeTimer) window.clearTimeout(crossfadeTimer)
     const msUntilFade = Math.max(0, (dur - WIN_CROSSFADE_SEC) * 1000)
+    const triggerAtOffset = dur - WIN_CROSSFADE_SEC
     crossfadeTimer = window.setTimeout(() => beginCrossfade(), msUntilFade)
+    logWinAudio('crossfade SCHEDULED', {
+      source,
+      duration: dur,
+      msUntilFade,
+      triggerAtOffsetSec: triggerAtOffset,
+      crossfadeTimerId: crossfadeTimer,
+    })
     return true
   }
 
   const onTime = () => {
     const dur = winner.duration
     if (!dur || Number.isNaN(dur) || !Number.isFinite(dur)) return
-    if (dur - winner.currentTime <= WIN_CROSSFADE_SEC) beginCrossfade()
+    const remaining = dur - winner.currentTime
+    if (remaining <= WIN_CROSSFADE_SEC + 1) {
+      logWinAudio('winner timeupdate near end', {
+        currentTime: winner.currentTime,
+        duration: dur,
+        remaining,
+        crossfading,
+        celebrationStarted,
+      })
+    }
+    if (remaining <= WIN_CROSSFADE_SEC) beginCrossfade()
   }
   winner.addEventListener('timeupdate', onTime)
-  winner.addEventListener('loadedmetadata', () => scheduleCrossfadeFromDuration(), {
-    once: true,
+  winner.addEventListener(
+    'loadedmetadata',
+    () => {
+      logWinAudio('winner loadedmetadata', winAudioElementState(winner, 'winner'))
+      scheduleCrossfadeFromDuration('winner.loadedmetadata')
+    },
+    { once: true },
+  )
+  winner.addEventListener('durationchange', () => {
+    logWinAudio('winner durationchange', winAudioElementState(winner, 'winner'))
+    scheduleCrossfadeFromDuration('winner.durationchange')
   })
-  winner.addEventListener('durationchange', () => scheduleCrossfadeFromDuration())
 
   // Fallback 1: if the crossfade window never triggers, start celebration when
   // winner.mp3 ends, at full volume.
   winner.addEventListener(
     'ended',
     () => {
-      if (!celebrationStarted) startCelebration(true)
+      logWinAudio('winner ENDED fallback firing', {
+        celebrationStarted,
+        winnerState: winAudioElementState(winner, 'winner'),
+      })
+      if (!celebrationStarted) startCelebration(true, 'winner.ended')
     },
     { once: true },
   )
 
+  logWinAudio('calling winner.play()', winAudioElementState(winner, 'winner'))
   const wp = winner.play()
   if (wp && typeof wp.then === 'function') {
     wp.then(() => {
-      scheduleCrossfadeFromDuration()
+      logWinAudio('winner.play() RESOLVED', {
+        duration: winner.duration,
+        isNaN: Number.isNaN(winner.duration),
+        isZero: winner.duration === 0,
+        readyState: winner.readyState,
+        currentTime: winner.currentTime,
+      })
+      scheduleCrossfadeFromDuration('winner.play().then')
     }).catch((err) => {
-      console.warn('[sounds] could not play "winner.mp3"', err)
+      logWinAudio('winner.play() REJECTED', {
+        error: err instanceof Error ? err.message : String(err),
+        err,
+      })
       // Fallback 2: if the fanfare is blocked, go straight to the celebration.
-      startCelebration(true)
+      startCelebration(true, 'winner.play() rejected')
     })
   } else {
-    scheduleCrossfadeFromDuration()
+    logWinAudio('winner.play() sync path (no promise)')
+    scheduleCrossfadeFromDuration('winner.play() sync')
   }
 
   // Fallback 3: hard safety — if nothing started the song within 20s, start it.
   safetyTimer = window.setTimeout(() => {
-    if (!celebrationStarted) startCelebration(true)
+    logWinAudio('20s SAFETY fallback firing', {
+      celebrationStarted,
+      winnerState: winAudioElementState(winner, 'winner'),
+      celebrationState: winAudioElementState(celebration, 'celebration'),
+    })
+    if (!celebrationStarted) startCelebration(true, '20s safety')
   }, 20_000)
 
   const stop = () => {
+    logWinAudio('sequence stop() called', {
+      celebrationStarted,
+      crossfading,
+      winnerPaused: winner.paused,
+      celebrationPaused: celebration.paused,
+    })
     if (fadeTimer) window.clearInterval(fadeTimer)
     if (crossfadeTimer) window.clearTimeout(crossfadeTimer)
     if (safetyTimer) window.clearTimeout(safetyTimer)

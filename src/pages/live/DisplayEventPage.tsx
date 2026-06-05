@@ -30,18 +30,26 @@ import {
   quizTimerSeconds,
 } from '@/lib/live-event'
 
-export function DisplayEventPage() {
+type DisplayEventPageProps = {
+  /** When true, skip the tap-to-enable sound gate (facilitator iframe preview). */
+  embedded?: boolean
+}
+
+export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPageProps = {}) {
   const { eventId } = useParams<{ eventId: string }>()
   const [searchParams] = useSearchParams()
-  const embed = searchParams.get('embed') === '1'
+  const embedFromUrl = searchParams.get('embed') === '1'
+  const embedded = embeddedProp ?? embedFromUrl
   const { bundle, loading, error, updateState } = useLiveEvent(eventId)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
   // The display panel is a passive screen that may never be tapped again during
   // an event, so its audio would stay locked by the browser autoplay policy.
   // A one-time "tap to enable sound" gate primes the unlock so win celebration,
-  // cheer, fireworks, and the celebration song can play later.
+  // cheer, fireworks, and the celebration song can play later. Embedded previews
+  // (facilitator iframe) skip the gate entirely — they don't need sound.
   const [soundEnabled, setSoundEnabled] = useState(false)
+  const showSoundGate = !embedded && !soundEnabled
 
   const eventState = bundle?.state
   const stages = useMemo(
@@ -353,7 +361,7 @@ export function DisplayEventPage() {
       event={event}
       organization={organization}
       variant={variant}
-      className={embed ? 'h-screen overflow-hidden' : undefined}
+      className={embedded ? 'h-screen overflow-hidden' : undefined}
     >
       <DisplayShell logo={logo} title={event.name} headerRight={headerTimer}>
         {body}
@@ -374,7 +382,7 @@ export function DisplayEventPage() {
           onDismiss={() => setDismissedWinnerId(winnerTeamId)}
         />
       ) : null}
-      {!soundEnabled ? (
+      {showSoundGate ? (
         <button
           type="button"
           onClick={() => {
