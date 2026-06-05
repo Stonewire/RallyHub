@@ -13,7 +13,7 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { playBingoWinSequence, unlockSounds } from '@/lib/sounds'
+import { playEventWinnerSequence, unlockSounds } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
   currentStage,
@@ -127,7 +127,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     if (eventWinnerAudioStageRef.current >= 2) return
     eventWinnerAudioStageRef.current = 2
 
-    const stopAudio = playBingoWinSequence(true)
+    const stopAudio = playEventWinnerSequence()
 
     const confettiEnd = Date.now() + EVENT_WINNER_CONFETTI_MS
     let rafId = 0

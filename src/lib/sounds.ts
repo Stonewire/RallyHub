@@ -320,17 +320,10 @@ export function playFireworksSound() {
   return playSound('fireworks')
 }
 
-export function playCelebrationSound() {
-  return playSound('celebration')
-}
-
-// ---- Bingo win sequence ----------------------------------------------------
-
-// Track the active bingo celebration sequence so a new win stops the previous
-// one instead of stacking multiple songs on top of each other.
-let activeWinSequenceStop: (() => void) | null = null
-
 const WIN_CROSSFADE_SEC = 5
+
+/** Last N seconds of fireworks.mp3 — used only in the event-winner celebration. */
+const CELEBRATION_FIREWORKS_TAIL_SEC = 20
 
 function logWinAudio(message: string, detail?: Record<string, unknown>) {
   if (detail) {
@@ -356,15 +349,159 @@ function winAudioElementState(el: HTMLAudioElement, label: string) {
 }
 
 /**
- * Bingo win audio sequence for the winning side (display panel + winner phone):
- * winner.mp3 + cheer.mp3 start together immediately. Over winner.mp3's final 5
- * seconds it crossfades into celebration.mp3 (the long song) via volume ramping,
- * which then continues at full volume. On the display panel, fireworks.mp3 also
- * layers in. Returns a stop() that halts the whole sequence.
+ * Play the finale of fireworks.mp3 (last 20 seconds) for the event-winner
+ * celebration on the display. If the file is shorter than 20 seconds, plays from
+ * the start. Not used for bingo wins.
+ */
+export function playCelebrationFireworksSound(): HTMLAudioElement | null {
+  unlockSounds()
+  const el = acquire('fireworks')
+  if (!el) return null
+  ensureElementPrimed(el)
+  el.muted = false
+  el.volume = clampVolume(SOUND_VOLUME.fireworks ?? 0.5)
+
+  const startPlayback = () => {
+    const dur = el.duration
+    if (dur && Number.isFinite(dur) && dur > CELEBRATION_FIREWORKS_TAIL_SEC) {
+      try {
+        el.currentTime = dur - CELEBRATION_FIREWORKS_TAIL_SEC
+      } catch {
+        // ignore
+      }
+      logWinAudio('celebration fireworks — starting from tail', {
+        duration: dur,
+        startAt: el.currentTime,
+        tailSec: CELEBRATION_FIREWORKS_TAIL_SEC,
+      })
+    } else {
+      try {
+        el.currentTime = 0
+      } catch {
+        // ignore
+      }
+      logWinAudio('celebration fireworks — starting from beginning', {
+        duration: dur,
+      })
+    }
+    try {
+      const p = el.play()
+      if (p && typeof p.then === 'function') {
+        p.catch((err) => {
+          logWinAudio('celebration fireworks play() REJECTED', {
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      }
+    } catch (err) {
+      logWinAudio('celebration fireworks play() threw', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  if (el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0) {
+    startPlayback()
+  } else {
+    el.addEventListener('loadedmetadata', () => startPlayback(), { once: true })
+  }
+
+  return el
+}
+
+export function playCelebrationSound() {
+  return playSound('celebration')
+}
+
+// ---- Bingo win jingle (Web Audio, short generated effect) ------------------
+
+let bingoJingleCtx: AudioContext | null = null
+
+function getBingoJingleContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const Ctor =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!Ctor) return null
+  if (!bingoJingleCtx) bingoJingleCtx = new Ctor()
+  return bingoJingleCtx
+}
+
+/**
+ * Short celebratory bingo jingle (~1.5s) for bingo-stage wins on the display
+ * and the winning team's phone. Generated via Web Audio — not the event-winner
+ * mp3 sequence.
+ */
+export function playBingoWinJingle(): void {
+  const ctx = getBingoJingleContext()
+  if (!ctx) return
+
+  void ctx.resume().then(() => {
+    const now = ctx.currentTime
+    const master = ctx.createGain()
+    master.gain.setValueAtTime(0.38, now)
+    master.connect(ctx.destination)
+
+    // Bright major arpeggio (bell-like sine partials).
+    const arpeggio: { f: number; t: number; d: number; vol: number }[] = [
+      { f: 523.25, t: 0, d: 0.18, vol: 0.7 },
+      { f: 659.25, t: 0.07, d: 0.18, vol: 0.65 },
+      { f: 783.99, t: 0.14, d: 0.2, vol: 0.7 },
+      { f: 1046.5, t: 0.22, d: 0.28, vol: 0.75 },
+      { f: 1318.51, t: 0.34, d: 0.35, vol: 0.55 },
+    ]
+
+    for (const note of arpeggio) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(note.f, now + note.t)
+      gain.gain.setValueAtTime(0.0001, now + note.t)
+      gain.gain.exponentialRampToValueAtTime(note.vol, now + note.t + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + note.t + note.d)
+      osc.connect(gain)
+      gain.connect(master)
+      osc.start(now + note.t)
+      osc.stop(now + note.t + note.d + 0.04)
+    }
+
+    // Cash-register "ding" finish.
+    const ding = ctx.createOscillator()
+    const dingGain = ctx.createGain()
+    ding.type = 'triangle'
+    ding.frequency.setValueAtTime(1760, now + 0.52)
+    dingGain.gain.setValueAtTime(0.0001, now + 0.52)
+    dingGain.gain.exponentialRampToValueAtTime(0.65, now + 0.53)
+    dingGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15)
+    ding.connect(dingGain)
+    dingGain.connect(master)
+    ding.start(now + 0.52)
+    ding.stop(now + 1.2)
+  }).catch(() => {
+    // Autoplay policy — silent no-op
+  })
+}
+
+// ---- Event winner celebration sequence (mp3, display only) -----------------
+
+// Track the active event-winner celebration sequence so a new win stops the
+// previous one instead of stacking multiple songs on top of each other.
+let activeWinSequenceStop: (() => void) | null = null
+
+/**
+ * Overall event-winner celebration on the display: winner.mp3 + cheer.mp3 start
+ * together, crossfade into celebration.mp3 over the last 5s of the fanfare,
+ * and play the last 20s of fireworks.mp3. Not used for bingo-stage wins.
  *
- * Uses the preloaded (and gesture-unlocked) pooled elements so playback is not
- * blocked by autoplay policy. Fully self-contained — does NOT touch the bingo
- * track crossfade.
+ * Returns a stop() that halts the whole sequence.
+ */
+export function playEventWinnerSequence(): () => void {
+  return playBingoWinSequence(true)
+}
+
+/**
+ * @deprecated Use playEventWinnerSequence for event winner reveal, or
+ * playBingoWinJingle for bingo wins.
  */
 export function playBingoWinSequence(isDisplay: boolean): () => void {
   logWinAudio('playBingoWinSequence called', { isDisplay })
@@ -451,10 +588,9 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     readyState: winner.readyState,
   })
 
-  // Crowd cheer plays together with the fanfare on BOTH the display and the
-  // winning phone. Fireworks only on the display.
+  // Crowd cheer plays with the fanfare. Fireworks finale only on the display.
   playSound('cheer')
-  if (isDisplay) playSound('fireworks')
+  if (isDisplay) playCelebrationFireworksSound()
 
   let fadeTimer: number | undefined
   let crossfadeTimer: number | undefined

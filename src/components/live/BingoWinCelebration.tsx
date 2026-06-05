@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 
 import { textOnAccent } from '@/lib/live-event'
-import { playBingoWinSequence, playLoserSound } from '@/lib/sounds'
+import { playBingoWinJingle, playLoserSound } from '@/lib/sounds'
 
 const DEFAULT_ACCENT = '#FFCB03'
 
@@ -12,7 +12,7 @@ type BingoWinCelebrationProps = {
   teamColor?: string | null
   /** When true, show the personal "You got BINGO!" version on the winner's own device. */
   mine?: boolean
-  /** When true, this is the display panel (always plays the full winner sequence). */
+  /** When true, this is the display panel (plays the bingo jingle). */
   display?: boolean
   /** Auto-dismiss after this many ms (default 8000). */
   durationMs?: number
@@ -40,11 +40,10 @@ export function BingoWinCelebration({
   useEffect(() => {
     if (!soundFiredRef.current) {
       soundFiredRef.current = true
-      // Display panel always plays the full winner sequence (with cheer +
-      // fireworks). On phones: the winning team hears winner→celebration, every
-      // other team hears the loser sound.
+      // Bingo win: short generated jingle on display + winning phone; loser sound
+      // on every other team. (Event-winner mp3 sequence is display-only elsewhere.)
       if (display || mine) {
-        playBingoWinSequence(display)
+        playBingoWinJingle()
       } else {
         playLoserSound()
       }
