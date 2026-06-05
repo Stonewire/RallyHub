@@ -4,7 +4,6 @@ import type { BingoCell } from '@/lib/bingo-engine'
 import {
   approvedBingoCellIndices,
   bingoWinAchieved,
-  countCompleteBingoLines,
   resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { supabase } from '@/lib/supabase'
@@ -40,19 +39,7 @@ export async function scoreBingoRound(params: {
       .eq('status', 'pending'),
   ])
 
-  console.log('[bingo-score] scoreBingoRound START', {
-    playedTrackId: trackId,
-    teamCardCount: cards?.length ?? 0,
-    pendingSubmissionCount: subs?.length ?? 0,
-    pendingSubs: (subs ?? []).map((s) => ({
-      team_id: s.team_id,
-      media_url: s.media_url,
-      status: s.status,
-    })),
-  })
-
   if (!cards?.length) {
-    console.warn('[bingo-score] scoreBingoRound abort — no team cards for run', runId)
     return { correctIndex: -1, trackId, winningTeamIds: [] }
   }
 
@@ -72,50 +59,21 @@ export async function scoreBingoRound(params: {
     const teamSubs = (subs ?? []).filter((s) => s.team_id === row.team_id)
 
     for (const sub of teamSubs) {
-      if (sub.media_url == null) {
-        console.log('[bingo-score]   skip sub — null media_url', { subId: sub.id })
-        continue
-      }
+      if (sub.media_url == null) continue
       const markedTrackId = resolveBingoSubmissionTrackId(sub.media_url, cells)
-      if (!markedTrackId) {
-        console.warn('[bingo-score]   skip sub — media_url did not resolve to a card trackId', {
-          subId: sub.id,
-          teamId: row.team_id,
-          media_url: sub.media_url,
-        })
-        continue
-      }
+      if (!markedTrackId) continue
 
       if (markedTrackId === trackId) {
-        console.log('[bingo-score]   APPROVE', {
-          subId: sub.id,
-          teamId: row.team_id,
-          markedTrackId,
-          playedTrackId: trackId,
-        })
         approveUpdates.push({ id: sub.id, teamId: row.team_id, points: pointsPerCorrect })
         teamScoreDeltas.set(
           row.team_id,
           (teamScoreDeltas.get(row.team_id) ?? 0) + pointsPerCorrect,
         )
       } else {
-        console.log('[bingo-score]   REJECT', {
-          subId: sub.id,
-          teamId: row.team_id,
-          markedTrackId,
-          playedTrackId: trackId,
-        })
         rejectIds.push(sub.id)
       }
     }
   }
-
-  console.log('[bingo-score] scoreBingoRound decisions', {
-    approveCount: approveUpdates.length,
-    rejectCount: rejectIds.length,
-    approveIds: approveUpdates.map((u) => u.id),
-    rejectIds,
-  })
 
   const approveResults = await Promise.all(
     approveUpdates.map(({ id, points }) =>
@@ -132,14 +90,10 @@ export async function scoreBingoRound(params: {
 
   const approveErrors = approveResults.filter((r) => r.error).map((r) => r.error)
   if (approveErrors.length > 0) {
-    console.error('[bingo-score] APPROVE writes FAILED', approveErrors)
-  } else {
-    console.log('[bingo-score] APPROVE writes OK', { count: approveUpdates.length })
+    console.error('Failed to approve bingo submissions', approveErrors)
   }
   if (rejectResult?.error) {
-    console.error('[bingo-score] REJECT writes FAILED', rejectResult.error)
-  } else if (rejectIds.length > 0) {
-    console.log('[bingo-score] REJECT writes OK', { count: rejectIds.length })
+    console.error('Failed to reject bingo submissions', rejectResult.error)
   }
 
   for (const [teamId, delta] of teamScoreDeltas) {
@@ -157,34 +111,17 @@ export async function scoreBingoRound(params: {
     .eq('game_id', gameId)
     .eq('media_type', 'bingo')
 
-  console.log('[bingo-score] win check START', {
-    winConfig,
-    linePoints,
-    allApprovedSubs: (allSubs ?? []).filter((s) => s.status === 'approved').length,
-  })
-
   for (const row of cards) {
     const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
     const teamCells = row.cells as BingoCell[]
     const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
-    const lineCount = countCompleteBingoLines(approved, winConfig.includeDiagonals)
     const achieved = bingoWinAchieved(approved, winConfig)
-    console.log('[bingo-score] win check team', {
-      teamId: row.team_id,
-      approvedCount: approved.length,
-      completeLines: lineCount,
-      mode: winConfig.mode,
-      required: winConfig.mode === 'lines' ? winConfig.linesRequired : 'full_house',
-      achieved,
-    })
     if (!achieved) continue
     if (lineAwarded.has(row.team_id)) continue
     lineAwarded.add(row.team_id)
     winningTeamIds.push(row.team_id)
     if (linePoints > 0) await applySubmissionPoints(row.team_id, linePoints)
   }
-
-  console.log('[bingo-score] win check RESULT', { winningTeamIds })
 
   return { correctIndex, trackId, winningTeamIds }
 }

@@ -105,12 +105,6 @@ export function DisplayEventPage() {
     frame()
   }, [bundle?.state.winner_reveal_stage])
 
-  useEffect(() => {
-    console.log('[bingo-score] DISPLAY bingo_winner_team_id changed', {
-      winnerTeamId: bundle?.state.bingo_winner_team_id ?? null,
-    })
-  }, [bundle?.state.bingo_winner_team_id])
-
   if (loading) {
     return (
       <div
@@ -137,12 +131,6 @@ export function DisplayEventPage() {
   const winnerTeamId = state.bingo_winner_team_id ?? null
   const winnerTeam = winnerTeamId ? teams.find((t) => t.id === winnerTeamId) : null
   const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
-  console.log('[bingo-score] DISPLAY render celebration', {
-    winnerTeamId,
-    foundTeam: Boolean(winnerTeam),
-    dismissedWinnerId,
-    showWinner,
-  })
   const logo = logoForEvent(event, organization)
   const textClass = displayTextClass(event)
   const showAnnouncement =

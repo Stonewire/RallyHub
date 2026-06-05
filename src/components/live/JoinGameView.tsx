@@ -271,12 +271,6 @@ export function JoinGameView({
   }, [chatOpen])
 
   useEffect(() => {
-    console.log('[bingo-score] PARTICIPANT bingo_winner_team_id changed', {
-      winnerTeamId: state.bingo_winner_team_id ?? null,
-    })
-  }, [state.bingo_winner_team_id])
-
-  useEffect(() => {
     const incoming = visibleMessages
       .filter((m) => m.team_id === teamId && m.sender !== (team.name ?? 'Team'))
       .map((m) => m.id)
@@ -522,27 +516,11 @@ export function JoinGameView({
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
-    console.log('[bingo-score] TAP', {
-      index,
-      gameId,
-      bingoState: state.bingo_state,
-      hasCard: Boolean(bingoCardQuery.data?.length),
-    })
-    if (state.bingo_state !== 'playing') {
-      console.log('[bingo-score] TAP ignored — not playing', state.bingo_state)
-      return
-    }
+    if (state.bingo_state !== 'playing') return
     const cells = bingoCardQuery.data
-    if (!cells?.length) {
-      console.log('[bingo-score] TAP ignored — no card cells loaded')
-      return
-    }
+    if (!cells?.length) return
     const trackId = cells[index]?.trackId
-    if (!trackId) {
-      console.log('[bingo-score] TAP ignored — cell has no trackId', { index })
-      return
-    }
-    console.log('[bingo-score] TAP storing', { index, trackId, title: cells[index]?.title })
+    if (!trackId) return
 
     const lockedByHistory = mySubs.some(
       (s) =>
@@ -592,9 +570,7 @@ export function JoinGameView({
           .update({ media_url: trackId })
           .eq('id', existingPending.id)
         if (error) {
-          console.error('[bingo-score] TAP update FAILED', { index, trackId, error })
-        } else {
-          console.log('[bingo-score] TAP update OK', { id: existingPending.id, index, trackId })
+          console.error('Failed to update bingo submission', error)
         }
         return
       }
@@ -622,9 +598,7 @@ export function JoinGameView({
         status: 'pending',
       })
       if (error) {
-        console.error('[bingo-score] TAP insert FAILED', { index, trackId, error })
-      } else {
-        console.log('[bingo-score] TAP insert OK', { index, trackId, teamId })
+        console.error('Failed to insert bingo submission', error)
       }
     } finally {
       bingoPickOptimisticRef.current = undefined
@@ -1145,28 +1119,6 @@ export function JoinGameView({
       ? missedBingoCellIndices(cardCells, revealedTrackIds, historicalByIndex)
       : new Set<number>()
     const canMark = roundActive
-    const pickStatus = bingoPick != null ? historicalByIndex.get(bingoPick) ?? 'pending/none' : null
-    const pickMasked = bingoPick != null && roundActive && historicalByIndex.has(bingoPick)
-    console.log('[bingo-score] RENDER card', {
-      bingoState: state.bingo_state,
-      roundActive,
-      bingoPick,
-      currentIndex: state.current_question_index,
-      historicalByIndex: Array.from(historicalByIndex.entries()),
-      mySubsBingo: mySubs
-        .filter((s) => s.media_type === 'bingo' && s.game_id === stage.gameId)
-        .map((s) => ({ media_url: s.media_url, status: s.status })),
-      revealedTrackIds,
-      missed: Array.from(missedLockedIndices),
-      pickStatus,
-      pickMasked,
-    })
-    if (pickMasked) {
-      console.warn(
-        '[bingo-score] RENDER masking — picked cell has a final status but the yellow pick style is still applied because roundActive is true',
-        { bingoPick, pickStatus },
-      )
-    }
     body = (
       <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
@@ -1249,13 +1201,6 @@ export function JoinGameView({
     ? bundle.teams.find((t) => t.id === winnerTeamId)
     : null
   const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
-  console.log('[bingo-score] PARTICIPANT render celebration', {
-    winnerTeamId,
-    foundTeam: Boolean(winnerTeam),
-    isMine: winnerTeamId === teamId,
-    dismissedWinnerId,
-    showWinner,
-  })
 
   return (
     <BrandBackground

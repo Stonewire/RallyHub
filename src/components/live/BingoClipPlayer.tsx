@@ -1,7 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
-const LOG = '[BingoClipPlayer]'
-
 type BingoClipPlayerProps = {
   src: string
   nextSrc?: string
@@ -26,10 +24,9 @@ export type BingoClipPlayerHandle = {
 
 async function probeUrl(url: string): Promise<void> {
   try {
-    const res = await fetch(url, { method: 'HEAD' })
-    console.log(`${LOG} URL probe`, { url, status: res.status, ok: res.ok })
-  } catch (err) {
-    console.warn(`${LOG} URL probe failed`, { url, err })
+    await fetch(url, { method: 'HEAD' })
+  } catch {
+    // ignore probe failures
   }
 }
 
@@ -74,46 +71,25 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     }
 
     async function playElement(el: HTMLAudioElement, label: string): Promise<boolean> {
-      console.log(`${LOG} playElement(${label})`, {
-        src: el.src,
-        paused: el.paused,
-        readyState: el.readyState,
-        volume: el.volume,
-      })
       try {
         await el.play()
-        console.log(`${LOG} playElement(${label}) succeeded`, {
-          paused: el.paused,
-          currentTime: el.currentTime,
-        })
         return true
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Audio playback blocked'
-        console.error(`${LOG} playElement(${label}) failed`, err)
+        console.error(`Bingo audio playElement(${label}) failed`, err)
         onPlaybackErrorRef.current?.(message)
         return false
       }
     }
 
-    async function primeAudioContext(): Promise<void> {
-      console.log(`${LOG} primeAudioContext (native audio — no AudioContext needed)`)
-    }
+    async function primeAudioContext(): Promise<void> {}
 
     async function playFromUserGesture(url: string): Promise<boolean> {
-      console.log(`${LOG} playFromUserGesture called`, {
-        url,
-        mountedA: Boolean(audioARef.current),
-        mountedB: Boolean(audioBRef.current),
-        activeDeck: activeRef.current,
-      })
-      if (!url?.trim()) {
-        console.warn(`${LOG} playFromUserGesture aborted — empty url`)
-        return false
-      }
+      if (!url?.trim()) return false
       void probeUrl(url)
       const el = currentAudio()
       if (!el) {
-        console.error(`${LOG} playFromUserGesture aborted — no active audio element in DOM`)
+        console.error('Bingo audio playFromUserGesture aborted — no active audio element in DOM')
         return false
       }
       el.volume = 1
@@ -128,12 +104,8 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     }
 
     async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
-      console.log(`${LOG} crossfadeTo`, { url, ms })
       if (!url?.trim()) return false
-      if (crossfadeInProgressRef.current) {
-        console.warn(`${LOG} crossfadeTo skipped — already in progress`)
-        return false
-      }
+      if (crossfadeInProgressRef.current) return false
       const from = currentAudio()
       const to = standbyAudio()
       if (!from || !to) return false
@@ -173,10 +145,6 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       autoFadeTriggeredRef.current = false
       lockRevealTriggeredRef.current = false
       crossfadeInProgressRef.current = false
-      console.log(`${LOG} crossfadeTo complete`, {
-        activeDeck: activeRef.current,
-        incomingTime: to.currentTime,
-      })
       return true
     }
 
@@ -200,7 +168,6 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       if (!src?.trim() || !autoPlay || crossfadeInProgressRef.current) return
       const el = currentAudio()
       if (!el) return
-      console.log(`${LOG} autoPlay effect`, { src, playKey })
       el.volume = 1
       el.src = src
       el.load()
@@ -225,7 +192,6 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
           remaining > crossfadeSeconds
         ) {
           lockRevealTriggeredRef.current = true
-          console.log(`${LOG} lock-and-reveal trigger`, { remaining, nextSrc })
           onLockAndRevealRef.current()
         }
 
@@ -233,7 +199,6 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         if (!nextSrc) return
         if (remaining <= crossfadeSeconds && remaining > 0) {
           autoFadeTriggeredRef.current = true
-          console.log(`${LOG} auto-fade trigger`, { remaining, nextSrc })
           void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000))).then((ok) => {
             if (ok) window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
           })

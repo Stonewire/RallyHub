@@ -216,7 +216,7 @@ assert(
   'Win-stop — a win sets the halt flag and pauses audio',
 )
 assert(
-  facilitatorSrc.includes('auto-advance halted — bingo won'),
+  /autoAdvanceBingoSong[\s\S]*?if \(bingoWinHaltRef\.current\) return/.test(facilitatorSrc),
   'Win-stop — auto-advance is blocked while a win is pending',
 )
 assert(

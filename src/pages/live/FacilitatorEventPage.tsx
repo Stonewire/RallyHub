@@ -656,30 +656,15 @@ export function FacilitatorEventPage() {
     const t = resolveTrackForIndex(run, index)
     if (!t) return ''
     const url = bingoTrackPlaybackUrl(t)
-    console.log('[bingo-audio] resolvePlaybackUrlForIndex', {
-      index,
-      trackId: run.playOrder[index],
-      title: t.title,
-      url,
-      hasClip: Boolean(t.clipUrl?.trim()),
-      hasAudio: Boolean(t.audioUrl?.trim()),
-    })
     return url
   }
 
   function handleBingoStartClick() {
-    console.log('[bingo-audio] Start clicked', {
-      playerMounted: bingoAudioRef.current?.isMounted() ?? false,
-      playOrderLength: bingoPlayOrder.length,
-      trackPlaybackUrl,
-      bingoState: liveState.bingo_state,
-    })
     bingoWinHaltRef.current = false
 
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
       notify('Audio player is not mounted — switch to bingo stage and try again')
-      console.error('[bingo-audio] player ref missing or audio elements not in DOM')
       return
     }
 
@@ -687,9 +672,7 @@ export function FacilitatorEventPage() {
 
     const syncUrl = trackPlaybackUrl || resolvePlaybackUrlForIndex(effectiveBingoRun, bingoPlayIndex)
     if (syncUrl) {
-      console.log('[bingo-audio] playing synchronously in click handler:', syncUrl)
       void player.playFromUserGesture(syncUrl).then((played) => {
-        console.log('[bingo-audio] synchronous play result:', played)
         if (played) {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({
@@ -703,7 +686,6 @@ export function FacilitatorEventPage() {
       return
     }
 
-    console.warn('[bingo-audio] no URL yet — loading run, will need second Start press')
     void (async () => {
       const run = await ensureBingoRunReady()
       const url = resolvePlaybackUrlForIndex(run, bingoPlayIndex)
@@ -712,7 +694,6 @@ export function FacilitatorEventPage() {
         return
       }
       const played = await player.playFromUserGesture(url)
-      console.log('[bingo-audio] delayed play after run load:', played)
       if (played) {
         await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
         void patchWinnerFieldsSafe({
@@ -734,24 +715,10 @@ export function FacilitatorEventPage() {
   }
 
   async function lockAndRevealBingoRound(): Promise<boolean> {
-    console.log('[bingo-score] lockAndReveal START', {
-      bingoState: liveState.bingo_state,
-      playIndex: bingoPlayIndex,
-      gameId: stage?.gameId,
-    })
-    if (!stage?.gameId || !eventId) {
-      console.log('[bingo-score] lockAndReveal abort — no stage/event')
-      return false
-    }
-    if (liveState.bingo_state === 'revealed') {
-      console.log('[bingo-score] lockAndReveal skip — already revealed')
-      return true
-    }
+    if (!stage?.gameId || !eventId) return false
+    if (liveState.bingo_state === 'revealed') return true
     const run = await ensureBingoRunReady()
-    if (!run?.id) {
-      console.log('[bingo-score] lockAndReveal abort — no run')
-      return false
-    }
+    if (!run?.id) return false
 
     // Reconcile against the authoritative DB run (same source the participants read)
     // so a stale client-side run override can never make scoring read the wrong run.
@@ -764,26 +731,13 @@ export function FacilitatorEventPage() {
       .eq('stage_index', liveState.current_stage_index)
       .maybeSingle()
     if (dbRun?.id) {
-      if (dbRun.id !== run.id) {
-        console.warn('[bingo-score] lockAndReveal run id mismatch — using DB run', {
-          overrideRunId: run.id,
-          dbRunId: dbRun.id,
-        })
-      }
       scoringRunId = dbRun.id
       scoringPlayOrder = (dbRun.play_order as string[]) ?? run.playOrder
     }
 
     const currentTrackId = scoringPlayOrder[bingoPlayIndex]
-    if (!currentTrackId) {
-      console.log('[bingo-score] lockAndReveal abort — no trackId at index', bingoPlayIndex)
-      return false
-    }
+    if (!currentTrackId) return false
 
-    console.log('[bingo-score] lockAndReveal calling scoreBingoRound', {
-      playedTrackId: currentTrackId,
-      runId: scoringRunId,
-    })
     const result = await scoreBingoRound({
       eventId,
       gameId: stage.gameId,
@@ -791,7 +745,6 @@ export function FacilitatorEventPage() {
       trackId: currentTrackId,
       gameConfig: bingoConfig,
     })
-    console.log('[bingo-score] lockAndReveal scoreBingoRound returned', result)
 
     // Core reveal uses only existing columns and must always succeed so the
     // round advances and the participant's green/red/grey states show.
@@ -805,20 +758,14 @@ export function FacilitatorEventPage() {
     // Winner announcement reads the scoring result afterward, best-effort only.
     const announced = parseAnnouncedWinnerIds(liveState.bingo_announced_winner_ids)
     const newWinnerId = result.winningTeamIds.find((id) => !announced.includes(id))
-    console.log('[bingo-score] winner announce check', {
-      winningTeamIds: result.winningTeamIds,
-      alreadyAnnounced: announced,
-      newWinnerId: newWinnerId ?? null,
-    })
     if (newWinnerId) {
       // A win halts auto-progression and pauses audio so the celebration can play.
       // This works even if the winner columns (migration 017) are missing.
       bingoWinHaltRef.current = true
       try {
         bingoAudioRef.current?.pause()
-        console.log('[bingo-score] win halt — audio paused, auto-advance stopped')
-      } catch (err) {
-        console.warn('[bingo-score] audio pause on win failed (non-fatal)', err)
+      } catch {
+        // pausing is best-effort
       }
 
       const winnerName = teams.find((t) => t.id === newWinnerId)?.name
@@ -826,16 +773,11 @@ export function FacilitatorEventPage() {
         bingo_winner_team_id: newWinnerId,
         bingo_announced_winner_ids: [...announced, newWinnerId],
       }
-      console.log('[bingo-score] writing winner fields', { winnerName, ...writePatch })
       try {
         await patchState(writePatch)
-        console.log('[bingo-score] winner fields write OK', { newWinnerId })
         if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
       } catch (err) {
-        console.error(
-          '[bingo-score] winner fields write FAILED — is migration 017 applied? (non-fatal)',
-          err,
-        )
+        console.error('Failed to write bingo winner fields (non-fatal)', err)
         if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
       }
     }
@@ -845,7 +787,6 @@ export function FacilitatorEventPage() {
   async function handleBingoNextClick(opts?: { skipCrossfade?: boolean; skipScore?: boolean }) {
     if (bingoAdvancing) return
     if (!stage?.gameId || !eventId) return
-    console.log('[bingo-audio] Next Song clicked', opts)
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
       notify('Audio player is not mounted')
@@ -872,7 +813,6 @@ export function FacilitatorEventPage() {
         if (bingoWinHaltRef.current && !continuingPastWin) {
           // A new winner was just detected on this press — halt and show the
           // celebration instead of advancing. Press again to continue.
-          console.log('[bingo-score] Next press detected a new win — halting, not advancing')
           return
         }
       }
@@ -885,7 +825,6 @@ export function FacilitatorEventPage() {
 
       const nextTrack = resolveTrackForIndex(run, bingoPlayIndex + 1)
       const nextUrl = nextTrack ? bingoTrackPlaybackUrl(nextTrack) : ''
-      console.log('[bingo-audio] next track URL:', nextUrl)
 
       if (!opts?.skipCrossfade && nextUrl) {
         await player.crossfadeTo(nextUrl, 4000)
@@ -926,10 +865,7 @@ export function FacilitatorEventPage() {
 
   async function autoAdvanceBingoSong() {
     if (bingoAdvancing) return
-    if (bingoWinHaltRef.current) {
-      console.log('[bingo-score] auto-advance halted — bingo won, awaiting facilitator')
-      return
-    }
+    if (bingoWinHaltRef.current) return
     if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
     await handleBingoNextClick({ skipCrossfade: true, skipScore: true })
   }
