@@ -453,6 +453,9 @@ export function JoinGameView({
 
   async function submitQuizAnswer(answerId: string, gameId: string, questionId: string) {
     if (quizLocked || state.quiz_state !== 'active') return
+    // Fire instantly on tap (before any state update / network) so the sound
+    // lines up exactly with the visual selection.
+    playQuizSelectSound()
     if (quizChangeDeadlineRef.current == null) {
       const windowSec = Math.min(5, Math.max(0, quizTimerDisplay))
       quizChangeDeadlineRef.current = Date.now() + windowSec * 1000
@@ -477,7 +480,6 @@ export function JoinGameView({
       })
     }
     setQuizAnswer(answerId)
-    playQuizSelectSound()
   }
 
   async function cancelPendingSubmission(subId: string) {

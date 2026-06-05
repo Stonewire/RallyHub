@@ -83,7 +83,13 @@ export function PhotoChallengeCapture({
 
   function retake() {
     setSnapshot(null)
-    void startCamera()
+    // Tear down any leftover stream and force `ready` low so the false→true
+    // transition re-triggers the effect that binds the new stream to the
+    // <video>. Without this the preview stays black after capture stopped it.
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setReady(false)
+    void startCamera(facingMode)
   }
 
   function usePhoto() {
