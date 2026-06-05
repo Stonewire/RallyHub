@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera } from 'lucide-react'
+import { Camera, SwitchCamera } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ export function PhotoChallengeCapture({
   const streamRef = useRef<MediaStream | null>(null)
   const [ready, setReady] = useState(false)
   const [snapshot, setSnapshot] = useState<string | null>(null)
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
 
   useEffect(() => {
     void startCamera()
@@ -39,9 +40,9 @@ export function PhotoChallengeCapture({
     void el.play().catch(() => {})
   }, [ready, snapshot])
 
-  async function startCamera() {
+  async function startCamera(facing: 'environment' | 'user' = facingMode) {
     const stream = await getTeamMediaStream({
-      video: { facingMode: 'environment' },
+      video: { facingMode: facing },
       audio: false,
     })
     if (!stream) {
@@ -50,6 +51,15 @@ export function PhotoChallengeCapture({
     }
     streamRef.current = stream
     setReady(true)
+  }
+
+  function flipCamera() {
+    const next = facingMode === 'environment' ? 'user' : 'environment'
+    setFacingMode(next)
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setReady(false)
+    void startCamera(next)
   }
 
   function capturePhoto() {
@@ -94,13 +104,25 @@ export function PhotoChallengeCapture({
         {snapshot ? (
           <img src={snapshot} alt="Preview" className="aspect-[4/3] w-full object-cover" />
         ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="aspect-[4/3] w-full bg-black object-cover"
-          />
+          <div className="relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="aspect-[4/3] w-full bg-black object-cover"
+            />
+            <button
+              type="button"
+              onClick={flipCamera}
+              disabled={!ready}
+              aria-label="Switch camera"
+              className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm disabled:opacity-50"
+            >
+              <SwitchCamera className="size-4" />
+              Flip
+            </button>
+          </div>
         )}
         <div className="space-y-2 p-3">
           {snapshot ? (

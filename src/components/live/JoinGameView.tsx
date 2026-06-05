@@ -1,6 +1,7 @@
 import { Check, LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
@@ -20,6 +21,7 @@ import {
   useNotification,
 } from '@/contexts/notification-context'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
+import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
   missedBingoCellIndices,
@@ -114,6 +116,26 @@ export function JoinGameView({
     stage?.type === 'bingo' ? state.current_stage_index : undefined,
   )
   const bingoCardQuery = useBingoTeamCard(bingoRunQuery.data?.id, teamId)
+  const queryClient = useQueryClient()
+
+  // When the facilitator starts (or restarts) bingo, the run + team cards are
+  // created server-side and event_state.bingo_state flips via realtime. The run
+  // and card live in separate React Query caches, so refetch them reactively the
+  // moment the bingo state changes — otherwise the card only appears on refresh.
+  useEffect(() => {
+    if (stage?.type !== 'bingo') return
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.bingoRun(event.id, state.current_stage_index),
+    })
+    void queryClient.invalidateQueries({ queryKey: ['bingo-team-card'] })
+  }, [
+    state.bingo_state,
+    state.current_stage_index,
+    stage?.type,
+    event.id,
+    queryClient,
+  ])
+
   const colors = brandColorsForEvent(event, organization)
   const accent = colors[2]
   const onAccent = textOnAccent(accent)

@@ -43,7 +43,11 @@ export function Leaderboard({
         >
           {ranked.map((team, i) => {
             const scoreRatio = team.score / maxScore
-            const size = Math.round(orbit.maxPx * (0.72 + scoreRatio * 0.28))
+            // When scores are hidden, render uniform bubbles so the size does not
+            // reveal standings — only the numeric score is gated by showScores.
+            const size = showScores
+              ? Math.round(orbit.maxPx * (0.72 + scoreRatio * 0.28))
+              : Math.round(orbit.maxPx * 0.86)
             return (
               <div
                 key={team.id}

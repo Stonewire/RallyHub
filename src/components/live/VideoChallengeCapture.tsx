@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Video } from 'lucide-react'
+import { SwitchCamera, Video } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ export function VideoChallengeCapture({
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const tickRef = useRef<number | undefined>(undefined)
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
 
   useEffect(() => {
     if (!recordedFile) {
@@ -90,9 +91,9 @@ export function VideoChallengeCapture({
     setRecording(false)
   }
 
-  async function openPreview() {
+  async function openPreview(facing: 'environment' | 'user' = facingMode) {
     const stream = await getTeamMediaStream({
-      video: { facingMode: 'environment' },
+      video: { facingMode: facing },
       audio: true,
     })
     if (!stream) {
@@ -101,6 +102,14 @@ export function VideoChallengeCapture({
     }
     streamRef.current = stream
     setPreviewReady(true)
+  }
+
+  function flipCamera() {
+    if (recording) return
+    const next = facingMode === 'environment' ? 'user' : 'environment'
+    setFacingMode(next)
+    stopStream()
+    void openPreview(next)
   }
 
   function validateDuration(file: File): Promise<boolean> {
@@ -225,13 +234,26 @@ export function VideoChallengeCapture({
         Max video length: {formatVideoDurationLabel(maxSec)}
       </p>
       <div className="overflow-hidden rounded-xl bg-black">
-        <video
-          ref={previewRef}
-          autoPlay
-          playsInline
-          muted
-          className="aspect-[4/3] w-full bg-black object-cover"
-        />
+        <div className="relative">
+          <video
+            ref={previewRef}
+            autoPlay
+            playsInline
+            muted
+            className="aspect-[4/3] w-full bg-black object-cover"
+          />
+          {previewReady && !recording ? (
+            <button
+              type="button"
+              onClick={flipCamera}
+              aria-label="Switch camera"
+              className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+            >
+              <SwitchCamera className="size-4" />
+              Flip
+            </button>
+          ) : null}
+        </div>
         {recording ? (
           <div className="space-y-2 border-t border-white/10 px-4 py-3 text-center">
             <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
