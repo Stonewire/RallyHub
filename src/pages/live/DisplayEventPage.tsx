@@ -11,6 +11,7 @@ import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
+import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { playWinnerSound, unlockSounds } from '@/lib/sounds'
 import {
@@ -136,7 +137,13 @@ export function DisplayEventPage() {
   const { event, organization, state, teams, games, submissions } = bundle
   const winnerTeamId = state.bingo_winner_team_id ?? null
   const winnerTeam = winnerTeamId ? teams.find((t) => t.id === winnerTeamId) : null
-  const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
+  const announcedWinnerIds = parseAnnouncedWinnerIds(state.bingo_announced_winner_ids)
+  const showWinner =
+    Boolean(winnerTeam) &&
+    winnerTeamId != null &&
+    winnerTeamId !== dismissedWinnerId &&
+    announcedWinnerIds.includes(winnerTeamId) &&
+    state.bingo_state === 'revealed'
   const logo = logoForEvent(event, organization)
   const textClass = displayTextClass(event)
   const showAnnouncement =
@@ -360,6 +367,7 @@ export function DisplayEventPage() {
       ) : null}
       {showWinner && winnerTeam ? (
         <BingoWinCelebration
+          key={winnerTeamId}
           teamName={winnerTeam.name ?? 'Team'}
           teamColor={winnerTeam.color}
           display

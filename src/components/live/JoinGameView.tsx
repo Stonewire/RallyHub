@@ -25,6 +25,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
   missedBingoCellIndices,
+  parseAnnouncedWinnerIds,
   parseRevealedTrackIds,
   resolveBingoSubmissionCellIndex,
 } from '@/lib/bingo-cell-match'
@@ -75,6 +76,7 @@ import {
   playQuizWrongSound,
   playSubmitSound,
   playWinnerSound,
+  unlockSounds,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
@@ -197,7 +199,20 @@ export function JoinGameView({
     () => messages.filter((m) => m.team_id == null || m.team_id === teamId),
     [messages, teamId],
   )
+  const teamSenderName = (team.name ?? 'Team').trim()
   const seenIncomingMessageIdsRef = useRef<Set<string> | null>(null)
+
+  // Team devices need celebration audio unlocked before a bingo win (which is not
+  // triggered by a direct tap). Prime the full pool on the first interaction.
+  useEffect(() => {
+    const unlock = () => unlockSounds()
+    window.addEventListener('pointerdown', unlock, { once: true, passive: true })
+    window.addEventListener('touchend', unlock, { once: true, passive: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('touchend', unlock)
+    }
+  }, [])
 
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
@@ -293,8 +308,14 @@ export function JoinGameView({
   }, [chatOpen])
 
   useEffect(() => {
+    // Incoming = facilitator → this team (direct thread or broadcast), never our
+    // own sent messages (matched by trimmed sender name).
     const incoming = visibleMessages
-      .filter((m) => m.team_id === teamId && m.sender !== (team.name ?? 'Team'))
+      .filter((m) => {
+        const sender = (m.sender ?? '').trim()
+        if (sender === teamSenderName) return false
+        return m.team_id == null || m.team_id === teamId
+      })
       .map((m) => m.id)
     if (seenIncomingMessageIdsRef.current === null) {
       seenIncomingMessageIdsRef.current = new Set(incoming)
@@ -310,7 +331,7 @@ export function JoinGameView({
     if (newCount > 0 && !chatOpen) {
       setUnreadMessages((n) => n + newCount)
     }
-  }, [visibleMessages, teamId, team.name, chatOpen])
+  }, [visibleMessages, teamId, teamSenderName, chatOpen])
 
   async function handleExitTeam() {
     if (!organization?.id) return
@@ -393,12 +414,14 @@ export function JoinGameView({
 
   const winnerSoundStageRef = useRef(0)
   useEffect(() => {
+    // Bingo wins use BingoWinCelebration audio — never the podium fanfare here.
+    if (stage?.type === 'bingo') return
     const next = state.winner_reveal_stage ?? 0
     if (next >= 1 && next !== winnerSoundStageRef.current) {
       playWinnerSound()
     }
     winnerSoundStageRef.current = next
-  }, [state.winner_reveal_stage])
+  }, [state.winner_reveal_stage, stage?.type])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
@@ -1224,7 +1247,15 @@ export function JoinGameView({
   const winnerTeam = winnerTeamId
     ? bundle.teams.find((t) => t.id === winnerTeamId)
     : null
-  const showWinner = Boolean(winnerTeam) && winnerTeamId !== dismissedWinnerId
+  const announcedWinnerIds = parseAnnouncedWinnerIds(state.bingo_announced_winner_ids)
+  // Only celebrate after a confirmed win announcement (revealed round + announced
+  // id), not from stale winner fields during play/start transitions.
+  const showWinner =
+    Boolean(winnerTeam) &&
+    winnerTeamId != null &&
+    winnerTeamId !== dismissedWinnerId &&
+    announcedWinnerIds.includes(winnerTeamId) &&
+    state.bingo_state === 'revealed'
 
   return (
     <BrandBackground
@@ -1237,6 +1268,7 @@ export function JoinGameView({
       {showWinner && winnerTeam && typeof document !== 'undefined'
         ? createPortal(
             <BingoWinCelebration
+              key={winnerTeamId}
               teamName={winnerTeam.name ?? 'Team'}
               teamColor={winnerTeam.color}
               mine={winnerTeamId === teamId}

@@ -90,13 +90,28 @@ preloadAll()
 
 // ---- Autoplay unlock -------------------------------------------------------
 
-let soundsUnlocked = false
+let operationalSoundsUnlocked = false
+let celebrationSoundsUnlocked = false
+const primedElements = new WeakSet<HTMLAudioElement>()
+
+const CELEBRATION_SOUND_NAMES = new Set([
+  'winner',
+  'celebration',
+  'cheer',
+  'fireworks',
+  'loser',
+])
+const OPERATIONAL_SOUND_NAMES = ALL_SOUNDS.filter((s) => !CELEBRATION_SOUND_NAMES.has(s))
 
 function primeElement(el: HTMLAudioElement) {
+  if (primedElements.has(el)) return
   try {
-    el.muted = false
     const prevVolume = el.volume
+    const prevMuted = el.muted
+    // Must be fully silent during the brief unlock play — volume 0 alone is not
+    // enough on every browser.
     el.volume = 0
+    el.muted = true
     const reset = () => {
       try {
         el.pause()
@@ -104,37 +119,60 @@ function primeElement(el: HTMLAudioElement) {
       } catch {
         // ignore
       }
+      el.muted = prevMuted
       el.volume = prevVolume
+      primedElements.add(el)
     }
     const p = el.play()
+    // Pause on the next tick so play() has started (unlock) but nothing is heard.
+    window.setTimeout(reset, 0)
     if (p && typeof p.then === 'function') {
       p.then(reset).catch(reset)
-    } else {
-      reset()
     }
   } catch {
     // ignore — playback will simply remain locked for this element
   }
 }
 
-/**
- * Prime every pooled sound element so later programmatic play() calls are not
- * blocked by the browser autoplay policy. Safe to call multiple times (no-ops
- * after the first). Runs automatically on the first user gesture, but can also
- * be called explicitly from a "tap to enable sound" gate (e.g. the display
- * panel, which may never receive another tap during an event).
- */
-export function unlockSounds() {
-  if (soundsUnlocked || typeof window === 'undefined') return
-  soundsUnlocked = true
-  for (const pool of pools.values()) {
-    const el = pool[0]
-    if (el) primeElement(el)
+function primePoolSoundNames(names: readonly string[]) {
+  if (typeof window === 'undefined') return
+  for (const name of names) {
+    const pool = pools.get(name)
+    if (!pool) continue
+    for (const el of pool) primeElement(el)
   }
 }
 
+/**
+ * Prime short UI / notification sounds only. Used on the facilitator panel so
+ * celebration audio is never unlocked or played there.
+ */
+export function unlockOperationalSounds() {
+  if (operationalSoundsUnlocked || typeof window === 'undefined') return
+  operationalSoundsUnlocked = true
+  primePoolSoundNames(OPERATIONAL_SOUND_NAMES)
+}
+
+/**
+ * Prime every pooled sound element (operational + celebration) so later
+ * programmatic play() calls are not blocked. Safe to call multiple times.
+ * Display panel and team devices call this; facilitator should not.
+ */
+export function unlockSounds() {
+  unlockOperationalSounds()
+  if (celebrationSoundsUnlocked || typeof window === 'undefined') return
+  celebrationSoundsUnlocked = true
+  primePoolSoundNames([...CELEBRATION_SOUND_NAMES])
+}
+
+function ensureElementPrimed(el: HTMLAudioElement) {
+  if (primedElements.has(el)) return
+  primeElement(el)
+}
+
 if (typeof window !== 'undefined') {
-  const handler = () => unlockSounds()
+  // Default gesture unlock covers operational sounds only (facilitator-safe).
+  const handler = () => unlockOperationalSounds()
   window.addEventListener('pointerdown', handler, { once: true, passive: true })
   window.addEventListener('touchend', handler, { once: true, passive: true })
   window.addEventListener('keydown', handler, { once: true })
@@ -173,6 +211,8 @@ function acquire(name: string): HTMLAudioElement | null {
 export function playSound(name: string, volume?: number): HTMLAudioElement | null {
   const el = acquire(name)
   if (!el) return null
+  ensureElementPrimed(el)
+  el.muted = false
   el.volume = clampVolume(volume ?? SOUND_VOLUME[name] ?? DEFAULT_VOLUME)
 
   const trim = SOUND_TRIM[name]
@@ -268,6 +308,7 @@ export function playWinnerSound() {
 }
 
 export function playLoserSound() {
+  unlockSounds()
   return playSound('loser')
 }
 
@@ -303,6 +344,7 @@ const WIN_CROSSFADE_SEC = 5
  * track crossfade.
  */
 export function playBingoWinSequence(isDisplay: boolean): () => void {
+  unlockSounds()
   // Stop any previous celebration before starting a new one (frees its element).
   activeWinSequenceStop?.()
 
@@ -321,6 +363,10 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     return () => {}
   }
 
+  ensureElementPrimed(winner)
+  ensureElementPrimed(celebration)
+  winner.muted = false
+  celebration.muted = false
   winner.volume = winnerVol
   celebration.volume = 0
   try {
@@ -335,6 +381,7 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   if (isDisplay) playSound('fireworks')
 
   let fadeTimer: number | undefined
+  let crossfadeTimer: number | undefined
   let safetyTimer: number | undefined
   let crossfading = false
   let celebrationStarted = false
@@ -342,6 +389,8 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   const startCelebration = (atFullVolume: boolean) => {
     if (celebrationStarted) return
     celebrationStarted = true
+    ensureElementPrimed(celebration)
+    celebration.muted = false
     if (atFullVolume) celebration.volume = celebVol
     try {
       celebration.currentTime = 0
@@ -357,6 +406,10 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
   const beginCrossfade = () => {
     if (crossfading) return
     crossfading = true
+    if (crossfadeTimer) {
+      window.clearTimeout(crossfadeTimer)
+      crossfadeTimer = undefined
+    }
     startCelebration(false)
     const steps = 50
     const stepMs = (WIN_CROSSFADE_SEC * 1000) / steps
@@ -379,12 +432,27 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     }, stepMs)
   }
 
+  const scheduleCrossfadeFromDuration = () => {
+    const dur = winner.duration
+    if (!dur || Number.isNaN(dur) || !Number.isFinite(dur) || dur <= WIN_CROSSFADE_SEC) {
+      return false
+    }
+    if (crossfadeTimer) window.clearTimeout(crossfadeTimer)
+    const msUntilFade = Math.max(0, (dur - WIN_CROSSFADE_SEC) * 1000)
+    crossfadeTimer = window.setTimeout(() => beginCrossfade(), msUntilFade)
+    return true
+  }
+
   const onTime = () => {
     const dur = winner.duration
     if (!dur || Number.isNaN(dur) || !Number.isFinite(dur)) return
     if (dur - winner.currentTime <= WIN_CROSSFADE_SEC) beginCrossfade()
   }
   winner.addEventListener('timeupdate', onTime)
+  winner.addEventListener('loadedmetadata', () => scheduleCrossfadeFromDuration(), {
+    once: true,
+  })
+  winner.addEventListener('durationchange', () => scheduleCrossfadeFromDuration())
 
   // Fallback 1: if the crossfade window never triggers, start celebration when
   // winner.mp3 ends, at full volume.
@@ -398,11 +466,15 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
 
   const wp = winner.play()
   if (wp && typeof wp.then === 'function') {
-    wp.catch((err) => {
+    wp.then(() => {
+      scheduleCrossfadeFromDuration()
+    }).catch((err) => {
       console.warn('[sounds] could not play "winner.mp3"', err)
       // Fallback 2: if the fanfare is blocked, go straight to the celebration.
       startCelebration(true)
     })
+  } else {
+    scheduleCrossfadeFromDuration()
   }
 
   // Fallback 3: hard safety — if nothing started the song within 20s, start it.
@@ -412,8 +484,10 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
 
   const stop = () => {
     if (fadeTimer) window.clearInterval(fadeTimer)
+    if (crossfadeTimer) window.clearTimeout(crossfadeTimer)
     if (safetyTimer) window.clearTimeout(safetyTimer)
     fadeTimer = undefined
+    crossfadeTimer = undefined
     safetyTimer = undefined
     winner.removeEventListener('timeupdate', onTime)
     try {

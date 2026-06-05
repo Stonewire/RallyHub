@@ -273,6 +273,15 @@ export function FacilitatorEventPage() {
 
   const pendingSubmissionCountRef = useRef<number>(0)
   const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
+  const teamSenderNames = useMemo(
+    () =>
+      new Set(
+        (bundle?.teams ?? [])
+          .map((t) => (t.name ?? 'Team').trim())
+          .filter(Boolean),
+      ),
+    [bundle?.teams],
+  )
 
   useEffect(() => {
     const pendingCount = liveSubmissions
@@ -293,11 +302,16 @@ export function FacilitatorEventPage() {
   }, [liveSubmissions])
 
   useEffect(() => {
-    // Only chime for messages coming FROM a team, never for the facilitator's
-    // own sent messages (those share the team_id of the recipient but carry the
-    // facilitator's name as the sender).
+    // Only chime for messages coming FROM a team (sender matches a known team
+    // name), never for the facilitator's own sent messages.
+    const facilitatorName = name.trim()
     const incoming = messages
-      .filter((m) => Boolean(m.team_id) && m.sender !== name)
+      .filter((m) => {
+        if (!m.team_id) return false
+        const sender = (m.sender ?? '').trim()
+        if (!sender || sender === facilitatorName) return false
+        return teamSenderNames.has(sender)
+      })
       .map((m) => m.id)
     if (seenTeamMessageIdsRef.current === null) {
       seenTeamMessageIdsRef.current = new Set(incoming)
@@ -308,7 +322,7 @@ export function FacilitatorEventPage() {
       seenTeamMessageIdsRef.current.add(id)
       playNewMessageSound()
     }
-  }, [messages, name])
+  }, [messages, name, teamSenderNames])
 
   if (namePrompt) {
     return (
