@@ -1,4 +1,5 @@
 import confetti from 'canvas-confetti'
+import { Volume2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
@@ -11,7 +12,7 @@ import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { playWinnerSound } from '@/lib/sounds'
+import { playWinnerSound, unlockSounds } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
   currentStage,
@@ -35,6 +36,11 @@ export function DisplayEventPage() {
   const { bundle, loading, error, updateState } = useLiveEvent(eventId)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
+  // The display panel is a passive screen that may never be tapped again during
+  // an event, so its audio would stay locked by the browser autoplay policy.
+  // A one-time "tap to enable sound" gate primes the unlock so win celebration,
+  // cheer, fireworks, and the celebration song can play later.
+  const [soundEnabled, setSoundEnabled] = useState(false)
 
   const eventState = bundle?.state
   const stages = useMemo(
@@ -359,6 +365,27 @@ export function DisplayEventPage() {
           display
           onDismiss={() => setDismissedWinnerId(winnerTeamId)}
         />
+      ) : null}
+      {!soundEnabled ? (
+        <button
+          type="button"
+          onClick={() => {
+            unlockSounds()
+            setSoundEnabled(true)
+          }}
+          className="fixed inset-0 z-[10050] flex flex-col items-center justify-center gap-6 bg-black/90 px-8 text-center text-white"
+          aria-label="Tap to enable sound"
+        >
+          <Volume2 className="size-16 opacity-90" />
+          <span className="font-display text-3xl font-bold md:text-5xl">Tap to enable sound</span>
+          <span className="max-w-xl text-base text-white/70 md:text-lg">
+            Enable audio so the display can play the bingo celebration, cheers, and music
+            during the event.
+          </span>
+          <span className="mt-2 rounded-full bg-white px-8 py-3 text-lg font-semibold text-black">
+            Tap anywhere to continue
+          </span>
+        </button>
       ) : null}
     </BrandBackground>
   )

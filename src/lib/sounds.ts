@@ -117,7 +117,14 @@ function primeElement(el: HTMLAudioElement) {
   }
 }
 
-function unlockSounds() {
+/**
+ * Prime every pooled sound element so later programmatic play() calls are not
+ * blocked by the browser autoplay policy. Safe to call multiple times (no-ops
+ * after the first). Runs automatically on the first user gesture, but can also
+ * be called explicitly from a "tap to enable sound" gate (e.g. the display
+ * panel, which may never receive another tap during an event).
+ */
+export function unlockSounds() {
   if (soundsUnlocked || typeof window === 'undefined') return
   soundsUnlocked = true
   for (const pool of pools.values()) {
