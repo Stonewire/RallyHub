@@ -1,6 +1,6 @@
 import confetti from 'canvas-confetti'
 import { Volume2 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
@@ -13,7 +13,7 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { playWinnerSound, unlockSounds } from '@/lib/sounds'
+import { playBingoWinSequence, unlockSounds } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
   currentStage,
@@ -29,6 +29,9 @@ import {
   quizTimerRunning,
   quizTimerSeconds,
 } from '@/lib/live-event'
+
+/** Match celebration.mp3 length so confetti runs for the full song on display. */
+const EVENT_WINNER_CONFETTI_MS = 185_000
 
 type DisplayEventPageProps = {
   /** When true, skip the tap-to-enable sound gate (facilitator iframe preview). */
@@ -108,17 +111,43 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     (next, stillRunning) => breakSyncRef(next, stillRunning),
   )
 
+  const eventWinnerAudioStageRef = useRef(0)
+
+  // Overall event winner (Reveal Winner stage 2): full celebration audio on the
+  // standalone display only — winner → celebration crossfade, cheer, fireworks.
+  // Embedded facilitator preview skips audio. Phones keep their own winner.mp3.
   useEffect(() => {
-    if (bundle?.state.winner_reveal_stage !== 2) return
-    playWinnerSound()
-    const end = Date.now() + 3000
+    if (embedded) return
+    const revealStage = bundle?.state.winner_reveal_stage ?? 0
+    if (revealStage === 0) {
+      eventWinnerAudioStageRef.current = 0
+      return
+    }
+    if (revealStage !== 2) return
+    if (eventWinnerAudioStageRef.current >= 2) return
+    eventWinnerAudioStageRef.current = 2
+
+    const stopAudio = playBingoWinSequence(true)
+
+    const confettiEnd = Date.now() + EVENT_WINNER_CONFETTI_MS
+    let rafId = 0
     const frame = () => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
-      if (Date.now() < end) requestAnimationFrame(frame)
+      confetti({ particleCount: 5, angle: 60, spread: 60, origin: { x: 0 } })
+      confetti({ particleCount: 5, angle: 120, spread: 60, origin: { x: 1 } })
+      if (Date.now() < confettiEnd) rafId = requestAnimationFrame(frame)
     }
     frame()
-  }, [bundle?.state.winner_reveal_stage])
+    confetti({ particleCount: 140, spread: 100, startVelocity: 45, origin: { y: 0.5 } })
+    const burst = window.setInterval(() => {
+      confetti({ particleCount: 90, spread: 110, startVelocity: 42, origin: { y: 0.6 } })
+    }, 1200)
+
+    return () => {
+      stopAudio()
+      if (rafId) cancelAnimationFrame(rafId)
+      window.clearInterval(burst)
+    }
+  }, [bundle?.state.winner_reveal_stage, embedded])
 
   if (loading) {
     return (
