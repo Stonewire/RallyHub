@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { useAuth } from '@/contexts/auth-context'
 import type { GameRow } from '@/hooks/use-games'
 import { countClientEvents } from '@/lib/client-events'
 import { platformGameInstallPayload } from '@/lib/install-platform-game'
-import { PLATFORM_LIBRARY_SUBDOMAIN } from '@/lib/platform-library'
+import { isListedClientOrganization } from '@/lib/platform-library'
 import { supabase } from '@/lib/supabase'
 import type { TablesUpdate } from '@/types/helpers'
 
@@ -39,8 +40,12 @@ export function useRallyHubDashboard() {
 }
 
 export function useRallyHubClients() {
+  const { profile, role } = useAuth()
+  const excludedOrganizationIds =
+    role === 'super_admin' && profile?.organization_id ? [profile.organization_id] : []
+
   return useQuery({
-    queryKey: ['rallyhub', 'clients'],
+    queryKey: ['rallyhub', 'clients', ...excludedOrganizationIds],
     queryFn: async () => {
       const { data: orgs, error } = await supabase
         .from('organizations')
@@ -51,7 +56,7 @@ export function useRallyHubClients() {
       const { data: events } = await supabase.from('events').select('organization_id, status')
 
       return (orgs ?? [])
-        .filter((org) => org.subdomain !== PLATFORM_LIBRARY_SUBDOMAIN)
+        .filter((org) => isListedClientOrganization(org, excludedOrganizationIds))
         .map((org) => {
         const orgEvents = (events ?? []).filter((e) => e.organization_id === org.id)
         return {
