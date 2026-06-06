@@ -290,6 +290,7 @@ export type Database = {
           display_text_color: string
           list_order: number
           invoice_paid: boolean
+          invoiced_at: string | null
           created_at: string
         }
         Insert: {
@@ -308,6 +309,7 @@ export type Database = {
           display_text_color?: string
           list_order?: number
           invoice_paid?: boolean
+          invoiced_at?: string | null
         }
         Update: {
           name?: string
@@ -323,6 +325,35 @@ export type Database = {
           display_text_color?: string
           list_order?: number
           invoice_paid?: boolean
+          invoiced_at?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          event_id: string
+          organization_id: string
+          plan_key: string
+          amount: number
+          discount: number
+          amount_due: number
+          status: 'unpaid' | 'paid' | 'comped'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          organization_id: string
+          plan_key: string
+          amount: number
+          discount?: number
+          amount_due: number
+          status: 'unpaid' | 'paid' | 'comped'
+          created_at?: string
+        }
+        Update: {
+          status?: 'unpaid' | 'paid' | 'comped'
         }
         Relationships: []
       }

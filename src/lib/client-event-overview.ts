@@ -18,10 +18,11 @@ export function formatClientEventDate(iso: string | null) {
 }
 
 export function isEventInvoicePaid(
-  event: Pick<ClientEventRow, 'invoice_paid'>,
+  event: Pick<ClientEventRow, 'invoice_paid' | 'invoiced_at'>,
   clientPlan: string | null | undefined,
 ) {
   if (normalizeClientPlan(clientPlan) === 'partner') return true
+  if (event.invoiced_at && event.invoice_paid) return true
   return event.invoice_paid === true
 }
 

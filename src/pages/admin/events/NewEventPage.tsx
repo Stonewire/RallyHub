@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCreateEvent } from '@/hooks/use-events'
+import { useCreateEvent, useUpdateEventStatus } from '@/hooks/use-events'
+import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useGameGroups } from '@/hooks/use-game-groups'
 import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
@@ -33,11 +34,18 @@ export function AdminEventsNewPage() {
   const gamesQuery = useGames(organizationId)
   const groupsQuery = useGameGroups(organizationId)
   const createEvent = useCreateEvent(organizationId)
+  const updateStatus = useUpdateEventStatus(organizationId)
+  const activation = useEventActivationFlow({
+    billingPlan: orgQuery.data?.billing_plan,
+  })
 
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [statusPrompt, setStatusPrompt] = useState<{ eventId: string } | null>(null)
+  const [statusPrompt, setStatusPrompt] = useState<{
+    eventId: string
+    eventName: string
+  } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
   const links = useMemo(() => {
@@ -93,7 +101,7 @@ export function AdminEventsNewPage() {
         },
         gameIds: collectEventGameIds(values.selectedGameIds, values.stages),
       })
-      setStatusPrompt({ eventId: row.id })
+      setStatusPrompt({ eventId: row.id, eventName: values.name.trim() })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save event')
     } finally {
@@ -103,8 +111,14 @@ export function AdminEventsNewPage() {
 
   async function confirmStatus(status: EventStatus) {
     if (!statusPrompt || !organizationId) return
-    const { supabase } = await import('@/lib/supabase')
-    await supabase.from('events').update({ status }).eq('id', statusPrompt.eventId)
+    if (status === 'active') {
+      activation.requestActivation(statusPrompt.eventName, async () => {
+        await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
+        navigate('/admin/events', { replace: true })
+      })
+      return
+    }
+    await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status })
     navigate('/admin/events', { replace: true })
   }
 
@@ -167,6 +181,7 @@ export function AdminEventsNewPage() {
             </div>
           ))}
         </Card>
+        <activation.ActivationDialog />
       </AdminPageShell>
     )
   }

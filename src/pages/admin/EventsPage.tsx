@@ -19,6 +19,7 @@ import {
   useUpdateEventStatus,
   type EventRow,
 } from '@/hooks/use-events'
+import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
@@ -32,6 +33,9 @@ export function AdminEventsPage() {
   const eventsQuery = useEvents(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const activation = useEventActivationFlow({
+    billingPlan: orgQuery.data?.billing_plan,
+  })
 
   const [linksModal, setLinksModal] = useState<EventRow | null>(null)
 
@@ -74,6 +78,28 @@ export function AdminEventsPage() {
     },
     [eventsQuery],
   )
+
+  function handleStatusChange(eventId: string, status: EventStatus) {
+    const event = eventsQuery.data?.find((e) => e.id === eventId)
+    if (!event) return
+    activation.requestStatusChange(
+      event.status as EventStatus,
+      status,
+      event.name,
+      () => updateStatus.mutateAsync({ eventId, status }),
+    )
+  }
+
+  function handleReorder(eventId: string, newStatus: EventStatus, indexInGroup: number) {
+    const event = eventsQuery.data?.find((e) => e.id === eventId)
+    if (!event) return
+    activation.requestStatusChange(
+      event.status as EventStatus,
+      newStatus,
+      event.name,
+      () => applyReorder(eventId, newStatus, indexInGroup),
+    )
+  }
 
   async function handleDelete(event: EventRow) {
     if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return
@@ -119,15 +145,15 @@ export function AdminEventsPage() {
         <DraggableEventsGrid
           events={events}
           deleting={deleteEvent.isPending}
-          statusPending={updateStatus.isPending}
-          onStatusChange={(eventId, status) =>
-            void updateStatus.mutateAsync({ eventId, status })
-          }
+          statusPending={updateStatus.isPending || activation.confirmingActivation}
+          onStatusChange={handleStatusChange}
           onDelete={(e) => void handleDelete(e)}
           onViewLinks={setLinksModal}
-          onReorder={(id, status, index) => void applyReorder(id, status, index)}
+          onReorder={handleReorder}
         />
       )}
+
+      <activation.ActivationDialog />
 
       {linksModal ? (
         <EventLinksModal

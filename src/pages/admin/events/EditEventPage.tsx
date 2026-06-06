@@ -20,6 +20,7 @@ import {
   useUpdateEvent,
   useUpdateEventStatus,
 } from '@/hooks/use-events'
+import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useGameGroups } from '@/hooks/use-game-groups'
 import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
@@ -46,6 +47,9 @@ export function AdminEventEditPage() {
   const gameIdsQuery = useEventGameIds(eventId)
   const updateEvent = useUpdateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const activation = useEventActivationFlow({
+    billingPlan: orgQuery.data?.billing_plan,
+  })
 
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
   const [hydrated, setHydrated] = useState(false)
@@ -164,10 +168,17 @@ export function AdminEventEditPage() {
           <EventStatusMenu
             status={eventStatus}
             size="default"
-            disabled={updateStatus.isPending || loading}
+            disabled={
+              updateStatus.isPending || activation.confirmingActivation || loading
+            }
             onSelect={(status) => {
-              if (!eventId) return
-              void updateStatus.mutateAsync({ eventId, status })
+              if (!eventId || !eventQuery.data) return
+              activation.requestStatusChange(
+                eventStatus,
+                status,
+                eventQuery.data.name,
+                () => updateStatus.mutateAsync({ eventId, status }),
+              )
             }}
           />
           <AccentButton
@@ -275,6 +286,8 @@ export function AdminEventEditPage() {
             saving={saving}
             label="Save Changes"
           />
+
+          <activation.ActivationDialog />
         </>
       )}
     </AdminPageShell>
