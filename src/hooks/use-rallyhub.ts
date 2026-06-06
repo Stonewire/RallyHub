@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { countClientEvents } from '@/lib/client-events'
 import { supabase } from '@/lib/supabase'
+import type { TablesUpdate } from '@/types/helpers'
 
 export type { SupportTicketRow } from '@/hooks/use-support-tickets'
 export {
@@ -112,25 +113,32 @@ export function useUpdateClientAdmin() {
       email?: string
       phone?: string
     }) => {
-      const trimmedEmail = email?.trim()
-      const trimmedPhone = phone?.trim()
-      const { error } = await supabase
+      const trimmedEmail = email?.trim() ?? ''
+      const trimmedPhone = phone?.trim() ?? ''
+      const payload = {
+        internal_notes: notes ?? null,
+        account_status: account_status ?? 'active',
+        billing_plan: billing_plan ?? 'free',
+        email: trimmedEmail || null,
+        contact_email: trimmedEmail || null,
+        phone: trimmedPhone || null,
+        updated_at: new Date().toISOString(),
+        ...(subdomain !== undefined ? { subdomain: subdomain.toLowerCase().trim() } : {}),
+      } satisfies TablesUpdate<'organizations'>
+
+      const { data, error } = await supabase
         .from('organizations')
-        .update({
-          ...(notes !== undefined ? { internal_notes: notes } : {}),
-          ...(account_status ? { account_status } : {}),
-          ...(billing_plan ? { billing_plan } : {}),
-          ...(subdomain ? { subdomain: subdomain.toLowerCase().trim() } : {}),
-          ...(email !== undefined
-            ? {
-                email: trimmedEmail || null,
-                contact_email: trimmedEmail || null,
-              }
-            : {}),
-          ...(phone !== undefined ? { phone: trimmedPhone || null } : {}),
-        })
+        .update(payload)
         .eq('id', orgId)
-      if (error) throw error
+        .select('id')
+        .maybeSingle()
+
+      if (error) throw new Error(error.message)
+      if (!data) {
+        throw new Error(
+          'Client was not updated. Confirm you are signed in as a super admin and migration 023 is applied.',
+        )
+      }
     },
     onSuccess: (_, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', orgId] })

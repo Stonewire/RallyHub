@@ -1,5 +1,8 @@
+import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 type AdminPageShellProps = {
@@ -7,6 +10,9 @@ type AdminPageShellProps = {
   subtitle?: ReactNode
   children?: ReactNode
   actions?: ReactNode
+  /** Link target for the detail-page back control */
+  backTo?: string
+  backLabel?: string
   /** Extra margin below hero when omitting subtitle */
   className?: string
 }
@@ -17,6 +23,8 @@ export function AdminPageShell({
   subtitle,
   children,
   actions,
+  backTo,
+  backLabel = 'Back',
   className,
 }: AdminPageShellProps) {
   return (
@@ -29,6 +37,19 @@ export function AdminPageShell({
       <div
         className={cn('w-full max-w-6xl px-6 sm:px-10 lg:px-14', className)}
       >
+        {backTo ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground -ml-2 mb-4 gap-1.5 px-2"
+            asChild
+          >
+            <Link to={backTo}>
+              <ArrowLeft className="size-4" aria-hidden />
+              {backLabel}
+            </Link>
+          </Button>
+        ) : null}
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-[2rem]">

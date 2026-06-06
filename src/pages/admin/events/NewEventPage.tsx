@@ -116,7 +116,12 @@ export function AdminEventsNewPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="New event" subtitle="Create a scheduled event.">
+      <AdminPageShell
+        title="New event"
+        subtitle="Create a scheduled event."
+        backTo="/admin/events"
+        backLabel="Back to events"
+      >
         <p className="text-muted-foreground text-sm">No organization linked.</p>
       </AdminPageShell>
     )
@@ -127,6 +132,8 @@ export function AdminEventsNewPage() {
       <AdminPageShell
         title="Event created"
         subtitle="Choose a status and share your links."
+        backTo="/admin/events"
+        backLabel="Back to events"
       >
         <Card className="border-border/80 mb-8 space-y-4 bg-card p-6 shadow-sm">
           <p className="text-foreground font-medium">Set event status</p>
@@ -168,6 +175,8 @@ export function AdminEventsNewPage() {
     <AdminPageShell
       title="New event"
       subtitle="Schedule a live team event."
+      backTo="/admin/events"
+      backLabel="Back to events"
       actions={
         <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
           {saving ? 'Saving…' : 'Create Event'}

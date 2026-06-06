@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+
 import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { ClientCard } from '@/components/rallyhub/ClientCard'
@@ -6,13 +8,14 @@ import { useRallyHubClients } from '@/hooks/use-rallyhub'
 import { supabase } from '@/lib/supabase'
 
 export function RallyHubClientsPage() {
+  const navigate = useNavigate()
   const { data, isLoading, isError, error, refetch } = useRallyHubClients()
 
   async function addClient() {
     const name = window.prompt('Organization name')
-    const email = window.prompt('Admin email')
+    const email = window.prompt('Admin login email (used to create the client account)')
     const password = window.prompt('Default password', 'Welcome123!')
-    const subdomain = window.prompt('Subdomain (e.g. afterglow)', '')
+    const subdomain = window.prompt('Subdomain (optional, e.g. afterglow)', '')
     if (!name?.trim() || !email?.trim() || !password) return
 
     const { data: session } = await supabase.auth.getSession()
@@ -36,12 +39,16 @@ export function RallyHubClientsPage() {
         subdomain: subdomain?.trim() || undefined,
       }),
     })
-    const json = (await res.json()) as { error?: string }
+    const json = (await res.json()) as { error?: string; org?: { id: string } }
     if (!res.ok) {
       alert(json.error ?? 'Failed to create client')
       return
     }
+
     void refetch()
+    if (json.org?.id) {
+      navigate(`/admin/clients/${json.org.id}`)
+    }
   }
 
   return (

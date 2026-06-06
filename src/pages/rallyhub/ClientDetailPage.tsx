@@ -35,6 +35,8 @@ export function RallyHubClientDetailPage() {
   const [phone, setPhone] = useState('')
   const [billingPlan, setBillingPlan] = useState('free')
   const [accountStatus, setAccountStatus] = useState('active')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   useEffect(() => {
     if (data?.org) {
@@ -55,7 +57,7 @@ export function RallyHubClientDetailPage() {
 
   if (isLoading) {
     return (
-      <AdminPageShell title="Client">
+      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryLoading rows={4} />
       </AdminPageShell>
     )
@@ -63,7 +65,7 @@ export function RallyHubClientDetailPage() {
 
   if (isError || !data) {
     return (
-      <AdminPageShell title="Client">
+      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryError message={error?.message ?? 'Not found'} />
       </AdminPageShell>
     )
@@ -76,10 +78,19 @@ export function RallyHubClientDetailPage() {
   })
   const eventCounts = countClientEvents(data.events)
   const initials = organizationInitials(org.name)
-  const contactEmail = clientEmail(org)
+  const contactEmail = email.trim() || clientEmail(org)
 
   return (
-    <AdminPageShell title={org.name} subtitle="Client organization details.">
+    <AdminPageShell
+      title={org.name}
+      subtitle="Client organization details."
+      backTo="/admin/clients"
+      backLabel="Back to clients"
+    >
+      {saveError ? <QueryError message={saveError} /> : null}
+      {saveSuccess ? (
+        <p className="text-muted-foreground mb-4 text-sm">Client saved.</p>
+      ) : null}
       <div className="space-y-6">
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <div className="flex items-start gap-4">
@@ -165,7 +176,11 @@ export function RallyHubClientDetailPage() {
             <Button variant="outline" size="sm" asChild>
               <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
             </Button>
-          ) : null}
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Add an email and save to enable contact.
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="billing-plan">Billing plan</Label>
@@ -258,15 +273,22 @@ export function RallyHubClientDetailPage() {
         saving={updateClient.isPending}
         onSave={() => {
           if (!clientId) return
-          void updateClient.mutateAsync({
-            orgId: clientId,
-            notes,
-            subdomain,
-            email,
-            phone,
-            billing_plan: billingPlan,
-            account_status: accountStatus,
-          })
+          setSaveError(null)
+          setSaveSuccess(false)
+          void updateClient
+            .mutateAsync({
+              orgId: clientId,
+              notes,
+              subdomain,
+              email,
+              phone,
+              billing_plan: billingPlan,
+              account_status: accountStatus,
+            })
+            .then(() => setSaveSuccess(true))
+            .catch((err: unknown) => {
+              setSaveError(err instanceof Error ? err.message : 'Could not save client')
+            })
         }}
       />
     </AdminPageShell>

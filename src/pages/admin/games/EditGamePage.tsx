@@ -11,7 +11,6 @@ import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,7 +47,7 @@ export function AdminGameEditPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Edit game">
+      <AdminPageShell title="Edit game" backTo="/admin/games" backLabel="Back to games">
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -56,7 +55,7 @@ export function AdminGameEditPage() {
 
   if (gameQuery.isLoading || !hydrated) {
     return (
-      <AdminPageShell title="Edit game">
+      <AdminPageShell title="Edit game" backTo="/admin/games" backLabel="Back to games">
         <QueryLoading rows={6} />
       </AdminPageShell>
     )
@@ -64,7 +63,7 @@ export function AdminGameEditPage() {
 
   if (gameQuery.isError || !gameQuery.data) {
     return (
-      <AdminPageShell title="Edit game">
+      <AdminPageShell title="Edit game" backTo="/admin/games" backLabel="Back to games">
         <QueryError message={gameQuery.error?.message ?? 'Game not found'} />
       </AdminPageShell>
     )
@@ -106,11 +105,10 @@ export function AdminGameEditPage() {
     <AdminPageShell
       title={`Edit ${GAME_TYPE_LABELS[gameType]}`}
       subtitle={gameQuery.data.name}
+      backTo="/admin/games"
+      backLabel="Back to games"
       actions={
         <>
-          <Button type="button" variant="outline" onClick={() => navigate('/admin/games')}>
-            Back
-          </Button>
           <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
             {saving ? 'Saving…' : 'Save changes'}
           </AccentButton>

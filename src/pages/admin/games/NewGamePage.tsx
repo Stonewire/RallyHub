@@ -83,7 +83,12 @@ export function AdminGamesNewPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="New game" subtitle="Create a new game.">
+      <AdminPageShell
+        title="New game"
+        subtitle="Create a new game."
+        backTo="/admin/games"
+        backLabel="Back to games"
+      >
         <p className="text-muted-foreground text-sm">
           Link your profile to an organization in Supabase first.
         </p>
@@ -151,7 +156,12 @@ export function AdminGamesNewPage() {
 
   if (step === 'type') {
     return (
-      <AdminPageShell title="New game" subtitle="Choose a game type to get started.">
+      <AdminPageShell
+        title="New game"
+        subtitle="Choose a game type to get started."
+        backTo="/admin/games"
+        backLabel="Back to games"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           {TYPES.map(({ type, label, icon: Icon, description }) => (
             <button
@@ -176,6 +186,8 @@ export function AdminGamesNewPage() {
     <AdminPageShell
       title={`New ${TYPES.find((t) => t.type === gameType)?.label ?? 'game'}`}
       subtitle="Configure your game and save when ready."
+      backTo="/admin/games"
+      backLabel="Back to games"
       actions={
         <>
           <Button type="button" variant="outline" onClick={() => setStep('type')}>

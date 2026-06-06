@@ -137,7 +137,12 @@ export function AdminEventEditPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Edit event" subtitle="Update event details.">
+      <AdminPageShell
+        title="Edit event"
+        subtitle="Update event details."
+        backTo="/admin/events"
+        backLabel="Back to events"
+      >
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -152,6 +157,8 @@ export function AdminEventEditPage() {
     <AdminPageShell
       title="Edit event"
       subtitle="Update event details, teams, games, and stages."
+      backTo="/admin/events"
+      backLabel="Back to events"
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <EventStatusMenu
