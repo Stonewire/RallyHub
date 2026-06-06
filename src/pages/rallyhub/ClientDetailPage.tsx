@@ -7,7 +7,10 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
-import { ClientDetailSidebar, normalizeClientDetailTab } from '@/components/rallyhub/ClientDetailSidebar'
+import {
+  ClientDetailTabs,
+  normalizeClientDetailTab,
+} from '@/components/rallyhub/ClientDetailTabs'
 import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -699,30 +702,26 @@ export function RallyHubClientDetailPage() {
         <p className="text-muted-foreground mb-4 text-sm">Client saved.</p>
       ) : null}
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <ClientDetailSidebar
-          activeTab={activeTab}
-          onTabChange={setTab}
-          showBillingAndEvents={showBillingAndEvents}
+      <ClientDetailTabs
+        activeTab={activeTab}
+        onTabChange={setTab}
+        showBillingAndEvents={showBillingAndEvents}
+      />
+
+      {activeTab === 'info' ? clientInfoTab : null}
+
+      {activeTab === 'billing' && showBillingAndEvents && data && clientId ? (
+        <BillingOverview
+          organizationId={clientId}
+          billingPlan={billingPlan}
+          billingPeriod={billingPeriod}
+          showAdminSummary
         />
+      ) : null}
 
-        <div className="min-w-0 flex-1">
-          {activeTab === 'info' ? clientInfoTab : null}
-
-          {activeTab === 'billing' && showBillingAndEvents && data && clientId ? (
-            <BillingOverview
-              organizationId={clientId}
-              billingPlan={billingPlan}
-              billingPeriod={billingPeriod}
-              showAdminSummary
-            />
-          ) : null}
-
-          {activeTab === 'events' && showBillingAndEvents && data ? (
-            <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
-          ) : null}
-        </div>
-      </div>
+      {activeTab === 'events' && showBillingAndEvents && data ? (
+        <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
+      ) : null}
 
       {activeTab === 'info' ? (
         <FormSaveFooter

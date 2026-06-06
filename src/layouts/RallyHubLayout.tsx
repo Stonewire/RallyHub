@@ -1,66 +1,29 @@
-import { LogOut } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 
-import { SupportUnreadBadge } from '@/components/admin/SupportUnreadBadge'
-import { RallyLogo } from '@/components/brand/RallyLogo'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/auth-context'
-import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
-import { cn } from '@/lib/utils'
-
-const links = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/clients', label: 'Clients', end: false },
-  { to: '/admin/games', label: 'Games', end: false },
-  { to: '/admin/support', label: 'Support', end: false },
-] as const
+import { RallyHubAppSidebar } from '@/components/rallyhub/RallyHubAppSidebar'
+import { Separator } from '@/components/ui/separator'
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
 
 export function RallyHubLayout() {
-  const { signOut } = useAuth()
-  const { data: supportUnread = 0 } = useSupportUnreadCount('support')
-
   return (
-    <div className="bg-background min-h-svh">
-      <header className="border-border/80 border-b">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-          <RallyLogo className="h-8 w-auto max-w-[140px]" />
-          <nav className="flex flex-1 flex-wrap items-center gap-1 text-sm">
-            {links.map(({ to, label, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  cn(
-                    'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors',
-                    isActive
-                      ? 'bg-[#FFCB03]/15 text-foreground font-medium'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                  )
-                }
-              >
-                {label}
-                {to === '/admin/support' ? (
-                  <SupportUnreadBadge count={supportUnread} />
-                ) : null}
-              </NavLink>
-            ))}
-          </nav>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={() => void signOut()}
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </Button>
+    <SidebarProvider>
+      <RallyHubAppSidebar />
+      <SidebarInset className="admin-shell-inset bg-background flex max-h-[100dvh] min-h-svh flex-1 overflow-hidden lg:rounded-r-none">
+        <header className="bg-background flex h-14 shrink-0 items-center gap-2 border-b border-[rgb(62_61_62/0.08)] px-4 lg:px-6">
+          <SidebarTrigger className="text-[#3E3D3E] [&_svg]:size-5" />
+          <Separator
+            orientation="vertical"
+            className="h-5 data-[orientation=vertical]:bg-[rgb(62_61_62/0.12)]"
+          />
+        </header>
+        <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          <Outlet />
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <Outlet />
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
