@@ -50,7 +50,7 @@ export function MusicBingoEditor({
   function onClipLengthChange(value: string) {
     const next =
       value === '30' ? 30 : value === '90' ? 90 : null
-    if (next === config.bingo_clip_length) return
+    if (next === clipLen) return
     const hadClips = tracks.some((t) => t.clipUrl)
     if (hadClips && !window.confirm('Change clip length? Existing generated clips will be cleared.')) {
       return

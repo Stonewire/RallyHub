@@ -40,11 +40,16 @@ export function MusicCatalogUploader({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function isAudioFile(file: File): boolean {
+    if (file.type.startsWith('audio/')) return true
+    return /\.(mp3|m4a|aac|wav|flac|ogg)$/i.test(file.name)
+  }
+
   function onFilesSelected(files: FileList | null) {
     if (!files?.length) return
     const next: PendingTrack[] = []
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|m4a|wav)$/i)) continue
+      if (!isAudioFile(file)) continue
       const parsed = parseAudioFilename(file.name)
       next.push({
         key: `${file.name}-${file.size}`,
@@ -55,8 +60,17 @@ export function MusicCatalogUploader({
         needsReview: parsed.confidence < 0.5,
       })
     }
+    if (next.length === 0) {
+      setError('No supported audio files found. Use MP3, M4A, or WAV.')
+      return
+    }
+    setError(null)
     setPending((p) => [...p, ...next])
   }
+
+  const uploadBlockers: string[] = []
+  if (!licenseOk) uploadBlockers.push('confirm usage rights')
+  if (!clipLengthSeconds) uploadBlockers.push('select clip length above')
 
   async function confirmUpload() {
     if (!licenseOk) {
@@ -151,10 +165,13 @@ export function MusicCatalogUploader({
         <span className="text-sm font-medium">Drop MP3 files or click to browse</span>
         <input
           type="file"
-          accept="audio/*,.mp3"
+          accept="audio/*,.mp3,.m4a,.wav"
           multiple
           className="hidden"
-          onChange={(e) => onFilesSelected(e.target.files)}
+          onChange={(e) => {
+            onFilesSelected(e.target.files)
+            e.target.value = ''
+          }}
         />
       </label>
 
@@ -207,17 +224,24 @@ export function MusicCatalogUploader({
       ) : null}
 
       {pending.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          <AccentButton
-            type="button"
-            disabled={uploading || !licenseOk || !clipLengthSeconds}
-            onClick={() => void confirmUpload()}
-          >
-            {uploading ? 'Uploading…' : `Add ${pending.length} to game`}
-          </AccentButton>
-          <Button type="button" variant="outline" onClick={() => setPending([])}>
-            Clear
-          </Button>
+        <div className="space-y-2">
+          {uploadBlockers.length > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              Before uploading: {uploadBlockers.join(' and ')}.
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <AccentButton
+              type="button"
+              disabled={uploading}
+              onClick={() => void confirmUpload()}
+            >
+              {uploading ? 'Uploading…' : `Add ${pending.length} to game`}
+            </AccentButton>
+            <Button type="button" variant="outline" onClick={() => setPending([])}>
+              Clear
+            </Button>
+          </div>
         </div>
       ) : null}
     </Card>

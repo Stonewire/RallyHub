@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabase'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 
 export function bingoClipLength(config: GameConfig): 30 | 90 | null {
-  const n = config.bingo_clip_length
-  return n === 30 || n === 90 ? n : null
+  const n = Number(config.bingo_clip_length)
+  if (n === 30) return 30
+  if (n === 90) return 90
+  return null
 }
 
 export function clearAllTrackClips(config: GameConfig): GameConfig {
