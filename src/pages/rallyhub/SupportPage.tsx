@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
-import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { NeoPageShell } from '@/components/neo-minimal'
 import {
   TICKET_STATUS_ORDER,
   useSupportTickets,
@@ -18,10 +18,7 @@ export function RallyHubSupportPage() {
   const tickets = data ?? []
 
   return (
-    <AdminPageShell
-      title="Support"
-      subtitle="Client support tickets across the platform."
-    >
+    <NeoPageShell title="Support" subtitle="Client support tickets across the platform.">
       {isLoading ? (
         <QueryLoading rows={5} />
       ) : isError ? (
@@ -48,7 +45,7 @@ export function RallyHubSupportPage() {
               </div>
               <select
                 value={ticket.status}
-                className="border-input bg-background h-8 rounded-lg border px-2 text-sm"
+                className="neo-field h-8 px-2 text-sm"
                 onChange={(e) => {
                   const status = e.target.value as TicketStatus
                   void updateStatus.mutateAsync({
@@ -67,6 +64,6 @@ export function RallyHubSupportPage() {
           )}
         />
       )}
-    </AdminPageShell>
+    </NeoPageShell>
   )
 }

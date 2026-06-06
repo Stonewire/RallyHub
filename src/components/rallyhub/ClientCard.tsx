@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
+import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import {
   formatBillingPeriodLabel,
   formatClientPlanLabel,
@@ -35,9 +35,9 @@ export function ClientCard({ client, className }: ClientCardProps) {
   const initials = organizationInitials(client.name)
 
   return (
-    <article
+    <NeoCard
       className={cn(
-        'border-border/80 bg-card flex h-full min-h-[11rem] flex-col gap-3 rounded-lg border p-4 shadow-sm',
+        'flex h-full min-h-[11rem] flex-col gap-3 p-4',
         className,
       )}
     >
@@ -84,18 +84,18 @@ export function ClientCard({ client, className }: ClientCardProps) {
 
       <div className="mt-auto flex flex-wrap gap-2">
         {email ? (
-          <Button variant="outline" size="sm" className="flex-1" asChild>
+          <NeoButton variant="surface" size="sm" className="flex-1" asChild>
             <a href={`mailto:${encodeURIComponent(email)}`}>Contact</a>
-          </Button>
+          </NeoButton>
         ) : (
-          <Button variant="outline" size="sm" className="flex-1" disabled>
+          <NeoButton variant="surface" size="sm" className="flex-1" disabled>
             Contact
-          </Button>
+          </NeoButton>
         )}
-        <Button variant="default" size="sm" className="flex-1" asChild>
+        <NeoButton variant="accent" size="sm" className="flex-1" asChild>
           <Link to={`/admin/clients/${client.id}`}>View</Link>
-        </Button>
+        </NeoButton>
       </div>
-    </article>
+    </NeoCard>
   )
 }

@@ -1,10 +1,8 @@
 import { CheckCircle2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import type { GameRow } from '@/hooks/use-games'
 import {
   useGameClientInstallStatus,
@@ -76,12 +74,12 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="neo-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="install-game-title"
     >
-      <Card className="border-border/80 flex max-h-[min(32rem,90vh)] w-full max-w-md flex-col bg-card shadow-lg">
+      <NeoCard className="neo-modal-panel flex max-h-[min(32rem,90vh)] w-full max-w-md flex-col overflow-hidden p-0">
         <div className="flex items-start justify-between gap-3 border-b p-4">
           <div className="min-w-0">
             <h3 id="install-game-title" className="text-foreground font-semibold">
@@ -89,9 +87,9 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             </h3>
             <p className="text-muted-foreground mt-0.5 truncate text-sm">{game.name}</p>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
+          <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onClose}>
             <X className="size-4" />
-          </Button>
+          </NeoButton>
         </div>
 
         {phase === 'select' ? (
@@ -158,11 +156,12 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             ) : null}
 
             <div className="flex justify-end gap-2 border-t p-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={install.isPending}>
+              <NeoButton type="button" variant="surface" onClick={onClose} disabled={install.isPending}>
                 Cancel
-              </Button>
-              <AccentButton
+              </NeoButton>
+              <NeoButton
                 type="button"
+                variant="accent"
                 disabled={
                   install.isPending ||
                   clientsQuery.isLoading ||
@@ -176,7 +175,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
                   : pendingInstallIds.length === 0
                     ? 'Install'
                     : `Install to ${pendingInstallIds.length} client${pendingInstallIds.length === 1 ? '' : 's'}`}
-              </AccentButton>
+              </NeoButton>
             </div>
           </>
         ) : (
@@ -216,13 +215,13 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             ) : null}
 
             <div className="flex justify-end">
-              <AccentButton type="button" onClick={onClose}>
+              <NeoButton type="button" variant="accent" onClick={onClose}>
                 Done
-              </AccentButton>
+              </NeoButton>
             </div>
           </div>
         )}
-      </Card>
+      </NeoCard>
     </div>
   )
 }

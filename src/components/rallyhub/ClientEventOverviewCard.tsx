@@ -16,7 +16,7 @@ export function ClientEventOverviewCard({ event, clientPlan }: ClientEventOvervi
   const invoicePaid = isEventInvoicePaid(event, clientPlan)
 
   return (
-    <article className="border-border/80 bg-card flex flex-col gap-2 rounded-lg border p-3 shadow-sm">
+    <article className="neo-card flex flex-col gap-2 p-3">
       <div className="min-w-0">
         <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
           {event.name}

@@ -64,13 +64,19 @@
   --nm-transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scoped shell — warm surfaces inside pilot areas only */
+/* Scoped shell — warm surfaces for RallyHub admin */
 .neo-minimal-scope {
   --background: var(--nm-bg-base);
   --foreground: var(--nm-text-primary);
   --card: var(--nm-bg-elevated);
+  --card-foreground: var(--nm-text-primary);
+  --muted: var(--nm-bg-muted);
   --muted-foreground: var(--nm-text-muted);
   --border: var(--nm-border);
+  --input: var(--nm-border-strong);
+  --primary: var(--nm-yellow);
+  --primary-foreground: var(--nm-yellow-foreground);
+  --ring: color-mix(in srgb, var(--nm-yellow) 40%, transparent);
 
   color: var(--nm-text-primary);
 }
@@ -304,5 +310,225 @@
     color: var(--nm-charcoal) !important;
     box-shadow: var(--nm-shadow-raised);
     font-weight: 600;
+  }
+
+  /* ─── Top bar ─── */
+  .neo-minimal-scope .neo-topbar {
+    background-color: var(--nm-bg-surface);
+    border-color: var(--nm-border);
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  .neo-minimal-scope .neo-topbar-trigger:hover {
+    background: var(--nm-bg-muted);
+    border-radius: var(--nm-radius-md);
+  }
+
+  /* ─── Shadcn cards & surface panels ─── */
+  .neo-minimal-scope [data-slot='card'],
+  .neo-minimal-scope .neo-surface {
+    background: var(--nm-bg-elevated) !important;
+    border: 1px solid var(--nm-border);
+    border-radius: var(--nm-radius-lg) !important;
+    box-shadow: var(--nm-shadow-soft);
+    ring: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+  }
+
+  .neo-minimal-scope article.border-border\/80.bg-card,
+  .neo-minimal-scope .border-border\/80.bg-card:not([data-slot='card']) {
+    background: var(--nm-bg-elevated);
+    border-color: var(--nm-border);
+    border-radius: var(--nm-radius-lg);
+    box-shadow: var(--nm-shadow-soft);
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-minimal-scope article.border-border\/80.bg-card:hover,
+  .neo-minimal-scope article.cursor-pointer.border-border\/80.bg-card:hover {
+    box-shadow: var(--nm-shadow-raised);
+  }
+
+  .neo-minimal-scope article.border-border\/80.bg-card.ring-primary {
+    box-shadow: var(--nm-shadow-raised);
+    border-color: color-mix(in srgb, var(--nm-yellow) 45%, var(--nm-border));
+  }
+
+  /* ─── Form fields ─── */
+  .neo-minimal-scope [data-slot='input'],
+  .neo-minimal-scope .neo-field,
+  .neo-minimal-scope select:not([class*='border-0']),
+  .neo-minimal-scope textarea:not([class*='border-0']) {
+    background: var(--nm-bg-elevated);
+    border: 1px solid var(--nm-border);
+    border-radius: var(--nm-radius-md);
+    color: var(--nm-text-primary);
+    box-shadow: var(--nm-shadow-soft);
+    transition:
+      box-shadow var(--nm-transition),
+      border-color var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-minimal-scope [data-slot='input']:focus-visible,
+  .neo-minimal-scope .neo-field:focus-visible,
+  .neo-minimal-scope select:focus-visible,
+  .neo-minimal-scope textarea:focus-visible {
+    border-color: color-mix(in srgb, var(--nm-yellow) 50%, var(--nm-border-strong));
+    box-shadow:
+      var(--nm-shadow-soft),
+      0 0 0 3px color-mix(in srgb, var(--nm-yellow) 25%, transparent);
+    outline: none;
+  }
+
+  .neo-minimal-scope .neo-label,
+  .neo-minimal-scope label.text-sm,
+  .neo-minimal-scope [data-slot='label'] {
+    color: var(--nm-text-secondary);
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+
+  .neo-minimal-scope input[type='checkbox'] {
+    accent-color: var(--nm-yellow);
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--nm-radius-sm);
+  }
+
+  /* ─── Buttons (shadcn + accent) ─── */
+  .neo-minimal-scope [data-slot='button'][data-variant='default'],
+  .neo-minimal-scope [data-slot='button'][data-variant='secondary'] {
+    background: var(--nm-yellow);
+    color: var(--nm-yellow-foreground);
+    border-color: color-mix(in srgb, var(--nm-yellow) 70%, var(--nm-border));
+    box-shadow: var(--nm-shadow-accent);
+    font-weight: 600;
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='default']:hover:not(:disabled),
+  .neo-minimal-scope [data-slot='button'][data-variant='secondary']:hover:not(:disabled) {
+    box-shadow:
+      var(--nm-shadow-accent),
+      0 4px 14px rgb(255 203 3 / 0.2);
+    transform: translateY(-1px);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='default']:active:not(:disabled),
+  .neo-minimal-scope [data-slot='button'][data-variant='secondary']:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='outline'] {
+    background: var(--nm-bg-elevated);
+    color: var(--nm-text-primary);
+    border-color: var(--nm-border);
+    box-shadow: var(--nm-shadow-soft);
+    font-weight: 600;
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='outline']:hover:not(:disabled) {
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='ghost']:hover:not(:disabled) {
+    background: var(--nm-bg-muted);
+    color: var(--nm-text-primary);
+  }
+
+  /* ─── Horizontal tabs ─── */
+  .neo-tabs {
+    border-color: var(--nm-border);
+    gap: var(--nm-space-1);
+  }
+
+  .neo-tab {
+    color: var(--nm-text-muted);
+    border-bottom-width: 2px;
+    border-bottom-color: transparent;
+    font-weight: 600;
+    transition:
+      color var(--nm-transition),
+      border-color var(--nm-transition);
+  }
+
+  .neo-tab:hover {
+    color: var(--nm-text-primary);
+  }
+
+  .neo-tab-active {
+    color: var(--nm-text-primary);
+    border-bottom-color: var(--nm-yellow);
+  }
+
+  /* ─── Badges & counts ─── */
+  .neo-minimal-scope .neo-badge,
+  .neo-minimal-scope span.rounded-full.px-2.py-0\.5.text-xs.font-medium.tabular-nums,
+  .neo-minimal-scope span.rounded-full.px-2.py-0\.5.text-\[10px\].font-semibold {
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  /* ─── Collapsible section headers ─── */
+  .neo-minimal-scope [data-section-id] > div > button {
+    border-radius: var(--nm-radius-md);
+    font-weight: 700;
+    transition: background-color var(--nm-transition);
+  }
+
+  .neo-minimal-scope [data-section-id] > div > button:hover {
+    background: var(--nm-bg-muted);
+  }
+
+  /* ─── Modals / overlays ─── */
+  .neo-minimal-scope .neo-modal-backdrop {
+    background: rgb(62 61 62 / 0.35);
+    backdrop-filter: blur(2px);
+  }
+
+  .neo-minimal-scope .neo-modal-panel {
+    background: var(--nm-bg-elevated);
+    border: 1px solid var(--nm-border);
+    border-radius: var(--nm-radius-xl);
+    box-shadow: var(--nm-shadow-raised);
+  }
+
+  /* ─── AdminPageShell typography (Games editors on platform) ─── */
+  .neo-minimal-scope .flex.w-full.flex-1.justify-center h1.text-3xl {
+    font-size: clamp(1.75rem, 4vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--nm-text-primary);
+  }
+
+  .neo-minimal-scope .flex.w-full.flex-1.justify-center .text-muted-foreground.text-base {
+    color: var(--nm-text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ─── Sticky save footer ─── */
+  .neo-minimal-scope .border-border\/80.bg-background\/95.sticky,
+  .neo-minimal-scope .sticky.bottom-0.border-t {
+    background: color-mix(in srgb, var(--nm-bg-surface) 92%, transparent) !important;
+    border-color: var(--nm-border) !important;
+    box-shadow: 0 -4px 20px rgb(62 61 62 / 0.06);
+    backdrop-filter: blur(8px);
+  }
+
+  /* ─── Muted stat blocks inside cards ─── */
+  .neo-minimal-scope .bg-muted\/30 {
+    background: var(--nm-bg-muted) !important;
+    border-radius: var(--nm-radius-md);
+    box-shadow: inset 0 1px 2px rgb(62 61 62 / 0.04);
   }
 }

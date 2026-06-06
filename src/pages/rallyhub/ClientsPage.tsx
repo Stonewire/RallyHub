@@ -1,22 +1,21 @@
 import { Link } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { ClientCard } from '@/components/rallyhub/ClientCard'
-import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { NeoButton, NeoPageShell } from '@/components/neo-minimal'
 import { useRallyHubClients } from '@/hooks/use-rallyhub'
 
 export function RallyHubClientsPage() {
   const { data, isLoading, isError, error } = useRallyHubClients()
 
   return (
-    <AdminPageShell
+    <NeoPageShell
       title="Clients"
       subtitle="All organizations on the platform."
       actions={
-        <AccentButton asChild>
+        <NeoButton variant="accent" size="md" asChild>
           <Link to="/admin/clients/new">Add New Client</Link>
-        </AccentButton>
+        </NeoButton>
       }
     >
       {isLoading ? (
@@ -26,12 +25,12 @@ export function RallyHubClientsPage() {
       ) : (data ?? []).length === 0 ? (
         <p className="text-muted-foreground text-sm">No clients yet.</p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {(data ?? []).map((client) => (
             <ClientCard key={client.id} client={client} />
           ))}
         </div>
       )}
-    </AdminPageShell>
+    </NeoPageShell>
   )
 }

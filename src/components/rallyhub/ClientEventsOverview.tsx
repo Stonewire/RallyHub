@@ -6,7 +6,7 @@ import {
   saveCollapsedState,
 } from '@/components/admin/CollapsibleSection'
 import { ClientEventOverviewCard } from '@/components/rallyhub/ClientEventOverviewCard'
-import { Card } from '@/components/ui/card'
+import { NeoCard } from '@/components/neo-minimal'
 import {
   groupClientEventsForOverview,
   type ClientEventRow,
@@ -34,7 +34,7 @@ export function ClientEventsOverview({ events, clientPlan }: ClientEventsOvervie
   }
 
   return (
-    <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+    <NeoCard className="space-y-4 p-6">
       <div>
         <h3 className="text-foreground font-semibold">Events</h3>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -74,6 +74,6 @@ export function ClientEventsOverview({ events, clientPlan }: ClientEventsOvervie
           ))}
         </div>
       )}
-    </Card>
+    </NeoCard>
   )
 }

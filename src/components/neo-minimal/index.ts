@@ -1,4 +1,5 @@
 export { NeoButton } from '@/components/neo-minimal/NeoButton'
 export { NeoCard } from '@/components/neo-minimal/NeoCard'
+export { NeoInput, NeoLabel, NeoSelect, NeoTextarea } from '@/components/neo-minimal/NeoFormFields'
 export { NeoIconContainer } from '@/components/neo-minimal/NeoIconContainer'
 export { NeoPageShell } from '@/components/neo-minimal/NeoPageShell'

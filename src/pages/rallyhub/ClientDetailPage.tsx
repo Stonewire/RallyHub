@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
@@ -12,10 +11,15 @@ import {
   normalizeClientDetailTab,
 } from '@/components/rallyhub/ClientDetailTabs'
 import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
+import {
+  NeoButton,
+  NeoCard,
+  NeoInput,
+  NeoLabel,
+  NeoPageShell,
+  NeoTextarea,
+} from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   useCreateRallyHubClient,
   useRallyHubClient,
@@ -276,17 +280,17 @@ export function RallyHubClientDetailPage() {
 
   if (!isCreateMode && isLoading) {
     return (
-      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
+      <NeoPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryLoading rows={4} />
-      </AdminPageShell>
+      </NeoPageShell>
     )
   }
 
   if (!isCreateMode && (isError || !data)) {
     return (
-      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
+      <NeoPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryError message={error?.message ?? 'Not found'} />
-      </AdminPageShell>
+      </NeoPageShell>
     )
   }
 
@@ -308,7 +312,7 @@ export function RallyHubClientDetailPage() {
 
   const clientInfoTab = (
     <div className="space-y-6">
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-5">
           <div className="space-y-3">
             {displayLogo ? (
@@ -329,22 +333,22 @@ export function RallyHubClientDetailPage() {
               className="hidden"
               onChange={(e) => void handleLogoChange(e.target.files?.[0])}
             />
-            <Button
+            <NeoButton
               type="button"
-              variant="outline"
+              variant="surface"
               size="sm"
               disabled={saving}
               onClick={() => fileRef.current?.click()}
             >
               <Upload className="size-4" />
               {logoUploading ? 'Uploading…' : 'Upload logo'}
-            </Button>
+            </NeoButton>
           </div>
 
           <div className="min-w-0 flex-1 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="org-name">Organization name</Label>
-              <Input
+              <NeoLabel htmlFor="org-name">Organization name</NeoLabel>
+              <NeoInput
                 id="org-name"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
@@ -378,18 +382,18 @@ export function RallyHubClientDetailPage() {
             </div>
           </div>
         ) : null}
-      </Card>
+      </NeoCard>
 
       {isCreateMode ? (
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground font-semibold">Admin login</h3>
           <p className="text-muted-foreground text-sm">
             Creates the client&apos;s first admin user account.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="login-email">Admin login email</Label>
-              <Input
+              <NeoLabel htmlFor="login-email">Admin login email</NeoLabel>
+              <NeoInput
                 id="login-email"
                 type="email"
                 value={loginEmail}
@@ -400,8 +404,8 @@ export function RallyHubClientDetailPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="login-password">Admin login password</Label>
-              <Input
+              <NeoLabel htmlFor="login-password">Admin login password</NeoLabel>
+              <NeoInput
                 id="login-password"
                 type="password"
                 value={loginPassword}
@@ -412,15 +416,15 @@ export function RallyHubClientDetailPage() {
               />
             </div>
           </div>
-        </Card>
+        </NeoCard>
       ) : data ? (
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground font-semibold">Admin login</h3>
           <p className="text-muted-foreground text-sm">
             The email address the client uses to sign in to their admin account.
           </p>
           <div className="space-y-2">
-            <Label htmlFor="admin-login-email-display">Admin login email</Label>
+            <NeoLabel htmlFor="admin-login-email-display">Admin login email</NeoLabel>
             <p
               id="admin-login-email-display"
               className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
@@ -444,20 +448,20 @@ export function RallyHubClientDetailPage() {
           >
             {adminResetSending ? 'Sending…' : 'Send Password Reset'}
           </Button>
-        </Card>
+        </NeoCard>
       ) : null}
 
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
         <div>
-          <Label htmlFor="tenant-url">Tenant URL</Label>
+          <NeoLabel htmlFor="tenant-url">Tenant URL</NeoLabel>
           <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
             {tenantUrl}
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="subdomain">Subdomain</Label>
-          <Input
+          <NeoLabel htmlFor="subdomain">Subdomain</NeoLabel>
+          <NeoInput
             id="subdomain"
             value={subdomain}
             onChange={(e) => setSubdomain(e.target.value)}
@@ -467,8 +471,8 @@ export function RallyHubClientDetailPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="client-email">Contact email</Label>
-            <Input
+            <NeoLabel htmlFor="client-email">Contact email</NeoLabel>
+            <NeoInput
               id="client-email"
               type="email"
               value={email}
@@ -478,8 +482,8 @@ export function RallyHubClientDetailPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="client-phone">Phone</Label>
-            <Input
+            <NeoLabel htmlFor="client-phone">Phone</NeoLabel>
+            <NeoInput
               id="client-phone"
               type="tel"
               value={phone}
@@ -500,12 +504,12 @@ export function RallyHubClientDetailPage() {
         )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="billing-plan">Billing plan</Label>
+            <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
             <select
               id="billing-plan"
               value={billingPlan}
               onChange={(e) => setBillingPlan(e.target.value)}
-              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              className="neo-field w-full px-3 py-2 text-sm"
             >
               {getAdminAssignablePlans().map((plan) => (
                 <option key={plan.id} value={plan.id}>
@@ -516,12 +520,12 @@ export function RallyHubClientDetailPage() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="billing-period">Billing period</Label>
+            <NeoLabel htmlFor="billing-period">Billing period</NeoLabel>
             <select
               id="billing-period"
               value={billingPeriod}
               onChange={(e) => setBillingPeriod(e.target.value)}
-              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              className="neo-field w-full px-3 py-2 text-sm"
             >
               {BILLING_PERIODS.map((period) => (
                 <option key={period} value={period}>
@@ -531,12 +535,12 @@ export function RallyHubClientDetailPage() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="account-status">Account status</Label>
+            <NeoLabel htmlFor="account-status">Account status</NeoLabel>
             <select
               id="account-status"
               value={accountStatus}
               onChange={(e) => setAccountStatus(e.target.value)}
-              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              className="neo-field w-full px-3 py-2 text-sm"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -553,13 +557,13 @@ export function RallyHubClientDetailPage() {
             lists.
           </p>
         ) : null}
-      </Card>
+      </NeoCard>
 
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <h3 className="text-foreground text-lg font-semibold">Company details</h3>
         <div className="space-y-2">
-          <Label htmlFor="vat">VAT number</Label>
-          <Input
+          <NeoLabel htmlFor="vat">VAT number</NeoLabel>
+          <NeoInput
             id="vat"
             value={vatNumber}
             onChange={(e) => setVatNumber(e.target.value)}
@@ -567,8 +571,8 @@ export function RallyHubClientDetailPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="address-street">Street</Label>
-          <Input
+          <NeoLabel htmlFor="address-street">Street</NeoLabel>
+          <NeoInput
             id="address-street"
             value={addressStreet}
             onChange={(e) => setAddressStreet(e.target.value)}
@@ -577,8 +581,8 @@ export function RallyHubClientDetailPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="address-city">City</Label>
-            <Input
+            <NeoLabel htmlFor="address-city">City</NeoLabel>
+            <NeoInput
               id="address-city"
               value={addressCity}
               onChange={(e) => setAddressCity(e.target.value)}
@@ -586,8 +590,8 @@ export function RallyHubClientDetailPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address-state">State / region</Label>
-            <Input
+            <NeoLabel htmlFor="address-state">State / region</NeoLabel>
+            <NeoInput
               id="address-state"
               value={addressState}
               onChange={(e) => setAddressState(e.target.value)}
@@ -597,8 +601,8 @@ export function RallyHubClientDetailPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="address-postal">Postal code</Label>
-            <Input
+            <NeoLabel htmlFor="address-postal">Postal code</NeoLabel>
+            <NeoInput
               id="address-postal"
               value={addressPostal}
               onChange={(e) => setAddressPostal(e.target.value)}
@@ -606,8 +610,8 @@ export function RallyHubClientDetailPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address-country">Country</Label>
-            <Input
+            <NeoLabel htmlFor="address-country">Country</NeoLabel>
+            <NeoInput
               id="address-country"
               value={addressCountry}
               onChange={(e) => setAddressCountry(e.target.value)}
@@ -615,10 +619,10 @@ export function RallyHubClientDetailPage() {
             />
           </div>
         </div>
-      </Card>
+      </NeoCard>
 
       {!isCreateMode && data ? (
-        <Card className="border-border/80 bg-card p-6 shadow-sm">
+        <NeoCard className="border-border/80 bg-card p-6 shadow-sm">
           <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
           <ul className="space-y-3">
             {data.profiles.map((p) => (
@@ -631,7 +635,7 @@ export function RallyHubClientDetailPage() {
                   <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input
+                  <NeoInput
                     type="email"
                     value={memberResetEmail[p.id] ?? ''}
                     onChange={(e) =>
@@ -670,24 +674,24 @@ export function RallyHubClientDetailPage() {
               </li>
             ))}
           </ul>
-        </Card>
+        </NeoCard>
       ) : null}
 
-      <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
-        <Label htmlFor="internal-notes">Internal notes</Label>
-        <textarea
+      <NeoCard className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
+        <NeoLabel htmlFor="internal-notes">Internal notes</NeoLabel>
+        <NeoTextarea
           id="internal-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
-          className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+          className="w-full px-3 py-2 text-sm"
         />
-      </Card>
+      </NeoCard>
     </div>
   )
 
   return (
-    <AdminPageShell
+    <NeoPageShell
       title={displayName}
       subtitle={
         isCreateMode
@@ -730,6 +734,6 @@ export function RallyHubClientDetailPage() {
           onSave={() => void handleSave()}
         />
       ) : null}
-    </AdminPageShell>
+    </NeoPageShell>
   )
 }
