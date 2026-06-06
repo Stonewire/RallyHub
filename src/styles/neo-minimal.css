@@ -114,8 +114,8 @@
     transform: translateY(0);
   }
 
-  /* ─── Button ─── */
-  .neo-btn {
+  /* ─── Buttons (scoped to RallyHub admin) ─── */
+  .neo-minimal-scope .neo-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -127,81 +127,125 @@
     transition:
       box-shadow var(--nm-transition),
       transform var(--nm-transition),
-      background-color var(--nm-transition);
+      background-color var(--nm-transition),
+      border-color var(--nm-transition),
+      color var(--nm-transition);
     outline: none;
     cursor: pointer;
     border: 1px solid transparent;
   }
 
-  .neo-btn:focus-visible {
+  .neo-minimal-scope .neo-btn:focus-visible {
     box-shadow:
       var(--nm-shadow-raised),
       0 0 0 3px color-mix(in srgb, var(--nm-yellow) 35%, transparent);
   }
 
-  .neo-btn:disabled {
-    opacity: 0.5;
+  .neo-minimal-scope .neo-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
     pointer-events: none;
+    box-shadow: none !important;
+    transform: none !important;
   }
 
-  .neo-btn-accent {
-    background: var(--nm-yellow);
-    color: var(--nm-yellow-foreground);
-    box-shadow: var(--nm-shadow-accent);
+  /* Primary — charcoal main action */
+  .neo-minimal-scope .neo-btn-primary {
+    background: var(--nm-charcoal);
+    color: #faf7f3;
+    border-color: color-mix(in srgb, var(--nm-charcoal) 88%, black);
+    box-shadow: var(--nm-shadow-raised);
   }
 
-  .neo-btn-accent:hover:not(:disabled) {
-    box-shadow:
-      var(--nm-shadow-accent),
-      0 4px 14px rgb(255 203 3 / 0.22);
+  .neo-minimal-scope .neo-btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--nm-charcoal) 92%, black);
+    box-shadow: var(--nm-shadow-raised);
     transform: translateY(-1px);
   }
 
-  .neo-btn-accent:active:not(:disabled) {
+  .neo-minimal-scope .neo-btn-primary:active:not(:disabled) {
     box-shadow: var(--nm-shadow-pressed);
     transform: translateY(0);
   }
 
-  .neo-btn-surface {
+  /* Accent — sparing yellow hero CTA (one per screen) */
+  .neo-minimal-scope .neo-btn-accent {
+    background: color-mix(in srgb, var(--nm-yellow) 88%, white);
+    color: var(--nm-charcoal);
+    border-color: color-mix(in srgb, var(--nm-yellow) 55%, var(--nm-border));
+    box-shadow: var(--nm-shadow-raised);
+  }
+
+  .neo-minimal-scope .neo-btn-accent:hover:not(:disabled) {
+    background: var(--nm-yellow);
+    box-shadow: var(--nm-shadow-accent);
+    transform: translateY(-1px);
+  }
+
+  .neo-minimal-scope .neo-btn-accent:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  .neo-minimal-scope .neo-btn-surface {
     background: var(--nm-bg-elevated);
     color: var(--nm-text-primary);
     border-color: var(--nm-border);
-    box-shadow: var(--nm-shadow-raised);
+    box-shadow: var(--nm-shadow-soft);
   }
 
-  .neo-btn-surface:hover:not(:disabled) {
+  .neo-minimal-scope .neo-btn-surface:hover:not(:disabled) {
     box-shadow: var(--nm-shadow-raised);
     transform: translateY(-1px);
   }
 
-  .neo-btn-surface:active:not(:disabled) {
+  .neo-minimal-scope .neo-btn-surface:active:not(:disabled) {
     box-shadow: var(--nm-shadow-pressed);
     transform: translateY(0);
   }
 
-  .neo-btn-ghost {
+  .neo-minimal-scope .neo-btn-ghost {
     background: transparent;
     color: var(--nm-text-secondary);
     box-shadow: none;
+    border-color: transparent;
   }
 
-  .neo-btn-ghost:hover:not(:disabled) {
+  .neo-minimal-scope .neo-btn-ghost:hover:not(:disabled) {
     background: var(--nm-bg-muted);
     color: var(--nm-text-primary);
   }
 
-  .neo-btn-sm {
+  .neo-minimal-scope .neo-btn-destructive {
+    background: var(--nm-bg-elevated);
+    color: #9b4444;
+    border-color: color-mix(in srgb, #9b4444 22%, var(--nm-border));
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  .neo-minimal-scope .neo-btn-destructive:hover:not(:disabled) {
+    background: color-mix(in srgb, #9b4444 8%, var(--nm-bg-elevated));
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .neo-minimal-scope .neo-btn-destructive:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  .neo-minimal-scope .neo-btn-sm {
     height: 2rem;
     padding-inline: var(--nm-space-3);
     font-size: 0.8125rem;
   }
 
-  .neo-btn-md {
+  .neo-minimal-scope .neo-btn-md {
     height: 2.25rem;
     padding-inline: var(--nm-space-4);
   }
 
-  .neo-btn-lg {
+  .neo-minimal-scope .neo-btn-lg {
     height: 2.5rem;
     padding-inline: var(--nm-space-5);
   }
@@ -306,10 +350,14 @@
   }
 
   .neo-minimal-sidebar [data-slot='sidebar-menu-button'][data-active='true'] {
-    background: color-mix(in srgb, var(--nm-yellow) 22%, var(--nm-bg-elevated)) !important;
+    background: var(--nm-bg-elevated) !important;
     color: var(--nm-charcoal) !important;
     box-shadow: var(--nm-shadow-raised);
     font-weight: 600;
+    border: 1px solid var(--nm-border);
+    box-shadow:
+      var(--nm-shadow-raised),
+      inset 3px 0 0 var(--nm-yellow);
   }
 
   /* ─── Top bar ─── */
@@ -398,31 +446,43 @@
     border-radius: var(--nm-radius-sm);
   }
 
-  /* ─── Buttons (shadcn + accent) ─── */
-  .neo-minimal-scope [data-slot='button'][data-variant='default'],
-  .neo-minimal-scope [data-slot='button'][data-variant='secondary'] {
-    background: var(--nm-yellow);
-    color: var(--nm-yellow-foreground);
-    border-color: color-mix(in srgb, var(--nm-yellow) 70%, var(--nm-border));
-    box-shadow: var(--nm-shadow-accent);
+  /* ─── Legacy shadcn buttons (games editors, stragglers) ─── */
+  .neo-minimal-scope [data-slot='button'] {
+    border-radius: var(--nm-radius-md);
     font-weight: 600;
     transition:
       box-shadow var(--nm-transition),
-      transform var(--nm-transition);
+      transform var(--nm-transition),
+      background-color var(--nm-transition);
   }
 
-  .neo-minimal-scope [data-slot='button'][data-variant='default']:hover:not(:disabled),
-  .neo-minimal-scope [data-slot='button'][data-variant='secondary']:hover:not(:disabled) {
-    box-shadow:
-      var(--nm-shadow-accent),
-      0 4px 14px rgb(255 203 3 / 0.2);
+  .neo-minimal-scope [data-slot='button'][data-variant='default'] {
+    background: var(--nm-charcoal);
+    color: #faf7f3;
+    border-color: color-mix(in srgb, var(--nm-charcoal) 88%, black);
+    box-shadow: var(--nm-shadow-raised);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='default']:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--nm-charcoal) 92%, black);
     transform: translateY(-1px);
   }
 
-  .neo-minimal-scope [data-slot='button'][data-variant='default']:active:not(:disabled),
-  .neo-minimal-scope [data-slot='button'][data-variant='secondary']:active:not(:disabled) {
+  .neo-minimal-scope [data-slot='button'][data-variant='default']:active:not(:disabled) {
     box-shadow: var(--nm-shadow-pressed);
     transform: translateY(0);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='secondary'] {
+    background: var(--nm-bg-elevated);
+    color: var(--nm-text-primary);
+    border-color: var(--nm-border);
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  .neo-minimal-scope [data-slot='button'][data-variant='secondary']:hover:not(:disabled) {
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
   }
 
   .neo-minimal-scope [data-slot='button'][data-variant='outline'] {
@@ -430,10 +490,6 @@
     color: var(--nm-text-primary);
     border-color: var(--nm-border);
     box-shadow: var(--nm-shadow-soft);
-    font-weight: 600;
-    transition:
-      box-shadow var(--nm-transition),
-      transform var(--nm-transition);
   }
 
   .neo-minimal-scope [data-slot='button'][data-variant='outline']:hover:not(:disabled) {
@@ -444,6 +500,26 @@
   .neo-minimal-scope [data-slot='button'][data-variant='ghost']:hover:not(:disabled) {
     background: var(--nm-bg-muted);
     color: var(--nm-text-primary);
+  }
+
+  .neo-minimal-scope [data-slot='button']:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  /* AccentButton → charcoal primary under neo scope */
+  .neo-minimal-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\] {
+    background: var(--nm-charcoal) !important;
+    color: #faf7f3 !important;
+    border-color: color-mix(in srgb, var(--nm-charcoal) 88%, black) !important;
+    box-shadow: var(--nm-shadow-raised) !important;
+  }
+
+  .neo-minimal-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--nm-charcoal) 92%, black) !important;
+    transform: translateY(-1px);
   }
 
   /* ─── Horizontal tabs ─── */
@@ -471,10 +547,104 @@
     border-bottom-color: var(--nm-yellow);
   }
 
+  /* ─── Status badges (muted neo-minimal pills) ─── */
+  .neo-minimal-scope .neo-status-badge {
+    border: 1px solid var(--nm-border);
+    box-shadow: var(--nm-shadow-soft);
+    background: var(--nm-bg-muted) !important;
+    color: var(--nm-text-secondary) !important;
+    border-color: var(--nm-border) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--open {
+    background: color-mix(in srgb, var(--nm-yellow) 14%, var(--nm-bg-muted)) !important;
+    color: #5c4f00 !important;
+    border-color: color-mix(in srgb, var(--nm-yellow) 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--in_progress {
+    background: color-mix(in srgb, #6b8cae 16%, var(--nm-bg-muted)) !important;
+    color: #3d5568 !important;
+    border-color: color-mix(in srgb, #6b8cae 30%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--resolved {
+    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
+    color: #2d5a3d !important;
+    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--demo-event,
+  .neo-minimal-scope .neo-status-badge--demo {
+    background: color-mix(in srgb, #8b7cb8 14%, var(--nm-bg-muted)) !important;
+    color: #4a3d66 !important;
+    border-color: color-mix(in srgb, #8b7cb8 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--paid {
+    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
+    color: #2d5a3d !important;
+    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--unpaid {
+    background: color-mix(in srgb, #c49a5a 14%, var(--nm-bg-muted)) !important;
+    color: #5c4520 !important;
+    border-color: color-mix(in srgb, #c49a5a 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--active {
+    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
+    color: #2d5a3d !important;
+    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--ready {
+    background: color-mix(in srgb, var(--nm-yellow) 12%, var(--nm-bg-muted)) !important;
+    color: #5c4f00 !important;
+    border-color: color-mix(in srgb, var(--nm-yellow) 25%, var(--nm-border)) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--draft {
+    background: var(--nm-bg-inset) !important;
+    color: var(--nm-text-muted) !important;
+    border-color: var(--nm-border) !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--archived {
+    background: color-mix(in srgb, var(--nm-charcoal) 6%, var(--nm-bg-muted)) !important;
+    color: var(--nm-text-muted) !important;
+    border-color: var(--nm-border) !important;
+  }
+
+  /* ─── Status indicator dots (games list) ─── */
+  .neo-minimal-scope {
+    --rh-status-dot-active: #5a9a6e;
+    --rh-status-dot-demo: #8b7cb8;
+    --rh-status-dot-draft: #a8a29e;
+    --rh-status-dot-ready: #b8941a;
+    --rh-status-dot-archived: #8a837c;
+  }
+
+  /* ─── Support thread bubbles ─── */
+  .neo-minimal-scope .neo-support-bubble {
+    background: var(--nm-charcoal) !important;
+    color: #faf7f3 !important;
+    border: 1px solid color-mix(in srgb, var(--nm-charcoal) 88%, black);
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  /* Payment-required pill (billing) */
+  .neo-minimal-scope .bg-primary\/15.text-foreground {
+    background: color-mix(in srgb, #c49a5a 14%, var(--nm-bg-muted)) !important;
+    color: #5c4520 !important;
+    border: 1px solid color-mix(in srgb, #c49a5a 28%, var(--nm-border));
+    box-shadow: var(--nm-shadow-soft);
+  }
+
   /* ─── Badges & counts ─── */
   .neo-minimal-scope .neo-badge,
-  .neo-minimal-scope span.rounded-full.px-2.py-0\.5.text-xs.font-medium.tabular-nums,
-  .neo-minimal-scope span.rounded-full.px-2.py-0\.5.text-\[10px\].font-semibold {
+  .neo-minimal-scope span.rounded-full.px-2.py-0\.5.text-xs.font-medium.tabular-nums {
     box-shadow: var(--nm-shadow-soft);
   }
 

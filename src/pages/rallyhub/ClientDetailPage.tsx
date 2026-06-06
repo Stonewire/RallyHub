@@ -19,7 +19,6 @@ import {
   NeoPageShell,
   NeoTextarea,
 } from '@/components/neo-minimal'
-import { Button } from '@/components/ui/button'
 import {
   useCreateRallyHubClient,
   useRallyHubClient,
@@ -438,16 +437,16 @@ export function RallyHubClientDetailPage() {
               {adminResetMessage}
             </p>
           ) : null}
-          <Button
+          <NeoButton
             type="button"
-            variant="outline"
+            variant="surface"
             disabled={
               adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
             }
             onClick={() => void handleAdminPasswordReset()}
           >
             {adminResetSending ? 'Sending…' : 'Send Password Reset'}
-          </Button>
+          </NeoButton>
         </NeoCard>
       ) : null}
 
@@ -494,9 +493,9 @@ export function RallyHubClientDetailPage() {
           </div>
         </div>
         {contactEmail ? (
-          <Button variant="outline" size="sm" asChild>
+          <NeoButton variant="surface" size="sm" asChild>
             <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
-          </Button>
+          </NeoButton>
         ) : (
           <p className="text-muted-foreground text-xs">
             Add a contact email and save to enable contact.
@@ -644,10 +643,10 @@ export function RallyHubClientDetailPage() {
                     placeholder="User email"
                     className="bg-background h-8 max-w-[14rem] text-sm"
                   />
-                  <Button
+                  <NeoButton
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="surface"
                     disabled={!memberResetEmail[p.id]?.trim()}
                     onClick={() => {
                       const addr = memberResetEmail[p.id]?.trim()
@@ -655,14 +654,14 @@ export function RallyHubClientDetailPage() {
                     }}
                   >
                     Send reset email
-                  </Button>
+                  </NeoButton>
                 </div>
               </li>
             ))}
             {data.members.map((m) => (
               <li key={m.id} className="text-muted-foreground text-sm">
                 {m.email} (invited)
-                <Button
+                <NeoButton
                   type="button"
                   size="sm"
                   variant="ghost"
@@ -670,7 +669,7 @@ export function RallyHubClientDetailPage() {
                   onClick={() => void sendMemberPasswordReset(m.email)}
                 >
                   Send reset email
-                </Button>
+                </NeoButton>
               </li>
             ))}
           </ul>

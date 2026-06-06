@@ -3,8 +3,9 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-type NeoButtonVariant = 'accent' | 'surface' | 'ghost'
-type NeoButtonSize = 'sm' | 'md' | 'lg'
+/** primary = charcoal main action · accent = sparing yellow hero CTA */
+export type NeoButtonVariant = 'primary' | 'accent' | 'surface' | 'ghost' | 'destructive'
+export type NeoButtonSize = 'sm' | 'md' | 'lg'
 
 type NeoButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: NeoButtonVariant
@@ -14,9 +15,11 @@ type NeoButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const variantClass: Record<NeoButtonVariant, string> = {
+  primary: 'neo-btn-primary',
   accent: 'neo-btn-accent',
   surface: 'neo-btn-surface',
   ghost: 'neo-btn-ghost',
+  destructive: 'neo-btn-destructive',
 }
 
 const sizeClass: Record<NeoButtonSize, string> = {
@@ -26,7 +29,7 @@ const sizeClass: Record<NeoButtonSize, string> = {
 }
 
 export function NeoButton({
-  variant = 'surface',
+  variant = 'primary',
   size = 'md',
   asChild = false,
   className,

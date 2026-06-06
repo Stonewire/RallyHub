@@ -1,4 +1,6 @@
 import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
+import { useRallyHubAdminUI } from '@/hooks/use-rallyhub-admin-ui'
 import { cn } from '@/lib/utils'
 
 type FormSaveFooterProps = {
@@ -15,6 +17,8 @@ export function FormSaveFooter({
   label = 'Save',
   className,
 }: FormSaveFooterProps) {
+  const neoUI = useRallyHubAdminUI()
+
   return (
     <div
       className={cn(
@@ -23,9 +27,15 @@ export function FormSaveFooter({
       )}
     >
       <div className="flex justify-end">
-        <AccentButton type="button" disabled={saving} onClick={onSave}>
-          {saving ? 'Saving…' : label}
-        </AccentButton>
+        {neoUI ? (
+          <NeoButton type="button" variant="primary" disabled={saving} onClick={onSave}>
+            {saving ? 'Saving…' : label}
+          </NeoButton>
+        ) : (
+          <AccentButton type="button" disabled={saving} onClick={onSave}>
+            {saving ? 'Saving…' : label}
+          </AccentButton>
+        )}
       </div>
     </div>
   )

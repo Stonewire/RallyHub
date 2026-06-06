@@ -161,7 +161,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
               </NeoButton>
               <NeoButton
                 type="button"
-                variant="accent"
+                variant="primary"
                 disabled={
                   install.isPending ||
                   clientsQuery.isLoading ||
@@ -215,7 +215,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             ) : null}
 
             <div className="flex justify-end">
-              <NeoButton type="button" variant="accent" onClick={onClose}>
+              <NeoButton type="button" variant="primary" onClick={onClose}>
                 Done
               </NeoButton>
             </div>

@@ -2,8 +2,10 @@ import { Download, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { StatusIndicator } from '@/components/ui/status-indicator'
+import { useRallyHubAdminUI } from '@/hooks/use-rallyhub-admin-ui'
 import { GAME_TYPE_LABELS, gameStatusTone, type GameRow } from '@/hooks/use-games'
 
 type DraggableGamesGridProps = {
@@ -26,6 +28,7 @@ export function DraggableGamesGrid({
   onInstall,
 }: DraggableGamesGridProps) {
   const [dragId, setDragId] = useState<string | null>(null)
+  const neoUI = useRallyHubAdminUI()
 
   const sorted = [...games].sort((a, b) => {
     if (a.list_order !== b.list_order) return a.list_order - b.list_order
@@ -117,34 +120,69 @@ export function DraggableGamesGrid({
               </select>
             ) : null}
             {onInstall ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onInstall(game)}
-              >
-                <Download className="size-3" />
-                Install
-              </Button>
+              neoUI ? (
+                <NeoButton
+                  type="button"
+                  variant="surface"
+                  size="sm"
+                  onClick={() => onInstall(game)}
+                >
+                  <Download className="size-3" />
+                  Install
+                </NeoButton>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => onInstall(game)}
+                >
+                  <Download className="size-3" />
+                  Install
+                </Button>
+              )
             ) : null}
-            <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
-              <Link to={`/admin/games/${game.id}`}>
-                <Pencil className="size-3" />
-                Edit
-              </Link>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-destructive h-7 text-xs"
-              disabled={deleting}
-              onClick={() => onDelete(game)}
-            >
-              <Trash2 className="size-3" />
-              Delete
-            </Button>
+            {neoUI ? (
+              <>
+                <NeoButton variant="surface" size="sm" asChild>
+                  <Link to={`/admin/games/${game.id}`}>
+                    <Pencil className="size-3" />
+                    Edit
+                  </Link>
+                </NeoButton>
+                <NeoButton
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={() => onDelete(game)}
+                >
+                  <Trash2 className="size-3" />
+                  Delete
+                </NeoButton>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+                  <Link to={`/admin/games/${game.id}`}>
+                    <Pencil className="size-3" />
+                    Edit
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive h-7 text-xs"
+                  disabled={deleting}
+                  onClick={() => onDelete(game)}
+                >
+                  <Trash2 className="size-3" />
+                  Delete
+                </Button>
+              </>
+            )}
           </div>
         </article>
       ))}

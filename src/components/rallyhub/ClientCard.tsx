@@ -92,7 +92,7 @@ export function ClientCard({ client, className }: ClientCardProps) {
             Contact
           </NeoButton>
         )}
-        <NeoButton variant="accent" size="sm" className="flex-1" asChild>
+        <NeoButton variant="primary" size="sm" className="flex-1" asChild>
           <Link to={`/admin/clients/${client.id}`}>View</Link>
         </NeoButton>
       </div>

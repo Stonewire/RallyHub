@@ -21,7 +21,8 @@ export function SupportTicketStatusBadge({ status, className }: SupportTicketSta
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        'neo-status-badge inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        `neo-status-badge--${status}`,
         STATUS_STYLES[status],
         className,
       )}
