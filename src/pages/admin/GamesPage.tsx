@@ -21,6 +21,7 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   useAssignGameToGroup,
   useDeleteGameGroup,
@@ -153,6 +154,15 @@ export function AdminGamesPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
+  const [pendingDeleteGame, setPendingDeleteGame] = useState<{ id: string; name: string } | null>(
+    null,
+  )
+  const [pendingDeleteGroup, setPendingDeleteGroup] = useState<{ id: string; name: string } | null>(
+    null,
+  )
+  const [createGroupOpen, setCreateGroupOpen] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
+  const [dialogError, setDialogError] = useState<string | null>(null)
 
   const groups = groupsQuery.data ?? []
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
@@ -179,15 +189,49 @@ export function AdminGamesPage() {
 
   const ungrouped = filtered.filter((g) => !gameToGroupId.has(g.id))
 
-  async function handleDelete(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
-    await deleteGame.mutateAsync(id)
+  function openCreateGroupDialog() {
+    setDialogError(null)
+    setNewGroupName('')
+    setCreateGroupOpen(true)
   }
 
-  async function handleNewGroup() {
-    const name = window.prompt('Group name')
-    if (!name?.trim()) return
-    await createGroup.mutateAsync(name.trim())
+  async function confirmCreateGroup() {
+    const name = newGroupName.trim()
+    if (!name) {
+      setDialogError('Enter a group name.')
+      return
+    }
+    setDialogError(null)
+    try {
+      await createGroup.mutateAsync(name)
+      setCreateGroupOpen(false)
+      setNewGroupName('')
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Could not create group')
+    }
+  }
+
+  async function confirmDeleteGame() {
+    if (!pendingDeleteGame) return
+    setDialogError(null)
+    try {
+      await deleteGame.mutateAsync(pendingDeleteGame.id)
+      setPendingDeleteGame(null)
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Could not delete game')
+    }
+  }
+
+  async function confirmDeleteGroup() {
+    if (!pendingDeleteGroup) return
+    setDialogError(null)
+    try {
+      await deleteGroup.mutateAsync(pendingDeleteGroup.id)
+      if (editingGroupId === pendingDeleteGroup.id) setEditingGroupId(null)
+      setPendingDeleteGroup(null)
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Could not delete group')
+    }
   }
 
   function toggleGroup(id: string) {
@@ -204,18 +248,6 @@ export function AdminGamesPage() {
     if (!name) return
     await renameGroup.mutateAsync({ groupId, name })
     setEditingGroupId(null)
-  }
-
-  async function handleDeleteGroup(groupId: string, groupName: string) {
-    if (
-      !window.confirm(
-        `Delete group "${groupName}"? Games in this group will move to Ungrouped.`,
-      )
-    ) {
-      return
-    }
-    await deleteGroup.mutateAsync(groupId)
-    if (editingGroupId === groupId) setEditingGroupId(null)
   }
 
   if (orgLoading) {
@@ -265,7 +297,7 @@ export function AdminGamesPage() {
       }
       actions={
         <>
-          <NeoButton type="button" variant="surface" onClick={() => void handleNewGroup()}>
+          <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
             New Group
           </NeoButton>
           <NeoButton variant="accent" asChild>
@@ -331,7 +363,10 @@ export function AdminGamesPage() {
                   onStartRename={() => startRename(group.id, group.name)}
                   onSaveRename={() => void saveRename(group.id)}
                   onCancelRename={() => setEditingGroupId(null)}
-                  onDelete={() => void handleDeleteGroup(group.id, group.name)}
+                  onDelete={() => {
+                    setDialogError(null)
+                    setPendingDeleteGroup({ id: group.id, name: group.name })
+                  }}
                 />
                 {!collapsed ? (
                   groupGames.length === 0 ? (
@@ -341,7 +376,10 @@ export function AdminGamesPage() {
                       games={groupGames}
                       groups={groupOptions}
                       deleting={deleteGame.isPending}
-                      onDelete={(game) => void handleDelete(game.id, game.name)}
+                      onDelete={(game) => {
+                        setDialogError(null)
+                        setPendingDeleteGame({ id: game.id, name: game.name })
+                      }}
                       onAssignGroup={(gameId, gid) =>
                         void assignGroup.mutateAsync({ gameId, groupId: gid })
                       }
@@ -368,7 +406,10 @@ export function AdminGamesPage() {
                 games={ungrouped}
                 groups={groupOptions}
                 deleting={deleteGame.isPending}
-                onDelete={(game) => void handleDelete(game.id, game.name)}
+                onDelete={(game) => {
+                  setDialogError(null)
+                  setPendingDeleteGame({ id: game.id, name: game.name })
+                }}
                 onAssignGroup={(gameId, gid) =>
                   void assignGroup.mutateAsync({ gameId, groupId: gid })
                 }
@@ -381,6 +422,165 @@ export function AdminGamesPage() {
       )}
       {installGame ? (
         <InstallGameModal game={installGame} onClose={() => setInstallGame(null)} />
+      ) : null}
+
+      {createGroupOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-group-title"
+        >
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-2">
+              <h3 id="create-group-title" className="text-foreground font-semibold">
+                New game group
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                Groups help organize games on this page and when building events.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-group-name">Group name</Label>
+              <Input
+                id="new-group-name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void confirmCreateGroup()
+                  if (e.key === 'Escape') setCreateGroupOpen(false)
+                }}
+                placeholder="e.g. Icebreakers"
+                className="bg-background"
+                autoFocus
+              />
+            </div>
+            {dialogError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {dialogError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={createGroup.isPending}
+                onClick={() => {
+                  setDialogError(null)
+                  setCreateGroupOpen(false)
+                }}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="primary"
+                disabled={createGroup.isPending}
+                onClick={() => void confirmCreateGroup()}
+              >
+                {createGroup.isPending ? 'Creating…' : 'Create group'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {pendingDeleteGame ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="delete-game-title"
+          aria-describedby="delete-game-message"
+        >
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-2">
+              <h3 id="delete-game-title" className="text-foreground font-semibold">
+                Delete game?
+              </h3>
+              <p id="delete-game-message" className="text-muted-foreground text-sm leading-relaxed">
+                Delete{' '}
+                <span className="text-foreground font-medium">{pendingDeleteGame.name}</span>? This
+                cannot be undone.
+              </p>
+            </div>
+            {dialogError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {dialogError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={deleteGame.isPending}
+                onClick={() => {
+                  setDialogError(null)
+                  setPendingDeleteGame(null)
+                }}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={deleteGame.isPending}
+                onClick={() => void confirmDeleteGame()}
+              >
+                {deleteGame.isPending ? 'Deleting…' : 'Delete game'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {pendingDeleteGroup ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="delete-group-title"
+          aria-describedby="delete-group-message"
+        >
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-2">
+              <h3 id="delete-group-title" className="text-foreground font-semibold">
+                Delete game group?
+              </h3>
+              <p id="delete-group-message" className="text-muted-foreground text-sm leading-relaxed">
+                Delete group{' '}
+                <span className="text-foreground font-medium">{pendingDeleteGroup.name}</span>? Games
+                in this group will move to Ungrouped. This cannot be undone.
+              </p>
+            </div>
+            {dialogError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {dialogError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={deleteGroup.isPending}
+                onClick={() => {
+                  setDialogError(null)
+                  setPendingDeleteGroup(null)
+                }}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={deleteGroup.isPending}
+                onClick={() => void confirmDeleteGroup()}
+              >
+                {deleteGroup.isPending ? 'Deleting…' : 'Delete group'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
       ) : null}
     </AdminPageShell>
   )
