@@ -16,9 +16,14 @@ import {
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
 import { uploadOrganizationLogo } from '@/hooks/use-organization-settings'
+import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import {
-  CLIENT_PLAN_OPTIONS,
+  BILLING_PERIODS,
+  formatBillingPeriodLabel,
   formatClientPlanLabel,
+  getAdminAssignablePlans,
+  getPlan,
+  normalizeBillingPeriod,
   normalizeClientPlan,
 } from '@/lib/client-plans'
 import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
@@ -81,6 +86,7 @@ export function RallyHubClientDetailPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [billingPlan, setBillingPlan] = useState('free')
+  const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [accountStatus, setAccountStatus] = useState('active')
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
@@ -108,6 +114,7 @@ export function RallyHubClientDetailPage() {
     setEmail(clientEmail(org))
     setPhone(org.phone ?? '')
     setBillingPlan(normalizeClientPlan(org.billing_plan))
+    setBillingPeriod(normalizeBillingPeriod(org.billing_period))
     setAccountStatus(org.account_status ?? 'active')
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
@@ -199,6 +206,7 @@ export function RallyHubClientDetailPage() {
       email,
       phone,
       billing_plan: billingPlan,
+      billing_period: billingPeriod,
       account_status: accountStatus,
       logo_url: logo !== undefined ? logo : logoUrl,
       vat_number: vatNumber,
@@ -225,6 +233,7 @@ export function RallyHubClientDetailPage() {
           password: loginPassword,
           subdomain: subdomain.trim() || undefined,
           billing_plan: billingPlan,
+          billing_period: billingPeriod,
         })
 
         let finalLogoUrl = logoUrl
@@ -311,7 +320,8 @@ export function RallyHubClientDetailPage() {
               <div className="min-w-0">
                 <p className="text-foreground text-lg font-semibold">{displayName}</p>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Plan: {formatClientPlanLabel(billingPlan)}
+                  Plan: {formatClientPlanLabel(billingPlan)} (
+                  {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
                 </p>
                 <p className="text-muted-foreground mt-1 text-sm capitalize">
                   Status: {accountStatus}
@@ -505,7 +515,7 @@ export function RallyHubClientDetailPage() {
               Add a contact email and save to enable contact.
             </p>
           )}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="billing-plan">Billing plan</Label>
               <select
@@ -514,9 +524,25 @@ export function RallyHubClientDetailPage() {
                 onChange={(e) => setBillingPlan(e.target.value)}
                 className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
               >
-                {CLIENT_PLAN_OPTIONS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
+                {getAdminAssignablePlans().map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                    {plan.hidden ? ' (hidden)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billing-period">Billing period</Label>
+              <select
+                id="billing-period"
+                value={billingPeriod}
+                onChange={(e) => setBillingPeriod(e.target.value)}
+                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+              >
+                {BILLING_PERIODS.map((period) => (
+                  <option key={period} value={period}>
+                    {formatBillingPeriodLabel(period)}
                   </option>
                 ))}
               </select>
@@ -537,6 +563,17 @@ export function RallyHubClientDetailPage() {
               </select>
             </div>
           </div>
+          <PlanDetailsCard
+            planId={billingPlan}
+            billingPeriod={billingPeriod}
+            compact
+          />
+          {getPlan(billingPlan).hidden ? (
+            <p className="text-muted-foreground text-xs">
+              Partner is a fully comped plan and is not shown to clients in public
+              plan lists.
+            </p>
+          ) : null}
         </Card>
 
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">

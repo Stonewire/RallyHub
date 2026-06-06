@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { name, email, password, subdomain, billing_plan } = await req.json()
+    const { name, email, password, subdomain, billing_plan, billing_period } =
+      await req.json()
     if (!name?.trim() || !email?.trim() || !password) {
       return new Response(JSON.stringify({ error: 'name, email, password required' }), {
         status: 400,
@@ -81,7 +82,8 @@ Deno.serve(async (req) => {
         email: email.trim(),
         contact_email: email.trim(),
         subdomain: sub,
-        billing_plan: billing_plan ?? 'starter',
+        billing_plan: billing_plan ?? 'free',
+        billing_period: billing_period === 'yearly' ? 'yearly' : 'monthly',
       })
       .select()
       .single()

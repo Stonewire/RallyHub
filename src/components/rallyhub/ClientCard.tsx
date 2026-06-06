@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
-import { formatClientPlanLabel } from '@/lib/client-plans'
+import {
+  formatBillingPeriodLabel,
+  formatClientPlanLabel,
+  normalizeBillingPeriod,
+} from '@/lib/client-plans'
 import { organizationInitials } from '@/lib/org-avatar'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +16,7 @@ export type ClientCardData = {
   email: string | null
   contact_email: string | null
   billing_plan: string | null
+  billing_period?: string | null
   completedEvents: number
   upcomingEvents: number
 }
@@ -56,7 +61,8 @@ export function ClientCard({ client, className }: ClientCardProps) {
             {client.name}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Plan: {formatClientPlanLabel(client.billing_plan)}
+            Plan: {formatClientPlanLabel(client.billing_plan)} (
+            {formatBillingPeriodLabel(normalizeBillingPeriod(client.billing_period))})
           </p>
         </div>
       </div>

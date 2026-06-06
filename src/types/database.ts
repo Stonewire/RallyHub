@@ -26,6 +26,7 @@ type OrgRow = {
   subdomain: string
   custom_domain: string | null
   billing_plan: string
+  billing_period: string
   contact_email: string | null
   email: string | null
   phone: string | null

@@ -104,6 +104,7 @@ export type ClientAdminUpdateInput = {
   notes?: string
   account_status?: string
   billing_plan?: string
+  billing_period?: string
   subdomain?: string
   email?: string
   phone?: string
@@ -125,12 +126,14 @@ export function useCreateRallyHubClient() {
       password,
       subdomain,
       billing_plan,
+      billing_period,
     }: {
       name: string
       email: string
       password: string
       subdomain?: string
       billing_plan?: string
+      billing_period?: string
     }) => {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
@@ -148,6 +151,7 @@ export function useCreateRallyHubClient() {
           password,
           subdomain: subdomain?.trim() || undefined,
           billing_plan,
+          billing_period,
         }),
       })
       const json = (await res.json()) as { error?: string; org?: { id: string } }
@@ -170,6 +174,7 @@ export function useUpdateClientAdmin() {
       notes,
       account_status,
       billing_plan,
+      billing_period,
       subdomain,
       email,
       phone,
@@ -188,6 +193,7 @@ export function useUpdateClientAdmin() {
         internal_notes: notes ?? null,
         account_status: account_status ?? 'active',
         billing_plan: billing_plan ?? 'free',
+        billing_period: billing_period ?? 'monthly',
         email: trimmedEmail || null,
         contact_email: trimmedEmail || null,
         phone: trimmedPhone || null,

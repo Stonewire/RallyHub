@@ -1,28 +1,32 @@
-export const CLIENT_PLAN_OPTIONS = [
-  { value: 'free', label: 'Free' },
-  { value: 'starter', label: 'Starter' },
-  { value: 'pro', label: 'Pro' },
-  { value: 'partner', label: 'Partner' },
-] as const
+/**
+ * @deprecated Import from `@/lib/subscription-plans` instead.
+ * Re-exports kept for existing imports.
+ */
+export {
+  type BillingPeriod,
+  type PlanId,
+  BILLING_PERIODS,
+  formatBillingPeriodLabel,
+  formatEur,
+  formatEventLimit,
+  formatPerEventPrice,
+  formatPlanLabel as formatClientPlanLabel,
+  formatSubscriptionPrice,
+  getAdminAssignablePlans,
+  getPlan,
+  getVisiblePlans,
+  normalizeBillingPeriod,
+  normalizePlanId as normalizeClientPlan,
+  SUBSCRIPTION_PLANS,
+  type SubscriptionPlan,
+} from '@/lib/subscription-plans'
 
-export type ClientPlanValue = (typeof CLIENT_PLAN_OPTIONS)[number]['value']
+import { getAdminAssignablePlans, type PlanId } from '@/lib/subscription-plans'
 
-const PLAN_LABELS: Record<string, string> = {
-  free: 'Free',
-  starter: 'Starter',
-  pro: 'Pro',
-  partner: 'Partner',
-  enterprise: 'Partner',
-}
+/** Super-admin plan options (includes hidden Partner). */
+export const CLIENT_PLAN_OPTIONS = getAdminAssignablePlans().map((plan) => ({
+  value: plan.id,
+  label: plan.name,
+})) as { value: PlanId; label: string }[]
 
-export function formatClientPlanLabel(plan: string | null | undefined): string {
-  if (!plan?.trim()) return 'Free'
-  return PLAN_LABELS[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1)
-}
-
-export function normalizeClientPlan(plan: string | null | undefined): ClientPlanValue {
-  const key = plan?.toLowerCase()
-  if (key === 'free' || key === 'starter' || key === 'pro' || key === 'partner') return key
-  if (key === 'enterprise') return 'partner'
-  return 'free'
-}
+export type ClientPlanValue = PlanId
