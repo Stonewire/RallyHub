@@ -55,7 +55,7 @@ export function Leaderboard({
                 style={{ maxWidth: orbit.maxPx }}
               >
                 <div
-                  className="relative flex shrink-0 items-center justify-center rounded-full"
+                  className="xp-team-tile relative flex shrink-0 items-center justify-center rounded-full"
                   style={{
                     width: size,
                     height: size,
@@ -97,7 +97,7 @@ export function Leaderboard({
       {ranked.map((team, i) => (
         <li
           key={team.id}
-          className="flex items-center gap-4 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm"
+          className={`xp-leaderboard-row flex items-center gap-4 bg-white/10 px-4 py-3 backdrop-blur-sm`}
         >
           <span className="w-8 text-lg font-bold opacity-60">{i + 1}</span>
           {team.photo_url ? (

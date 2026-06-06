@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -143,22 +143,23 @@ export function SubmissionDetailModal({
                 </div>
               ) : null}
               <div className="flex gap-2">
-                <AccentButton
+                <NeoButton
                   className="flex-1"
+                  variant="primary"
                   disabled={busy || (isRange && !rangeValid)}
                   onClick={() => void handleApprove()}
                 >
                   Approve
-                </AccentButton>
-                <Button
+                </NeoButton>
+                <NeoButton
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   className="flex-1"
                   disabled={busy}
                   onClick={() => void handleReject()}
                 >
                   Reject
-                </Button>
+                </NeoButton>
               </div>
             </div>
           ) : (

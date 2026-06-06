@@ -193,7 +193,7 @@ export function VideoChallengeCapture({
         <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
           Review your recording
         </p>
-        <div className="overflow-hidden rounded-xl bg-black">
+        <div className="xp-media-frame overflow-hidden rounded-xl bg-black">
           <video
             ref={reviewRef}
             key={reviewUrl}
@@ -233,7 +233,7 @@ export function VideoChallengeCapture({
       <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
         Max video length: {formatVideoDurationLabel(maxSec)}
       </p>
-      <div className="overflow-hidden rounded-xl bg-black">
+      <div className="xp-media-frame overflow-hidden rounded-xl bg-black">
         <div className="relative">
           <video
             ref={previewRef}

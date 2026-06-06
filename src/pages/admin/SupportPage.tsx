@@ -1,6 +1,5 @@
 import { useState } from 'react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -9,9 +8,7 @@ import {
 import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
 import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { NeoButton, NeoCard, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
 import {
   useCreateSupportTicket,
   useSupportTickets,
@@ -72,38 +69,38 @@ export function AdminSupportPage() {
       subtitle="Submit a ticket or continue an existing conversation with RallyHub support."
     >
       <div className="mb-4 flex flex-wrap gap-2">
-        <AccentButton
+        <NeoButton
           type="button"
-          variant={showNewForm ? 'default' : 'outline'}
+          variant={showNewForm ? 'primary' : 'surface'}
           onClick={() => {
             setShowNewForm(true)
             setSelectedId(null)
           }}
         >
           New ticket
-        </AccentButton>
+        </NeoButton>
         {tickets.length > 0 ? (
-          <AccentButton
+          <NeoButton
             type="button"
-            variant={!showNewForm && selected ? 'default' : 'outline'}
+            variant={!showNewForm && selected ? 'primary' : 'surface'}
             onClick={() => {
               setShowNewForm(false)
               if (!selectedId && tickets[0]) setSelectedId(tickets[0].id)
             }}
           >
             My tickets ({tickets.length})
-          </AccentButton>
+          </NeoButton>
         ) : null}
       </div>
 
       {error ? <QueryError message={error} /> : null}
 
       {showNewForm ? (
-        <Card className="border-border/80 mb-6 max-w-xl space-y-4 bg-card p-6 shadow-sm">
+        <NeoCard className="mb-6 max-w-xl space-y-4 p-6">
           <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
             <div className="space-y-2">
-              <Label htmlFor="support-subject">Subject</Label>
-              <Input
+              <NeoLabel htmlFor="support-subject">Subject</NeoLabel>
+              <NeoInput
                 id="support-subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -112,22 +109,21 @@ export function AdminSupportPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="support-body">Details</Label>
-              <textarea
+              <NeoLabel htmlFor="support-body">Details</NeoLabel>
+              <NeoTextarea
                 id="support-body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={6}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
                 placeholder="What happened? Steps to reproduce, event name, etc."
                 required
               />
             </div>
-            <AccentButton type="submit" disabled={createTicket.isPending}>
+            <NeoButton type="submit" variant="primary" disabled={createTicket.isPending}>
               {createTicket.isPending ? 'Submitting…' : 'Submit ticket'}
-            </AccentButton>
+            </NeoButton>
           </form>
-        </Card>
+        </NeoCard>
       ) : null}
 
       {!showNewForm ? (
@@ -145,7 +141,7 @@ export function AdminSupportPage() {
           />
         )
       ) : selected ? (
-        <Card className="border-border/80 max-w-2xl space-y-4 bg-card p-4 shadow-sm sm:p-5">
+        <NeoCard className="max-w-2xl space-y-4 p-4 sm:p-5">
           <div>
             <p className="text-foreground font-medium">Ticket submitted</p>
             {selected.ticket_number ? (
@@ -156,7 +152,7 @@ export function AdminSupportPage() {
             ) : null}
           </div>
           <SupportTicketThread ticket={selected} senderRole="client" />
-        </Card>
+        </NeoCard>
       ) : null}
     </AdminPageShell>
   )

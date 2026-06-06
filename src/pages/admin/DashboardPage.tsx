@@ -61,10 +61,10 @@ export function AdminDashboardPage() {
           {STAT_META.map(({ key, label, icon: Icon }) => (
             <Card
               key={label}
-              className="border-border/80 bg-card text-card-foreground shadow-sm shadow-[rgb(62_61_62/0.05)]"
+              className="neo-card border-border/80 bg-card text-card-foreground shadow-sm"
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                <CardTitle className="neo-stat-label text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                   {label}
                 </CardTitle>
                 <Icon
@@ -73,7 +73,7 @@ export function AdminDashboardPage() {
                 />
               </CardHeader>
               <CardContent>
-                <p className="text-foreground font-bold tabular-nums tracking-tight text-[1.75rem] leading-none sm:text-[2rem]">
+                <p className="neo-stat-value text-foreground font-bold tabular-nums tracking-tight text-[1.75rem] leading-none sm:text-[2rem]">
                   {statsQuery.data?.[key] ?? 0}
                 </p>
               </CardContent>

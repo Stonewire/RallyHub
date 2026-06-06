@@ -2,7 +2,7 @@ import { Check, Copy, Plus, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import {
   NoOrganizationMessage,
@@ -157,25 +157,24 @@ export function AdminSettingsPage() {
       subtitle="Organization profile, team, tablet access, and billing."
       actions={
         tab === 'profile' ? (
-          <AccentButton
+          <NeoButton
             type="button"
+            variant="primary"
             disabled={saveOrg.isPending}
             onClick={() => void handleSave()}
           >
             {saveOrg.isPending ? 'Saving…' : 'Save'}
-          </AccentButton>
+          </NeoButton>
         ) : null
       }
     >
-      <div className="border-border/80 mb-8 flex gap-1 border-b">
+      <div className="neo-tabs border-border/80 mb-8 flex gap-1 border-b">
         <button
           type="button"
           onClick={() => setTab('profile')}
           className={cn(
-            'text-foreground -mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-            tab === 'profile'
-              ? 'border-[#FFCB03]'
-              : 'text-muted-foreground border-transparent hover:text-foreground',
+            'neo-tab px-4 py-2 text-sm font-medium',
+            tab === 'profile' ? 'neo-tab-active' : '',
           )}
         >
           Organization Profile
@@ -184,10 +183,8 @@ export function AdminSettingsPage() {
           type="button"
           onClick={() => setTab('billing')}
           className={cn(
-            'text-foreground -mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-            tab === 'billing'
-              ? 'border-[#FFCB03]'
-              : 'text-muted-foreground border-transparent hover:text-foreground',
+            'neo-tab px-4 py-2 text-sm font-medium',
+            tab === 'billing' ? 'neo-tab-active' : '',
           )}
         >
           Billing
@@ -536,13 +533,14 @@ export function AdminSettingsPage() {
               >
                 Cancel
               </Button>
-              <AccentButton
+              <NeoButton
                 type="button"
+                variant="primary"
                 disabled={addMember.isPending}
                 onClick={() => void handleAddMember()}
               >
                 {addMember.isPending ? 'Adding…' : 'Add member'}
-              </AccentButton>
+              </NeoButton>
             </div>
           </Card>
         </div>

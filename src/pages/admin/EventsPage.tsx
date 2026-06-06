@@ -2,7 +2,6 @@ import { Calendar } from 'lucide-react'
 import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
 import {
   NoOrganizationMessage,
@@ -11,6 +10,7 @@ import {
 } from '@/components/admin/QueryState'
 import { EventLinksModal } from '@/components/events/EventLinksModal'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import {
   STATUS_ORDER,
@@ -140,9 +140,9 @@ export function AdminEventsPage() {
       title="Events"
       subtitle="Drag cards to reorder or move between status groups. Click a card to edit."
       actions={
-        <AccentButton asChild>
+        <NeoButton variant="accent" asChild>
           <Link to="/admin/events/new">Create New Event</Link>
-        </AccentButton>
+        </NeoButton>
       }
     >
       {eventsQuery.isLoading ? (
@@ -156,9 +156,9 @@ export function AdminEventsPage() {
           <p className="text-muted-foreground max-w-sm text-sm">
             Create an event to schedule team activities and manage live sessions.
           </p>
-          <AccentButton asChild className="mt-2">
+          <NeoButton variant="accent" asChild className="mt-2">
             <Link to="/admin/events/new">Create New Event</Link>
-          </AccentButton>
+          </NeoButton>
         </Card>
       ) : (
         <DraggableEventsGrid

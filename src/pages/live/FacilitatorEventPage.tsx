@@ -14,12 +14,12 @@ import {
   useFacilitatorChatUnread,
 } from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
-import { LivePanelShell } from '@/components/layout/LivePanelShell'
+import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
+import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
@@ -332,16 +332,17 @@ export function FacilitatorEventPage() {
 
   if (namePrompt) {
     return (
-      <LivePanelShell title="Facilitator" titleCentered>
-        <Card className="border-border/80 mx-auto w-full max-w-sm space-y-4 bg-card p-6 shadow-sm">
-          <Label htmlFor="facilitator-name">Your name</Label>
-          <Input
+      <FacilitatorPanelShell title="Facilitator" titleCentered>
+        <NeoCard className="mx-auto w-full max-w-sm space-y-4 p-6">
+          <NeoLabel htmlFor="facilitator-name">Your name</NeoLabel>
+          <NeoInput
             id="facilitator-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="bg-background"
           />
-          <Button
+          <NeoButton
+            variant="primary"
             disabled={!name.trim()}
             onClick={() => {
               localStorage.setItem(FACILITATOR_NAME_KEY, name.trim())
@@ -349,19 +350,19 @@ export function FacilitatorEventPage() {
             }}
           >
             Continue
-          </Button>
-        </Card>
-      </LivePanelShell>
+          </NeoButton>
+        </NeoCard>
+      </FacilitatorPanelShell>
     )
   }
 
   if (loading || !bundle || !state) {
     return (
-      <LivePanelShell title="Facilitator" titleCentered>
+      <FacilitatorPanelShell title="Facilitator" titleCentered>
         <p className="text-muted-foreground text-center text-sm">
           {loading ? 'Loading…' : (error ?? 'Event not found')}
         </p>
-      </LivePanelShell>
+      </FacilitatorPanelShell>
     )
   }
 
@@ -885,7 +886,7 @@ export function FacilitatorEventPage() {
 
   return (
     <>
-      <LivePanelShell
+      <FacilitatorPanelShell
       title={event.name}
       titleCentered
       subtitle={
@@ -903,11 +904,11 @@ export function FacilitatorEventPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
+          <Card className="neo-card border-border/80 overflow-hidden bg-card shadow-sm">
             <DisplayPreviewFrame displayUrl={displayUrl} />
           </Card>
 
-          <Card className="border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
+          <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-muted-foreground text-xs">Event countdown on display</p>
               <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
@@ -995,33 +996,28 @@ export function FacilitatorEventPage() {
             <p className="text-destructive px-1 text-sm">{stateError}</p>
           ) : null}
 
-          <Card className="border-border/80 bg-card p-4 shadow-sm">
+          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <p className="mb-2 text-sm font-medium">Stages</p>
             <div className="flex flex-wrap gap-2">
               {stages.map((s, i) => (
-                <Button
+                <NeoButton
                   key={s.id}
                   size="sm"
-                  variant={state.current_stage_index === i ? 'default' : 'outline'}
-                  className={
-                    state.current_stage_index === i
-                      ? 'bg-[#FFCB03] text-[#3E3D3E] hover:bg-[#e6b803]'
-                      : undefined
-                  }
+                  variant={state.current_stage_index === i ? 'primary' : 'surface'}
                   onClick={() => selectStage(i)}
                 >
                   Stage {i + 1}
-                </Button>
+                </NeoButton>
               ))}
             </div>
           </Card>
 
-          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
-            <Label>Announcement</Label>
+          <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
+            <NeoLabel>Announcement</NeoLabel>
             <p className="text-muted-foreground text-xs">
               Send a message to the display, participants, or both. Clears after 1 minute.
             </p>
-            <Input
+            <NeoInput
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
               className="bg-background"
@@ -1043,7 +1039,7 @@ export function FacilitatorEventPage() {
                 <span className="text-muted-foreground line-clamp-2 flex-1">
                   Live: {state.announcement}
                 </span>
-                <Button
+                <NeoButton
                   type="button"
                   size="sm"
                   variant="ghost"
@@ -1051,12 +1047,12 @@ export function FacilitatorEventPage() {
                 >
                   <X className="size-4" />
                   Clear
-                </Button>
+                </NeoButton>
               </div>
             ) : null}
           </Card>
 
-          <Card className="border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
+          <Card className="neo-card border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
             <p className="font-medium">Teams</p>
             <p className="text-muted-foreground text-xs">
               Tap a slot to set name/photo. Scores update when you approve submissions.
@@ -1117,7 +1113,7 @@ export function FacilitatorEventPage() {
 
         </div>
 
-        <Card className="border-border/80 bg-card p-4 shadow-sm">
+        <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
           {!stage || stage.type === 'open' ? (
             <>
               <div className="mb-3 flex gap-2">
@@ -1546,7 +1542,7 @@ export function FacilitatorEventPage() {
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
             <h3 className="font-semibold">Team slot {claimSlot.slot_number}</h3>
             <Input
               value={claimName}
@@ -1565,17 +1561,17 @@ export function FacilitatorEventPage() {
               onChange={(e) => void updateTeam(claimSlot.id, { color: e.target.value })}
             />
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setClaimSlot(null)}>
+              <NeoButton variant="surface" onClick={() => setClaimSlot(null)}>
                 Cancel
-              </Button>
-              <Button disabled={uploading} onClick={() => void saveClaim()}>
+              </NeoButton>
+              <NeoButton variant="primary" disabled={uploading} onClick={() => void saveClaim()}>
                 Save
-              </Button>
+              </NeoButton>
             </div>
-          </Card>
+          </NeoCard>
         </div>
       ) : null}
-    </LivePanelShell>
+    </FacilitatorPanelShell>
       <DemoOverlay enabled={event.status === 'demo'} />
     </>
   )

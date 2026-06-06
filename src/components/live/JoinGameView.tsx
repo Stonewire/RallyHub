@@ -720,7 +720,7 @@ export function JoinGameView({
             .filter((t) => t.name)
             .sort((a, b) => b.score - a.score)
             .map((t, i) => (
-              <li key={t.id} className="flex justify-between rounded-lg bg-black/20 px-3 py-2">
+              <li key={t.id} className="xp-leaderboard-row flex justify-between bg-black/20 px-3 py-2">
                 <span>
                   #{i + 1} {t.name}
                 </span>
@@ -873,7 +873,7 @@ export function JoinGameView({
                 key={g.id}
                 type="button"
                 disabled={locked || !canSubmit}
-                className={`relative flex min-h-[120px] flex-col justify-between rounded-xl p-4 text-left shadow-md transition-transform ${
+                className={`xp-game-tile xp-interactive relative flex min-h-[120px] flex-col justify-between p-4 text-left ${
                   locked
                     ? 'cursor-not-allowed opacity-50'
                     : pending
@@ -965,7 +965,7 @@ export function JoinGameView({
               if (isCorrect) cls = 'bg-green-600/80 ring-2 ring-green-300'
               else if (isMine && !isCorrect) cls = 'bg-red-600/70'
               return (
-                <div key={a.id} className={`rounded-xl px-4 py-3 text-sm font-medium ${cls}`}>
+                <div key={a.id} className={`xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium ${cls}`}>
                   {a.text}
                 </div>
               )
@@ -993,7 +993,7 @@ export function JoinGameView({
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === q.correctAnswerId
               let cls =
-                'w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors '
+                'xp-quiz-option w-full px-4 py-4 text-left text-sm font-semibold transition-colors '
               let style: CSSProperties | undefined
               if (revealed) {
                 if (isCorrect) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
@@ -1026,7 +1026,7 @@ export function JoinGameView({
           </div>
           {quizChangeLeft != null && !quizLocked ? (
             <div
-              className="mt-4 rounded-xl px-4 py-3 text-center"
+              className="xp-glass-panel mt-4 rounded-xl px-4 py-3 text-center"
               style={{ backgroundColor: `${accent}33` }}
             >
               <p className="text-xs font-medium uppercase tracking-wide text-white/80">
@@ -1176,23 +1176,23 @@ export function JoinGameView({
             ) : null}
             <p className="truncate text-sm font-semibold">{event.name}</p>
           </div>
-          <p className="shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
+          <p className="xp-glass-panel shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
             {team.score} pts
           </p>
         </div>
         <div className="grid h-[calc(100%-58px)] grid-cols-5 grid-rows-5 gap-1">
           {cellLabels.map((cell, i) => {
             const finalStatus = historicalByIndex.get(i)
-            let cls = 'bg-white/20 text-white rounded-sm'
+            let cls = 'bg-white/20 text-white'
             let disabled = !canMark
             if (finalStatus === 'approved') {
-              cls = 'bg-green-500/80 text-white rounded-sm'
+              cls = 'bg-green-500/80 text-white'
               disabled = true
             } else if (finalStatus === 'rejected') {
-              cls = 'bg-red-500/80 text-white rounded-sm'
+              cls = 'bg-red-500/80 text-white'
               disabled = true
             } else if (missedLockedIndices.has(i)) {
-              cls = 'bg-gray-500/70 text-white/90 rounded-sm'
+              cls = 'bg-gray-500/70 text-white/90'
               disabled = true
             }
             if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
@@ -1208,7 +1208,7 @@ export function JoinGameView({
                 key={i}
                 type="button"
                 disabled={disabled}
-                className={`h-full min-h-0 overflow-hidden rounded-sm px-0.5 py-1 text-center leading-tight ${cls}`}
+                className={`xp-bingo-cell h-full min-h-0 overflow-hidden px-0.5 py-1 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
@@ -1235,7 +1235,7 @@ export function JoinGameView({
     }
   } else if (stage?.type === 'break') {
     body = (
-      <div className="px-6 py-12 text-center">
+      <div className="xp-break-panel px-6 py-12 text-center">
         <p className="text-2xl font-bold sm:text-4xl">{stage.message ?? 'Break'}</p>
         <p className="mt-8 font-mono text-5xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
       </div>
@@ -1284,7 +1284,7 @@ export function JoinGameView({
               type="button"
               variant="outline"
               size="icon"
-              className="fixed right-4 bottom-4 z-[9999] size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+              className="experience-scope fixed right-4 bottom-4 z-[9999] size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
               onClick={() => void handleExitTeam()}
               aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
             >
@@ -1300,7 +1300,7 @@ export function JoinGameView({
             <div className="fixed bottom-4 left-4 z-[9999]">
               <Button
                 type="button"
-                className="relative size-12 rounded-full shadow-lg hover:brightness-95"
+                className="xp-interactive relative size-12 rounded-full shadow-lg hover:brightness-95"
                 size="icon"
                 style={{ backgroundColor: accent, color: onAccent }}
                 onClick={() => {
@@ -1345,7 +1345,7 @@ export function JoinGameView({
           </ul>
           <div className="flex gap-2 border-t border-white/15 p-4">
             <input
-              className="flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
+              className="xp-field flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
               placeholder="Message…"
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
@@ -1364,7 +1364,7 @@ export function JoinGameView({
       ) : null}
       {announcement ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-6">
-          <Card className="max-w-md space-y-4 p-6 text-center">
+          <Card className="xp-card max-w-md space-y-4 p-6 text-center">
             <p className="text-lg">{announcement}</p>
             <LiveAccentButton accentColor={accent} onClick={onDismissAnnouncement}>
               Dismiss

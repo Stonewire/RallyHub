@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -131,9 +131,9 @@ export function AdminGameEditPage() {
               Install to clients
             </Button>
           ) : null}
-          <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
+          <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>
             {saving ? 'Saving…' : 'Save changes'}
-          </AccentButton>
+          </NeoButton>
         </>
       }
     >

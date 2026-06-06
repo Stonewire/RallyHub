@@ -78,7 +78,7 @@ export function BingoWinCelebration({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[10000] flex flex-col items-center justify-center px-6 text-center"
+        className="experience-scope fixed inset-0 z-[10000] flex flex-col items-center justify-center px-6 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -126,7 +126,7 @@ export function BingoWinCelebration({
         </div>
 
         <motion.div
-          className="mt-8 inline-flex max-w-[90vw] items-center gap-3 rounded-full px-6 py-3 shadow-2xl"
+          className="xp-celebration-pill mt-8 inline-flex max-w-[90vw] items-center gap-3 px-6 py-3 shadow-2xl"
           style={{ backgroundColor: accent, color: onColor }}
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

@@ -1,7 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
-import { Button } from '@/components/ui/button'
+import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import type { EventActivationWarning } from '@/lib/event-activation-billing'
 
@@ -47,12 +46,12 @@ export function EventActivationConfirmDialog({
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" disabled={confirming} onClick={onCancel}>
+          <NeoButton type="button" variant="surface" disabled={confirming} onClick={onCancel}>
             Cancel
-          </Button>
-          <AccentButton type="button" disabled={confirming} onClick={onConfirm}>
+          </NeoButton>
+          <NeoButton type="button" variant="primary" disabled={confirming} onClick={onConfirm}>
             {confirming ? 'Activating…' : warning.confirmLabel}
-          </AccentButton>
+          </NeoButton>
         </div>
       </Card>
     </div>

@@ -64,7 +64,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
               </p>
               <p className="text-lg font-bold tabular-nums md:text-xl">{team.score} pts</p>
               <div
-                className="mt-1 flex w-full items-end justify-center rounded-t-lg bg-white/20 backdrop-blur-sm"
+                className="xp-podium-bar mt-1 flex w-full items-end justify-center rounded-t-lg bg-white/20 backdrop-blur-sm"
                 style={{ height: barH }}
               >
                 <span className="pb-2 text-2xl font-bold opacity-90 md:text-3xl">
@@ -86,7 +86,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
             {rest.map((team, i) => (
               <li
                 key={team.id}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-white/10 px-2 py-3 text-center backdrop-blur-sm"
+                className="xp-team-tile flex flex-col items-center gap-1.5 bg-white/10 px-2 py-3 text-center backdrop-blur-sm"
               >
                 {team.photo_url ? (
                   <img

@@ -7,7 +7,7 @@ import {
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
@@ -214,9 +214,9 @@ export function AdminGamesNewPage() {
           <Button type="button" variant="outline" onClick={() => setStep('type')}>
             Back
           </Button>
-          <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
+          <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>
             {saving ? 'Saving…' : 'Save game'}
-          </AccentButton>
+          </NeoButton>
         </>
       }
     >

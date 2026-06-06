@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @import "./styles/neo-minimal.css";
+@import "./styles/experience-unified.css";
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap");
 
 @custom-variant dark (&:is(.dark *));

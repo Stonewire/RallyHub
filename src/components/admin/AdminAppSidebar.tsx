@@ -80,7 +80,7 @@ export function AdminAppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="admin-shell-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal"
+      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal"
       style={{
         /** Ensure nav label color even inside nested spans */
         color: 'var(--foreground)',

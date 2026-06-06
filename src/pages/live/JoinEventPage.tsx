@@ -95,7 +95,7 @@ export function JoinEventPage() {
 
   if (loading || !bundle) {
     return (
-      <LivePanelShell title="Join" titleCentered>
+      <LivePanelShell title="Join" titleCentered className="experience-scope">
         <p className="text-muted-foreground text-center text-sm">
           {loading ? 'Loading…' : (error ?? 'Event not found')}
         </p>
@@ -221,7 +221,7 @@ export function JoinEventPage() {
   }
 
   return (
-    <LivePanelShell title={event.name} titleCentered>
+    <LivePanelShell title={event.name} titleCentered className="experience-scope">
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (
         <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />
@@ -232,7 +232,7 @@ export function JoinEventPage() {
             key={team.id}
             type="button"
             disabled={Boolean(team.name?.trim())}
-            className="border-border/80 bg-card hover:bg-muted/40 flex flex-col items-center gap-2 rounded-xl border p-4 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="xp-team-slot border-border/80 bg-card hover:bg-muted/40 flex flex-col items-center gap-2 border p-4 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => {
               if (!team.name?.trim()) {
                 setClaimSlot(team)
@@ -257,7 +257,7 @@ export function JoinEventPage() {
       </div>
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+          <Card className="xp-card border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
             <h3 className="text-foreground font-semibold">
               Join team {claimSlot.slot_number}
             </h3>

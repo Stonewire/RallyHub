@@ -18,7 +18,10 @@ export function LiveAccentButton({
   const fg = textOnAccent(accentColor)
   return (
     <Button
-      className={cn('border-transparent font-semibold shadow-sm hover:brightness-95', className)}
+      className={cn(
+        'xp-live-btn border-transparent font-semibold shadow-sm hover:brightness-95',
+        className,
+      )}
       style={{
         backgroundColor: accentColor,
         color: fg,

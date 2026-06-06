@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -175,21 +175,22 @@ export function AdminEventEditPage() {
               )
             }}
           />
-          <Button
+          <NeoButton
             type="button"
-            variant="outline"
+            variant="surface"
             disabled={duplicateEvent.isPending || loading}
             onClick={() => void handleDuplicate()}
           >
             {duplicateEvent.isPending ? 'Duplicating…' : 'Duplicate event'}
-          </Button>
-          <AccentButton
+          </NeoButton>
+          <NeoButton
             type="button"
+            variant="primary"
             disabled={saving || loading}
             onClick={() => void handleSave()}
           >
             {saving ? 'Saving…' : 'Save Changes'}
-          </AccentButton>
+          </NeoButton>
         </div>
       }
     >

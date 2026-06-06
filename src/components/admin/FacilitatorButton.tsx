@@ -1,38 +1,45 @@
 import type { ComponentProps } from 'react'
 
+import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-const RH_YELLOW = '#FFCB03'
-const RH_TEXT = '#3E3D3E'
-
-/** RallyHub-branded yellow control for facilitator panels only. */
+/** Facilitator control button — neo-minimal charcoal/surface variants. */
 export function FacilitatorButton({
   className,
   variant,
+  size,
   ...props
 }: ComponentProps<typeof Button>) {
-  const isOutline = variant === 'outline' || variant === 'ghost'
+  const neoVariant =
+    variant === 'destructive'
+      ? 'destructive'
+      : variant === 'outline' || variant === 'ghost'
+        ? 'surface'
+        : 'primary'
+  const neoSize =
+    size === 'lg' ? 'lg' : size === 'sm' || size === 'icon' || size === 'icon-sm' ? 'sm' : 'md'
+
   return (
-    <Button
-      variant={variant ?? 'default'}
-      className={cn(
-        'font-semibold shadow-sm',
-        isOutline
-          ? 'border-[#FFCB03]/60 bg-transparent text-[#3E3D3E] hover:bg-[#FFCB03]/15'
-          : 'border-[#FFCB03]/80 bg-[#FFCB03] text-[#3E3D3E] hover:bg-[#FFCB03]/90',
-        className,
-      )}
-      style={
-        !isOutline && variant !== 'destructive'
-          ? { backgroundColor: RH_YELLOW, color: RH_TEXT, borderColor: `${RH_YELLOW}cc` }
-          : undefined
-      }
-      {...props}
+    <NeoButton
+      variant={neoVariant}
+      size={neoSize}
+      className={cn(className)}
+      {...(props as ComponentProps<typeof NeoButton>)}
     />
   )
 }
 
-export function FacilitatorButtonLarge(props: ComponentProps<typeof FacilitatorButton>) {
-  return <FacilitatorButton className="h-11 px-5 text-base" {...props} />
+export function FacilitatorButtonLarge({
+  className,
+  ...props
+}: ComponentProps<typeof FacilitatorButton>) {
+  return (
+    <NeoButton
+      variant="accent"
+      size="lg"
+      className={cn('h-11 px-5 text-base', className)}
+      {...(props as ComponentProps<typeof NeoButton>)}
+    />
+  )
 }

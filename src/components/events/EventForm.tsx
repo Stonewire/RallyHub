@@ -1,7 +1,7 @@
 import { Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -590,8 +590,9 @@ export function EventForm({
               <Button type="button" variant="outline" onClick={() => setGameModalOpen(false)}>
                 Cancel
               </Button>
-              <AccentButton
+              <NeoButton
                 type="button"
+                variant="primary"
                 onClick={() => {
                   set({
                     selectedGameIds: [
@@ -605,7 +606,7 @@ export function EventForm({
                 {modalSelection.length > 1
                   ? `Add ${modalSelection.length} games`
                   : 'Add game'}
-              </AccentButton>
+              </NeoButton>
             </div>
           </Card>
         </div>

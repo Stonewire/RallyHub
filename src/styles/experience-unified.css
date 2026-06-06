@@ -1,0 +1,273 @@
+/**
+ * Experience / gameplay form language — shape, depth, typography only.
+ * Scoped via `.experience-scope`. Does NOT override event brand colors.
+ * Reuses neo-minimal form tokens (radius, shadow, transition).
+ */
+
+:root {
+  --xp-radius-sm: var(--nm-radius-sm);
+  --xp-radius-md: var(--nm-radius-md);
+  --xp-radius-lg: var(--nm-radius-lg);
+  --xp-radius-xl: var(--nm-radius-xl);
+  --xp-radius-2xl: var(--nm-radius-2xl);
+
+  --xp-shadow-soft: var(--nm-shadow-soft);
+  --xp-shadow-raised: var(--nm-shadow-raised);
+  --xp-shadow-pressed: var(--nm-shadow-pressed);
+
+  --xp-transition: var(--nm-transition);
+}
+
+@layer components {
+  /* ─── Scope: typography rhythm ─── */
+  .experience-scope {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .experience-scope .font-display,
+  .experience-scope h1,
+  .experience-scope h2,
+  .experience-scope h3 {
+    letter-spacing: -0.02em;
+  }
+
+  /* ─── Interactive depth (color-agnostic) ─── */
+  .experience-scope .xp-interactive {
+    border-radius: var(--xp-radius-md);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope .xp-interactive:hover:not(:disabled) {
+    box-shadow: var(--xp-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .experience-scope .xp-interactive:active:not(:disabled) {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0) scale(0.99);
+  }
+
+  /* ─── Live event accent buttons (colors inline) ─── */
+  .experience-scope .xp-live-btn {
+    border-radius: var(--xp-radius-md) !important;
+    font-weight: 600 !important;
+    box-shadow: var(--xp-shadow-raised);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition),
+      filter var(--xp-transition);
+  }
+
+  .experience-scope .xp-live-btn:hover:not(:disabled) {
+    box-shadow: var(--xp-shadow-raised);
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+  }
+
+  .experience-scope .xp-live-btn:active:not(:disabled) {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0);
+    filter: brightness(0.98);
+  }
+
+  .experience-scope .xp-live-btn:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* ─── Cards & panels ─── */
+  .experience-scope .xp-card {
+    border-radius: var(--xp-radius-lg);
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  .experience-scope .xp-glass-panel {
+    border-radius: var(--xp-radius-lg);
+    box-shadow: var(--xp-shadow-raised);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ─── Bingo cells (state colors unchanged) ─── */
+  .experience-scope .xp-bingo-cell {
+    border-radius: var(--xp-radius-sm);
+    box-shadow: var(--xp-shadow-soft);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope .xp-bingo-cell:not(:disabled):active {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: scale(0.97);
+  }
+
+  /* ─── Quiz & bonus option tiles ─── */
+  .experience-scope .xp-quiz-option {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition),
+      background-color var(--xp-transition);
+  }
+
+  .experience-scope button.xp-quiz-option:not(:disabled):hover {
+    box-shadow: var(--xp-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .experience-scope button.xp-quiz-option:not(:disabled):active {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  /* ─── Open-stage game tiles ─── */
+  .experience-scope .xp-game-tile {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-raised);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope .xp-game-tile:not(:disabled):hover {
+    box-shadow:
+      var(--xp-shadow-raised),
+      0 6px 20px rgb(0 0 0 / 0.12);
+    transform: translateY(-2px);
+  }
+
+  .experience-scope .xp-game-tile:not(:disabled):active {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* ─── Leaderboard & results rows ─── */
+  .experience-scope .xp-results-row {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  .experience-scope .xp-leaderboard-row {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  .experience-scope .xp-team-tile {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope .xp-team-tile:hover {
+    box-shadow: var(--xp-shadow-raised);
+  }
+
+  /* ─── Podium bars ─── */
+  .experience-scope .xp-podium-bar {
+    border-radius: var(--xp-radius-md) var(--xp-radius-md) 0 0;
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  /* ─── Break timer panel ─── */
+  .experience-scope .xp-break-panel {
+    border-radius: var(--xp-radius-xl);
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  /* ─── Celebration badge ─── */
+  .experience-scope .xp-celebration-pill {
+    border-radius: 9999px;
+    box-shadow: var(--xp-shadow-raised);
+  }
+
+  /* ─── Join lobby team slots ─── */
+  .experience-scope .xp-team-slot {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition),
+      background-color var(--xp-transition);
+  }
+
+  .experience-scope .xp-team-slot:not(:disabled):hover {
+    box-shadow: var(--xp-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .experience-scope .xp-team-slot:not(:disabled):active {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  /* ─── Capture preview frame ─── */
+  .experience-scope .xp-media-frame {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-raised);
+    overflow: hidden;
+  }
+
+  /* ─── Shadcn buttons inside experience (shape only) ─── */
+  .experience-scope [data-slot='button'] {
+    border-radius: var(--xp-radius-md);
+    font-weight: 600;
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope [data-slot='button']:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .experience-scope [data-slot='button']:not(:disabled):active {
+    transform: translateY(0);
+    box-shadow: var(--xp-shadow-pressed);
+  }
+
+  .experience-scope [data-slot='button'][data-variant='outline'] {
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  /* ─── Cards (shadcn) ─── */
+  .experience-scope [data-slot='card'] {
+    border-radius: var(--xp-radius-lg) !important;
+    box-shadow: var(--xp-shadow-soft);
+  }
+
+  /* ─── Inputs in experience ─── */
+  .experience-scope [data-slot='input'],
+  .experience-scope .xp-field {
+    border-radius: var(--xp-radius-md);
+    box-shadow: var(--xp-shadow-soft);
+    transition:
+      box-shadow var(--xp-transition),
+      border-color var(--xp-transition);
+  }
+
+  /* ─── Join lobby accent button (shape only, keeps RallyHub yellow) ─── */
+  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\] {
+    border-radius: var(--xp-radius-md) !important;
+    box-shadow: var(--xp-shadow-raised);
+    font-weight: 600;
+    transition:
+      box-shadow var(--xp-transition),
+      transform var(--xp-transition);
+  }
+
+  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:active:not(:disabled) {
+    box-shadow: var(--xp-shadow-pressed);
+    transform: translateY(0);
+  }
+}

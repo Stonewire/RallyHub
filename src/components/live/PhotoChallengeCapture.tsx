@@ -106,7 +106,7 @@ export function PhotoChallengeCapture({
   return (
     <div className="space-y-3">
       <canvas ref={canvasRef} className="hidden" />
-      <div className="overflow-hidden rounded-xl bg-black">
+      <div className="overflow-hidden rounded-xl bg-black xp-media-frame">
         {snapshot ? (
           <img src={snapshot} alt="Preview" className="aspect-[4/3] w-full object-cover" />
         ) : (

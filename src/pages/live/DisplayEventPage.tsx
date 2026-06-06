@@ -219,11 +219,13 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
 
   if (state.winner_reveal_stage === 1) {
     body = (
-      <p
-        className={`animate-pulse text-center font-display text-4xl font-bold md:text-6xl ${textClass}`}
-      >
-        It is time to announce the winners…
-      </p>
+      <div className="xp-break-panel px-6 py-8">
+        <p
+          className={`animate-pulse text-center font-display text-4xl font-bold md:text-6xl ${textClass}`}
+        >
+          It is time to announce the winners…
+        </p>
+      </div>
     )
   } else if (state.winner_reveal_stage === 2) {
     body = <DisplayPodium event={event} teams={teams} />
@@ -296,7 +298,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             const correct = a.id === question.correctAnswerId
             const anySelected = quizSubs.some((s) => s.media_url === a.id)
             let cls =
-              'rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
+              'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
             if (revealed) {
               if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
               else if (anySelected) cls += 'bg-red-600/90 text-white'
@@ -330,7 +332,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
               return (
                 <li
                   key={s.id}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+                  className={`xp-results-row rounded-full px-4 py-1.5 text-sm font-medium ${
                     ok ? 'bg-green-600/80 text-white' : 'bg-red-600/80 text-white'
                   }`}
                 >
@@ -341,7 +343,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             return (
               <li
                 key={s.id}
-                className="rounded-full bg-white/15 px-4 py-1.5 text-sm backdrop-blur-sm"
+                className="xp-results-row rounded-full bg-white/15 px-4 py-1.5 text-sm backdrop-blur-sm"
               >
                 {team.name}
               </li>
@@ -352,7 +354,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (stage.type === 'break') {
     body = (
-      <div className={`flex flex-col items-center justify-center text-center ${textClass}`}>
+      <div className={`xp-break-panel flex flex-col items-center justify-center text-center ${textClass}`}>
         <p className="font-display text-4xl font-bold md:text-6xl lg:text-7xl">
           {stage.message ?? 'Break time'}
         </p>
@@ -429,7 +431,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             Enable audio so the display can play the bingo celebration, cheers, and music
             during the event.
           </span>
-          <span className="mt-2 rounded-full bg-white px-8 py-3 text-lg font-semibold text-black">
+          <span className="xp-interactive mt-2 rounded-full bg-white px-8 py-3 text-lg font-semibold text-black">
             Tap anywhere to continue
           </span>
         </button>

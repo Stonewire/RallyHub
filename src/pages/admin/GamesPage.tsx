@@ -10,7 +10,6 @@ import {
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import {
@@ -20,7 +19,6 @@ import {
 } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton } from '@/components/neo-minimal'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -63,7 +61,6 @@ function GroupHeader({
   onSaveRename,
   onCancelRename,
   onDelete,
-  neoUI,
 }: {
   name: string
   count: number
@@ -76,7 +73,6 @@ function GroupHeader({
   onSaveRename: () => void
   onCancelRename: () => void
   onDelete: () => void
-  neoUI?: boolean
 }) {
   return (
     <div className="mb-2 flex items-center gap-2">
@@ -110,26 +106,15 @@ function GroupHeader({
         </span>
       </button>
       {editing ? (
-        neoUI ? (
-          <>
-            <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onSaveRename}>
-              <Check className="size-4" />
-            </NeoButton>
-            <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onCancelRename}>
-              <X className="size-4" />
-            </NeoButton>
-          </>
-        ) : (
-          <>
-            <Button type="button" variant="ghost" size="icon-sm" onClick={onSaveRename}>
-              <Check className="size-4" />
-            </Button>
-            <Button type="button" variant="ghost" size="icon-sm" onClick={onCancelRename}>
-              <X className="size-4" />
-            </Button>
-          </>
-        )
-      ) : neoUI ? (
+        <>
+          <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onSaveRename}>
+            <Check className="size-4" />
+          </NeoButton>
+          <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onCancelRename}>
+            <X className="size-4" />
+          </NeoButton>
+        </>
+      ) : (
         <>
           <NeoButton type="button" variant="ghost" size="sm" onClick={onStartRename}>
             Rename
@@ -143,21 +128,6 @@ function GroupHeader({
           >
             <Trash2 className="size-4" />
           </NeoButton>
-        </>
-      ) : (
-        <>
-          <Button type="button" variant="ghost" size="sm" onClick={onStartRename}>
-            Rename
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive"
-            onClick={onDelete}
-          >
-            <Trash2 className="size-4" />
-          </Button>
         </>
       )}
     </div>
@@ -294,52 +264,29 @@ export function AdminGamesPage() {
           : 'List and manage game templates and configurations.'
       }
       actions={
-        isPlatformLibrary ? (
-          <>
-            <NeoButton type="button" variant="surface" onClick={() => void handleNewGroup()}>
-              New Group
-            </NeoButton>
-            <NeoButton variant="accent" asChild>
-              <Link to="/admin/games/new">Create New Game</Link>
-            </NeoButton>
-          </>
-        ) : (
-          <>
-            <Button type="button" variant="outline" onClick={() => void handleNewGroup()}>
-              New Group
-            </Button>
-            <AccentButton asChild>
-              <Link to="/admin/games/new">Create New Game</Link>
-            </AccentButton>
-          </>
-        )
+        <>
+          <NeoButton type="button" variant="surface" onClick={() => void handleNewGroup()}>
+            New Group
+          </NeoButton>
+          <NeoButton variant="accent" asChild>
+            <Link to="/admin/games/new">Create New Game</Link>
+          </NeoButton>
+        </>
       }
     >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map(({ value, label }) =>
-            isPlatformLibrary ? (
-              <NeoButton
-                key={value}
-                type="button"
-                size="sm"
-                variant={filter === value ? 'primary' : 'surface'}
-                onClick={() => setFilter(value)}
-              >
-                {label}
-              </NeoButton>
-            ) : (
-              <Button
-                key={value}
-                type="button"
-                size="sm"
-                variant={filter === value ? 'secondary' : 'outline'}
-                onClick={() => setFilter(value)}
-              >
-                {label}
-              </Button>
-            ),
-          )}
+          {FILTERS.map(({ value, label }) => (
+            <NeoButton
+              key={value}
+              type="button"
+              size="sm"
+              variant={filter === value ? 'primary' : 'surface'}
+              onClick={() => setFilter(value)}
+            >
+              {label}
+            </NeoButton>
+          ))}
         </div>
         <div className="relative w-full sm:max-w-xs">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
@@ -360,15 +307,9 @@ export function AdminGamesPage() {
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <ImageIcon className="text-muted-foreground size-10 opacity-60" />
           <p className="text-foreground font-medium">No games yet</p>
-          {isPlatformLibrary ? (
-            <NeoButton variant="accent" asChild className="mt-2">
-              <Link to="/admin/games/new">Create New Game</Link>
-            </NeoButton>
-          ) : (
-            <AccentButton asChild className="mt-2">
-              <Link to="/admin/games/new">Create New Game</Link>
-            </AccentButton>
-          )}
+          <NeoButton variant="accent" asChild className="mt-2">
+            <Link to="/admin/games/new">Create New Game</Link>
+          </NeoButton>
         </Card>
       ) : (
         <div className="space-y-6">
@@ -391,7 +332,6 @@ export function AdminGamesPage() {
                   onSaveRename={() => void saveRename(group.id)}
                   onCancelRename={() => setEditingGroupId(null)}
                   onDelete={() => void handleDeleteGroup(group.id, group.name)}
-                  neoUI={isPlatformLibrary}
                 />
                 {!collapsed ? (
                   groupGames.length === 0 ? (

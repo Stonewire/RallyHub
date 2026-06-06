@@ -21,7 +21,7 @@ export function LivePanelShell({
   titleCentered,
 }: LivePanelShellProps) {
   return (
-    <div className="bg-background text-foreground min-h-screen">
+    <div className={cn('bg-background text-foreground min-h-screen', className)}>
       <div className={cn('mx-auto w-full max-w-6xl px-6 py-6 sm:px-8', className)}>
         <header
           className={cn(

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
-import { Button } from '@/components/ui/button'
+import { NeoButton } from '@/components/neo-minimal'
 import { EVENT_STATUS_LABELS, groupEventsByStatus, type EventRow } from '@/hooks/use-events'
 import { canTransitionEventStatus, isEventActivated } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
@@ -152,33 +152,31 @@ export function DraggableEventsGrid({
                   className="flex flex-wrap gap-1.5 pl-6"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button
+                  <NeoButton
                     type="button"
-                    variant="outline"
+                    variant="surface"
                     size="sm"
-                    className="h-7 text-xs"
                     onClick={() => onViewLinks(event)}
                   >
                     <Link2 className="size-3" />
                     View Links
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+                  </NeoButton>
+                  <NeoButton variant="surface" size="sm" asChild>
                     <Link to={`/admin/events/${event.id}`}>
                       <Pencil className="size-3" />
                       Edit
                     </Link>
-                  </Button>
-                  <Button
+                  </NeoButton>
+                  <NeoButton
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
-                    className="text-destructive h-7 text-xs"
                     disabled={deleting}
                     onClick={() => onDelete(event)}
                   >
                     <Trash2 className="size-3" />
                     Delete
-                  </Button>
+                  </NeoButton>
                 </div>
               </article>
               )

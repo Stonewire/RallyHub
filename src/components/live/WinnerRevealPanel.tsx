@@ -39,7 +39,7 @@ export function WinnerRevealPanel({
 
   if (stage === 1) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+      <div className="xp-break-panel flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
         <p className="animate-pulse text-2xl font-bold sm:text-3xl">
           It is time to announce the winners…
         </p>
@@ -48,7 +48,7 @@ export function WinnerRevealPanel({
   }
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center px-6 py-12 text-center">
+    <div className="xp-break-panel mx-auto flex max-w-lg flex-col items-center px-6 py-12 text-center">
       {isWinner ? (
         <>
           <p className="mb-2 text-4xl font-black tracking-tight text-[#FFCB03] drop-shadow-lg sm:text-5xl">

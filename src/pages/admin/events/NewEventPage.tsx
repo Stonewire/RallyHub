@@ -2,7 +2,7 @@ import { Check, Copy } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
+import { NeoButton } from '@/components/neo-minimal'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { EventForm } from '@/components/events/EventForm'
@@ -153,9 +153,9 @@ export function AdminEventsNewPage() {
           <p className="text-foreground font-medium">Set event status</p>
           <div className="flex flex-wrap gap-2">
             {(['draft', 'ready', 'demo', 'active'] as EventStatus[]).map((s) => (
-              <AccentButton key={s} type="button" onClick={() => void confirmStatus(s)}>
+              <NeoButton key={s} type="button" variant="primary" onClick={() => void confirmStatus(s)}>
                 {s === 'demo' ? 'Demo' : s.charAt(0).toUpperCase() + s.slice(1)}
-              </AccentButton>
+              </NeoButton>
             ))}
           </div>
         </Card>
@@ -193,9 +193,9 @@ export function AdminEventsNewPage() {
       backTo="/admin/events"
       backLabel="Back to events"
       actions={
-        <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
+        <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>
           {saving ? 'Saving…' : 'Create Event'}
-        </AccentButton>
+        </NeoButton>
       }
     >
       {error ? (

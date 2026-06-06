@@ -26,7 +26,7 @@ export function QuizResultsPanel({
           return (
             <li
               key={team.id}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+              className={`xp-results-row flex items-center gap-3 px-4 py-3 ${
                 highlight
                   ? 'bg-[#FFCB03]/90 text-[#3E3D3E] ring-2 ring-white/50'
                   : 'bg-white/10 text-white'

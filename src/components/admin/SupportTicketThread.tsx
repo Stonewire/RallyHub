@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
 import { Label } from '@/components/ui/label'
-import { useRallyHubAdminUI } from '@/hooks/use-rallyhub-admin-ui'
 import {
   useMarkSupportTicketRead,
   useSendTicketMessage,
@@ -37,7 +35,6 @@ export function SupportTicketThread({
   const { data: messages, isLoading, isError, error } = useTicketMessages(ticket.id)
   const sendMessage = useSendTicketMessage()
   const { mutate: markTicketRead } = useMarkSupportTicketRead()
-  const neoUI = useRallyHubAdminUI()
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -93,9 +90,7 @@ export function SupportTicketThread({
                     className={cn(
                       'max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm',
                       isSupport
-                        ? neoUI
-                          ? 'neo-support-bubble rounded-br-md'
-                          : 'bg-primary text-primary-foreground rounded-br-md'
+                        ? 'neo-support-bubble rounded-br-md'
                         : 'bg-card border-border/80 border rounded-bl-md',
                     )}
                   >
@@ -118,7 +113,7 @@ export function SupportTicketThread({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
-          className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+          className="neo-field w-full px-3 py-2 text-sm"
           placeholder="Write a message…"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -127,24 +122,14 @@ export function SupportTicketThread({
             }
           }}
         />
-        {neoUI ? (
-          <NeoButton
-            type="button"
-            variant="primary"
-            disabled={!draft.trim() || sendMessage.isPending}
-            onClick={() => void handleSend()}
-          >
-            {sendMessage.isPending ? 'Sending…' : 'Send reply'}
-          </NeoButton>
-        ) : (
-          <AccentButton
-            type="button"
-            disabled={!draft.trim() || sendMessage.isPending}
-            onClick={() => void handleSend()}
-          >
-            {sendMessage.isPending ? 'Sending…' : 'Send reply'}
-          </AccentButton>
-        )}
+        <NeoButton
+          type="button"
+          variant="primary"
+          disabled={!draft.trim() || sendMessage.isPending}
+          onClick={() => void handleSend()}
+        >
+          {sendMessage.isPending ? 'Sending…' : 'Send reply'}
+        </NeoButton>
       </div>
     </div>
   )

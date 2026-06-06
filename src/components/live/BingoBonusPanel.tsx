@@ -62,8 +62,8 @@ export function BingoBonusPanel({
           const isCorrect = a.id === challenge.correctAnswerId
           const isMine = a.id === answerId
           let cls = large
-            ? 'rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
-            : 'w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors '
+            ? 'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
+            : 'xp-quiz-option w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors '
           let style: CSSProperties | undefined
           if (revealed) {
             if (isCorrect) cls += large ? 'bg-green-600/90 text-white ring-2 ring-green-300' : 'bg-green-600/80 text-white ring-2 ring-green-300'
