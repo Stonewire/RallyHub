@@ -32,6 +32,34 @@ function clientEmail(org: { email: string | null; contact_email: string | null }
   return org.email?.trim() || org.contact_email?.trim() || ''
 }
 
+function resolveAdminLoginEmail(
+  org: { email: string | null; contact_email: string | null },
+  members: { email: string; role: string }[],
+) {
+  const adminMember = members.find(
+    (m) => m.role === 'client_admin' || m.role === 'admin',
+  )
+  if (adminMember?.email?.trim()) return adminMember.email.trim()
+  return clientEmail(org)
+}
+
+function loginPageRedirectUrl(org?: {
+  subdomain: string
+  custom_domain: string | null
+}) {
+  if (org?.subdomain?.trim()) {
+    return `${getOrganizationOrigin(org)}/login`
+  }
+  return `${window.location.origin}/login`
+}
+
+async function sendPasswordResetEmail(emailAddress: string, redirectTo: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(emailAddress, {
+    redirectTo,
+  })
+  if (error) throw new Error(error.message)
+}
+
 export function RallyHubClientDetailPage() {
   const { clientId } = useParams()
   const location = useLocation()
@@ -66,6 +94,9 @@ export function RallyHubClientDetailPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [memberResetEmail, setMemberResetEmail] = useState<Record<string, string>>({})
+  const [adminResetMessage, setAdminResetMessage] = useState<string | null>(null)
+  const [adminResetError, setAdminResetError] = useState<string | null>(null)
+  const [adminResetSending, setAdminResetSending] = useState(false)
 
   useEffect(() => {
     if (!data?.org) return
@@ -98,10 +129,44 @@ export function RallyHubClientDetailPage() {
     return () => URL.revokeObjectURL(url)
   }, [logoFile])
 
-  async function sendResetEmail(emailAddress: string) {
-    const { error: err } = await supabase.auth.resetPasswordForEmail(emailAddress)
-    if (err) alert(err.message)
-    else alert('Password reset email sent.')
+  async function sendMemberPasswordReset(emailAddress: string) {
+    const redirectTo = data?.org
+      ? loginPageRedirectUrl(data.org)
+      : loginPageRedirectUrl(
+          subdomain.trim()
+            ? { subdomain: subdomain.trim().toLowerCase(), custom_domain: null }
+            : undefined,
+        )
+    await sendPasswordResetEmail(emailAddress, redirectTo)
+  }
+
+  async function handleAdminPasswordReset() {
+    if (!data?.org) return
+    const adminLoginEmail = resolveAdminLoginEmail(data.org, data.members)
+    if (!adminLoginEmail) {
+      setAdminResetError('No admin login email is on file for this client.')
+      setAdminResetMessage(null)
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Send a password reset email to ${adminLoginEmail}? The client will receive a secure link to set a new password.`,
+    )
+    if (!confirmed) return
+
+    setAdminResetSending(true)
+    setAdminResetError(null)
+    setAdminResetMessage(null)
+    try {
+      await sendPasswordResetEmail(adminLoginEmail, loginPageRedirectUrl(data.org))
+      setAdminResetMessage(`Password reset email sent to ${adminLoginEmail}`)
+    } catch (err) {
+      setAdminResetError(
+        err instanceof Error ? err.message : 'Failed to send password reset email',
+      )
+    } finally {
+      setAdminResetSending(false)
+    }
   }
 
   async function handleLogoChange(file: File | undefined) {
@@ -350,6 +415,38 @@ export function RallyHubClientDetailPage() {
               </div>
             </div>
           </Card>
+        ) : data ? (
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+            <h3 className="text-foreground font-semibold">Admin login</h3>
+            <p className="text-muted-foreground text-sm">
+              The email address the client uses to sign in to their admin account.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="admin-login-email-display">Admin login email</Label>
+              <p
+                id="admin-login-email-display"
+                className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
+              >
+                {resolveAdminLoginEmail(data.org, data.members) || '—'}
+              </p>
+            </div>
+            {adminResetError ? <QueryError message={adminResetError} /> : null}
+            {adminResetMessage ? (
+              <p className="text-foreground text-sm" role="status">
+                {adminResetMessage}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
+              }
+              onClick={() => void handleAdminPasswordReset()}
+            >
+              {adminResetSending ? 'Sending…' : 'Send Password Reset'}
+            </Button>
+          </Card>
         ) : null}
 
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
@@ -529,7 +626,7 @@ export function RallyHubClientDetailPage() {
                       disabled={!memberResetEmail[p.id]?.trim()}
                       onClick={() => {
                         const addr = memberResetEmail[p.id]?.trim()
-                        if (addr) void sendResetEmail(addr)
+                        if (addr) void sendMemberPasswordReset(addr)
                       }}
                     >
                       Send reset email
@@ -545,7 +642,7 @@ export function RallyHubClientDetailPage() {
                     size="sm"
                     variant="ghost"
                     className="ml-2"
-                    onClick={() => void sendResetEmail(m.email)}
+                    onClick={() => void sendMemberPasswordReset(m.email)}
                   >
                     Send reset email
                   </Button>
