@@ -1,11 +1,13 @@
-import { cn } from '@/lib/utils'
+import { SupportUnreadBadge } from '@/components/admin/SupportUnreadBadge'
 import type { SupportTicketRow } from '@/hooks/use-support-tickets'
+import { cn } from '@/lib/utils'
 
 type SupportTicketCardProps = {
   ticket: SupportTicketRow
   selected?: boolean
   onClick: () => void
   orgLabel?: string
+  unreadCount?: number
 }
 
 function formatTicketTime(iso: string) {
@@ -20,6 +22,7 @@ export function SupportTicketCard({
   selected,
   onClick,
   orgLabel,
+  unreadCount = 0,
 }: SupportTicketCardProps) {
   return (
     <article
@@ -33,11 +36,18 @@ export function SupportTicketCard({
         }
       }}
       className={cn(
-        'border-border/80 bg-card hover:border-border flex cursor-pointer flex-col gap-2 rounded-lg border p-3 shadow-sm transition-colors',
+        'border-border/80 bg-card hover:border-border relative flex cursor-pointer flex-col gap-2 rounded-lg border p-3 shadow-sm transition-colors',
         selected && 'ring-primary border-primary/50 ring-2',
       )}
     >
-      <div className="min-w-0">
+      {unreadCount > 0 ? (
+        <SupportUnreadBadge
+          count={unreadCount}
+          className="absolute right-2 top-2"
+          label={`${unreadCount} unread message${unreadCount === 1 ? '' : 's'}`}
+        />
+      ) : null}
+      <div className="min-w-0 pr-6">
         <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
           {ticket.subject}
         </p>

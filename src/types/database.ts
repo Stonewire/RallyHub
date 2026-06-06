@@ -611,6 +611,10 @@ export type Database = {
         Args: { p_ticket_id: string; p_viewer_role: string }
         Returns: undefined
       }
+      support_unread_counts_by_ticket: {
+        Args: { p_viewer_role: string }
+        Returns: { ticket_id: string; unread_count: number }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

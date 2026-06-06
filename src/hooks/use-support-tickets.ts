@@ -3,11 +3,25 @@ import { useCallback, useEffect } from 'react'
 
 import { useAuth } from '@/contexts/auth-context'
 import { generateSupportTicketNumber } from '@/lib/support-ticket'
+import {
+  appendSupportMessageToCache,
+  subscribeSupportRealtime,
+} from '@/lib/support-realtime'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
+import {
+  messagesKey,
+  supportListKey,
+  supportTicketUnreadKey,
+  supportUnreadKey,
+  type SupportViewerRole,
+} from './support-query-keys'
+
 export type SupportTicketRow = Tables<'support_tickets'>
 export type SupportTicketMessageRow = Tables<'support_ticket_messages'>
+export type { SupportViewerRole } from './support-query-keys'
+export { supportUnreadKey } from './support-query-keys'
 
 export const TICKET_STATUS_ORDER = ['open', 'in_progress', 'resolved'] as const
 export type TicketStatus = (typeof TICKET_STATUS_ORDER)[number]
@@ -26,42 +40,19 @@ export function groupTicketsByStatus(tickets: SupportTicketRow[]) {
   }))
 }
 
-function supportListKey(scope: 'all' | 'org', organizationId?: string) {
-  return scope === 'all'
-    ? (['support', 'tickets', 'all'] as const)
-    : (['support', 'tickets', 'org', organizationId] as const)
-}
-
-function messagesKey(ticketId: string) {
-  return ['support', 'messages', ticketId] as const
-}
-
-export function supportUnreadKey(viewerRole: 'client' | 'support') {
-  return ['support', 'unread', viewerRole] as const
-}
-
-export type SupportViewerRole = 'client' | 'support'
-
-export function useSupportUnreadCount(viewerRole: SupportViewerRole) {
+export function useSupportRealtimeSync(viewerRole: SupportViewerRole) {
   const { user } = useAuth()
   const qc = useQueryClient()
 
   useEffect(() => {
     if (!user) return
-    const channel = supabase
-      .channel(`support-unread:${viewerRole}:${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'support_ticket_messages' },
-        () => {
-          void qc.invalidateQueries({ queryKey: supportUnreadKey(viewerRole) })
-        },
-      )
-      .subscribe()
-    return () => {
-      void supabase.removeChannel(channel)
-    }
+    return subscribeSupportRealtime(user.id, viewerRole, qc)
   }, [user, viewerRole, qc])
+}
+
+export function useSupportUnreadCount(viewerRole: SupportViewerRole) {
+  const { user } = useAuth()
+  useSupportRealtimeSync(viewerRole)
 
   return useQuery({
     queryKey: supportUnreadKey(viewerRole),
@@ -71,6 +62,30 @@ export function useSupportUnreadCount(viewerRole: SupportViewerRole) {
       })
       if (error) throw error
       return data ?? 0
+    },
+    enabled: Boolean(user),
+    refetchInterval: 60_000,
+  })
+}
+
+export type SupportTicketUnreadMap = Record<string, number>
+
+export function useSupportTicketUnreadCounts(viewerRole: SupportViewerRole) {
+  const { user } = useAuth()
+  useSupportRealtimeSync(viewerRole)
+
+  return useQuery({
+    queryKey: supportTicketUnreadKey(viewerRole),
+    queryFn: async (): Promise<SupportTicketUnreadMap> => {
+      const { data, error } = await supabase.rpc('support_unread_counts_by_ticket', {
+        p_viewer_role: viewerRole,
+      })
+      if (error) throw error
+      const map: SupportTicketUnreadMap = {}
+      for (const row of data ?? []) {
+        map[row.ticket_id] = row.unread_count
+      }
+      return map
     },
     enabled: Boolean(user),
     refetchInterval: 60_000,
@@ -94,7 +109,17 @@ export function useMarkSupportTicketRead() {
       if (error) throw error
     },
     onSuccess: (_data, vars) => {
+      qc.setQueryData<SupportTicketUnreadMap>(
+        supportTicketUnreadKey(vars.viewerRole),
+        (prev) => {
+          if (!prev) return prev
+          const next = { ...prev }
+          delete next[vars.ticketId]
+          return next
+        },
+      )
       void qc.invalidateQueries({ queryKey: supportUnreadKey(vars.viewerRole) })
+      void qc.invalidateQueries({ queryKey: supportTicketUnreadKey(vars.viewerRole) })
     },
   })
 }
@@ -116,8 +141,6 @@ export function useSupportTickets(scope: 'all' | 'org' = 'all', organizationId?:
 }
 
 export function useTicketMessages(ticketId: string | undefined) {
-  const qc = useQueryClient()
-
   const reload = useCallback(async () => {
     if (!ticketId) return []
     const { data, error } = await supabase
@@ -129,39 +152,11 @@ export function useTicketMessages(ticketId: string | undefined) {
     return data ?? []
   }, [ticketId])
 
-  useEffect(() => {
-    if (!ticketId) return
-    const channel = supabase
-      .channel(`support-messages:${ticketId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'support_ticket_messages',
-          filter: `ticket_id=eq.${ticketId}`,
-        },
-        (payload) => {
-          const row = payload.new as SupportTicketMessageRow
-          qc.setQueryData<SupportTicketMessageRow[]>(messagesKey(ticketId), (prev) => {
-            if (!prev) return [row]
-            if (prev.some((m) => m.id === row.id)) return prev
-            return [...prev, row]
-          })
-          void qc.invalidateQueries({ queryKey: ['support', 'tickets'] })
-          void qc.invalidateQueries({ queryKey: ['support', 'unread'] })
-        },
-      )
-      .subscribe()
-    return () => {
-      void supabase.removeChannel(channel)
-    }
-  }, [ticketId, qc])
-
   return useQuery({
     queryKey: ticketId ? messagesKey(ticketId) : ['support', 'messages', 'none'],
     queryFn: reload,
     enabled: Boolean(ticketId),
+    staleTime: Infinity,
   })
 }
 
@@ -208,18 +203,22 @@ export function useSendTicketMessage() {
         (senderRole === 'support'
           ? profile?.full_name?.trim() || 'RallyHub Support'
           : profile?.full_name?.trim() || 'Client')
-      const { error } = await supabase.from('support_ticket_messages').insert({
-        ticket_id: ticketId,
-        sender_role: senderRole,
-        sender_name: name,
-        body: body.trim(),
-      })
+      const { data, error } = await supabase
+        .from('support_ticket_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_role: senderRole,
+          sender_name: name,
+          body: body.trim(),
+        })
+        .select()
+        .single()
       if (error) throw error
+      return data
     },
-    onSuccess: (_data, vars) => {
-      void qc.invalidateQueries({ queryKey: messagesKey(vars.ticketId) })
+    onSuccess: (row, vars) => {
+      appendSupportMessageToCache(qc, vars.ticketId, row)
       void qc.invalidateQueries({ queryKey: ['support', 'tickets'] })
-      void qc.invalidateQueries({ queryKey: ['support', 'unread'] })
     },
   })
 }
@@ -266,13 +265,18 @@ export function useCreateSupportTicket(organizationId: string | undefined) {
         .single()
       if (error) throw error
       if (trimmedBody) {
-        const { error: msgError } = await supabase.from('support_ticket_messages').insert({
-          ticket_id: ticket.id,
-          sender_role: 'client',
-          sender_name: profile?.full_name?.trim() || 'Client',
-          body: trimmedBody,
-        })
+        const { data: message, error: msgError } = await supabase
+          .from('support_ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            sender_role: 'client',
+            sender_name: profile?.full_name?.trim() || 'Client',
+            body: trimmedBody,
+          })
+          .select()
+          .single()
         if (msgError) throw msgError
+        if (message) appendSupportMessageToCache(qc, ticket.id, message)
       }
       return { ticket, ticketNumber }
     },

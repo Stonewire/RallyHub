@@ -3,6 +3,7 @@ import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { Card } from '@/components/ui/card'
 import {
   TICKET_STATUS_LABELS,
+  useSupportTicketUnreadCounts,
   type SupportTicketRow,
   type SupportViewerRole,
   type TicketStatus,
@@ -31,6 +32,7 @@ export function SupportTicketsWorkspace({
   showStatusOnCard = false,
   renderThreadHeader,
 }: SupportTicketsWorkspaceProps) {
+  const { data: unreadByTicket = {} } = useSupportTicketUnreadCounts(senderRole)
   const selected = tickets.find((t) => t.id === selectedId) ?? null
 
   if (tickets.length === 0) {
@@ -50,6 +52,7 @@ export function SupportTicketsWorkspace({
                 ? `${TICKET_STATUS_LABELS[ticket.status as TicketStatus]}${getOrgLabel?.(ticket) ? ` · ${getOrgLabel(ticket)}` : ''}`
                 : getOrgLabel?.(ticket)
             }
+            unreadCount={unreadByTicket[ticket.id] ?? 0}
             onClick={() => onSelectTicket(ticket.id)}
           />
         ))}

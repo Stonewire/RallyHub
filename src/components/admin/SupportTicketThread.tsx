@@ -42,6 +42,12 @@ export function SupportTicketThread({
     markTicketRead({ ticketId: ticket.id, viewerRole: senderRole })
   }, [ticket.id, senderRole, markTicketRead])
 
+  const lastMessage = messages?.[messages.length - 1]
+  useEffect(() => {
+    if (!lastMessage || lastMessage.sender_role === senderRole) return
+    markTicketRead({ ticketId: ticket.id, viewerRole: senderRole })
+  }, [lastMessage?.id, ticket.id, senderRole, markTicketRead, lastMessage])
+
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [messages?.length, ticket.id])
