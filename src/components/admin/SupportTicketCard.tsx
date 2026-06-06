@@ -1,5 +1,6 @@
+import { SupportTicketStatusBadge } from '@/components/admin/SupportTicketStatusBadge'
 import { SupportUnreadBadge } from '@/components/admin/SupportUnreadBadge'
-import type { SupportTicketRow } from '@/hooks/use-support-tickets'
+import type { SupportTicketRow, TicketStatus } from '@/hooks/use-support-tickets'
 import { cn } from '@/lib/utils'
 
 type SupportTicketCardProps = {
@@ -48,6 +49,9 @@ export function SupportTicketCard({
         />
       ) : null}
       <div className="min-w-0 pr-6">
+        <div className="mb-1.5 flex flex-wrap items-center gap-2">
+          <SupportTicketStatusBadge status={ticket.status as TicketStatus} />
+        </div>
         <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
           {ticket.subject}
         </p>

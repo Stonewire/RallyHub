@@ -1,12 +1,19 @@
+import { useMemo, useState } from 'react'
+
+import {
+  CollapsibleSection,
+  loadCollapsedState,
+  saveCollapsedState,
+  SUPPORT_COLLAPSED_STORAGE_KEY,
+} from '@/components/admin/CollapsibleSection'
 import { SupportTicketCard } from '@/components/admin/SupportTicketCard'
 import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { Card } from '@/components/ui/card'
 import {
-  TICKET_STATUS_LABELS,
+  groupTicketsByStatus,
   useSupportTicketUnreadCounts,
   type SupportTicketRow,
   type SupportViewerRole,
-  type TicketStatus,
 } from '@/hooks/use-support-tickets'
 
 type SupportTicketsWorkspaceProps = {
@@ -17,7 +24,6 @@ type SupportTicketsWorkspaceProps = {
   emptyMessage?: string
   selectPrompt?: string
   getOrgLabel?: (ticket: SupportTicketRow) => string | undefined
-  showStatusOnCard?: boolean
   renderThreadHeader?: (ticket: SupportTicketRow) => React.ReactNode
 }
 
@@ -29,11 +35,22 @@ export function SupportTicketsWorkspace({
   emptyMessage = 'No tickets yet.',
   selectPrompt = 'Select a ticket to view the thread.',
   getOrgLabel,
-  showStatusOnCard = false,
   renderThreadHeader,
 }: SupportTicketsWorkspaceProps) {
   const { data: unreadByTicket = {} } = useSupportTicketUnreadCounts(senderRole)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
+    loadCollapsedState(SUPPORT_COLLAPSED_STORAGE_KEY),
+  )
+  const groups = useMemo(() => groupTicketsByStatus(tickets), [tickets])
   const selected = tickets.find((t) => t.id === selectedId) ?? null
+
+  function toggleGroup(status: string) {
+    setCollapsed((current) => {
+      const next = { ...current, [status]: !current[status] }
+      saveCollapsedState(next, SUPPORT_COLLAPSED_STORAGE_KEY)
+      return next
+    })
+  }
 
   if (tickets.length === 0) {
     return <p className="text-muted-foreground text-sm">{emptyMessage}</p>
@@ -41,20 +58,35 @@ export function SupportTicketsWorkspace({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        {tickets.map((ticket) => (
-          <SupportTicketCard
-            key={ticket.id}
-            ticket={ticket}
-            selected={ticket.id === selectedId}
-            orgLabel={
-              showStatusOnCard
-                ? `${TICKET_STATUS_LABELS[ticket.status as TicketStatus]}${getOrgLabel?.(ticket) ? ` · ${getOrgLabel(ticket)}` : ''}`
-                : getOrgLabel?.(ticket)
-            }
-            unreadCount={unreadByTicket[ticket.id] ?? 0}
-            onClick={() => onSelectTicket(ticket.id)}
-          />
+      <div className="space-y-4">
+        {groups.map((group) => (
+          <CollapsibleSection
+            key={group.status}
+            id={`support-${group.status}`}
+            title={group.label}
+            count={group.tickets.length}
+            collapsed={Boolean(collapsed[group.status])}
+            onToggle={() => toggleGroup(group.status)}
+          >
+            {group.tickets.length === 0 ? (
+              <p className="text-muted-foreground py-2 text-xs">
+                No {group.label.toLowerCase()} tickets.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {group.tickets.map((ticket) => (
+                  <SupportTicketCard
+                    key={ticket.id}
+                    ticket={ticket}
+                    selected={ticket.id === selectedId}
+                    orgLabel={getOrgLabel?.(ticket)}
+                    unreadCount={unreadByTicket[ticket.id] ?? 0}
+                    onClick={() => onSelectTicket(ticket.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
         ))}
       </div>
       {selected ? (

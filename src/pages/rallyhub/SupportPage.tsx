@@ -33,7 +33,6 @@ export function RallyHubSupportPage() {
           onSelectTicket={setSelectedId}
           senderRole="support"
           emptyMessage="No support tickets yet."
-          showStatusOnCard
           getOrgLabel={(ticket) => `Org ${ticket.organization_id.slice(0, 8)}…`}
           renderThreadHeader={(ticket) => (
             <div className="flex flex-wrap items-start justify-between gap-3">

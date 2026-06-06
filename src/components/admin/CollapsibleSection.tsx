@@ -3,21 +3,27 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-const STORAGE_KEY = 'rallyhub-events-collapsed-v1'
+export const EVENTS_COLLAPSED_STORAGE_KEY = 'rallyhub-events-collapsed-v1'
+export const SUPPORT_COLLAPSED_STORAGE_KEY = 'rallyhub-support-collapsed-v1'
 
-export function loadCollapsedState(): Record<string, boolean> {
+export function loadCollapsedState(
+  storageKey = EVENTS_COLLAPSED_STORAGE_KEY,
+): Record<string, boolean> {
   if (typeof window === 'undefined') return {}
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey)
     return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
   } catch {
     return {}
   }
 }
 
-export function saveCollapsedState(state: Record<string, boolean>) {
+export function saveCollapsedState(
+  state: Record<string, boolean>,
+  storageKey = EVENTS_COLLAPSED_STORAGE_KEY,
+) {
   if (typeof window === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  localStorage.setItem(storageKey, JSON.stringify(state))
 }
 
 type CollapsibleSectionProps = {
