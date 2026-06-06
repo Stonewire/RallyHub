@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 
+import { AppLegalFooter } from '@/components/legal/AppLegalFooter'
 import { RallyHubAppSidebar } from '@/components/rallyhub/RallyHubAppSidebar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -26,7 +27,10 @@ export function RallyHubLayout() {
           />
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          <Outlet />
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <AppLegalFooter />
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 
 import { AdminAppSidebar } from '@/components/admin/AdminAppSidebar'
+import { AppLegalFooter } from '@/components/legal/AppLegalFooter'
 import { Separator } from '@/components/ui/separator'
 import {
   SidebarInset,
@@ -26,7 +27,10 @@ export function AdminLayout() {
           />
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          <Outlet />
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <AppLegalFooter />
         </div>
       </SidebarInset>
     </SidebarProvider>

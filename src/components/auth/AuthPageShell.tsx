@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
+import { LegalFooterLinks } from '@/components/legal/LegalFooterLinks'
 import { useTenant } from '@/contexts/tenant-context'
 import { isTenantHost } from '@/lib/tenant'
 
@@ -19,6 +20,7 @@ export function AuthPageShell({ children }: { children: ReactNode }) {
         ) : null}
       </div>
       {children}
+      <LegalFooterLinks inline className="mt-8 max-w-sm justify-center" />
     </div>
   )
 }

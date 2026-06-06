@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { LEGAL_LINKS, LegalFooterLinks } from '@/components/legal/LegalFooterLinks'
 import { RallyLogo } from '@/components/brand/RallyLogo'
 
 const FOOTER_COLUMNS = [
@@ -22,6 +23,10 @@ const FOOTER_COLUMNS = [
     title: 'Account',
     links: [{ label: 'Login', href: '/login' }],
   },
+  {
+    title: 'Legal',
+    links: LEGAL_LINKS.map((item) => ({ label: item.label, href: item.href })),
+  },
 ] as const
 
 export function MarketingFooter() {
@@ -34,7 +39,7 @@ export function MarketingFooter() {
             Live team games, run in real time.
           </p>
         </div>
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {FOOTER_COLUMNS.map((column) => (
             <nav key={column.title} aria-label={column.title}>
               <p className="text-foreground mb-3 text-sm font-semibold">{column.title}</p>
@@ -55,9 +60,10 @@ export function MarketingFooter() {
         </div>
       </div>
       <div className="border-t border-[var(--nm-border)]">
-        <p className="text-muted-foreground mx-auto max-w-6xl px-6 py-6 text-center text-xs sm:px-10 lg:px-14">
-          © 2026 RallyHub. All rights reserved.
-        </p>
+        <div className="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center gap-3 px-6 py-6 text-xs sm:flex-row sm:justify-between sm:px-10 lg:px-14">
+          <p>© 2026 RallyHub. All rights reserved.</p>
+          <LegalFooterLinks inline showCookiePreferences />
+        </div>
       </div>
     </footer>
   )

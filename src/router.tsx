@@ -26,6 +26,10 @@ import { JoinEventPage } from '@/pages/live/JoinEventPage'
 import { TabletPage } from '@/pages/live/TabletPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
 import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
+import { CookiePolicyPage } from '@/pages/legal/CookiePolicyPage'
+import { ImprintPage } from '@/pages/legal/ImprintPage'
+import { PrivacyPolicyPage } from '@/pages/legal/PrivacyPolicyPage'
+import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage'
 import { PlayTokenPage } from '@/pages/placeholders'
 import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
@@ -91,6 +95,10 @@ export const router = createBrowserRouter([
 
   { path: '/', element: <RootPage /> },
   { path: '/contact', element: <ContactPage /> },
+  { path: '/privacy', element: <PrivacyPolicyPage /> },
+  { path: '/terms', element: <TermsOfServicePage /> },
+  { path: '/cookies', element: <CookiePolicyPage /> },
+  { path: '/imprint', element: <ImprintPage /> },
   {
     path: '/login',
     element: (
