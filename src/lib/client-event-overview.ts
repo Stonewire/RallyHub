@@ -21,7 +21,7 @@ export function isEventInvoicePaid(
   event: Pick<ClientEventRow, 'invoice_paid'>,
   clientPlan: string | null | undefined,
 ) {
-  if (normalizeClientPlan(clientPlan) === 'free') return true
+  if (normalizeClientPlan(clientPlan) === 'partner') return true
   return event.invoice_paid === true
 }
 
