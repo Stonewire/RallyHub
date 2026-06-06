@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
+import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { useMusicCatalog } from '@/hooks/use-music-catalog'
+import { useDeleteMusicCatalog, useMusicCatalog, type MusicCatalogRow } from '@/hooks/use-music-catalog'
 import type { MusicTrack } from '@/types/game-config'
 
 type MusicCatalogPickerProps = {
@@ -18,11 +19,30 @@ export function MusicCatalogPicker({
   onAdd,
 }: MusicCatalogPickerProps) {
   const catalogQuery = useMusicCatalog(organizationId)
+  const deleteCatalog = useDeleteMusicCatalog(organizationId)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const available = useMemo(() => {
     if (!catalogQuery.data) return []
     return catalogQuery.data.filter((row) => !existingTrackIds.has(row.id))
   }, [catalogQuery.data, existingTrackIds])
+
+  async function handleDelete(row: MusicCatalogRow) {
+    setDeleteError(null)
+    const label = `${row.title} — ${row.artist}`
+    if (
+      !window.confirm(
+        `Delete "${label}" from your organization catalog? The full audio and clip files will be removed. This cannot be undone.`,
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteCatalog.mutateAsync(row)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Could not delete track')
+    }
+  }
 
   if (catalogQuery.isLoading) return <QueryLoading rows={2} />
   if (catalogQuery.isError) {
@@ -37,75 +57,97 @@ export function MusicCatalogPicker({
     )
   }
 
-  if (available.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        All catalog tracks are already on this game.
-      </p>
-    )
-  }
-
   return (
     <Card className="border-border/80 space-y-3 bg-muted/20 p-4">
       <div>
         <h3 className="text-foreground text-sm font-semibold">Organization catalog</h3>
         <p className="text-muted-foreground text-xs">
-          Reuse tracks uploaded for other bingo games ({available.length} available).
+          Reuse or remove tracks uploaded for your bingo games ({catalogQuery.data.length}{' '}
+          total{catalogQuery.data.length !== available.length
+            ? ` · ${available.length} not on this game`
+            : ''}
+          ).
         </p>
       </div>
-      <ul className="max-h-48 space-y-1 overflow-auto text-sm">
-        {available.map((row) => (
-          <li key={row.id} className="flex items-center justify-between gap-2 py-1">
-            <span className="truncate">
-              {row.title} — {row.artist}
-              {!row.clip_url ? (
-                <span className="text-amber-600"> · clip pending</span>
-              ) : null}
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="shrink-0"
-              onClick={() =>
-                onAdd([
-                  {
-                    id: row.id,
-                    title: row.title,
-                    artist: row.artist,
-                    audioUrl: row.audio_url,
-                    clipUrl: row.clip_url ?? undefined,
-                    clipStartSeconds: Number(row.clip_start_seconds) || 0,
-                    clipDurationSeconds: row.clip_duration_seconds ?? 30,
-                  },
-                ])
-              }
-            >
-              Add
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        onClick={() =>
-          onAdd(
-            available.map((row) => ({
-              id: row.id,
-              title: row.title,
-              artist: row.artist,
-              audioUrl: row.audio_url,
-              clipUrl: row.clip_url ?? undefined,
-              clipStartSeconds: Number(row.clip_start_seconds) || 0,
-              clipDurationSeconds: row.clip_duration_seconds ?? 30,
-            })),
+      <ul className="max-h-56 space-y-1 overflow-auto text-sm">
+        {catalogQuery.data.map((row) => {
+          const onGame = existingTrackIds.has(row.id)
+          return (
+            <li key={row.id} className="flex items-center justify-between gap-2 py-1">
+              <span className="min-w-0 truncate">
+                {row.title} — {row.artist}
+                {!row.clip_url ? (
+                  <span className="text-amber-600"> · clip pending</span>
+                ) : onGame ? (
+                  <span className="text-muted-foreground"> · on this game</span>
+                ) : null}
+              </span>
+              <div className="flex shrink-0 items-center gap-1">
+                {!onGame ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      onAdd([
+                        {
+                          id: row.id,
+                          title: row.title,
+                          artist: row.artist,
+                          audioUrl: row.audio_url,
+                          clipUrl: row.clip_url ?? undefined,
+                          clipStartSeconds: Number(row.clip_start_seconds) || 0,
+                          clipDurationSeconds: row.clip_duration_seconds ?? 30,
+                        },
+                      ])
+                    }
+                  >
+                    Add
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  disabled={deleteCatalog.isPending}
+                  aria-label={`Delete ${row.title}`}
+                  onClick={() => void handleDelete(row)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            </li>
           )
-        }
-      >
-        Add all {available.length} tracks
-      </Button>
+        })}
+      </ul>
+      {available.length > 0 ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            onAdd(
+              available.map((row) => ({
+                id: row.id,
+                title: row.title,
+                artist: row.artist,
+                audioUrl: row.audio_url,
+                clipUrl: row.clip_url ?? undefined,
+                clipStartSeconds: Number(row.clip_start_seconds) || 0,
+                clipDurationSeconds: row.clip_duration_seconds ?? 30,
+              })),
+            )
+          }
+        >
+          Add all {available.length} available tracks
+        </Button>
+      ) : null}
+      {deleteError ? (
+        <p className="text-destructive text-sm" role="alert">
+          {deleteError}
+        </p>
+      ) : null}
     </Card>
   )
 }
