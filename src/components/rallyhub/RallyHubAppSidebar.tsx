@@ -28,6 +28,7 @@ const mainNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/clients', label: 'Clients', icon: Building2, end: false },
   { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false },
+  { to: '/admin/support', label: 'Support', icon: LifeBuoy, end: true },
 ] as const
 
 export function RallyHubAppSidebar() {
@@ -64,6 +65,11 @@ export function RallyHubAppSidebar() {
                       <span className="font-medium">{label}</span>
                     </NavLink>
                   </SidebarMenuButton>
+                  {to === '/admin/support' && supportUnread > 0 ? (
+                    <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
+                      {supportUnread > 9 ? '9+' : supportUnread}
+                    </SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -73,24 +79,6 @@ export function RallyHubAppSidebar() {
 
       <SidebarFooter className="border-sidebar-border mt-auto shrink-0 border-t p-2">
         <SidebarMenu className="gap-px">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Support"
-              isActive={isAdminNavActive(pathname, '/admin/support', true)}
-              className="text-[#3E3D3E]"
-            >
-              <NavLink to="/admin/support">
-                <LifeBuoy className="shrink-0" strokeWidth={1.75} />
-                <span className="font-medium">Support</span>
-              </NavLink>
-            </SidebarMenuButton>
-            {supportUnread > 0 ? (
-              <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
-                {supportUnread > 9 ? '9+' : supportUnread}
-              </SidebarMenuBadge>
-            ) : null}
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"
