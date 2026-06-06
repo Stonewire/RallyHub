@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
-import { RallyLogo } from '@/components/brand/RallyLogo'
+import { AuthPageShell } from '@/components/auth/AuthPageShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
-import { useTenant } from '@/contexts/tenant-context'
 import { resolvePostLoginPath } from '@/lib/auth-routes'
-import { isPlatformHost, isTenantHost } from '@/lib/tenant'
+import { isPlatformHost } from '@/lib/tenant'
 
 export function LoginPage() {
   const { user, role, loading, profileLoading, signInWithPassword } = useAuth()
-  const { tenantOrg, tenantLoading } = useTenant()
   const location = useLocation()
 
   const from =
@@ -22,6 +20,14 @@ export function LoginPage() {
     typeof (location.state as { from?: unknown }).from === 'string'
       ? (location.state as { from: string }).from
       : undefined
+
+  const successMessage =
+    typeof location.state === 'object' &&
+    location.state &&
+    'message' in location.state &&
+    typeof (location.state as { message?: unknown }).message === 'string'
+      ? (location.state as { message: string }).message
+      : null
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,17 +57,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="neo-minimal-scope neo-minimal-inset flex min-h-svh flex-col items-center justify-center px-6 py-12">
-      <div className="mb-8 flex w-full max-w-sm flex-col items-center gap-3 text-center">
-        <RallyLogo className="mx-auto max-h-16 w-auto sm:max-h-20" />
-        {isTenantHost() && tenantOrg ? (
-          <p className="text-muted-foreground text-sm font-medium">{tenantOrg.name}</p>
-        ) : null}
-        {isTenantHost() && tenantLoading ? (
-          <p className="text-muted-foreground text-xs">Loading…</p>
-        ) : null}
-      </div>
-
+    <AuthPageShell>
       <NeoCard className="w-full max-w-sm space-y-6 p-8">
         <div className="space-y-2 text-center">
           <h1 className="text-foreground text-xl font-semibold tracking-tight">Sign in</h1>
@@ -71,6 +67,12 @@ export function LoginPage() {
             </p>
           ) : null}
         </div>
+
+        {successMessage ? (
+          <p className="text-foreground bg-muted/50 rounded-lg px-3 py-2.5 text-center text-sm leading-relaxed" role="status">
+            {successMessage}
+          </p>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="space-y-2">
@@ -86,7 +88,15 @@ export function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <NeoLabel htmlFor="login-password">Password</NeoLabel>
+            <div className="flex items-center justify-between gap-2">
+              <NeoLabel htmlFor="login-password">Password</NeoLabel>
+              <Link
+                to="/login/forgot"
+                className="text-muted-foreground hover:text-foreground text-xs font-medium underline-offset-4 transition-colors hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <NeoInput
               id="login-password"
               name="password"
@@ -113,6 +123,6 @@ export function LoginPage() {
           </NeoButton>
         </form>
       </NeoCard>
-    </div>
+    </AuthPageShell>
   )
 }

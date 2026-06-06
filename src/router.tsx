@@ -18,6 +18,8 @@ import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
 import { TenantScope } from '@/components/routing/TenantScope'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorEventPage } from '@/pages/live/FacilitatorEventPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
@@ -94,6 +96,22 @@ export const router = createBrowserRouter([
     element: (
       <TenantScope>
         <LoginPage />
+      </TenantScope>
+    ),
+  },
+  {
+    path: '/login/forgot',
+    element: (
+      <TenantScope>
+        <ForgotPasswordPage />
+      </TenantScope>
+    ),
+  },
+  {
+    path: '/login/reset',
+    element: (
+      <TenantScope>
+        <ResetPasswordPage />
       </TenantScope>
     ),
   },
