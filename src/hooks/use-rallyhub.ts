@@ -4,6 +4,11 @@ import { useAuth } from '@/contexts/auth-context'
 import type { GameRow } from '@/hooks/use-games'
 import { countClientEvents } from '@/lib/client-events'
 import { platformGameInstallPayload } from '@/lib/install-platform-game'
+import {
+  fetchGroupClientInstallCounts,
+  groupInstallStatusKey,
+  installPlatformGameGroup,
+} from '@/lib/install-platform-game-group'
 import { isListedClientOrganization } from '@/lib/platform-library'
 import { supabase } from '@/lib/supabase'
 import type { TablesUpdate } from '@/types/helpers'
@@ -357,6 +362,34 @@ export function useInstallPlatformGame() {
     },
     onSuccess: (_results, { template }) => {
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'game-installs', template.id] })
+    },
+  })
+}
+
+export type { InstallPlatformGameGroupSummary } from '@/lib/install-platform-game-group'
+
+export function useGroupClientInstallStatus(templates: GameRow[]) {
+  const templateIds = templates.map((t) => t.id)
+
+  return useQuery({
+    queryKey: ['rallyhub', 'group-installs', groupInstallStatusKey(templateIds)],
+    enabled: templateIds.length > 0,
+    queryFn: () => fetchGroupClientInstallCounts(templates),
+  })
+}
+
+export function useInstallPlatformGameGroup() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: installPlatformGameGroup,
+    onSuccess: (_summary, { templates }) => {
+      void qc.invalidateQueries({
+        queryKey: ['rallyhub', 'group-installs', groupInstallStatusKey(templates.map((t) => t.id))],
+      })
+      for (const template of templates) {
+        void qc.invalidateQueries({ queryKey: ['rallyhub', 'game-installs', template.id] })
+      }
     },
   })
 }

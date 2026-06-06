@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
+import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import {
   NoOrganizationMessage,
@@ -27,6 +28,7 @@ import {
   useDeleteGameGroup,
   useGameGroups,
   useRenameGameGroup,
+  type GameGroupWithItems,
 } from '@/hooks/use-game-groups'
 import {
   useAdminGames,
@@ -62,6 +64,7 @@ function GroupHeader({
   onSaveRename,
   onCancelRename,
   onDelete,
+  onInstall,
 }: {
   name: string
   count: number
@@ -74,6 +77,7 @@ function GroupHeader({
   onSaveRename: () => void
   onCancelRename: () => void
   onDelete: () => void
+  onInstall?: () => void
 }) {
   return (
     <div className="mb-2 flex items-center gap-2">
@@ -117,6 +121,11 @@ function GroupHeader({
         </>
       ) : (
         <>
+          {onInstall ? (
+            <NeoButton type="button" variant="surface" size="sm" onClick={onInstall}>
+              Install group
+            </NeoButton>
+          ) : null}
           <NeoButton type="button" variant="ghost" size="sm" onClick={onStartRename}>
             Rename
           </NeoButton>
@@ -154,6 +163,10 @@ export function AdminGamesPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
+  const [installGroup, setInstallGroup] = useState<{
+    name: string
+    games: GameRow[]
+  } | null>(null)
   const [pendingDeleteGame, setPendingDeleteGame] = useState<{ id: string; name: string } | null>(
     null,
   )
@@ -165,6 +178,7 @@ export function AdminGamesPage() {
   const [dialogError, setDialogError] = useState<string | null>(null)
 
   const groups = groupsQuery.data ?? []
+  const allGames = gamesQuery.data ?? []
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
 
   const gameToGroupId = useMemo(() => {
@@ -188,6 +202,20 @@ export function AdminGamesPage() {
   }, [gamesQuery.data, filter, search])
 
   const ungrouped = filtered.filter((g) => !gameToGroupId.has(g.id))
+
+  function gamesForGroup(group: GameGroupWithItems): GameRow[] {
+    const byId = new Map(allGames.map((g) => [g.id, g]))
+    return group.items
+      .map((item) => byId.get(item.game_id))
+      .filter((game): game is GameRow => Boolean(game))
+  }
+
+  function openInstallGroup(group: GameGroupWithItems) {
+    setInstallGroup({
+      name: group.name,
+      games: gamesForGroup(group),
+    })
+  }
 
   function openCreateGroupDialog() {
     setDialogError(null)
@@ -367,6 +395,11 @@ export function AdminGamesPage() {
                     setDialogError(null)
                     setPendingDeleteGroup({ id: group.id, name: group.name })
                   }}
+                  onInstall={
+                    isPlatformLibrary && group.items.length > 0
+                      ? () => openInstallGroup(group)
+                      : undefined
+                  }
                 />
                 {!collapsed ? (
                   groupGames.length === 0 ? (
@@ -422,6 +455,14 @@ export function AdminGamesPage() {
       )}
       {installGame ? (
         <InstallGameModal game={installGame} onClose={() => setInstallGame(null)} />
+      ) : null}
+
+      {installGroup ? (
+        <InstallGameGroupModal
+          groupName={installGroup.name}
+          games={installGroup.games}
+          onClose={() => setInstallGroup(null)}
+        />
       ) : null}
 
       {createGroupOpen ? (
