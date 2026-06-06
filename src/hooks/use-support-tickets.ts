@@ -36,6 +36,69 @@ function messagesKey(ticketId: string) {
   return ['support', 'messages', ticketId] as const
 }
 
+export function supportUnreadKey(viewerRole: 'client' | 'support') {
+  return ['support', 'unread', viewerRole] as const
+}
+
+export type SupportViewerRole = 'client' | 'support'
+
+export function useSupportUnreadCount(viewerRole: SupportViewerRole) {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`support-unread:${viewerRole}:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'support_ticket_messages' },
+        () => {
+          void qc.invalidateQueries({ queryKey: supportUnreadKey(viewerRole) })
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [user, viewerRole, qc])
+
+  return useQuery({
+    queryKey: supportUnreadKey(viewerRole),
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase.rpc('support_unread_ticket_count', {
+        p_viewer_role: viewerRole,
+      })
+      if (error) throw error
+      return data ?? 0
+    },
+    enabled: Boolean(user),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useMarkSupportTicketRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      ticketId,
+      viewerRole,
+    }: {
+      ticketId: string
+      viewerRole: SupportViewerRole
+    }) => {
+      const { error } = await supabase.rpc('mark_support_ticket_read', {
+        p_ticket_id: ticketId,
+        p_viewer_role: viewerRole,
+      })
+      if (error) throw error
+    },
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: supportUnreadKey(vars.viewerRole) })
+    },
+  })
+}
+
 export function useSupportTickets(scope: 'all' | 'org' = 'all', organizationId?: string) {
   return useQuery({
     queryKey: supportListKey(scope, organizationId),
@@ -86,6 +149,7 @@ export function useTicketMessages(ticketId: string | undefined) {
             return [...prev, row]
           })
           void qc.invalidateQueries({ queryKey: ['support', 'tickets'] })
+          void qc.invalidateQueries({ queryKey: ['support', 'unread'] })
         },
       )
       .subscribe()
@@ -155,6 +219,7 @@ export function useSendTicketMessage() {
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: messagesKey(vars.ticketId) })
       void qc.invalidateQueries({ queryKey: ['support', 'tickets'] })
+      void qc.invalidateQueries({ queryKey: ['support', 'unread'] })
     },
   })
 }

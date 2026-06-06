@@ -1,9 +1,11 @@
 import { LogOut } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { SupportUnreadBadge } from '@/components/admin/SupportUnreadBadge'
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
+import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { cn } from '@/lib/utils'
 
 const links = [
@@ -15,6 +17,7 @@ const links = [
 
 export function RallyHubLayout() {
   const { signOut } = useAuth()
+  const { data: supportUnread = 0 } = useSupportUnreadCount('support')
 
   return (
     <div className="bg-background min-h-svh">
@@ -29,7 +32,7 @@ export function RallyHubLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-md px-3 py-1.5 transition-colors',
+                    'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors',
                     isActive
                       ? 'bg-[#FFCB03]/15 text-foreground font-medium'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -37,6 +40,9 @@ export function RallyHubLayout() {
                 }
               >
                 {label}
+                {to === '/admin/support' ? (
+                  <SupportUnreadBadge count={supportUnread} />
+                ) : null}
               </NavLink>
             ))}
           </nav>

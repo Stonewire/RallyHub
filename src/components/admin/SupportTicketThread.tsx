@@ -4,15 +4,17 @@ import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Label } from '@/components/ui/label'
 import {
+  useMarkSupportTicketRead,
   useSendTicketMessage,
   useTicketMessages,
   type SupportTicketRow,
+  type SupportViewerRole,
 } from '@/hooks/use-support-tickets'
 import { cn } from '@/lib/utils'
 
 type SupportTicketThreadProps = {
   ticket: SupportTicketRow
-  senderRole: 'client' | 'support'
+  senderRole: SupportViewerRole
   senderName?: string
   className?: string
 }
@@ -32,8 +34,13 @@ export function SupportTicketThread({
 }: SupportTicketThreadProps) {
   const { data: messages, isLoading, isError, error } = useTicketMessages(ticket.id)
   const sendMessage = useSendTicketMessage()
+  const markRead = useMarkSupportTicketRead()
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    markRead.mutate({ ticketId: ticket.id, viewerRole: senderRole })
+  }, [ticket.id, senderRole, markRead])
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })

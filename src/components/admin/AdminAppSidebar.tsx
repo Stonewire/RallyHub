@@ -25,12 +25,14 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 
@@ -58,6 +60,7 @@ export function AdminAppSidebar() {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { signOut } = useAuth()
+  const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
 
   const orgChildActive =
@@ -184,6 +187,11 @@ export function AdminAppSidebar() {
                 <span className="font-medium">Support</span>
               </NavLink>
             </SidebarMenuButton>
+            {supportUnread > 0 ? (
+              <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
+                {supportUnread > 9 ? '9+' : supportUnread}
+              </SidebarMenuBadge>
+            ) : null}
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

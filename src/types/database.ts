@@ -250,6 +250,26 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_reads: {
+        Row: {
+          id: string
+          ticket_id: string
+          user_id: string
+          viewer_role: 'client' | 'support'
+          last_viewed_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          user_id: string
+          viewer_role: 'client' | 'support'
+          last_viewed_at?: string
+        }
+        Update: {
+          last_viewed_at?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           id: string
@@ -582,6 +602,14 @@ export type Database = {
       resolve_tenant_by_host: {
         Args: { p_host: string }
         Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
+      support_unread_ticket_count: {
+        Args: { p_viewer_role: string }
+        Returns: number
+      }
+      mark_support_ticket_read: {
+        Args: { p_ticket_id: string; p_viewer_role: string }
+        Returns: undefined
       }
     }
     Enums: Record<string, never>
