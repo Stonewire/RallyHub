@@ -1,21 +1,32 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
+import { CollapsibleSection } from '@/components/admin/CollapsibleSection'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { SupportTicketCard } from '@/components/admin/SupportTicketCard'
+import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import {
-  useReplyToTicket,
+  groupTicketsByStatus,
+  TICKET_STATUS_ORDER,
   useSupportTickets,
   useUpdateTicketStatus,
-} from '@/hooks/use-rallyhub'
+  type TicketStatus,
+} from '@/hooks/use-support-tickets'
 
 export function RallyHubSupportPage() {
-  const { data, isLoading, isError, error } = useSupportTickets()
+  const { data, isLoading, isError, error } = useSupportTickets('all')
   const updateStatus = useUpdateTicketStatus()
-  const reply = useReplyToTicket()
-  const [replyText, setReplyText] = useState<Record<string, string>>({})
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  const tickets = data ?? []
+  const groups = useMemo(() => groupTicketsByStatus(tickets), [tickets])
+  const selected = tickets.find((t) => t.id === selectedId) ?? null
+
+  function toggleGroup(status: string) {
+    setCollapsed((c) => ({ ...c, [status]: !c[status] }))
+  }
 
   return (
     <AdminPageShell
@@ -26,70 +37,76 @@ export function RallyHubSupportPage() {
         <QueryLoading rows={5} />
       ) : isError ? (
         <QueryError message={error?.message} />
-      ) : (data?.length ?? 0) === 0 ? (
+      ) : tickets.length === 0 ? (
         <p className="text-muted-foreground text-sm">No support tickets yet.</p>
       ) : (
-        <ul className="space-y-4">
-          {data?.map((ticket) => (
-            <li key={ticket.id}>
-              <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-foreground font-semibold">{ticket.subject}</p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(ticket.created_at).toLocaleString()} · Org{' '}
-                      {ticket.organization_id.slice(0, 8)}…
-                    </p>
-                  </div>
-                  <select
-                    value={ticket.status}
-                    className="border-input rounded-lg border px-2 py-1 text-sm"
-                    onChange={(e) =>
-                      void updateStatus.mutateAsync({
-                        ticketId: ticket.id,
-                        status: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="open">Open</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <CollapsibleSection
+              key={group.status}
+              id={`support-${group.status}`}
+              title={group.label}
+              count={group.tickets.length}
+              collapsed={Boolean(collapsed[group.status])}
+              onToggle={() => toggleGroup(group.status)}
+            >
+              {group.tickets.length === 0 ? (
+                <p className="text-muted-foreground py-4 text-center text-xs">
+                  No {group.label.toLowerCase()} tickets.
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {group.tickets.map((ticket) => (
+                    <SupportTicketCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      selected={ticket.id === selectedId}
+                      orgLabel={`Org ${ticket.organization_id.slice(0, 8)}…`}
+                      onClick={() =>
+                        setSelectedId((id) => (id === ticket.id ? null : ticket.id))
+                      }
+                    />
+                  ))}
                 </div>
-                {ticket.body ? (
-                  <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-                    {ticket.body}
-                  </p>
-                ) : null}
-                <div className="space-y-2">
-                  <Label>Reply</Label>
-                  <textarea
-                    value={replyText[ticket.id] ?? ''}
-                    onChange={(e) =>
-                      setReplyText((r) => ({ ...r, [ticket.id]: e.target.value }))
-                    }
-                    rows={3}
-                    className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!replyText[ticket.id]?.trim()}
-                    onClick={() => {
-                      const body = replyText[ticket.id]?.trim()
-                      if (!body) return
-                      void reply.mutateAsync({ ticketId: ticket.id, body })
-                      setReplyText((r) => ({ ...r, [ticket.id]: '' }))
-                    }}
-                  >
-                    Send reply
-                  </Button>
-                </div>
-              </Card>
-            </li>
+              )}
+            </CollapsibleSection>
           ))}
-        </ul>
+
+          {selected ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-foreground font-semibold">{selected.subject}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {selected.ticket_number ? (
+                      <span className="font-mono">{selected.ticket_number}</span>
+                    ) : null}
+                    {selected.ticket_number ? ' · ' : null}
+                    Org {selected.organization_id.slice(0, 8)}…
+                  </p>
+                </div>
+                <select
+                  value={selected.status}
+                  className="border-input bg-background h-8 rounded-lg border px-2 text-sm"
+                  onChange={(e) => {
+                    const status = e.target.value as TicketStatus
+                    void updateStatus.mutateAsync({
+                      ticketId: selected.id,
+                      status,
+                    })
+                  }}
+                >
+                  {TICKET_STATUS_ORDER.map((s) => (
+                    <option key={s} value={s}>
+                      {s === 'in_progress' ? 'In Progress' : s === 'open' ? 'Open' : 'Resolved'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <SupportTicketThread ticket={selected} senderRole="support" />
+            </Card>
+          ) : null}
+        </div>
       )}
     </AdminPageShell>
   )

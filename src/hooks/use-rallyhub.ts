@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { supabase } from '@/lib/supabase'
-import type { Tables } from '@/types/helpers'
 
-export type SupportTicketRow = Tables<'support_tickets'>
+export type { SupportTicketRow } from '@/hooks/use-support-tickets'
+export {
+  useReplyToTicket,
+  useSupportTickets,
+  useUpdateTicketStatus,
+} from '@/hooks/use-support-tickets'
 
 export function useRallyHubDashboard() {
   return useQuery({
@@ -148,65 +152,6 @@ export function useUpdateClientNotes() {
     onSuccess: (_, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', orgId] })
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
-    },
-  })
-}
-
-export function useSupportTickets() {
-  return useQuery({
-    queryKey: ['rallyhub', 'support'],
-    queryFn: async (): Promise<SupportTicketRow[]> => {
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data ?? []
-    },
-  })
-}
-
-export function useUpdateTicketStatus() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      ticketId,
-      status,
-    }: {
-      ticketId: string
-      status: string
-    }) => {
-      const { error } = await supabase
-        .from('support_tickets')
-        .update({ status })
-        .eq('id', ticketId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['rallyhub', 'support'] })
-    },
-  })
-}
-
-export function useReplyToTicket() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      ticketId,
-      body,
-    }: {
-      ticketId: string
-      body: string
-    }) => {
-      const { error } = await supabase.from('support_ticket_replies').insert({
-        ticket_id: ticketId,
-        body,
-        is_staff: true,
-      })
-      if (error) throw error
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['rallyhub', 'support'] })
     },
   })
 }

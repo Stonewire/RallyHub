@@ -207,6 +207,7 @@ export type Database = {
           subject?: string
           body?: string | null
           status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -225,6 +226,28 @@ export type Database = {
           is_staff?: boolean
         }
         Update: Record<string, never>
+        Relationships: []
+      }
+      support_ticket_messages: {
+        Row: {
+          id: string
+          ticket_id: string
+          sender_role: 'client' | 'support'
+          sender_name: string
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          sender_role: 'client' | 'support'
+          sender_name: string
+          body: string
+          created_at?: string
+        }
+        Update: {
+          body?: string
+        }
         Relationships: []
       }
       events: {
