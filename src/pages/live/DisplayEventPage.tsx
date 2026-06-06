@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
+import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
@@ -57,6 +58,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const showSoundGate = !embedded && !soundEnabled
 
   const eventState = bundle?.state
+  const eventIsLive = Boolean(bundle && isEventLive(bundle.event))
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
     [bundle],
@@ -66,39 +68,42 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const timerSyncRef = useMemo(
     () =>
       createThrottledTimerSync((next, stillRunning) => {
+        if (!eventIsLive) return
         void updateState({ timer_seconds: next, timer_running: stillRunning })
       }),
-    [updateState],
+    [updateState, eventIsLive],
   )
 
   const breakSyncRef = useMemo(
     () =>
       createThrottledTimerSync((next, stillRunning) => {
+        if (!eventIsLive) return
         void updateState({
           break_timer_seconds: next,
           break_timer_running: stillRunning,
         })
       }),
-    [updateState],
+    [updateState, eventIsLive],
   )
 
   const timerDisplay = useLiveTimer(
-    eventState?.timer_seconds ?? 0,
-    Boolean(eventState?.timer_running),
+    eventIsLive ? (eventState?.timer_seconds ?? 0) : 0,
+    eventIsLive && Boolean(eventState?.timer_running),
     (next, stillRunning) => timerSyncRef(next, stillRunning),
   )
 
   const quizTimerSyncRef = useMemo(
     () =>
       createThrottledTimerSync((next, stillRunning) => {
+        if (!eventIsLive) return
         void updateState({ quiz_timer_seconds: next, quiz_timer_running: stillRunning })
       }),
-    [updateState],
+    [updateState, eventIsLive],
   )
 
   const quizTimerDisplay = useLiveTimer(
-    eventState ? quizTimerSeconds(eventState) : 0,
-    eventState ? quizTimerRunning(eventState) : false,
+    eventIsLive && eventState ? quizTimerSeconds(eventState) : 0,
+    eventIsLive && eventState ? quizTimerRunning(eventState) : false,
     (next, stillRunning) => quizTimerSyncRef(next, stillRunning),
   )
 
@@ -108,8 +113,8 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       : (eventState?.break_timer_seconds ?? 0)
 
   const breakDisplay = useLiveTimer(
-    breakSeconds,
-    Boolean(eventState?.break_timer_running),
+    eventIsLive ? breakSeconds : 0,
+    eventIsLive && Boolean(eventState?.break_timer_running),
     (next, stillRunning) => breakSyncRef(next, stillRunning),
   )
 
@@ -120,7 +125,8 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   // Embedded facilitator preview skips audio. Phones keep their own winner.mp3.
   useEffect(() => {
     if (embedded) return
-    const revealStage = bundle?.state.winner_reveal_stage ?? 0
+    if (!bundle || !isEventLive(bundle.event)) return
+    const revealStage = bundle.state.winner_reveal_stage ?? 0
     if (revealStage === 0) {
       eventWinnerAudioStageRef.current = 0
       return
@@ -149,7 +155,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       if (rafId) cancelAnimationFrame(rafId)
       window.clearInterval(burst)
     }
-  }, [bundle?.state.winner_reveal_stage, embedded])
+  }, [bundle, bundle?.state.winner_reveal_stage, embedded])
 
   if (loading) {
     return (
@@ -174,6 +180,11 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   }
 
   const { event, organization, state, teams, games, submissions } = bundle
+
+  if (!isEventLive(event)) {
+    return <EventNotLiveScreen event={event} organization={organization} />
+  }
+
   const winnerTeamId = state.bingo_winner_team_id ?? null
   const winnerTeam = winnerTeamId ? teams.find((t) => t.id === winnerTeamId) : null
   const announcedWinnerIds = parseAnnouncedWinnerIds(state.bingo_announced_winner_ids)
@@ -229,12 +240,6 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (state.winner_reveal_stage === 2) {
     body = <DisplayPodium event={event} teams={teams} />
-  } else if (!isEventLive(event)) {
-    body = (
-      <p className={`text-center font-display text-3xl font-bold opacity-80 ${textClass}`}>
-        Event starting soon…
-      </p>
-    )
   } else if (!stage || stage.type === 'open' || stage.type === 'bingo') {
     body = (
       <Leaderboard

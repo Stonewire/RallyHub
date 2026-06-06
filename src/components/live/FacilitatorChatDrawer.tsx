@@ -26,14 +26,17 @@ export function useFacilitatorChatUnread(
 
 export function FacilitatorChatBubble({
   unreadCount,
+  disabled = false,
   onClick,
 }: {
   unreadCount: number
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
     <FacilitatorButton
       type="button"
+      disabled={disabled}
       className="relative fixed bottom-4 right-4 z-40 size-12 rounded-full p-0 shadow-lg"
       onClick={onClick}
       aria-label="Open team chat"
@@ -55,6 +58,7 @@ type FacilitatorChatDrawerProps = {
   onActiveTeamIdChange: (teamId: string | null) => void
   messages: Tables<'chat_messages'>[]
   teams: Tables<'teams'>[]
+  sendDisabled?: boolean
   onSend: (message: string, teamId: string) => Promise<void>
 }
 
@@ -65,6 +69,7 @@ export function FacilitatorChatDrawer({
   onActiveTeamIdChange,
   messages,
   teams,
+  sendDisabled = false,
   onSend,
 }: FacilitatorChatDrawerProps) {
   const [draft, setDraft] = useState('')
@@ -142,13 +147,19 @@ export function FacilitatorChatDrawer({
               <Input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Message team…"
+                placeholder={sendDisabled ? 'Controls disabled until event is live' : 'Message team…'}
                 className="bg-background"
+                disabled={sendDisabled}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void send()
                 }}
               />
-              <FacilitatorButton type="button" size="sm" onClick={() => void send()}>
+              <FacilitatorButton
+                type="button"
+                size="sm"
+                disabled={sendDisabled}
+                onClick={() => void send()}
+              >
                 Send
               </FacilitatorButton>
             </div>

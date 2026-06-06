@@ -58,6 +58,7 @@ import {
   quizSubmissionMediaType,
   isQuizSubmission,
   scoreCurrentQuizQuestion,
+  isEventLive,
 } from '@/lib/live-event'
 import { bingoRunRowFromActivation } from '@/lib/bingo-run-cache'
 import { getEventLinks } from '@/lib/event-links'
@@ -104,6 +105,7 @@ export function FacilitatorEventPage() {
   const { notify } = useNotification()
   const queryClient = useQueryClient()
   const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
+  const controlsLiveRef = useRef(false)
 
   const stages = useMemo(
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
@@ -121,6 +123,7 @@ export function FacilitatorEventPage() {
   )
 
   async function patchState(patch: Parameters<typeof updateState>[0]) {
+    if (!controlsLiveRef.current) return
     try {
       setStateError(null)
       await updateState(patch)
@@ -186,15 +189,17 @@ export function FacilitatorEventPage() {
     }),
   )
 
+  const controlsLive = Boolean(bundle && isEventLive(bundle.event))
+
   const timerDisplay = useLiveTimer(
     state?.timer_seconds ?? 0,
-    Boolean(state?.timer_running),
+    controlsLive && Boolean(state?.timer_running),
     (next, stillRunning) => timerSyncRef.current(next, stillRunning),
   )
 
   const quizTimerDisplay = useLiveTimer(
     state ? quizTimerSeconds(state) : 0,
-    state ? quizTimerRunning(state) : false,
+    controlsLive && state ? quizTimerRunning(state) : false,
     (next, stillRunning) => quizTimerSyncRef.current(next, stillRunning),
   )
 
@@ -273,7 +278,7 @@ export function FacilitatorEventPage() {
 
   const breakDisplay = useLiveTimer(
     breakSeconds,
-    Boolean(state?.break_timer_running),
+    controlsLive && Boolean(state?.break_timer_running),
     (next, stillRunning) => breakSyncRef.current(next, stillRunning),
   )
 
@@ -367,6 +372,7 @@ export function FacilitatorEventPage() {
   }
 
   const { event, organization, teams: eventTeams, games, submissions } = bundle
+  controlsLiveRef.current = isEventLive(event)
   const teams = isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
   const liveState = state
   const displayUrl = eventId
@@ -400,6 +406,7 @@ export function FacilitatorEventPage() {
   }
 
   async function approveSubmission(sub: Tables<'submissions'>, points: number) {
+    if (!controlsLiveRef.current) return
     const game = games.find((g) => g.id === sub.game_id)
     if (!game) return
     if (game.points_type === 'range') {
@@ -422,11 +429,13 @@ export function FacilitatorEventPage() {
   }
 
   async function rejectSubmission(id: string) {
+    if (!controlsLiveRef.current) return
     await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
     notify('Submission rejected')
   }
 
   async function saveClaim() {
+    if (!controlsLiveRef.current) return
     if (!claimSlot) return
     if (
       isEventDemoStatus(event.status) &&
@@ -902,12 +911,27 @@ export function FacilitatorEventPage() {
         </span>
       </div>
 
+      {!controlsLive ? (
+        <p
+          className="border-border/80 bg-muted/40 text-muted-foreground mb-4 rounded-lg border px-4 py-3 text-center text-sm"
+          role="status"
+        >
+          {event.status === 'archived'
+            ? 'This event has ended. Controls are disabled.'
+            : 'This event is not live yet. Controls are disabled until the event is active.'}
+        </p>
+      ) : null}
+
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <Card className="neo-card border-border/80 overflow-hidden bg-card shadow-sm">
             <DisplayPreviewFrame displayUrl={displayUrl} />
           </Card>
 
+          <fieldset
+            disabled={!controlsLive}
+            className="min-w-0 space-y-4 border-0 p-0"
+          >
           <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-muted-foreground text-xs">Event countdown on display</p>
@@ -1110,9 +1134,11 @@ export function FacilitatorEventPage() {
               ))}
             </ul>
           </Card>
+          </fieldset>
 
         </div>
 
+        <fieldset disabled={!controlsLive} className="min-w-0 border-0 p-0">
         <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
           {!stage || stage.type === 'open' ? (
             <>
@@ -1493,10 +1519,12 @@ export function FacilitatorEventPage() {
             </div>
           ) : null}
         </Card>
+        </fieldset>
       </div>
 
       <FacilitatorChatBubble
         unreadCount={chatUnread}
+        disabled={!controlsLive}
         onClick={() => {
           setChatOpen(true)
           if (!chatTeamId) {
@@ -1512,7 +1540,9 @@ export function FacilitatorEventPage() {
         onActiveTeamIdChange={setChatTeamId}
         messages={messages}
         teams={teams}
+        sendDisabled={!controlsLive}
         onSend={async (text, teamId) => {
+          if (!controlsLive) return
           await sendMessage(name, text, teamId)
         }}
       />

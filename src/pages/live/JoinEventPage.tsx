@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
+import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ import {
   isEventDemoStatus,
 } from '@/lib/event-demo'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
-import { PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
+import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
@@ -104,6 +105,11 @@ export function JoinEventPage() {
   }
 
   const { event, organization } = bundle
+
+  if (!isEventLive(event)) {
+    return <EventNotLiveScreen event={event} organization={organization} />
+  }
+
   const logo = logoForEvent(event, organization)
   const joinTeams = isEventDemoStatus(event.status)
     ? demoTeamSlots(bundle.teams)
