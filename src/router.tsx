@@ -15,6 +15,7 @@ import {
   SuperAdminOnly,
 } from '@/components/routing/AdminRouteDispatchers'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
+import { AppRootLayout } from '@/components/routing/AppRootLayout'
 import { TenantScope } from '@/components/routing/TenantScope'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
@@ -75,6 +76,9 @@ function NotFoundPage() {
  * or TenantOnlyRoutes.
  */
 export const router = createBrowserRouter([
+  {
+    element: <AppRootLayout />,
+    children: [
   {
     path: '/facilitator/:eventId',
     element: <FacilitatorEventPage />,
@@ -178,4 +182,6 @@ export const router = createBrowserRouter([
   { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
   { path: '/play/:token', element: <PlayTokenPage /> },
   { path: '*', element: <NotFoundPage /> },
+    ],
+  },
 ])

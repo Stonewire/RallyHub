@@ -50,7 +50,12 @@ export function readStoredConsent(): CookieConsentState | null {
 }
 
 export function writeStoredConsent(consent: CookieConsentState) {
-  window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(consent))
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(consent))
+  } catch {
+    // Storage may be blocked in private mode or by browser policy.
+  }
 }
 
 export function hasAnalyticsConsent(consent: CookieConsentState | null): boolean {

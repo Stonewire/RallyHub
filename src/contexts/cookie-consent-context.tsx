@@ -31,9 +31,26 @@ type CookieConsentContextValue = {
 
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null)
 
+const noopConsentContext: CookieConsentContextValue = {
+  consent: null,
+  hasDecided: false,
+  preferencesOpen: false,
+  acceptAll: () => {},
+  rejectNonEssential: () => {},
+  savePreferences: () => {},
+  openPreferences: () => {},
+  closePreferences: () => {},
+}
+
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
-  const [consent, setConsent] = useState<CookieConsentState | null>(() => readStoredConsent())
+  const [consent, setConsent] = useState<CookieConsentState | null>(null)
+  const [hydrated, setHydrated] = useState(false)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
+
+  useEffect(() => {
+    setConsent(readStoredConsent())
+    setHydrated(true)
+  }, [])
 
   const persist = useCallback((next: CookieConsentState) => {
     writeStoredConsent(next)
@@ -71,7 +88,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CookieConsentContextValue>(
     () => ({
       consent,
-      hasDecided: consent !== null,
+      hasDecided: hydrated && consent !== null,
       preferencesOpen,
       acceptAll,
       rejectNonEssential,
@@ -81,6 +98,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     }),
     [
       consent,
+      hydrated,
       preferencesOpen,
       acceptAll,
       rejectNonEssential,
@@ -98,8 +116,5 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
 // eslint-disable-next-line react-refresh/only-export-components -- companion hook for CookieConsentProvider
 export function useCookieConsent() {
   const ctx = useContext(CookieConsentContext)
-  if (!ctx) {
-    throw new Error('useCookieConsent must be used within CookieConsentProvider')
-  }
-  return ctx
+  return ctx ?? noopConsentContext
 }
