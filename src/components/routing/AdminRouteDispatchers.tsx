@@ -13,7 +13,6 @@ import { AdminGamesPage } from '@/pages/admin/GamesPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
 import { AdminSupportPage } from '@/pages/admin/SupportPage'
 import { RallyHubOverviewPage } from '@/pages/rallyhub/DashboardPage'
-import { RallyHubGamesPage } from '@/pages/rallyhub/GamesPage'
 import { RallyHubSupportPage } from '@/pages/rallyhub/SupportPage'
 import type { ReactNode } from 'react'
 
@@ -32,7 +31,7 @@ export function AdminHomePage() {
 export function AdminGamesRoute() {
   const mode = useIsSuperAdminOnPlatform()
   if (mode === null) return <AuthLoadingScreen label="Loading profile" />
-  return mode ? <RallyHubGamesPage /> : <AdminGamesPage />
+  return <AdminGamesPage />
 }
 
 export function AdminSupportRoute() {
@@ -56,19 +55,11 @@ function ClientAdminOnly({ children }: { children: ReactNode }) {
 }
 
 export function ClientGamesNewRoute() {
-  return (
-    <ClientAdminOnly>
-      <AdminGamesNewPage />
-    </ClientAdminOnly>
-  )
+  return <AdminGamesNewPage />
 }
 
 export function ClientGameDetailRoute() {
-  return (
-    <ClientAdminOnly>
-      <AdminGameEditPage />
-    </ClientAdminOnly>
-  )
+  return <AdminGameEditPage />
 }
 
 export function ClientEventsRoute() {

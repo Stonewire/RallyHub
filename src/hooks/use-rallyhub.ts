@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { countClientEvents } from '@/lib/client-events'
+import { PLATFORM_LIBRARY_SUBDOMAIN } from '@/lib/platform-library'
 import { supabase } from '@/lib/supabase'
 import type { TablesUpdate } from '@/types/helpers'
 
@@ -47,7 +48,9 @@ export function useRallyHubClients() {
 
       const { data: events } = await supabase.from('events').select('organization_id, status')
 
-      return (orgs ?? []).map((org) => {
+      return (orgs ?? [])
+        .filter((org) => org.subdomain !== PLATFORM_LIBRARY_SUBDOMAIN)
+        .map((org) => {
         const orgEvents = (events ?? []).filter((e) => e.organization_id === org.id)
         return {
           ...org,

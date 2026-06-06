@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
+import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -17,7 +18,11 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateGame } from '@/hooks/use-games'
-import { useOrganizationId } from '@/hooks/use-organization-id'
+import {
+  useAdminOrganizationId,
+  useAdminOrganizationLoading,
+} from '@/hooks/use-organization-id'
+import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
 import type { GameType, PointsType } from '@/types/database'
 import type { GameConfig, QuizQuestion } from '@/types/game-config'
@@ -48,7 +53,9 @@ function emptyQuestion(): QuizQuestion {
 
 export function AdminGamesNewPage() {
   const navigate = useNavigate()
-  const organizationId = useOrganizationId()
+  const isPlatformLibrary = useIsPlatformGamesAdmin()
+  const organizationId = useAdminOrganizationId()
+  const orgLoading = useAdminOrganizationLoading()
   const createGame = useCreateGame(organizationId)
 
   const [step, setStep] = useState<'type' | 'editor'>('type')
@@ -80,6 +87,19 @@ export function AdminGamesNewPage() {
     tracks: [],
     bonus_challenges: [],
   })
+
+  if (orgLoading) {
+    return (
+      <AdminPageShell
+        title="New game"
+        subtitle="Create a new game."
+        backTo="/admin/games"
+        backLabel="Back to games"
+      >
+        <QueryLoading rows={6} />
+      </AdminPageShell>
+    )
+  }
 
   if (!organizationId) {
     return (
@@ -137,6 +157,7 @@ export function AdminGamesNewPage() {
         solution_image_url:
           gameType === 'photo' || gameType === 'video' ? solutionImageUrl : null,
         status: 'draft',
+        is_platform_template: isPlatformLibrary,
         config: {
           ...config,
           example_video_url: gameType === 'video' ? exampleVideoUrl : undefined,

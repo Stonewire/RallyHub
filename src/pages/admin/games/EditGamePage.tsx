@@ -16,14 +16,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GAME_TYPE_LABELS, useGame, useUpdateGame } from '@/hooks/use-games'
 import { uploadGameFile } from '@/lib/game-upload'
-import { useOrganizationId } from '@/hooks/use-organization-id'
+import {
+  useAdminOrganizationId,
+  useAdminOrganizationLoading,
+} from '@/hooks/use-organization-id'
 import type { GameType } from '@/types/database'
 import type { GameConfig } from '@/types/game-config'
 
 export function AdminGameEditPage() {
   const { gameId } = useParams<{ gameId: string }>()
   const navigate = useNavigate()
-  const organizationId = useOrganizationId()
+  const organizationId = useAdminOrganizationId()
+  const orgLoading = useAdminOrganizationLoading()
   const gameQuery = useGame(gameId)
   const updateGame = useUpdateGame(organizationId)
 
@@ -44,6 +48,14 @@ export function AdminGameEditPage() {
     setConfig((g.config as GameConfig) ?? {})
     setHydrated(true)
   }, [gameQuery.data, hydrated])
+
+  if (orgLoading) {
+    return (
+      <AdminPageShell title="Edit game" backTo="/admin/games" backLabel="Back to games">
+        <QueryLoading rows={6} />
+      </AdminPageShell>
+    )
+  }
 
   if (!organizationId) {
     return (

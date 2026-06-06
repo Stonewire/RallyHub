@@ -7,6 +7,50 @@ import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type GameRow = Tables<'games'>
 
+function invalidateGameListQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  organizationId: string | null,
+) {
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.games(organizationId),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.platformLibraryGames(),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: ['rallyhub', 'platform-games'],
+  })
+}
+
+export function useAdminGames(
+  organizationId: string | null,
+  isPlatformLibrary: boolean,
+) {
+  return useQuery({
+    queryKey: isPlatformLibrary
+      ? queryKeys.platformLibraryGames()
+      : queryKeys.games(organizationId),
+    enabled: isPlatformLibrary ? true : Boolean(organizationId),
+    queryFn: async (): Promise<GameRow[]> => {
+      let query = supabase.from('games').select('*')
+
+      if (isPlatformLibrary) {
+        query = query.eq('is_platform_template', true)
+      } else {
+        if (!organizationId) return []
+        query = query.eq('organization_id', organizationId)
+      }
+
+      const { data, error } = await query
+        .order('list_order', { ascending: true })
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
 export function useGames(organizationId: string | null) {
   return useQuery({
     queryKey: queryKeys.games(organizationId),
@@ -42,9 +86,7 @@ export function useCreateGame(organizationId: string | null) {
       return data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.games(organizationId),
-      })
+      invalidateGameListQueries(queryClient, organizationId)
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),
       })
@@ -61,9 +103,7 @@ export function useDeleteGame(organizationId: string | null) {
       if (error) throw error
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.games(organizationId),
-      })
+      invalidateGameListQueries(queryClient, organizationId)
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),
       })
@@ -88,9 +128,7 @@ export function useCreateGameGroup(organizationId: string | null) {
       return data
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.games(organizationId),
-      })
+      invalidateGameListQueries(queryClient, organizationId)
       void queryClient.invalidateQueries({
         queryKey: queryKeys.gameGroups(organizationId),
       })
@@ -149,7 +187,7 @@ export function useUpdateGame(organizationId: string | null) {
     },
     onSuccess: (_data, { gameId }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.games(organizationId) })
+      invalidateGameListQueries(queryClient, organizationId)
     },
   })
 }
@@ -167,9 +205,7 @@ export function useReorderGames(organizationId: string | null) {
       if (err) throw err
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.games(organizationId),
-      })
+      invalidateGameListQueries(queryClient, organizationId)
     },
   })
 }

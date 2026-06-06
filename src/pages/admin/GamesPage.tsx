@@ -28,12 +28,16 @@ import {
   useRenameGameGroup,
 } from '@/hooks/use-game-groups'
 import {
+  useAdminGames,
   useCreateGameGroup,
   useDeleteGame,
-  useGames,
   useReorderGames,
 } from '@/hooks/use-games'
-import { useOrganizationId } from '@/hooks/use-organization-id'
+import {
+  useAdminOrganizationId,
+  useAdminOrganizationLoading,
+} from '@/hooks/use-organization-id'
+import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import type { GameType } from '@/types/database'
 
 const FILTERS: { value: 'all' | GameType; label: string }[] = [
@@ -130,8 +134,10 @@ function GroupHeader({
 }
 
 export function AdminGamesPage() {
-  const organizationId = useOrganizationId()
-  const gamesQuery = useGames(organizationId)
+  const isPlatformLibrary = useIsPlatformGamesAdmin()
+  const organizationId = useAdminOrganizationId()
+  const orgLoading = useAdminOrganizationLoading()
+  const gamesQuery = useAdminGames(organizationId, isPlatformLibrary)
   const groupsQuery = useGameGroups(organizationId)
   const deleteGame = useDeleteGame(organizationId)
   const createGroup = useCreateGameGroup(organizationId)
@@ -210,6 +216,21 @@ export function AdminGamesPage() {
     if (editingGroupId === groupId) setEditingGroupId(null)
   }
 
+  if (orgLoading) {
+    return (
+      <AdminPageShell
+        title="Games"
+        subtitle={
+          isPlatformLibrary
+            ? 'Platform game templates for all clients.'
+            : 'List and manage game templates.'
+        }
+      >
+        <QueryLoading rows={6} />
+      </AdminPageShell>
+    )
+  }
+
   if (!organizationId) {
     return (
       <AdminPageShell title="Games" subtitle="List and manage game templates.">
@@ -235,7 +256,11 @@ export function AdminGamesPage() {
   return (
     <AdminPageShell
       title="Games"
-      subtitle="List and manage game templates and configurations."
+      subtitle={
+        isPlatformLibrary
+          ? 'Platform game templates for all clients.'
+          : 'List and manage game templates and configurations.'
+      }
       actions={
         <>
           <Button type="button" variant="outline" onClick={() => void handleNewGroup()}>
