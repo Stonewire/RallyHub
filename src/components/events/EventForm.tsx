@@ -34,6 +34,7 @@ type EventFormProps = {
   games: GameRow[]
   groups: GameGroupWithItems[]
   orgDefaults?: OrganizationRow | null
+  maxTeamCount?: number
 }
 
 export function EventForm({
@@ -43,6 +44,7 @@ export function EventForm({
   games,
   groups,
   orgDefaults,
+  maxTeamCount = 20,
 }: EventFormProps) {
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [modalSelection, setModalSelection] = useState<string[]>([])
@@ -68,7 +70,7 @@ export function EventForm({
   )
 
   function onTeamCountChange(n: number) {
-    const count = Math.max(1, Math.min(20, n))
+    const count = Math.max(1, Math.min(maxTeamCount, n))
     onChange((prev) => {
       let nextTeams = prev.teams
       if (prev.teams.length !== count) {
@@ -229,12 +231,17 @@ export function EventForm({
             <Input
               type="number"
               min={1}
-              max={20}
+              max={maxTeamCount}
               value={teamCount}
               onChange={(e) => onTeamCountChange(Number(e.target.value))}
               className="bg-background w-24"
             />
           </div>
+          {maxTeamCount <= 2 ? (
+            <p className="text-muted-foreground text-xs">
+              Demo events are limited to {maxTeamCount} teams.
+            </p>
+          ) : null}
         </div>
         <ul className="grid gap-3 sm:grid-cols-2">
           {teams.map((team) => (

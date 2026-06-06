@@ -1,10 +1,11 @@
 import { normalizeClientPlan } from '@/lib/client-plans'
+import { isEventDemoStatus } from '@/lib/event-demo'
 import type { Tables } from '@/types/helpers'
 
 export type ClientEventRow = Tables<'events'>
 
 export type ClientEventOverviewGroup = {
-  id: 'previous' | 'upcoming' | 'drafts'
+  id: 'previous' | 'upcoming' | 'demo' | 'drafts'
   title: string
   events: ClientEventRow[]
 }
@@ -42,6 +43,11 @@ export function groupClientEventsForOverview(events: ClientEventRow[]): ClientEv
       events: sortByEventDate(
         events.filter((e) => e.status === 'ready' || e.status === 'active'),
       ),
+    },
+    {
+      id: 'demo',
+      title: 'Demo',
+      events: sortByEventDate(events.filter((e) => isEventDemoStatus(e.status))),
     },
     {
       id: 'drafts',

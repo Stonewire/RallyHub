@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
+import { capTeamCountForEventStatus } from '@/lib/event-demo'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
@@ -9,10 +10,11 @@ import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type EventRow = Tables<'events'>
 
-export const STATUS_ORDER: EventStatus[] = ['active', 'ready', 'draft', 'archived']
+export const STATUS_ORDER: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archived']
 
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   active: 'Active',
+  demo: 'Demo',
   ready: 'Ready',
   draft: 'Draft',
   archived: 'Archived',
@@ -117,7 +119,25 @@ export function useUpdateEvent(organizationId: string | null) {
       }
 
       if (event.team_count != null) {
-        await syncTeamSlots(eventId, event.team_count)
+        const { data: current, error: fetchErr } = await supabase
+          .from('events')
+          .select('status')
+          .eq('id', eventId)
+          .single()
+        if (fetchErr) throw fetchErr
+
+        const teamCount = capTeamCountForEventStatus(
+          event.team_count,
+          (event.status ?? current?.status) as EventStatus,
+        )
+        if (teamCount !== event.team_count) {
+          const { error: capError } = await supabase
+            .from('events')
+            .update({ team_count: teamCount })
+            .eq('id', eventId)
+          if (capError) throw capError
+        }
+        await syncTeamSlots(eventId, teamCount)
       }
     },
     onSuccess: (_data, variables) => {
@@ -247,6 +267,24 @@ export function useUpdateEventStatus(organizationId: string | null) {
       eventId: string
       status: EventStatus
     }) => {
+      if (status === 'demo') {
+        const { data: event, error: fetchErr } = await supabase
+          .from('events')
+          .select('team_count')
+          .eq('id', eventId)
+          .single()
+        if (fetchErr) throw fetchErr
+
+        const teamCount = capTeamCountForEventStatus(event?.team_count ?? 2, 'demo')
+        const { error } = await supabase
+          .from('events')
+          .update({ status, team_count: teamCount })
+          .eq('id', eventId)
+        if (error) throw error
+        await syncTeamSlots(eventId, teamCount)
+        return
+      }
+
       const { error } = await supabase
         .from('events')
         .update({ status })

@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
 import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
@@ -21,6 +22,7 @@ import {
   displayTextClass,
   formatBreakTimer,
   formatTimer,
+  isEventLive,
   logoForEvent,
   parseStages,
   quizQuestions,
@@ -225,7 +227,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (state.winner_reveal_stage === 2) {
     body = <DisplayPodium event={event} teams={teams} />
-  } else if (event.status !== 'active') {
+  } else if (!isEventLive(event)) {
     body = (
       <p className={`text-center font-display text-3xl font-bold opacity-80 ${textClass}`}>
         Event starting soon…
@@ -432,6 +434,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           </span>
         </button>
       ) : null}
+      <DemoOverlay enabled={event.status === 'demo'} />
     </BrandBackground>
   )
 }

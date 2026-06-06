@@ -14,7 +14,7 @@ import { getAllowedEventStatuses } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
 
-const ALL_STATUSES: EventStatus[] = ['active', 'ready', 'draft', 'archived']
+const ALL_STATUSES: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archived']
 
 type EventStatusMenuProps = {
   status: EventStatus

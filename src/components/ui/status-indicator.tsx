@@ -1,9 +1,10 @@
 import { cn } from '@/lib/utils'
 
-export type RallyStatusTone = 'active' | 'draft' | 'ready' | 'archived'
+export type RallyStatusTone = 'active' | 'demo' | 'draft' | 'ready' | 'archived'
 
 const dotColors: Record<RallyStatusTone, string> = {
   active: 'bg-[var(--rh-status-dot-active)]',
+  demo: 'bg-[var(--rh-status-dot-demo)]',
   draft: 'bg-[var(--rh-status-dot-draft)]',
   ready: 'bg-[var(--rh-status-dot-ready)]',
   archived: 'bg-[var(--rh-status-dot-archived)]',

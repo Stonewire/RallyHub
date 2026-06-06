@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
+import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,12 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
+import {
+  countClaimedTeams,
+  demoTeamSlots,
+  DEMO_MAX_TEAMS,
+  isEventDemoStatus,
+} from '@/lib/event-demo'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
 import { slugifyOrgName } from '@/lib/tablet-link'
@@ -98,9 +105,19 @@ export function JoinEventPage() {
 
   const { event, organization } = bundle
   const logo = logoForEvent(event, organization)
+  const joinTeams = isEventDemoStatus(event.status)
+    ? demoTeamSlots(bundle.teams)
+    : bundle.teams
 
   async function claimTeam() {
     if (!claimSlot || !eventId || !claimName.trim()) return
+    if (
+      isEventDemoStatus(event.status) &&
+      countClaimedTeams(joinTeams) >= DEMO_MAX_TEAMS
+    ) {
+      setClaimError(`Demo events allow up to ${DEMO_MAX_TEAMS} teams.`)
+      return
+    }
     setUploading(true)
     setClaimError(null)
     try {
@@ -205,11 +222,12 @@ export function JoinEventPage() {
 
   return (
     <LivePanelShell title={event.name} titleCentered>
+      <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (
         <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />
       ) : null}
       <div className="mx-auto grid max-w-lg gap-3 sm:grid-cols-2">
-        {bundle.teams.map((team) => (
+        {joinTeams.map((team) => (
           <button
             key={team.id}
             type="button"

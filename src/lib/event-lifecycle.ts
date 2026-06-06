@@ -1,7 +1,7 @@
 import type { EventStatus } from '@/types/database'
 import type { EventRow } from '@/hooks/use-events'
 
-const ALL_STATUSES: EventStatus[] = ['active', 'ready', 'draft', 'archived']
+const ALL_STATUSES: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archived']
 
 /** True once the event has been activated and billed (invoiced_at set). */
 export function isEventActivated(

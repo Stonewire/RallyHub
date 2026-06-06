@@ -112,7 +112,7 @@ export function brandBlobColors(
 }
 
 export function isEventLive(event: Tables<'events'>): boolean {
-  return event.status === 'active'
+  return event.status === 'active' || event.status === 'demo'
 }
 
 export function gamePointsDisplay(game: Tables<'games'>): string {

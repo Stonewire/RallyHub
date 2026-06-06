@@ -33,6 +33,7 @@ import {
   type EventFormValues,
 } from '@/lib/event-form-utils'
 import { downloadEventPackage } from '@/lib/event-export'
+import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
 import { isEventActivated } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
 import type { EventStatus } from '@/types/database'
@@ -88,7 +89,7 @@ export function AdminEventEditPage() {
           event_date: values.eventDate
             ? new Date(values.eventDate).toISOString()
             : null,
-          team_count: values.teamCount,
+          team_count: capTeamCountForEventStatus(values.teamCount, eventStatus),
           branding_enabled: values.brandingEnabled,
           logo_url: values.brandingEnabled
             ? values.logoUrl
@@ -221,6 +222,7 @@ export function AdminEventEditPage() {
             games={gamesQuery.data ?? []}
             groups={groupsQuery.data ?? []}
             orgDefaults={orgQuery.data ?? null}
+            maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
           />
 
           {eventId && eventQuery.data ? (

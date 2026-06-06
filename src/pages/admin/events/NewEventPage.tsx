@@ -152,9 +152,9 @@ export function AdminEventsNewPage() {
         <Card className="border-border/80 mb-8 space-y-4 bg-card p-6 shadow-sm">
           <p className="text-foreground font-medium">Set event status</p>
           <div className="flex flex-wrap gap-2">
-            {(['draft', 'ready', 'active'] as EventStatus[]).map((s) => (
+            {(['draft', 'ready', 'demo', 'active'] as EventStatus[]).map((s) => (
               <AccentButton key={s} type="button" onClick={() => void confirmStatus(s)}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {s === 'demo' ? 'Demo' : s.charAt(0).toUpperCase() + s.slice(1)}
               </AccentButton>
             ))}
           </div>

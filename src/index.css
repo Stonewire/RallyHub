@@ -70,6 +70,7 @@
     --rh-sidebar-row-active-fg: color-mix(in srgb, var(--rh-accent) 65%, var(--rh-text-primary));
 
     --rh-status-dot-active: #1f9d55;
+    --rh-status-dot-demo: #7c5cff;
     --rh-status-dot-draft: #b8b8b8;
     --rh-status-dot-ready: #dba900;
     --rh-status-dot-archived: #5c5956;
@@ -136,6 +137,7 @@
     --rh-sidebar-row-active-fg: color-mix(in srgb, var(--rh-accent) 55%, white);
 
     --rh-status-dot-active: #37c074;
+    --rh-status-dot-demo: #9b87ff;
     --rh-status-dot-draft: #858585;
     --rh-status-dot-ready: #e4b829;
     --rh-status-dot-archived: #9c9893;

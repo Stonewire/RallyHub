@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
+import { DemoOverlay } from '@/components/live/DemoOverlay'
 import {
   FacilitatorChatBubble,
   FacilitatorChatDrawer,
@@ -20,10 +21,17 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusIndicator } from '@/components/ui/status-indicator'
+import type { RallyStatusTone } from '@/components/ui/status-indicator'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
+import {
+  countClaimedTeams,
+  demoTeamSlots,
+  DEMO_MAX_TEAMS,
+  isEventDemoStatus,
+} from '@/lib/event-demo'
 import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
 import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
 import {
@@ -357,7 +365,8 @@ export function FacilitatorEventPage() {
     )
   }
 
-  const { event, organization, teams, games, submissions } = bundle
+  const { event, organization, teams: eventTeams, games, submissions } = bundle
+  const teams = isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
   const liveState = state
   const displayUrl = eventId
     ? getEventLinks(eventId, organization).display
@@ -418,6 +427,14 @@ export function FacilitatorEventPage() {
 
   async function saveClaim() {
     if (!claimSlot) return
+    if (
+      isEventDemoStatus(event.status) &&
+      !claimSlot.name?.trim() &&
+      countClaimedTeams(eventTeams) >= DEMO_MAX_TEAMS
+    ) {
+      notify(`Demo events allow up to ${DEMO_MAX_TEAMS} teams.`)
+      return
+    }
     setUploading(true)
     try {
       let photoUrl: string | null = claimSlot.photo_url
@@ -867,7 +884,8 @@ export function FacilitatorEventPage() {
   }
 
   return (
-    <LivePanelShell
+    <>
+      <LivePanelShell
       title={event.name}
       titleCentered
       subtitle={
@@ -877,11 +895,9 @@ export function FacilitatorEventPage() {
       }
     >
       <div className="mb-4 flex justify-center">
-        <StatusIndicator
-          status={event.status as 'active' | 'ready' | 'draft' | 'archived'}
-        />
+        <StatusIndicator status={event.status as RallyStatusTone} />
         <span className="text-muted-foreground ml-2 text-sm capitalize">
-          {event.status}
+          {event.status === 'demo' ? 'Demo' : event.status}
         </span>
       </div>
 
@@ -1560,5 +1576,7 @@ export function FacilitatorEventPage() {
         </div>
       ) : null}
     </LivePanelShell>
+      <DemoOverlay enabled={event.status === 'demo'} />
+    </>
   )
 }

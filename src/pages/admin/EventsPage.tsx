@@ -52,6 +52,7 @@ export function AdminEventsPage() {
       const rest = all.filter((e) => e.id !== eventId)
       const byStatus: Record<EventStatus, EventRow[]> = {
         active: [],
+        demo: [],
         ready: [],
         draft: [],
         archived: [],

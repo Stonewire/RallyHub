@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
+import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
@@ -1371,6 +1372,7 @@ export function JoinGameView({
           </Card>
         </div>
       ) : null}
+      <DemoOverlay enabled={event.status === 'demo'} />
     </BrandBackground>
   )
 }
