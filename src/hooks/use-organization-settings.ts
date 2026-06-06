@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { DEFAULT_BRAND_COLORS } from '@/lib/live-event'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -39,14 +40,22 @@ export const EMPTY_ORG_FORM: OrganizationFormState = {
   tablet_slug: '',
 }
 
+function normalizeOrgColor(value: string | null | undefined, fallback: string): string {
+  const trimmed = value?.trim()
+  return trimmed || fallback
+}
+
 export function orgToForm(org: OrganizationRow): OrganizationFormState {
   const legacyAddress = org.address?.trim()
   return {
     name: org.name,
     logo_url: org.logo_url,
-    primary_color: org.primary_color,
-    secondary_color: org.secondary_color,
-    accent_color: org.accent_color,
+    primary_color: normalizeOrgColor(org.primary_color, EMPTY_ORG_FORM.primary_color),
+    secondary_color: normalizeOrgColor(
+      org.secondary_color,
+      EMPTY_ORG_FORM.secondary_color,
+    ),
+    accent_color: normalizeOrgColor(org.accent_color, EMPTY_ORG_FORM.accent_color),
     vat_number: org.vat_number ?? '',
     address_street: org.address_street ?? legacyAddress ?? '',
     address_city: org.address_city ?? '',
@@ -108,9 +117,15 @@ export function useSaveOrganization(organizationId: string | null) {
       const update: TablesUpdate<'organizations'> = {
         name: payload.name,
         logo_url: payload.logo_url,
-        primary_color: payload.primary_color,
-        secondary_color: payload.secondary_color,
-        accent_color: payload.accent_color,
+        primary_color: normalizeOrgColor(
+          payload.primary_color,
+          DEFAULT_BRAND_COLORS[0],
+        ),
+        secondary_color: normalizeOrgColor(
+          payload.secondary_color,
+          DEFAULT_BRAND_COLORS[1],
+        ),
+        accent_color: normalizeOrgColor(payload.accent_color, DEFAULT_BRAND_COLORS[2]),
         vat_number: payload.vat_number || null,
         address: null,
         address_street: payload.address_street || null,

@@ -80,19 +80,65 @@ export function currentStage(
   return stages[index] ?? null
 }
 
-const DEFAULT_BRAND_COLORS: [string, string, string] = ['#3E3D3E', '#6f6f6f', '#FFCB03']
+export const DEFAULT_BRAND_COLORS: [string, string, string] = [
+  '#3E3D3E',
+  '#6f6f6f',
+  '#FFCB03',
+]
+
+function brandColorSlot(value: unknown): string | null {
+  if (value == null) return null
+  const trimmed = String(value).trim()
+  if (!trimmed) return null
+  return trimmed
+}
+
+/** Normalize any brand color array to [primary, secondary, accent]. */
+export function normalizeBrandColorTriple(
+  raw: Json | unknown,
+  defaults: [string, string, string] = DEFAULT_BRAND_COLORS,
+): [string, string, string] {
+  const slots = Array.isArray(raw)
+    ? raw.map(brandColorSlot).filter((c): c is string => c !== null)
+    : []
+
+  if (slots.length >= 3) {
+    return [slots[0], slots[1], slots[2]]
+  }
+  if (slots.length === 2) {
+    // Legacy saves used filter(Boolean) and dropped an empty/missing primary slot.
+    return [defaults[0], slots[0], slots[1]]
+  }
+  if (slots.length === 1) {
+    return [slots[0], slots[0], defaults[2]]
+  }
+  return defaults
+}
 
 function brandColorsFromJson(
   raw: Json | null | undefined,
 ): [string, string, string] | null {
-  if (!Array.isArray(raw) || raw.length < 3) return null
-  return [String(raw[0]), String(raw[1]), String(raw[2])]
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  return normalizeBrandColorTriple(raw)
 }
 
-function brandColorsFromOrg(
-  org: TenantPublicOrg | Tables<'organizations'>,
+/** [primary, secondary, accent] from organization profile columns. */
+export function brandColorsFromOrg(
+  org:
+    | Pick<
+        Tables<'organizations'>,
+        'primary_color' | 'secondary_color' | 'accent_color'
+      >
+    | TenantPublicOrg
+    | null
+    | undefined,
 ): [string, string, string] {
-  return [org.primary_color, org.secondary_color, org.accent_color]
+  if (!org) return DEFAULT_BRAND_COLORS
+  return normalizeBrandColorTriple([
+    org.primary_color,
+    org.secondary_color,
+    org.accent_color,
+  ])
 }
 
 /** Resolve [primary, secondary, accent] for event experience screens. */

@@ -1,5 +1,10 @@
 import type { Json } from '@/types/json'
-import type { DisplayLayout, DisplayTextColor } from '@/lib/live-event'
+import {
+  DEFAULT_BRAND_COLORS,
+  normalizeBrandColorTriple,
+  type DisplayLayout,
+  type DisplayTextColor,
+} from '@/lib/live-event'
 import type { EventStage, EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -79,10 +84,7 @@ export function toLocalDatetime(iso: string | null): string {
 }
 
 export function parseBrandColors(raw: Json | null | undefined): [string, string, string] {
-  if (Array.isArray(raw) && raw.length >= 3) {
-    return [String(raw[0]), String(raw[1]), String(raw[2])]
-  }
-  return ['#3E3D3E', '#6f6f6f', '#FFCB03']
+  return normalizeBrandColorTriple(raw, DEFAULT_BRAND_COLORS)
 }
 
 export function eventToFormValues(

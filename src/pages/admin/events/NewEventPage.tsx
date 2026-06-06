@@ -16,6 +16,7 @@ import { useGameGroups } from '@/hooks/use-game-groups'
 import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import { brandColorsFromOrg } from '@/lib/live-event'
 import {
   collectEventGameIds,
   emptyEventForm,
@@ -89,11 +90,7 @@ export function AdminEventsNewPage() {
             : org?.logo_url ?? null,
           brand_colors: values.brandingEnabled
             ? values.brandColors
-            : [
-                org?.primary_color,
-                org?.secondary_color,
-                org?.accent_color,
-              ].filter((c): c is string => Boolean(c)),
+            : brandColorsFromOrg(org),
           teams_config: values.teams,
           stages_config: values.stages,
           display_layout: values.displayLayout,

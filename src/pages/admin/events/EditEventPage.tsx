@@ -35,7 +35,7 @@ import {
 import { downloadEventPackage } from '@/lib/event-export'
 import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
 import { isEventActivated } from '@/lib/event-lifecycle'
-import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
+import { brandColorsForEvent, brandColorsFromOrg, logoForEvent } from '@/lib/live-event'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventEditPage() {
@@ -96,11 +96,7 @@ export function AdminEventEditPage() {
             : org?.logo_url ?? null,
           brand_colors: values.brandingEnabled
             ? values.brandColors
-            : [
-                org?.primary_color,
-                org?.secondary_color,
-                org?.accent_color,
-              ].filter((c): c is string => Boolean(c)),
+            : brandColorsFromOrg(org),
           teams_config: values.teams,
           stages_config: values.stages,
           display_layout: values.displayLayout,
