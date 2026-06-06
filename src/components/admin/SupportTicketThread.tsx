@@ -34,13 +34,13 @@ export function SupportTicketThread({
 }: SupportTicketThreadProps) {
   const { data: messages, isLoading, isError, error } = useTicketMessages(ticket.id)
   const sendMessage = useSendTicketMessage()
-  const markRead = useMarkSupportTicketRead()
+  const { mutate: markTicketRead } = useMarkSupportTicketRead()
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
 
   useEffect(() => {
-    markRead.mutate({ ticketId: ticket.id, viewerRole: senderRole })
-  }, [ticket.id, senderRole, markRead])
+    markTicketRead({ ticketId: ticket.id, viewerRole: senderRole })
+  }, [ticket.id, senderRole, markTicketRead])
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })

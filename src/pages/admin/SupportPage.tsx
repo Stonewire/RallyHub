@@ -6,7 +6,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
-import { SupportTicketCard } from '@/components/admin/SupportTicketCard'
+import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
 import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Card } from '@/components/ui/card'
@@ -136,33 +136,13 @@ export function AdminSupportPage() {
         ) : tickets.length === 0 ? (
           <p className="text-muted-foreground text-sm">No tickets yet. Submit one above.</p>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              {tickets.map((ticket) => (
-                <SupportTicketCard
-                  key={ticket.id}
-                  ticket={ticket}
-                  selected={ticket.id === selectedId}
-                  onClick={() => setSelectedId(ticket.id)}
-                />
-              ))}
-            </div>
-            {selected ? (
-              <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm sm:p-5">
-                <div>
-                  <p className="text-foreground font-semibold">{selected.subject}</p>
-                  {selected.ticket_number ? (
-                    <p className="text-muted-foreground mt-1 font-mono text-xs">
-                      {selected.ticket_number}
-                    </p>
-                  ) : null}
-                </div>
-                <SupportTicketThread ticket={selected} senderRole="client" />
-              </Card>
-            ) : (
-              <p className="text-muted-foreground text-sm">Select a ticket to view the thread.</p>
-            )}
-          </div>
+          <SupportTicketsWorkspace
+            tickets={tickets}
+            selectedId={selectedId}
+            onSelectTicket={setSelectedId}
+            senderRole="client"
+            emptyMessage="No tickets yet. Submit one above."
+          />
         )
       ) : selected ? (
         <Card className="border-border/80 max-w-2xl space-y-4 bg-card p-4 shadow-sm sm:p-5">
