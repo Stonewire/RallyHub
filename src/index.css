@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "./styles/neo-minimal.css";
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap");
 
 @custom-variant dark (&:is(.dark *));
@@ -12,6 +13,23 @@
     --font-display: 'Montserrat', 'Geist Variable', sans-serif;
 
     --shadow-soft: var(--shadow-rh-soft);
+
+    --color-nm-bg: var(--nm-bg-base);
+    --color-nm-surface: var(--nm-bg-surface);
+    --color-nm-elevated: var(--nm-bg-elevated);
+    --color-nm-muted: var(--nm-bg-muted);
+    --color-nm-charcoal: var(--nm-charcoal);
+    --color-nm-yellow: var(--nm-yellow);
+
+    --shadow-nm-soft: var(--nm-shadow-soft);
+    --shadow-nm-raised: var(--nm-shadow-raised);
+    --shadow-nm-pressed: var(--nm-shadow-pressed);
+    --shadow-nm-accent: var(--nm-shadow-accent);
+
+    --radius-nm-sm: var(--nm-radius-sm);
+    --radius-nm-md: var(--nm-radius-md);
+    --radius-nm-lg: var(--nm-radius-lg);
+    --radius-nm-xl: var(--nm-radius-xl);
 
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);

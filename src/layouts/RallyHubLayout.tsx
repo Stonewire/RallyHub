@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 import { RallyHubAppSidebar } from '@/components/rallyhub/RallyHubAppSidebar'
 import { Separator } from '@/components/ui/separator'
@@ -7,12 +7,22 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { isRallyHubNeoPilotPath } from '@/lib/neo-minimal'
+import { cn } from '@/lib/utils'
 
 export function RallyHubLayout() {
+  const { pathname } = useLocation()
+  const neoPilot = isRallyHubNeoPilotPath(pathname)
+
   return (
-    <SidebarProvider>
-      <RallyHubAppSidebar />
-      <SidebarInset className="admin-shell-inset bg-background flex max-h-[100dvh] min-h-svh flex-1 overflow-hidden lg:rounded-r-none">
+    <SidebarProvider className={cn(neoPilot && 'neo-minimal-scope')}>
+      <RallyHubAppSidebar neoMinimal={neoPilot} />
+      <SidebarInset
+        className={cn(
+          'admin-shell-inset bg-background flex max-h-[100dvh] min-h-svh flex-1 overflow-hidden lg:rounded-r-none',
+          neoPilot && 'neo-minimal-inset',
+        )}
+      >
         <header className="bg-background flex h-14 shrink-0 items-center gap-2 border-b border-[rgb(62_61_62/0.08)] px-4 lg:px-6">
           <SidebarTrigger className="text-[#3E3D3E] [&_svg]:size-5" />
           <Separator

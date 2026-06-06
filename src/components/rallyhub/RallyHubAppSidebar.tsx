@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
+import { cn } from '@/lib/utils'
 
 const mainNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -31,7 +32,12 @@ const mainNav = [
   { to: '/admin/support', label: 'Support', icon: LifeBuoy, end: true },
 ] as const
 
-export function RallyHubAppSidebar() {
+type RallyHubAppSidebarProps = {
+  /** Neo-minimal pilot styling for dashboard cohesion. */
+  neoMinimal?: boolean
+}
+
+export function RallyHubAppSidebar({ neoMinimal = false }: RallyHubAppSidebarProps) {
   const { pathname } = useLocation()
   const { signOut } = useAuth()
   const { data: supportUnread = 0 } = useSupportUnreadCount('support')
@@ -39,7 +45,10 @@ export function RallyHubAppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="admin-shell-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal"
+      className={cn(
+        'admin-shell-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal',
+        neoMinimal && 'neo-minimal-sidebar',
+      )}
       style={{ color: 'var(--foreground)' }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">

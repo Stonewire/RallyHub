@@ -1,0 +1,308 @@
+/**
+ * Neo-minimalism design tokens & scoped utilities.
+ * Opt-in via `.neo-minimal-scope` — does not override global app styles.
+ */
+
+:root {
+  /* ─── Brand (unchanged) ─── */
+  --nm-charcoal: #3e3d3e;
+  --nm-yellow: #ffcb03;
+  --nm-yellow-foreground: #3e3d3e;
+
+  /* ─── Warm neutral scale ─── */
+  --nm-bg-base: #f6f2ec;
+  --nm-bg-surface: #faf7f3;
+  --nm-bg-elevated: #fffcf8;
+  --nm-bg-muted: #ede8e1;
+  --nm-bg-inset: #e8e2da;
+
+  --nm-text-primary: var(--nm-charcoal);
+  --nm-text-secondary: #6b6560;
+  --nm-text-muted: #8a837c;
+
+  --nm-border: rgb(62 61 62 / 0.08);
+  --nm-border-strong: rgb(62 61 62 / 0.12);
+
+  /* ─── Spacing scale ─── */
+  --nm-space-1: 0.25rem;
+  --nm-space-2: 0.5rem;
+  --nm-space-3: 0.75rem;
+  --nm-space-4: 1rem;
+  --nm-space-5: 1.25rem;
+  --nm-space-6: 1.5rem;
+  --nm-space-8: 2rem;
+  --nm-space-10: 2.5rem;
+  --nm-space-12: 3rem;
+
+  /* ─── Border radii ─── */
+  --nm-radius-sm: 0.5rem;
+  --nm-radius-md: 0.75rem;
+  --nm-radius-lg: 1rem;
+  --nm-radius-xl: 1.25rem;
+  --nm-radius-2xl: 1.5rem;
+
+  /* ─── Layered shadows (neomorphic-leaning) ─── */
+  --nm-shadow-soft:
+    0 1px 2px rgb(62 61 62 / 0.04),
+    0 4px 12px rgb(62 61 62 / 0.05);
+
+  --nm-shadow-raised:
+    0 1px 0 rgb(255 255 255 / 0.75) inset,
+    0 2px 4px rgb(62 61 62 / 0.05),
+    0 8px 22px rgb(62 61 62 / 0.07),
+    0 1px 2px rgb(62 61 62 / 0.04);
+
+  --nm-shadow-pressed:
+    0 2px 4px rgb(62 61 62 / 0.08) inset,
+    0 1px 1px rgb(62 61 62 / 0.04);
+
+  --nm-shadow-accent:
+    0 1px 0 rgb(255 255 255 / 0.4) inset,
+    0 3px 12px rgb(255 203 3 / 0.28),
+    0 2px 4px rgb(62 61 62 / 0.08);
+
+  --nm-transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scoped shell — warm surfaces inside pilot areas only */
+.neo-minimal-scope {
+  --background: var(--nm-bg-base);
+  --foreground: var(--nm-text-primary);
+  --card: var(--nm-bg-elevated);
+  --muted-foreground: var(--nm-text-muted);
+  --border: var(--nm-border);
+
+  color: var(--nm-text-primary);
+}
+
+.neo-minimal-scope.neo-minimal-inset,
+.neo-minimal-scope .neo-minimal-inset {
+  background-color: var(--nm-bg-base);
+}
+
+.neo-minimal-scope .neo-minimal-inset > header {
+  background-color: var(--nm-bg-surface);
+  border-color: var(--nm-border);
+  box-shadow: var(--nm-shadow-soft);
+}
+
+@layer components {
+  /* ─── Card ─── */
+  .neo-card {
+    background: var(--nm-bg-elevated);
+    border: 1px solid var(--nm-border);
+    border-radius: var(--nm-radius-lg);
+    box-shadow: var(--nm-shadow-soft);
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-card-interactive:hover {
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .neo-card-interactive:active {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  /* ─── Button ─── */
+  .neo-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--nm-space-2);
+    border-radius: var(--nm-radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition),
+      background-color var(--nm-transition);
+    outline: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .neo-btn:focus-visible {
+    box-shadow:
+      var(--nm-shadow-raised),
+      0 0 0 3px color-mix(in srgb, var(--nm-yellow) 35%, transparent);
+  }
+
+  .neo-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .neo-btn-accent {
+    background: var(--nm-yellow);
+    color: var(--nm-yellow-foreground);
+    box-shadow: var(--nm-shadow-accent);
+  }
+
+  .neo-btn-accent:hover:not(:disabled) {
+    box-shadow:
+      var(--nm-shadow-accent),
+      0 4px 14px rgb(255 203 3 / 0.22);
+    transform: translateY(-1px);
+  }
+
+  .neo-btn-accent:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  .neo-btn-surface {
+    background: var(--nm-bg-elevated);
+    color: var(--nm-text-primary);
+    border-color: var(--nm-border);
+    box-shadow: var(--nm-shadow-raised);
+  }
+
+  .neo-btn-surface:hover:not(:disabled) {
+    box-shadow: var(--nm-shadow-raised);
+    transform: translateY(-1px);
+  }
+
+  .neo-btn-surface:active:not(:disabled) {
+    box-shadow: var(--nm-shadow-pressed);
+    transform: translateY(0);
+  }
+
+  .neo-btn-ghost {
+    background: transparent;
+    color: var(--nm-text-secondary);
+    box-shadow: none;
+  }
+
+  .neo-btn-ghost:hover:not(:disabled) {
+    background: var(--nm-bg-muted);
+    color: var(--nm-text-primary);
+  }
+
+  .neo-btn-sm {
+    height: 2rem;
+    padding-inline: var(--nm-space-3);
+    font-size: 0.8125rem;
+  }
+
+  .neo-btn-md {
+    height: 2.25rem;
+    padding-inline: var(--nm-space-4);
+  }
+
+  .neo-btn-lg {
+    height: 2.5rem;
+    padding-inline: var(--nm-space-5);
+  }
+
+  /* ─── Icon container ─── */
+  .neo-icon-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: var(--nm-radius-md);
+    background: var(--nm-bg-elevated);
+    border: 1px solid var(--nm-border);
+    box-shadow: var(--nm-shadow-raised);
+    color: var(--nm-text-primary);
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition);
+  }
+
+  .neo-icon-container-accent {
+    background: color-mix(in srgb, var(--nm-yellow) 18%, var(--nm-bg-elevated));
+    border-color: color-mix(in srgb, var(--nm-yellow) 35%, var(--nm-border));
+    color: var(--nm-charcoal);
+  }
+
+  .neo-icon-container-sm {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .neo-icon-container-md {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .neo-icon-container-lg {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--nm-radius-lg);
+  }
+
+  /* ─── Page header (pilot) ─── */
+  .neo-page-title {
+    color: var(--nm-text-primary);
+    font-size: clamp(1.75rem, 4vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+  }
+
+  .neo-page-subtitle {
+    color: var(--nm-text-secondary);
+    font-size: 1rem;
+    font-weight: 450;
+    line-height: 1.6;
+    max-width: 42rem;
+  }
+
+  /* ─── Stat tile label/value ─── */
+  .neo-stat-label {
+    color: var(--nm-text-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .neo-stat-value {
+    color: var(--nm-text-primary);
+    font-size: 1.875rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .neo-stat-hint {
+    color: var(--nm-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* ─── Sidebar shell (RallyHub pilot) ─── */
+  .neo-minimal-sidebar.admin-shell-sidebar {
+    background: var(--nm-bg-surface);
+    border-color: var(--nm-border);
+    box-shadow: var(--nm-shadow-soft);
+  }
+
+  .neo-minimal-sidebar [data-slot='sidebar-menu-button']:not([data-active='true']) {
+    border-radius: var(--nm-radius-md);
+    transition:
+      box-shadow var(--nm-transition),
+      transform var(--nm-transition),
+      background-color var(--nm-transition);
+  }
+
+  .neo-minimal-sidebar [data-slot='sidebar-menu-button']:hover:not([data-active='true']) {
+    background: var(--nm-bg-elevated);
+    box-shadow: var(--nm-shadow-soft);
+    transform: translateX(2px);
+  }
+
+  .neo-minimal-sidebar [data-slot='sidebar-menu-button'][data-active='true'] {
+    background: color-mix(in srgb, var(--nm-yellow) 22%, var(--nm-bg-elevated)) !important;
+    color: var(--nm-charcoal) !important;
+    box-shadow: var(--nm-shadow-raised);
+    font-weight: 600;
+  }
+}

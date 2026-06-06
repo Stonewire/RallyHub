@@ -1,13 +1,13 @@
-import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { NeoCard, NeoPageShell } from '@/components/neo-minimal'
 import { useRallyHubDashboard } from '@/hooks/use-rallyhub'
+import { cn } from '@/lib/utils'
 
 export function RallyHubOverviewPage() {
   const { data, isLoading, isError, error } = useRallyHubDashboard()
 
   return (
-    <AdminPageShell
+    <NeoPageShell
       title="Dashboard"
       subtitle="Platform-wide overview for RallyHub super admins."
     >
@@ -16,18 +16,18 @@ export function RallyHubOverviewPage() {
       ) : isError ? (
         <QueryError message={error?.message} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Clients" value={data?.clientCount ?? 0} />
-          <StatCard label="Total events" value={data?.totalEvents ?? 0} />
-          <StatCard label="Active events" value={data?.activeEvents ?? 0} />
-          <StatCard label="Revenue" value="—" hint="Overview coming soon" />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile label="Clients" value={data?.clientCount ?? 0} />
+          <StatTile label="Total events" value={data?.totalEvents ?? 0} />
+          <StatTile label="Active events" value={data?.activeEvents ?? 0} />
+          <StatTile label="Revenue" value="—" hint="Overview coming soon" />
         </div>
       )}
-    </AdminPageShell>
+    </NeoPageShell>
   )
 }
 
-function StatCard({
+function StatTile({
   label,
   value,
   hint,
@@ -37,16 +37,10 @@ function StatCard({
   hint?: string
 }) {
   return (
-    <Card className="border-border/80 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-foreground text-3xl font-bold tabular-nums">{value}</p>
-        {hint ? <p className="text-muted-foreground mt-1 text-xs">{hint}</p> : null}
-      </CardContent>
-    </Card>
+    <NeoCard className={cn('p-6', hint ? 'pb-5' : undefined)}>
+      <p className="neo-stat-label">{label}</p>
+      <p className="neo-stat-value mt-3">{value}</p>
+      {hint ? <p className="neo-stat-hint mt-2">{hint}</p> : null}
+    </NeoCard>
   )
 }
