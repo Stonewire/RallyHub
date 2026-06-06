@@ -80,18 +80,35 @@ export function currentStage(
   return stages[index] ?? null
 }
 
+const DEFAULT_BRAND_COLORS: [string, string, string] = ['#3E3D3E', '#6f6f6f', '#FFCB03']
+
+function brandColorsFromJson(
+  raw: Json | null | undefined,
+): [string, string, string] | null {
+  if (!Array.isArray(raw) || raw.length < 3) return null
+  return [String(raw[0]), String(raw[1]), String(raw[2])]
+}
+
+function brandColorsFromOrg(
+  org: TenantPublicOrg | Tables<'organizations'>,
+): [string, string, string] {
+  return [org.primary_color, org.secondary_color, org.accent_color]
+}
+
+/** Resolve [primary, secondary, accent] for event experience screens. */
 export function brandColorsForEvent(
   event: Tables<'events'>,
   org: TenantPublicOrg | Tables<'organizations'> | null,
 ): [string, string, string] {
-  if (event.branding_enabled && Array.isArray(event.brand_colors)) {
-    const c = event.brand_colors as string[]
-    if (c.length >= 3) return [c[0], c[1], c[2]]
+  const eventColors = brandColorsFromJson(event.brand_colors)
+  const orgColors = org ? brandColorsFromOrg(org) : null
+
+  if (event.branding_enabled) {
+    return eventColors ?? orgColors ?? DEFAULT_BRAND_COLORS
   }
-  if (org) {
-    return [org.primary_color, org.secondary_color, org.accent_color]
-  }
-  return ['#3E3D3E', '#6f6f6f', '#FFCB03']
+  // Org branding: prefer live org profile, then colors copied onto the event at save time
+  // (logo uses the same snapshot pattern because anon live pages cannot read organizations).
+  return orgColors ?? eventColors ?? DEFAULT_BRAND_COLORS
 }
 
 export function logoForEvent(
