@@ -1,5 +1,6 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 
+import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { RouteErrorBoundary } from '@/components/errors/RouteErrorBoundary'
 import {
   AdminGamesRoute,
@@ -15,23 +16,40 @@ import {
 } from '@/components/routing/AdminRouteDispatchers'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
 import { TenantScope } from '@/components/routing/TenantScope'
+import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorEventPage } from '@/pages/live/FacilitatorEventPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
 import { TabletPage } from '@/pages/live/TabletPage'
-import { PlatformHomePage } from '@/pages/PlatformHomePage'
+import { ContactPage } from '@/pages/marketing/ContactPage'
+import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
 import { PlayTokenPage } from '@/pages/placeholders'
 import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
+import { resolvePostLoginPath } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 function RootPage() {
-  return isPlatformHost() ? (
-    <PlatformHomePage />
-  ) : (
-    <Navigate to="/admin" replace />
-  )
+  const { user, role, loading, profileLoading } = useAuth()
+
+  if (!isPlatformHost()) {
+    return <Navigate to="/admin" replace />
+  }
+
+  if (loading) {
+    return <AuthLoadingScreen label="Loading" />
+  }
+
+  if (user && profileLoading) {
+    return <AuthLoadingScreen label="Loading profile" />
+  }
+
+  if (user && !profileLoading) {
+    return <Navigate to={resolvePostLoginPath(undefined, role)} replace />
+  }
+
+  return <MarketingLandingPage />
 }
 
 function NotFoundPage() {
@@ -70,6 +88,7 @@ export const router = createBrowserRouter([
   { path: '/tablet', element: <TabletPage /> },
 
   { path: '/', element: <RootPage /> },
+  { path: '/contact', element: <ContactPage /> },
   {
     path: '/login',
     element: (
