@@ -288,6 +288,7 @@ export type Database = {
           display_layout: string
           display_text_color: string
           list_order: number
+          invoice_paid: boolean
           created_at: string
         }
         Insert: {
@@ -305,6 +306,7 @@ export type Database = {
           display_layout?: string
           display_text_color?: string
           list_order?: number
+          invoice_paid?: boolean
         }
         Update: {
           name?: string
@@ -319,6 +321,7 @@ export type Database = {
           display_layout?: string
           display_text_color?: string
           list_order?: number
+          invoice_paid?: boolean
         }
         Relationships: []
       }

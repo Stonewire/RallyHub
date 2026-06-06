@@ -21,6 +21,7 @@ import {
   formatClientPlanLabel,
   normalizeClientPlan,
 } from '@/lib/client-plans'
+import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
 import { countClientEvents } from '@/lib/client-events'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
@@ -447,6 +448,10 @@ export function RallyHubClientDetailPage() {
               {adminResetSending ? 'Sending…' : 'Send Password Reset'}
             </Button>
           </Card>
+        ) : null}
+
+        {!isCreateMode && data ? (
+          <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
         ) : null}
 
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
