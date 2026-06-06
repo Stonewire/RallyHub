@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
       .from('organizations')
       .insert({
         name: name.trim(),
+        email: email.trim(),
         contact_email: email.trim(),
         subdomain: sub,
         billing_plan: billing_plan ?? 'starter',

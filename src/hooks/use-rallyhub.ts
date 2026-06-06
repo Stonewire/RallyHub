@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { countClientEvents } from '@/lib/client-events'
 import { supabase } from '@/lib/supabase'
 
 export type { SupportTicketRow } from '@/hooks/use-support-tickets'
@@ -49,10 +50,7 @@ export function useRallyHubClients() {
         const orgEvents = (events ?? []).filter((e) => e.organization_id === org.id)
         return {
           ...org,
-          completedEvents: orgEvents.filter((e) => e.status === 'archived').length,
-          upcomingEvents: orgEvents.filter(
-            (e) => e.status === 'ready' || e.status === 'draft',
-          ).length,
+          ...countClientEvents(orgEvents),
         }
       })
     },
@@ -103,13 +101,19 @@ export function useUpdateClientAdmin() {
       account_status,
       billing_plan,
       subdomain,
+      email,
+      phone,
     }: {
       orgId: string
       notes?: string
       account_status?: string
       billing_plan?: string
       subdomain?: string
+      email?: string
+      phone?: string
     }) => {
+      const trimmedEmail = email?.trim()
+      const trimmedPhone = phone?.trim()
       const { error } = await supabase
         .from('organizations')
         .update({
@@ -117,6 +121,13 @@ export function useUpdateClientAdmin() {
           ...(account_status ? { account_status } : {}),
           ...(billing_plan ? { billing_plan } : {}),
           ...(subdomain ? { subdomain: subdomain.toLowerCase().trim() } : {}),
+          ...(email !== undefined
+            ? {
+                email: trimmedEmail || null,
+                contact_email: trimmedEmail || null,
+              }
+            : {}),
+          ...(phone !== undefined ? { phone: trimmedPhone || null } : {}),
         })
         .eq('id', orgId)
       if (error) throw error

@@ -27,6 +27,8 @@ type OrgRow = {
   custom_domain: string | null
   billing_plan: string
   contact_email: string | null
+  email: string | null
+  phone: string | null
   account_status: string
   internal_notes: string | null
   created_at: string

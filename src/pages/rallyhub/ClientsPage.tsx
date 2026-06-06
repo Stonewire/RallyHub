@@ -1,12 +1,8 @@
-import { Link } from 'react-router-dom'
-
 import { AccentButton } from '@/components/admin/AccentButton'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { ClientCard } from '@/components/rallyhub/ClientCard'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { useRallyHubClients } from '@/hooks/use-rallyhub'
-import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 
 export function RallyHubClientsPage() {
@@ -62,50 +58,14 @@ export function RallyHubClientsPage() {
         <QueryLoading rows={6} />
       ) : isError ? (
         <QueryError message={error?.message} />
+      ) : (data ?? []).length === 0 ? (
+        <p className="text-muted-foreground text-sm">No clients yet.</p>
       ) : (
-        <Card className="border-border/80 overflow-hidden bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-border/80 border-b text-left">
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Name</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Tenant URL</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Email</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Plan</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Completed</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Upcoming</th>
-                  <th className="text-muted-foreground px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {(data ?? []).map((row) => (
-                  <tr key={row.id} className="border-border/60 border-b last:border-0">
-                    <td className="text-foreground px-4 py-3 font-medium">{row.name}</td>
-                    <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3 font-mono text-xs">
-                      {getOrganizationOrigin({
-                        subdomain: row.subdomain,
-                        custom_domain: row.custom_domain,
-                      })}
-                    </td>
-                    <td className="text-muted-foreground px-4 py-3">
-                      {row.contact_email ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 capitalize">{row.billing_plan}</td>
-                    <td className="px-4 py-3 tabular-nums">{row.completedEvents}</td>
-                    <td className="px-4 py-3 tabular-nums">{row.upcomingEvents}</td>
-                    <td className="px-4 py-3 capitalize">{row.account_status}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/admin/clients/${row.id}`}>View</Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(data ?? []).map((client) => (
+            <ClientCard key={client.id} client={client} />
+          ))}
+        </div>
       )}
     </AdminPageShell>
   )
