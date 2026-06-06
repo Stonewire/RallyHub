@@ -7,10 +7,12 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +22,7 @@ import {
   useAdminOrganizationId,
   useAdminOrganizationLoading,
 } from '@/hooks/use-organization-id'
+import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import type { GameType } from '@/types/database'
 import type { GameConfig } from '@/types/game-config'
 
@@ -38,6 +41,8 @@ export function AdminGameEditPage() {
   const [config, setConfig] = useState<GameConfig>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [installOpen, setInstallOpen] = useState(false)
+  const isPlatformLibrary = useIsPlatformGamesAdmin()
 
   useEffect(() => {
     if (!gameQuery.data || hydrated) return
@@ -121,6 +126,11 @@ export function AdminGameEditPage() {
       backLabel="Back to games"
       actions={
         <>
+          {isPlatformLibrary && gameQuery.data.is_platform_template ? (
+            <Button type="button" variant="outline" onClick={() => setInstallOpen(true)}>
+              Install to clients
+            </Button>
+          ) : null}
           <AccentButton type="button" disabled={saving} onClick={() => void handleSave()}>
             {saving ? 'Saving…' : 'Save changes'}
           </AccentButton>
@@ -184,6 +194,13 @@ export function AdminGameEditPage() {
       </div>
 
       <FormSaveFooter onSave={() => void handleSave()} saving={saving} label="Save changes" />
+
+      {installOpen && gameQuery.data ? (
+        <InstallGameModal
+          game={gameQuery.data}
+          onClose={() => setInstallOpen(false)}
+        />
+      ) : null}
     </AdminPageShell>
   )
 }

@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
+import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -32,6 +33,7 @@ import {
   useCreateGameGroup,
   useDeleteGame,
   useReorderGames,
+  type GameRow,
 } from '@/hooks/use-games'
 import {
   useAdminOrganizationId,
@@ -151,6 +153,7 @@ export function AdminGamesPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
+  const [installGame, setInstallGame] = useState<GameRow | null>(null)
 
   const groups = groupsQuery.data ?? []
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
@@ -344,6 +347,9 @@ export function AdminGamesPage() {
                         void assignGroup.mutateAsync({ gameId, groupId: gid })
                       }
                       onReorder={handleReorder}
+                      onInstall={
+                        isPlatformLibrary ? (game) => setInstallGame(game) : undefined
+                      }
                     />
                   )
                 ) : null}
@@ -368,11 +374,15 @@ export function AdminGamesPage() {
                   void assignGroup.mutateAsync({ gameId, groupId: gid })
                 }
                 onReorder={handleReorder}
+                onInstall={isPlatformLibrary ? (game) => setInstallGame(game) : undefined}
               />
             </section>
           ) : null}
         </div>
       )}
+      {installGame ? (
+        <InstallGameModal game={installGame} onClose={() => setInstallGame(null)} />
+      ) : null}
     </AdminPageShell>
   )
 }

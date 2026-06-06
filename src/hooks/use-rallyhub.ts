@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import type { GameRow } from '@/hooks/use-games'
 import { countClientEvents } from '@/lib/client-events'
+import { platformGameInstallPayload } from '@/lib/install-platform-game'
 import { PLATFORM_LIBRARY_SUBDOMAIN } from '@/lib/platform-library'
 import { supabase } from '@/lib/supabase'
 import type { TablesUpdate } from '@/types/helpers'
@@ -261,6 +263,89 @@ export function usePlatformGames() {
         .order('created_at', { ascending: false })
       if (error) throw error
       return data ?? []
+    },
+  })
+}
+
+export function useGameClientInstallStatus(templateGame: GameRow | null) {
+  return useQuery({
+    queryKey: ['rallyhub', 'game-installs', templateGame?.id],
+    enabled: Boolean(templateGame?.id),
+    queryFn: async (): Promise<Set<string>> => {
+      if (!templateGame) return new Set()
+
+      const [bySourceRes, byLegacyRes] = await Promise.all([
+        supabase
+          .from('games')
+          .select('organization_id')
+          .eq('source_template_id', templateGame.id),
+        supabase
+          .from('games')
+          .select('organization_id')
+          .eq('name', templateGame.name)
+          .eq('type', templateGame.type)
+          .eq('is_platform_template', false),
+      ])
+
+      if (bySourceRes.error) throw bySourceRes.error
+      if (byLegacyRes.error) throw byLegacyRes.error
+
+      const installed = new Set<string>()
+      for (const row of bySourceRes.data ?? []) {
+        installed.add(row.organization_id)
+      }
+      for (const row of byLegacyRes.data ?? []) {
+        installed.add(row.organization_id)
+      }
+      return installed
+    },
+  })
+}
+
+export type InstallPlatformGameResult = {
+  organizationId: string
+  organizationName: string
+  ok: boolean
+  error?: string
+}
+
+export function useInstallPlatformGame() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      template,
+      organizationIds,
+      organizationNames,
+    }: {
+      template: GameRow
+      organizationIds: string[]
+      organizationNames: Record<string, string>
+    }): Promise<InstallPlatformGameResult[]> => {
+      const results: InstallPlatformGameResult[] = []
+
+      for (const organizationId of organizationIds) {
+        const organizationName = organizationNames[organizationId] ?? organizationId
+        const { error } = await supabase
+          .from('games')
+          .insert(platformGameInstallPayload(template, organizationId))
+
+        if (error) {
+          results.push({
+            organizationId,
+            organizationName,
+            ok: false,
+            error: error.message,
+          })
+        } else {
+          results.push({ organizationId, organizationName, ok: true })
+        }
+      }
+
+      return results
+    },
+    onSuccess: (_results, { template }) => {
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'game-installs', template.id] })
     },
   })
 }

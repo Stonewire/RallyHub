@@ -1,4 +1,4 @@
-import { GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { Download, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -13,6 +13,7 @@ type DraggableGamesGridProps = {
   onDelete: (game: GameRow) => void
   onAssignGroup: (gameId: string, groupId: string | null) => void
   onReorder: (gameId: string, index: number) => void
+  onInstall?: (game: GameRow) => void
 }
 
 export function DraggableGamesGrid({
@@ -22,6 +23,7 @@ export function DraggableGamesGrid({
   onDelete,
   onAssignGroup,
   onReorder,
+  onInstall,
 }: DraggableGamesGridProps) {
   const [dragId, setDragId] = useState<string | null>(null)
 
@@ -113,6 +115,18 @@ export function DraggableGamesGrid({
                   </option>
                 ))}
               </select>
+            ) : null}
+            {onInstall ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => onInstall(game)}
+              >
+                <Download className="size-3" />
+                Install
+              </Button>
             ) : null}
             <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
               <Link to={`/admin/games/${game.id}`}>

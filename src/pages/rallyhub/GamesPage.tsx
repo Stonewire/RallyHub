@@ -6,6 +6,7 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { CoverImage } from '@/components/ui/cover-image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { platformGameInstallPayload } from '@/lib/install-platform-game'
 import { usePlatformGames, useRallyHubClients } from '@/hooks/use-rallyhub'
 import { supabase } from '@/lib/supabase'
 
@@ -24,23 +25,7 @@ export function RallyHubGamesPage() {
     for (const org of orgs) {
       const game = games?.find((g) => g.id === gameId)
       if (!game) continue
-      await supabase.from('games').insert({
-        organization_id: org.id,
-        name: game.name,
-        type: game.type,
-        description: game.description,
-        cover_url: game.cover_url,
-        points_type: game.points_type,
-        points_static: game.points_static,
-        points_min: game.points_min,
-        points_max: game.points_max,
-        solution_description: game.solution_description,
-        solution_image_url: game.solution_image_url,
-        status: 'draft',
-        config: game.config,
-        is_platform_template: false,
-        is_default_for_new_clients: false,
-      })
+      await supabase.from('games').insert(platformGameInstallPayload(game, org.id))
     }
     alert(`Installed on ${orgs.length} client(s).`)
   }
