@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useDeleteMusicCatalog, useMusicCatalog, type MusicCatalogRow } from '@/hooks/use-music-catalog'
@@ -21,24 +22,19 @@ export function MusicCatalogPicker({
   const catalogQuery = useMusicCatalog(organizationId)
   const deleteCatalog = useDeleteMusicCatalog(organizationId)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<MusicCatalogRow | null>(null)
 
   const available = useMemo(() => {
     if (!catalogQuery.data) return []
     return catalogQuery.data.filter((row) => !existingTrackIds.has(row.id))
   }, [catalogQuery.data, existingTrackIds])
 
-  async function handleDelete(row: MusicCatalogRow) {
+  async function confirmDelete() {
+    if (!pendingDelete) return
     setDeleteError(null)
-    const label = `${row.title} — ${row.artist}`
-    if (
-      !window.confirm(
-        `Delete "${label}" from your organization catalog? The full audio and clip files will be removed. This cannot be undone.`,
-      )
-    ) {
-      return
-    }
     try {
-      await deleteCatalog.mutateAsync(row)
+      await deleteCatalog.mutateAsync(pendingDelete)
+      setPendingDelete(null)
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete track')
     }
@@ -112,7 +108,10 @@ export function MusicCatalogPicker({
                   className="text-destructive hover:text-destructive"
                   disabled={deleteCatalog.isPending}
                   aria-label={`Delete ${row.title}`}
-                  onClick={() => void handleDelete(row)}
+                  onClick={() => {
+                    setDeleteError(null)
+                    setPendingDelete(row)
+                  }}
                 >
                   <Trash2 className="size-4" />
                 </Button>
@@ -147,6 +146,50 @@ export function MusicCatalogPicker({
         <p className="text-destructive text-sm" role="alert">
           {deleteError}
         </p>
+      ) : null}
+
+      {pendingDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="catalog-delete-title"
+          aria-describedby="catalog-delete-message"
+        >
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-2">
+              <h3 id="catalog-delete-title" className="text-foreground font-semibold">
+                Delete catalog track?
+              </h3>
+              <p id="catalog-delete-message" className="text-muted-foreground text-sm leading-relaxed">
+                Delete{' '}
+                <span className="text-foreground font-medium">
+                  {pendingDelete.title} — {pendingDelete.artist}
+                </span>{' '}
+                from your organization catalog? The full audio and clip files will be removed. This
+                cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={deleteCatalog.isPending}
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={deleteCatalog.isPending}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteCatalog.isPending ? 'Deleting…' : 'Delete track'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
       ) : null}
     </Card>
   )
