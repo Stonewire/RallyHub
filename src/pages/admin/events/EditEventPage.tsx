@@ -15,6 +15,7 @@ import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
+  useDuplicateEvent,
   useEvent,
   useEventGameIds,
   useUpdateEvent,
@@ -32,8 +33,8 @@ import {
   type EventFormValues,
 } from '@/lib/event-form-utils'
 import { downloadEventPackage } from '@/lib/event-export'
+import { isEventActivated } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
-import { resetLiveEvent, unclaimedTeamSlots } from '@/lib/reset-live-event'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventEditPage() {
@@ -47,6 +48,7 @@ export function AdminEventEditPage() {
   const gameIdsQuery = useEventGameIds(eventId)
   const updateEvent = useUpdateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const duplicateEvent = useDuplicateEvent(organizationId)
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
   })
@@ -54,7 +56,6 @@ export function AdminEventEditPage() {
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
   const [hydrated, setHydrated] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [resetting, setResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
 
@@ -114,28 +115,17 @@ export function AdminEventEditPage() {
     }
   }
 
-  async function handleResetLiveEvent() {
-    if (!eventId || !eventQuery.data) return
-    const ok = window.confirm(
-      'Reset live event data?\n\n' +
-        'Deletes all submissions and scores. Team slots become available again. ' +
-        'Stages and linked games are not changed.',
-    )
-    if (!ok) return
-    setResetting(true)
+  async function handleDuplicate() {
+    if (!eventQuery.data || !gameIdsQuery.data) return
     setError(null)
     try {
-      const count = eventQuery.data.team_count
-      await resetLiveEvent(eventId, count)
-      await eventQuery.refetch()
-      setValues((v) => ({
-        ...v,
-        teams: unclaimedTeamSlots(count),
-      }))
+      const copy = await duplicateEvent.mutateAsync({
+        source: eventQuery.data,
+        gameIds: gameIdsQuery.data,
+      })
+      navigate(`/admin/events/${copy.id}`, { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset failed')
-    } finally {
-      setResetting(false)
+      setError(err instanceof Error ? err.message : 'Duplicate failed')
     }
   }
 
@@ -156,6 +146,7 @@ export function AdminEventEditPage() {
     eventQuery.isLoading || gameIdsQuery.isLoading || !hydrated
 
   const eventStatus = (eventQuery.data?.status ?? 'draft') as EventStatus
+  const activated = eventQuery.data ? isEventActivated(eventQuery.data) : false
 
   return (
     <AdminPageShell
@@ -167,6 +158,7 @@ export function AdminEventEditPage() {
         <div className="flex flex-wrap items-center gap-2">
           <EventStatusMenu
             status={eventStatus}
+            invoicedAt={eventQuery.data?.invoiced_at}
             size="default"
             disabled={
               updateStatus.isPending || activation.confirmingActivation || loading
@@ -177,10 +169,19 @@ export function AdminEventEditPage() {
                 eventStatus,
                 status,
                 eventQuery.data.name,
+                eventQuery.data.invoiced_at,
                 () => updateStatus.mutateAsync({ eventId, status }),
               )
             }}
           />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={duplicateEvent.isPending || loading}
+            onClick={() => void handleDuplicate()}
+          >
+            {duplicateEvent.isPending ? 'Duplicating…' : 'Duplicate event'}
+          </Button>
           <AccentButton
             type="button"
             disabled={saving || loading}
@@ -203,6 +204,16 @@ export function AdminEventEditPage() {
             </p>
           ) : null}
 
+          {activated ? (
+            <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
+              <p className="text-foreground font-medium">This event has been activated</p>
+              <p className="text-muted-foreground mt-1">
+                Billed events can only be archived. To run the same setup again, duplicate
+                this event to create a fresh copy that can be activated separately.
+              </p>
+            </Card>
+          ) : null}
+
           <EventForm
             organizationId={organizationId}
             values={values}
@@ -211,25 +222,6 @@ export function AdminEventEditPage() {
             groups={groupsQuery.data ?? []}
             orgDefaults={orgQuery.data ?? null}
           />
-
-          {eventId ? (
-            <Card className="border-destructive/40 mt-8 space-y-3 bg-card p-6 shadow-sm">
-              <h2 className="text-foreground text-lg font-semibold">Reset live event</h2>
-              <p className="text-muted-foreground text-sm">
-                Clear scores, submissions, chat, and team claims. Participants can claim
-                slots and redo all challenges. Stages and games stay as configured.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                disabled={resetting || saving}
-                onClick={() => void handleResetLiveEvent()}
-              >
-                {resetting ? 'Resetting…' : 'Reset event data'}
-              </Button>
-            </Card>
-          ) : null}
 
           {eventId && eventQuery.data ? (
             <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">

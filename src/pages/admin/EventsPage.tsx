@@ -22,6 +22,10 @@ import {
 import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import {
+  canTransitionEventStatus,
+  eventStatusTransitionError,
+} from '@/lib/event-lifecycle'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
@@ -82,10 +86,16 @@ export function AdminEventsPage() {
   function handleStatusChange(eventId: string, status: EventStatus) {
     const event = eventsQuery.data?.find((e) => e.id === eventId)
     if (!event) return
+    const transitionError = eventStatusTransitionError(event, status)
+    if (transitionError) {
+      window.alert(transitionError)
+      return
+    }
     activation.requestStatusChange(
       event.status as EventStatus,
       status,
       event.name,
+      event.invoiced_at,
       () => updateStatus.mutateAsync({ eventId, status }),
     )
   }
@@ -93,10 +103,18 @@ export function AdminEventsPage() {
   function handleReorder(eventId: string, newStatus: EventStatus, indexInGroup: number) {
     const event = eventsQuery.data?.find((e) => e.id === eventId)
     if (!event) return
+    if (
+      newStatus !== event.status &&
+      !canTransitionEventStatus(event, newStatus)
+    ) {
+      window.alert(eventStatusTransitionError(event, newStatus) ?? 'Status change not allowed.')
+      return
+    }
     activation.requestStatusChange(
       event.status as EventStatus,
       newStatus,
       event.name,
+      event.invoiced_at,
       () => applyReorder(eventId, newStatus, indexInGroup),
     )
   }

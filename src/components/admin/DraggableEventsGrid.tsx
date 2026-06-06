@@ -4,11 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { Button } from '@/components/ui/button'
-import {
-  EVENT_STATUS_LABELS,
-  groupEventsByStatus,
-  type EventRow,
-} from '@/hooks/use-events'
+import { EVENT_STATUS_LABELS, groupEventsByStatus, type EventRow } from '@/hooks/use-events'
+import { canTransitionEventStatus, isEventActivated } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 
 function formatEventDate(iso: string | null) {
@@ -55,6 +52,14 @@ export function DraggableEventsGrid({
     const dragged = events.find((e) => e.id === dragId)
     if (!dragged) return
 
+    if (
+      targetStatus !== dragged.status &&
+      !canTransitionEventStatus(dragged, targetStatus)
+    ) {
+      setDragId(null)
+      return
+    }
+
     const groupEvents = sorted
       .filter((e) => e.status === targetStatus)
       .filter((e) => e.id !== dragId)
@@ -88,10 +93,15 @@ export function DraggableEventsGrid({
               handleDrop(group.status, null)
             }}
           >
-            {group.events.map((event) => (
+            {group.events.map((event) => {
+              const activated = isEventActivated(event)
+              const canDrag =
+                !activated || (event.status as EventStatus) !== 'archived'
+
+              return (
               <article
                 key={event.id}
-                draggable
+                draggable={canDrag}
                 onDragStart={(e) => {
                   setDragId(event.id)
                   e.dataTransfer.effectAllowed = 'move'
@@ -128,6 +138,7 @@ export function DraggableEventsGrid({
                       </p>
                       <EventStatusMenu
                         status={event.status as EventStatus}
+                        invoicedAt={event.invoiced_at}
                         disabled={statusPending}
                         onSelect={(status) => onStatusChange(event.id, status)}
                       />
@@ -170,7 +181,8 @@ export function DraggableEventsGrid({
                   </Button>
                 </div>
               </article>
-            ))}
+              )
+            })}
             {group.events.length === 0 ? (
               <p className="text-muted-foreground col-span-2 py-4 text-center text-xs">
                 Drop events here to set status to {EVENT_STATUS_LABELS[group.status]}

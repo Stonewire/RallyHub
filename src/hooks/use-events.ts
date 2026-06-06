@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
+import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
@@ -259,6 +260,57 @@ export function useUpdateEventStatus(organizationId: string | null) {
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.event(variables.eventId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.recentEvents(organizationId),
+      })
+    },
+  })
+}
+
+export function useDuplicateEvent(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      source,
+      gameIds,
+    }: {
+      source: EventRow
+      gameIds: string[]
+    }) => {
+      const { event, gameIds: linkedGameIds } = buildDuplicateEventPayload(
+        source,
+        gameIds,
+      )
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert(event)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (linkedGameIds.length > 0) {
+        const { error: linkError } = await supabase.from('event_games').insert(
+          linkedGameIds.map((game_id) => ({
+            event_id: data.id,
+            game_id,
+          })),
+        )
+        if (linkError) throw linkError
+      }
+
+      await syncTeamSlots(data.id, data.team_count)
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.events(organizationId),
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),

@@ -36,6 +36,16 @@ export function defaultTeams(count: number): EventTeam[] {
   }))
 }
 
+/** Empty team slots for a new or duplicated event (no names claimed). */
+export function unclaimedTeamSlots(count: number): EventTeam[] {
+  const n = Math.max(1, Math.min(20, count))
+  return Array.from({ length: n }, (_, i) => ({
+    id: crypto.randomUUID(),
+    name: '',
+    color: TEAM_COLORS[i % TEAM_COLORS.length],
+  }))
+}
+
 export function defaultStages(): EventStage[] {
   return [
     {

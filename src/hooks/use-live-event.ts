@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
-import { resetLiveEvent } from '@/lib/reset-live-event'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
@@ -287,12 +286,6 @@ export function useLiveEvent(eventId: string | undefined) {
     [reload],
   )
 
-  const resetEvent = useCallback(async () => {
-    if (!eventId || !bundleRef.current) return
-    await resetLiveEvent(eventId, bundleRef.current.event.team_count)
-    await reload()
-  }, [eventId, reload])
-
   return {
     bundle,
     loading,
@@ -300,7 +293,6 @@ export function useLiveEvent(eventId: string | undefined) {
     reload,
     updateState,
     updateTeam,
-    resetEvent,
     setBundle,
   }
 }

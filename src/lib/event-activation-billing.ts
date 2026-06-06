@@ -47,7 +47,7 @@ export function getEventActivationWarning(
     message:
       `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan (${priceLabel} per event). ` +
       'If you have not started the event yet, keep it at Ready status to avoid being billed. ' +
-      'You will only be charged once per event, even if you deactivate and reactivate later.',
+      'Once activated, an event cannot be run again — duplicate it to schedule another session.',
     confirmLabel: `Activate and bill ${priceLabel}`,
   }
 }
@@ -55,6 +55,8 @@ export function getEventActivationWarning(
 export function isActivationBillingRequired(
   currentStatus: string,
   nextStatus: string,
+  invoicedAt?: string | null,
 ): boolean {
+  if (invoicedAt) return false
   return nextStatus === 'active' && currentStatus !== 'active'
 }

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
 import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/event-activation-billing'
+import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 
 type PendingActivation = {
@@ -46,9 +47,18 @@ export function useEventActivationFlow({ billingPlan }: UseEventActivationFlowOp
       currentStatus: EventStatus,
       nextStatus: EventStatus,
       eventName: string,
+      invoicedAt: string | null | undefined,
       applyChange: () => Promise<void>,
     ) => {
-      if (isActivationBillingRequired(currentStatus, nextStatus)) {
+      const transitionError = eventStatusTransitionError(
+        { status: currentStatus, invoiced_at: invoicedAt ?? null },
+        nextStatus,
+      )
+      if (transitionError) {
+        window.alert(transitionError)
+        return
+      }
+      if (isActivationBillingRequired(currentStatus, nextStatus, invoicedAt)) {
         requestActivation(eventName, applyChange)
         return
       }
