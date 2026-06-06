@@ -93,35 +93,107 @@ export function useRallyHubClient(clientId: string | undefined) {
   })
 }
 
+export type ClientAdminUpdateInput = {
+  orgId: string
+  name?: string
+  notes?: string
+  account_status?: string
+  billing_plan?: string
+  subdomain?: string
+  email?: string
+  phone?: string
+  logo_url?: string | null
+  vat_number?: string
+  address_street?: string
+  address_city?: string
+  address_state?: string
+  address_postal?: string
+  address_country?: string
+}
+
+export function useCreateRallyHubClient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      name,
+      email,
+      password,
+      subdomain,
+      billing_plan,
+    }: {
+      name: string
+      email: string
+      password: string
+      subdomain?: string
+      billing_plan?: string
+    }) => {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) throw new Error('Sign in required')
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-client`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          subdomain: subdomain?.trim() || undefined,
+          billing_plan,
+        }),
+      })
+      const json = (await res.json()) as { error?: string; org?: { id: string } }
+      if (!res.ok) throw new Error(json.error ?? 'Failed to create client')
+      if (!json.org?.id) throw new Error('Client created but no organization id was returned')
+      return json.org
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
+    },
+  })
+}
+
 export function useUpdateClientAdmin() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({
       orgId,
+      name,
       notes,
       account_status,
       billing_plan,
       subdomain,
       email,
       phone,
-    }: {
-      orgId: string
-      notes?: string
-      account_status?: string
-      billing_plan?: string
-      subdomain?: string
-      email?: string
-      phone?: string
-    }) => {
+      logo_url,
+      vat_number,
+      address_street,
+      address_city,
+      address_state,
+      address_postal,
+      address_country,
+    }: ClientAdminUpdateInput) => {
       const trimmedEmail = email?.trim() ?? ''
       const trimmedPhone = phone?.trim() ?? ''
       const payload = {
+        ...(name !== undefined ? { name: name.trim() } : {}),
         internal_notes: notes ?? null,
         account_status: account_status ?? 'active',
         billing_plan: billing_plan ?? 'free',
         email: trimmedEmail || null,
         contact_email: trimmedEmail || null,
         phone: trimmedPhone || null,
+        logo_url: logo_url ?? undefined,
+        vat_number: vat_number?.trim() || null,
+        address: null,
+        address_street: address_street?.trim() || null,
+        address_city: address_city?.trim() || null,
+        address_state: address_state?.trim() || null,
+        address_postal: address_postal?.trim() || null,
+        address_country: address_country?.trim() || null,
         updated_at: new Date().toISOString(),
         ...(subdomain !== undefined ? { subdomain: subdomain.toLowerCase().trim() } : {}),
       } satisfies TablesUpdate<'organizations'>

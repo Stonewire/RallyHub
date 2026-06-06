@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Upload } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -8,7 +9,13 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRallyHubClient, useUpdateClientAdmin } from '@/hooks/use-rallyhub'
+import {
+  useCreateRallyHubClient,
+  useRallyHubClient,
+  useUpdateClientAdmin,
+  type ClientAdminUpdateInput,
+} from '@/hooks/use-rallyhub'
+import { uploadOrganizationLogo } from '@/hooks/use-organization-settings'
 import {
   CLIENT_PLAN_OPTIONS,
   formatClientPlanLabel,
@@ -27,27 +34,69 @@ function clientEmail(org: { email: string | null; contact_email: string | null }
 
 export function RallyHubClientDetailPage() {
   const { clientId } = useParams()
-  const { data, isLoading, isError, error } = useRallyHubClient(clientId)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const isCreateMode = location.pathname.endsWith('/clients/new')
+  const { data, isLoading, isError, error } = useRallyHubClient(
+    isCreateMode ? undefined : clientId,
+  )
+  const createClient = useCreateRallyHubClient()
   const updateClient = useUpdateClientAdmin()
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const [orgName, setOrgName] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [notes, setNotes] = useState('')
   const [subdomain, setSubdomain] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [billingPlan, setBillingPlan] = useState('free')
   const [accountStatus, setAccountStatus] = useState('active')
+  const [vatNumber, setVatNumber] = useState('')
+  const [addressStreet, setAddressStreet] = useState('')
+  const [addressCity, setAddressCity] = useState('')
+  const [addressState, setAddressState] = useState('')
+  const [addressPostal, setAddressPostal] = useState('')
+  const [addressCountry, setAddressCountry] = useState('')
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [memberResetEmail, setMemberResetEmail] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (data?.org) {
-      setNotes(data.org.internal_notes ?? '')
-      setSubdomain(data.org.subdomain ?? '')
-      setEmail(clientEmail(data.org))
-      setPhone(data.org.phone ?? '')
-      setBillingPlan(normalizeClientPlan(data.org.billing_plan))
-      setAccountStatus(data.org.account_status ?? 'active')
-    }
+    if (!data?.org) return
+    const org = data.org
+    setOrgName(org.name)
+    setNotes(org.internal_notes ?? '')
+    setSubdomain(org.subdomain ?? '')
+    setEmail(clientEmail(org))
+    setPhone(org.phone ?? '')
+    setBillingPlan(normalizeClientPlan(org.billing_plan))
+    setAccountStatus(org.account_status ?? 'active')
+    setVatNumber(org.vat_number ?? '')
+    setAddressStreet(org.address_street ?? org.address ?? '')
+    setAddressCity(org.address_city ?? '')
+    setAddressState(org.address_state ?? '')
+    setAddressPostal(org.address_postal ?? '')
+    setAddressCountry(org.address_country ?? '')
+    setLogoUrl(org.logo_url)
+    setLogoFile(null)
+    setLogoPreview(null)
   }, [data?.org])
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(logoFile)
+    setLogoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [logoFile])
 
   async function sendResetEmail(emailAddress: string) {
     const { error: err } = await supabase.auth.resetPasswordForEmail(emailAddress)
@@ -55,7 +104,82 @@ export function RallyHubClientDetailPage() {
     else alert('Password reset email sent.')
   }
 
-  if (isLoading) {
+  async function handleLogoChange(file: File | undefined) {
+    if (!file) return
+    if (isCreateMode) {
+      setLogoFile(file)
+      return
+    }
+    if (!clientId) return
+    setLogoUploading(true)
+    setSaveError(null)
+    try {
+      const url = await uploadOrganizationLogo(clientId, file)
+      setLogoUrl(url)
+      setLogoFile(null)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Logo upload failed')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  function buildUpdatePayload(orgId: string, logo?: string | null): ClientAdminUpdateInput {
+    return {
+      orgId,
+      name: orgName.trim(),
+      notes,
+      subdomain,
+      email,
+      phone,
+      billing_plan: billingPlan,
+      account_status: accountStatus,
+      logo_url: logo !== undefined ? logo : logoUrl,
+      vat_number: vatNumber,
+      address_street: addressStreet,
+      address_city: addressCity,
+      address_state: addressState,
+      address_postal: addressPostal,
+      address_country: addressCountry,
+    }
+  }
+
+  async function handleSave() {
+    setSaveError(null)
+    setSaveSuccess(false)
+    try {
+      if (isCreateMode) {
+        if (!orgName.trim()) throw new Error('Organization name is required.')
+        if (!loginEmail.trim()) throw new Error('Admin login email is required.')
+        if (!loginPassword) throw new Error('Admin login password is required.')
+
+        const org = await createClient.mutateAsync({
+          name: orgName.trim(),
+          email: loginEmail.trim(),
+          password: loginPassword,
+          subdomain: subdomain.trim() || undefined,
+          billing_plan: billingPlan,
+        })
+
+        let finalLogoUrl = logoUrl
+        if (logoFile) {
+          finalLogoUrl = await uploadOrganizationLogo(org.id, logoFile)
+        }
+
+        await updateClient.mutateAsync(buildUpdatePayload(org.id, finalLogoUrl))
+        navigate(`/admin/clients/${org.id}`, { replace: true })
+        return
+      }
+
+      if (!clientId) return
+      await updateClient.mutateAsync(buildUpdatePayload(clientId))
+      setSaveSuccess(true)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save client')
+    }
+  }
+
+  if (!isCreateMode && isLoading) {
     return (
       <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryLoading rows={4} />
@@ -63,7 +187,7 @@ export function RallyHubClientDetailPage() {
     )
   }
 
-  if (isError || !data) {
+  if (!isCreateMode && (isError || !data)) {
     return (
       <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryError message={error?.message ?? 'Not found'} />
@@ -71,19 +195,30 @@ export function RallyHubClientDetailPage() {
     )
   }
 
-  const org = data.org
-  const tenantUrl = getOrganizationOrigin({
-    subdomain: org.subdomain,
-    custom_domain: org.custom_domain,
-  })
-  const eventCounts = countClientEvents(data.events)
-  const initials = organizationInitials(org.name)
-  const contactEmail = email.trim() || clientEmail(org)
+  const org = data?.org
+  const tenantUrl = isCreateMode
+    ? subdomain.trim()
+      ? getOrganizationOrigin({ subdomain: subdomain.trim().toLowerCase(), custom_domain: null })
+      : 'Set a subdomain to preview the tenant URL'
+    : getOrganizationOrigin({
+        subdomain: org!.subdomain,
+        custom_domain: org!.custom_domain,
+      })
+  const eventCounts = data ? countClientEvents(data.events) : null
+  const displayName = orgName.trim() || (isCreateMode ? 'New client' : org!.name)
+  const initials = organizationInitials(displayName)
+  const contactEmail = email.trim() || (org ? clientEmail(org) : '')
+  const displayLogo = logoPreview || logoUrl
+  const saving = createClient.isPending || updateClient.isPending || logoUploading
 
   return (
     <AdminPageShell
-      title={org.name}
-      subtitle="Client organization details."
+      title={displayName}
+      subtitle={
+        isCreateMode
+          ? 'Create a new client organization and admin account.'
+          : 'Client organization details.'
+      }
       backTo="/admin/clients"
       backLabel="Back to clients"
     >
@@ -91,48 +226,134 @@ export function RallyHubClientDetailPage() {
       {saveSuccess ? (
         <p className="text-muted-foreground mb-4 text-sm">Client saved.</p>
       ) : null}
+
       <div className="space-y-6">
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            {org.logo_url ? (
-              <img
-                src={org.logo_url}
-                alt=""
-                className="border-border/80 size-14 shrink-0 rounded-full border object-cover"
-              />
-            ) : (
-              <div className="bg-muted text-muted-foreground flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold">
-                {initials}
+        {!isCreateMode && eventCounts ? (
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              {displayLogo ? (
+                <img
+                  src={displayLogo}
+                  alt=""
+                  className="border-border/80 size-14 shrink-0 rounded-full border object-cover"
+                />
+              ) : (
+                <div className="bg-muted text-muted-foreground flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold">
+                  {initials}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-foreground text-lg font-semibold">{displayName}</p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Plan: {formatClientPlanLabel(billingPlan)}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm capitalize">
+                  Status: {accountStatus}
+                </p>
               </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-foreground text-lg font-semibold">{org.name}</p>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Plan: {formatClientPlanLabel(org.billing_plan)}
-              </p>
-              <p className="text-muted-foreground mt-1 text-sm capitalize">
-                Status: {org.account_status}
-              </p>
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="bg-muted/30 rounded-lg px-3 py-2">
+                <p className="text-foreground text-xl font-semibold tabular-nums">
+                  {eventCounts.completedEvents}
+                </p>
+                <p className="text-muted-foreground text-sm">Completed events</p>
+              </div>
+              <div className="bg-muted/30 rounded-lg px-3 py-2">
+                <p className="text-foreground text-xl font-semibold tabular-nums">
+                  {eventCounts.upcomingEvents}
+                </p>
+                <p className="text-muted-foreground text-sm">Upcoming events</p>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground font-semibold">Organization</h3>
+          <div className="space-y-2">
+            <Label htmlFor="org-name">Organization name</Label>
+            <Input
+              id="org-name"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="bg-background"
+              placeholder="Acme Events"
+            />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-foreground text-xl font-semibold tabular-nums">
-                {eventCounts.completedEvents}
-              </p>
-              <p className="text-muted-foreground text-sm">Completed events</p>
-            </div>
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-foreground text-xl font-semibold tabular-nums">
-                {eventCounts.upcomingEvents}
-              </p>
-              <p className="text-muted-foreground text-sm">Upcoming events</p>
+          <div className="space-y-3">
+            <Label>Logo</Label>
+            <div className="flex flex-wrap items-center gap-4">
+              {displayLogo ? (
+                <img
+                  src={displayLogo}
+                  alt="Organization logo"
+                  className="border-border/80 size-16 rounded-lg border object-contain"
+                />
+              ) : (
+                <div className="bg-muted/50 text-muted-foreground flex size-16 items-center justify-center rounded-lg text-xs">
+                  {initials}
+                </div>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handleLogoChange(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload className="size-4" />
+                {logoUploading ? 'Uploading…' : 'Upload logo'}
+              </Button>
             </div>
           </div>
         </Card>
 
+        {isCreateMode ? (
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+            <h3 className="text-foreground font-semibold">Admin login</h3>
+            <p className="text-muted-foreground text-sm">
+              Creates the client&apos;s first admin user account.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Admin login email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="bg-background"
+                  placeholder="admin@company.com"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Admin login password</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="bg-background"
+                  placeholder="Temporary password"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground font-semibold">Contact &amp; billing</h3>
           <div>
             <Label htmlFor="tenant-url">Tenant URL</Label>
             <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
@@ -146,11 +367,12 @@ export function RallyHubClientDetailPage() {
               value={subdomain}
               onChange={(e) => setSubdomain(e.target.value)}
               className="bg-background max-w-xs font-mono"
+              placeholder="afterglow"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="client-email">Email</Label>
+              <Label htmlFor="client-email">Contact email</Label>
               <Input
                 id="client-email"
                 type="email"
@@ -178,7 +400,7 @@ export function RallyHubClientDetailPage() {
             </Button>
           ) : (
             <p className="text-muted-foreground text-xs">
-              Add an email and save to enable contact.
+              Add a contact email and save to enable contact.
             </p>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -215,51 +437,128 @@ export function RallyHubClientDetailPage() {
           </div>
         </Card>
 
-        <Card className="border-border/80 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
-          <ul className="space-y-3">
-            {data.profiles.map((p) => (
-              <li
-                key={p.id}
-                className="border-border/80 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-              >
-                <div>
-                  <p className="font-medium">{p.full_name || p.id}</p>
-                  <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const memberEmail = window.prompt('User email for reset')
-                    if (memberEmail) void sendResetEmail(memberEmail)
-                  }}
-                >
-                  Send reset email
-                </Button>
-              </li>
-            ))}
-            {data.members.map((m) => (
-              <li key={m.id} className="text-muted-foreground text-sm">
-                {m.email} (invited)
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="ml-2"
-                  onClick={() => void sendResetEmail(m.email)}
-                >
-                  Send reset email
-                </Button>
-              </li>
-            ))}
-          </ul>
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground text-lg font-semibold">Company details</h3>
+          <div className="space-y-2">
+            <Label htmlFor="vat">VAT number</Label>
+            <Input
+              id="vat"
+              value={vatNumber}
+              onChange={(e) => setVatNumber(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address-street">Street</Label>
+            <Input
+              id="address-street"
+              value={addressStreet}
+              onChange={(e) => setAddressStreet(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="address-city">City</Label>
+              <Input
+                id="address-city"
+                value={addressCity}
+                onChange={(e) => setAddressCity(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address-state">State / region</Label>
+              <Input
+                id="address-state"
+                value={addressState}
+                onChange={(e) => setAddressState(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="address-postal">Postal code</Label>
+              <Input
+                id="address-postal"
+                value={addressPostal}
+                onChange={(e) => setAddressPostal(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address-country">Country</Label>
+              <Input
+                id="address-country"
+                value={addressCountry}
+                onChange={(e) => setAddressCountry(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+          </div>
         </Card>
 
+        {!isCreateMode && data ? (
+          <Card className="border-border/80 bg-card p-6 shadow-sm">
+            <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
+            <ul className="space-y-3">
+              {data.profiles.map((p) => (
+                <li
+                  key={p.id}
+                  className="border-border/80 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="font-medium">{p.full_name || p.id}</p>
+                    <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="email"
+                      value={memberResetEmail[p.id] ?? ''}
+                      onChange={(e) =>
+                        setMemberResetEmail((prev) => ({ ...prev, [p.id]: e.target.value }))
+                      }
+                      placeholder="User email"
+                      className="bg-background h-8 max-w-[14rem] text-sm"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!memberResetEmail[p.id]?.trim()}
+                      onClick={() => {
+                        const addr = memberResetEmail[p.id]?.trim()
+                        if (addr) void sendResetEmail(addr)
+                      }}
+                    >
+                      Send reset email
+                    </Button>
+                  </div>
+                </li>
+              ))}
+              {data.members.map((m) => (
+                <li key={m.id} className="text-muted-foreground text-sm">
+                  {m.email} (invited)
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="ml-2"
+                    onClick={() => void sendResetEmail(m.email)}
+                  >
+                    Send reset email
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+
         <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
-          <Label>Internal notes</Label>
+          <Label htmlFor="internal-notes">Internal notes</Label>
           <textarea
+            id="internal-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={5}
@@ -269,27 +568,9 @@ export function RallyHubClientDetailPage() {
       </div>
 
       <FormSaveFooter
-        label="Save client"
-        saving={updateClient.isPending}
-        onSave={() => {
-          if (!clientId) return
-          setSaveError(null)
-          setSaveSuccess(false)
-          void updateClient
-            .mutateAsync({
-              orgId: clientId,
-              notes,
-              subdomain,
-              email,
-              phone,
-              billing_plan: billingPlan,
-              account_status: accountStatus,
-            })
-            .then(() => setSaveSuccess(true))
-            .catch((err: unknown) => {
-              setSaveError(err instanceof Error ? err.message : 'Could not save client')
-            })
-        }}
+        label={isCreateMode ? 'Create client' : 'Save client'}
+        saving={saving}
+        onSave={() => void handleSave()}
       />
     </AdminPageShell>
   )

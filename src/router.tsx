@@ -112,6 +112,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'clients/new',
+        element: (
+          <SuperAdminOnly>
+            <RallyHubClientDetailPage />
+          </SuperAdminOnly>
+        ),
+      },
+      {
         path: 'clients/:clientId',
         element: (
           <SuperAdminOnly>
