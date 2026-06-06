@@ -17,6 +17,7 @@ import {
 } from '@/hooks/use-rallyhub'
 import { uploadOrganizationLogo } from '@/hooks/use-organization-settings'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
+import { BillingOverview } from '@/components/billing/BillingOverview'
 import {
   BILLING_PERIODS,
   formatBillingPeriodLabel,
@@ -460,12 +461,24 @@ export function RallyHubClientDetailPage() {
           </Card>
         ) : null}
 
+        {!isCreateMode && data && clientId ? (
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+            <h3 className="text-foreground font-semibold">Billing overview</h3>
+            <BillingOverview
+              organizationId={clientId}
+              billingPlan={billingPlan}
+              billingPeriod={billingPeriod}
+              showAdminSummary
+            />
+          </Card>
+        ) : null}
+
         {!isCreateMode && data ? (
           <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
         ) : null}
 
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground font-semibold">Contact &amp; billing</h3>
+          <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
           <div>
             <Label htmlFor="tenant-url">Tenant URL</Label>
             <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">

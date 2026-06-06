@@ -30,14 +30,7 @@ import {
   type MemberRole,
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
-import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
-import {
-  formatBillingPeriodLabel,
-  formatPlanLabel,
-  getVisiblePlans,
-  normalizeBillingPeriod,
-  normalizePlanId,
-} from '@/lib/subscription-plans'
+import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 
@@ -206,46 +199,12 @@ export function AdminSettingsPage() {
       ) : orgQuery.isError ? (
         <QueryError message={orgQuery.error.message} />
       ) : tab === 'billing' ? (
-        <div className="space-y-8">
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-foreground text-lg font-semibold">Your plan</h2>
-              <p className="text-muted-foreground text-sm">
-                {formatPlanLabel(orgQuery.data?.billing_plan)} ·{' '}
-                {formatBillingPeriodLabel(
-                  normalizeBillingPeriod(orgQuery.data?.billing_period),
-                )}{' '}
-                billing
-              </p>
-            </div>
-            <PlanDetailsCard
-              planId={normalizePlanId(orgQuery.data?.billing_plan)}
-              billingPeriod={normalizeBillingPeriod(orgQuery.data?.billing_period)}
-              highlighted
-              className="max-w-sm"
-            />
-          </section>
-
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-foreground text-lg font-semibold">Available plans</h2>
-              <p className="text-muted-foreground text-sm">
-                Compare plans below. Invoicing and plan changes will be available in a
-                future update.
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {getVisiblePlans().map((plan) => (
-                <PlanDetailsCard
-                  key={plan.id}
-                  planId={plan.id}
-                  billingPeriod={normalizeBillingPeriod(orgQuery.data?.billing_period)}
-                  highlighted={plan.id === normalizePlanId(orgQuery.data?.billing_plan)}
-                />
-              ))}
-            </div>
-          </section>
-        </div>
+        <BillingOverview
+          organizationId={organizationId}
+          billingPlan={orgQuery.data?.billing_plan}
+          billingPeriod={orgQuery.data?.billing_period}
+          showAvailablePlans
+        />
       ) : (
         <div className="space-y-8">
           {!orgQuery.data ? (

@@ -13,6 +13,8 @@ export const queryKeys = {
   events: (orgId: string | null) => ['events', orgId] as const,
   event: (eventId: string) => ['event', eventId] as const,
   eventGames: (eventId: string) => ['event-games', eventId] as const,
+  organizationInvoices: (orgId: string | null) =>
+    ['organization-invoices', orgId] as const,
   musicCatalog: (orgId: string | null) => ['music-catalog', orgId] as const,
   bingoRun: (eventId: string, stageIndex: number) =>
     ['bingo-run', eventId, stageIndex] as const,
