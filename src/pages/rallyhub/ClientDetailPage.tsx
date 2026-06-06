@@ -1,10 +1,14 @@
 import { Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
+import { BillingOverview } from '@/components/billing/BillingOverview'
+import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
+import { ClientDetailSidebar, normalizeClientDetailTab } from '@/components/rallyhub/ClientDetailSidebar'
+import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,8 +20,6 @@ import {
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
 import { uploadOrganizationLogo } from '@/hooks/use-organization-settings'
-import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
-import { BillingOverview } from '@/components/billing/BillingOverview'
 import {
   BILLING_PERIODS,
   formatBillingPeriodLabel,
@@ -27,7 +29,6 @@ import {
   normalizeBillingPeriod,
   normalizeClientPlan,
 } from '@/lib/client-plans'
-import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
 import { countClientEvents } from '@/lib/client-events'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
@@ -71,7 +72,14 @@ export function RallyHubClientDetailPage() {
   const { clientId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isCreateMode = location.pathname.endsWith('/clients/new')
+  const showBillingAndEvents = !isCreateMode
+  const activeTab = normalizeClientDetailTab(
+    searchParams.get('tab'),
+    showBillingAndEvents,
+  )
+
   const { data, isLoading, isError, error } = useRallyHubClient(
     isCreateMode ? undefined : clientId,
   )
@@ -137,6 +145,14 @@ export function RallyHubClientDetailPage() {
     setLogoPreview(url)
     return () => URL.revokeObjectURL(url)
   }, [logoFile])
+
+  function setTab(tab: 'info' | 'billing' | 'events') {
+    if (tab === 'info') {
+      setSearchParams({})
+      return
+    }
+    setSearchParams({ tab })
+  }
 
   async function sendMemberPasswordReset(emailAddress: string) {
     const redirectTo = data?.org
@@ -287,6 +303,386 @@ export function RallyHubClientDetailPage() {
   const displayLogo = logoPreview || logoUrl
   const saving = createClient.isPending || updateClient.isPending || logoUploading
 
+  const clientInfoTab = (
+    <div className="space-y-6">
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <div className="flex flex-wrap items-start gap-5">
+          <div className="space-y-3">
+            {displayLogo ? (
+              <img
+                src={displayLogo}
+                alt=""
+                className="border-border/80 size-16 shrink-0 rounded-lg border object-contain"
+              />
+            ) : (
+              <div className="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-lg text-lg font-semibold">
+                {initials}
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void handleLogoChange(e.target.files?.[0])}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={saving}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="size-4" />
+              {logoUploading ? 'Uploading…' : 'Upload logo'}
+            </Button>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="org-name">Organization name</Label>
+              <Input
+                id="org-name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                className="bg-background"
+                placeholder="Acme Events"
+              />
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Plan: {formatClientPlanLabel(billingPlan)} (
+              {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
+            </p>
+            <p className="text-muted-foreground text-sm capitalize">
+              Status: {accountStatus}
+            </p>
+          </div>
+        </div>
+
+        {!isCreateMode && eventCounts ? (
+          <div className="border-border/80 grid gap-4 border-t pt-4 sm:grid-cols-2">
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-foreground text-xl font-semibold tabular-nums">
+                {eventCounts.completedEvents}
+              </p>
+              <p className="text-muted-foreground text-sm">Completed events</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-foreground text-xl font-semibold tabular-nums">
+                {eventCounts.upcomingEvents}
+              </p>
+              <p className="text-muted-foreground text-sm">Upcoming events</p>
+            </div>
+          </div>
+        ) : null}
+      </Card>
+
+      {isCreateMode ? (
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground font-semibold">Admin login</h3>
+          <p className="text-muted-foreground text-sm">
+            Creates the client&apos;s first admin user account.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Admin login email</Label>
+              <Input
+                id="login-email"
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="bg-background"
+                placeholder="admin@company.com"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Admin login password</Label>
+              <Input
+                id="login-password"
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="bg-background"
+                placeholder="Temporary password"
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+        </Card>
+      ) : data ? (
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground font-semibold">Admin login</h3>
+          <p className="text-muted-foreground text-sm">
+            The email address the client uses to sign in to their admin account.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="admin-login-email-display">Admin login email</Label>
+            <p
+              id="admin-login-email-display"
+              className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
+            >
+              {resolveAdminLoginEmail(data.org, data.members) || '—'}
+            </p>
+          </div>
+          {adminResetError ? <QueryError message={adminResetError} /> : null}
+          {adminResetMessage ? (
+            <p className="text-foreground text-sm" role="status">
+              {adminResetMessage}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
+            }
+            onClick={() => void handleAdminPasswordReset()}
+          >
+            {adminResetSending ? 'Sending…' : 'Send Password Reset'}
+          </Button>
+        </Card>
+      ) : null}
+
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
+        <div>
+          <Label htmlFor="tenant-url">Tenant URL</Label>
+          <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
+            {tenantUrl}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="subdomain">Subdomain</Label>
+          <Input
+            id="subdomain"
+            value={subdomain}
+            onChange={(e) => setSubdomain(e.target.value)}
+            className="bg-background max-w-xs font-mono"
+            placeholder="afterglow"
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="client-email">Contact email</Label>
+            <Input
+              id="client-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-background"
+              placeholder="contact@company.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-phone">Phone</Label>
+            <Input
+              id="client-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="bg-background"
+              placeholder="+1 555 0100"
+            />
+          </div>
+        </div>
+        {contactEmail ? (
+          <Button variant="outline" size="sm" asChild>
+            <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
+          </Button>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            Add a contact email and save to enable contact.
+          </p>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="billing-plan">Billing plan</Label>
+            <select
+              id="billing-plan"
+              value={billingPlan}
+              onChange={(e) => setBillingPlan(e.target.value)}
+              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+            >
+              {getAdminAssignablePlans().map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name}
+                  {plan.hidden ? ' (hidden)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="billing-period">Billing period</Label>
+            <select
+              id="billing-period"
+              value={billingPeriod}
+              onChange={(e) => setBillingPeriod(e.target.value)}
+              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+            >
+              {BILLING_PERIODS.map((period) => (
+                <option key={period} value={period}>
+                  {formatBillingPeriodLabel(period)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="account-status">Account status</Label>
+            <select
+              id="account-status"
+              value={accountStatus}
+              onChange={(e) => setAccountStatus(e.target.value)}
+              className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
+        {getPlan(billingPlan).hidden ? (
+          <p className="text-muted-foreground text-xs">
+            Partner is a fully comped plan and is not shown to clients in public plan
+            lists.
+          </p>
+        ) : null}
+      </Card>
+
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <h3 className="text-foreground text-lg font-semibold">Company details</h3>
+        <div className="space-y-2">
+          <Label htmlFor="vat">VAT number</Label>
+          <Input
+            id="vat"
+            value={vatNumber}
+            onChange={(e) => setVatNumber(e.target.value)}
+            className="bg-background"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="address-street">Street</Label>
+          <Input
+            id="address-street"
+            value={addressStreet}
+            onChange={(e) => setAddressStreet(e.target.value)}
+            className="bg-background"
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="address-city">City</Label>
+            <Input
+              id="address-city"
+              value={addressCity}
+              onChange={(e) => setAddressCity(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address-state">State / region</Label>
+            <Input
+              id="address-state"
+              value={addressState}
+              onChange={(e) => setAddressState(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="address-postal">Postal code</Label>
+            <Input
+              id="address-postal"
+              value={addressPostal}
+              onChange={(e) => setAddressPostal(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address-country">Country</Label>
+            <Input
+              id="address-country"
+              value={addressCountry}
+              onChange={(e) => setAddressCountry(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {!isCreateMode && data ? (
+        <Card className="border-border/80 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
+          <ul className="space-y-3">
+            {data.profiles.map((p) => (
+              <li
+                key={p.id}
+                className="border-border/80 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+              >
+                <div>
+                  <p className="font-medium">{p.full_name || p.id}</p>
+                  <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="email"
+                    value={memberResetEmail[p.id] ?? ''}
+                    onChange={(e) =>
+                      setMemberResetEmail((prev) => ({ ...prev, [p.id]: e.target.value }))
+                    }
+                    placeholder="User email"
+                    className="bg-background h-8 max-w-[14rem] text-sm"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!memberResetEmail[p.id]?.trim()}
+                    onClick={() => {
+                      const addr = memberResetEmail[p.id]?.trim()
+                      if (addr) void sendMemberPasswordReset(addr)
+                    }}
+                  >
+                    Send reset email
+                  </Button>
+                </div>
+              </li>
+            ))}
+            {data.members.map((m) => (
+              <li key={m.id} className="text-muted-foreground text-sm">
+                {m.email} (invited)
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="ml-2"
+                  onClick={() => void sendMemberPasswordReset(m.email)}
+                >
+                  Send reset email
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
+        <Label htmlFor="internal-notes">Internal notes</Label>
+        <textarea
+          id="internal-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={5}
+          className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+        />
+      </Card>
+    </div>
+  )
+
   return (
     <AdminPageShell
       title={displayName}
@@ -303,427 +699,38 @@ export function RallyHubClientDetailPage() {
         <p className="text-muted-foreground mb-4 text-sm">Client saved.</p>
       ) : null}
 
-      <div className="space-y-6">
-        {!isCreateMode && eventCounts ? (
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              {displayLogo ? (
-                <img
-                  src={displayLogo}
-                  alt=""
-                  className="border-border/80 size-14 shrink-0 rounded-full border object-cover"
-                />
-              ) : (
-                <div className="bg-muted text-muted-foreground flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold">
-                  {initials}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-foreground text-lg font-semibold">{displayName}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Plan: {formatClientPlanLabel(billingPlan)} (
-                  {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
-                </p>
-                <p className="text-muted-foreground mt-1 text-sm capitalize">
-                  Status: {accountStatus}
-                </p>
-              </div>
-            </div>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <ClientDetailSidebar
+          activeTab={activeTab}
+          onTabChange={setTab}
+          showBillingAndEvents={showBillingAndEvents}
+        />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="bg-muted/30 rounded-lg px-3 py-2">
-                <p className="text-foreground text-xl font-semibold tabular-nums">
-                  {eventCounts.completedEvents}
-                </p>
-                <p className="text-muted-foreground text-sm">Completed events</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg px-3 py-2">
-                <p className="text-foreground text-xl font-semibold tabular-nums">
-                  {eventCounts.upcomingEvents}
-                </p>
-                <p className="text-muted-foreground text-sm">Upcoming events</p>
-              </div>
-            </div>
-          </Card>
-        ) : null}
+        <div className="min-w-0 flex-1">
+          {activeTab === 'info' ? clientInfoTab : null}
 
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground font-semibold">Organization</h3>
-          <div className="space-y-2">
-            <Label htmlFor="org-name">Organization name</Label>
-            <Input
-              id="org-name"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              className="bg-background"
-              placeholder="Acme Events"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <Label>Logo</Label>
-            <div className="flex flex-wrap items-center gap-4">
-              {displayLogo ? (
-                <img
-                  src={displayLogo}
-                  alt="Organization logo"
-                  className="border-border/80 size-16 rounded-lg border object-contain"
-                />
-              ) : (
-                <div className="bg-muted/50 text-muted-foreground flex size-16 items-center justify-center rounded-lg text-xs">
-                  {initials}
-                </div>
-              )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void handleLogoChange(e.target.files?.[0])}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={saving}
-                onClick={() => fileRef.current?.click()}
-              >
-                <Upload className="size-4" />
-                {logoUploading ? 'Uploading…' : 'Upload logo'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {isCreateMode ? (
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <h3 className="text-foreground font-semibold">Admin login</h3>
-            <p className="text-muted-foreground text-sm">
-              Creates the client&apos;s first admin user account.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="login-email">Admin login email</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="bg-background"
-                  placeholder="admin@company.com"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Admin login password</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="bg-background"
-                  placeholder="Temporary password"
-                  autoComplete="new-password"
-                />
-              </div>
-            </div>
-          </Card>
-        ) : data ? (
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <h3 className="text-foreground font-semibold">Admin login</h3>
-            <p className="text-muted-foreground text-sm">
-              The email address the client uses to sign in to their admin account.
-            </p>
-            <div className="space-y-2">
-              <Label htmlFor="admin-login-email-display">Admin login email</Label>
-              <p
-                id="admin-login-email-display"
-                className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
-              >
-                {resolveAdminLoginEmail(data.org, data.members) || '—'}
-              </p>
-            </div>
-            {adminResetError ? <QueryError message={adminResetError} /> : null}
-            {adminResetMessage ? (
-              <p className="text-foreground text-sm" role="status">
-                {adminResetMessage}
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={
-                adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
-              }
-              onClick={() => void handleAdminPasswordReset()}
-            >
-              {adminResetSending ? 'Sending…' : 'Send Password Reset'}
-            </Button>
-          </Card>
-        ) : null}
-
-        {!isCreateMode && data && clientId ? (
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <h3 className="text-foreground font-semibold">Billing overview</h3>
+          {activeTab === 'billing' && showBillingAndEvents && data && clientId ? (
             <BillingOverview
               organizationId={clientId}
               billingPlan={billingPlan}
               billingPeriod={billingPeriod}
               showAdminSummary
             />
-          </Card>
-        ) : null}
-
-        {!isCreateMode && data ? (
-          <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
-        ) : null}
-
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
-          <div>
-            <Label htmlFor="tenant-url">Tenant URL</Label>
-            <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
-              {tenantUrl}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subdomain">Subdomain</Label>
-            <Input
-              id="subdomain"
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value)}
-              className="bg-background max-w-xs font-mono"
-              placeholder="afterglow"
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="client-email">Contact email</Label>
-              <Input
-                id="client-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-background"
-                placeholder="contact@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client-phone">Phone</Label>
-              <Input
-                id="client-phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="bg-background"
-                placeholder="+1 555 0100"
-              />
-            </div>
-          </div>
-          {contactEmail ? (
-            <Button variant="outline" size="sm" asChild>
-              <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
-            </Button>
-          ) : (
-            <p className="text-muted-foreground text-xs">
-              Add a contact email and save to enable contact.
-            </p>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="billing-plan">Billing plan</Label>
-              <select
-                id="billing-plan"
-                value={billingPlan}
-                onChange={(e) => setBillingPlan(e.target.value)}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              >
-                {getAdminAssignablePlans().map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                    {plan.hidden ? ' (hidden)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="billing-period">Billing period</Label>
-              <select
-                id="billing-period"
-                value={billingPeriod}
-                onChange={(e) => setBillingPeriod(e.target.value)}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              >
-                {BILLING_PERIODS.map((period) => (
-                  <option key={period} value={period}>
-                    {formatBillingPeriodLabel(period)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="account-status">Account status</Label>
-              <select
-                id="account-status"
-                value={accountStatus}
-                onChange={(e) => setAccountStatus(e.target.value)}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <PlanDetailsCard
-            planId={billingPlan}
-            billingPeriod={billingPeriod}
-            compact
-          />
-          {getPlan(billingPlan).hidden ? (
-            <p className="text-muted-foreground text-xs">
-              Partner is a fully comped plan and is not shown to clients in public
-              plan lists.
-            </p>
           ) : null}
-        </Card>
 
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground text-lg font-semibold">Company details</h3>
-          <div className="space-y-2">
-            <Label htmlFor="vat">VAT number</Label>
-            <Input
-              id="vat"
-              value={vatNumber}
-              onChange={(e) => setVatNumber(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address-street">Street</Label>
-            <Input
-              id="address-street"
-              value={addressStreet}
-              onChange={(e) => setAddressStreet(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="address-city">City</Label>
-              <Input
-                id="address-city"
-                value={addressCity}
-                onChange={(e) => setAddressCity(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address-state">State / region</Label>
-              <Input
-                id="address-state"
-                value={addressState}
-                onChange={(e) => setAddressState(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="address-postal">Postal code</Label>
-              <Input
-                id="address-postal"
-                value={addressPostal}
-                onChange={(e) => setAddressPostal(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address-country">Country</Label>
-              <Input
-                id="address-country"
-                value={addressCountry}
-                onChange={(e) => setAddressCountry(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-          </div>
-        </Card>
-
-        {!isCreateMode && data ? (
-          <Card className="border-border/80 bg-card p-6 shadow-sm">
-            <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
-            <ul className="space-y-3">
-              {data.profiles.map((p) => (
-                <li
-                  key={p.id}
-                  className="border-border/80 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-                >
-                  <div>
-                    <p className="font-medium">{p.full_name || p.id}</p>
-                    <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      type="email"
-                      value={memberResetEmail[p.id] ?? ''}
-                      onChange={(e) =>
-                        setMemberResetEmail((prev) => ({ ...prev, [p.id]: e.target.value }))
-                      }
-                      placeholder="User email"
-                      className="bg-background h-8 max-w-[14rem] text-sm"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={!memberResetEmail[p.id]?.trim()}
-                      onClick={() => {
-                        const addr = memberResetEmail[p.id]?.trim()
-                        if (addr) void sendMemberPasswordReset(addr)
-                      }}
-                    >
-                      Send reset email
-                    </Button>
-                  </div>
-                </li>
-              ))}
-              {data.members.map((m) => (
-                <li key={m.id} className="text-muted-foreground text-sm">
-                  {m.email} (invited)
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="ml-2"
-                    onClick={() => void sendMemberPasswordReset(m.email)}
-                  >
-                    Send reset email
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
-          <Label htmlFor="internal-notes">Internal notes</Label>
-          <textarea
-            id="internal-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={5}
-            className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-          />
-        </Card>
+          {activeTab === 'events' && showBillingAndEvents && data ? (
+            <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
+          ) : null}
+        </div>
       </div>
 
-      <FormSaveFooter
-        label={isCreateMode ? 'Create client' : 'Save client'}
-        saving={saving}
-        onSave={() => void handleSave()}
-      />
+      {activeTab === 'info' ? (
+        <FormSaveFooter
+          label={isCreateMode ? 'Create client' : 'Save client'}
+          saving={saving}
+          onSave={() => void handleSave()}
+        />
+      ) : null}
     </AdminPageShell>
   )
 }
