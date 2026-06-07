@@ -216,6 +216,11 @@ export function useLiveEvent(eventId: string | undefined) {
         { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
         () => scheduleReloadRef.current(),
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'games' },
+        () => scheduleReloadRef.current(),
+      )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           if (reconnectRef.current) {

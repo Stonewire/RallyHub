@@ -1,5 +1,6 @@
 import type { Json } from '@/types/json'
 import type { EventStage } from '@/types/game-config'
+import { musicTracksFromGameConfig } from '@/lib/bingo-playback'
 import type {
   BonusChallenge,
   GameConfig,
@@ -225,8 +226,7 @@ export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {
 }
 
 export function bingoTracks(game: Tables<'games'>): MusicTrack[] {
-  const config = (game.config ?? {}) as GameConfig
-  return config.tracks ?? []
+  return musicTracksFromGameConfig(game.config)
 }
 
 export function bingoBonusChallenges(game: Tables<'games'>): BonusChallenge[] {

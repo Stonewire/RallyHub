@@ -32,7 +32,7 @@ import {
   DEMO_MAX_TEAMS,
   isEventDemoStatus,
 } from '@/lib/event-demo'
-import { bingoTrackPlaybackUrl } from '@/lib/bingo-playback'
+import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
 import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
 import {
   bingoSongProgress,
@@ -69,7 +69,7 @@ import {
   playNewMessageSound,
   playNewSubmissionSound,
 } from '@/lib/sounds'
-import type { GameConfig } from '@/types/game-config'
+import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -99,6 +99,7 @@ export function FacilitatorEventPage() {
   const [audioPlayNonce, setAudioPlayNonce] = useState(0)
   const [bingoAdvancing, setBingoAdvancing] = useState(false)
   const [bingoRunOverride, setBingoRunOverride] = useState<BingoRunRow | null>(null)
+  const [bingoTracksLive, setBingoTracksLive] = useState<MusicTrack[]>([])
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
   const bingoWinHaltRef = useRef(false)
@@ -114,6 +115,30 @@ export function FacilitatorEventPage() {
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const state = bundle?.state
   const liveSubmissions = bundle?.submissions ?? []
+  const bingoStageGameId =
+    stage?.type === 'bingo' && stage.gameId ? stage.gameId : undefined
+  const bingoGameForTracks = bingoStageGameId
+    ? bundle?.games.find((g) => g.id === bingoStageGameId)
+    : null
+
+  useEffect(() => {
+    if (!bingoStageGameId || !bingoGameForTracks) {
+      setBingoTracksLive([])
+      return
+    }
+    setBingoTracksLive(bingoTracks(bingoGameForTracks))
+    let cancelled = false
+    void fetchMusicTracksForGame(bingoStageGameId)
+      .then((fresh) => {
+        if (!cancelled && fresh.length > 0) setBingoTracksLive(fresh)
+      })
+      .catch(() => {
+        // keep bundle tracks when fetch fails
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [bingoStageGameId, bingoGameForTracks])
 
   const isQuizStage = stage?.type === 'quiz'
 
@@ -606,7 +631,7 @@ export function FacilitatorEventPage() {
   const bingoGame = stage?.type === 'bingo' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
-  const tracks = bingoGame ? bingoTracks(bingoGame) : []
+  const tracks = bingoTracksLive
   const effectiveBingoRun = bingoRunOverride ?? bingoRunQuery.data
   const bingoPlayOrder = effectiveBingoRun?.playOrder ?? []
   const bingoPlayIndex = liveState.current_question_index
@@ -668,18 +693,25 @@ export function FacilitatorEventPage() {
     return row
   }
 
-  function resolveTrackForIndex(run: BingoRunRow, index: number) {
-    const id = run.playOrder[index]
-    if (!id) return tracks[index] ?? null
-    return tracks.find((t) => t.id === id) ?? tracks[index] ?? null
+  function resolveTrackForIndex(
+    run: BingoRunRow | null | undefined,
+    index: number,
+    trackList: MusicTrack[] = tracks,
+  ) {
+    if (!trackList.length) return null
+    const id = run?.playOrder[index]
+    if (!id) return trackList[index] ?? null
+    return trackList.find((t) => t.id === id) ?? trackList[index] ?? null
   }
 
-  function resolvePlaybackUrlForIndex(run: BingoRunRow | null | undefined, index: number): string {
-    if (!run?.playOrder.length) return ''
-    const t = resolveTrackForIndex(run, index)
+  function resolvePlaybackUrlForIndex(
+    run: BingoRunRow | null | undefined,
+    index: number,
+    trackList: MusicTrack[] = tracks,
+  ): string {
+    const t = resolveTrackForIndex(run, index, trackList)
     if (!t) return ''
-    const url = bingoTrackPlaybackUrl(t)
-    return url
+    return bingoTrackPlaybackUrl(t)
   }
 
   function handleBingoStartClick() {
@@ -711,7 +743,20 @@ export function FacilitatorEventPage() {
 
     void (async () => {
       const run = await ensureBingoRunReady()
-      const url = resolvePlaybackUrlForIndex(run, bingoPlayIndex)
+      let trackList = tracks
+      let url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, trackList)
+      if (!url && stage?.gameId) {
+        try {
+          const fresh = await fetchMusicTracksForGame(stage.gameId)
+          if (fresh.length > 0) {
+            trackList = fresh
+            setBingoTracksLive(fresh)
+            url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, fresh)
+          }
+        } catch {
+          // fall through to error below
+        }
+      }
       if (!url) {
         notify('No playable track URL — ensure MP3 clips are uploaded for this bingo game')
         return
