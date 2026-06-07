@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "seed:test-event": "node scripts/seed-test-event.mjs",
     "seed:all-orgs": "node scripts/seed-all-organizations.mjs",
-    "seed:defaults:build": "node scripts/generate-seed-data.mjs && node scripts/build-org-defaults-migration.mjs"
+    "seed:defaults:build": "node scripts/generate-seed-data.mjs && node scripts/build-org-defaults-migration.mjs",
+    "catalog:list-storage": "node scripts/list-catalog-storage.mjs",
+    "catalog:repair-urls": "node scripts/repair-music-catalog-urls.mjs",
+    "catalog:repair-urls:apply": "node scripts/repair-music-catalog-urls.mjs --apply"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
