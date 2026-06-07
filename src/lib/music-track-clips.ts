@@ -1,6 +1,7 @@
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { uploadAsset } from '@/lib/storage'
+import { audioStorageFilename } from '@/lib/storage-path'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 
@@ -36,18 +37,15 @@ export async function generateClipForAudioUrl(
   label: string,
   clipLengthSeconds: 30 | 90,
 ): Promise<{ clipUrl: string; clipStartSeconds: number; clipDurationSeconds: number }> {
-  const file = await fetchAudioFile(audioUrl, label)
+  const file = await fetchAudioFile(audioUrl, audioStorageFilename(label, 'mp3'))
   const duration = await readAudioDuration(file).catch(() => 0)
   const clipStart = suggestClipStart(duration)
   const extracted = await extractAudioClip(file, clipLengthSeconds, clipStart)
-  const clipFile = new File(
-    [extracted.blob],
-    `clip-${label}.${extracted.extension}`,
-    { type: extracted.mimeType },
-  )
+  const clipFilename = audioStorageFilename(`clip-${label}`, extracted.extension)
+  const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
   const clipUrl = await uploadAsset(
     'game-assets',
-    `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLengthSeconds}s-${label}.${extracted.extension}`,
+    `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLengthSeconds}s-${clipFilename}`,
     clipFile,
   )
   return {
@@ -73,7 +71,7 @@ export async function ensureMusicTrackClip(
   const clip = await generateClipForAudioUrl(
     organizationId,
     track.audioUrl,
-    `${track.artist}-${track.title}.mp3`,
+    `${track.artist}-${track.title}`,
     clipLengthSeconds,
   )
 

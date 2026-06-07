@@ -18,6 +18,7 @@ import {
 } from '@/lib/music-track-clips'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
+import { audioStorageFilename } from '@/lib/storage-path'
 import type { BonusChallenge, GameConfig, MusicTrack } from '@/types/game-config'
 
 type MusicBingoEditorProps = {
@@ -92,14 +93,11 @@ export function MusicBingoEditor({
       const duration = await readAudioDuration(file).catch(() => 0)
       const clipStart = suggestClipStart(duration)
       const extracted = await extractAudioClip(file, clipLen, clipStart)
-      const clipFile = new File(
-        [extracted.blob],
-        `clip-${file.name}.${extracted.extension}`,
-        { type: extracted.mimeType },
-      )
+      const clipFilename = audioStorageFilename(`clip-${clipLen}s-${file.name}`, extracted.extension)
+      const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
       const clipUrl = await uploadAsset(
         'game-assets',
-        `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLen}s-${file.name}.${extracted.extension}`,
+        `${organizationId}/catalog/${crypto.randomUUID()}-${clipFilename}`,
         clipFile,
       )
       patch = {

@@ -11,6 +11,7 @@ import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { parseAudioFilename } from '@/lib/parse-audio-filename'
 import { uploadAsset } from '@/lib/storage'
+import { audioStorageFilename } from '@/lib/storage-path'
 import type { MusicTrack } from '@/types/game-config'
 
 type PendingTrack = {
@@ -96,14 +97,14 @@ export function MusicCatalogUploader({
           item.file,
         )
         const extracted = await extractAudioClip(item.file, clipDuration, clipStart)
-        const clipFile = new File(
-          [extracted.blob],
-          `clip-${item.file.name}.${extracted.extension}`,
-          { type: extracted.mimeType },
+        const clipFilename = audioStorageFilename(
+          `clip-${clipDuration}s-${item.file.name}`,
+          extracted.extension,
         )
+        const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
         const clipUrl = await uploadAsset(
           'game-assets',
-          `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipDuration}s-${item.file.name}.${extracted.extension}`,
+          `${organizationId}/catalog/${crypto.randomUUID()}-${clipFilename}`,
           clipFile,
         )
         const row = await insertCatalog.mutateAsync({
