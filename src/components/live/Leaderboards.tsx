@@ -81,7 +81,9 @@ export function Leaderboard({
                 {showScores ? (
                   <span className="text-xs opacity-70">{team.score}</span>
                 ) : null}
-                <span className="text-[10px] opacity-40">#{i + 1}</span>
+                {showScores ? (
+                  <span className="text-[10px] opacity-40">#{i + 1}</span>
+                ) : null}
               </div>
             )
           })}

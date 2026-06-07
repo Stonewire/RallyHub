@@ -32,6 +32,11 @@ import {
   quizTimerRunning,
   quizTimerSeconds,
 } from '@/lib/live-event'
+import {
+  roundIndexForQuestion,
+  roundIntroDisplay,
+  quizRoundForQuestionIndex,
+} from '@/lib/quiz-rounds'
 
 /** Match celebration.mp3 length so confetti runs for the full song on display. */
 const EVENT_WINNER_CONFETTI_MS = 185_000
@@ -281,6 +286,28 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         entries={quizResultsEntries}
         large
       />
+    )
+  } else if (
+    stage.type === 'quiz' &&
+    state.quiz_state === 'round_intro' &&
+    quizGame
+  ) {
+    const round = quizRoundForQuestionIndex(quizGame, state.current_question_index)
+    const intro = round
+      ? roundIntroDisplay(
+          round,
+          roundIndexForQuestion(quizGame, question),
+        )
+      : { title: 'NEXT ROUND', subtitle: '' }
+    body = (
+      <div className={`text-center ${textClass}`}>
+        <p className="font-display text-5xl font-bold md:text-7xl lg:text-8xl">{intro.title}</p>
+        {intro.subtitle ? (
+          <p className="font-display mt-6 text-3xl font-bold opacity-90 md:text-5xl">
+            {intro.subtitle}
+          </p>
+        ) : null}
+      </div>
     )
   } else if (
     stage.type === 'quiz' &&

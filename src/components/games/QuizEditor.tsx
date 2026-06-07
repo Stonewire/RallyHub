@@ -352,18 +352,22 @@ export function QuizEditor({
           {(rounds.length ? rounds : [{ id: newId(), name: 'Round 1', questionIds: [] }]).map(
             (round) => (
               <Card key={round.id} className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
-                <Input
-                  value={round.name}
-                  onChange={(e) =>
-                    setConfig((c) => ({
-                      ...c,
-                      rounds: (c.rounds ?? []).map((r) =>
-                        r.id === round.id ? { ...r, name: e.target.value } : r,
-                      ),
-                    }))
-                  }
-                  className="bg-background max-w-xs font-semibold"
-                />
+                <div className="space-y-2">
+                  <Label>Round name</Label>
+                  <Input
+                    value={round.name}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        rounds: (c.rounds ?? []).map((r) =>
+                          r.id === round.id ? { ...r, name: e.target.value } : r,
+                        ),
+                      }))
+                    }
+                    placeholder="Round 1: Warm-up"
+                    className="bg-background max-w-md font-semibold"
+                  />
+                </div>
                 {renderQuestionList(round.id, undefined)}
               </Card>
             ),

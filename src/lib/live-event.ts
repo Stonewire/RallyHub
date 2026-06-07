@@ -222,7 +222,25 @@ export function gamePointsLabel(game: Tables<'games'>): string {
 
 export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {
   const config = (game.config ?? {}) as GameConfig
-  return config.questions ?? []
+  const questions = config.questions ?? []
+  if (!config.rounds_enabled || !config.rounds?.length) return questions
+
+  const byId = new Map(questions.map((q) => [q.id, q]))
+  const ordered: QuizQuestion[] = []
+  const seen = new Set<string>()
+  for (const round of config.rounds) {
+    for (const qid of round.questionIds) {
+      const q = byId.get(qid)
+      if (q && !seen.has(q.id)) {
+        ordered.push(q)
+        seen.add(q.id)
+      }
+    }
+  }
+  for (const q of questions) {
+    if (!seen.has(q.id)) ordered.push(q)
+  }
+  return ordered
 }
 
 export function bingoTracks(game: Tables<'games'>): MusicTrack[] {

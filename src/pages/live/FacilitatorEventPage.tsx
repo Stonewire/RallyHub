@@ -33,6 +33,11 @@ import {
   isEventDemoStatus,
 } from '@/lib/event-demo'
 import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
+import { isTeamToFacilitatorChatMessage } from '@/lib/chat-notifications'
+import {
+  isLastQuestionInRound,
+  quizRoundForQuestionIndex,
+} from '@/lib/quiz-rounds'
 import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
 import {
   bingoSongProgress,
@@ -309,15 +314,6 @@ export function FacilitatorEventPage() {
 
   const pendingSubmissionCountRef = useRef<number>(0)
   const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
-  const teamSenderNames = useMemo(
-    () =>
-      new Set(
-        (bundle?.teams ?? [])
-          .map((t) => (t.name ?? 'Team').trim())
-          .filter(Boolean),
-      ),
-    [bundle?.teams],
-  )
 
   useEffect(() => {
     const pendingCount = liveSubmissions
@@ -338,16 +334,10 @@ export function FacilitatorEventPage() {
   }, [liveSubmissions])
 
   useEffect(() => {
-    // Only chime for messages coming FROM a team (sender matches a known team
-    // name), never for the facilitator's own sent messages.
+    if (!bundle || !name.trim()) return
     const facilitatorName = name.trim()
     const incoming = messages
-      .filter((m) => {
-        if (!m.team_id) return false
-        const sender = (m.sender ?? '').trim()
-        if (!sender || sender === facilitatorName) return false
-        return teamSenderNames.has(sender)
-      })
+      .filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
       .map((m) => m.id)
     if (seenTeamMessageIdsRef.current === null) {
       seenTeamMessageIdsRef.current = new Set(incoming)
@@ -358,7 +348,7 @@ export function FacilitatorEventPage() {
       seenTeamMessageIdsRef.current.add(id)
       playNewMessageSound()
     }
-  }, [messages, name, teamSenderNames])
+  }, [messages, name, bundle])
 
   if (namePrompt) {
     return (
@@ -561,9 +551,22 @@ export function FacilitatorEventPage() {
       await revealQuizAnswers()
     }
     quizAutoRevealKey.current = ''
-    const next = liveState.current_question_index + 1
+    const idx = liveState.current_question_index
+    const next = idx + 1
     if (next >= questions.length) {
       await patchState({ quiz_state: 'results', quiz_timer_running: false })
+      return
+    }
+    if (
+      quizConfig.rounds_enabled &&
+      quizGame &&
+      isLastQuestionInRound(quizGame, idx)
+    ) {
+      await patchState({
+        current_question_index: next,
+        quiz_state: 'round_intro',
+        quiz_timer_running: false,
+      })
       return
     }
     startQuizQuestion(next)
@@ -603,6 +606,13 @@ export function FacilitatorEventPage() {
 
   function quizPrimaryButton(): { label: string; action: () => void } | null {
     if (liveState.quiz_state === 'results') return null
+    if (liveState.quiz_state === 'round_intro') {
+      const n = liveState.current_question_index + 1
+      return {
+        label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
+        action: () => startQuizQuestion(liveState.current_question_index),
+      }
+    }
     if (liveState.quiz_state === 'idle' || liveState.quiz_state === 'waiting') {
       const n = liveState.current_question_index + 1
       return {
@@ -616,6 +626,21 @@ export function FacilitatorEventPage() {
         return {
           label: 'Reveal Quiz Results',
           action: () => void patchState({ quiz_state: 'results', quiz_timer_running: false }),
+        }
+      }
+      if (
+        liveState.quiz_state === 'revealed' &&
+        quizConfig.rounds_enabled &&
+        quizGame &&
+        isLastQuestionInRound(quizGame, liveState.current_question_index)
+      ) {
+        const nextRound = quizRoundForQuestionIndex(
+          quizGame,
+          liveState.current_question_index + 1,
+        )
+        return {
+          label: nextRound ? `Start ${nextRound.name}` : 'Start next round',
+          action: () => void goToNextQuestion(),
         }
       }
       return {

@@ -65,6 +65,12 @@ import {
   quizSubmissionMediaType,
   activeSubmissionForGame,
 } from '@/lib/live-event'
+import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
+import {
+  roundIndexForQuestion,
+  roundIntroDisplay,
+  quizRoundForQuestionIndex,
+} from '@/lib/quiz-rounds'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
@@ -309,14 +315,9 @@ export function JoinGameView({
   }, [chatOpen])
 
   useEffect(() => {
-    // Incoming = facilitator → this team (direct thread or broadcast), never our
-    // own sent messages (matched by trimmed sender name).
+    if (!teamId) return
     const incoming = visibleMessages
-      .filter((m) => {
-        const sender = (m.sender ?? '').trim()
-        if (sender === teamSenderName) return false
-        return m.team_id == null || m.team_id === teamId
-      })
+      .filter((m) => isFacilitatorToTeamChatMessage(m, teamId, teamSenderName))
       .map((m) => m.id)
     if (seenIncomingMessageIdsRef.current === null) {
       seenIncomingMessageIdsRef.current = new Set(incoming)
@@ -934,6 +935,23 @@ export function JoinGameView({
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
           <p className="text-2xl font-bold">Quiz has ended</p>
           <p className="mt-3 text-white/70">Thanks for playing!</p>
+        </div>
+      )
+    } else if (state.quiz_state === 'round_intro' && quizGame) {
+      const round = quizRoundForQuestionIndex(quizGame, state.current_question_index)
+      const q = quizQuestions(quizGame)[state.current_question_index]
+      const intro = round
+        ? roundIntroDisplay(round, roundIndexForQuestion(quizGame, q))
+        : { title: 'NEXT ROUND', subtitle: '' }
+      body = (
+        <div className="mx-auto max-w-lg px-6 py-20 text-center">
+          <p className="font-display text-4xl font-bold md:text-5xl">{intro.title}</p>
+          {intro.subtitle ? (
+            <p className="mt-4 text-2xl font-semibold opacity-90 md:text-3xl">{intro.subtitle}</p>
+          ) : null}
+          <p className="text-muted-foreground mt-8 text-sm text-white/50">
+            Waiting for the facilitator to start…
+          </p>
         </div>
       )
     } else if (
