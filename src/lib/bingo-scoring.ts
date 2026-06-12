@@ -28,7 +28,7 @@ export async function scoreBingoRound(params: {
   const linePoints = gameConfig.bingo_line_points ?? 0
   const winConfig = resolveBingoWinConfig(gameConfig)
 
-  const [{ data: cards }, { data: subs }] = await Promise.all([
+  const [{ data: cards }, { data: subs }, { data: runRow }] = await Promise.all([
     supabase.from('bingo_team_cards').select('team_id, cells').eq('run_id', runId),
     supabase
       .from('submissions')
@@ -37,7 +37,14 @@ export async function scoreBingoRound(params: {
       .eq('game_id', gameId)
       .eq('media_type', 'bingo')
       .eq('status', 'pending'),
+    supabase.from('bingo_runs').select('paid_line_bonus_team_ids').eq('id', runId).single(),
   ])
+
+  const paidLineBonusTeamIds = new Set<string>(
+    Array.isArray(runRow?.paid_line_bonus_team_ids)
+      ? (runRow.paid_line_bonus_team_ids as string[])
+      : [],
+  )
 
   if (!cards?.length) {
     return { correctIndex: -1, trackId, winningTeamIds: [] }
@@ -52,7 +59,7 @@ export async function scoreBingoRound(params: {
   const approveUpdates: { id: string; teamId: string; points: number }[] = []
   const rejectIds: string[] = []
   const teamScoreDeltas = new Map<string, number>()
-  const lineAwarded = new Set<string>()
+  const newlyPaidLineBonusTeamIds: string[] = []
 
   for (const row of cards) {
     const cells = row.cells as BingoCell[]
@@ -117,10 +124,23 @@ export async function scoreBingoRound(params: {
     const approved = approvedBingoCellIndices(teamSubs, gameId, teamCells)
     const achieved = bingoWinAchieved(approved, winConfig)
     if (!achieved) continue
-    if (lineAwarded.has(row.team_id)) continue
-    lineAwarded.add(row.team_id)
     winningTeamIds.push(row.team_id)
-    if (linePoints > 0) await applySubmissionPoints(row.team_id, linePoints)
+    const lineBonusAlreadyPaid = paidLineBonusTeamIds.has(row.team_id)
+    if (linePoints > 0 && !lineBonusAlreadyPaid) {
+      await applySubmissionPoints(row.team_id, linePoints)
+      paidLineBonusTeamIds.add(row.team_id)
+      newlyPaidLineBonusTeamIds.push(row.team_id)
+    }
+  }
+
+  if (newlyPaidLineBonusTeamIds.length > 0) {
+    const { error: paidErr } = await supabase
+      .from('bingo_runs')
+      .update({ paid_line_bonus_team_ids: [...paidLineBonusTeamIds] })
+      .eq('id', runId)
+    if (paidErr) {
+      console.error('Failed to persist paid line bonus team ids', paidErr)
+    }
   }
 
   return { correctIndex, trackId, winningTeamIds }

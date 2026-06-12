@@ -547,6 +547,7 @@ export type Database = {
           play_order: Json
           current_play_index: number
           status: string
+          paid_line_bonus_team_ids: Json
           created_at: string
         }
         Insert: {
@@ -557,11 +558,13 @@ export type Database = {
           play_order?: Json
           current_play_index?: number
           status?: string
+          paid_line_bonus_team_ids?: Json
         }
         Update: {
           play_order?: Json
           current_play_index?: number
           status?: string
+          paid_line_bonus_team_ids?: Json
         }
         Relationships: []
       }

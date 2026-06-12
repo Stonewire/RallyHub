@@ -432,10 +432,14 @@ export function FacilitatorEventPage() {
         return
       }
     }
-    await supabase
+    const { error } = await supabase
       .from('submissions')
       .update({ status: 'approved', points_awarded: points })
       .eq('id', sub.id)
+    if (error) {
+      notify(error.message || 'Could not approve submission')
+      return
+    }
     const team = teams.find((t) => t.id === sub.team_id)
     if (team) {
       await updateTeam(sub.team_id, { score: team.score + points })
@@ -445,7 +449,11 @@ export function FacilitatorEventPage() {
 
   async function rejectSubmission(id: string) {
     if (!controlsLiveRef.current) return
-    await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
+    const { error } = await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
+    if (error) {
+      notify(error.message || 'Could not reject submission')
+      return
+    }
     notify('Submission rejected')
   }
 
@@ -755,10 +763,7 @@ export function FacilitatorEventPage() {
       void player.playFromUserGesture(syncUrl).then((played) => {
         if (played) {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
-          void patchWinnerFieldsSafe({
-            bingo_winner_team_id: null,
-            bingo_announced_winner_ids: [],
-          })
+          void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
         } else {
           notify('Could not start playback — check console for details')
         }
@@ -789,10 +794,7 @@ export function FacilitatorEventPage() {
       const played = await player.playFromUserGesture(url)
       if (played) {
         await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
-        void patchWinnerFieldsSafe({
-          bingo_winner_team_id: null,
-          bingo_announced_winner_ids: [],
-        })
+        void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
       } else notify('Run loaded — press Start again to play')
     })()
   }

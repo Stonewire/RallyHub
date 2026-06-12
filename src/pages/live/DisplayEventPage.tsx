@@ -51,7 +51,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const [searchParams] = useSearchParams()
   const embedFromUrl = searchParams.get('embed') === '1'
   const embedded = embeddedProp ?? embedFromUrl
-  const { bundle, loading, error, updateState } = useLiveEvent(eventId)
+  const { bundle, loading, error } = useLiveEvent(eventId)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
   // The display panel is a passive screen that may never be tapped again during
@@ -70,46 +70,34 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
 
-  const timerSyncRef = useMemo(
-    () =>
-      createThrottledTimerSync((next, stillRunning) => {
-        if (!eventIsLive) return
-        void updateState({ timer_seconds: next, timer_running: stillRunning })
-      }),
-    [updateState, eventIsLive],
+  const timerSyncRef = useRef(
+    createThrottledTimerSync(() => {
+      /* display is read-only; facilitator persists timer state */
+    }),
   )
 
-  const breakSyncRef = useMemo(
-    () =>
-      createThrottledTimerSync((next, stillRunning) => {
-        if (!eventIsLive) return
-        void updateState({
-          break_timer_seconds: next,
-          break_timer_running: stillRunning,
-        })
-      }),
-    [updateState, eventIsLive],
+  const breakSyncRef = useRef(
+    createThrottledTimerSync(() => {
+      /* display is read-only; facilitator persists timer state */
+    }),
+  )
+
+  const quizTimerSyncRef = useRef(
+    createThrottledTimerSync(() => {
+      /* display is read-only; facilitator persists timer state */
+    }),
   )
 
   const timerDisplay = useLiveTimer(
     eventIsLive ? (eventState?.timer_seconds ?? 0) : 0,
     eventIsLive && Boolean(eventState?.timer_running),
-    (next, stillRunning) => timerSyncRef(next, stillRunning),
-  )
-
-  const quizTimerSyncRef = useMemo(
-    () =>
-      createThrottledTimerSync((next, stillRunning) => {
-        if (!eventIsLive) return
-        void updateState({ quiz_timer_seconds: next, quiz_timer_running: stillRunning })
-      }),
-    [updateState, eventIsLive],
+    (next, stillRunning) => timerSyncRef.current(next, stillRunning),
   )
 
   const quizTimerDisplay = useLiveTimer(
     eventIsLive && eventState ? quizTimerSeconds(eventState) : 0,
     eventIsLive && eventState ? quizTimerRunning(eventState) : false,
-    (next, stillRunning) => quizTimerSyncRef(next, stillRunning),
+    (next, stillRunning) => quizTimerSyncRef.current(next, stillRunning),
   )
 
   const breakSeconds =
@@ -120,7 +108,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const breakDisplay = useLiveTimer(
     eventIsLive ? breakSeconds : 0,
     eventIsLive && Boolean(eventState?.break_timer_running),
-    (next, stillRunning) => breakSyncRef(next, stillRunning),
+    (next, stillRunning) => breakSyncRef.current(next, stillRunning),
   )
 
   const eventWinnerAudioStageRef = useRef(0)
