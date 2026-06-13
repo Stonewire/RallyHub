@@ -4,6 +4,8 @@ import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { capTeamCountForEventStatus } from '@/lib/event-demo'
 import { resetEventData } from '@/lib/reset-event-data'
+import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
+import { syncEventGameLinks } from '@/lib/sync-event-game-links'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
@@ -95,29 +97,36 @@ export function useUpdateEvent(organizationId: string | null) {
       event: TablesUpdate<'events'>
       gameIds: string[]
     }) => {
-      const { error } = await supabase
+      const { data: updated, error: updateError } = await supabase
         .from('events')
         .update(event)
         .eq('id', eventId)
+        .select('id')
+        .maybeSingle()
 
-      if (error) throw error
-
-      const { error: delError } = await supabase
-        .from('event_games')
-        .delete()
-        .eq('event_id', eventId)
-
-      if (delError) throw delError
-
-      if (gameIds.length > 0) {
-        const { error: linkError } = await supabase.from('event_games').insert(
-          gameIds.map((game_id) => ({
-            event_id: eventId,
-            game_id,
-          })),
-        )
-        if (linkError) throw linkError
+      if (updateError) {
+        logSupabaseFailure('events.update', updateError)
+        throw new Error(formatSupabaseError(updateError))
       }
+      if (!updated) {
+        const msg =
+          'Event was not updated (no matching row or permission denied). Client admins: confirm this event belongs to your organization. Super admins: run migration 036_events_super_admin_update.sql in Supabase.'
+        logSupabaseFailure('events.update', msg)
+        throw new Error(msg)
+      }
+
+      const { data: eventMeta, error: metaError } = await supabase
+        .from('events')
+        .select('organization_id')
+        .eq('id', eventId)
+        .single()
+
+      if (metaError) {
+        logSupabaseFailure('events.select organization_id', metaError)
+        throw new Error(formatSupabaseError(metaError))
+      }
+
+      await syncEventGameLinks(eventId, eventMeta.organization_id, gameIds)
 
       if (event.team_count != null) {
         const { data: current, error: fetchErr } = await supabase
@@ -125,7 +134,10 @@ export function useUpdateEvent(organizationId: string | null) {
           .select('status')
           .eq('id', eventId)
           .single()
-        if (fetchErr) throw fetchErr
+        if (fetchErr) {
+          logSupabaseFailure('events.select status', fetchErr)
+          throw new Error(formatSupabaseError(fetchErr))
+        }
 
         const teamCount = capTeamCountForEventStatus(
           event.team_count,
@@ -136,7 +148,10 @@ export function useUpdateEvent(organizationId: string | null) {
             .from('events')
             .update({ team_count: teamCount })
             .eq('id', eventId)
-          if (capError) throw capError
+          if (capError) {
+            logSupabaseFailure('events.update team_count cap', capError)
+            throw new Error(formatSupabaseError(capError))
+          }
         }
         await syncTeamSlots(eventId, teamCount)
       }

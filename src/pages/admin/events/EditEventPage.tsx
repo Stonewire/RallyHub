@@ -35,6 +35,7 @@ import {
   eventToFormValues,
   type EventFormValues,
 } from '@/lib/event-form-utils'
+import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { downloadEventPackage } from '@/lib/event-export'
 import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
 import { isEventActivated, canResetEventData } from '@/lib/event-lifecycle'
@@ -112,7 +113,10 @@ export function AdminEventEditPage() {
       })
       navigate('/admin/events', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save event')
+      const message = formatSupabaseError(err)
+      logSupabaseFailure('AdminEventEditPage.handleSave', err)
+      setError(message)
+      notify(message)
     } finally {
       setSaving(false)
     }
