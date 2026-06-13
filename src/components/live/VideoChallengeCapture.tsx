@@ -9,7 +9,10 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
-import { getTeamMediaStream } from '@/lib/media-permissions'
+import {
+  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  getChallengeCameraStream,
+} from '@/lib/challenge-camera'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
@@ -96,10 +99,7 @@ export function VideoChallengeCapture({
   }
 
   async function openPreview(facing: 'environment' | 'user') {
-    const stream = await getTeamMediaStream({
-      video: { facingMode: facing },
-      audio: true,
-    })
+    const stream = await getChallengeCameraStream(facing, true)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens, or upload a video')
       return
@@ -237,8 +237,8 @@ export function VideoChallengeCapture({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center px-3">
-        <div className="xp-media-frame mx-auto w-full max-w-lg overflow-hidden rounded-xl bg-black">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
+        <div className="xp-media-frame mx-auto flex w-full max-w-lg flex-col items-center justify-center bg-black">
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
@@ -246,18 +246,18 @@ export function VideoChallengeCapture({
               controls
               playsInline
               preload="auto"
-              className="aspect-[4/3] w-full bg-black object-contain"
+              className={CHALLENGE_PREVIEW_MEDIA_CLASS}
             >
               <source src={reviewUrl} type={recordedFile.type || undefined} />
             </video>
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               <video
                 ref={previewRef}
                 autoPlay
                 playsInline
                 muted
-                className="aspect-[4/3] w-full bg-black object-cover"
+                className={CHALLENGE_PREVIEW_MEDIA_CLASS}
               />
               {previewReady && !recording ? (
                 <button

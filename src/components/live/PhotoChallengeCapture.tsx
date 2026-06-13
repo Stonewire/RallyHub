@@ -5,7 +5,11 @@ import { Camera, SwitchCamera, X } from 'lucide-react'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
-import { getTeamMediaStream } from '@/lib/media-permissions'
+import {
+  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  captureStillPhoto,
+  getChallengeCameraStream,
+} from '@/lib/challenge-camera'
 import { playShutterSound } from '@/lib/sounds'
 
 type PhotoChallengeCaptureProps = {
@@ -23,11 +27,19 @@ export function PhotoChallengeCapture({
 }: PhotoChallengeCaptureProps) {
   const { notify } = useNotification()
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const snapshotUrlRef = useRef<string | null>(null)
   const [ready, setReady] = useState(false)
-  const [snapshot, setSnapshot] = useState<string | null>(null)
+  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
+  const [capturing, setCapturing] = useState(false)
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+
+  function revokeSnapshotUrl() {
+    if (snapshotUrlRef.current) {
+      URL.revokeObjectURL(snapshotUrlRef.current)
+      snapshotUrlRef.current = null
+    }
+  }
 
   function stopStream() {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -40,22 +52,20 @@ export function PhotoChallengeCapture({
     void startCamera(facingMode)
     return () => {
       stopStream()
+      revokeSnapshotUrl()
     }
   }, [])
 
   useEffect(() => {
     const el = videoRef.current
-    if (!el || !streamRef.current || snapshot) return
+    if (!el || !streamRef.current || snapshotUrl) return
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [ready, snapshot])
+  }, [ready, snapshotUrl])
 
   async function startCamera(facing: 'environment' | 'user') {
     stopStream()
-    const stream = await getTeamMediaStream({
-      video: { facingMode: facing },
-      audio: false,
-    })
+    const stream = await getChallengeCameraStream(facing, false)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens')
       return
@@ -67,41 +77,45 @@ export function PhotoChallengeCapture({
   function flipCamera() {
     const next = facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
-    setSnapshot(null)
+    revokeSnapshotUrl()
+    setSnapshotUrl(null)
     void startCamera(next)
   }
 
-  function capturePhoto() {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas) return
-    const w = video.videoWidth || 1280
-    const h = video.videoHeight || 720
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(video, 0, 0, w, h)
-    playShutterSound()
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-    setSnapshot(dataUrl)
-    stopStream()
+  async function capturePhoto() {
+    if (!streamRef.current || capturing) return
+    setCapturing(true)
+    try {
+      playShutterSound()
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current)
+      revokeSnapshotUrl()
+      const url = URL.createObjectURL(blob)
+      snapshotUrlRef.current = url
+      setSnapshotUrl(url)
+      stopStream()
+    } catch {
+      notify('Could not capture photo — hold steady and try again')
+    } finally {
+      setCapturing(false)
+    }
   }
 
   function retake() {
-    setSnapshot(null)
+    revokeSnapshotUrl()
+    setSnapshotUrl(null)
     void startCamera(facingMode)
   }
 
   function cancelCapture() {
     stopStream()
-    setSnapshot(null)
+    revokeSnapshotUrl()
+    setSnapshotUrl(null)
     onClose()
   }
 
   function submitPhoto() {
-    if (!snapshot) return
-    fetch(snapshot)
+    if (!snapshotUrl) return
+    fetch(snapshotUrl)
       .then((r) => r.blob())
       .then((blob) => {
         const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
@@ -114,7 +128,6 @@ export function PhotoChallengeCapture({
 
   return createPortal(
     <div className="experience-scope fixed inset-0 z-[10000] flex flex-col bg-black">
-      <canvas ref={canvasRef} className="hidden" />
       <div
         className="flex shrink-0 items-center justify-end px-4 pb-2"
         style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
@@ -129,23 +142,27 @@ export function PhotoChallengeCapture({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center px-3">
-        <div className="xp-media-frame mx-auto w-full max-w-lg overflow-hidden rounded-xl bg-black">
-          {snapshot ? (
-            <img src={snapshot} alt="Preview" className="aspect-[4/3] w-full object-cover" />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
+        <div className="xp-media-frame mx-auto flex w-full max-w-lg items-center justify-center bg-black">
+          {snapshotUrl ? (
+            <img
+              src={snapshotUrl}
+              alt="Preview"
+              className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+            />
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="aspect-[4/3] w-full bg-black object-cover"
+                className={CHALLENGE_PREVIEW_MEDIA_CLASS}
               />
               <button
                 type="button"
                 onClick={flipCamera}
-                disabled={!ready}
+                disabled={!ready || capturing}
                 aria-label="Switch camera"
                 className="absolute right-3 top-3 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
               >
@@ -163,7 +180,7 @@ export function PhotoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
-        {snapshot ? (
+        {snapshotUrl ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button
               type="button"
@@ -188,11 +205,11 @@ export function PhotoChallengeCapture({
             type="button"
             className="mx-auto min-h-12 w-full max-w-lg gap-2 text-base"
             accentColor={accentColor}
-            disabled={disabled || !ready}
-            onClick={capturePhoto}
+            disabled={disabled || !ready || capturing}
+            onClick={() => void capturePhoto()}
           >
             <Camera className="size-5" />
-            Take photo
+            {capturing ? 'Capturing…' : 'Take photo'}
           </LiveAccentButton>
         )}
       </div>
