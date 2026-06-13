@@ -9,15 +9,18 @@ import {
 } from '@/components/admin/QueryState'
 import { EventForm } from '@/components/events/EventForm'
 import { EventLinksPanel } from '@/components/events/EventLinksPanel'
+import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDialog'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useNotification } from '@/contexts/notification-context'
 import {
   useDuplicateEvent,
   useEvent,
   useEventGameIds,
+  useResetEventData,
   useUpdateEvent,
   useUpdateEventStatus,
 } from '@/hooks/use-events'
@@ -34,7 +37,7 @@ import {
 } from '@/lib/event-form-utils'
 import { downloadEventPackage } from '@/lib/event-export'
 import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
-import { isEventActivated } from '@/lib/event-lifecycle'
+import { isEventActivated, canResetEventData } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, brandColorsFromOrg, logoForEvent } from '@/lib/live-event'
 import type { EventStatus } from '@/types/database'
 
@@ -50,6 +53,8 @@ export function AdminEventEditPage() {
   const updateEvent = useUpdateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
   const duplicateEvent = useDuplicateEvent(organizationId)
+  const resetEventDataMutation = useResetEventData(organizationId)
+  const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
   })
@@ -59,6 +64,7 @@ export function AdminEventEditPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
 
   useEffect(() => {
     if (eventQuery.data && gameIdsQuery.data !== undefined && !hydrated) {
@@ -144,6 +150,18 @@ export function AdminEventEditPage() {
 
   const eventStatus = (eventQuery.data?.status ?? 'draft') as EventStatus
   const activated = eventQuery.data ? isEventActivated(eventQuery.data) : false
+  const resetAllowed = canResetEventData(eventStatus)
+
+  async function handleResetEventData() {
+    if (!eventId) return
+    try {
+      await resetEventDataMutation.mutateAsync(eventId)
+      setResetDialogOpen(false)
+      notify('Event data reset — teams and live progress cleared')
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not reset event data')
+    }
+  }
 
   return (
     <AdminPageShell
@@ -272,6 +290,26 @@ export function AdminEventEditPage() {
             </Card>
           ) : null}
 
+          {resetAllowed ? (
+            <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
+              <div>
+                <h2 className="text-foreground text-lg font-semibold">Reset event data</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Clear all teams, submissions, scores, chat, and live progress so you can run a
+                  fresh rehearsal. Event games, stages, and branding are kept.
+                </p>
+              </div>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={resetEventDataMutation.isPending || loading}
+                onClick={() => setResetDialogOpen(true)}
+              >
+                Reset event data
+              </NeoButton>
+            </Card>
+          ) : null}
+
           <FormSaveFooter
             onSave={() => void handleSave()}
             saving={saving}
@@ -279,6 +317,15 @@ export function AdminEventEditPage() {
           />
 
           <activation.ActivationDialog />
+
+          {resetDialogOpen && eventQuery.data ? (
+            <EventResetConfirmDialog
+              eventName={eventQuery.data.name}
+              confirming={resetEventDataMutation.isPending}
+              onCancel={() => setResetDialogOpen(false)}
+              onConfirm={() => void handleResetEventData()}
+            />
+          ) : null}
         </>
       )}
     </AdminPageShell>

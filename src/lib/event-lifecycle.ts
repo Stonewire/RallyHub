@@ -3,6 +3,11 @@ import type { EventRow } from '@/hooks/use-events'
 
 const ALL_STATUSES: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archived']
 
+/** Reset gameplay data is only allowed before activation (draft, ready, demo). */
+export function canResetEventData(status: string | null | undefined): boolean {
+  return status === 'draft' || status === 'ready' || status === 'demo'
+}
+
 /** True once the event has been activated and billed (invoiced_at set). */
 export function isEventActivated(
   event: Pick<EventRow, 'invoiced_at'>,

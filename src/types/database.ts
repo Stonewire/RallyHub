@@ -639,6 +639,10 @@ export type Database = {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
       }
+      reset_event_data: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
       verify_tablet_password: {
         Args: { p_org_id: string; p_password: string }
         Returns: boolean
