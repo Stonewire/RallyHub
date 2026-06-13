@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, SwitchCamera, X } from 'lucide-react'
 
+import { ChallengeNativeCapture } from '@/components/live/ChallengeNativeCapture'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
+import { shouldUseNativeCamera } from '@/lib/capture-platform'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
   getChallengeCameraStream,
+  previewVideoStyle,
+  streamNeedsQuarterTurn,
+  type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
 import { playShutterSound } from '@/lib/sounds'
 
@@ -19,7 +24,14 @@ type PhotoChallengeCaptureProps = {
   onFileReady: (file: File) => void
 }
 
-export function PhotoChallengeCapture({
+export function PhotoChallengeCapture(props: PhotoChallengeCaptureProps) {
+  if (shouldUseNativeCamera()) {
+    return <ChallengeNativeCapture mediaType="photo" {...props} />
+  }
+  return <PhotoInAppCapture {...props} />
+}
+
+function PhotoInAppCapture({
   accentColor,
   disabled,
   onClose,
@@ -32,7 +44,8 @@ export function PhotoChallengeCapture({
   const [ready, setReady] = useState(false)
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+  const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
+  const [quarterTurn, setQuarterTurn] = useState(false)
 
   function revokeSnapshotUrl() {
     if (snapshotUrlRef.current) {
@@ -46,6 +59,7 @@ export function PhotoChallengeCapture({
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     setReady(false)
+    setQuarterTurn(false)
   }
 
   useEffect(() => {
@@ -61,9 +75,9 @@ export function PhotoChallengeCapture({
     if (!el || !streamRef.current || snapshotUrl) return
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [ready, snapshotUrl])
+  }, [ready, snapshotUrl, quarterTurn, facingMode])
 
-  async function startCamera(facing: 'environment' | 'user') {
+  async function startCamera(facing: ChallengeFacingMode) {
     stopStream()
     const stream = await getChallengeCameraStream(facing, false)
     if (!stream) {
@@ -71,11 +85,13 @@ export function PhotoChallengeCapture({
       return
     }
     streamRef.current = stream
+    setQuarterTurn(streamNeedsQuarterTurn(stream))
     setReady(true)
   }
 
   function flipCamera() {
-    const next = facingMode === 'environment' ? 'user' : 'environment'
+    const next: ChallengeFacingMode =
+      facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
     revokeSnapshotUrl()
     setSnapshotUrl(null)
@@ -87,7 +103,9 @@ export function PhotoChallengeCapture({
     setCapturing(true)
     try {
       playShutterSound()
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current)
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current, {
+        quarterTurn,
+      })
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
@@ -124,6 +142,8 @@ export function PhotoChallengeCapture({
       .catch(() => notify('Could not process photo'))
   }
 
+  const livePreviewStyle = previewVideoStyle(facingMode, quarterTurn)
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -151,20 +171,21 @@ export function PhotoChallengeCapture({
               className={CHALLENGE_PREVIEW_MEDIA_CLASS}
             />
           ) : (
-            <div className="relative w-full">
+            <div className="relative flex w-full items-center justify-center">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
                 className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+                style={livePreviewStyle}
               />
               <button
                 type="button"
                 onClick={flipCamera}
                 disabled={!ready || capturing}
                 aria-label="Switch camera"
-                className="absolute right-3 top-3 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
+                className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
               >
                 <SwitchCamera className="size-4" />
                 Flip

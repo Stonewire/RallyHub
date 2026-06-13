@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SwitchCamera, Video, X } from 'lucide-react'
 
+import { ChallengeNativeCapture } from '@/components/live/ChallengeNativeCapture'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
+import { shouldUseNativeCamera } from '@/lib/capture-platform'
+import {
+  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  getChallengeCameraStream,
+  previewVideoStyle,
+  streamNeedsQuarterTurn,
+  type ChallengeFacingMode,
+} from '@/lib/challenge-camera'
 import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
-import {
-  CHALLENGE_PREVIEW_MEDIA_CLASS,
-  getChallengeCameraStream,
-} from '@/lib/challenge-camera'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
@@ -26,7 +31,59 @@ type VideoChallengeCaptureProps = {
   onFileReady: (file: File) => void
 }
 
-export function VideoChallengeCapture({
+export function VideoChallengeCapture(props: VideoChallengeCaptureProps) {
+  if (shouldUseNativeCamera()) {
+    return <VideoNativeCapture {...props} />
+  }
+  return <VideoInAppCapture {...props} />
+}
+
+function VideoNativeCapture({
+  config,
+  accentColor,
+  disabled,
+  onClose,
+  onFileReady,
+}: VideoChallengeCaptureProps) {
+  const maxSec = getMaxVideoDurationSeconds(config)
+  const { notify } = useNotification()
+
+  function validateDuration(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const vid = document.createElement('video')
+      vid.preload = 'metadata'
+      vid.onloadedmetadata = () => {
+        URL.revokeObjectURL(vid.src)
+        if (vid.duration > maxSec + 0.5) {
+          notify(`Video must be ${formatVideoDurationLabel(maxSec)} or less`)
+          resolve(false)
+        } else {
+          resolve(true)
+        }
+      }
+      vid.onerror = () => {
+        URL.revokeObjectURL(vid.src)
+        notify('Could not read video — try a different file')
+        resolve(false)
+      }
+      vid.src = URL.createObjectURL(file)
+    })
+  }
+
+  return (
+    <ChallengeNativeCapture
+      mediaType="video"
+      accentColor={accentColor}
+      disabled={disabled}
+      onClose={onClose}
+      onFileReady={onFileReady}
+      maxLengthLabel={formatVideoDurationLabel(maxSec)}
+      validateVideoFile={validateDuration}
+    />
+  )
+}
+
+function VideoInAppCapture({
   config,
   accentColor,
   disabled,
@@ -35,7 +92,7 @@ export function VideoChallengeCapture({
 }: VideoChallengeCaptureProps) {
   const { notify } = useNotification()
   const maxSec = getMaxVideoDurationSeconds(config)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const uploadRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLVideoElement>(null)
   const reviewRef = useRef<HTMLVideoElement>(null)
   const [previewReady, setPreviewReady] = useState(false)
@@ -47,7 +104,8 @@ export function VideoChallengeCapture({
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const tickRef = useRef<number | undefined>(undefined)
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+  const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
+  const [quarterTurn, setQuarterTurn] = useState(false)
 
   useEffect(() => {
     if (!recordedFile) {
@@ -84,7 +142,7 @@ export function VideoChallengeCapture({
     el.setAttribute('playsinline', 'true')
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [previewReady, recording, recordedFile])
+  }, [previewReady, recording, recordedFile, quarterTurn, facingMode])
 
   function stopStream() {
     if (tickRef.current != null) {
@@ -96,21 +154,24 @@ export function VideoChallengeCapture({
     if (previewRef.current) previewRef.current.srcObject = null
     setPreviewReady(false)
     setRecording(false)
+    setQuarterTurn(false)
   }
 
-  async function openPreview(facing: 'environment' | 'user') {
+  async function openPreview(facing: ChallengeFacingMode) {
     const stream = await getChallengeCameraStream(facing, true)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens, or upload a video')
       return
     }
     streamRef.current = stream
+    setQuarterTurn(streamNeedsQuarterTurn(stream))
     setPreviewReady(true)
   }
 
   function flipCamera() {
     if (recording) return
-    const next = facingMode === 'environment' ? 'user' : 'environment'
+    const next: ChallengeFacingMode =
+      facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
     stopStream()
     void openPreview(next)
@@ -154,7 +215,7 @@ export function VideoChallengeCapture({
 
   function startRecording() {
     if (!streamRef.current) {
-      fileRef.current?.click()
+      uploadRef.current?.click()
       return
     }
     try {
@@ -212,6 +273,8 @@ export function VideoChallengeCapture({
     onFileReady(recordedFile)
   }
 
+  const livePreviewStyle = previewVideoStyle(facingMode, quarterTurn)
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -251,20 +314,21 @@ export function VideoChallengeCapture({
               <source src={reviewUrl} type={recordedFile.type || undefined} />
             </video>
           ) : (
-            <div className="relative w-full">
+            <div className="relative flex w-full items-center justify-center">
               <video
                 ref={previewRef}
                 autoPlay
                 playsInline
                 muted
                 className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+                style={livePreviewStyle}
               />
               {previewReady && !recording ? (
                 <button
                   type="button"
                   onClick={flipCamera}
                   aria-label="Switch camera"
-                  className="absolute right-3 top-3 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                  className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
                 >
                   <SwitchCamera className="size-4" />
                   Flip
@@ -333,7 +397,7 @@ export function VideoChallengeCapture({
             variant="outline"
             className="mx-auto min-h-12 w-full max-w-lg border-white/30 bg-white/10 text-base text-white"
             disabled={disabled}
-            onClick={() => fileRef.current?.click()}
+            onClick={() => uploadRef.current?.click()}
           >
             Upload video
           </Button>
@@ -341,7 +405,7 @@ export function VideoChallengeCapture({
       </div>
 
       <input
-        ref={fileRef}
+        ref={uploadRef}
         type="file"
         accept="video/*"
         className="hidden"
