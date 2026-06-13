@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
+import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
@@ -441,8 +442,9 @@ export function JoinGameView({
         'game-assets',
         `${event.id}/submissions/${teamId}/${Date.now()}`,
         file,
+        { mediaKind: selectedGame.type === 'video' ? 'video' : 'photo' },
       )
-      await supabase.from('submissions').insert({
+      const { error } = await supabase.from('submissions').insert({
         event_id: event.id,
         team_id: teamId,
         game_id: selectedGame.id,
@@ -450,6 +452,7 @@ export function JoinGameView({
         media_type: selectedGame.type === 'video' ? 'video' : 'photo',
         status: 'pending',
       })
+      if (error) throw error
       playSubmitSound()
       notify('Submitted — waiting for approval')
       setSubmitDone(true)
@@ -457,6 +460,13 @@ export function JoinGameView({
         setSelectedGame(null)
         setSubmitDone(false)
       }, 1500)
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message.includes('must be')
+          ? err.message
+          : "Couldn't submit — tap to retry"
+      notify(msg)
+      setSubmitDone(false)
     } finally {
       setSubmitting(false)
     }
@@ -475,28 +485,38 @@ export function JoinGameView({
     const existing = mySubs.find(
       (s) => s.media_type === mediaType && s.game_id === gameId,
     )
-    if (existing) {
-      await supabase
-        .from('submissions')
-        .update({ media_url: answerId })
-        .eq('id', existing.id)
-    } else {
-      await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: gameId,
-        media_url: answerId,
-        media_type: mediaType,
-        status: 'pending',
-      })
-    }
+    const previousAnswer = existing?.media_url ?? quizAnswer
     setQuizAnswer(answerId)
+    const { error } = existing
+      ? await supabase
+          .from('submissions')
+          .update({ media_url: answerId })
+          .eq('id', existing.id)
+      : await supabase.from('submissions').insert({
+          event_id: event.id,
+          team_id: teamId,
+          game_id: gameId,
+          media_url: answerId,
+          media_type: mediaType,
+          status: 'pending',
+        })
+    if (error) {
+      setQuizAnswer(previousAnswer)
+      notify("Couldn't submit answer — tap to retry")
+    }
   }
 
   async function cancelPendingSubmission(subId: string) {
     setCancelling(true)
     try {
-      await supabase.from('submissions').update({ status: 'cancelled' }).eq('id', subId)
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status: 'cancelled' })
+        .eq('id', subId)
+      if (error) {
+        notify("Couldn't cancel submission — try again")
+        return
+      }
       notify('Submission cancelled')
       setSelectedGame(null)
       setCaptureActive(false)
@@ -520,41 +540,53 @@ export function JoinGameView({
         return
       }
     }
-    let proofUrl: string | null = null
-    if (proofFile) {
-      proofUrl = await uploadAsset(
-        'game-assets',
-        `${event.organization_id}/bingo-bonus/${crypto.randomUUID()}-${proofFile.name}`,
-        proofFile,
+    setSubmitting(true)
+    try {
+      let proofUrl: string | null = null
+      if (proofFile) {
+        proofUrl = await uploadAsset(
+          'game-assets',
+          `${event.organization_id}/bingo-bonus/${crypto.randomUUID()}-${proofFile.name}`,
+          proofFile,
+          { mediaKind: challenge.mediaType === 'video' ? 'video' : 'photo' },
+        )
+      }
+      const mediaUrl = encodeBingoBonusSubmission(answerId, proofUrl)
+      const mediaType = bingoBonusMediaType(challengeId)
+      const existing = mySubs.find(
+        (s) => s.media_type === mediaType && s.game_id === gameId,
       )
+      const { error } = existing
+        ? await supabase.from('submissions').update({ media_url: mediaUrl }).eq('id', existing.id)
+        : await supabase.from('submissions').insert({
+            event_id: event.id,
+            team_id: teamId,
+            game_id: gameId,
+            media_url: mediaUrl,
+            media_type: mediaType,
+            status: 'pending',
+          })
+      if (error) throw error
+      setBonusCaptureFile(null)
+      playSubmitSound()
+      notify('Bonus answer submitted')
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message.includes('must be')
+          ? err.message
+          : "Couldn't submit bonus answer — tap to retry"
+      notify(msg)
+    } finally {
+      setSubmitting(false)
     }
-    const mediaUrl = encodeBingoBonusSubmission(answerId, proofUrl)
-    const mediaType = bingoBonusMediaType(challengeId)
-    const existing = mySubs.find(
-      (s) => s.media_type === mediaType && s.game_id === gameId,
-    )
-    if (existing) {
-      await supabase.from('submissions').update({ media_url: mediaUrl }).eq('id', existing.id)
-    } else {
-      await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: gameId,
-        media_url: mediaUrl,
-        media_type: mediaType,
-        status: 'pending',
-      })
-    }
-    setBonusCaptureFile(null)
-    playSubmitSound()
-    notify('Bonus answer submitted')
   }
 
   async function submitBingoSquare(index: number, gameId: string) {
     if (state.bingo_state !== 'playing') return
     const cells = bingoCardQuery.data
     if (!cells?.length) return
-    const trackId = cells[index]?.trackId
+    const cardCells = cells
+    const trackId = cardCells[index]?.trackId
     if (!trackId) return
 
     const lockedByHistory = mySubs.some(
@@ -562,7 +594,7 @@ export function JoinGameView({
         s.media_type === 'bingo' &&
         s.game_id === gameId &&
         (s.status === 'approved' || s.status === 'rejected') &&
-        resolveBingoSubmissionCellIndex(s.media_url ?? '', cells) === index,
+        resolveBingoSubmissionCellIndex(s.media_url ?? '', cardCells) === index,
     )
     if (lockedByHistory) return
 
@@ -579,24 +611,39 @@ export function JoinGameView({
 
     const pendingIndex =
       existingPending?.media_url != null
-        ? resolveBingoSubmissionCellIndex(existingPending.media_url, cells)
+        ? resolveBingoSubmissionCellIndex(existingPending.media_url, cardCells)
         : -1
 
     if (pendingIndex === index) {
       bingoPickOptimisticRef.current = null
       setBingoPick(null)
-      void supabase
+      const { error } = await supabase
         .from('submissions')
         .delete()
         .eq('id', existingPending!.id)
-        .then(() => {
-          bingoPickOptimisticRef.current = undefined
-        })
+      bingoPickOptimisticRef.current = undefined
+      if (error) {
+        const idx = resolveBingoSubmissionCellIndex(
+          existingPending!.media_url ?? '',
+          cardCells,
+        )
+        setBingoPick(idx >= 0 ? idx : null)
+        notify("Couldn't update selection — tap to retry")
+      }
       return
     }
 
     bingoPickOptimisticRef.current = index
     setBingoPick(index)
+
+    function revertBingoPick() {
+      if (existingPending?.media_url) {
+        const idx = resolveBingoSubmissionCellIndex(existingPending.media_url, cardCells)
+        setBingoPick(idx >= 0 ? idx : null)
+      } else {
+        setBingoPick(null)
+      }
+    }
 
     try {
       if (existingPending) {
@@ -605,7 +652,9 @@ export function JoinGameView({
           .update({ media_url: trackId })
           .eq('id', existingPending.id)
         if (error) {
-          console.error('Failed to update bingo submission', error)
+          revertBingoPick()
+          notify("Couldn't mark cell — tap to retry")
+          return
         }
         return
       }
@@ -615,12 +664,19 @@ export function JoinGameView({
           s.media_type === 'bingo' &&
           s.game_id === gameId &&
           s.status === 'pending' &&
-          resolveBingoSubmissionCellIndex(s.media_url ?? '', cells) === index,
+          resolveBingoSubmissionCellIndex(s.media_url ?? '', cardCells) === index,
       )
       if (existingSameCell) {
         bingoPickOptimisticRef.current = null
         setBingoPick(null)
-        await supabase.from('submissions').delete().eq('id', existingSameCell.id)
+        const { error } = await supabase
+          .from('submissions')
+          .delete()
+          .eq('id', existingSameCell.id)
+        if (error) {
+          revertBingoPick()
+          notify("Couldn't update selection — tap to retry")
+        }
         return
       }
 
@@ -633,7 +689,8 @@ export function JoinGameView({
         status: 'pending',
       })
       if (error) {
-        console.error('Failed to insert bingo submission', error)
+        revertBingoPick()
+        notify("Couldn't mark cell — tap to retry")
       }
     } finally {
       bingoPickOptimisticRef.current = undefined
@@ -721,7 +778,9 @@ export function JoinGameView({
     const openGameIds = stage.gameIds ?? []
     const openGames = games.filter((g) => openGameIds.includes(g.id))
 
-    if (selectedGame) {
+    if (openGameIds.length > 0 && openGames.length === 0 && !selectedGame) {
+      body = <GameUnavailableFallback />
+    } else if (selectedGame) {
       const latestSub = activeSubmissionForGame(mySubs, selectedGame.id)
       const pending = latestSub?.status === 'pending'
       const locked =
@@ -1013,9 +1072,14 @@ export function JoinGameView({
           ) : null}
         </div>
       )
+    } else {
+      body = <GameUnavailableFallback />
     }
   } else if (stage?.type === 'bingo' && stage.gameId) {
     const game = games.find((g) => g.id === stage.gameId)
+    if (!game) {
+      body = <GameUnavailableFallback />
+    } else {
     const bonusChallenge = game
       ? bingoBonusChallenge(game, state.bingo_bonus_id)
       : null
@@ -1181,15 +1245,15 @@ export function JoinGameView({
                 key={i}
                 type="button"
                 disabled={disabled}
-                className={`xp-bingo-cell h-full min-h-0 overflow-hidden px-0.5 py-1 text-center leading-tight ${cls}`}
+                className={`xp-bingo-cell h-full min-h-0 overflow-hidden px-1 py-1 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
-                <span className="line-clamp-2 w-full overflow-hidden text-ellipsis break-words text-[8px] font-semibold sm:text-[9px]">
+                <span className="line-clamp-2 w-full overflow-hidden text-ellipsis break-words text-[11px] font-semibold leading-tight sm:text-xs">
                   {cell.title}
                 </span>
                 {cell.artist ? (
-                  <span className="line-clamp-1 w-full overflow-hidden text-ellipsis break-words text-[7px] opacity-80">
+                  <span className="line-clamp-1 w-full overflow-hidden text-ellipsis break-words text-[11px] leading-tight opacity-80">
                     {cell.artist}
                   </span>
                 ) : null}
@@ -1205,6 +1269,7 @@ export function JoinGameView({
         </div>
       </div>
     )
+    }
     }
   } else if (stage?.type === 'break') {
     body = (
@@ -1268,7 +1333,7 @@ export function JoinGameView({
         : null}
       {header}
       <div className="flex-1 min-h-0">{body}</div>
-      {typeof document !== 'undefined' && !chatOpen && !captureActive
+      {typeof document !== 'undefined' && !chatOpen && !captureActive && !selectedGame
         ? createPortal(
             <div
               className="fixed left-4 z-[9999]"

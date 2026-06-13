@@ -1,4 +1,4 @@
-import { Plus, Trash2, X } from 'lucide-react'
+import { Check, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useNotification } from '@/contexts/notification-context'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
 import type { OrganizationRow } from '@/hooks/use-organization-settings'
@@ -46,6 +47,7 @@ export function EventForm({
   orgDefaults,
   maxTeamCount = 20,
 }: EventFormProps) {
+  const { notify } = useNotification()
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [modalSelection, setModalSelection] = useState<string[]>([])
 
@@ -66,6 +68,11 @@ export function EventForm({
 
   const selectedGames = useMemo(
     () => games.filter((g) => selectedGameIds.includes(g.id)),
+    [games, selectedGameIds],
+  )
+
+  const availableGameIds = useMemo(
+    () => games.filter((g) => !selectedGameIds.includes(g.id)).map((g) => g.id),
     [games, selectedGameIds],
   )
 
@@ -184,7 +191,14 @@ export function EventForm({
                       'organization-logos',
                       `${organizationId}/events/${crypto.randomUUID()}`,
                       file,
-                    ).then((url) => set({ logoUrl: url }))
+                      { mediaKind: 'logo' },
+                    )
+                      .then((url) => set({ logoUrl: url }))
+                      .catch((err) =>
+                        notify(
+                          err instanceof Error ? err.message : 'Could not upload logo',
+                        ),
+                      )
                   }}
                 />
                 {logoUrl ? (
@@ -312,7 +326,14 @@ export function EventForm({
       <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-foreground font-semibold">Games in this event</h3>
-          <Button type="button" variant="outline" onClick={() => setGameModalOpen(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setModalSelection([])
+              setGameModalOpen(true)
+            }}
+          >
             Add games
           </Button>
         </div>
@@ -542,7 +563,8 @@ export function EventForm({
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setModalSelection(games.map((g) => g.id))}
+                disabled={availableGameIds.length === 0}
+                onClick={() => setModalSelection(availableGameIds)}
               >
                 Select all
               </Button>
@@ -553,7 +575,11 @@ export function EventForm({
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    setModalSelection(group.items.map((i) => i.game_id))
+                    setModalSelection(
+                      group.items
+                        .map((i) => i.game_id)
+                        .filter((id) => !selectedGameIds.includes(id)),
+                    )
                   }
                 >
                   {group.name}
@@ -562,24 +588,43 @@ export function EventForm({
             </div>
             <ul className="space-y-2">
               {games.map((g) => {
+                const alreadyAdded = selectedGameIds.includes(g.id)
                 const checked = modalSelection.includes(g.id)
                 return (
                   <li key={g.id}>
                     <button
                       type="button"
+                      disabled={alreadyAdded}
                       className={cn(
-                        'hover:bg-muted/50 w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-                        checked ? 'border-[#FFCB03]/60 bg-[#FFCB03]/10' : 'border-border/80',
+                        'w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                        alreadyAdded
+                          ? 'border-border/60 bg-muted/30 cursor-not-allowed opacity-60'
+                          : checked
+                            ? 'border-[#FFCB03]/60 bg-[#FFCB03]/10 hover:bg-muted/50'
+                            : 'border-border/80 hover:bg-muted/50',
                       )}
-                      onClick={() =>
+                      onClick={() => {
+                        if (alreadyAdded) return
                         setModalSelection((ids) =>
                           checked ? ids.filter((id) => id !== g.id) : [...ids, g.id],
                         )
-                      }
+                      }}
                     >
-                      {g.name}
-                      <span className="text-muted-foreground ml-2 text-xs capitalize">
-                        {g.type.replace('_', ' ')}
+                      <span className="flex items-center justify-between gap-2">
+                        <span>
+                          {g.name}
+                          <span className="text-muted-foreground ml-2 text-xs capitalize">
+                            {g.type.replace('_', ' ')}
+                          </span>
+                        </span>
+                        {alreadyAdded ? (
+                          <span
+                            className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs font-medium"
+                          >
+                            <Check className="size-3.5" />
+                            Added
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
@@ -593,11 +638,14 @@ export function EventForm({
               <NeoButton
                 type="button"
                 variant="primary"
+                disabled={modalSelection.length === 0}
                 onClick={() => {
+                  const newIds = modalSelection.filter(
+                    (id) => !selectedGameIds.includes(id),
+                  )
+                  if (newIds.length === 0) return
                   set({
-                    selectedGameIds: [
-                      ...new Set([...selectedGameIds, ...modalSelection]),
-                    ],
+                    selectedGameIds: [...new Set([...selectedGameIds, ...newIds])],
                   })
                   setModalSelection([])
                   setGameModalOpen(false)

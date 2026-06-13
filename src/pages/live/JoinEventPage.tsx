@@ -23,6 +23,7 @@ import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-even
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
+import { validateUploadFileSize } from '@/lib/upload-limits'
 import type { Tables } from '@/types/helpers'
 
 function teamKey(eventId: string) {
@@ -133,6 +134,7 @@ export function JoinEventPage() {
           'game-assets',
           `${eventId}/teams/${claimSlot.id}/${Date.now()}`,
           claimPhoto,
+          { mediaKind: 'photo' },
         )
       }
       const trimmed = claimName.trim()
@@ -263,7 +265,7 @@ export function JoinEventPage() {
       </div>
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="xp-card border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+          <Card className="xp-card border-border/80 max-h-[90dvh] w-full max-w-sm overflow-y-auto space-y-4 bg-card p-6 shadow-lg">
             <h3 className="text-foreground font-semibold">
               Join team {claimSlot.slot_number}
             </h3>
@@ -284,7 +286,21 @@ export function JoinEventPage() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!f) {
+                    setClaimPhoto(null)
+                    return
+                  }
+                  const sizeErr = validateUploadFileSize(f, 'photo')
+                  if (sizeErr) {
+                    setClaimError(sizeErr)
+                    return
+                  }
+                  setClaimError(null)
+                  setClaimPhoto(f)
+                }}
               />
               <Button
                 type="button"

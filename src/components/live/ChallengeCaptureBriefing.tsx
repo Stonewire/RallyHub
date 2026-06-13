@@ -29,7 +29,7 @@ export function ChallengeCaptureBriefing({
   const Icon = mediaType === 'video' ? Video : Camera
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col pb-20">
       <div className="flex flex-1 flex-col items-center justify-center px-2 py-6 text-center">
         <h2 className="max-w-md text-2xl font-bold leading-tight sm:text-3xl">{title}</h2>
         <span

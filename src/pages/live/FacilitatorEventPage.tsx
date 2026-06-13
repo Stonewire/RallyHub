@@ -486,6 +486,7 @@ export function FacilitatorEventPage() {
           'game-assets',
           `${eventId}/teams/${claimSlot.id}/${Date.now()}`,
           claimPhoto,
+          { mediaKind: 'photo' },
         )
       }
       await updateTeam(claimSlot.id, {
@@ -1658,7 +1659,7 @@ export function FacilitatorEventPage() {
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
+          <NeoCard className="max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-6 shadow-lg">
             <h3 className="font-semibold">Team slot {claimSlot.slot_number}</h3>
             <Input
               value={claimName}

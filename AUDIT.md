@@ -9,10 +9,10 @@
 | Severity | Count | Open | Fixed | Deferred |
 |----------|-------|------|-------|----------|
 | Critical | 8 | 6 | 2 | 0 |
-| High | 17 | 12 | 5 | 0 |
+| High | 17 | 7 | 10 | 0 |
 | Medium | 11 | 10 | 1 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **34** | **8** | **0** |
+| **Total** | **42** | **29** | **13** | **0** |
 
 ---
 
@@ -40,17 +40,17 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 | H4 | restartQuiz under-subtracts when a team has multiple scored questions | High | Scoring | Fixed |
 | H5 | restartBingoRun wipes submissions but never reverses awarded points | High | Scoring | Fixed |
 | H6 | Team that joins mid-bingo never gets a card — marked cells never score | High | Game logic | Open |
-| H7 | Participant writes fail silently (quiz answers, photo submits, bingo bonus) | High | Error handling | Open |
+| H7 | Participant writes fail silently (quiz answers, photo submits, bingo bonus) | High | Error handling | Fixed |
 | H8 | Bingo scoring/advance/restart swallow DB errors | High | Error handling | Open |
 | H9 | event_games and org branding load once and never update live | High | Realtime | Open |
 | H10 | bingo_team_cards not realtime + 60s staleTime — stale cards after restart | High | Realtime | Open |
 | H11 | bingoRunOverride can diverge from the DB run across facilitators | High | Realtime / Live flow | Open |
 | H12 | Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone | High | RLS / Security | Open |
-| H13 | Blank participant screen if the quiz game is deleted mid-event | High | Empty states | Open |
-| H14 | No upload size caps anywhere; video duration check bypassed on metadata error | High | Uploads | Open |
+| H13 | Blank participant screen if the quiz game is deleted mid-event | High | Empty states | Fixed |
+| H14 | No upload size caps anywhere; video duration check bypassed on metadata error | High | Uploads | Fixed |
 | H15 | Tablet password: plaintext storage, brute-forceable RPC, forgeable session flag | High | Security | Open |
-| H16 | Mobile: floating chat/exit buttons overlap submit controls; claim modals exceed the viewport | High | Mobile UX | Open |
-| H17 | Bingo cell text is 7–8px — unreadable on phones | High | Mobile UX | Open |
+| H16 | Mobile: floating chat/exit buttons overlap submit controls; claim modals exceed the viewport | High | Mobile UX | Fixed |
+| H17 | Bingo cell text is 7–8px — unreadable on phones | High | Mobile UX | Fixed |
 | M1 | skipQuizQuestion skips scoring AND bypasses the round intro | Medium | Quiz rounds | Open |
 | M2 | Quiz answers can change after the facilitator timer ends | Medium | Quiz logic | Open |
 | M3 | Duplicate trackId on cards with fewer than 25 tracks — ambiguous scoring | Medium | Bingo logic | Open |
@@ -244,7 +244,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H7 — Participant writes fail silently (quiz answers, photo submits, bingo bonus)
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Error handling
 - **References:**
   - `src/components/live/JoinGameView.tsx:493–505` (quiz answer, no error check)
@@ -310,7 +310,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H13 — Blank participant screen if the quiz game is deleted mid-event
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Empty states
 - **References:** `src/components/live/JoinGameView.tsx:909–1063`
 - **Problem:** The quiz branch assigns `body` only when game + question resolve; with a deleted game or missing question the screen renders an empty div.
@@ -319,7 +319,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H14 — No upload size caps anywhere; video duration check bypassed on metadata error
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Uploads
 - **References:**
   - `src/components/live/VideoChallengeCapture.tsx:128` (onerror → resolve(true))
@@ -341,7 +341,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H16 — Mobile: floating chat/exit buttons overlap submit controls; claim modals exceed the viewport
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Mobile UX
 - **References:**
   - `src/components/live/JoinGameView.tsx:745, 1284–1339`
@@ -353,7 +353,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H17 — Bingo cell text is 7–8px — unreadable on phones
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Mobile UX
 - **References:** `src/components/live/JoinGameView.tsx:1233–1238`
 - **Problem:** Cell labels render at `text-[8px]`/`text-[7px]` inside the fixed 5×5 grid.

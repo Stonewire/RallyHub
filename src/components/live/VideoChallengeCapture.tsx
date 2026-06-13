@@ -11,6 +11,7 @@ import {
 } from '@/lib/live-event'
 import { getTeamMediaStream } from '@/lib/media-permissions'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
+import { validateUploadFileSize } from '@/lib/upload-limits'
 import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
 
@@ -128,12 +129,21 @@ export function VideoChallengeCapture({
           resolve(true)
         }
       }
-      vid.onerror = () => resolve(true)
+      vid.onerror = () => {
+        URL.revokeObjectURL(vid.src)
+        notify('Could not read video — try a different file')
+        resolve(false)
+      }
       vid.src = URL.createObjectURL(file)
     })
   }
 
   async function queueForReview(file: File) {
+    const sizeError = validateUploadFileSize(file, 'video')
+    if (sizeError) {
+      notify(sizeError)
+      return
+    }
     const ok = await validateDuration(file)
     if (ok) {
       stopStream()
@@ -281,7 +291,9 @@ export function VideoChallengeCapture({
 
       <div
         className="shrink-0 space-y-3 px-4 pt-3"
-        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        style={{
+          paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
+        }}
       >
         {recordedFile && reviewUrl ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">

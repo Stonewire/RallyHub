@@ -159,7 +159,9 @@ export function PhotoChallengeCapture({
 
       <div
         className="shrink-0 space-y-3 px-4 pt-3"
-        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        style={{
+          paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
+        }}
       >
         {snapshot ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
