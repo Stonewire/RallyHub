@@ -345,17 +345,24 @@ export type QuizLeaderboardEntry = {
 }
 
 export async function scoreCurrentQuizQuestion(
+  eventId: string,
   quizGame: Tables<'games'>,
   question: QuizQuestion,
-  submissions: Tables<'submissions'>[],
-) {
+): Promise<void> {
   const points = quizGame.points_static ?? 10
   const mediaType = quizSubmissionMediaType(question.id)
-  const subs = submissions.filter(
-    (s) => s.game_id === quizGame.id && s.media_type === mediaType,
-  )
-  for (const sub of subs) {
-    if (sub.status !== 'pending') continue
+
+  const { data: pendingSubs, error: fetchErr } = await supabase
+    .from('submissions')
+    .select('id, team_id, media_url')
+    .eq('event_id', eventId)
+    .eq('game_id', quizGame.id)
+    .eq('media_type', mediaType)
+    .eq('status', 'pending')
+
+  if (fetchErr) throw fetchErr
+
+  for (const sub of pendingSubs ?? []) {
     const correct = sub.media_url === question.correctAnswerId
     const awarded = correct ? points : 0
     const { data, error } = await supabase

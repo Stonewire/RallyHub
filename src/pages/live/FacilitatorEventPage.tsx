@@ -279,8 +279,8 @@ export function FacilitatorEventPage() {
             (s.media_type === mediaType || s.media_type === 'quiz'),
         ),
       )
-    const timerDone = quizTimerRunning(state) && quizTimerDisplay <= 0
-    if (!timerDone && !allAnswered) return
+    const timerExpired = quizTimerDisplay <= 0
+    if (!timerExpired && !allAnswered) return
 
     const key = `${state.current_stage_index}-${state.current_question_index}-reveal`
     if (quizAutoRevealKey.current === key) return
@@ -288,17 +288,22 @@ export function FacilitatorEventPage() {
 
     void (async () => {
       try {
-        await scoreCurrentQuizQuestion(
-          quizGame,
-          question,
-          bundle.submissions,
+        await scoreCurrentQuizQuestion(bundle.event.id, quizGame, question)
+      } catch (err) {
+        console.error('[quiz] auto-reveal scoring failed', err)
+        notify(
+          err instanceof Error
+            ? err.message
+            : 'Quiz scoring failed — verify increment_team_score migration is applied',
         )
+      }
+      try {
         await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
       } catch {
         quizAutoRevealKey.current = ''
       }
     })()
-  }, [bundle, state, quizTimerDisplay, updateState])
+  }, [bundle, state, quizTimerDisplay, updateState, notify])
 
   const breakSeconds =
     stage?.type === 'break'
@@ -529,8 +534,17 @@ export function FacilitatorEventPage() {
   }
 
   async function revealQuizAnswers() {
-    if (!quizGame || !question) return
-    await scoreCurrentQuizQuestion(quizGame, question, submissions)
+    if (!quizGame || !question || !eventId) return
+    try {
+      await scoreCurrentQuizQuestion(eventId, quizGame, question)
+    } catch (err) {
+      console.error('[quiz] reveal scoring failed', err)
+      notify(
+        err instanceof Error
+          ? err.message
+          : 'Quiz scoring failed — verify increment_team_score migration is applied',
+      )
+    }
     await patchState({ quiz_timer_running: false, quiz_state: 'revealed' })
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
