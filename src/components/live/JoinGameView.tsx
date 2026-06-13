@@ -9,8 +9,7 @@ import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
-import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
-import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
+import { ChallengeMediaCaptureFlow } from '@/components/live/ChallengeMediaCaptureFlow'
 import {
   WinnerRevealPanel,
   eventRankedTeams,
@@ -151,8 +150,7 @@ export function JoinGameView({
   const logo = logoForEvent(event, organization)
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
-  const [captureFile, setCaptureFile] = useState<File | null>(null)
-  const [capturePreview, setCapturePreview] = useState<string | null>(null)
+  const [captureActive, setCaptureActive] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitDone, setSubmitDone] = useState(false)
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
@@ -359,16 +357,6 @@ export function JoinGameView({
     }
   }
 
-  useEffect(() => {
-    if (!captureFile) {
-      setCapturePreview(null)
-      return
-    }
-    const url = URL.createObjectURL(captureFile)
-    setCapturePreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [captureFile])
-
   const previousSubmissionStatusRef = useRef<Map<string, string>>(new Map())
   useEffect(() => {
     const mine = submissions.filter((s) => s.team_id === teamId)
@@ -441,9 +429,8 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
 
-  async function submitOpenGame(fileOverride?: File) {
-    const file = fileOverride ?? captureFile
-    if (!selectedGame || !file || !event.id) return
+  async function submitOpenGame(file: File) {
+    if (!selectedGame || !event.id) return
     if (!canSubmit) {
       notify('This event is now closed')
       return
@@ -468,7 +455,6 @@ export function JoinGameView({
       setSubmitDone(true)
       window.setTimeout(() => {
         setSelectedGame(null)
-        setCaptureFile(null)
         setSubmitDone(false)
       }, 1500)
     } finally {
@@ -513,7 +499,7 @@ export function JoinGameView({
       await supabase.from('submissions').update({ status: 'cancelled' }).eq('id', subId)
       notify('Submission cancelled')
       setSelectedGame(null)
-      setCaptureFile(null)
+      setCaptureActive(false)
       setSubmitDone(false)
     } finally {
       setCancelling(false)
@@ -742,36 +728,28 @@ export function JoinGameView({
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
       body = (
-        <div className="mx-auto flex h-[calc(100dvh-3rem)] max-w-lg flex-col px-3 pt-2 pb-4">
+        <div className="mx-auto flex h-[calc(100dvh-3rem)] max-w-lg flex-col px-3 pt-2 pb-24">
           <Button
             variant="outline"
             size="sm"
             className="mb-3 w-fit shrink-0 border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
             onClick={() => {
               setSelectedGame(null)
-              setCaptureFile(null)
+              setCaptureActive(false)
               setSubmitDone(false)
             }}
           >
             ← Back
           </Button>
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-            <h2 className="shrink-0 text-lg font-bold leading-tight sm:text-xl">
-              {selectedGame.name}
-            </h2>
-            <p className="shrink-0 text-xs opacity-80 sm:text-sm">
-              {gamePointsDisplay(selectedGame)}
-              {selectedGame.description ? ` · ${selectedGame.description}` : ''}
+          {!canSubmit ? (
+            <p
+              className="mb-3 shrink-0 text-center text-sm font-semibold"
+              style={{ color: accent }}
+            >
+              Event closed — no new submissions
             </p>
-            {!canSubmit ? (
-              <p
-                className="shrink-0 text-center text-sm font-semibold"
-                style={{ color: accent }}
-              >
-                Event closed — no new submissions
-              </p>
-            ) : null}
-          <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto">
+          ) : null}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {pending ? (
             <div className="space-y-3 text-center">
               <p className="text-lg font-semibold" style={{ color: accent }}>
@@ -810,53 +788,28 @@ export function JoinGameView({
             <p className="text-center text-lg font-semibold" style={{ color: accent }}>
               Submitted! Waiting for approval…
             </p>
-          ) : capturePreview && selectedGame.type !== 'video' ? (
-            <div className="space-y-4">
-              <img src={capturePreview} alt="" className="w-full rounded-lg" />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-white/30 bg-white/10 text-white"
-                  onClick={() => setCaptureFile(null)}
-                >
-                  Retake
-                </Button>
-                <LiveAccentButton
-                  className="flex-1"
-                  accentColor={accent}
-                  disabled={submitting}
-                  onClick={() => void submitOpenGame()}
-                >
-                  {submitting ? 'Submitting…' : 'Submit'}
-                </LiveAccentButton>
-              </div>
-            </div>
           ) : locked ? (
             <p className="text-center opacity-70">
               This challenge is closed ({latestSub?.status})
             </p>
           ) : !canSubmit ? null : (
-            <>
-              {selectedGame.type === 'video' ? (
-                <VideoChallengeCapture
-                  config={selectedGame.config as GameConfig}
-                  accentColor={accent}
-                  disabled={submitting}
-                  onFileReady={(file) => {
-                    setCaptureFile(file)
-                    void submitOpenGame(file)
-                  }}
-                />
-              ) : (
-                <PhotoChallengeCapture
-                  accentColor={accent}
-                  disabled={submitting}
-                  onFileReady={setCaptureFile}
-                />
-              )}
-            </>
+            <ChallengeMediaCaptureFlow
+              title={selectedGame.name}
+              description={selectedGame.description}
+              pointsLabel={gamePointsDisplay(selectedGame)}
+              coverUrl={selectedGame.cover_url}
+              accentColor={accent}
+              mediaType={selectedGame.type === 'video' ? 'video' : 'photo'}
+              config={
+                selectedGame.type === 'video'
+                  ? (selectedGame.config as GameConfig)
+                  : undefined
+              }
+              disabled={submitting}
+              onCaptureActiveChange={setCaptureActive}
+              onFileReady={(file) => void submitOpenGame(file)}
+            />
           )}
-          </div>
           </div>
         </div>
       )
@@ -1105,21 +1058,23 @@ export function JoinGameView({
             )
           ) : null}
           {!locked && needsMedia ? (
-            <div className="mt-4 space-y-3">
-              {bonusChallenge.mediaType === 'video' ? (
-                <VideoChallengeCapture
-                  config={(game?.config as GameConfig) ?? {}}
-                  accentColor={accent}
-                  disabled={submitting}
-                  onFileReady={setBonusCaptureFile}
-                />
-              ) : (
-                <PhotoChallengeCapture
-                  accentColor={accent}
-                  disabled={submitting}
-                  onFileReady={setBonusCaptureFile}
-                />
-              )}
+            <div className="mt-4">
+              <ChallengeMediaCaptureFlow
+                title={game?.name ?? 'Bonus challenge'}
+                description={
+                  bonusChallenge.mediaType === 'video'
+                    ? 'Record a short video as proof for your bonus answer.'
+                    : 'Take a photo as proof for your bonus answer.'
+                }
+                pointsLabel={game ? gamePointsDisplay(game) : 'Bonus'}
+                coverUrl={game?.cover_url}
+                accentColor={accent}
+                mediaType={bonusChallenge.mediaType === 'video' ? 'video' : 'photo'}
+                config={(game?.config as GameConfig) ?? {}}
+                disabled={submitting}
+                onCaptureActiveChange={setCaptureActive}
+                onFileReady={setBonusCaptureFile}
+              />
             </div>
           ) : null}
           {!locked && bonusAnswerId ? (
@@ -1313,9 +1268,12 @@ export function JoinGameView({
         : null}
       {header}
       <div className="flex-1 min-h-0">{body}</div>
-      {typeof document !== 'undefined' && !chatOpen
+      {typeof document !== 'undefined' && !chatOpen && !captureActive
         ? createPortal(
-            <div className="fixed bottom-4 left-4 z-[9999]">
+            <div
+              className="fixed left-4 z-[9999]"
+              style={{ bottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+            >
               <Button
                 type="button"
                 className="xp-interactive relative size-12 rounded-full shadow-lg hover:brightness-95"

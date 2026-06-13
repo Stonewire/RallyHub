@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { SwitchCamera, Video } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { SwitchCamera, Video, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ type VideoChallengeCaptureProps = {
   config: GameConfig | null | undefined
   accentColor: string
   disabled?: boolean
+  onClose: () => void
   onFileReady: (file: File) => void
 }
 
@@ -24,6 +26,7 @@ export function VideoChallengeCapture({
   config,
   accentColor,
   disabled,
+  onClose,
   onFileReady,
 }: VideoChallengeCaptureProps) {
   const { notify } = useNotification()
@@ -62,7 +65,7 @@ export function VideoChallengeCapture({
 
   useEffect(() => {
     if (recordedFile) return
-    void openPreview()
+    void openPreview(facingMode)
     return () => {
       stopStream()
     }
@@ -91,7 +94,7 @@ export function VideoChallengeCapture({
     setRecording(false)
   }
 
-  async function openPreview(facing: 'environment' | 'user' = facingMode) {
+  async function openPreview(facing: 'environment' | 'user') {
     const stream = await getTeamMediaStream({
       video: { facingMode: facing },
       audio: true,
@@ -163,7 +166,7 @@ export function VideoChallengeCapture({
             new File([blob], `recording-${Date.now()}.${ext}`, { type: mime }),
           )
         } else {
-          void openPreview()
+          void openPreview(facingMode)
         }
       }
       recorder.start(200)
@@ -181,107 +184,150 @@ export function VideoChallengeCapture({
     }
   }
 
-  function discardRecording() {
+  function retake() {
     setRecordedFile(null)
     setRemaining(maxSec)
-    void openPreview()
+    void openPreview(facingMode)
   }
 
-  if (recordedFile && reviewUrl) {
-    return (
-      <div className="space-y-3">
-        <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
-          Review your recording
-        </p>
-        <div className="xp-media-frame overflow-hidden rounded-xl bg-black">
-          <video
-            ref={reviewRef}
-            key={reviewUrl}
-            controls
-            playsInline
-            preload="auto"
-            className="aspect-[4/3] w-full bg-black object-contain"
-          >
-            <source src={reviewUrl} type={recordedFile.type || undefined} />
-          </video>
-          <div className="flex gap-2 p-3">
+  function cancelCapture() {
+    stopStream()
+    setRecordedFile(null)
+    setRemaining(maxSec)
+    onClose()
+  }
+
+  function submitVideo() {
+    if (!recordedFile) return
+    onFileReady(recordedFile)
+  }
+
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <div className="experience-scope fixed inset-0 z-[10000] flex flex-col bg-black">
+      <div
+        className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
+        {!recordedFile ? (
+          <p className="text-sm font-medium text-white/80">
+            Max length: {formatVideoDurationLabel(maxSec)}
+          </p>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          onClick={cancelCapture}
+          aria-label="Close capture"
+          className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-3">
+        <div className="xp-media-frame mx-auto w-full max-w-lg overflow-hidden rounded-xl bg-black">
+          {recordedFile && reviewUrl ? (
+            <video
+              ref={reviewRef}
+              key={reviewUrl}
+              controls
+              playsInline
+              preload="auto"
+              className="aspect-[4/3] w-full bg-black object-contain"
+            >
+              <source src={reviewUrl} type={recordedFile.type || undefined} />
+            </video>
+          ) : (
+            <div className="relative">
+              <video
+                ref={previewRef}
+                autoPlay
+                playsInline
+                muted
+                className="aspect-[4/3] w-full bg-black object-cover"
+              />
+              {previewReady && !recording ? (
+                <button
+                  type="button"
+                  onClick={flipCamera}
+                  aria-label="Switch camera"
+                  className="absolute right-3 top-3 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                >
+                  <SwitchCamera className="size-4" />
+                  Flip
+                </button>
+              ) : null}
+            </div>
+          )}
+          {recording ? (
+            <div className="space-y-2 border-t border-white/10 px-4 py-4 text-center">
+              <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
+              <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 w-full border-white/30 bg-white/10 text-base text-white"
+                onClick={() => recorderRef.current?.stop()}
+              >
+                Stop recording
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        className="shrink-0 space-y-3 px-4 pt-3"
+        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+      >
+        {recordedFile && reviewUrl ? (
+          <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button
               type="button"
               variant="outline"
-              className="flex-1 border-white/30 bg-white/10 text-white"
-              onClick={discardRecording}
+              className="min-h-12 flex-1 border-white/30 bg-white/10 text-base text-white"
+              onClick={retake}
             >
               Retake
             </Button>
             <LiveAccentButton
               type="button"
-              className="flex-1"
+              className="min-h-12 flex-1 text-base"
               accentColor={accentColor}
               disabled={disabled}
-              onClick={() => onFileReady(recordedFile)}
+              onClick={submitVideo}
             >
-              Use this video
+              Submit
             </LiveAccentButton>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-center text-sm font-medium" style={{ color: accentColor }}>
-        Max video length: {formatVideoDurationLabel(maxSec)}
-      </p>
-      <div className="xp-media-frame overflow-hidden rounded-xl bg-black">
-        <div className="relative">
-          <video
-            ref={previewRef}
-            autoPlay
-            playsInline
-            muted
-            className="aspect-[4/3] w-full bg-black object-cover"
-          />
-          {previewReady && !recording ? (
-            <button
-              type="button"
-              onClick={flipCamera}
-              aria-label="Switch camera"
-              className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
-            >
-              <SwitchCamera className="size-4" />
-              Flip
-            </button>
-          ) : null}
-        </div>
-        {recording ? (
-          <div className="space-y-2 border-t border-white/10 px-4 py-3 text-center">
-            <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
-            <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-white/30 bg-white/10 text-white"
-              onClick={() => recorderRef.current?.stop()}
-            >
-              Stop recording
-            </Button>
-          </div>
-        ) : previewReady ? (
-          <div className="space-y-2 p-3">
-            <LiveAccentButton
-              type="button"
-              className="w-full"
-              accentColor={accentColor}
-              disabled={disabled}
-              onClick={() => startRecording()}
-            >
-              <Video className="size-4" />
-              Record video
-            </LiveAccentButton>
-          </div>
+        ) : !recording && previewReady ? (
+          <LiveAccentButton
+            type="button"
+            className="mx-auto min-h-12 w-full max-w-lg gap-2 text-base"
+            accentColor={accentColor}
+            disabled={disabled}
+            onClick={() => startRecording()}
+          >
+            <Video className="size-5" />
+            Record video
+          </LiveAccentButton>
+        ) : null}
+        {!recordedFile && !recording ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="mx-auto min-h-12 w-full max-w-lg border-white/30 bg-white/10 text-base text-white"
+            disabled={disabled}
+            onClick={() => fileRef.current?.click()}
+          >
+            Upload video
+          </Button>
         ) : null}
       </div>
+
       <input
         ref={fileRef}
         type="file"
@@ -293,15 +339,7 @@ export function VideoChallengeCapture({
           if (f) void queueForReview(f)
         }}
       />
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full border-white/30 bg-white/10 text-white"
-        disabled={disabled}
-        onClick={() => fileRef.current?.click()}
-      >
-        Upload video
-      </Button>
-    </div>
+    </div>,
+    document.body,
   )
 }
