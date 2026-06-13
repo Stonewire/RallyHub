@@ -32,6 +32,7 @@ import {
   DEMO_MAX_TEAMS,
   isEventDemoStatus,
 } from '@/lib/event-demo'
+import { incrementTeamScore } from '@/lib/increment-team-score'
 import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
 import { isTeamToFacilitatorChatMessage } from '@/lib/chat-notifications'
 import {
@@ -291,15 +292,13 @@ export function FacilitatorEventPage() {
           quizGame,
           question,
           bundle.submissions,
-          bundle.teams,
-          updateTeam,
         )
         await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
       } catch {
         quizAutoRevealKey.current = ''
       }
     })()
-  }, [bundle, state, quizTimerDisplay, updateTeam, updateState])
+  }, [bundle, state, quizTimerDisplay, updateState])
 
   const breakSeconds =
     stage?.type === 'break'
@@ -432,17 +431,23 @@ export function FacilitatorEventPage() {
         return
       }
     }
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('submissions')
       .update({ status: 'approved', points_awarded: points })
       .eq('id', sub.id)
+      .eq('status', 'pending')
+      .select('id, team_id')
+      .maybeSingle()
     if (error) {
       notify(error.message || 'Could not approve submission')
       return
     }
-    const team = teams.find((t) => t.id === sub.team_id)
-    if (team) {
-      await updateTeam(sub.team_id, { score: team.score + points })
+    if (!data) {
+      notify('Submission already processed')
+      return
+    }
+    if (points > 0) {
+      await incrementTeamScore(data.team_id, points)
     }
     notify(`Approved +${points} pts`)
   }
@@ -525,13 +530,7 @@ export function FacilitatorEventPage() {
 
   async function revealQuizAnswers() {
     if (!quizGame || !question) return
-    await scoreCurrentQuizQuestion(
-      quizGame,
-      question,
-      submissions,
-      teams,
-      updateTeam,
-    )
+    await scoreCurrentQuizQuestion(quizGame, question, submissions)
     await patchState({ quiz_timer_running: false, quiz_state: 'revealed' })
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
@@ -585,16 +584,17 @@ export function FacilitatorEventPage() {
     const quizSubs = submissions.filter(
       (s) => s.game_id === stage.gameId && isQuizSubmission(s.media_type),
     )
+    const totalsByTeam = new Map<string, number>()
     for (const sub of quizSubs) {
       const pts = sub.points_awarded ?? 0
       if (pts > 0 && sub.status === 'approved') {
-        const team = teams.find((t) => t.id === sub.team_id)
-        if (team) {
-          await updateTeam(sub.team_id, {
-            score: Math.max(0, team.score - pts),
-          })
-        }
+        totalsByTeam.set(sub.team_id, (totalsByTeam.get(sub.team_id) ?? 0) + pts)
       }
+    }
+    for (const [teamId, total] of totalsByTeam) {
+      await incrementTeamScore(teamId, -total)
+    }
+    for (const sub of quizSubs) {
       await supabase.from('submissions').delete().eq('id', sub.id)
     }
     await patchState({

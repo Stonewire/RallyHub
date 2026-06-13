@@ -9,10 +9,10 @@
 | Severity | Count | Open | Fixed | Deferred |
 |----------|-------|------|-------|----------|
 | Critical | 8 | 6 | 2 | 0 |
-| High | 17 | 16 | 1 | 0 |
+| High | 17 | 12 | 5 | 0 |
 | Medium | 11 | 10 | 1 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **38** | **4** | **0** |
+| **Total** | **42** | **34** | **8** | **0** |
 
 ---
 
@@ -34,11 +34,11 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 | C6 | Display screen (and preview iframe) writes event timers — fights the facilitator | Critical | Realtime / Live flow | Fixed |
 | C7 | Bingo line bonus re-awarded on every reveal after a team wins | Critical | Scoring | Fixed |
 | C8 | Realtime reload storm: unfiltered games listener + unbounded bundle fetches | Critical | Realtime / Performance | Open |
-| H1 | All team-score updates are non-atomic read-modify-write | High | Scoring | Open |
-| H2 | Quiz double-scoring race (auto-reveal vs manual vs second facilitator) | High | Scoring | Open |
+| H1 | All team-score updates are non-atomic read-modify-write | High | Scoring | Fixed |
+| H2 | Quiz double-scoring race (auto-reveal vs manual vs second facilitator) | High | Scoring | Fixed |
 | H3 | approveSubmission awards points even when the submission update fails | High | Error handling / Scoring | Fixed |
-| H4 | restartQuiz under-subtracts when a team has multiple scored questions | High | Scoring | Open |
-| H5 | restartBingoRun wipes submissions but never reverses awarded points | High | Scoring | Open |
+| H4 | restartQuiz under-subtracts when a team has multiple scored questions | High | Scoring | Fixed |
+| H5 | restartBingoRun wipes submissions but never reverses awarded points | High | Scoring | Fixed |
 | H6 | Team that joins mid-bingo never gets a card — marked cells never score | High | Game logic | Open |
 | H7 | Participant writes fail silently (quiz answers, photo submits, bingo bonus) | High | Error handling | Open |
 | H8 | Bingo scoring/advance/restart swallow DB errors | High | Error handling | Open |
@@ -78,13 +78,13 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 | 1 | C1, C2 | Lock down live-table RLS (teams, event_state, submissions, bingo_runs) — anyone can rewrite scores and hijack the event today | Open |
 | 2 | C7 | Stop the bingo line bonus from re-awarding on every reveal — guarantees a wrong leaderboard in any game with line points | Fixed |
 | 3 | C6 | Make display + preview timers read-only — visible timer jumping on every screen in the room | Fixed |
-| 4 | H1, H2, H3 | Atomic, idempotent scoring: increment-score RPC + approve-where-pending, with error checks before awarding | Open |
+| 4 | H1, H2, H3 | Atomic, idempotent scoring: increment-score RPC + approve-where-pending, with error checks before awarding | Fixed |
 | 5 | C8 | Tame the realtime reload storm: filter the games listener, stop chat/bingo_runs full reloads, bound the submissions query | Open |
 | 6 | C3 | Stop shipping quiz correct answers in anon-readable game config | Open |
 | 7 | C5 | Authenticate the edge functions (activate-bingo-run, invite-member) | Open |
 | 8 | C4, H14 | Storage lockdown: no anon writes, path-prefix policies, upload size caps | Open |
 | 9 | H6, H7 | Participant integrity: cards for mid-game joiners + surface failed quiz/photo submissions instead of losing them silently | Open |
-| 10 | H4, H5 | Correct score reversal on quiz restart and bingo restart | Open |
+| 10 | H4, H5 | Correct score reversal on quiz restart and bingo restart | Fixed |
 
 ---
 
@@ -183,23 +183,23 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H1 — All team-score updates are non-atomic read-modify-write
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Scoring
 - **References:**
-  - `src/lib/apply-submission-points.ts:9–19`
-  - `src/lib/live-event.ts:367–371`
-  - `src/pages/live/FacilitatorEventPage.tsx:435–442`
+  - `src/lib/increment-team-score.ts`
+  - `src/lib/apply-submission-points.ts`
+  - `supabase/migrations/034_increment_team_score.sql`
 - **Problem:** Every scoring path reads `team.score` and writes back an absolute value. Concurrent writers (two facilitator tabs, auto-reveal racing manual reveal, bingo scoring overlapping a manual approval) read the same base and the last write wins.
 - **Breaks when:** Facilitator approves two submissions for the same team in quick succession; the second write uses the stale pre-first-approval score and silently erases the first award.
 - **Recommended fix:** One Postgres RPC `increment_team_score(team_id, delta)` doing `SET score = score + $1`, used by every approval/scoring path.
 
 ### H2 — Quiz double-scoring race (auto-reveal vs manual vs second facilitator)
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Scoring
 - **References:**
-  - `src/pages/live/FacilitatorEventPage.tsx:252–302`
-  - `src/lib/live-event.ts:358–371`
+  - `src/lib/live-event.ts` (`scoreCurrentQuizQuestion`)
+  - `src/pages/live/FacilitatorEventPage.tsx` (auto-reveal, manual reveal)
 - **Problem:** Idempotency is a client-side ref (`quizAutoRevealKey`) per browser. The DB guard (`status === 'approved' && points_awarded != null`) doesn't close the read-to-write window, so two scorers can both pass it.
 - **Breaks when:** Timer hits zero (auto-reveal fires) at the moment the facilitator clicks Next Question, or two facilitator devices are open: correct teams get double points.
 - **Recommended fix:** Atomic approval: `UPDATE submissions SET status='approved', points_awarded=$1 WHERE id=$2 AND status='pending' RETURNING id`, and only increment the team score when a row came back.
@@ -215,18 +215,18 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H4 — restartQuiz under-subtracts when a team has multiple scored questions
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Scoring
-- **References:** `src/pages/live/FacilitatorEventPage.tsx:575–591`
+- **References:** `src/pages/live/FacilitatorEventPage.tsx` (`restartQuiz`)
 - **Problem:** The loop subtracts each submission's points from the ORIGINAL `teams` snapshot, so a team with two 25-point answers loses 25, not 50.
 - **Breaks when:** Quiz restarted after 3 questions: every multi-answer team keeps phantom quiz points; the rerun's leaderboard is wrong from the start.
 - **Recommended fix:** Group submissions by team, sum quiz points, do one subtract per team (or use the H1 increment RPC with negative deltas).
 
 ### H5 — restartBingoRun wipes submissions but never reverses awarded points
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Scoring
-- **References:** `src/lib/restart-bingo-run.ts:10–17`
+- **References:** `src/lib/restart-bingo-run.ts`
 - **Problem:** Restart deletes the run, cards, and bingo submissions, but scores already added to `teams.score` remain (unlike restartQuiz, which at least attempts reversal).
 - **Breaks when:** Facilitator restarts bingo after teams earned 200 points; the fresh round starts with permanently inflated scores.
 - **Recommended fix:** Before deleting, sum approved bingo/bonus `points_awarded` per team and subtract.
@@ -576,4 +576,4 @@ Severity prioritizes issues that would break or embarrass during a **live event 
 
 ---
 
-*Last updated: June 12, 2026 — 38 Open, 4 Fixed (C6, C7, H3, M5).*
+*Last updated: June 12, 2026 — 34 Open, 8 Fixed (C6, C7, H1, H2, H3, H4, H5, M5).*

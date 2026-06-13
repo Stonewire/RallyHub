@@ -7,6 +7,7 @@ import type {
   MusicTrack,
   QuizQuestion,
 } from '@/types/game-config'
+import { incrementTeamScore } from '@/lib/increment-team-score'
 import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
@@ -347,8 +348,6 @@ export async function scoreCurrentQuizQuestion(
   quizGame: Tables<'games'>,
   question: QuizQuestion,
   submissions: Tables<'submissions'>[],
-  teams: Tables<'teams'>[],
-  updateTeam: (teamId: string, patch: { score: number }) => Promise<void>,
 ) {
   const points = quizGame.points_static ?? 10
   const mediaType = quizSubmissionMediaType(question.id)
@@ -356,19 +355,19 @@ export async function scoreCurrentQuizQuestion(
     (s) => s.game_id === quizGame.id && s.media_type === mediaType,
   )
   for (const sub of subs) {
-    if (sub.status === 'approved' && sub.points_awarded != null) continue
+    if (sub.status !== 'pending') continue
     const correct = sub.media_url === question.correctAnswerId
     const awarded = correct ? points : 0
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('submissions')
       .update({ status: 'approved', points_awarded: awarded })
       .eq('id', sub.id)
+      .eq('status', 'pending')
+      .select('id, team_id')
+      .maybeSingle()
     if (error) throw error
-    if (correct && awarded > 0) {
-      const team = teams.find((t) => t.id === sub.team_id)
-      if (team) {
-        await updateTeam(sub.team_id, { score: team.score + awarded })
-      }
+    if (data && awarded > 0) {
+      await incrementTeamScore(data.team_id, awarded)
     }
   }
 }

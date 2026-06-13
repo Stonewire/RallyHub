@@ -635,6 +635,10 @@ export type Database = {
       }
     }
     Functions: {
+      increment_team_score: {
+        Args: { p_team_id: string; p_delta: number }
+        Returns: undefined
+      }
       verify_tablet_password: {
         Args: { p_org_id: string; p_password: string }
         Returns: boolean
