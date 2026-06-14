@@ -11,7 +11,7 @@ import { DemoOverlay } from '@/components/live/DemoOverlay'
 import {
   FacilitatorChatBubble,
   FacilitatorChatDrawer,
-  useFacilitatorChatUnread,
+  useFacilitatorChatInbox,
 } from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
@@ -22,7 +22,6 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
-import { useIncomingChatSound } from '@/hooks/use-chat-notifications'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
@@ -35,7 +34,6 @@ import {
 } from '@/lib/event-demo'
 import { incrementTeamScore } from '@/lib/increment-team-score'
 import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
-import { isTeamToFacilitatorChatMessage } from '@/lib/chat-notifications'
 import {
   isLastQuestionInRound,
   quizRoundForQuestionIndex,
@@ -116,19 +114,18 @@ export function FacilitatorEventPage() {
   const { notify } = useNotification()
   const queryClient = useQueryClient()
 
-  const incomingTeamMessages = useMemo(() => {
-    const facilitatorName = name.trim()
-    if (!facilitatorName) return []
-    return messages.filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
-  }, [messages, name])
-
   const playTeamChatSound = useCallback(() => {
     playNewMessageSound()
   }, [])
 
-  const chatUnread = useFacilitatorChatUnread(messages, chatOpen, name)
-
-  useIncomingChatSound(incomingTeamMessages, chatHistoryReady, playTeamChatSound)
+  const { totalUnread: chatUnread, unreadByTeamId } = useFacilitatorChatInbox(
+    messages,
+    name,
+    chatOpen,
+    chatTeamId,
+    chatHistoryReady,
+    playTeamChatSound,
+  )
 
   useEffect(() => {
     installAudioUnlock('operational')
@@ -1627,11 +1624,8 @@ export function FacilitatorEventPage() {
         unreadCount={chatUnread}
         disabled={!controlsLive}
         onClick={() => {
+          setChatTeamId(null)
           setChatOpen(true)
-          if (!chatTeamId) {
-            const latest = [...messages].reverse().find((m) => m.team_id)
-            if (latest?.team_id) setChatTeamId(latest.team_id)
-          }
         }}
       />
       <FacilitatorChatDrawer
@@ -1641,6 +1635,7 @@ export function FacilitatorEventPage() {
         onActiveTeamIdChange={setChatTeamId}
         messages={messages}
         teams={teams}
+        unreadByTeamId={unreadByTeamId}
         sendDisabled={!controlsLive}
         onSend={async (text, teamId) => {
           if (!controlsLive) return
