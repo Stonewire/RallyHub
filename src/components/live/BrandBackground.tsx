@@ -25,7 +25,7 @@ export function BrandBackground({
 
   return (
     <div
-      className={`experience-scope relative min-h-screen overflow-hidden ${textTone} ${className ?? ''}`}
+      className={`experience-scope relative min-h-screen overflow-x-hidden ${textTone} ${className ?? ''}`}
       style={{ backgroundColor: base }}
     >
       <div className="pointer-events-none absolute inset-0">

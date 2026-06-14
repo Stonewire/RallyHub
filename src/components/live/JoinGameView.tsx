@@ -9,6 +9,7 @@ import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
+import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { ChallengeMediaCaptureFlow } from '@/components/live/ChallengeMediaCaptureFlow'
@@ -792,11 +793,11 @@ export function JoinGameView({
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
       body = (
-        <div className="mx-auto flex h-[calc(100dvh-3rem)] max-w-lg flex-col px-3 pt-2 pb-24">
+        <div className="mx-auto w-full max-w-lg px-3 pt-2 pb-24">
           <Button
             variant="outline"
             size="sm"
-            className="mb-3 w-fit shrink-0 border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+            className="mb-3 w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
             onClick={() => {
               setSelectedGame(null)
               setCaptureActive(false)
@@ -807,57 +808,30 @@ export function JoinGameView({
           </Button>
           {!canSubmit ? (
             <p
-              className="mb-3 shrink-0 text-center text-sm font-semibold"
+              className="mb-3 text-center text-sm font-semibold"
               style={{ color: accent }}
             >
               Event closed — no new submissions
             </p>
           ) : null}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {pending ? (
-            <div className="space-y-3 text-center">
-              <p className="text-lg font-semibold" style={{ color: accent }}>
-                Submission pending approval
-              </p>
-              {latestSub?.media_url ? (
-                latestSub.media_type === 'video' ? (
-                  <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
-                    <video
-                      src={latestSub.media_url}
-                      controls
-                      className={CHALLENGE_VIDEO_MEDIA_CLASS}
-                    />
-                  </div>
-                ) : (
-                  <img
-                    src={latestSub.media_url}
-                    alt=""
-                    className="w-full rounded-lg opacity-90"
-                  />
-                )
-              ) : null}
-              <Button
-                className="w-full border-white/30 bg-white/10 text-white"
-                variant="outline"
-                disabled={cancelling}
-                onClick={() =>
-                  latestSub && void cancelPendingSubmission(latestSub.id)
-                }
-              >
-                {cancelling ? 'Cancelling…' : 'Cancel Submission'}
-              </Button>
-              <p className="text-xs text-white/60">
-                Cancel to retake this challenge from scratch
-              </p>
-            </div>
+          {pending && latestSub ? (
+            <OpenGameChallengeReview
+              game={selectedGame}
+              submission={latestSub}
+              accentColor={accent}
+              cancelling={cancelling}
+              onCancel={() => void cancelPendingSubmission(latestSub.id)}
+            />
           ) : submitDone ? (
             <p className="text-center text-lg font-semibold" style={{ color: accent }}>
               Submitted! Waiting for approval…
             </p>
-          ) : locked ? (
-            <p className="text-center opacity-70">
-              This challenge is closed ({latestSub?.status})
-            </p>
+          ) : locked && latestSub ? (
+            <OpenGameChallengeReview
+              game={selectedGame}
+              submission={latestSub}
+              accentColor={accent}
+            />
           ) : !canSubmit ? null : (
             <ChallengeMediaCaptureFlow
               title={selectedGame.name}
@@ -876,7 +850,6 @@ export function JoinGameView({
               onFileReady={(file) => void submitOpenGame(file)}
             />
           )}
-          </div>
         </div>
       )
     } else {
@@ -1315,7 +1288,7 @@ export function JoinGameView({
           )
         : null}
       {header}
-      <div className="flex-1 min-h-0">{body}</div>
+      <div className="w-full">{body}</div>
       {typeof document !== 'undefined' && !chatOpen && !captureActive && !selectedGame
         ? createPortal(
             <div
