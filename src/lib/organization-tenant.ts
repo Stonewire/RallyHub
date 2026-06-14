@@ -9,14 +9,14 @@ function firstRow<T>(data: T | T[] | null): T | null {
   return Array.isArray(data) ? (data[0] ?? null) : data
 }
 
-/** Single-org branding lookup (live panels, export). Replaces direct view SELECT. */
+/** Single-org branding lookup (live panels, export). Falls back to null on failure. */
 export async function fetchOrganizationTenantPublic(
   orgId: string,
 ): Promise<OrganizationTenantPublic | null> {
   const { data, error } = await supabase.rpc('get_organization_tenant_public', {
     p_org_id: orgId,
   })
-  if (error) throw error
+  if (error) return null
   return firstRow(data as OrganizationTenantPublic | OrganizationTenantPublic[] | null)
 }
 

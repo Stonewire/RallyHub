@@ -10,9 +10,9 @@
 |----------|-------|------|-------|----------|
 | Critical | 8 | 6 | 2 | 0 |
 | High | 17 | 7 | 10 | 0 |
-| Medium | 11 | 10 | 1 | 0 |
+| Medium | 11 | 9 | 2 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **29** | **13** | **0** |
+| **Total** | **42** | **28** | **14** | **0** |
 
 ---
 
@@ -59,7 +59,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 | M6 | Chat misses messages sent during a disconnect; duplicate listener forces full reloads | Medium | Realtime | Open |
 | M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Open |
 | M8 | Optimistic updates race the debounced full reload | Medium | Realtime | Open |
-| M9 | organization_tenant_public view allows full tenant enumeration | Medium | Security | Open |
+| M9 | Anon organizations_live_select allows full org enumeration (incl. tablet_password) | Medium | Security | Fixed |
 | M10 | Accessibility: overlays lack dialog semantics; meaningful images have empty alt | Medium | Accessibility | Open |
 | M11 | Uncompressed camera photos + silent admin upload failures + display layout shift | Medium | Performance / Uploads | Open |
 | L1 | Quiz can stall on active with zero named teams and a paused timer | Low | Quiz logic | Open |
@@ -447,14 +447,14 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 - **Breaks when:** Facilitator toggles show_scores at the moment a game edit triggers a reload; the toggle visibly reverts, then re-applies a second later.
 - **Recommended fix:** Merge reload results with pending local patches, or suppress reload-applied state for fields with in-flight writes (largely mitigated by fixing C8).
 
-### M9 — organization_tenant_public view allows full tenant enumeration
+### M9 — Anon organizations_live_select allows full org enumeration (including tablet_password)
 
-- **Status:** Open
+- **Status:** Fixed (038)
 - **Area:** Security
-- **References:** `supabase/migrations/008_tenant_subdomains.sql:54–67`
-- **Problem:** The view is granted to anon with no row filter and (as a default view) may bypass base-table RLS via owner privileges — exposing every org's subdomain, tablet_slug, and branding.
-- **Breaks when:** Anyone lists all tenant subdomains and tablet slugs in one query and probes each tenant's tablet page.
-- **Recommended fix:** Set `security_invoker = true` and route public lookups through the `resolve_tenant_by_host` RPC only.
+- **References:** `supabase/migrations/006_live_event.sql:105–113`, `supabase/migrations/038_org_view_tenant_rpcs.sql`
+- **Problem:** Migration 008 (intended view + lockdown) was never applied on production. Anon retained `organizations_live_select` (`using (true)`) plus `GRANT SELECT ON public.organizations TO anon`, exposing every org row including `tablet_password`, VAT, billing, and contact fields — not merely branding. The audit originally cited `organization_tenant_public`, which does not exist in the live database.
+- **Breaks when:** Anyone runs `SELECT * FROM organizations` with the anon key and harvests all tenant secrets and tablet passwords in one query.
+- **Recommended fix:** Drop `organizations_live_select`, revoke anon `SELECT` on `organizations`, and route live/tenant lookups through scoped SECURITY DEFINER RPCs (`get_organization_tenant_public`, `get_organization_tenant_by_subdomain`, `get_organizations_by_tablet_slug`, `resolve_tenant_by_host`) — implemented in 038.
 
 ### M10 — Accessibility: overlays lack dialog semantics; meaningful images have empty alt
 
@@ -523,7 +523,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 - **References:** `src/lib/tenant.ts:212–217`
 - **Problem:** No current callers, but any future anon/live usage would silently fail post-008 (no anon policy on the base table).
 - **Breaks when:** A future feature uses it on a live page and gets empty results.
-- **Recommended fix:** Delete it or reroute through organization_tenant_public / resolve_tenant_by_host.
+- **Recommended fix:** Delete it or reroute through `get_organization_tenant_by_subdomain` / `resolve_tenant_by_host` RPCs (038).
 
 ### L5 — Bingo tap optimistic state flickers before realtime confirms
 
