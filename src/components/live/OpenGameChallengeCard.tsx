@@ -1,6 +1,7 @@
 import { Camera, FileText, Video, type LucideIcon } from 'lucide-react'
 
 import { gamePointsDisplay } from '@/lib/live-event'
+import { isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 const STATUS_PENDING_BG = '#FDE047'
@@ -20,9 +21,9 @@ type OpenGameChallengeCardProps = {
   onSelect: () => void
 }
 
-function challengeTypeIcon(type: Tables<'games'>['type']): LucideIcon {
-  if (type === 'video') return Video
-  if (type === 'text') return FileText
+function challengeTypeIcon(game: Tables<'games'>): LucideIcon {
+  if (isTextGame(game)) return FileText
+  if (game.type === 'video') return Video
   return Camera
 }
 
@@ -71,7 +72,7 @@ export function OpenGameChallengeCard({
   const rejected = submissionStatus === 'rejected'
   const locked = approved || rejected
   const appearance = cardAppearance(submissionStatus, accentColor, onAccentColor)
-  const TypeIcon = challengeTypeIcon(game.type)
+  const TypeIcon = challengeTypeIcon(game)
   const isPending = submissionStatus === 'pending'
 
   return (

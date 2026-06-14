@@ -23,6 +23,32 @@ export function parseTextGameConfig(
   }
 }
 
+/** Open-stage text game: by type column or text answer config in jsonb. */
+export function isTextGame(
+  game: Pick<Tables<'games'>, 'type' | 'config'>,
+): boolean {
+  if (game.type === 'text') return true
+  const cfg = (game.config ?? {}) as GameConfig
+  if (cfg.text_answer_mode === 'choose_answer') {
+    return (cfg.text_options?.length ?? 0) >= 2
+  }
+  if (cfg.text_answer_mode === 'type_text') {
+    return (cfg.text_correct_answers ?? []).some((a) => a.length > 0)
+  }
+  if ((cfg.text_options?.length ?? 0) >= 2) return true
+  if ((cfg.text_correct_answers ?? []).some((a) => a.length > 0)) return true
+  return false
+}
+
+/** Prefer the live bundle copy so type/config updates apply after realtime reload. */
+export function resolveGameFromList(
+  games: Tables<'games'>[],
+  game: Tables<'games'> | null | undefined,
+): Tables<'games'> | null {
+  if (!game) return null
+  return games.find((g) => g.id === game.id) ?? game
+}
+
 /** Label shown for a team's text submission (typed text or chosen option). */
 export function textSubmissionDisplayLabel(
   game: Tables<'games'>,

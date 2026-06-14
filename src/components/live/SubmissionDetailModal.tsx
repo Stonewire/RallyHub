@@ -9,7 +9,7 @@ import {
 } from '@/lib/challenge-camera'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { parseTextGameConfig, textSubmissionDisplayLabel } from '@/lib/text-game'
+import { parseTextGameConfig, textSubmissionDisplayLabel, isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 type SubmissionDetailModalProps = {
@@ -139,7 +139,7 @@ export function SubmissionDetailModal({
           ) : (
             <p className="text-muted-foreground text-sm">No media attached</p>
           )}
-          {isText && textCfg && game?.type === 'text' ? (
+          {isText && textCfg && game && isTextGame(game) ? (
             <div className="border-border/80 mt-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
                 Reference for approval

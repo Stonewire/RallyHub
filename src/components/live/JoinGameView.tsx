@@ -71,6 +71,7 @@ import {
   activeSubmissionForGame,
 } from '@/lib/live-event'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
+import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
   roundIntroDisplay,
@@ -436,8 +437,8 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
 
-  async function submitTextGame(mediaUrl: string) {
-    if (!selectedGame || !event.id) return
+  async function submitTextGame(mediaUrl: string, game: Tables<'games'>) {
+    if (!event.id) return
     if (!canSubmit) {
       notify('This event is now closed')
       return
@@ -451,7 +452,7 @@ export function JoinGameView({
       const { error } = await supabase.from('submissions').insert({
         event_id: event.id,
         team_id: teamId,
-        game_id: selectedGame.id,
+        game_id: game.id,
         media_url: mediaUrl,
         media_type: 'text',
         status: 'pending',
@@ -472,8 +473,8 @@ export function JoinGameView({
     }
   }
 
-  async function submitOpenGame(file: File) {
-    if (!selectedGame || !event.id) return
+  async function submitOpenGame(file: File, game: Tables<'games'>) {
+    if (!event.id) return
     if (!canSubmit) {
       notify('This event is now closed')
       return
@@ -484,14 +485,14 @@ export function JoinGameView({
         'game-assets',
         `${event.id}/submissions/${teamId}/${Date.now()}`,
         file,
-        { mediaKind: selectedGame.type === 'video' ? 'video' : 'photo' },
+        { mediaKind: game.type === 'video' ? 'video' : 'photo' },
       )
       const { error } = await supabase.from('submissions').insert({
         event_id: event.id,
         team_id: teamId,
-        game_id: selectedGame.id,
+        game_id: game.id,
         media_url: url,
-        media_type: selectedGame.type === 'video' ? 'video' : 'photo',
+        media_type: game.type === 'video' ? 'video' : 'photo',
         status: 'pending',
       })
       if (error) throw error
@@ -819,11 +820,12 @@ export function JoinGameView({
   } else if (stage?.type === 'open') {
     const openGameIds = stage.gameIds ?? []
     const openGames = games.filter((g) => openGameIds.includes(g.id))
+    const activeOpenGame = resolveGameFromList(games, selectedGame)
 
     if (openGameIds.length > 0 && openGames.length === 0 && !selectedGame) {
       body = <GameUnavailableFallback />
-    } else if (selectedGame) {
-      const latestSub = activeSubmissionForGame(mySubs, selectedGame.id)
+    } else if (activeOpenGame) {
+      const latestSub = activeSubmissionForGame(mySubs, activeOpenGame.id)
       const pending = latestSub?.status === 'pending'
       const locked =
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
@@ -852,7 +854,7 @@ export function JoinGameView({
           ) : null}
           {pending && latestSub ? (
             <OpenGameChallengeReview
-              game={selectedGame}
+              game={activeOpenGame}
               submission={latestSub}
               accentColor={accent}
               cancelling={cancelling}
@@ -864,33 +866,33 @@ export function JoinGameView({
             </p>
           ) : locked && latestSub ? (
             <OpenGameChallengeReview
-              game={selectedGame}
+              game={activeOpenGame}
               submission={latestSub}
               accentColor={accent}
             />
-          ) : !canSubmit ? null : selectedGame.type === 'text' ? (
+          ) : !canSubmit ? null : isTextGame(activeOpenGame) ? (
             <OpenGameTextChallenge
-              game={selectedGame}
+              game={activeOpenGame}
               accentColor={accent}
               disabled={submitting}
-              onSubmit={(answer) => void submitTextGame(answer)}
+              onSubmit={(answer) => void submitTextGame(answer, activeOpenGame)}
             />
           ) : (
             <ChallengeMediaCaptureFlow
-              title={selectedGame.name}
-              description={selectedGame.description}
-              pointsLabel={gamePointsDisplay(selectedGame)}
-              coverUrl={selectedGame.cover_url}
+              title={activeOpenGame.name}
+              description={activeOpenGame.description}
+              pointsLabel={gamePointsDisplay(activeOpenGame)}
+              coverUrl={activeOpenGame.cover_url}
               accentColor={accent}
-              mediaType={selectedGame.type === 'video' ? 'video' : 'photo'}
+              mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
               config={
-                selectedGame.type === 'video'
-                  ? (selectedGame.config as GameConfig)
+                activeOpenGame.type === 'video'
+                  ? (activeOpenGame.config as GameConfig)
                   : undefined
               }
               disabled={submitting}
               onCaptureActiveChange={setCaptureActive}
-              onFileReady={(file) => void submitOpenGame(file)}
+              onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}
             />
           )}
         </div>
