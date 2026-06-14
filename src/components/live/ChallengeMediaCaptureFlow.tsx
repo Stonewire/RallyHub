@@ -156,9 +156,7 @@ export function ChallengeMediaCaptureFlow({
 
   function handleNativeSubmit() {
     if (!nativePreviewFile) return
-    // Pass the original native File unchanged — no re-encode or downscale.
     onFileReady(nativePreviewFile)
-    clearNativePreview()
   }
 
   const nativeAccept =

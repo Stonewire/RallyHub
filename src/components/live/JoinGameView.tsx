@@ -1,6 +1,6 @@
 import { LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
@@ -11,6 +11,7 @@ import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallba
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
+import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
@@ -166,7 +167,6 @@ export function JoinGameView({
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
   const [captureActive, setCaptureActive] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [submitDone, setSubmitDone] = useState(false)
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
@@ -437,6 +437,23 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
 
+  function beginOpenSubmit() {
+    flushSync(() => {
+      setSubmitting(true)
+      setCaptureActive(false)
+    })
+  }
+
+  function finishOpenSubmitSuccess() {
+    playSubmitSound()
+    notify('Submitted — waiting for approval')
+    flushSync(() => {
+      setSelectedGame(null)
+      setCaptureActive(false)
+      setSubmitting(false)
+    })
+  }
+
   async function submitTextGame(mediaUrl: string, game: Tables<'games'>) {
     if (!event.id) return
     if (!canSubmit) {
@@ -447,7 +464,7 @@ export function JoinGameView({
       notify('Enter or choose an answer first')
       return
     }
-    setSubmitting(true)
+    beginOpenSubmit()
     try {
       const { error } = await supabase.from('submissions').insert({
         event_id: event.id,
@@ -458,17 +475,9 @@ export function JoinGameView({
         status: 'pending',
       })
       if (error) throw error
-      playSubmitSound()
-      notify('Submitted — waiting for approval')
-      setSubmitDone(true)
-      window.setTimeout(() => {
-        setSelectedGame(null)
-        setSubmitDone(false)
-      }, 1500)
+      finishOpenSubmitSuccess()
     } catch {
       notify("Couldn't submit — tap to retry")
-      setSubmitDone(false)
-    } finally {
       setSubmitting(false)
     }
   }
@@ -479,7 +488,7 @@ export function JoinGameView({
       notify('This event is now closed')
       return
     }
-    setSubmitting(true)
+    beginOpenSubmit()
     try {
       const url = await uploadAsset(
         'game-assets',
@@ -496,21 +505,13 @@ export function JoinGameView({
         status: 'pending',
       })
       if (error) throw error
-      playSubmitSound()
-      notify('Submitted — waiting for approval')
-      setSubmitDone(true)
-      window.setTimeout(() => {
-        setSelectedGame(null)
-        setSubmitDone(false)
-      }, 1500)
+      finishOpenSubmitSuccess()
     } catch (err) {
       const msg =
         err instanceof Error && err.message.includes('must be')
           ? err.message
           : "Couldn't submit — tap to retry"
       notify(msg)
-      setSubmitDone(false)
-    } finally {
       setSubmitting(false)
     }
   }
@@ -563,7 +564,6 @@ export function JoinGameView({
       notify('Submission cancelled')
       setSelectedGame(null)
       setCaptureActive(false)
-      setSubmitDone(false)
     } finally {
       setCancelling(false)
     }
@@ -832,18 +832,19 @@ export function JoinGameView({
 
       body = (
         <div className="mx-auto w-full max-w-lg px-3 pt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="mb-3 w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
-            onClick={() => {
-              setSelectedGame(null)
-              setCaptureActive(false)
-              setSubmitDone(false)
-            }}
-          >
-            ← Back
-          </Button>
+          {!submitting ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-3 w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+              onClick={() => {
+                setSelectedGame(null)
+                setCaptureActive(false)
+              }}
+            >
+              ← Back
+            </Button>
+          ) : null}
           {!canSubmit ? (
             <p
               className="mb-3 text-center text-sm font-semibold"
@@ -852,7 +853,9 @@ export function JoinGameView({
               Event closed — no new submissions
             </p>
           ) : null}
-          {pending && latestSub ? (
+          {submitting ? (
+            <OpenGameSubmittingScreen accentColor={accent} />
+          ) : pending && latestSub ? (
             <OpenGameChallengeReview
               game={activeOpenGame}
               submission={latestSub}
@@ -860,10 +863,6 @@ export function JoinGameView({
               cancelling={cancelling}
               onCancel={() => void cancelPendingSubmission(latestSub.id)}
             />
-          ) : submitDone ? (
-            <p className="text-center text-lg font-semibold" style={{ color: accent }}>
-              Submitted! Waiting for approval…
-            </p>
           ) : locked && latestSub ? (
             <OpenGameChallengeReview
               game={activeOpenGame}
