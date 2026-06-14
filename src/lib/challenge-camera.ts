@@ -52,16 +52,44 @@ export function buildChallengeVideoConstraints(
 ): MediaStreamConstraints {
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: 1080, max: 1920 },
-    height: { ideal: 1920, max: 2560 },
+    width: { ideal: 1080, min: 720 },
+    height: { ideal: 1920, min: 1280 },
     aspectRatio: { ideal: 9 / 16 },
-    frameRate: { ideal: 30, max: 30 },
+    frameRate: { ideal: 30 },
     focusMode: 'continuous',
   }
 
   return {
     video,
     audio: withAudio,
+  }
+}
+
+/** Request the highest resolution the device exposes (portrait-oriented when applicable). */
+export async function applyMaxVideoTrackQuality(track: MediaStreamTrack): Promise<void> {
+  const caps = track.getCapabilities?.()
+  if (!caps) return
+
+  const maxW = caps.width?.max
+  const maxH = caps.height?.max
+  if (!maxW || !maxH) return
+
+  let targetWidth = maxW
+  let targetHeight = maxH
+  if (isPortraitDevice() && maxW > maxH) {
+    targetWidth = maxH
+    targetHeight = maxW
+  }
+
+  try {
+    await track.applyConstraints({
+      width: { ideal: targetWidth },
+      height: { ideal: targetHeight },
+      aspectRatio: { ideal: 9 / 16 },
+      frameRate: { ideal: 30 },
+    })
+  } catch {
+    // Keep negotiated stream settings.
   }
 }
 
@@ -87,8 +115,11 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
-  if (track && isPortraitDevice()) {
-    await tryPortraitConstraints(track)
+  if (track) {
+    await applyMaxVideoTrackQuality(track)
+    if (isPortraitDevice()) {
+      await tryPortraitConstraints(track)
+    }
   }
 
   return stream

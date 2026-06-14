@@ -18,7 +18,11 @@ import {
 } from '@/lib/live-event'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
-import { pickVideoRecorderMime, videoFileExtension } from '@/lib/video-recorder'
+import {
+  createVideoRecorder,
+  videoFileExtension,
+  videoMimeForRecorder,
+} from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
 
 type VideoChallengeCaptureProps = {
@@ -165,8 +169,8 @@ export function VideoChallengeCapture({
       return
     }
     try {
-      const mime = pickVideoRecorderMime()
-      const recorder = new MediaRecorder(streamRef.current, { mimeType: mime })
+      const recorder = createVideoRecorder(streamRef.current, maxSec)
+      const mime = videoMimeForRecorder(recorder)
       recorderRef.current = recorder
       chunksRef.current = []
       recorder.ondataavailable = (e) => {

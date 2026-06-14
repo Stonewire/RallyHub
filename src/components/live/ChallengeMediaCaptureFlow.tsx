@@ -5,7 +5,10 @@ import { ChallengeNativePreview } from '@/components/live/ChallengeNativePreview
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
 import { useNotification } from '@/contexts/notification-context'
-import { shouldUseNativeCamera } from '@/lib/capture-platform'
+import {
+  shouldUseNativePhotoCapture,
+  shouldUseNativeVideoCapture,
+} from '@/lib/capture-platform'
 import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
@@ -46,7 +49,10 @@ export function ChallengeMediaCaptureFlow({
   const [nativePreviewFile, setNativePreviewFile] = useState<File | null>(null)
   const [nativePreviewUrl, setNativePreviewUrl] = useState<string | null>(null)
 
-  const useNative = shouldUseNativeCamera()
+  const useNativePhoto = shouldUseNativePhotoCapture()
+  const useNativeVideo = shouldUseNativeVideoCapture()
+  const useNativeForMedia =
+    mediaType === 'photo' ? useNativePhoto : useNativeVideo
   const captureActive = captureOpen || nativePreviewFile !== null
 
   useEffect(() => {
@@ -123,7 +129,7 @@ export function ChallengeMediaCaptureFlow({
   }
 
   function handleBriefingStart() {
-    if (useNative) {
+    if (useNativeForMedia) {
       openNativeCamera()
       return
     }
@@ -160,7 +166,7 @@ export function ChallengeMediaCaptureFlow({
 
   return (
     <>
-      {useNative ? (
+      {useNativeForMedia ? (
         <input
           ref={nativeInputRef}
           type="file"
@@ -200,7 +206,7 @@ export function ChallengeMediaCaptureFlow({
         />
       ) : null}
 
-      {!useNative && captureOpen && mediaType === 'photo' ? (
+      {!useNativeForMedia && captureOpen && mediaType === 'photo' ? (
         <PhotoChallengeCapture
           accentColor={accentColor}
           disabled={disabled}
@@ -208,7 +214,7 @@ export function ChallengeMediaCaptureFlow({
           onFileReady={handleInAppFileReady}
         />
       ) : null}
-      {!useNative && captureOpen && mediaType === 'video' ? (
+      {!useNativeForMedia && captureOpen && mediaType === 'video' ? (
         <VideoChallengeCapture
           config={config}
           accentColor={accentColor}

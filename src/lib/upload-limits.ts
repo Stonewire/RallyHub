@@ -1,5 +1,5 @@
 export const UPLOAD_MAX_PHOTO_BYTES = 15 * 1024 * 1024
-export const UPLOAD_MAX_VIDEO_BYTES = 100 * 1024 * 1024
+export const UPLOAD_MAX_VIDEO_BYTES = 250 * 1024 * 1024
 export const UPLOAD_MAX_AUDIO_BYTES = 50 * 1024 * 1024
 
 export type UploadMediaKind = 'photo' | 'video' | 'audio' | 'logo'

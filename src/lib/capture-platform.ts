@@ -1,3 +1,5 @@
+import { canRecordVideoInBrowser } from '@/lib/video-recorder'
+
 /** Reliable iOS / iPadOS detection (includes iPadOS desktop Safari). */
 export function isIOSOrIPadOS(): boolean {
   if (typeof navigator === 'undefined') return false
@@ -20,7 +22,22 @@ export function hasGetUserMedia(): boolean {
   )
 }
 
-/** Native `<input capture>` on iOS/iPadOS; fallback when in-app camera unavailable. */
-export function shouldUseNativeCamera(): boolean {
+/** Native `<input capture>` for photos on iOS/iPadOS; fallback when in-app camera unavailable. */
+export function shouldUseNativePhotoCapture(): boolean {
   return isIOSOrIPadOS() || !hasGetUserMedia()
+}
+
+/**
+ * Native file input for video on iOS transcodes heavily (low bitrate / resolution).
+ * Prefer in-app MediaRecorder with explicit high bitrate when available.
+ */
+export function shouldUseNativeVideoCapture(): boolean {
+  if (!hasGetUserMedia()) return true
+  if (isIOSOrIPadOS()) return !canRecordVideoInBrowser()
+  return false
+}
+
+/** @deprecated Use shouldUseNativePhotoCapture / shouldUseNativeVideoCapture */
+export function shouldUseNativeCamera(): boolean {
+  return shouldUseNativePhotoCapture()
 }
