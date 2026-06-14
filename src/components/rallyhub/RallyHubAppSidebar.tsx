@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 
-import { RallyLogo } from '@/components/brand/RallyLogo'
+import { RallySidebarLogo } from '@/components/brand/RallyLogo'
 import {
   Sidebar,
   SidebarContent,
@@ -47,7 +47,7 @@ export function RallyHubAppSidebar() {
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
         <div className="group-data-[collapsible=icon]/sidebar:flex group-data-[collapsible=icon]/sidebar:justify-center">
-          <RallyLogo className="group-data-[collapsible=icon]/sidebar:!max-h-8 group-data-[collapsible=icon]/sidebar:!w-auto max-h-[52px] w-full max-w-[200px]" />
+          <RallySidebarLogo />
         </div>
       </SidebarHeader>
 
