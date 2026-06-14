@@ -5,6 +5,20 @@ import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const RELOAD_DEBOUNCE_MS = 280
+/** Recent submissions kept in the live bundle; scoring paths that need more query the DB directly. */
+const SUBMISSIONS_BUNDLE_LIMIT = 1000
+
+async function fetchEventSubmissions(eventId: string): Promise<Tables<'submissions'>[]> {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+    .limit(SUBMISSIONS_BUNDLE_LIMIT)
+
+  if (error) throw error
+  return data ?? []
+}
 
 async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
   const { data: event, error: eErr } = await supabase
@@ -50,13 +64,7 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
     games = data ?? []
   }
 
-  const { data: submissions, error: subErr } = await supabase
-    .from('submissions')
-    .select('*')
-    .eq('event_id', eventId)
-    .order('created_at', { ascending: false })
-
-  if (subErr) throw subErr
+  const submissions = await fetchEventSubmissions(eventId)
 
   return {
     event,
@@ -100,6 +108,27 @@ function mergeSubmission(
   return [row, ...subs]
 }
 
+function mergeGame(
+  games: Tables<'games'>[],
+  payload: { eventType: string; new: unknown; old: unknown },
+): Tables<'games'>[] {
+  if (payload.eventType === 'DELETE') {
+    const old = payload.old as Tables<'games'> | null
+    if (!old?.id || !games.some((g) => g.id === old.id)) return games
+    return games.filter((g) => g.id !== old.id)
+  }
+  const row = payload.new as Tables<'games'> | null
+  if (!row?.id) return games
+  const idx = games.findIndex((g) => g.id === row.id)
+  if (idx >= 0) {
+    if (games[idx] === row) return games
+    const next = [...games]
+    next[idx] = row
+    return next
+  }
+  return [...games, row]
+}
+
 export function useLiveEvent(eventId: string | undefined) {
   const [bundle, setBundle] = useState<LiveEventBundle | null>(null)
   const [loading, setLoading] = useState(true)
@@ -136,6 +165,11 @@ export function useLiveEvent(eventId: string | undefined) {
   const scheduleReloadRef = useRef(scheduleReload)
   scheduleReloadRef.current = scheduleReload
 
+  const eventGameIdsKey = (bundle?.games ?? [])
+    .map((g) => g.id)
+    .sort()
+    .join('|')
+
   useEffect(() => {
     void reload()
   }, [reload])
@@ -143,8 +177,7 @@ export function useLiveEvent(eventId: string | undefined) {
   useEffect(() => {
     if (!eventId) return
 
-    const channel = supabase
-      .channel(`live:event:${eventId}:bundle`)
+    const channel = supabase.channel(`live:event:${eventId}:bundle`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` },
@@ -206,22 +239,23 @@ export function useLiveEvent(eventId: string | undefined) {
           })
         },
       )
-      .on(
+
+    for (const gameId of eventGameIdsKey ? eventGameIdsKey.split('|') : []) {
+      channel.on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
-        () => scheduleReloadRef.current(),
+        { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+        (payload) => {
+          setBundle((b) => {
+            if (!b) return b
+            const games = mergeGame(b.games, payload)
+            if (games === b.games) return b
+            return { ...b, games }
+          })
+        },
       )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bingo_runs', filter: `event_id=eq.${eventId}` },
-        () => scheduleReloadRef.current(),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'games' },
-        () => scheduleReloadRef.current(),
-      )
-      .subscribe((status) => {
+    }
+
+    channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           if (reconnectRef.current) {
             clearTimeout(reconnectRef.current)
@@ -244,7 +278,7 @@ export function useLiveEvent(eventId: string | undefined) {
       if (reconnectRef.current) clearTimeout(reconnectRef.current)
       void supabase.removeChannel(channel)
     }
-  }, [eventId, channelCycle])
+  }, [eventId, channelCycle, eventGameIdsKey])
 
   const updateState = useCallback(
     async (patch: TablesUpdate<'event_state'>) => {
