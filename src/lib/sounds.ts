@@ -96,6 +96,35 @@ const primedElements = new WeakSet<HTMLAudioElement>()
 const primePromises = new WeakMap<HTMLAudioElement, Promise<void>>()
 
 let sharedAudioContext: AudioContext | null = null
+let audioUnlockListenersInstalled = false
+let audioUnlockScope: 'operational' | 'full' | null = null
+let lastUserGestureUnlockAt: number | null = null
+let userGestureUnlockCount = 0
+
+function msgSoundDebugSnapshot() {
+  const pool = pools.get('new-message') ?? []
+  let newMessagePrimedCount = 0
+  for (const el of pool) {
+    if (primedElements.has(el)) newMessagePrimedCount++
+  }
+  return {
+    installAudioUnlock: {
+      listenersInstalled: audioUnlockListenersInstalled,
+      scope: audioUnlockScope,
+      lastUserGestureUnlockAt,
+      msSinceLastGesture: lastUserGestureUnlockAt
+        ? Date.now() - lastUserGestureUnlockAt
+        : null,
+      userGestureUnlockCount,
+    },
+    htmlAudioUnlocked: {
+      operationalSoundsUnlocked,
+      celebrationSoundsUnlocked,
+      newMessagePoolPrimed: `${newMessagePrimedCount}/${pool.length}`,
+    },
+    audioContextState: getSharedAudioContext()?.state ?? 'none',
+  }
+}
 
 function getSharedAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -105,6 +134,12 @@ function getSharedAudioContext(): AudioContext | null {
   if (!Ctor) return null
   if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
     sharedAudioContext = new Ctor()
+    sharedAudioContext.addEventListener('statechange', () => {
+      console.log('[msg-sound] AudioContext statechange', {
+        state: sharedAudioContext?.state,
+        ...msgSoundDebugSnapshot(),
+      })
+    })
   }
   return sharedAudioContext
 }
@@ -230,6 +265,8 @@ export function unlockAudioFromUserGesture(scope: 'operational' | 'full' = 'full
   else unlockOperationalSounds()
   primeSharedAudioContext()
   void resumeSharedAudioContext()
+  lastUserGestureUnlockAt = Date.now()
+  userGestureUnlockCount += 1
 }
 
 /**
@@ -238,7 +275,14 @@ export function unlockAudioFromUserGesture(scope: 'operational' | 'full' = 'full
  */
 export function installAudioUnlock(scope: 'operational' | 'full' = 'full'): void {
   if (typeof window === 'undefined') return
-  const onFirstGesture = () => unlockAudioFromUserGesture(scope)
+  audioUnlockListenersInstalled = true
+  audioUnlockScope = scope
+  console.log('[msg-sound] installAudioUnlock registered', { scope })
+  const onFirstGesture = () => {
+    console.log('[msg-sound] installAudioUnlock — first user gesture', { scope })
+    unlockAudioFromUserGesture(scope)
+    console.log('[msg-sound] installAudioUnlock — unlock complete', msgSoundDebugSnapshot())
+  }
   window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true })
   window.addEventListener('touchend', onFirstGesture, { once: true, passive: true })
   window.addEventListener('click', onFirstGesture, { once: true, passive: true })
@@ -249,14 +293,44 @@ export function installAudioUnlock(scope: 'operational' | 'full' = 'full'): void
  * Resume the shared AudioContext and ensure pooled elements are primed before
  * event-driven playback (chat, push notifications, winner reveal).
  */
-export async function ensureAudioReady(celebration = false): Promise<void> {
+export async function ensureAudioReady(
+  celebration = false,
+  debug?: 'msg-sound',
+): Promise<void> {
+  if (debug === 'msg-sound') {
+    console.log('[msg-sound] ensureAudioReady start', msgSoundDebugSnapshot())
+  }
   if (celebration) unlockSounds()
   else unlockOperationalSounds()
-  await resumeSharedAudioContext()
+
+  const ctx = getSharedAudioContext()
+  const stateBeforeResume = ctx?.state ?? 'none'
+  const resumeCalled = stateBeforeResume === 'suspended'
+  let resumeError: unknown = null
+  if (ctx && ctx.state === 'suspended') {
+    try {
+      await ctx.resume()
+    } catch (err) {
+      resumeError = err
+    }
+  }
+  if (debug === 'msg-sound') {
+    console.log('[msg-sound] resume() in ensureAudioReady', {
+      stateBefore: stateBeforeResume,
+      resumeCalled,
+      stateAfter: getSharedAudioContext()?.state ?? 'none',
+      resumeError: resumeError instanceof Error ? resumeError.message : resumeError,
+    })
+  }
+
   const names = celebration
     ? [...OPERATIONAL_SOUND_NAMES, ...CELEBRATION_SOUND_NAMES]
     : OPERATIONAL_SOUND_NAMES
   await primePoolSoundNames(names)
+
+  if (debug === 'msg-sound') {
+    console.log('[msg-sound] ensureAudioReady complete', msgSoundDebugSnapshot())
+  }
 }
 
 function ensureElementPrimed(el: HTMLAudioElement) {
@@ -371,7 +445,62 @@ export function playNewSubmissionSound() {
 }
 
 export function playNewMessageSound() {
-  void ensureAudioReady(false).then(() => playSoundImmediate('new-message'))
+  void (async () => {
+    console.log('[msg-sound] playNewMessageSound start', msgSoundDebugSnapshot())
+
+    const ctxBefore = getSharedAudioContext()
+    const stateBefore = ctxBefore?.state ?? 'none'
+    console.log('[msg-sound] AudioContext BEFORE ensureAudioReady', { state: stateBefore })
+
+    await ensureAudioReady(false, 'msg-sound')
+
+    const ctxAfterEnsure = getSharedAudioContext()
+    const stateAfterEnsure = ctxAfterEnsure?.state ?? 'none'
+    console.log('[msg-sound] AudioContext AFTER ensureAudioReady', {
+      stateBefore,
+      stateAfter: stateAfterEnsure,
+      stillSuspended: stateAfterEnsure === 'suspended',
+      ...msgSoundDebugSnapshot(),
+    })
+
+    const el = prepareSoundElement('new-message')
+    if (!el) {
+      console.error('[msg-sound] play() not invoked — failed to acquire new-message element', {
+        ...msgSoundDebugSnapshot(),
+      })
+      return
+    }
+
+    const primed = primedElements.has(el)
+    console.log('[msg-sound] invoking HTMLAudioElement.play()', {
+      primed,
+      paused: el.paused,
+      muted: el.muted,
+      volume: el.volume,
+      readyState: el.readyState,
+      ...msgSoundDebugSnapshot(),
+    })
+
+    try {
+      await el.play()
+      scheduleTrimCap(el, 'new-message')
+      console.log('[msg-sound] play() succeeded', {
+        paused: el.paused,
+        currentTime: el.currentTime,
+      })
+    } catch (err) {
+      const stillSuspended = getSharedAudioContext()?.state === 'suspended'
+      console.error('[msg-sound] play() BLOCKED or threw', {
+        error: err instanceof Error ? err.message : String(err),
+        errorName: err instanceof Error ? err.name : undefined,
+        audioContextStillSuspended: stillSuspended,
+        ...msgSoundDebugSnapshot(),
+        iosIdleNote: stillSuspended
+          ? 'AudioContext is suspended — on iOS Safari resume() without a fresh user gesture often fails after idle; HTMLAudio play() may also be blocked independently of Web Audio.'
+          : undefined,
+      })
+    }
+  })()
 }
 
 /** Reuses the new-submission sound for generic push toasts. */

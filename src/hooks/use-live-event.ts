@@ -374,6 +374,12 @@ export function useChatMessages(eventId: string | undefined) {
         (payload) => {
           const row = payload.new as Tables<'chat_messages'>
           if (!row?.id) return
+          console.log('[msg-sound] chat_messages INSERT (realtime)', {
+            id: row.id,
+            team_id: row.team_id,
+            sender: row.sender,
+            event_id: row.event_id,
+          })
           setMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev
             return [...prev, row]

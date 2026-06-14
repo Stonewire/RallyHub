@@ -71,7 +71,7 @@ import {
   quizSubmissionMediaType,
   activeSubmissionForGame,
 } from '@/lib/live-event'
-import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
+import { isFacilitatorToTeamChatMessage, explainFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -227,6 +227,38 @@ export function JoinGameView({
       ),
     [visibleMessages, teamId, teamSenderName],
   )
+
+  const classifiedMessageIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    for (const m of messages) {
+      if (classifiedMessageIdsRef.current.has(m.id)) continue
+      classifiedMessageIdsRef.current.add(m.id)
+      const visibleToTeam = m.team_id == null || m.team_id === teamId
+      if (!visibleToTeam) {
+        console.log('[msg-sound] team device message classified', {
+          id: m.id,
+          team_id: m.team_id,
+          sender: m.sender,
+          isIncomingFacilitator: false,
+          reason: `not visible to this team (myTeamId=${teamId})`,
+        })
+        continue
+      }
+      const { isIncoming, reason } = explainFacilitatorToTeamChatMessage(
+        m,
+        teamId,
+        teamSenderName,
+      )
+      console.log('[msg-sound] team device message classified', {
+        id: m.id,
+        team_id: m.team_id,
+        sender: m.sender,
+        teamSenderName,
+        isIncomingFacilitator: isIncoming,
+        reason,
+      })
+    }
+  }, [messages, teamId, teamSenderName])
 
   const playIncomingChatSound = useCallback(() => {
     playNewMessageSound()
