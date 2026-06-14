@@ -25,9 +25,9 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Natural document scroll on participant / display experiences */
+  /* Participant / display experiences — single document scroll (no smooth hijack). */
   html:has(.experience-scope) {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   .experience-scope .xp-challenge-title {

@@ -24,25 +24,29 @@ export function BrandBackground({
   const textTone = displayTextClass(event)
 
   return (
-    <div
-      className={`experience-scope relative min-h-screen overflow-x-hidden ${textTone} ${className ?? ''}`}
-      style={{ backgroundColor: base }}
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="animate-blob absolute -left-[20%] top-[-10%] size-[70vmax] rounded-full blur-[120px]"
-          style={{ background: primary, opacity }}
-        />
-        <div
-          className="animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] size-[65vmax] rounded-full blur-[120px]"
-          style={{ background: accent, opacity }}
-        />
-        <div
-          className="animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] size-[60vmax] rounded-full blur-[120px]"
-          style={{ background: primary, opacity: opacity * 0.85 }}
-        />
+    <div className={`experience-scope relative ${textTone} ${className ?? ''}`}>
+      {/* Fixed backdrop — fills viewport without inflating scroll height. */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ backgroundColor: base }}
+        aria-hidden
+      >
+        <div className="absolute inset-0 overflow-hidden">
+          <div
+            className="animate-blob absolute -left-[20%] top-[-10%] size-[70vmax] rounded-full blur-[120px]"
+            style={{ background: primary, opacity }}
+          />
+          <div
+            className="animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] size-[65vmax] rounded-full blur-[120px]"
+            style={{ background: accent, opacity }}
+          />
+          <div
+            className="animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] size-[60vmax] rounded-full blur-[120px]"
+            style={{ background: primary, opacity: opacity * 0.85 }}
+          />
+        </div>
       </div>
-      <div className="relative z-10">{children}</div>
+      <div className="relative">{children}</div>
       <style>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }

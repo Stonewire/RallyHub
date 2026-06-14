@@ -1252,12 +1252,44 @@ export function JoinGameView({
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
 
+  const showChatFab = !chatOpen && !captureActive && !selectedGame
+
+  // Keep document scroll anchored at top when switching challenge views.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual'
+    }
+    const scrollTop = () => {
+      window.scrollTo(0, 0)
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    }
+    scrollTop()
+    return () => {
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'auto'
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [selectedGame?.id, stage?.type, state.current_stage_index])
+
   return (
     <BrandBackground
       event={event}
       organization={organization}
       variant="default"
-      className="pt-3 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]"
+      className={
+        showChatFab
+          ? 'pt-3 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]'
+          : 'pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]'
+      }
     >
       <NotificationAccentSync color={accent} />
       {showWinner && winnerTeam && typeof document !== 'undefined'
