@@ -1,5 +1,5 @@
 import { LogOut, MessageCircle, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -23,6 +23,7 @@ import {
   NotificationAccentSync,
   useNotification,
 } from '@/contexts/notification-context'
+import { useIncomingChatNotifications } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
@@ -85,6 +86,7 @@ import {
   playQuizWrongSound,
   playSubmitSound,
   playWinnerSound,
+  unlockOperationalSounds,
   unlockSounds,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
@@ -102,6 +104,7 @@ type JoinGameViewProps = {
   teamId: string
   team: Tables<'teams'>
   messages: Tables<'chat_messages'>[]
+  messagesLoaded: boolean
   onSendMessage: (text: string) => void
   announcement: string | null
   onDismissAnnouncement: () => void
@@ -116,6 +119,7 @@ export function JoinGameView({
   teamId,
   team,
   messages,
+  messagesLoaded,
   onSendMessage,
   announcement,
   onDismissAnnouncement,
@@ -173,7 +177,6 @@ export function JoinGameView({
   const [cancelling, setCancelling] = useState(false)
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
-  const [unreadMessages, setUnreadMessages] = useState(0)
 
   const breakSyncRef = useRef(
     createThrottledTimerSync(() => {
@@ -212,11 +215,31 @@ export function JoinGameView({
     [messages, teamId],
   )
   const teamSenderName = (team.name ?? 'Team').trim()
-  const seenIncomingMessageIdsRef = useRef<Set<string> | null>(null)
+
+  const incomingFacilitatorIds = useMemo(
+    () =>
+      visibleMessages
+        .filter((m) => isFacilitatorToTeamChatMessage(m, teamId, teamSenderName))
+        .map((m) => m.id),
+    [visibleMessages, teamId, teamSenderName],
+  )
+
+  const playIncomingChatSound = useCallback(() => {
+    unlockOperationalSounds()
+    playNewMessageSound()
+  }, [])
+
+  const unreadMessages = useIncomingChatNotifications(
+    incomingFacilitatorIds,
+    chatOpen,
+    messagesLoaded,
+    playIncomingChatSound,
+  )
 
   // Team devices need celebration audio unlocked before a bingo win (which is not
   // triggered by a direct tap). Prime the full pool on the first interaction.
   useEffect(() => {
+    unlockOperationalSounds()
     const unlock = () => unlockSounds()
     window.addEventListener('pointerdown', unlock, { once: true, passive: true })
     window.addEventListener('touchend', unlock, { once: true, passive: true })
@@ -314,31 +337,6 @@ export function JoinGameView({
     bingoPickOptimisticRef.current = undefined
     setBingoPick(null)
   }, [stage?.type, stage?.gameId, state.current_question_index, state.bingo_state])
-
-  useEffect(() => {
-    if (chatOpen) setUnreadMessages(0)
-  }, [chatOpen])
-
-  useEffect(() => {
-    if (!teamId) return
-    const incoming = visibleMessages
-      .filter((m) => isFacilitatorToTeamChatMessage(m, teamId, teamSenderName))
-      .map((m) => m.id)
-    if (seenIncomingMessageIdsRef.current === null) {
-      seenIncomingMessageIdsRef.current = new Set(incoming)
-      return
-    }
-    let newCount = 0
-    for (const id of incoming) {
-      if (seenIncomingMessageIdsRef.current.has(id)) continue
-      seenIncomingMessageIdsRef.current.add(id)
-      newCount++
-      playNewMessageSound()
-    }
-    if (newCount > 0 && !chatOpen) {
-      setUnreadMessages((n) => n + newCount)
-    }
-  }, [visibleMessages, teamId, teamSenderName, chatOpen])
 
   async function handleExitTeam() {
     if (!organization?.id) return
@@ -1321,7 +1319,7 @@ export function JoinGameView({
         : null}
       {header}
       <div className="w-full">{body}</div>
-      {typeof document !== 'undefined' && !chatOpen && !captureActive && !selectedGame
+      {typeof document !== 'undefined' && !chatOpen && !captureActive
         ? createPortal(
             <div
               className="fixed left-4 z-[9999]"
@@ -1334,7 +1332,6 @@ export function JoinGameView({
                 style={{ backgroundColor: accent, color: onAccent }}
                 onClick={() => {
                   setChatOpen(true)
-                  setUnreadMessages(0)
                 }}
                 aria-label="Open chat"
               >

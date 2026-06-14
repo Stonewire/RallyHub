@@ -1,5 +1,5 @@
 import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -8,11 +8,7 @@ import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/Fa
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
-import {
-  FacilitatorChatBubble,
-  FacilitatorChatDrawer,
-  useFacilitatorChatUnread,
-} from '@/components/live/FacilitatorChatDrawer'
+import { FacilitatorChatBubble, FacilitatorChatDrawer } from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
@@ -22,6 +18,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
+import { useIncomingChatNotifications } from '@/hooks/use-chat-notifications'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
@@ -74,6 +71,7 @@ import {
   playAnnouncementSound,
   playNewMessageSound,
   playNewSubmissionSound,
+  unlockOperationalSounds,
 } from '@/lib/sounds'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
@@ -87,7 +85,7 @@ export function FacilitatorEventPage() {
   const [name, setName] = useState(() => localStorage.getItem(FACILITATOR_NAME_KEY) ?? '')
   const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
-  const { messages, sendMessage } = useChatMessages(eventId)
+  const { messages, messagesLoaded, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)
 
@@ -111,7 +109,31 @@ export function FacilitatorEventPage() {
   const bingoWinHaltRef = useRef(false)
   const { notify } = useNotification()
   const queryClient = useQueryClient()
-  const chatUnread = useFacilitatorChatUnread(messages, chatOpen)
+
+  const incomingTeamMessageIds = useMemo(() => {
+    const facilitatorName = name.trim()
+    if (!facilitatorName) return []
+    return messages
+      .filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
+      .map((m) => m.id)
+  }, [messages, name])
+
+  const playTeamChatSound = useCallback(() => {
+    unlockOperationalSounds()
+    playNewMessageSound()
+  }, [])
+
+  const chatUnread = useIncomingChatNotifications(
+    incomingTeamMessageIds,
+    chatOpen,
+    messagesLoaded,
+    playTeamChatSound,
+  )
+
+  useEffect(() => {
+    unlockOperationalSounds()
+  }, [])
+
   const controlsLiveRef = useRef(false)
 
   const stages = useMemo(
@@ -317,7 +339,6 @@ export function FacilitatorEventPage() {
   )
 
   const pendingSubmissionCountRef = useRef<number>(0)
-  const seenTeamMessageIdsRef = useRef<Set<string> | null>(null)
 
   useEffect(() => {
     const pendingCount = liveSubmissions
@@ -336,23 +357,6 @@ export function FacilitatorEventPage() {
     }
     pendingSubmissionCountRef.current = pendingCount
   }, [liveSubmissions])
-
-  useEffect(() => {
-    if (!bundle || !name.trim()) return
-    const facilitatorName = name.trim()
-    const incoming = messages
-      .filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
-      .map((m) => m.id)
-    if (seenTeamMessageIdsRef.current === null) {
-      seenTeamMessageIdsRef.current = new Set(incoming)
-      return
-    }
-    for (const id of incoming) {
-      if (seenTeamMessageIdsRef.current.has(id)) continue
-      seenTeamMessageIdsRef.current.add(id)
-      playNewMessageSound()
-    }
-  }, [messages, name, bundle])
 
   if (namePrompt) {
     return (
@@ -1630,7 +1634,8 @@ export function FacilitatorEventPage() {
         sendDisabled={!controlsLive}
         onSend={async (text, teamId) => {
           if (!controlsLive) return
-          await sendMessage(name, text, teamId)
+          unlockOperationalSounds()
+          await sendMessage(name.trim(), text, teamId)
         }}
       />
 

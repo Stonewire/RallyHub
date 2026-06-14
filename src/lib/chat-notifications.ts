@@ -1,13 +1,17 @@
 import type { Tables } from '@/types/helpers'
 
+function normalizeSender(sender: string | null | undefined): string {
+  return (sender ?? '').trim().toLowerCase()
+}
+
 /** Team → facilitator message in a team thread (not sent by the facilitator). */
 export function isTeamToFacilitatorChatMessage(
   message: Tables<'chat_messages'>,
   facilitatorName: string,
 ): boolean {
   if (!message.team_id) return false
-  const sender = (message.sender ?? '').trim()
-  const facilitator = facilitatorName.trim()
+  const sender = normalizeSender(message.sender)
+  const facilitator = normalizeSender(facilitatorName)
   return Boolean(sender && facilitator && sender !== facilitator)
 }
 
@@ -18,7 +22,7 @@ export function isFacilitatorToTeamChatMessage(
   teamSenderName: string,
 ): boolean {
   if (message.team_id !== teamId) return false
-  const sender = (message.sender ?? '').trim()
-  const teamName = teamSenderName.trim()
-  return Boolean(sender && teamName && sender !== teamName)
+  const sender = normalizeSender(message.sender)
+  const team = normalizeSender(teamSenderName)
+  return Boolean(sender && team && sender !== team)
 }

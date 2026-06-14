@@ -304,9 +304,14 @@ export function useLiveEvent(eventId: string | undefined) {
 
 export function useChatMessages(eventId: string | undefined) {
   const [messages, setMessages] = useState<Tables<'chat_messages'>[]>([])
+  const [messagesLoaded, setMessagesLoaded] = useState(false)
 
   const reload = useCallback(async () => {
-    if (!eventId) return
+    if (!eventId) {
+      setMessages([])
+      setMessagesLoaded(false)
+      return
+    }
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
@@ -314,6 +319,7 @@ export function useChatMessages(eventId: string | undefined) {
       .order('created_at', { ascending: true })
     if (error) throw error
     setMessages(data ?? [])
+    setMessagesLoaded(true)
   }, [eventId])
 
   useEffect(() => {
@@ -322,6 +328,9 @@ export function useChatMessages(eventId: string | undefined) {
 
   useEffect(() => {
     if (!eventId) return
+
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+
     const channel = supabase
       .channel(`chat:${eventId}`)
       .on(
@@ -329,22 +338,41 @@ export function useChatMessages(eventId: string | undefined) {
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
         (payload) => {
           const row = payload.new as Tables<'chat_messages'>
-          if (row) setMessages((m) => [...m, row])
+          if (!row?.id) return
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev
+            return [...prev, row]
+          })
+          setMessagesLoaded(true)
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void reload()
+          return
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          if (reconnectTimer) clearTimeout(reconnectTimer)
+          reconnectTimer = setTimeout(() => void reload(), 600)
+        }
+      })
+
     return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer)
       void supabase.removeChannel(channel)
     }
-  }, [eventId])
+  }, [eventId, reload])
 
   const sendMessage = useCallback(
     async (sender: string, message: string, teamId?: string | null) => {
       if (!eventId) return
+      const trimmedSender = sender.trim()
+      const trimmedMessage = message.trim()
+      if (!trimmedSender || !trimmedMessage) return
       const { error } = await supabase.from('chat_messages').insert({
         event_id: eventId,
-        sender,
-        message,
+        sender: trimmedSender,
+        message: trimmedMessage,
         team_id: teamId ?? null,
       })
       if (error) throw error
@@ -352,7 +380,7 @@ export function useChatMessages(eventId: string | undefined) {
     [eventId],
   )
 
-  return { messages, sendMessage, reload }
+  return { messages, messagesLoaded, sendMessage, reload }
 }
 
 export function useFacilitatorPresence(eventId: string | undefined, name: string | null) {

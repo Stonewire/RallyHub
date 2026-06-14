@@ -39,7 +39,7 @@ export function JoinEventPage() {
   const tabletSlug = searchParams.get('slug')?.trim() ?? ''
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
-  const { messages, sendMessage } = useChatMessages(eventId)
+  const { messages, messagesLoaded, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [teamId, setTeamId] = useState<string | null>(() =>
@@ -206,8 +206,9 @@ export function JoinEventPage() {
         teamId={teamId}
         team={teamForView}
         messages={messages}
+        messagesLoaded={messagesLoaded}
         onSendMessage={(text) =>
-          void sendMessage(teamForView.name ?? 'Team', text, teamId)
+          void sendMessage((teamForView.name ?? 'Team').trim(), text, teamId)
         }
         announcement={announcement}
         onDismissAnnouncement={() => setAnnouncement(null)}

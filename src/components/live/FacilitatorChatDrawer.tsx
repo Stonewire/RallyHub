@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Tables } from '@/types/helpers'
 
+import { isTeamToFacilitatorChatMessage } from '@/lib/chat-notifications'
+
 export function useFacilitatorChatUnread(
   messages: Tables<'chat_messages'>[],
   chatOpen: boolean,
+  facilitatorName: string,
 ) {
   const [lastReadAt, setLastReadAt] = useState(() => Date.now())
 
@@ -16,12 +19,13 @@ export function useFacilitatorChatUnread(
     if (chatOpen) setLastReadAt(Date.now())
   }, [chatOpen, messages.length])
 
-  return useMemo(() => {
-    return messages.filter((m) => {
-      if (!m.team_id) return false
-      return new Date(m.created_at).getTime() > lastReadAt
-    }).length
-  }, [messages, lastReadAt])
+  const trimmedName = facilitatorName.trim()
+
+  return messages.filter((m) => {
+    if (!trimmedName) return false
+    if (!isTeamToFacilitatorChatMessage(m, trimmedName)) return false
+    return new Date(m.created_at).getTime() > lastReadAt
+  }).length
 }
 
 export function FacilitatorChatBubble({
