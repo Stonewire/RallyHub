@@ -3,7 +3,11 @@ import { X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
-import { CHALLENGE_PREVIEW_MEDIA_CLASS } from '@/lib/challenge-camera'
+import {
+  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CLASS,
+} from '@/lib/challenge-camera'
 
 type ChallengeNativePreviewProps = {
   mediaType: 'photo' | 'video'
@@ -44,23 +48,25 @@ export function ChallengeNativePreview({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <div className="xp-media-frame mx-auto flex w-full max-w-lg items-center justify-center bg-black">
-          {mediaType === 'photo' ? (
+        {mediaType === 'photo' ? (
+          <div className="xp-media-frame mx-auto flex w-full max-w-lg items-center justify-center bg-black">
             <img
               src={previewUrl}
               alt="Preview"
               className={CHALLENGE_PREVIEW_MEDIA_CLASS}
             />
-          ) : (
+          </div>
+        ) : (
+          <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
             <video
               src={previewUrl}
               controls
               playsInline
               preload="auto"
-              className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CLASS}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div

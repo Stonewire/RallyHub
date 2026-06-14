@@ -6,7 +6,8 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CLASS,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
@@ -251,7 +252,7 @@ export function VideoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <div className="xp-media-frame mx-auto flex w-full max-w-lg flex-col items-center justify-center bg-black">
+        <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
@@ -259,18 +260,18 @@ export function VideoChallengeCapture({
               controls
               playsInline
               preload="auto"
-              className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CLASS}
             >
               <source src={reviewUrl} type={recordedFile.type || undefined} />
             </video>
           ) : (
-            <div className="relative flex w-full items-center justify-center">
+            <>
               <video
                 ref={previewRef}
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+                className={CHALLENGE_VIDEO_MEDIA_CLASS}
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (
@@ -284,22 +285,22 @@ export function VideoChallengeCapture({
                   Flip
                 </button>
               ) : null}
-            </div>
+              {recording ? (
+                <div className="absolute inset-x-0 bottom-0 space-y-2 bg-black/60 px-4 py-4 text-center backdrop-blur-sm">
+                  <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
+                  <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-12 w-full border-white/30 bg-white/10 text-base text-white"
+                    onClick={() => recorderRef.current?.stop()}
+                  >
+                    Stop recording
+                  </Button>
+                </div>
+              ) : null}
+            </>
           )}
-          {recording ? (
-            <div className="space-y-2 border-t border-white/10 px-4 py-4 text-center">
-              <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
-              <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-12 w-full border-white/30 bg-white/10 text-base text-white"
-                onClick={() => recorderRef.current?.stop()}
-              >
-                Stop recording
-              </Button>
-            </div>
-          ) : null}
         </div>
       </div>
 

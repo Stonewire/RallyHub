@@ -3,6 +3,10 @@ import { X } from 'lucide-react'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
+import {
+  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CLASS,
+} from '@/lib/challenge-camera'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Tables } from '@/types/helpers'
@@ -104,11 +108,13 @@ export function SubmissionDetailModal({
         <div className="p-4">
           {sub.media_url ? (
             sub.media_type === 'video' ? (
-              <video
-                src={sub.media_url}
-                controls
-                className="max-h-[50vh] w-full rounded-lg bg-black"
-              />
+              <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
+                <video
+                  src={sub.media_url}
+                  controls
+                  className={CHALLENGE_VIDEO_MEDIA_CLASS}
+                />
+              </div>
             ) : (
               <img
                 src={sub.media_url}

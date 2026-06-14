@@ -4,9 +4,16 @@ import { getTeamMediaStream } from '@/lib/media-permissions'
 
 export type ChallengeFacingMode = 'environment' | 'user'
 
-/** Portrait-first preview / review — full frame, no square crop. */
+/** Portrait photo preview — flexible height, no fixed crop. */
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
+
+/** Fixed 9:16 portrait frame for video capture and review. */
+export const CHALLENGE_VIDEO_FRAME_CLASS =
+  'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
+
+/** Fill the 9:16 frame; minor edge crop if sensor aspect differs slightly. */
+export const CHALLENGE_VIDEO_MEDIA_CLASS = 'size-full object-cover'
 
 type ImageCaptureInstance = {
   takePhoto: (settings?: PhotoSettings) => Promise<Blob>

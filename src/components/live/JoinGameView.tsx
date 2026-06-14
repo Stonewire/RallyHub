@@ -87,6 +87,10 @@ import {
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
+import {
+  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CLASS,
+} from '@/lib/challenge-camera'
 import { uploadAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
@@ -816,11 +820,13 @@ export function JoinGameView({
               </p>
               {latestSub?.media_url ? (
                 latestSub.media_type === 'video' ? (
-                  <video
-                    src={latestSub.media_url}
-                    controls
-                    className="w-full rounded-lg opacity-90"
-                  />
+                  <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
+                    <video
+                      src={latestSub.media_url}
+                      controls
+                      className={CHALLENGE_VIDEO_MEDIA_CLASS}
+                    />
+                  </div>
                 ) : (
                   <img
                     src={latestSub.media_url}
@@ -1108,11 +1114,13 @@ export function JoinGameView({
           />
           {parsed.mediaProofUrl && bonusRevealed ? (
             bonusChallenge.mediaType === 'video' ? (
-              <video
-                src={parsed.mediaProofUrl}
-                controls
-                className="mt-4 w-full rounded-lg"
-              />
+              <div className={`mt-4 ${CHALLENGE_VIDEO_FRAME_CLASS}`}>
+                <video
+                  src={parsed.mediaProofUrl}
+                  controls
+                  className={CHALLENGE_VIDEO_MEDIA_CLASS}
+                />
+              </div>
             ) : (
               <img
                 src={parsed.mediaProofUrl}
