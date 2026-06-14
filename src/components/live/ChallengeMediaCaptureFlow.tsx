@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ChallengeCaptureBriefing } from '@/components/live/ChallengeCaptureBriefing'
+import { ChallengeNativePreview } from '@/components/live/ChallengeNativePreview'
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
+import { useNotification } from '@/contexts/notification-context'
+import { shouldUseNativeCamera } from '@/lib/capture-platform'
+import {
+  formatVideoDurationLabel,
+  getMaxVideoDurationSeconds,
+} from '@/lib/live-event'
+import { playShutterSound } from '@/lib/sounds'
+import { validateUploadFileSize } from '@/lib/upload-limits'
 import type { GameConfig } from '@/types/game-config'
 
 type ChallengeMediaCaptureFlowProps = {
@@ -30,27 +39,144 @@ export function ChallengeMediaCaptureFlow({
   onFileReady,
   onCaptureActiveChange,
 }: ChallengeMediaCaptureFlowProps) {
+  const { notify } = useNotification()
+  const nativeInputRef = useRef<HTMLInputElement>(null)
+  const nativePreviewUrlRef = useRef<string | null>(null)
   const [captureOpen, setCaptureOpen] = useState(false)
+  const [nativePreviewFile, setNativePreviewFile] = useState<File | null>(null)
+  const [nativePreviewUrl, setNativePreviewUrl] = useState<string | null>(null)
+
+  const useNative = shouldUseNativeCamera()
+  const captureActive = captureOpen || nativePreviewFile !== null
 
   useEffect(() => {
-    onCaptureActiveChange?.(captureOpen)
-  }, [captureOpen, onCaptureActiveChange])
+    onCaptureActiveChange?.(captureActive)
+  }, [captureActive, onCaptureActiveChange])
 
   useEffect(() => {
-    return () => onCaptureActiveChange?.(false)
+    return () => {
+      onCaptureActiveChange?.(false)
+      revokeNativePreviewUrl()
+    }
   }, [onCaptureActiveChange])
 
-  function closeCapture() {
+  function revokeNativePreviewUrl() {
+    if (nativePreviewUrlRef.current) {
+      URL.revokeObjectURL(nativePreviewUrlRef.current)
+      nativePreviewUrlRef.current = null
+    }
+  }
+
+  function clearNativePreview() {
+    revokeNativePreviewUrl()
+    setNativePreviewFile(null)
+    setNativePreviewUrl(null)
+  }
+
+  function openNativeCamera() {
+    nativeInputRef.current?.click()
+  }
+
+  function validateVideoDuration(file: File): Promise<boolean> {
+    const maxSec = getMaxVideoDurationSeconds(config)
+    return new Promise((resolve) => {
+      const vid = document.createElement('video')
+      vid.preload = 'metadata'
+      vid.onloadedmetadata = () => {
+        URL.revokeObjectURL(vid.src)
+        if (vid.duration > maxSec + 0.5) {
+          notify(`Video must be ${formatVideoDurationLabel(maxSec)} or less`)
+          resolve(false)
+        } else {
+          resolve(true)
+        }
+      }
+      vid.onerror = () => {
+        URL.revokeObjectURL(vid.src)
+        notify('Could not read video — try a different file')
+        resolve(false)
+      }
+      vid.src = URL.createObjectURL(file)
+    })
+  }
+
+  async function handleNativeFile(file: File) {
+    const kind = mediaType === 'photo' ? 'photo' : 'video'
+    const sizeError = validateUploadFileSize(file, kind)
+    if (sizeError) {
+      notify(sizeError)
+      return
+    }
+
+    if (mediaType === 'video') {
+      const ok = await validateVideoDuration(file)
+      if (!ok) return
+    }
+
+    if (mediaType === 'photo') playShutterSound()
+
+    revokeNativePreviewUrl()
+    const url = URL.createObjectURL(file)
+    nativePreviewUrlRef.current = url
+    setNativePreviewFile(file)
+    setNativePreviewUrl(url)
+  }
+
+  function handleBriefingStart() {
+    if (useNative) {
+      openNativeCamera()
+      return
+    }
+    setCaptureOpen(true)
+  }
+
+  function closeInAppCapture() {
     setCaptureOpen(false)
   }
 
-  function handleFileReady(file: File) {
+  function handleInAppFileReady(file: File) {
     onFileReady(file)
     setCaptureOpen(false)
   }
 
+  function handleNativeRetake() {
+    clearNativePreview()
+    openNativeCamera()
+  }
+
+  function handleNativeClose() {
+    clearNativePreview()
+  }
+
+  function handleNativeSubmit() {
+    if (!nativePreviewFile) return
+    // Pass the original native File unchanged — no re-encode or downscale.
+    onFileReady(nativePreviewFile)
+    clearNativePreview()
+  }
+
+  const nativeAccept =
+    mediaType === 'photo' ? 'image/*' : 'video/quicktime,video/mp4,video/*'
+
   return (
     <>
+      {useNative ? (
+        <input
+          ref={nativeInputRef}
+          type="file"
+          accept={nativeAccept}
+          {...(mediaType === 'photo'
+            ? { capture: 'environment' as const }
+            : { capture: true })}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (f) void handleNativeFile(f)
+          }}
+        />
+      ) : null}
+
       <ChallengeCaptureBriefing
         title={title}
         description={description}
@@ -59,23 +185,36 @@ export function ChallengeMediaCaptureFlow({
         accentColor={accentColor}
         mediaType={mediaType}
         disabled={disabled}
-        onStart={() => setCaptureOpen(true)}
+        onStart={handleBriefingStart}
       />
-      {captureOpen && mediaType === 'photo' ? (
+
+      {nativePreviewFile && nativePreviewUrl ? (
+        <ChallengeNativePreview
+          mediaType={mediaType}
+          previewUrl={nativePreviewUrl}
+          accentColor={accentColor}
+          disabled={disabled}
+          onRetake={handleNativeRetake}
+          onSubmit={handleNativeSubmit}
+          onClose={handleNativeClose}
+        />
+      ) : null}
+
+      {!useNative && captureOpen && mediaType === 'photo' ? (
         <PhotoChallengeCapture
           accentColor={accentColor}
           disabled={disabled}
-          onClose={closeCapture}
-          onFileReady={handleFileReady}
+          onClose={closeInAppCapture}
+          onFileReady={handleInAppFileReady}
         />
       ) : null}
-      {captureOpen && mediaType === 'video' ? (
+      {!useNative && captureOpen && mediaType === 'video' ? (
         <VideoChallengeCapture
           config={config}
           accentColor={accentColor}
           disabled={disabled}
-          onClose={closeCapture}
-          onFileReady={handleFileReady}
+          onClose={closeInAppCapture}
+          onFileReady={handleInAppFileReady}
         />
       ) : null}
     </>

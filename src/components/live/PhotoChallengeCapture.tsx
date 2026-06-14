@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, SwitchCamera, X } from 'lucide-react'
 
-import { ChallengeNativeCapture } from '@/components/live/ChallengeNativeCapture'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
-import { shouldUseNativeCamera } from '@/lib/capture-platform'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
@@ -24,14 +22,7 @@ type PhotoChallengeCaptureProps = {
   onFileReady: (file: File) => void
 }
 
-export function PhotoChallengeCapture(props: PhotoChallengeCaptureProps) {
-  if (shouldUseNativeCamera()) {
-    return <ChallengeNativeCapture mediaType="photo" {...props} />
-  }
-  return <PhotoInAppCapture {...props} />
-}
-
-function PhotoInAppCapture({
+export function PhotoChallengeCapture({
   accentColor,
   disabled,
   onClose,

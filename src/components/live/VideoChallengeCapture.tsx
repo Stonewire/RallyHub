@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SwitchCamera, Video, X } from 'lucide-react'
 
-import { ChallengeNativeCapture } from '@/components/live/ChallengeNativeCapture'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
-import { shouldUseNativeCamera } from '@/lib/capture-platform'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   getChallengeCameraStream,
@@ -31,59 +29,7 @@ type VideoChallengeCaptureProps = {
   onFileReady: (file: File) => void
 }
 
-export function VideoChallengeCapture(props: VideoChallengeCaptureProps) {
-  if (shouldUseNativeCamera()) {
-    return <VideoNativeCapture {...props} />
-  }
-  return <VideoInAppCapture {...props} />
-}
-
-function VideoNativeCapture({
-  config,
-  accentColor,
-  disabled,
-  onClose,
-  onFileReady,
-}: VideoChallengeCaptureProps) {
-  const maxSec = getMaxVideoDurationSeconds(config)
-  const { notify } = useNotification()
-
-  function validateDuration(file: File): Promise<boolean> {
-    return new Promise((resolve) => {
-      const vid = document.createElement('video')
-      vid.preload = 'metadata'
-      vid.onloadedmetadata = () => {
-        URL.revokeObjectURL(vid.src)
-        if (vid.duration > maxSec + 0.5) {
-          notify(`Video must be ${formatVideoDurationLabel(maxSec)} or less`)
-          resolve(false)
-        } else {
-          resolve(true)
-        }
-      }
-      vid.onerror = () => {
-        URL.revokeObjectURL(vid.src)
-        notify('Could not read video — try a different file')
-        resolve(false)
-      }
-      vid.src = URL.createObjectURL(file)
-    })
-  }
-
-  return (
-    <ChallengeNativeCapture
-      mediaType="video"
-      accentColor={accentColor}
-      disabled={disabled}
-      onClose={onClose}
-      onFileReady={onFileReady}
-      maxLengthLabel={formatVideoDurationLabel(maxSec)}
-      validateVideoFile={validateDuration}
-    />
-  )
-}
-
-function VideoInAppCapture({
+export function VideoChallengeCapture({
   config,
   accentColor,
   disabled,
