@@ -76,7 +76,7 @@ export function OpenGameChallengeCard({
     <button
       type="button"
       disabled={locked || !canSubmit}
-      className={`xp-game-tile xp-interactive flex min-h-[132px] flex-col items-center justify-center gap-2.5 p-4 text-center disabled:cursor-not-allowed disabled:opacity-100 ${
+      className={`xp-game-tile xp-interactive flex min-h-[118px] flex-col items-center justify-center gap-2 p-3.5 text-center disabled:cursor-not-allowed disabled:opacity-100 ${
         locked || !canSubmit ? '' : 'active:scale-[0.98]'
       }`}
       style={{
@@ -87,7 +87,7 @@ export function OpenGameChallengeCard({
         if (!locked && canSubmit) onSelect()
       }}
     >
-      <span className="line-clamp-2 text-2xl font-bold leading-tight">{game.name}</span>
+      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full">{game.name}</span>
 
       <TypeIcon
         className="size-5 shrink-0 opacity-90"
@@ -95,7 +95,7 @@ export function OpenGameChallengeCard({
         aria-hidden
       />
 
-      <span className="text-xl font-bold tabular-nums leading-none">
+      <span className="text-base font-bold tabular-nums leading-none">
         {gamePointsDisplay(game)}
       </span>
 

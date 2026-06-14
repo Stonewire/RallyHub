@@ -35,31 +35,31 @@ export function OpenGameChallengeReview({
         : null
 
   return (
-    <div className="space-y-6 pb-8 text-center">
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold leading-tight sm:text-3xl">{game.name}</h2>
-        <span
-          className="inline-flex rounded-full px-5 py-2 text-sm font-bold tracking-wide sm:text-base"
-          style={{ backgroundColor: accentColor, color: onAccent }}
-        >
-          {gamePointsDisplay(game)}
-        </span>
-        {game.description ? (
-          <p className="mx-auto max-w-md text-base leading-relaxed text-white/90 sm:text-lg">
-            {game.description}
-          </p>
-        ) : null}
-        {game.cover_url ? (
-          <img
-            src={game.cover_url}
-            alt=""
-            className="mx-auto w-full max-h-48 rounded-xl object-cover object-center shadow-lg sm:max-h-56"
-          />
-        ) : null}
-      </div>
+    <div className="space-y-5 pb-4 text-center">
+      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
+        {game.name}
+      </h2>
+      <span
+        className="inline-flex rounded-full px-4 py-1.5 text-sm font-bold tracking-wide"
+        style={{ backgroundColor: accentColor, color: onAccent }}
+      >
+        {gamePointsDisplay(game)}
+      </span>
+      {game.description ? (
+        <p className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4">
+          {game.description}
+        </p>
+      ) : null}
+      {game.cover_url ? (
+        <img
+          src={game.cover_url}
+          alt=""
+          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+        />
+      ) : null}
 
       {statusHeading ? (
-        <p className="text-lg font-semibold" style={{ color: accentColor }}>
+        <p className="text-base font-semibold" style={{ color: accentColor }}>
           {statusHeading}
         </p>
       ) : null}

@@ -707,7 +707,7 @@ export function JoinGameView({
     !selectedGame && state.winner_reveal_stage < 1 && stage?.type !== 'bingo'
 
   const header = showMainHeader ? (
-    <header className="mb-6 flex flex-col items-center gap-2 px-2 pt-10 text-center sm:pt-12">
+    <header className="mb-4 flex flex-col items-center gap-1.5 px-2 pt-4 text-center sm:pt-5">
       {logo ? (
         <img
           src={logo}
@@ -793,7 +793,7 @@ export function JoinGameView({
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
       body = (
-        <div className="mx-auto w-full max-w-lg px-3 pt-2 pb-24">
+        <div className="mx-auto w-full max-w-lg px-3 pt-1">
           <Button
             variant="outline"
             size="sm"
@@ -854,7 +854,7 @@ export function JoinGameView({
       )
     } else {
       body = (
-        <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 pb-24">
+        <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4">
           {openGames.map((g) => {
             const sub = activeSubmissionForGame(mySubs, g.id)
             return (
@@ -937,7 +937,7 @@ export function JoinGameView({
     } else if (state.quiz_state === 'revealed' && q) {
       const ok = existing?.media_url === q.correctAnswerId
       body = (
-        <div className="mx-auto max-w-lg px-4 pb-24">
+        <div className="mx-auto max-w-lg px-4">
           <p className={`mb-4 text-center text-lg font-bold ${ok ? 'text-green-400' : 'text-red-400'}`}>
             {ok ? 'Correct!' : 'Incorrect'}
           </p>
@@ -959,7 +959,7 @@ export function JoinGameView({
       )
     } else if (q && state.quiz_state === 'active') {
       body = (
-        <div className="mx-auto max-w-lg px-4 pb-24">
+        <div className="mx-auto max-w-lg px-4">
           <div className="mb-4 h-2 overflow-hidden rounded-full bg-black/30">
             <div
               className="h-full transition-all duration-1000"
@@ -1050,7 +1050,7 @@ export function JoinGameView({
       const needsMedia =
         bonusChallenge.mediaType === 'photo' || bonusChallenge.mediaType === 'video'
       body = (
-        <div className="mx-auto max-w-lg px-4 pb-24">
+        <div className="mx-auto max-w-lg px-4">
           <BingoBonusPanel
             challenge={bonusChallenge}
             accentColor={accent}
@@ -1257,7 +1257,7 @@ export function JoinGameView({
       event={event}
       organization={organization}
       variant="default"
-      className="flex min-h-dvh flex-col pt-3 pb-20"
+      className="pt-3 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]"
     >
       <NotificationAccentSync color={accent} />
       {showWinner && winnerTeam && typeof document !== 'undefined'

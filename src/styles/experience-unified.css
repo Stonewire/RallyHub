@@ -25,6 +25,40 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Natural document scroll on participant / display experiences */
+  html:has(.experience-scope) {
+    scroll-behavior: smooth;
+  }
+
+  .experience-scope .xp-challenge-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  @media (min-width: 640px) {
+    .experience-scope .xp-challenge-title {
+      font-size: 1.25rem;
+    }
+  }
+
+  .experience-scope .xp-challenge-description {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  @media (min-width: 640px) {
+    .experience-scope .xp-challenge-description {
+      font-size: 1rem;
+    }
+  }
+
+  .experience-scope .xp-wrap-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .experience-scope .font-display,
   .experience-scope h1,
   .experience-scope h2,
