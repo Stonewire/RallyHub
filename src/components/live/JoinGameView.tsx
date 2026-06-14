@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
+import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
@@ -1199,18 +1200,11 @@ export function JoinGameView({
                 key={i}
                 type="button"
                 disabled={disabled}
-                className={`xp-bingo-cell h-full min-h-0 overflow-hidden px-1 py-1 text-center leading-tight ${cls}`}
+                className={`xp-bingo-cell flex h-full min-h-0 flex-col overflow-hidden px-0.5 py-0.5 text-center leading-tight ${cls}`}
                 style={pickStyle}
                 onClick={() => void submitBingoSquare(i, stage.gameId!)}
               >
-                <span className="line-clamp-2 w-full overflow-hidden text-ellipsis break-words text-[11px] font-semibold leading-tight sm:text-xs">
-                  {cell.title}
-                </span>
-                {cell.artist ? (
-                  <span className="line-clamp-1 w-full overflow-hidden text-ellipsis break-words text-[11px] leading-tight opacity-80">
-                    {cell.artist}
-                  </span>
-                ) : null}
+                <BingoCardCellLabel title={cell.title} artist={cell.artist} />
               </button>
             )
           })}

@@ -139,6 +139,11 @@
     transform: scale(0.97);
   }
 
+  .experience-scope .xp-bingo-cell-label {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
   /* ─── Quiz & bonus option tiles ─── */
   .experience-scope .xp-quiz-option {
     border-radius: var(--xp-radius-md);
