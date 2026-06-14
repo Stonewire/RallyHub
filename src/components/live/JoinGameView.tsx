@@ -1,4 +1,4 @@
-import { Check, LogOut, MessageCircle, X } from 'lucide-react'
+import { LogOut, MessageCircle, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
+import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { ChallengeMediaCaptureFlow } from '@/components/live/ChallengeMediaCaptureFlow'
@@ -883,42 +884,16 @@ export function JoinGameView({
         <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 pb-24">
           {openGames.map((g) => {
             const sub = activeSubmissionForGame(mySubs, g.id)
-            const approved = sub?.status === 'approved'
-            const rejected = sub?.status === 'rejected'
-            const pending = sub?.status === 'pending'
-            const locked = approved || rejected
             return (
-              <button
+              <OpenGameChallengeCard
                 key={g.id}
-                type="button"
-                disabled={locked || !canSubmit}
-                className={`xp-game-tile xp-interactive relative flex min-h-[120px] flex-col justify-between p-4 text-left ${
-                  locked
-                    ? 'cursor-not-allowed opacity-50'
-                    : pending
-                      ? 'ring-2 ring-white/40'
-                      : 'active:scale-[0.98]'
-                }`}
-                style={{ backgroundColor: accent, color: onAccent }}
-                onClick={() => !locked && setSelectedGame(g)}
-              >
-                {approved ? (
-                  <Check className="absolute top-2 right-2 size-6 opacity-80" />
-                ) : rejected ? (
-                  <X className="absolute top-2 right-2 size-6 opacity-80" />
-                ) : null}
-                <span className="line-clamp-2 font-bold leading-snug pr-6">{g.name}</span>
-                <span className="mt-2 text-sm font-medium opacity-90">
-                  {gamePointsDisplay(g)}
-                </span>
-                {pending ? (
-                  <span className="mt-1 text-xs font-semibold">Pending…</span>
-                ) : approved ? (
-                  <span className="mt-1 text-xs font-semibold">Approved</span>
-                ) : rejected ? (
-                  <span className="mt-1 text-xs font-semibold">Rejected</span>
-                ) : null}
-              </button>
+                game={g}
+                submissionStatus={sub?.status}
+                accentColor={accent}
+                onAccentColor={onAccent}
+                canSubmit={canSubmit}
+                onSelect={() => setSelectedGame(g)}
+              />
             )
           })}
         </div>
