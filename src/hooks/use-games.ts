@@ -139,6 +139,7 @@ export function useCreateGameGroup(organizationId: string | null) {
 export const GAME_TYPE_LABELS: Record<GameType, string> = {
   photo: 'Photo',
   video: 'Video',
+  text: 'Text',
   quiz: 'Quiz',
   music_bingo: 'Music Bingo',
 }

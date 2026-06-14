@@ -102,7 +102,7 @@ export function EventForm({
     return selectedGames.filter((g) => {
       if (stageType === 'quiz') return g.type === 'quiz'
       if (stageType === 'bingo') return g.type === 'music_bingo'
-      return g.type === 'photo' || g.type === 'video'
+      return g.type === 'photo' || g.type === 'video' || g.type === 'text'
     })
   }
 
@@ -465,7 +465,7 @@ export function EventForm({
             ) : stage.type === 'open' ? (
               <div className="space-y-2">
                 <p className="text-muted-foreground text-xs">
-                  Select photo or video games (multiple allowed)
+                  Select photo, video, or text games (multiple allowed)
                 </p>
                 {compatibleGames('open').map((g) => {
                   const ids = stage.gameIds ?? []

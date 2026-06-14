@@ -2,7 +2,7 @@ import type { Json } from '@/types/json'
 
 export type AppRole = 'super_admin' | 'client_admin' | 'event_manager'
 
-export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo'
+export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text'
 export type PointsType = 'static' | 'range'
 export type GameStatus = 'active' | 'draft' | 'archived' | 'ready'
 export type EventStatus = 'active' | 'demo' | 'ready' | 'draft' | 'archived'

@@ -4,6 +4,7 @@ import {
   CHALLENGE_VIDEO_MEDIA_CLASS,
 } from '@/lib/challenge-camera'
 import { gamePointsDisplay, textOnAccent } from '@/lib/live-event'
+import { textSubmissionDisplayLabel } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 type OpenGameChallengeReviewProps = {
@@ -25,6 +26,10 @@ export function OpenGameChallengeReview({
   const pending = submission.status === 'pending'
   const approved = submission.status === 'approved'
   const rejected = submission.status === 'rejected'
+  const isText = submission.media_type === 'text'
+  const answerLabel = isText
+    ? textSubmissionDisplayLabel(game, submission.media_url)
+    : null
 
   const statusHeading = pending
     ? 'Submission pending approval'
@@ -64,7 +69,14 @@ export function OpenGameChallengeReview({
         </p>
       ) : null}
 
-      {submission.media_url ? (
+      {isText && answerLabel ? (
+        <div className="xp-glass-panel mx-auto max-w-md rounded-xl bg-black/30 px-4 py-3 text-left">
+          <p className="text-xs font-medium uppercase tracking-wide text-white/60">
+            Your answer
+          </p>
+          <p className="xp-wrap-text mt-1 text-base font-semibold text-white">{answerLabel}</p>
+        </div>
+      ) : submission.media_url ? (
         submission.media_type === 'video' ? (
           <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
             <video
@@ -74,13 +86,13 @@ export function OpenGameChallengeReview({
               className={CHALLENGE_VIDEO_MEDIA_CLASS}
             />
           </div>
-        ) : (
+        ) : submission.media_type === 'photo' ? (
           <img
             src={submission.media_url}
             alt="Your submission"
             className="mx-auto w-full max-w-md rounded-xl object-contain shadow-lg"
           />
-        )
+        ) : null
       ) : null}
 
       {pending && onCancel ? (

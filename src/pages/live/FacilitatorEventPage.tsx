@@ -49,6 +49,7 @@ import { advanceBingoTrack } from '@/lib/bingo-round-advance'
 import { parseAnnouncedWinnerIds, parseRevealedTrackIds } from '@/lib/bingo-cell-match'
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
+import { isOpenStageSubmissionMediaType, textSubmissionDisplayLabel } from '@/lib/text-game'
 import {
   FACILITATOR_NAME_KEY,
   bingoBonusChallenges,
@@ -344,7 +345,7 @@ export function FacilitatorEventPage() {
       .filter(
         (s) =>
           s.status === 'pending' &&
-          (s.media_type === 'photo' || s.media_type === 'video'),
+          isOpenStageSubmissionMediaType(s.media_type),
       )
       .length
     if (pendingSubmissionCountRef.current === 0) {
@@ -1248,7 +1249,7 @@ export function FacilitatorEventPage() {
                 {filteredSubs
                   .filter(
                     (s) =>
-                      (s.media_type === 'photo' || s.media_type === 'video') &&
+                      isOpenStageSubmissionMediaType(s.media_type) &&
                       s.status !== 'cancelled',
                   )
                   .map((sub) => {
@@ -1267,7 +1268,17 @@ export function FacilitatorEventPage() {
                           className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
                           onClick={() => setSelectedSub(sub)}
                         >
-                          {sub.media_url ? (
+                          {sub.media_type === 'text' ? (
+                            <div
+                              className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
+                            >
+                              <span className="line-clamp-4 break-all text-center">
+                                {game
+                                  ? textSubmissionDisplayLabel(game, sub.media_url)
+                                  : sub.media_url}
+                              </span>
+                            </div>
+                          ) : sub.media_url ? (
                             sub.media_type === 'video' ? (
                               <video
                                 src={sub.media_url}
@@ -1647,6 +1658,7 @@ export function FacilitatorEventPage() {
           gameName={
             games.find((g) => g.id === selectedSub.game_id)?.name ?? 'Game'
           }
+          game={games.find((g) => g.id === selectedSub.game_id)}
           pointsType={
             games.find((g) => g.id === selectedSub.game_id)?.points_type ?? 'static'
           }

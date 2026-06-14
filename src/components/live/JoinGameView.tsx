@@ -11,6 +11,7 @@ import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallba
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
+import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { ChallengeMediaCaptureFlow } from '@/components/live/ChallengeMediaCaptureFlow'
@@ -435,6 +436,42 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
 
+  async function submitTextGame(mediaUrl: string) {
+    if (!selectedGame || !event.id) return
+    if (!canSubmit) {
+      notify('This event is now closed')
+      return
+    }
+    if (!mediaUrl.length) {
+      notify('Enter or choose an answer first')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const { error } = await supabase.from('submissions').insert({
+        event_id: event.id,
+        team_id: teamId,
+        game_id: selectedGame.id,
+        media_url: mediaUrl,
+        media_type: 'text',
+        status: 'pending',
+      })
+      if (error) throw error
+      playSubmitSound()
+      notify('Submitted — waiting for approval')
+      setSubmitDone(true)
+      window.setTimeout(() => {
+        setSelectedGame(null)
+        setSubmitDone(false)
+      }, 1500)
+    } catch {
+      notify("Couldn't submit — tap to retry")
+      setSubmitDone(false)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   async function submitOpenGame(file: File) {
     if (!selectedGame || !event.id) return
     if (!canSubmit) {
@@ -831,7 +868,14 @@ export function JoinGameView({
               submission={latestSub}
               accentColor={accent}
             />
-          ) : !canSubmit ? null : (
+          ) : !canSubmit ? null : selectedGame.type === 'text' ? (
+            <OpenGameTextChallenge
+              game={selectedGame}
+              accentColor={accent}
+              disabled={submitting}
+              onSubmit={(answer) => void submitTextGame(answer)}
+            />
+          ) : (
             <ChallengeMediaCaptureFlow
               title={selectedGame.name}
               description={selectedGame.description}

@@ -1,0 +1,226 @@
+import { Plus, Trash2 } from 'lucide-react'
+import type { Dispatch, SetStateAction } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { newGameId } from '@/lib/game-upload'
+import type { GameConfig, QuizAnswer, TextAnswerMode } from '@/types/game-config'
+
+function defaultOptions(): QuizAnswer[] {
+  const a1 = { id: newGameId(), text: 'Answer 1' }
+  const a2 = { id: newGameId(), text: 'Answer 2' }
+  return [a1, a2]
+}
+
+export function TextGameEditor({
+  config,
+  setConfig,
+}: {
+  config: GameConfig
+  setConfig: Dispatch<SetStateAction<GameConfig>>
+}) {
+  const mode: TextAnswerMode = config.text_answer_mode ?? 'type_text'
+  const correctAnswers = config.text_correct_answers ?? ['']
+  const options = config.text_options ?? defaultOptions()
+  const correctAnswerId =
+    config.text_correct_answer_id ?? options[0]?.id ?? ''
+
+  function setMode(next: TextAnswerMode) {
+    setConfig((c) => {
+      const opts = c.text_options ?? defaultOptions()
+      return {
+        ...c,
+        text_answer_mode: next,
+        text_correct_answers: c.text_correct_answers ?? [''],
+        text_options: opts,
+        text_correct_answer_id: c.text_correct_answer_id ?? opts[0]?.id,
+      }
+    })
+  }
+
+  return (
+    <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
+      <div className="space-y-2">
+        <Label>Answer type</Label>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === 'type_text' ? 'secondary' : 'outline'}
+            onClick={() => setMode('type_text')}
+          >
+            Type text
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === 'choose_answer' ? 'secondary' : 'outline'}
+            onClick={() => setMode('choose_answer')}
+          >
+            Choose answer
+          </Button>
+        </div>
+      </div>
+
+      {mode === 'type_text' ? (
+        <div className="space-y-3">
+          <div>
+            <Label>Correct answers</Label>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Teams type their answer. Capital letters, lowercase, numbers, and symbols
+              must match exactly when the facilitator checks submissions.
+            </p>
+          </div>
+          {correctAnswers.map((answer, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input
+                value={answer}
+                placeholder={`Correct answer ${i + 1}`}
+                onChange={(e) =>
+                  setConfig((c) => {
+                    const list = [...(c.text_correct_answers ?? [''])]
+                    list[i] = e.target.value
+                    return { ...c, text_correct_answers: list }
+                  })
+                }
+                className="bg-background"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={correctAnswers.length <= 1}
+                onClick={() =>
+                  setConfig((c) => {
+                    const list = [...(c.text_correct_answers ?? [''])]
+                    list.splice(i, 1)
+                    return { ...c, text_correct_answers: list }
+                  })
+                }
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setConfig((c) => ({
+                ...c,
+                text_correct_answers: [...(c.text_correct_answers ?? ['']), ''],
+              }))
+            }
+          >
+            <Plus className="mr-1 size-4" />
+            Add answer
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <Label>Answer options (2–6)</Label>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Teams pick one option. Mark the correct answer for facilitator reference.
+            </p>
+          </div>
+          {options.map((opt, i) => (
+            <div key={opt.id} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="text-correct-answer"
+                checked={correctAnswerId === opt.id}
+                onChange={() =>
+                  setConfig((c) => ({ ...c, text_correct_answer_id: opt.id }))
+                }
+              />
+              <Input
+                value={opt.text}
+                placeholder={`Option ${i + 1}`}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    text_options: (c.text_options ?? options).map((o) =>
+                      o.id === opt.id ? { ...o, text: e.target.value } : o,
+                    ),
+                  }))
+                }
+                className="bg-background"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={options.length <= 2}
+                onClick={() =>
+                  setConfig((c) => {
+                    const list = [...(c.text_options ?? options)]
+                    const idx = list.findIndex((o) => o.id === opt.id)
+                    if (idx < 0) return c
+                    list.splice(idx, 1)
+                    const nextCorrect =
+                      c.text_correct_answer_id === opt.id
+                        ? list[0]?.id ?? ''
+                        : c.text_correct_answer_id
+                    return {
+                      ...c,
+                      text_options: list,
+                      text_correct_answer_id: nextCorrect,
+                    }
+                  })
+                }
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          {options.length < 6 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setConfig((c) => ({
+                  ...c,
+                  text_options: [
+                    ...(c.text_options ?? options),
+                    { id: newGameId(), text: `Option ${options.length + 1}` },
+                  ],
+                }))
+              }
+            >
+              <Plus className="mr-1 size-4" />
+              Add option
+            </Button>
+          ) : null}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+export function validateTextGameConfig(config: GameConfig): string | null {
+  const mode = config.text_answer_mode ?? 'type_text'
+  if (mode === 'type_text') {
+    const answers = (config.text_correct_answers ?? []).filter((a) => a.length > 0)
+    if (answers.length === 0) return 'Add at least one correct answer.'
+    return null
+  }
+  const options = config.text_options ?? []
+  if (options.length < 2 || options.length > 6) {
+    return 'Choose-answer games need between 2 and 6 options.'
+  }
+  if (options.some((o) => !o.text.trim())) {
+    return 'Every answer option needs text.'
+  }
+  if (!config.text_correct_answer_id) {
+    return 'Mark the correct answer option.'
+  }
+  if (!options.some((o) => o.id === config.text_correct_answer_id)) {
+    return 'Mark the correct answer option.'
+  }
+  return null
+}

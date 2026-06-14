@@ -1,5 +1,7 @@
 export type QuizAnswer = { id: string; text: string }
 
+export type TextAnswerMode = 'type_text' | 'choose_answer'
+
 export type QuizQuestion = {
   id: string
   text: string
@@ -61,6 +63,13 @@ export type GameConfig = {
   bingo_winning_lines?: number[][]
   bingo_line_points?: number
   bingo_points_per_correct?: number
+  /** Open-stage text game: typed exact-match answers or multiple choice. */
+  text_answer_mode?: TextAnswerMode
+  /** type_text: accepted answers (case and symbols must match exactly). */
+  text_correct_answers?: string[]
+  /** choose_answer: 2–6 options shown to teams. */
+  text_options?: QuizAnswer[]
+  text_correct_answer_id?: string
 }
 
 export type EventTeam = {

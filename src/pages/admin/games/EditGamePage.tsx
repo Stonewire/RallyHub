@@ -10,6 +10,7 @@ import {
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
+import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
@@ -98,6 +99,13 @@ export function AdminGameEditPage() {
       setError('Music bingo needs at least 5 tracks.')
       return
     }
+    if (gameType === 'text') {
+      const textErr = validateTextGameConfig(config)
+      if (textErr) {
+        setError(textErr)
+        return
+      }
+    }
     setSaving(true)
     setError(null)
     try {
@@ -107,7 +115,15 @@ export function AdminGameEditPage() {
           name: name.trim(),
           description: description || null,
           cover_url: coverUrl,
-          config,
+          config:
+            gameType === 'text'
+              ? {
+                  ...config,
+                  text_correct_answers: (config.text_correct_answers ?? []).filter(
+                    (a) => a.length > 0,
+                  ),
+                }
+              : config,
         },
       })
       navigate('/admin/games', { replace: true })
@@ -185,6 +201,23 @@ export function AdminGameEditPage() {
           />
         ) : null}
 
+        {gameType === 'text' ? (
+          <>
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <FileField
+                label="Cover image"
+                preview={coverUrl}
+                onFile={async (file) => {
+                  if (!file) return
+                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
+                  setCoverUrl(url)
+                }}
+              />
+            </Card>
+            <TextGameEditor config={config} setConfig={setConfig} />
+          </>
+        ) : null}
+
         {gameType === 'photo' || gameType === 'video' ? (
           <Card className="border-border/80 bg-muted/30 p-4 text-sm text-muted-foreground">
             Photo and video games are edited on the create flow for now. Re-create or contact
@@ -202,5 +235,32 @@ export function AdminGameEditPage() {
         />
       ) : null}
     </AdminPageShell>
+  )
+}
+
+function FileField({
+  label,
+  preview,
+  onFile,
+}: {
+  label: string
+  preview: string | null
+  onFile: (file: File | undefined) => void | Promise<void>
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap items-center gap-3">
+        {preview ? (
+          <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
+        ) : null}
+        <Input
+          type="file"
+          accept="image/*"
+          className="max-w-xs"
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+      </div>
+    </div>
   )
 }

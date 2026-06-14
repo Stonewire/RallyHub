@@ -1,4 +1,4 @@
-import { Camera, Video, type LucideIcon } from 'lucide-react'
+import { Camera, FileText, Video, type LucideIcon } from 'lucide-react'
 
 import { gamePointsDisplay } from '@/lib/live-event'
 import type { Tables } from '@/types/helpers'
@@ -21,7 +21,9 @@ type OpenGameChallengeCardProps = {
 }
 
 function challengeTypeIcon(type: Tables<'games'>['type']): LucideIcon {
-  return type === 'video' ? Video : Camera
+  if (type === 'video') return Video
+  if (type === 'text') return FileText
+  return Camera
 }
 
 function cardAppearance(

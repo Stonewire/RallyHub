@@ -9,12 +9,14 @@ import {
 } from '@/lib/challenge-camera'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { parseTextGameConfig, textSubmissionDisplayLabel } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 type SubmissionDetailModalProps = {
   sub: Tables<'submissions'>
   teamName: string
   gameName: string
+  game?: Tables<'games'> | null
   pointsType: string
   pointsMin: number | null
   pointsMax: number | null
@@ -28,6 +30,7 @@ export function SubmissionDetailModal({
   sub,
   teamName,
   gameName,
+  game,
   pointsType,
   pointsMin,
   pointsMax,
@@ -43,6 +46,10 @@ export function SubmissionDetailModal({
     isRange ? '' : String(pointsStatic ?? 0),
   )
   const [busy, setBusy] = useState(false)
+  const isText = sub.media_type === 'text'
+  const answerLabel =
+    isText && game ? textSubmissionDisplayLabel(game, sub.media_url) : sub.media_url ?? ''
+  const textCfg = game ? parseTextGameConfig(game.config) : null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -106,7 +113,14 @@ export function SubmissionDetailModal({
           </Button>
         </div>
         <div className="p-4">
-          {sub.media_url ? (
+          {isText && answerLabel ? (
+            <div className="rounded-lg border bg-muted/30 px-4 py-3">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Team answer
+              </p>
+              <p className="mt-1 text-base font-semibold break-words">{answerLabel}</p>
+            </div>
+          ) : sub.media_url ? (
             sub.media_type === 'video' ? (
               <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
                 <video
@@ -115,16 +129,38 @@ export function SubmissionDetailModal({
                   className={CHALLENGE_VIDEO_MEDIA_CLASS}
                 />
               </div>
-            ) : (
+            ) : sub.media_type === 'photo' ? (
               <img
                 src={sub.media_url}
                 alt=""
                 className="max-h-[50vh] w-full rounded-lg object-contain"
               />
-            )
+            ) : null
           ) : (
             <p className="text-muted-foreground text-sm">No media attached</p>
           )}
+          {isText && textCfg && game?.type === 'text' ? (
+            <div className="border-border/80 mt-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Reference for approval
+              </p>
+              {textCfg.mode === 'type_text' ? (
+                <ul className="mt-2 space-y-1">
+                  {(textCfg.correctAnswers ?? []).filter((a) => a.length > 0).map((a, i) => (
+                    <li key={i} className="font-mono text-sm break-all">{a}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2">
+                  Correct:{' '}
+                  <span className="font-semibold">
+                    {textCfg.options?.find((o) => o.id === textCfg.correctAnswerId)?.text ??
+                      '—'}
+                  </span>
+                </p>
+              )}
+            </div>
+          ) : null}
           {sub.status === 'pending' ? (
             <div className="mt-4 space-y-4">
               {isRange ? (

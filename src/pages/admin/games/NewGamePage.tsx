@@ -1,6 +1,7 @@
 import {
   Camera,
   Clapperboard,
+  FileText,
   HelpCircle,
   Music2,
 } from 'lucide-react'
@@ -11,6 +12,7 @@ import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
+import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
@@ -34,6 +36,7 @@ const TYPES: {
 }[] = [
   { type: 'photo', label: 'Photo', icon: Camera, description: 'Image-based challenge' },
   { type: 'video', label: 'Video', icon: Clapperboard, description: 'Video challenge with example clip' },
+  { type: 'text', label: 'Text', icon: FileText, description: 'Typed or multiple-choice text answers' },
   { type: 'quiz', label: 'Quiz', icon: HelpCircle, description: 'Timed questions and optional rounds' },
   { type: 'music_bingo', label: 'Music Bingo', icon: Music2, description: 'Tracks and bonus challenges' },
 ]
@@ -121,6 +124,7 @@ export function AdminGamesNewPage() {
     setStep('editor')
     if (type === 'quiz' && !name) setName('New Quiz')
     if (type === 'music_bingo' && !name) setName('Music Bingo')
+    if (type === 'text' && !name) setName('New Text Challenge')
   }
 
   async function handleFile(
@@ -138,6 +142,13 @@ export function AdminGamesNewPage() {
     if (!gameType || !name.trim()) {
       setError('Game name is required.')
       return
+    }
+    if (gameType === 'text') {
+      const textErr = validateTextGameConfig(config)
+      if (textErr) {
+        setError(textErr)
+        return
+      }
     }
     setSaving(true)
     setError(null)
@@ -165,6 +176,13 @@ export function AdminGamesNewPage() {
             gameType === 'video'
               ? Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)
               : undefined,
+          ...(gameType === 'text'
+            ? {
+                text_correct_answers: (config.text_correct_answers ?? []).filter(
+                  (a) => a.length > 0,
+                ),
+              }
+            : {}),
         },
       })
       navigate('/admin/games', { replace: true })
@@ -202,6 +220,7 @@ export function AdminGamesNewPage() {
   }
 
   const isPhotoVideo = gameType === 'photo' || gameType === 'video'
+  const isText = gameType === 'text'
 
   return (
     <AdminPageShell
@@ -341,6 +360,42 @@ export function AdminGamesNewPage() {
             />
             <ReadOnlyMembershipPanel />
           </Card>
+        )}
+
+        {isText && (
+          <>
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <div className="space-y-2">
+                <Label>Game name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+                />
+              </div>
+              <FileField
+                label="Cover image"
+                onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
+                preview={coverUrl}
+              />
+              <PointsEditor
+                pointsType={pointsType}
+                setPointsType={setPointsType}
+                pointsStatic={pointsStatic}
+                setPointsStatic={setPointsStatic}
+                pointsMin={pointsMin}
+                setPointsMin={setPointsMin}
+                pointsMax={pointsMax}
+                setPointsMax={setPointsMax}
+              />
+            </Card>
+            <TextGameEditor config={config} setConfig={setConfig} />
+          </>
         )}
 
         {gameType === 'quiz' && (

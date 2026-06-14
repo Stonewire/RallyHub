@@ -48,6 +48,7 @@ const FILTERS: { value: 'all' | GameType; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'photo', label: 'Photo' },
   { value: 'video', label: 'Video' },
+  { value: 'text', label: 'Text' },
   { value: 'quiz', label: 'Quiz' },
   { value: 'music_bingo', label: 'Music Bingo' },
 ]
