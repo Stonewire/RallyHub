@@ -9,6 +9,13 @@ export type ActivateBingoRunResult = {
   alreadyActive: boolean
 }
 
+/**
+ * Activate a bingo run via Edge Function (authenticated org admin only) or,
+ * when the facilitator panel is anon, via direct client inserts (fallback).
+ *
+ * FLAG: Secured edge function returns 401 without JWT — anon facilitators
+ * always use activateBingoRunLocal until facilitator auth is added in Phase 2.
+ */
 export async function activateBingoRun(
   eventId: string,
   gameId: string,

@@ -2,6 +2,7 @@ import JSZip from 'jszip'
 import { jsPDF } from 'jspdf'
 
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
+import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
@@ -29,11 +30,7 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
     .single()
   if (eErr || !event) throw new Error('Event not found')
 
-  const { data: org } = await supabase
-    .from('organization_tenant_public')
-    .select('*')
-    .eq('id', event.organization_id)
-    .maybeSingle()
+  const org = await fetchOrganizationTenantPublic(event.organization_id)
 
   const [teamsRes, subsRes, egRes] = await Promise.all([
     supabase.from('teams').select('*').eq('event_id', eventId).order('slot_number'),

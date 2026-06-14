@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
+import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
@@ -31,11 +32,7 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
   if (!event) return null
 
   const [orgRes, stateRes, teamsRes, egRes] = await Promise.all([
-    supabase
-      .from('organization_tenant_public')
-      .select('*')
-      .eq('id', event.organization_id)
-      .maybeSingle(),
+    fetchOrganizationTenantPublic(event.organization_id),
     supabase.from('event_state').select('*').eq('event_id', eventId).maybeSingle(),
     supabase.from('teams').select('*').eq('event_id', eventId).order('slot_number'),
     supabase.from('event_games').select('game_id').eq('event_id', eventId),
@@ -68,7 +65,7 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
 
   return {
     event,
-    organization: orgRes.data ?? null,
+    organization: orgRes ?? null,
     state,
     teams: teamsRes.data ?? [],
     games,

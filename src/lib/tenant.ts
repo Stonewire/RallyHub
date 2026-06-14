@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { isPublicLivePath, RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
+import { fetchOrganizationTenantBySubdomain } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 
 export type TenantPublicOrg = {
@@ -200,13 +201,7 @@ async function fetchTenantByHost(host: string): Promise<TenantPublicOrg | null> 
 }
 
 async function fetchTenantBySubdomain(subdomain: string): Promise<TenantPublicOrg | null> {
-  const { data, error } = await supabase
-    .from('organization_tenant_public')
-    .select('*')
-    .eq('subdomain', subdomain)
-    .maybeSingle()
-  if (error) throw error
-  return data as TenantPublicOrg | null
+  return fetchOrganizationTenantBySubdomain(subdomain)
 }
 
 export async function fetchOrgSubdomain(organizationId: string): Promise<string | null> {

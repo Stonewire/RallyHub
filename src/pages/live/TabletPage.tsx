@@ -8,6 +8,11 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
+import {
+  fetchOrganizationTenantBySubdomain,
+  fetchOrganizationTenantPublic,
+  fetchOrganizationsByTabletSlug,
+} from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import { verifyTabletPassword } from '@/lib/tenant'
@@ -29,15 +34,9 @@ async function resolveOrganization(
   legacyOrgParam: string,
 ): Promise<TenantPublicOrg | null> {
   if (orgSlug && tabletCode) {
-    const { data, error } = await supabase
-      .from('organization_tenant_public')
-      .select('*')
-      .eq('tablet_slug', tabletCode)
-    if (error) throw error
+    const candidates = await fetchOrganizationsByTabletSlug(tabletCode)
     const normalized = orgSlug.toLowerCase()
-    return (
-      (data ?? []).find((o) => matchesOrgSlug(o, normalized)) ?? null
-    )
+    return candidates.find((o) => matchesOrgSlug(o, normalized)) ?? null
   }
 
   if (!legacyOrgParam) return null
@@ -47,24 +46,25 @@ async function resolveOrganization(
       legacyOrgParam,
     )
 
-  const filters = [`tablet_slug.eq.${legacyOrgParam}`, `subdomain.eq.${legacyOrgParam}`]
-  if (isUuid) filters.push(`id.eq.${legacyOrgParam}`)
+  if (isUuid) {
+    return fetchOrganizationTenantPublic(legacyOrgParam)
+  }
 
-  const { data, error } = await supabase
-    .from('organization_tenant_public')
-    .select('*')
-    .or(filters.join(','))
+  const bySubdomain = await fetchOrganizationTenantBySubdomain(legacyOrgParam)
+  if (bySubdomain) return bySubdomain
 
-  if (error) throw error
-  if (!data?.length) return null
-  if (data.length === 1) return data[0]
+  const byTablet = await fetchOrganizationsByTabletSlug(legacyOrgParam)
+  if (byTablet.length === 1) return byTablet[0]
+  if (byTablet.length > 1) {
+    const normalized = legacyOrgParam.toLowerCase()
+    return (
+      byTablet.find((o) => matchesOrgSlug(o, normalized)) ??
+      byTablet.find((o) => o.tablet_slug === legacyOrgParam) ??
+      byTablet[0]
+    )
+  }
 
-  const normalized = legacyOrgParam.toLowerCase()
-  return (
-    data.find((o) => matchesOrgSlug(o, normalized)) ??
-    data.find((o) => o.tablet_slug === legacyOrgParam) ??
-    data[0]
-  )
+  return null
 }
 
 export function TabletPage() {

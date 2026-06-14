@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 import { generateBingoRun } from '../_shared/bingo-engine.ts'
+import { requireAuthUser, requireEventOrgAdminOrSuperAdmin } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +16,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? '',
+    )
+
+    const auth = await requireAuthUser(supabase, authHeader)
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.message }), {
+        status: auth.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { eventId, gameId, stageIndex } = await req.json()
     if (!eventId || !gameId || stageIndex == null) {
       return new Response(JSON.stringify({ error: 'eventId, gameId, stageIndex required' }), {
@@ -22,10 +38,13 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
+    const orgAuth = await requireEventOrgAdminOrSuperAdmin(supabase, auth.user.id, eventId)
+    if (!orgAuth.ok) {
+      return new Response(JSON.stringify({ error: orgAuth.message }), {
+        status: orgAuth.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { data: existing } = await supabase
       .from('bingo_runs')

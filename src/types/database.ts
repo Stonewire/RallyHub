@@ -647,6 +647,18 @@ export type Database = {
         Args: { p_org_id: string; p_password: string }
         Returns: boolean
       }
+      get_organization_tenant_public: {
+        Args: { p_org_id: string }
+        Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
+      get_organization_tenant_by_subdomain: {
+        Args: { p_subdomain: string }
+        Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
+      get_organizations_by_tablet_slug: {
+        Args: { p_tablet_slug: string }
+        Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
       resolve_tenant_by_host: {
         Args: { p_host: string }
         Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
