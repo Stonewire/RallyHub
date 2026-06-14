@@ -87,11 +87,11 @@ export function OpenGameChallengeCard({
         if (!locked && canSubmit) onSelect()
       }}
     >
-      <span className="line-clamp-2 text-sm font-bold leading-snug">{game.name}</span>
+      <span className="line-clamp-2 text-2xl font-bold leading-tight">{game.name}</span>
 
       <TypeIcon
-        className="size-9 shrink-0"
-        strokeWidth={1.65}
+        className="size-5 shrink-0 opacity-90"
+        strokeWidth={1.75}
         aria-hidden
       />
 
