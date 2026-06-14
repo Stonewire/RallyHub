@@ -18,8 +18,9 @@ import {
   DEMO_MAX_TEAMS,
   isEventDemoStatus,
 } from '@/lib/event-demo'
-import { requestTeamMediaPermissions } from '@/lib/media-permissions'
+import { unlockAudioFromUserGesture } from '@/lib/sounds'
 import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
+import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
@@ -118,6 +119,7 @@ export function JoinEventPage() {
 
   async function claimTeam() {
     if (!claimSlot || !eventId || !claimName.trim()) return
+    unlockAudioFromUserGesture('full')
     if (
       isEventDemoStatus(event.status) &&
       countClaimedTeams(joinTeams) >= DEMO_MAX_TEAMS

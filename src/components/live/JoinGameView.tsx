@@ -82,6 +82,8 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
   playAnnouncementSound,
+  playEventWinnerSequence,
+  playLoserSound,
   playNewMessageSound,
   playPushNotificationSound,
   playQuizCorrectSound,
@@ -89,9 +91,8 @@ import {
   playQuizTimerWarningSound,
   playQuizWrongSound,
   playSubmitSound,
-  playWinnerSound,
-  unlockOperationalSounds,
-  unlockSounds,
+  installAudioUnlock,
+  resetEventWinnerAudioGuard,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
@@ -228,7 +229,6 @@ export function JoinGameView({
   )
 
   const playIncomingChatSound = useCallback(() => {
-    unlockOperationalSounds()
     playNewMessageSound()
   }, [])
 
@@ -239,17 +239,10 @@ export function JoinGameView({
     playIncomingChatSound,
   )
 
-  // Team devices need celebration audio unlocked before a bingo win (which is not
-  // triggered by a direct tap). Prime the full pool on the first interaction.
+  // Prime the full audio pool on first interaction so realtime chat, push, and
+  // winner sounds are not blocked by mobile autoplay policy.
   useEffect(() => {
-    unlockOperationalSounds()
-    const unlock = () => unlockSounds()
-    window.addEventListener('pointerdown', unlock, { once: true, passive: true })
-    window.addEventListener('touchend', unlock, { once: true, passive: true })
-    return () => {
-      window.removeEventListener('pointerdown', unlock)
-      window.removeEventListener('touchend', unlock)
-    }
+    installAudioUnlock('full')
   }, [])
 
   const quizGame = stage?.type === 'quiz' && stage.gameId
@@ -410,16 +403,32 @@ export function JoinGameView({
     }
   }, [announcement])
 
-  const winnerSoundStageRef = useRef(0)
+  const eventWinnerAudioKeyRef = useRef<string | null>(null)
   useEffect(() => {
     // Bingo wins use BingoWinCelebration audio — never the podium fanfare here.
     if (stage?.type === 'bingo') return
-    const next = state.winner_reveal_stage ?? 0
-    if (next >= 1 && next !== winnerSoundStageRef.current) {
-      playWinnerSound()
+    const stageNum = state.winner_reveal_stage ?? 0
+    if (stageNum === 0) {
+      eventWinnerAudioKeyRef.current = null
+      resetEventWinnerAudioGuard()
+      return
     }
-    winnerSoundStageRef.current = next
-  }, [state.winner_reveal_stage, stage?.type])
+    // Stage 1 is silent — no audio during the build-up.
+    if (stageNum !== 2) return
+
+    const revealKey = `${event.id}:winner-reveal:2`
+    if (eventWinnerAudioKeyRef.current === revealKey) return
+    eventWinnerAudioKeyRef.current = revealKey
+
+    const myRank = eventRankedTeams(bundle.teams).find((r) => r.team.id === teamId)?.rank ?? 0
+    if (myRank === 1) {
+      const stopAudio = playEventWinnerSequence(revealKey)
+      return () => stopAudio()
+    }
+    if (myRank > 0) {
+      playLoserSound()
+    }
+  }, [state.winner_reveal_stage, stage?.type, event.id, teamId, bundle.teams])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {

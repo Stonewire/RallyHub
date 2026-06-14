@@ -88,11 +88,54 @@ function preloadAll() {
 
 preloadAll()
 
-// ---- Autoplay unlock -------------------------------------------------------
+// ---- Shared Web Audio context + autoplay unlock ----------------------------
 
 let operationalSoundsUnlocked = false
 let celebrationSoundsUnlocked = false
 const primedElements = new WeakSet<HTMLAudioElement>()
+const primePromises = new WeakMap<HTMLAudioElement, Promise<void>>()
+
+let sharedAudioContext: AudioContext | null = null
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const Ctor =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!Ctor) return null
+  if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+    sharedAudioContext = new Ctor()
+  }
+  return sharedAudioContext
+}
+
+async function resumeSharedAudioContext(): Promise<void> {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state === 'closed') return
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume()
+    } catch {
+      // ignore — will retry on next playback
+    }
+  }
+}
+
+/** Play a silent buffer so iOS Safari keeps Web Audio unlocked after a gesture. */
+function primeSharedAudioContext(): void {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state === 'closed') return
+  try {
+    const buffer = ctx.createBuffer(1, 1, 22050)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.connect(ctx.destination)
+    source.start(0)
+    source.stop(0)
+  } catch {
+    // ignore
+  }
+}
 
 const CELEBRATION_SOUND_NAMES = new Set([
   'winner',
@@ -103,44 +146,57 @@ const CELEBRATION_SOUND_NAMES = new Set([
 ])
 const OPERATIONAL_SOUND_NAMES = ALL_SOUNDS.filter((s) => !CELEBRATION_SOUND_NAMES.has(s))
 
-function primeElement(el: HTMLAudioElement) {
-  if (primedElements.has(el)) return
-  try {
-    const prevVolume = el.volume
-    const prevMuted = el.muted
-    // Must be fully silent during the brief unlock play — volume 0 alone is not
-    // enough on every browser.
-    el.volume = 0
-    el.muted = true
-    const reset = () => {
-      try {
-        el.pause()
-        el.currentTime = 0
-      } catch {
-        // ignore
-      }
-      el.muted = prevMuted
-      el.volume = prevVolume
+function primeElement(el: HTMLAudioElement): Promise<void> {
+  if (primedElements.has(el)) return Promise.resolve()
+  const pending = primePromises.get(el)
+  if (pending) return pending
+
+  const promise = new Promise<void>((resolve) => {
+    const finish = () => {
       primedElements.add(el)
+      primePromises.delete(el)
+      resolve()
     }
-    const p = el.play()
-    // Pause on the next tick so play() has started (unlock) but nothing is heard.
-    window.setTimeout(reset, 0)
-    if (p && typeof p.then === 'function') {
-      p.then(reset).catch(reset)
+    try {
+      const prevVolume = el.volume
+      const prevMuted = el.muted
+      // Must be fully silent during the brief unlock play — volume 0 alone is not
+      // enough on every browser.
+      el.volume = 0
+      el.muted = true
+      const reset = () => {
+        try {
+          el.pause()
+          el.currentTime = 0
+        } catch {
+          // ignore
+        }
+        el.muted = prevMuted
+        el.volume = prevVolume
+        finish()
+      }
+      const p = el.play()
+      window.setTimeout(reset, 0)
+      if (p && typeof p.then === 'function') {
+        p.then(reset).catch(reset)
+      }
+    } catch {
+      finish()
     }
-  } catch {
-    // ignore — playback will simply remain locked for this element
-  }
+  })
+  primePromises.set(el, promise)
+  return promise
 }
 
-function primePoolSoundNames(names: readonly string[]) {
+async function primePoolSoundNames(names: readonly string[]): Promise<void> {
   if (typeof window === 'undefined') return
+  const tasks: Promise<void>[] = []
   for (const name of names) {
     const pool = pools.get(name)
     if (!pool) continue
-    for (const el of pool) primeElement(el)
+    for (const el of pool) tasks.push(primeElement(el))
   }
+  await Promise.all(tasks)
 }
 
 /**
@@ -150,7 +206,7 @@ function primePoolSoundNames(names: readonly string[]) {
 export function unlockOperationalSounds() {
   if (operationalSoundsUnlocked || typeof window === 'undefined') return
   operationalSoundsUnlocked = true
-  primePoolSoundNames(OPERATIONAL_SOUND_NAMES)
+  void primePoolSoundNames(OPERATIONAL_SOUND_NAMES)
 }
 
 /**
@@ -162,20 +218,50 @@ export function unlockSounds() {
   unlockOperationalSounds()
   if (celebrationSoundsUnlocked || typeof window === 'undefined') return
   celebrationSoundsUnlocked = true
-  primePoolSoundNames([...CELEBRATION_SOUND_NAMES])
+  void primePoolSoundNames([...CELEBRATION_SOUND_NAMES])
+}
+
+/**
+ * Call from an explicit user gesture (join button, sound gate tap, etc.).
+ * Unlocks HTML audio pools and resumes/primes the shared AudioContext.
+ */
+export function unlockAudioFromUserGesture(scope: 'operational' | 'full' = 'full'): void {
+  if (scope === 'full') unlockSounds()
+  else unlockOperationalSounds()
+  primeSharedAudioContext()
+  void resumeSharedAudioContext()
+}
+
+/**
+ * Install one-time listeners so the first tap/keypress on this device unlocks
+ * audio. Team/display use `full`; facilitator uses `operational` only.
+ */
+export function installAudioUnlock(scope: 'operational' | 'full' = 'full'): void {
+  if (typeof window === 'undefined') return
+  const onFirstGesture = () => unlockAudioFromUserGesture(scope)
+  window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true })
+  window.addEventListener('touchend', onFirstGesture, { once: true, passive: true })
+  window.addEventListener('click', onFirstGesture, { once: true, passive: true })
+  window.addEventListener('keydown', onFirstGesture, { once: true })
+}
+
+/**
+ * Resume the shared AudioContext and ensure pooled elements are primed before
+ * event-driven playback (chat, push notifications, winner reveal).
+ */
+export async function ensureAudioReady(celebration = false): Promise<void> {
+  if (celebration) unlockSounds()
+  else unlockOperationalSounds()
+  await resumeSharedAudioContext()
+  const names = celebration
+    ? [...OPERATIONAL_SOUND_NAMES, ...CELEBRATION_SOUND_NAMES]
+    : OPERATIONAL_SOUND_NAMES
+  await primePoolSoundNames(names)
 }
 
 function ensureElementPrimed(el: HTMLAudioElement) {
   if (primedElements.has(el)) return
-  primeElement(el)
-}
-
-if (typeof window !== 'undefined') {
-  // Default gesture unlock covers operational sounds only (facilitator-safe).
-  const handler = () => unlockOperationalSounds()
-  window.addEventListener('pointerdown', handler, { once: true, passive: true })
-  window.addEventListener('touchend', handler, { once: true, passive: true })
-  window.addEventListener('keydown', handler, { once: true })
+  void primeElement(el)
 }
 
 // ---- Core playback ---------------------------------------------------------
@@ -203,12 +289,7 @@ function acquire(name: string): HTMLAudioElement | null {
   return free ?? null
 }
 
-/**
- * Play a sound file by name from /sounds/ using a preloaded pooled element.
- * Returns the audio element (so callers can chain/stop), or null if unavailable.
- * Never throws — autoplay rejections and load failures are logged, not fatal.
- */
-export function playSound(name: string, volume?: number): HTMLAudioElement | null {
+function prepareSoundElement(name: string, volume?: number): HTMLAudioElement | null {
   const el = acquire(name)
   if (!el) return null
   ensureElementPrimed(el)
@@ -228,30 +309,53 @@ export function playSound(name: string, volume?: number): HTMLAudioElement | nul
     capTimers.delete(el)
   }
 
-  try {
-    const result = el.play()
-    if (result && typeof result.then === 'function') {
-      result.catch((err) => {
-        console.warn(`[sounds] could not play "${name}.mp3"`, err)
-      })
-    }
-  } catch (err) {
-    console.warn(`[sounds] failed to play "${name}.mp3"`, err)
-  }
-
-  if (trim) {
-    const id = window.setTimeout(() => {
-      try {
-        el.pause()
-      } catch {
-        // ignore
-      }
-      capTimers.delete(el)
-    }, trim.maxMs)
-    capTimers.set(el, id)
-  }
-
   return el
+}
+
+function scheduleTrimCap(el: HTMLAudioElement, name: string) {
+  const trim = SOUND_TRIM[name]
+  if (!trim) return
+  const id = window.setTimeout(() => {
+    try {
+      el.pause()
+    } catch {
+      // ignore
+    }
+    capTimers.delete(el)
+  }, trim.maxMs)
+  capTimers.set(el, id)
+}
+
+async function playSoundImmediate(name: string, volume?: number): Promise<HTMLAudioElement | null> {
+  const el = prepareSoundElement(name, volume)
+  if (!el) return null
+
+  try {
+    await el.play()
+    scheduleTrimCap(el, name)
+    return el
+  } catch (err) {
+    console.warn(`[sounds] could not play "${name}.mp3"`, err)
+    return null
+  }
+}
+
+/**
+ * Play a sound file by name from /sounds/ using a preloaded pooled element.
+ * Resumes/primes audio before playback so event-driven sounds work on iOS Safari.
+ * Never throws — autoplay rejections and load failures are logged, not fatal.
+ */
+export function playSound(name: string, volume?: number): HTMLAudioElement | null {
+  const celebration = CELEBRATION_SOUND_NAMES.has(name)
+  void (async () => {
+    await ensureAudioReady(celebration)
+    const el = await playSoundImmediate(name, volume)
+    if (!el) {
+      await ensureAudioReady(celebration)
+      await playSoundImmediate(name, volume)
+    }
+  })()
+  return null
 }
 
 export function playShutterSound() {
@@ -267,16 +371,16 @@ export function playNewSubmissionSound() {
 }
 
 export function playNewMessageSound() {
-  return playSound('new-message')
+  void ensureAudioReady(false).then(() => playSoundImmediate('new-message'))
 }
 
 /** Reuses the new-submission sound for generic push toasts. */
 export function playPushNotificationSound() {
-  return playSound('new-submission')
+  void ensureAudioReady(false).then(() => playSoundImmediate('new-submission'))
 }
 
 export function playAnnouncementSound() {
-  return playSound('announcement')
+  void ensureAudioReady(false).then(() => playSoundImmediate('announcement'))
 }
 
 export function playQuizSelectSound() {
@@ -308,8 +412,7 @@ export function playWinnerSound() {
 }
 
 export function playLoserSound() {
-  unlockSounds()
-  return playSound('loser')
+  void ensureAudioReady(true).then(() => playSoundImmediate('loser'))
 }
 
 export function playCheerSound() {
@@ -354,7 +457,11 @@ function winAudioElementState(el: HTMLAudioElement, label: string) {
  * the start. Not used for bingo wins.
  */
 export function playCelebrationFireworksSound(): HTMLAudioElement | null {
-  unlockSounds()
+  void ensureAudioReady(true).then(() => playCelebrationFireworksSoundInner())
+  return null
+}
+
+function playCelebrationFireworksSoundInner(): HTMLAudioElement | null {
   const el = acquire('fireworks')
   if (!el) return null
   ensureElementPrimed(el)
@@ -415,28 +522,17 @@ export function playCelebrationSound() {
 
 // ---- Bingo win jingle (Web Audio, short generated effect) ------------------
 
-let bingoJingleCtx: AudioContext | null = null
-
-function getBingoJingleContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null
-  const Ctor =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-  if (!Ctor) return null
-  if (!bingoJingleCtx) bingoJingleCtx = new Ctor()
-  return bingoJingleCtx
-}
-
 /**
  * Short celebratory bingo jingle (~1.5s) for bingo-stage wins on the display
  * and the winning team's phone. Generated via Web Audio — not the event-winner
  * mp3 sequence.
  */
 export function playBingoWinJingle(): void {
-  const ctx = getBingoJingleContext()
-  if (!ctx) return
-
-  void ctx.resume().then(() => {
+  void ensureAudioReady(true)
+    .then(() => resumeSharedAudioContext())
+    .then(() => {
+      const ctx = getSharedAudioContext()
+      if (!ctx) return
     const now = ctx.currentTime
     const master = ctx.createGain()
     master.gain.setValueAtTime(0.38, now)
@@ -482,32 +578,67 @@ export function playBingoWinJingle(): void {
   })
 }
 
-// ---- Event winner celebration sequence (mp3, display only) -----------------
+// ---- Event winner celebration sequence -------------------------------------
 
 // Track the active event-winner celebration sequence so a new win stops the
 // previous one instead of stacking multiple songs on top of each other.
 let activeWinSequenceStop: (() => void) | null = null
+let activeEventWinnerRevealKey: string | null = null
+
+/** Clear dedupe guard when facilitator resets winner_reveal_stage to 0. */
+export function resetEventWinnerAudioGuard(): void {
+  activeEventWinnerRevealKey = null
+}
 
 /**
- * Overall event-winner celebration on the display: winner.mp3 + cheer.mp3 start
- * together, crossfade into celebration.mp3 over the last 5s of the fanfare,
- * and play the last 20s of fireworks.mp3. Not used for bingo-stage wins.
+ * Event winner reveal (stage 2): fanfare + cheer + fireworks together, then
+ * crossfade fanfare into celebration.mp3. Not used for bingo-stage wins.
+ *
+ * Pass a stable `revealKey` (e.g. `${eventId}:winner-reveal:2`) so re-renders
+ * and realtime re-delivery only trigger the sequence once per reveal.
  *
  * Returns a stop() that halts the whole sequence.
  */
-export function playEventWinnerSequence(): () => void {
-  return playBingoWinSequence(true)
+export function playEventWinnerSequence(revealKey?: string): () => void {
+  if (revealKey && activeEventWinnerRevealKey === revealKey) {
+    logWinAudio('duplicate event winner reveal — skipped', { revealKey })
+    return () => {}
+  }
+  if (revealKey) activeEventWinnerRevealKey = revealKey
+
+  activeWinSequenceStop?.()
+
+  let innerStop: () => void = () => {}
+  let cancelled = false
+
+  void ensureAudioReady(true).then(() => {
+    if (cancelled) return
+    if (revealKey && activeEventWinnerRevealKey !== revealKey) return
+    innerStop = playWinnerRevealSequenceInner()
+  })
+
+  const stop = () => {
+    cancelled = true
+    innerStop()
+    if (revealKey && activeEventWinnerRevealKey === revealKey) {
+      activeEventWinnerRevealKey = null
+    }
+    if (activeWinSequenceStop === stop) activeWinSequenceStop = null
+  }
+  activeWinSequenceStop = stop
+  return stop
 }
 
 /**
  * @deprecated Use playEventWinnerSequence for event winner reveal, or
  * playBingoWinJingle for bingo wins.
  */
-export function playBingoWinSequence(isDisplay: boolean): () => void {
-  logWinAudio('playBingoWinSequence called', { isDisplay })
-  unlockSounds()
-  // Stop any previous celebration before starting a new one (frees its element).
-  activeWinSequenceStop?.()
+export function playBingoWinSequence(_isDisplay?: boolean): () => void {
+  return playEventWinnerSequence()
+}
+
+function playWinnerRevealSequenceInner(): () => void {
+  logWinAudio('playWinnerRevealSequenceInner called')
 
   if (typeof Audio === 'undefined') {
     logWinAudio('abort — Audio API unavailable')
@@ -588,9 +719,9 @@ export function playBingoWinSequence(isDisplay: boolean): () => void {
     readyState: winner.readyState,
   })
 
-  // Crowd cheer plays with the fanfare. Fireworks finale only on the display.
-  playSound('cheer')
-  if (isDisplay) playCelebrationFireworksSound()
+  // Fanfare moment: crowd cheer + fireworks start together with winner.mp3.
+  void playSoundImmediate('cheer')
+  playCelebrationFireworksSoundInner()
 
   let fadeTimer: number | undefined
   let crossfadeTimer: number | undefined

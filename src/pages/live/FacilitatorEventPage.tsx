@@ -76,7 +76,8 @@ import {
   playAnnouncementSound,
   playNewMessageSound,
   playNewSubmissionSound,
-  unlockOperationalSounds,
+  installAudioUnlock,
+  unlockAudioFromUserGesture,
 } from '@/lib/sounds'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
@@ -122,7 +123,6 @@ export function FacilitatorEventPage() {
   }, [messages, name])
 
   const playTeamChatSound = useCallback(() => {
-    unlockOperationalSounds()
     playNewMessageSound()
   }, [])
 
@@ -131,7 +131,7 @@ export function FacilitatorEventPage() {
   useIncomingChatSound(incomingTeamMessages, chatHistoryReady, playTeamChatSound)
 
   useEffect(() => {
-    unlockOperationalSounds()
+    installAudioUnlock('operational')
   }, [])
 
   const controlsLiveRef = useRef(false)
@@ -1644,7 +1644,7 @@ export function FacilitatorEventPage() {
         sendDisabled={!controlsLive}
         onSend={async (text, teamId) => {
           if (!controlsLive) return
-          unlockOperationalSounds()
+          unlockAudioFromUserGesture('operational')
           await sendMessage(name.trim(), text, teamId)
         }}
       />

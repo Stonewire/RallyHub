@@ -15,7 +15,7 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
-import { playEventWinnerSequence, unlockSounds } from '@/lib/sounds'
+import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard, unlockAudioFromUserGesture } from '@/lib/sounds'
 import {
   STANDBY_ACCENT,
   currentStage,
@@ -61,6 +61,10 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   // (facilitator iframe) skip the gate entirely — they don't need sound.
   const [soundEnabled, setSoundEnabled] = useState(false)
   const showSoundGate = !embedded && !soundEnabled
+
+  useEffect(() => {
+    if (!embedded) installAudioUnlock('full')
+  }, [embedded])
 
   const eventState = bundle?.state
   const eventIsLive = Boolean(bundle && isEventLive(bundle.event))
@@ -122,13 +126,16 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     const revealStage = bundle.state.winner_reveal_stage ?? 0
     if (revealStage === 0) {
       eventWinnerAudioStageRef.current = 0
+      resetEventWinnerAudioGuard()
       return
     }
+    // Stage 1 is silent — no audio during the build-up.
     if (revealStage !== 2) return
     if (eventWinnerAudioStageRef.current >= 2) return
     eventWinnerAudioStageRef.current = 2
 
-    const stopAudio = playEventWinnerSequence()
+    const revealKey = `${bundle.event.id}:winner-reveal:2`
+    const stopAudio = playEventWinnerSequence(revealKey)
 
     const confettiEnd = Date.now() + EVENT_WINNER_CONFETTI_MS
     let rafId = 0
@@ -439,7 +446,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         <button
           type="button"
           onClick={() => {
-            unlockSounds()
+            unlockAudioFromUserGesture('full')
             setSoundEnabled(true)
           }}
           className="fixed inset-0 z-[10050] flex flex-col items-center justify-center gap-6 bg-black/90 px-8 text-center text-white"
