@@ -23,7 +23,7 @@ import {
   NotificationAccentSync,
   useNotification,
 } from '@/contexts/notification-context'
-import { useIncomingChatNotifications } from '@/hooks/use-chat-notifications'
+import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
@@ -104,7 +104,7 @@ type JoinGameViewProps = {
   teamId: string
   team: Tables<'teams'>
   messages: Tables<'chat_messages'>[]
-  messagesLoaded: boolean
+  chatHistoryReady: boolean
   onSendMessage: (text: string) => void
   announcement: string | null
   onDismissAnnouncement: () => void
@@ -119,7 +119,7 @@ export function JoinGameView({
   teamId,
   team,
   messages,
-  messagesLoaded,
+  chatHistoryReady,
   onSendMessage,
   announcement,
   onDismissAnnouncement,
@@ -216,11 +216,11 @@ export function JoinGameView({
   )
   const teamSenderName = (team.name ?? 'Team').trim()
 
-  const incomingFacilitatorIds = useMemo(
+  const incomingFacilitatorMessages = useMemo(
     () =>
-      visibleMessages
-        .filter((m) => isFacilitatorToTeamChatMessage(m, teamId, teamSenderName))
-        .map((m) => m.id),
+      visibleMessages.filter((m) =>
+        isFacilitatorToTeamChatMessage(m, teamId, teamSenderName),
+      ),
     [visibleMessages, teamId, teamSenderName],
   )
 
@@ -229,10 +229,10 @@ export function JoinGameView({
     playNewMessageSound()
   }, [])
 
-  const unreadMessages = useIncomingChatNotifications(
-    incomingFacilitatorIds,
+  const unreadMessages = useIncomingChatAlerts(
+    incomingFacilitatorMessages,
     chatOpen,
-    messagesLoaded,
+    chatHistoryReady,
     playIncomingChatSound,
   )
 

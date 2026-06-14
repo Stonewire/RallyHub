@@ -8,7 +8,11 @@ import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/Fa
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
-import { FacilitatorChatBubble, FacilitatorChatDrawer } from '@/components/live/FacilitatorChatDrawer'
+import {
+  FacilitatorChatBubble,
+  FacilitatorChatDrawer,
+  useFacilitatorChatUnread,
+} from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
@@ -18,7 +22,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
-import { useIncomingChatNotifications } from '@/hooks/use-chat-notifications'
+import { useIncomingChatSound } from '@/hooks/use-chat-notifications'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
@@ -85,7 +89,7 @@ export function FacilitatorEventPage() {
   const [name, setName] = useState(() => localStorage.getItem(FACILITATOR_NAME_KEY) ?? '')
   const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
-  const { messages, messagesLoaded, sendMessage } = useChatMessages(eventId)
+  const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)
 
@@ -110,12 +114,10 @@ export function FacilitatorEventPage() {
   const { notify } = useNotification()
   const queryClient = useQueryClient()
 
-  const incomingTeamMessageIds = useMemo(() => {
+  const incomingTeamMessages = useMemo(() => {
     const facilitatorName = name.trim()
     if (!facilitatorName) return []
-    return messages
-      .filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
-      .map((m) => m.id)
+    return messages.filter((m) => isTeamToFacilitatorChatMessage(m, facilitatorName))
   }, [messages, name])
 
   const playTeamChatSound = useCallback(() => {
@@ -123,12 +125,9 @@ export function FacilitatorEventPage() {
     playNewMessageSound()
   }, [])
 
-  const chatUnread = useIncomingChatNotifications(
-    incomingTeamMessageIds,
-    chatOpen,
-    messagesLoaded,
-    playTeamChatSound,
-  )
+  const chatUnread = useFacilitatorChatUnread(messages, chatOpen, name)
+
+  useIncomingChatSound(incomingTeamMessages, chatHistoryReady, playTeamChatSound)
 
   useEffect(() => {
     unlockOperationalSounds()

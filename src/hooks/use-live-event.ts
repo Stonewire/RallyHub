@@ -304,12 +304,12 @@ export function useLiveEvent(eventId: string | undefined) {
 
 export function useChatMessages(eventId: string | undefined) {
   const [messages, setMessages] = useState<Tables<'chat_messages'>[]>([])
-  const [messagesLoaded, setMessagesLoaded] = useState(false)
+  const [chatHistoryReady, setChatHistoryReady] = useState(false)
 
   const reload = useCallback(async () => {
     if (!eventId) {
       setMessages([])
-      setMessagesLoaded(false)
+      setChatHistoryReady(false)
       return
     }
     const { data, error } = await supabase
@@ -319,7 +319,7 @@ export function useChatMessages(eventId: string | undefined) {
       .order('created_at', { ascending: true })
     if (error) throw error
     setMessages(data ?? [])
-    setMessagesLoaded(true)
+    setChatHistoryReady(true)
   }, [eventId])
 
   useEffect(() => {
@@ -330,6 +330,7 @@ export function useChatMessages(eventId: string | undefined) {
     if (!eventId) return
 
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+    let subscribedOnce = false
 
     const channel = supabase
       .channel(`chat:${eventId}`)
@@ -343,12 +344,13 @@ export function useChatMessages(eventId: string | undefined) {
             if (prev.some((m) => m.id === row.id)) return prev
             return [...prev, row]
           })
-          setMessagesLoaded(true)
         },
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          void reload()
+          // Initial reload already runs on mount; only refetch after reconnect.
+          if (subscribedOnce) void reload()
+          subscribedOnce = true
           return
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -380,7 +382,7 @@ export function useChatMessages(eventId: string | undefined) {
     [eventId],
   )
 
-  return { messages, messagesLoaded, sendMessage, reload }
+  return { messages, chatHistoryReady, sendMessage, reload }
 }
 
 export function useFacilitatorPresence(eventId: string | undefined, name: string | null) {

@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 
+type IncomingMessage = { id: string }
+
 /**
  * Tracks unread incoming chat messages and fires onNew when new IDs appear.
- * Waits for messagesLoaded before seeding so an empty initial fetch does not
- * mark every historical message as new.
+ * Only seeds the seen set after chatHistoryReady (initial fetch complete) so
+ * realtime inserts before history loads do not mark live messages as seen.
  */
-export function useIncomingChatNotifications(
-  incomingIds: string[],
+export function useIncomingChatAlerts(
+  incoming: IncomingMessage[],
   chatOpen: boolean,
-  messagesLoaded: boolean,
+  chatHistoryReady: boolean,
   onNew?: () => void,
 ): number {
-  const seenRef = useRef<Set<string> | null>(null)
+  const seenIdsRef = useRef<Set<string>>(new Set())
+  const seededRef = useRef(false)
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
@@ -19,17 +22,18 @@ export function useIncomingChatNotifications(
   }, [chatOpen])
 
   useEffect(() => {
-    if (!messagesLoaded) return
+    if (!chatHistoryReady) return
 
-    if (seenRef.current === null) {
-      seenRef.current = new Set(incomingIds)
+    if (!seededRef.current) {
+      for (const m of incoming) seenIdsRef.current.add(m.id)
+      seededRef.current = true
       return
     }
 
     let newCount = 0
-    for (const id of incomingIds) {
-      if (seenRef.current.has(id)) continue
-      seenRef.current.add(id)
+    for (const m of incoming) {
+      if (seenIdsRef.current.has(m.id)) continue
+      seenIdsRef.current.add(m.id)
       newCount++
       onNew?.()
     }
@@ -37,7 +41,33 @@ export function useIncomingChatNotifications(
     if (newCount > 0 && !chatOpen) {
       setUnread((n) => n + newCount)
     }
-  }, [incomingIds, chatOpen, messagesLoaded, onNew])
+  }, [incoming, chatOpen, chatHistoryReady, onNew])
 
   return unread
+}
+
+/** Sound-only variant for pages that use a separate unread badge counter. */
+export function useIncomingChatSound(
+  incoming: IncomingMessage[],
+  chatHistoryReady: boolean,
+  onNew?: () => void,
+): void {
+  const seenIdsRef = useRef<Set<string>>(new Set())
+  const seededRef = useRef(false)
+
+  useEffect(() => {
+    if (!chatHistoryReady) return
+
+    if (!seededRef.current) {
+      for (const m of incoming) seenIdsRef.current.add(m.id)
+      seededRef.current = true
+      return
+    }
+
+    for (const m of incoming) {
+      if (seenIdsRef.current.has(m.id)) continue
+      seenIdsRef.current.add(m.id)
+      onNew?.()
+    }
+  }, [incoming, chatHistoryReady, onNew])
 }
