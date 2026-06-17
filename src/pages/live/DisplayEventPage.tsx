@@ -17,7 +17,6 @@ import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard, unlockAudioFromUserGesture } from '@/lib/sounds'
 import {
-  STANDBY_ACCENT,
   currentStage,
   breakDurationSeconds,
   displayTextClass,
@@ -221,6 +220,8 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       (s.media_type === 'quiz' ||
         (question && s.media_type === quizSubmissionMediaType(question.id))),
   )
+  const namedTeams = teams.filter((t) => t.name?.trim())
+  const quizAnsweredTeamIds = new Set(quizSubs.map((s) => s.team_id))
   const quizResultsEntries =
     stage?.type === 'quiz' && stage.gameId
       ? quizLeaderboard(teams, submissions, stage.gameId)
@@ -323,38 +324,50 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
             const correct = a.id === question.correctAnswerId
-            const anySelected = quizSubs.some((s) => s.media_url === a.id)
             let cls =
               'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
             if (revealed) {
+              const anySelected = quizSubs.some((s) => s.media_url === a.id)
               if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
               else if (anySelected) cls += 'bg-red-600/90 text-white'
               else cls += 'bg-white/15 text-white/50 backdrop-blur-sm'
-            } else if (anySelected) {
-              cls += 'ring-2 ring-white/40'
             } else {
               cls += 'bg-white/15 backdrop-blur-sm'
             }
             return (
-              <div
-                key={a.id}
-                className={cls}
-                style={
-                  !revealed && anySelected
-                    ? { backgroundColor: STANDBY_ACCENT, color: '#3E3D3E' }
-                    : undefined
-                }
-              >
+              <div key={a.id} className={cls}>
                 {a.text}
               </div>
             )
           })}
         </div>
-        <ul className="mt-8 flex flex-wrap justify-center gap-2">
-          {quizSubs.map((s) => {
-            const team = teams.find((t) => t.id === s.team_id)
-            if (!team?.name) return null
-            if (state.quiz_state === 'revealed') {
+        {state.quiz_state === 'active' ? (
+          <div className="mt-8 space-y-3">
+            <p className="text-lg font-semibold opacity-90 md:text-xl">
+              {quizAnsweredTeamIds.size} of {namedTeams.length} teams answered
+            </p>
+            <ul className="flex flex-wrap justify-center gap-2">
+              {namedTeams.map((team) => {
+                const answered = quizAnsweredTeamIds.has(team.id)
+                return (
+                  <li
+                    key={team.id}
+                    className={`xp-results-row rounded-full px-4 py-1.5 text-sm font-medium ${
+                      answered ? 'bg-white/25 text-white' : 'bg-white/10 text-white/60'
+                    }`}
+                  >
+                    {team.name}
+                    {answered ? ' ✓' : ''}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : (
+          <ul className="mt-8 flex flex-wrap justify-center gap-2">
+            {quizSubs.map((s) => {
+              const team = teams.find((t) => t.id === s.team_id)
+              if (!team?.name) return null
               const ok = s.media_url === question.correctAnswerId
               return (
                 <li
@@ -366,17 +379,9 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
                   {team.name}
                 </li>
               )
-            }
-            return (
-              <li
-                key={s.id}
-                className="xp-results-row rounded-full bg-white/15 px-4 py-1.5 text-sm backdrop-blur-sm"
-              >
-                {team.name}
-              </li>
-            )
-          })}
-        </ul>
+            })}
+          </ul>
+        )}
       </div>
     )
   } else if (stage.type === 'break') {

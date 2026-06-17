@@ -95,6 +95,8 @@ export function FacilitatorEventPage() {
 
   const [announcement, setAnnouncement] = useState('')
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
+  const [resetConfirmTeam, setResetConfirmTeam] = useState<Tables<'teams'> | null>(null)
+  const [resettingTeam, setResettingTeam] = useState(false)
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -503,6 +505,24 @@ export function FacilitatorEventPage() {
     }
   }
 
+  async function resetTeamSlot(team: Tables<'teams'>) {
+    setResettingTeam(true)
+    try {
+      await updateTeam(team.id, {
+        name: null,
+        photo_url: null,
+        score: 0,
+        status: 'idle',
+      })
+      notify(`Team slot ${team.slot_number} cleared — available for a new team`)
+      setResetConfirmTeam(null)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not reset team slot')
+    } finally {
+      setResettingTeam(false)
+    }
+  }
+
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
@@ -572,7 +592,10 @@ export function FacilitatorEventPage() {
   async function goToNextQuestion() {
     if (liveState.quiz_state === 'active') {
       await revealQuizAnswers()
+      return
     }
+    if (liveState.quiz_state !== 'revealed') return
+
     quizAutoRevealKey.current = ''
     const idx = liveState.current_question_index
     const next = idx + 1
@@ -1199,6 +1222,17 @@ export function FacilitatorEventPage() {
                     variant="ghost"
                     size="icon-sm"
                     className="shrink-0"
+                    title={`Reset slot ${team.slot_number}`}
+                    disabled={!controlsLive || !team.name?.trim()}
+                    onClick={() => setResetConfirmTeam(team)}
+                  >
+                    <RotateCcw className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
                     title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
                     onClick={() => {
                       setChatTeamId(team.id)
@@ -1694,6 +1728,45 @@ export function FacilitatorEventPage() {
               </NeoButton>
               <NeoButton variant="primary" disabled={uploading} onClick={() => void saveClaim()}>
                 Save
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </div>
+      ) : null}
+
+      {resetConfirmTeam ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="reset-team-title"
+        >
+          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
+            <h3 id="reset-team-title" className="font-semibold">
+              Reset team slot {resetConfirmTeam.slot_number}?
+            </h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Clears{' '}
+              <span className="text-foreground font-medium">
+                {resetConfirmTeam.name?.trim() || 'this team'}
+              </span>
+              , removes their photo, and sets score to 0. The slot becomes available for someone
+              new to join.
+            </p>
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                variant="surface"
+                disabled={resettingTeam}
+                onClick={() => setResetConfirmTeam(null)}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                variant="destructive"
+                disabled={resettingTeam}
+                onClick={() => void resetTeamSlot(resetConfirmTeam)}
+              >
+                {resettingTeam ? 'Resetting…' : 'Reset team'}
               </NeoButton>
             </div>
           </NeoCard>

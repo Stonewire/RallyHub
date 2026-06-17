@@ -113,6 +113,26 @@ export function SubmissionDetailModal({
           </Button>
         </div>
         <div className="p-4">
+          {game?.description?.trim() ? (
+            <div className="border-border/80 mb-4 rounded-lg border bg-muted/20 px-4 py-3">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Challenge description
+              </p>
+              <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {game.description}
+              </p>
+            </div>
+          ) : null}
+          {game?.solution_description?.trim() ? (
+            <div className="border-border/80 mb-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Expected answer / solution
+              </p>
+              <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {game.solution_description}
+              </p>
+            </div>
+          ) : null}
           {isText && answerLabel ? (
             <div className="rounded-lg border bg-muted/30 px-4 py-3">
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
