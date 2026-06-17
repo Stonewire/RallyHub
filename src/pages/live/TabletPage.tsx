@@ -74,15 +74,12 @@ export function TabletPage() {
     setAuthed(sessionStorage.getItem(tabletSessionKey(organization.id)) === '1')
 
     try {
-      const { data: ev, error: evError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('organization_id', organization.id)
-        .in('status', ['active', 'ready'])
-        .order('event_date', { ascending: true, nullsFirst: false })
+      const { data: ev, error: evError } = await supabase.rpc('get_tablet_events_for_org', {
+        p_org_id: organization.id,
+      })
 
       if (evError) throw evError
-      setEvents(ev ?? [])
+      setEvents((ev ?? []) as Tables<'events'>[])
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Failed to load events')
       setEvents([])

@@ -11,7 +11,26 @@ if (!url?.trim() || !anonKey?.trim()) {
   )
 }
 
+let liveJoinToken: string | null = null
+
+/** Sets the join token sent on all Supabase REST/realtime requests (Phase 2 event scoping). */
+export function setLiveJoinToken(token: string | null): void {
+  liveJoinToken = token?.trim() || null
+}
+
 export const supabase = createClient<Database>(
   url || 'https://placeholder.supabase.co',
   anonKey || 'placeholder',
+  {
+    global: {
+      fetch: (input, init) => {
+        if (!liveJoinToken) {
+          return fetch(input, init)
+        }
+        const headers = new Headers(init?.headers)
+        headers.set('x-join-token', liveJoinToken)
+        return fetch(input, { ...init, headers })
+      },
+    },
+  },
 )

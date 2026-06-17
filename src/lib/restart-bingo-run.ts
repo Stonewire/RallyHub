@@ -1,4 +1,5 @@
 import { activateBingoRun, type ActivateBingoRunResult } from '@/lib/activate-bingo-run'
+import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { incrementTeamScore } from '@/lib/increment-team-score'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
@@ -9,15 +10,19 @@ export async function restartBingoRun(
   gameId: string,
   stageIndex: number,
 ): Promise<ActivateBingoRunResult> {
-  const [{ data: run }, { data: game }] = await Promise.all([
+  await ensureLiveEventAccess(eventId)
+
+  const [{ data: run }, { data: games }] = await Promise.all([
     supabase
       .from('bingo_runs')
       .select('paid_line_bonus_team_ids')
       .eq('event_id', eventId)
       .eq('stage_index', stageIndex)
       .maybeSingle(),
-    supabase.from('games').select('config').eq('id', gameId).maybeSingle(),
+    supabase.rpc('get_live_event_games', { p_event_id: eventId }),
   ])
+
+  const game = ((games ?? []) as { id: string; config: unknown }[]).find((g) => g.id === gameId)
 
   const { data: approvedSubs } = await supabase
     .from('submissions')

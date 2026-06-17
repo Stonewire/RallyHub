@@ -1,3 +1,4 @@
+import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 
@@ -57,14 +58,17 @@ export function musicTracksFromGameConfig(config: unknown): MusicTrack[] {
 }
 
 /** Latest playlist from DB (bypasses stale live-event bundle cache). */
-export async function fetchMusicTracksForGame(gameId: string): Promise<MusicTrack[]> {
-  const { data, error } = await supabase
-    .from('games')
-    .select('config')
-    .eq('id', gameId)
-    .maybeSingle()
+export async function fetchMusicTracksForGame(
+  eventId: string,
+  gameId: string,
+): Promise<MusicTrack[]> {
+  await ensureLiveEventAccess(eventId)
+  const { data, error } = await supabase.rpc('get_live_event_games', {
+    p_event_id: eventId,
+  })
   if (error) throw error
-  return musicTracksFromGameConfig(data?.config)
+  const game = ((data ?? []) as { id: string; config: unknown }[]).find((g) => g.id === gameId)
+  return musicTracksFromGameConfig(game?.config)
 }
 
 /** URL used during live bingo (prefers dedicated clip, then full audio). */

@@ -155,7 +155,7 @@ export function FacilitatorEventPage() {
     }
     setBingoTracksLive(bingoTracks(bingoGameForTracks))
     let cancelled = false
-    void fetchMusicTracksForGame(bingoStageGameId)
+    void fetchMusicTracksForGame(eventId!, bingoStageGameId)
       .then((fresh) => {
         if (!cancelled && fresh.length > 0) setBingoTracksLive(fresh)
       })
@@ -165,7 +165,7 @@ export function FacilitatorEventPage() {
     return () => {
       cancelled = true
     }
-  }, [bingoStageGameId, bingoGameForTracks])
+  }, [bingoStageGameId, bingoGameForTracks, eventId])
 
   const isQuizStage = stage?.type === 'quiz'
 
@@ -816,7 +816,7 @@ export function FacilitatorEventPage() {
       let url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, trackList)
       if (!url && stage?.gameId) {
         try {
-          const fresh = await fetchMusicTracksForGame(stage.gameId)
+          const fresh = await fetchMusicTracksForGame(eventId!, stage.gameId)
           if (fresh.length > 0) {
             trackList = fresh
             setBingoTracksLive(fresh)
@@ -1353,7 +1353,7 @@ export function FacilitatorEventPage() {
                     className="border-border/80 rounded-lg border px-3 py-2"
                   >
                     {a.text}
-                    {a.id === question.correctAnswerId ? (
+                    {state.quiz_state === 'revealed' && a.id === question.correctAnswerId ? (
                       <span className="text-muted-foreground ml-2 text-xs">(correct)</span>
                     ) : null}
                   </li>

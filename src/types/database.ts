@@ -291,6 +291,7 @@ export type Database = {
           list_order: number
           invoice_paid: boolean
           invoiced_at: string | null
+          join_token: string
           created_at: string
         }
         Insert: {
@@ -662,6 +663,22 @@ export type Database = {
       resolve_tenant_by_host: {
         Args: { p_host: string }
         Returns: Database['public']['Views']['organization_tenant_public']['Row'][]
+      }
+      bootstrap_live_event_access: {
+        Args: { p_event_id: string }
+        Returns: string
+      }
+      get_live_event_games: {
+        Args: { p_event_id: string }
+        Returns: Database['public']['Tables']['games']['Row'][]
+      }
+      score_current_quiz_question: {
+        Args: { p_event_id: string; p_game_id: string; p_question_id: string }
+        Returns: undefined
+      }
+      get_tablet_events_for_org: {
+        Args: { p_org_id: string }
+        Returns: Database['public']['Tables']['events']['Row'][]
       }
       support_unread_ticket_count: {
         Args: { p_viewer_role: string }

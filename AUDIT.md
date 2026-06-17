@@ -8,11 +8,11 @@
 
 | Severity | Count | Open | Fixed | Deferred |
 |----------|-------|------|-------|----------|
-| Critical | 8 | 6 | 2 | 0 |
-| High | 17 | 7 | 10 | 0 |
+| Critical | 8 | 5 | 3 | 0 |
+| High | 17 | 6 | 11 | 0 |
 | Medium | 11 | 9 | 2 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **28** | **14** | **0** |
+| **Total** | **42** | **26** | **16** | **0** |
 
 ---
 
@@ -28,7 +28,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 |----|-------|----------|------|--------|
 | C1 | Anonymous write access to all live tables (RLS `using (true)`) | Critical | RLS / Security | Open |
 | C2 | bingo_runs / bingo_team_cards: open CRUD for anon | Critical | RLS / Security | Open |
-| C3 | Quiz answers readable by anyone before reveal | Critical | RLS / Security | Open |
+| C3 | Quiz answers readable by anyone before reveal | Critical | RLS / Security | Fixed |
 | C4 | game-assets bucket: anon can upload/overwrite any path, no size limits | Critical | Storage / Security | Open |
 | C5 | Unauthenticated service-role edge functions | Critical | Edge functions / Security | Open |
 | C6 | Display screen (and preview iframe) writes event timers — fights the facilitator | Critical | Realtime / Live flow | Fixed |
@@ -45,7 +45,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 | H9 | event_games and org branding load once and never update live | High | Realtime | Open |
 | H10 | bingo_team_cards not realtime + 60s staleTime — stale cards after restart | High | Realtime | Open |
 | H11 | bingoRunOverride can diverge from the DB run across facilitators | High | Realtime / Live flow | Open |
-| H12 | Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone | High | RLS / Security | Open |
+| H12 | Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone | High | RLS / Security | Fixed |
 | H13 | Blank participant screen if the quiz game is deleted mid-event | High | Empty states | Fixed |
 | H14 | No upload size caps anywhere; video duration check bypassed on metadata error | High | Uploads | Fixed |
 | H15 | Tablet password: plaintext storage, brute-forceable RPC, forgeable session flag | High | Security | Open |
@@ -113,14 +113,14 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### C3 — Quiz answers readable by anyone before reveal
 
-- **Status:** Open
+- **Status:** Fixed (041)
 - **Area:** RLS / Security
 - **References:**
-  - `supabase/migrations/006_live_event.sql:100–103` (games_live_select using (true))
-  - `src/types/game-config.ts:7` (correctAnswerId in config)
-- **Problem:** Game `config` (including `correctAnswerId` for every quiz question) is selectable by anon for ALL games across ALL tenants.
+  - `supabase/migrations/041_event_join_token_scoping.sql`
+  - `src/hooks/use-live-event.ts` (`get_live_event_games` RPC)
+- **Problem:** Game `config` (including `correctAnswerId` for every quiz question) was selectable by anon for ALL games across ALL tenants.
 - **Breaks when:** A team member queries `games.select('config')` on their phone during the quiz and reads every correct answer. Quiet, undetectable cheating.
-- **Recommended fix:** Strip answers from client-visible config (server-only column, or a view that omits them) and restrict game SELECT to games attached to the live event.
+- **Recommended fix:** Strip answers from client-visible config via `get_live_event_games` (redacts until reveal); score via `score_current_quiz_question` RPC reading full config server-side.
 
 ### C4 — game-assets bucket: anon can upload/overwrite any path, no size limits
 
@@ -298,15 +298,14 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### H12 — Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone
 
-- **Status:** Open
+- **Status:** Fixed (041)
 - **Area:** RLS / Security
 - **References:**
-  - `supabase/migrations/006_live_event.sql:90–103`
-  - `supabase/migrations/013_music_catalog_bingo_runs.sql:66–69`
-  - `supabase/migrations/003_games_events_schema.sql:145–147` (open org INSERT)
-- **Problem:** `using (true)` SELECT policies let any anon client list every tenant's events, stages, game configs, and music catalog (licensed audio URLs). Separately, ANY authenticated user can insert rows into `organizations`.
-- **Breaks when:** A competitor scrapes all client event names and the entire music catalog of every org; any logged-in event manager pollutes the tenant namespace with junk orgs.
-- **Recommended fix:** Restrict SELECT to rows linked to a known live event / own org; org creation only via the super-admin edge function.
+  - `supabase/migrations/041_event_join_token_scoping.sql`
+  - `src/lib/live-event-access.ts`
+- **Problem:** `using (true)` SELECT policies let any anon client list every tenant's events, stages, game configs, and music catalog (licensed audio URLs).
+- **Breaks when:** A competitor scrapes all client event names and the entire music catalog of every org.
+- **Recommended fix:** Per-event `join_token` via `bootstrap_live_event_access` (event UUID in URL unchanged); anon reads require `x-join-token` header; `music_catalog` revoked from anon.
 
 ### H13 — Blank participant screen if the quiz game is deleted mid-event
 

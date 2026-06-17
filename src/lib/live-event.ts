@@ -7,7 +7,6 @@ import type {
   MusicTrack,
   QuizQuestion,
 } from '@/types/game-config'
-import { incrementTeamScore } from '@/lib/increment-team-score'
 import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
@@ -349,34 +348,12 @@ export async function scoreCurrentQuizQuestion(
   quizGame: Tables<'games'>,
   question: QuizQuestion,
 ): Promise<void> {
-  const points = quizGame.points_static ?? 10
-  const mediaType = quizSubmissionMediaType(question.id)
-
-  const { data: pendingSubs, error: fetchErr } = await supabase
-    .from('submissions')
-    .select('id, team_id, media_url')
-    .eq('event_id', eventId)
-    .eq('game_id', quizGame.id)
-    .eq('media_type', mediaType)
-    .eq('status', 'pending')
-
-  if (fetchErr) throw fetchErr
-
-  for (const sub of pendingSubs ?? []) {
-    const correct = sub.media_url === question.correctAnswerId
-    const awarded = correct ? points : 0
-    const { data, error } = await supabase
-      .from('submissions')
-      .update({ status: 'approved', points_awarded: awarded })
-      .eq('id', sub.id)
-      .eq('status', 'pending')
-      .select('id, team_id')
-      .maybeSingle()
-    if (error) throw error
-    if (data && awarded > 0) {
-      await incrementTeamScore(data.team_id, awarded)
-    }
-  }
+  const { error } = await supabase.rpc('score_current_quiz_question', {
+    p_event_id: eventId,
+    p_game_id: quizGame.id,
+    p_question_id: question.id,
+  })
+  if (error) throw error
 }
 
 export function quizLeaderboard(

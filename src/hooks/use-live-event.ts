@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
+import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -22,6 +23,9 @@ async function fetchEventSubmissions(eventId: string): Promise<Tables<'submissio
 }
 
 async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
+  const access = await ensureLiveEventAccess(eventId)
+  if (!access) return null
+
   const { data: event, error: eErr } = await supabase
     .from('events')
     .select('*')
@@ -31,16 +35,16 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
   if (eErr) throw eErr
   if (!event) return null
 
-  const [orgRes, stateRes, teamsRes, egRes] = await Promise.all([
+  const [orgRes, stateRes, teamsRes, gamesRes] = await Promise.all([
     fetchOrganizationTenantPublic(event.organization_id),
     supabase.from('event_state').select('*').eq('event_id', eventId).maybeSingle(),
     supabase.from('teams').select('*').eq('event_id', eventId).order('slot_number'),
-    supabase.from('event_games').select('game_id').eq('event_id', eventId),
+    supabase.rpc('get_live_event_games', { p_event_id: eventId }),
   ])
 
   if (stateRes.error) throw stateRes.error
   if (teamsRes.error) throw teamsRes.error
-  if (egRes.error) throw egRes.error
+  if (gamesRes.error) throw gamesRes.error
 
   let state = stateRes.data
   if (!state) {
@@ -53,13 +57,7 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
     state = created
   }
 
-  const gameIds = (egRes.data ?? []).map((r) => r.game_id)
-  let games: Tables<'games'>[] = []
-  if (gameIds.length > 0) {
-    const { data, error } = await supabase.from('games').select('*').in('id', gameIds)
-    if (error) throw error
-    games = data ?? []
-  }
+  const games = (gamesRes.data ?? []) as Tables<'games'>[]
 
   const submissions = await fetchEventSubmissions(eventId)
 

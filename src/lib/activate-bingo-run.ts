@@ -1,3 +1,4 @@
+import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { generateBingoRun } from '@/lib/bingo-engine'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
@@ -39,6 +40,8 @@ async function activateBingoRunLocal(
   gameId: string,
   stageIndex: number,
 ): Promise<ActivateBingoRunResult> {
+  await ensureLiveEventAccess(eventId)
+
   const { data: existing } = await supabase
     .from('bingo_runs')
     .select('id, play_order, current_play_index')
@@ -55,11 +58,12 @@ async function activateBingoRunLocal(
     }
   }
 
-  const [{ data: teams }, { data: game }] = await Promise.all([
+  const [{ data: teams }, { data: games }] = await Promise.all([
     supabase.from('teams').select('id, name').eq('event_id', eventId).order('slot_number'),
-    supabase.from('games').select('config').eq('id', gameId).maybeSingle(),
+    supabase.rpc('get_live_event_games', { p_event_id: eventId }),
   ])
 
+  const game = ((games ?? []) as { id: string; config: unknown }[]).find((g) => g.id === gameId)
   const config = (game?.config ?? {}) as GameConfig
   const tracks = (config.tracks ?? []).filter((t) => t.id && t.title)
   if (tracks.length < 5) throw new Error('Game needs at least 5 tracks')
