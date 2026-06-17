@@ -1300,12 +1300,38 @@ export function JoinGameView({
         historicalByIndex.set(idx, s.status)
       }
     }
+    // Cells the participant selected whose result hasn't landed yet (still
+    // pending). The reveal broadcasts the played track instantly but the
+    // approved/rejected status arrives on the next bundle refetch, so without
+    // this a just-selected cell briefly computes as "missed" (grey) before
+    // settling to green/red. Treat these as selected, not missed.
+    const pendingSelectedIndices = new Set<number>()
+    for (const s of mySubs) {
+      if (
+        s.media_type !== 'bingo' ||
+        s.game_id !== stage.gameId ||
+        s.status !== 'pending' ||
+        s.media_url == null ||
+        s.media_url === 'claim'
+      ) {
+        continue
+      }
+      const idx = cardCells.length
+        ? resolveBingoSubmissionCellIndex(s.media_url, cardCells)
+        : Number(s.media_url)
+      if (Number.isNaN(idx) || idx < 0) continue
+      pendingSelectedIndices.add(idx)
+    }
+
     const approvedIndices = approvedBingoCellIndices(mySubs, stage.gameId, cardCells)
     const winningCells = bingoWinningHighlightCells(approvedIndices, winConfig)
     const revealedTrackIds = parseRevealedTrackIds(state.bingo_revealed_track_ids)
     const missedLockedIndices = cardCells.length
       ? missedBingoCellIndices(cardCells, revealedTrackIds, historicalByIndex)
       : new Set<number>()
+    // A cell the participant selected must never flash grey while its result is
+    // still in flight — keep it as a selection until approved/rejected resolves.
+    for (const idx of pendingSelectedIndices) missedLockedIndices.delete(idx)
     const canMark = roundActive
     body = (
       <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
@@ -1336,13 +1362,19 @@ export function JoinGameView({
               disabled = true
             }
             if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
-            const pickStyle =
-              roundActive && bingoPick === i
-                ? {
-                    backgroundColor: STANDBY_ACCENT,
-                    color: textOnAccent(STANDBY_ACCENT),
-                  }
-                : undefined
+            // Show the yellow selection both for the optimistic tap (during play)
+            // and for a persisted pending selection (through reveal) so a chosen
+            // cell goes straight from yellow to green/red — never grey. Once the
+            // result lands (finalStatus set) green/red wins.
+            const showSelected =
+              finalStatus == null &&
+              ((roundActive && bingoPick === i) || pendingSelectedIndices.has(i))
+            const pickStyle = showSelected
+              ? {
+                  backgroundColor: STANDBY_ACCENT,
+                  color: textOnAccent(STANDBY_ACCENT),
+                }
+              : undefined
             return (
               <button
                 key={i}
