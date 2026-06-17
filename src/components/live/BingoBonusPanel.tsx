@@ -58,7 +58,7 @@ export function BingoBonusPanel({
           large ? 'mx-auto grid max-w-3xl gap-3 sm:grid-cols-2' : 'space-y-3'
         }
       >
-        {challenge.answers.map((a) => {
+        {challenge.answers.filter(Boolean).map((a) => {
           const isCorrect = a.id === challenge.correctAnswerId
           const isMine = a.id === answerId
           let cls = large

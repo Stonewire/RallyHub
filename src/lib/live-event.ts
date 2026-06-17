@@ -73,7 +73,10 @@ export type LiveEventBundle = {
 
 export function parseStages(raw: Json | null | undefined): EventStage[] {
   if (!Array.isArray(raw)) return []
-  return raw as EventStage[]
+  return (raw as (EventStage | null | undefined)[]).filter(
+    (stage): stage is EventStage =>
+      Boolean(stage && typeof stage.id === 'string' && stage.type),
+  )
 }
 
 export function currentStage(
@@ -224,7 +227,9 @@ export function gamePointsLabel(game: Tables<'games'>): string {
 
 export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {
   const config = (game.config ?? {}) as GameConfig
-  const questions = config.questions ?? []
+  const questions = (config.questions ?? []).filter(
+    (q): q is QuizQuestion => Boolean(q?.id && q?.text),
+  )
   if (!config.rounds_enabled || !config.rounds?.length) return questions
 
   const byId = new Map(questions.map((q) => [q.id, q]))
@@ -251,7 +256,10 @@ export function bingoTracks(game: Tables<'games'>): MusicTrack[] {
 
 export function bingoBonusChallenges(game: Tables<'games'>): BonusChallenge[] {
   const config = (game.config ?? {}) as GameConfig
-  return config.bonus_challenges ?? []
+  return (config.bonus_challenges ?? []).filter(
+    (ch): ch is BonusChallenge =>
+      Boolean(ch?.id && typeof ch.question === 'string'),
+  )
 }
 
 export function bingoBonusChallenge(

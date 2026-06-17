@@ -176,11 +176,19 @@ export function FacilitatorChatDrawer({
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
 
-  const teamById = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams])
+  const safeTeams = useMemo(
+    () => teams.filter((t): t is Tables<'teams'> => Boolean(t?.id)),
+    [teams],
+  )
+
+  const teamById = useMemo(
+    () => new Map(safeTeams.map((t) => [t.id, t])),
+    [safeTeams],
+  )
 
   const sortedTeams = useMemo(
-    () => sortTeamsForInbox(teams, messages, unreadByTeamId),
-    [teams, messages, unreadByTeamId],
+    () => sortTeamsForInbox(safeTeams, messages, unreadByTeamId),
+    [safeTeams, messages, unreadByTeamId],
   )
 
   const threadMessages = useMemo(() => {

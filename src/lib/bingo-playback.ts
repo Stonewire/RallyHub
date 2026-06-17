@@ -54,7 +54,10 @@ export function musicTracksFromGameConfig(config: unknown): MusicTrack[] {
   const parsed = parseGameConfig(config)
   const raw = parsed.tracks
   if (!Array.isArray(raw)) return []
-  return raw.map(normalizeMusicTrack).filter((t): t is MusicTrack => t !== null)
+  return raw
+    .filter((entry) => entry != null)
+    .map(normalizeMusicTrack)
+    .filter((t): t is MusicTrack => t !== null && Boolean(t.id))
 }
 
 /** Latest playlist from DB (bypasses stale live-event bundle cache). */

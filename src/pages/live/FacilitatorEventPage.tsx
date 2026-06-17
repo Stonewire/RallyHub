@@ -374,7 +374,9 @@ export function FacilitatorEventPage() {
 
   const { event, organization, teams: eventTeams, games, submissions } = bundle
   controlsLiveRef.current = isEventLive(event)
-  const teams = isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
+  const teams = (
+    isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
+  ).filter((team): team is Tables<'teams'> => Boolean(team?.id))
   const liveState = state
   const displayUrl = eventId
     ? getEventLinks(eventId, organization).display
@@ -694,9 +696,9 @@ export function FacilitatorEventPage() {
   const bingoGame = stage?.type === 'bingo' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
-  const tracks = bingoTracksLive
+  const tracks = bingoTracksLive.filter((t): t is MusicTrack => Boolean(t?.id))
   const effectiveBingoRun = bingoRunOverride ?? bingoRunQuery.data
-  const bingoPlayOrder = effectiveBingoRun?.playOrder ?? []
+  const bingoPlayOrder = normalizeBingoPlayOrder(effectiveBingoRun?.playOrder)
   const bingoPlayIndex = liveState.current_question_index
   const playTrackId = bingoPlayOrder[bingoPlayIndex]
   const track = playTrackId
@@ -1126,16 +1128,18 @@ export function FacilitatorEventPage() {
           <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <p className="mb-2 text-sm font-medium">Stages</p>
             <div className="flex flex-wrap gap-2">
-              {stages.map((s, i) => (
-                <NeoButton
-                  key={s.id}
-                  size="sm"
-                  variant={state.current_stage_index === i ? 'primary' : 'surface'}
-                  onClick={() => selectStage(i)}
-                >
-                  Stage {i + 1}
-                </NeoButton>
-              ))}
+              {stages.map((s, i) =>
+                s?.id ? (
+                  <NeoButton
+                    key={s.id}
+                    size="sm"
+                    variant={state.current_stage_index === i ? 'primary' : 'surface'}
+                    onClick={() => selectStage(i)}
+                  >
+                    Stage {i + 1}
+                  </NeoButton>
+                ) : null,
+              )}
             </div>
           </Card>
 
