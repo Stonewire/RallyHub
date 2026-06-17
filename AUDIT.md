@@ -18,7 +18,7 @@
 
 ## Headline risk
 
-The anon key grants **full write access** to every tenant's live tables (C1/C2): any participant can rewrite scores, reveal quiz answers, or reset a bingo run from DevTools. C6 and C7 are fixed; RLS lockdown (C1/C2) and remaining scoring/realtime issues still block production trust.
+The anon key no longer grants broad write access to live tables (C1/C2 fixed in 048). Facilitators authenticate; participants remain anon+join-token for their own actions. C6 and C7 are fixed; remaining scoring/realtime issues (C8) still affect production trust at scale.
 
 ---
 
@@ -26,8 +26,8 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 | ID | Title | Severity | Area | Status |
 |----|-------|----------|------|--------|
-| C1 | Anonymous write access to all live tables (RLS `using (true)`) | Critical | RLS / Security | Open |
-| C2 | bingo_runs / bingo_team_cards: open CRUD for anon | Critical | RLS / Security | Open |
+| C1 | Anonymous write access to all live tables (RLS `using (true)`) | Critical | RLS / Security | Fixed (048) |
+| C2 | bingo_runs / bingo_team_cards: open CRUD for anon | Critical | RLS / Security | Fixed (048) |
 | C3 | Quiz answers readable by anyone before reveal | Critical | RLS / Security | Fixed |
 | C4 | game-assets bucket: anon can upload/overwrite any path, no size limits | Critical | Storage / Security | Open |
 | C5 | Unauthenticated service-role edge functions | Critical | Edge functions / Security | Open |
@@ -75,7 +75,7 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 | # | Findings | What to fix | Status |
 |---|----------|-------------|--------|
-| 1 | C1, C2 | Lock down live-table RLS (teams, event_state, submissions, bingo_runs) — anyone can rewrite scores and hijack the event today | Open |
+| 1 | C1, C2 | Lock down live-table RLS (teams, event_state, submissions, bingo_runs) — anyone can rewrite scores and hijack the event today | Done (048) |
 | 2 | C7 | Stop the bingo line bonus from re-awarding on every reveal — guarantees a wrong leaderboard in any game with line points | Fixed |
 | 3 | C6 | Make display + preview timers read-only — visible timer jumping on every screen in the room | Fixed |
 | 4 | H1, H2, H3 | Atomic, idempotent scoring: increment-score RPC + approve-where-pending, with error checks before awarding | Fixed |
@@ -92,24 +92,24 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### C1 — Anonymous write access to all live tables (RLS `using (true)`)
 
-- **Status:** Open
+- **Status:** Fixed (048)
 - **Area:** RLS / Security
-- **References:** `supabase/migrations/006_live_event.sql:71–88, 110–117`
-- **Problem:** `teams_live_all`, `submissions_live_all`, `event_state_live_all`, `chat_messages_live_all` are `for all to anon, authenticated using (true) with check (true)`, plus `grant all` to anon. Any browser with the public anon key can read and write every row of every tenant.
-- **Breaks when:** A participant opens DevTools mid-event and runs `supabase.from('teams').update({ score: 99999 }).eq('id', …)` — or sets `quiz_state: 'revealed'` on event_state to expose answers, deletes rival submissions, or spams any event's chat. No login required.
-- **Recommended fix:** Scope policies to the event (join against events / a join token), make writes column-restricted, and move score/state mutations behind SECURITY DEFINER RPCs. Never `using (true)` on writes.
+- **References:**
+  - `supabase/migrations/048_live_write_lockdown.sql`
+  - `supabase/migrations/041_event_join_token_scoping.sql` (Phase 2 read scoping)
+- **Problem:** Phase 2 scoped reads by join token but left `for all` write policies on live tables. Any anon holder of a join token could still rewrite scores, event_state, approve submissions, or control bingo.
+- **Fix:** Split read/write policies per table. Anon+token: participant actions only (team claim, own submissions, chat insert). Authenticated facilitator (`facilitator` / `client_admin` / `super_admin`): privileged writes. Triggers guard anon column changes on teams/submissions. `increment_team_score` and `score_current_quiz_question` require facilitator auth.
 
 ### C2 — bingo_runs / bingo_team_cards: open CRUD for anon
 
-- **Status:** Open
+- **Status:** Fixed (048)
 - **Area:** RLS / Security
 - **References:**
-  - `supabase/migrations/013_music_catalog_bingo_runs.sql:71–104`
-  - `src/lib/activate-bingo-run.ts:17–27` (client fallback)
-  - `src/lib/restart-bingo-run.ts:10–17`
-- **Problem:** Anon can select/insert/update/delete all bingo runs and cards. The client-side fallback in `activateBingoRunLocal` and `restartBingoRun` normalizes doing privileged operations from the browser, so locking the edge function alone won't help.
-- **Breaks when:** Anyone with an event UUID (visible in the join URL/QR) deletes the active bingo run or rewrites `play_order` mid-game; every device desyncs.
-- **Recommended fix:** Event-scoped policies; run activation/restart only through an authenticated edge function; remove the client-side local fallback.
+  - `supabase/migrations/048_live_write_lockdown.sql`
+  - `supabase/functions/activate-bingo-run/index.ts` (facilitator JWT)
+  - `src/lib/activate-bingo-run.ts`, `src/lib/restart-bingo-run.ts`
+- **Problem:** Anon could select/insert/update/delete all bingo runs and cards. Client-side `activateBingoRunLocal` / `restartBingoRun` relied on open policies.
+- **Fix:** Anon select-only (join token). All bingo writes require authenticated facilitator. Edge function `activate-bingo-run` accepts facilitator JWT (not only client_admin). Local fallback still works for logged-in facilitators via RLS.
 
 ### C3 — Quiz answers readable by anyone before reveal
 
@@ -135,15 +135,15 @@ The anon key grants **full write access** to every tenant's live tables (C1/C2):
 
 ### C5 — Unauthenticated service-role edge functions
 
-- **Status:** Open
+- **Status:** Partial (activate-bingo-run fixed; invite-member open)
 - **Area:** Edge functions / Security
 - **References:**
-  - `supabase/functions/activate-bingo-run/index.ts:11–28`
+  - `supabase/functions/activate-bingo-run/index.ts` (facilitator JWT required)
   - `supabase/functions/invite-member/index.ts:13–30`
   - `supabase/functions/reveal-bingo-winner/index.ts` (latent — unused but deployed)
-- **Problem:** `activate-bingo-run` and `invite-member` accept any unauthenticated POST and execute with the service role. `invite-member` lets anyone invite any email into any organization (verified — no Authorization check at all).
-- **Breaks when:** An attacker POSTs to `/functions/v1/activate-bingo-run` to reset any event's bingo run, or invites themselves into a victim org via `invite-member`.
-- **Recommended fix:** Verify the caller JWT and role/org membership at the top of every function; `create-client` already does this correctly — copy that pattern. Delete `reveal-bingo-winner` if unused.
+- **Problem:** `invite-member` accepts unauthenticated POST with service role. `activate-bingo-run` previously required client_admin only; now requires facilitator JWT.
+- **Breaks when:** An attacker invites themselves into a victim org via `invite-member`.
+- **Recommended fix:** Verify JWT on every function; delete unused `reveal-bingo-winner`. `invite-member` superseded by `create-org-user` for new flows.
 
 ### C6 — Display screen (and preview iframe) writes event timers — fights the facilitator
 

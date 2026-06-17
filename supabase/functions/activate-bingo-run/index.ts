@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { generateBingoRun } from '../_shared/bingo-engine.ts'
-import { requireAuthUser, requireEventOrgAdminOrSuperAdmin } from '../_shared/auth.ts'
+import { requireAuthUser, requireEventFacilitatorOrSuperAdmin } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const orgAuth = await requireEventOrgAdminOrSuperAdmin(supabase, auth.user.id, eventId)
+    const orgAuth = await requireEventFacilitatorOrSuperAdmin(supabase, auth.user.id, eventId)
     if (!orgAuth.ok) {
       return new Response(JSON.stringify({ error: orgAuth.message }), {
         status: orgAuth.status,

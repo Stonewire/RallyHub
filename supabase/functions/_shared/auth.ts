@@ -103,3 +103,43 @@ export async function requireEventOrgAdminOrSuperAdmin(
 
   return { ok: true, organizationId: event.organization_id }
 }
+
+/** facilitator / client_admin of the event org, or super_admin. */
+export async function requireEventFacilitatorOrSuperAdmin(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  eventId: string,
+): Promise<AuthFailure | { ok: true; organizationId: string }> {
+  const { data: event, error: eventErr } = await supabaseAdmin
+    .from('events')
+    .select('organization_id')
+    .eq('id', eventId)
+    .maybeSingle()
+
+  if (eventErr || !event?.organization_id) {
+    return { ok: false, status: 404, message: 'Event not found' }
+  }
+
+  const { data: profile, error } = await supabaseAdmin
+    .from('profiles')
+    .select('role, organization_id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !profile) {
+    return { ok: false, status: 403, message: 'Forbidden' }
+  }
+
+  if (profile.role === 'super_admin') {
+    return { ok: true, organizationId: event.organization_id }
+  }
+
+  if (
+    profile.organization_id === event.organization_id &&
+    (profile.role === 'facilitator' || profile.role === 'client_admin')
+  ) {
+    return { ok: true, organizationId: event.organization_id }
+  }
+
+  return { ok: false, status: 403, message: 'Forbidden' }
+}
