@@ -154,8 +154,9 @@ export function JoinEventPage() {
 
       if (updateError) throw updateError
 
+      // Fan-out to facilitator/display — must not block the join UX.
       if (updatedTeam) {
-        await publishLiveBundlePatch(eventId, {
+        void publishLiveBundlePatch(eventId, {
           kind: 'team',
           op: 'UPDATE',
           row: updatedTeam,

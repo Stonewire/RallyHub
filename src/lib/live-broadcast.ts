@@ -42,10 +42,98 @@ export type LiveBundlePatch =
   | { kind: 'bingo_team_card'; runId: string; teamId: string; cells: BingoCell[] }
   | { kind: 'full_reload' }
 
-const publisherChannels = new Map<string, RealtimeChannel>()
+const BROADCAST_READY_TIMEOUT_MS = 3_000
+
+type SharedChannelState = {
+  channel: RealtimeChannel
+  ready: Promise<void>
+}
+
+const sharedChannels = new Map<string, SharedChannelState>()
+const patchListeners = new Map<string, Set<(patch: LiveBundlePatch) => void>>()
 
 export function liveBroadcastChannelName(eventId: string, joinToken: string): string {
   return `live:${eventId}:${joinToken.slice(0, 16)}`
+}
+
+function sharedKey(eventId: string, joinToken: string): string {
+  return `${eventId}:${joinToken.slice(0, 16)}`
+}
+
+function dispatchPatch(key: string, patch: LiveBundlePatch): void {
+  const listeners = patchListeners.get(key)
+  if (!listeners) return
+  for (const fn of listeners) fn(patch)
+}
+
+/** One Realtime channel per event+token — shared by listeners and publishers. */
+async function ensureSharedLiveBroadcastChannel(
+  eventId: string,
+  joinToken: string,
+): Promise<RealtimeChannel> {
+  const key = sharedKey(eventId, joinToken)
+  let state = sharedChannels.get(key)
+  if (!state) {
+    const channel = supabase.channel(liveBroadcastChannelName(eventId, joinToken), {
+      config: { broadcast: { self: true } },
+    })
+    channel.on('broadcast', { event: 'live_bundle' }, ({ payload }) => {
+      const patch = payload as LiveBundlePatch
+      if (patch?.kind) dispatchPatch(key, patch)
+    })
+    const ready = new Promise<void>((resolve) => {
+      channel.subscribe((status) => {
+        if (
+          status === 'SUBSCRIBED' ||
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT' ||
+          status === 'CLOSED'
+        ) {
+          resolve()
+        }
+      })
+    })
+    state = {
+      channel,
+      ready: Promise.race([
+        ready,
+        new Promise<void>((resolve) => setTimeout(resolve, BROADCAST_READY_TIMEOUT_MS)),
+      ]),
+    }
+    sharedChannels.set(key, state)
+  }
+  await state.ready
+  return state.channel
+}
+
+function teardownSharedChannelIfIdle(key: string): void {
+  const listeners = patchListeners.get(key)
+  if (listeners && listeners.size > 0) return
+  const state = sharedChannels.get(key)
+  if (!state) return
+  void supabase.removeChannel(state.channel)
+  sharedChannels.delete(key)
+  patchListeners.delete(key)
+}
+
+/** Subscribe to live bundle broadcast patches for an event. */
+export function onLiveBundlePatch(
+  eventId: string,
+  joinToken: string,
+  handler: (patch: LiveBundlePatch) => void,
+): () => void {
+  const key = sharedKey(eventId, joinToken)
+  let set = patchListeners.get(key)
+  if (!set) {
+    set = new Set()
+    patchListeners.set(key, set)
+  }
+  set.add(handler)
+  void ensureSharedLiveBroadcastChannel(eventId, joinToken)
+  return () => {
+    set!.delete(handler)
+    teardownSharedChannelIfIdle(key)
+  }
 }
 
 function mergeSubmission(
@@ -112,28 +200,6 @@ export function applyLiveBundlePatch(
   }
 }
 
-async function ensureLiveBroadcastPublisher(
-  eventId: string,
-  joinToken: string,
-): Promise<RealtimeChannel | null> {
-  const key = `${eventId}:${joinToken.slice(0, 16)}`
-  const existing = publisherChannels.get(key)
-  if (existing) return existing
-
-  const channel = supabase.channel(liveBroadcastChannelName(eventId, joinToken), {
-    config: { broadcast: { self: true } },
-  })
-  publisherChannels.set(key, channel)
-  await new Promise<void>((resolve) => {
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        resolve()
-      }
-    })
-  })
-  return channel
-}
-
 export async function publishLiveBundlePatch(
   eventId: string,
   patch: LiveBundlePatch,
@@ -142,12 +208,16 @@ export async function publishLiveBundlePatch(
   if (!access) return
   const joinToken = getStoredLiveJoinToken(eventId)
   if (!joinToken) return
-  const channel = await ensureLiveBroadcastPublisher(eventId, joinToken)
-  await channel?.send({
-    type: 'broadcast',
-    event: 'live_bundle',
-    payload: patch,
-  })
+  try {
+    const channel = await ensureSharedLiveBroadcastChannel(eventId, joinToken)
+    await channel.send({
+      type: 'broadcast',
+      event: 'live_bundle',
+      payload: patch,
+    })
+  } catch {
+    // Broadcast is best-effort; never block writes on fan-out failures.
+  }
 }
 
 export async function publishLiveBundleReload(eventId: string): Promise<void> {
@@ -195,7 +265,7 @@ export function subscribeLiveBundleBroadcast(
   handlers: LiveBroadcastHandlers,
 ): () => void {
   let cancelled = false
-  let channel: RealtimeChannel | null = null
+  let unsubscribe: (() => void) | undefined
 
   void (async () => {
     const access = await ensureLiveEventAccess(eventId)
@@ -203,22 +273,15 @@ export function subscribeLiveBundleBroadcast(
     const joinToken = getStoredLiveJoinToken(eventId)
     if (!joinToken || cancelled) return
 
-    channel = supabase
-      .channel(liveBroadcastChannelName(eventId, joinToken), {
-        config: { broadcast: { self: true } },
-      })
-      .on('broadcast', { event: 'live_bundle' }, ({ payload }) => {
-        const patch = payload as LiveBundlePatch
-        if (!patch?.kind) return
-        handlers.onBundlePatch?.(patch)
-        if (patch.kind === 'bingo_run') handlers.onBingoRun?.(patch)
-        if (patch.kind === 'bingo_team_card') handlers.onBingoTeamCard?.(patch)
-      })
-      .subscribe()
+    unsubscribe = onLiveBundlePatch(eventId, joinToken, (patch) => {
+      handlers.onBundlePatch?.(patch)
+      if (patch.kind === 'bingo_run') handlers.onBingoRun?.(patch)
+      if (patch.kind === 'bingo_team_card') handlers.onBingoTeamCard?.(patch)
+    })
   })()
 
   return () => {
     cancelled = true
-    if (channel) void supabase.removeChannel(channel)
+    unsubscribe?.()
   }
 }

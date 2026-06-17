@@ -3,9 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   applyLiveBundlePatch,
-  liveBroadcastChannelName,
+  onLiveBundlePatch,
   publishLiveBundlePatch,
-  type LiveBundlePatch,
 } from '@/lib/live-broadcast'
 import {
   ensureLiveEventAccess,
@@ -191,7 +190,7 @@ export function useLiveEvent(eventId: string | undefined) {
     if (!eventId) return
 
     let cancelled = false
-    let broadcastChannel: ReturnType<typeof supabase.channel> | null = null
+    let unsubscribeBroadcast: (() => void) | undefined
 
     void (async () => {
       const access = await ensureLiveEventAccess(eventId)
@@ -199,29 +198,19 @@ export function useLiveEvent(eventId: string | undefined) {
       const joinToken = getStoredLiveJoinToken(eventId)
       if (!joinToken || cancelled) return
 
-      broadcastChannel = supabase
-        .channel(liveBroadcastChannelName(eventId, joinToken), {
-          config: { broadcast: { self: true } },
+      unsubscribeBroadcast = onLiveBundlePatch(eventId, joinToken, (patch) => {
+        if (patch.kind === 'full_reload') {
+          scheduleReloadRef.current()
+          return
+        }
+        if (patch.kind === 'bingo_run' || patch.kind === 'bingo_team_card') {
+          return
+        }
+        setBundle((b) => {
+          if (!b) return b
+          return applyLiveBundlePatch(b, patch)
         })
-        .on('broadcast', { event: 'live_bundle' }, ({ payload }) => {
-          const patch = payload as LiveBundlePatch
-          if (!patch?.kind) return
-          if (patch.kind === 'full_reload') {
-            scheduleReloadRef.current()
-            return
-          }
-          if (
-            patch.kind === 'bingo_run' ||
-            patch.kind === 'bingo_team_card'
-          ) {
-            return
-          }
-          setBundle((b) => {
-            if (!b) return b
-            return applyLiveBundlePatch(b, patch)
-          })
-        })
-        .subscribe()
+      })
     })()
 
     const channel = supabase.channel(`live:event:${eventId}:bundle`)
@@ -322,9 +311,9 @@ export function useLiveEvent(eventId: string | undefined) {
 
     return () => {
       cancelled = true
+      unsubscribeBroadcast?.()
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (reconnectRef.current) clearTimeout(reconnectRef.current)
-      if (broadcastChannel) void supabase.removeChannel(broadcastChannel)
       void supabase.removeChannel(channel)
     }
   }, [eventId, channelCycle, eventGameIdsKey])
