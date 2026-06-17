@@ -13,6 +13,16 @@ if (!url?.trim() || !anonKey?.trim()) {
 
 let liveJoinToken: string | null = null
 
+function isSupabaseAuthRequest(input: RequestInfo | URL): boolean {
+  const requestUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url
+  return requestUrl.includes('/auth/v1/')
+}
+
 /** Sets the join token sent on Supabase REST requests (x-join-token header for Phase 2 RLS). */
 export function setLiveJoinToken(token: string | null): void {
   liveJoinToken = token?.trim() || null
@@ -24,7 +34,7 @@ export const supabase = createClient<Database>(
   {
     global: {
       fetch: (input, init) => {
-        if (!liveJoinToken) {
+        if (!liveJoinToken || isSupabaseAuthRequest(input)) {
           return fetch(input, init)
         }
         const headers = new Headers(init?.headers)

@@ -9,7 +9,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 
-import { supabase } from '@/lib/supabase'
+import { setLiveJoinToken, supabase } from '@/lib/supabase'
 import { resolveLoginEmail } from '@/lib/auth-identifier'
 import type { AppRole } from '@/types/database'
 import type { Tables } from '@/types/helpers'
@@ -133,8 +133,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id])
 
   const signOut = useCallback(async () => {
+    setLiveJoinToken(null)
+    setSession(null)
+    setProfile(null)
+    setProfileLoading(false)
+
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      console.error('[RallyHub] signOut failed', error.message)
+      const { error: localError } = await supabase.auth.signOut({ scope: 'local' })
+      if (localError) {
+        console.error('[RallyHub] local signOut failed', localError.message)
+        throw localError
+      }
+    }
   }, [])
 
   const resolvedProfile =

@@ -5,7 +5,7 @@ import {
   LifeBuoy,
   LogOut,
 } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import { RallySidebarLogo } from '@/components/brand/RallyLogo'
 import {
@@ -33,9 +33,19 @@ const mainNav = [
 ] as const
 
 export function RallyHubAppSidebar() {
+  const navigate = useNavigate()
   const { pathname } = useLocation()
   const { signOut } = useAuth()
   const { data: supportUnread = 0 } = useSupportUnreadCount('support')
+
+  async function handleSignOut() {
+    try {
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch (err) {
+      console.error('[RallyHub] Sign out failed', err)
+    }
+  }
 
   return (
     <Sidebar
@@ -87,7 +97,7 @@ export function RallyHubAppSidebar() {
               type="button"
               className="text-[#3E3D3E]"
               tooltip="Sign out"
-              onClick={() => void signOut()}
+              onClick={() => void handleSignOut()}
             >
               <LogOut className="shrink-0" strokeWidth={1.75} />
               <span className="font-medium">Sign out</span>

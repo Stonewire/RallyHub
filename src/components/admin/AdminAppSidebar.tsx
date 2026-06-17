@@ -10,7 +10,7 @@ import {
   Users,
 } from 'lucide-react'
 import * as React from 'react'
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { RallySidebarLogo } from '@/components/brand/RallyLogo'
 import {
@@ -59,6 +59,7 @@ const orgRoutes = [
 ] as const
 
 export function AdminAppSidebar() {
+  const navigate = useNavigate()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { signOut, role } = useAuth()
@@ -79,6 +80,15 @@ export function AdminAppSidebar() {
   function onOrgMenuOpenChange(next: boolean) {
     if (orgChildActive && !next) return
     setOrgMenuOpenWhenBrowsing(next)
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch (err) {
+      console.error('[RallyHub] Sign out failed', err)
+    }
   }
 
   return (
@@ -133,62 +143,62 @@ export function AdminAppSidebar() {
               ) : null}
 
               {showOrgSettings ? (
-              <Collapsible
-                open={orgMenuOpen}
-                onOpenChange={onOrgMenuOpenChange}
-                className="group/org"
-              >
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      tooltip="Org Settings"
-                      isActive={false}
-                      type="button"
-                      className={[
-                        'group admin-org-trigger font-medium text-[#3E3D3E]',
-                        orgChildActive ? 'admin-org-trigger-active' : '',
-                      ].join(' ')}
-                    >
-                      <Building2 className="shrink-0" strokeWidth={1.75} />
-                      <span className="font-medium">Org Settings</span>
-                      <ChevronDown className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
+                  <Collapsible
+                    open={orgMenuOpen}
+                    onOpenChange={onOrgMenuOpenChange}
+                    className="group/org w-full"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip="Org Settings"
+                        isActive={false}
+                        type="button"
+                        className={[
+                          'group admin-org-trigger font-medium text-[#3E3D3E]',
+                          orgChildActive ? 'admin-org-trigger-active' : '',
+                        ].join(' ')}
+                      >
+                        <Building2 className="shrink-0" strokeWidth={1.75} />
+                        <span className="font-medium">Org Settings</span>
+                        <ChevronDown className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
 
-                  <CollapsibleContent className="data-[state=closed]:animate-none">
-                    <SidebarMenuSub>
-                      {orgRoutes.map(({ to, label, icon: Icon, tab }) => {
-                        const isActive =
-                          pathname.startsWith('/admin/settings') &&
-                          (tab === 'billing'
-                            ? settingsTab === 'billing'
-                            : settingsTab !== 'billing')
+                    <CollapsibleContent className="data-[state=closed]:animate-none">
+                      <SidebarMenuSub>
+                        {orgRoutes.map(({ to, label, icon: Icon, tab }) => {
+                          const isActive =
+                            pathname.startsWith('/admin/settings') &&
+                            (tab === 'billing'
+                              ? settingsTab === 'billing'
+                              : settingsTab !== 'billing')
 
-                        return (
-                          <SidebarMenuSubItem key={label}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isActive}
-                              size="md"
-                            >
-                              <NavLink
-                                to={
-                                  tab
-                                    ? { pathname: to, search: `?tab=${tab}` }
-                                    : to
-                                }
+                          return (
+                            <SidebarMenuSubItem key={label}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isActive}
+                                size="md"
                               >
-                                <Icon className="shrink-0" strokeWidth={1.75} />
-                                <span>{label}</span>
-                              </NavLink>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                                <NavLink
+                                  to={
+                                    tab
+                                      ? { pathname: to, search: `?tab=${tab}` }
+                                      : to
+                                  }
+                                >
+                                  <Icon className="shrink-0" strokeWidth={1.75} />
+                                  <span>{label}</span>
+                                </NavLink>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          )
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </SidebarMenuItem>
-              </Collapsible>
               ) : null}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -220,7 +230,7 @@ export function AdminAppSidebar() {
               type="button"
               className="text-[#3E3D3E]"
               tooltip="Sign out"
-              onClick={() => void signOut()}
+              onClick={() => void handleSignOut()}
             >
               <LogOut className="shrink-0" strokeWidth={1.75} />
               <span className="font-medium">Sign out</span>
