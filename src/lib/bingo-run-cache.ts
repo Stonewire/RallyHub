@@ -1,6 +1,19 @@
 import type { BingoRunRow } from '@/hooks/use-bingo-run'
 import type { ActivateBingoRunResult } from '@/lib/activate-bingo-run'
 
+/** Coerce DB / edge play_order into a string[] (null or malformed JSON must not crash UI). */
+export function normalizeBingoPlayOrder(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((id): id is string => typeof id === 'string' && id.length > 0)
+}
+
+export function normalizeBingoRunRow(row: BingoRunRow): BingoRunRow {
+  return {
+    ...row,
+    playOrder: normalizeBingoPlayOrder(row.playOrder),
+  }
+}
+
 export function bingoRunRowFromActivation(
   eventId: string,
   gameId: string,
@@ -12,8 +25,8 @@ export function bingoRunRowFromActivation(
     event_id: eventId,
     game_id: gameId,
     stage_index: stageIndex,
-    playOrder: result.playOrder,
-    current_play_index: result.currentPlayIndex,
+    playOrder: normalizeBingoPlayOrder(result.playOrder),
+    current_play_index: result.currentPlayIndex ?? 0,
     status: 'active',
   }
 }

@@ -1,6 +1,7 @@
 import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { generateBingoRun } from '@/lib/bingo-engine'
 import type { BingoCell } from '@/lib/bingo-engine'
+import { normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
 import {
   bingoRunRowToBroadcast,
   publishLiveBundlePatch,
@@ -105,7 +106,7 @@ async function activateBingoRunLocal(
   if (existing) {
     const result = {
       runId: existing.id,
-      playOrder: (existing.play_order as string[]) ?? [],
+      playOrder: normalizeBingoPlayOrder(existing.play_order),
       currentPlayIndex: existing.current_play_index,
       alreadyActive: true,
     }

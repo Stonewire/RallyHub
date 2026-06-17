@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import type { BingoCell } from '@/lib/bingo-engine'
+import { normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
+import type { BingoRunBroadcastRow } from '@/lib/live-broadcast'
 import { subscribeLiveBundleBroadcast } from '@/lib/live-broadcast'
 import { supabase } from '@/lib/supabase'
 
@@ -16,6 +18,18 @@ export type BingoRunRow = {
   status: string
 }
 
+function broadcastRowToQueryRow(row: BingoRunBroadcastRow): BingoRunRow {
+  return {
+    id: row.id,
+    event_id: row.event_id,
+    game_id: row.game_id,
+    stage_index: row.stage_index,
+    playOrder: normalizeBingoPlayOrder(row.playOrder),
+    current_play_index: row.current_play_index,
+    status: row.status,
+  }
+}
+
 export function useBingoRun(eventId: string | undefined, stageIndex: number | undefined) {
   const queryClient = useQueryClient()
 
@@ -27,7 +41,7 @@ export function useBingoRun(eventId: string | undefined, stageIndex: number | un
         if (patch.stageIndex !== stageIndex) return
         queryClient.setQueryData(
           queryKeys.bingoRun(eventId, stageIndex),
-          patch.row,
+          patch.row ? broadcastRowToQueryRow(patch.row) : null,
         )
       },
       onBundlePatch: (patch) => {
@@ -58,7 +72,7 @@ export function useBingoRun(eventId: string | undefined, stageIndex: number | un
         event_id: data.event_id,
         game_id: data.game_id,
         stage_index: data.stage_index,
-        playOrder: (data.play_order as string[]) ?? [],
+        playOrder: normalizeBingoPlayOrder(data.play_order),
         current_play_index: data.current_play_index,
         status: data.status,
       }

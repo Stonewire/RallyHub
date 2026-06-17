@@ -68,7 +68,7 @@ import {
   scoreCurrentQuizQuestion,
   isEventLive,
 } from '@/lib/live-event'
-import { bingoRunRowFromActivation } from '@/lib/bingo-run-cache'
+import { bingoRunRowFromActivation, normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
 import { getEventLinks } from '@/lib/event-links'
 import { queryKeys } from '@/lib/query-keys'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -736,7 +736,7 @@ export function FacilitatorEventPage() {
 
   async function ensureBingoRunReady(): Promise<BingoRunRow | null> {
     if (!eventId || !stage?.gameId) return null
-    if (effectiveBingoRun?.playOrder.length) return effectiveBingoRun
+    if (bingoPlayOrder.length > 0 && effectiveBingoRun) return effectiveBingoRun
     const result = await activateBingoRun(
       eventId,
       stage.gameId,
@@ -848,7 +848,7 @@ export function FacilitatorEventPage() {
     // Reconcile against the authoritative DB run (same source the participants read)
     // so a stale client-side run override can never make scoring read the wrong run.
     let scoringRunId = run.id
-    let scoringPlayOrder = run.playOrder
+    let scoringPlayOrder = normalizeBingoPlayOrder(run.playOrder)
     const { data: dbRun } = await supabase
       .from('bingo_runs')
       .select('id, play_order')
@@ -857,7 +857,7 @@ export function FacilitatorEventPage() {
       .maybeSingle()
     if (dbRun?.id) {
       scoringRunId = dbRun.id
-      scoringPlayOrder = (dbRun.play_order as string[]) ?? run.playOrder
+      scoringPlayOrder = normalizeBingoPlayOrder(dbRun.play_order ?? run.playOrder)
     }
 
     const currentTrackId = scoringPlayOrder[bingoPlayIndex]
@@ -919,7 +919,7 @@ export function FacilitatorEventPage() {
     }
     void player.primeAudioContext()
     const run = await ensureBingoRunReady()
-    if (!run?.playOrder.length) {
+    if (!run || normalizeBingoPlayOrder(run.playOrder).length === 0) {
       notify('Bingo run is not ready')
       return
     }
@@ -942,7 +942,8 @@ export function FacilitatorEventPage() {
         }
       }
 
-      const atLastTrack = bingoPlayIndex >= run.playOrder.length - 1
+      const runOrder = normalizeBingoPlayOrder(run.playOrder)
+      const atLastTrack = bingoPlayIndex >= runOrder.length - 1
       if (atLastTrack) {
         await patchState({ bingo_state: 'ended' })
         return
@@ -962,7 +963,7 @@ export function FacilitatorEventPage() {
         eventId,
         gameId: stage.gameId,
         runId,
-        playOrder: run.playOrder,
+        playOrder: runOrder,
         currentIndex: bingoPlayIndex,
         scoreCurrent: false,
       })
@@ -1470,7 +1471,7 @@ export function FacilitatorEventPage() {
               ) : null}
               <p className="text-muted-foreground text-xs">
                 {effectiveBingoRun
-                  ? `Run active · ${effectiveBingoRun.playOrder.length} songs in script`
+                  ? `Run active · ${bingoPlayOrder.length} songs in script`
                   : bingoRunQuery.isLoading
                     ? 'Loading bingo run…'
                     : 'No bingo run — switch to this stage to activate'}

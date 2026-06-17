@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 import type { BingoCell } from '@/lib/bingo-engine'
+import { normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   ensureLiveEventAccess,
@@ -248,7 +249,7 @@ export function bingoRunRowToBroadcast(row: {
     event_id: row.event_id,
     game_id: row.game_id,
     stage_index: row.stage_index,
-    playOrder: row.playOrder ?? (row.play_order as string[]) ?? [],
+    playOrder: normalizeBingoPlayOrder(row.playOrder ?? row.play_order),
     current_play_index: row.current_play_index,
     status: row.status,
   }
