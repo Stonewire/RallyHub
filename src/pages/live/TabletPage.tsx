@@ -8,11 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
-import {
-  fetchOrganizationTenantBySubdomain,
-  fetchOrganizationTenantPublic,
-  fetchOrganizationsByTabletSlug,
-} from '@/lib/organization-tenant'
+import { resolveTabletOrganization } from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 import { verifyTabletPassword } from '@/lib/tenant'
@@ -20,52 +16,8 @@ import type { Tables } from '@/types/helpers'
 
 const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
 
-function matchesOrgSlug(org: TenantPublicOrg, orgSlug: string): boolean {
-  const normalized = orgSlug.toLowerCase()
-  return (
-    slugifyOrgName(org.name) === normalized ||
-    org.subdomain.toLowerCase() === normalized
-  )
-}
-
-async function resolveOrganization(
-  orgSlug: string | undefined,
-  tabletCode: string | undefined,
-  legacyOrgParam: string,
-): Promise<TenantPublicOrg | null> {
-  if (orgSlug && tabletCode) {
-    const candidates = await fetchOrganizationsByTabletSlug(tabletCode)
-    const normalized = orgSlug.toLowerCase()
-    return candidates.find((o) => matchesOrgSlug(o, normalized)) ?? null
-  }
-
-  if (!legacyOrgParam) return null
-
-  const isUuid =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      legacyOrgParam,
-    )
-
-  if (isUuid) {
-    return fetchOrganizationTenantPublic(legacyOrgParam)
-  }
-
-  const bySubdomain = await fetchOrganizationTenantBySubdomain(legacyOrgParam)
-  if (bySubdomain) return bySubdomain
-
-  const byTablet = await fetchOrganizationsByTabletSlug(legacyOrgParam)
-  if (byTablet.length === 1) return byTablet[0]
-  if (byTablet.length > 1) {
-    const normalized = legacyOrgParam.toLowerCase()
-    return (
-      byTablet.find((o) => matchesOrgSlug(o, normalized)) ??
-      byTablet.find((o) => o.tablet_slug === legacyOrgParam) ??
-      byTablet[0]
-    )
-  }
-
-  return null
-}
+const TABLET_NOT_FOUND_MESSAGE =
+  'Organization not found. Check your tablet link from Settings — the URL may be outdated.'
 
 export function TabletPage() {
   const { orgSlug, tabletCode } = useParams<{
@@ -105,23 +57,23 @@ export function TabletPage() {
     setLoading(true)
     setLoadError(null)
 
+    const organization = await resolveTabletOrganization(
+      orgSlug,
+      tabletCode,
+      legacyOrgParam,
+    )
+    if (!organization) {
+      setOrg(null)
+      setEvents([])
+      setLoadError(TABLET_NOT_FOUND_MESSAGE)
+      setLoading(false)
+      return
+    }
+
+    setOrg(organization as TenantPublicOrg)
+    setAuthed(sessionStorage.getItem(tabletSessionKey(organization.id)) === '1')
+
     try {
-      const organization = await resolveOrganization(
-        orgSlug,
-        tabletCode,
-        legacyOrgParam,
-      )
-      if (!organization) {
-        setLoadError('Organization not found. Check the tablet link.')
-        setOrg(null)
-        setEvents([])
-        setLoading(false)
-        return
-      }
-
-      setOrg(organization)
-      setAuthed(sessionStorage.getItem(tabletSessionKey(organization.id)) === '1')
-
       const { data: ev, error: evError } = await supabase
         .from('events')
         .select('*')
@@ -197,7 +149,7 @@ export function TabletPage() {
     return (
       <LivePanelShell title="Tablet">
         <Card className="border-border/80 bg-card p-6 text-center shadow-sm">
-          <p className="text-destructive text-sm">{loadError}</p>
+          <p className="text-muted-foreground text-sm">{loadError}</p>
           <Button
             type="button"
             variant="outline"
