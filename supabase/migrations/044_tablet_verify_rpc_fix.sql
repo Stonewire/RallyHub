@@ -1,11 +1,16 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- RUN THIS IN SUPABASE — Tablet password: org-readable venue code
+-- RUN THIS IN SUPABASE — Fix verify_tablet_password HTTP 404 on tablet login
 -- ═══════════════════════════════════════════════════════════════════════════
--- 040 bcrypt-hashed tablet_password, which broke admin display/save (settings
--- reloaded a hash into the form). Tablet codes are low-sensitivity shared
--- venue PINs: store plaintext for org admins, keep verify + rate limiting.
+-- Safe to run after 040 and/or 043. Idempotent.
 --
--- PostgREST signature: verify_tablet_password(p_org_id uuid, p_password text)
+-- PostgREST RPC signature (parameter names must match exactly):
+--   verify_tablet_password(p_org_id uuid, p_password text) → boolean
+--
+-- HTTP 404 on this RPC is often NOT a missing function: 040's bcrypt verify
+-- calls crypt() when tablet_password is hashed; if pgcrypto is unavailable
+-- PostgreSQL raises 42883 and PostgREST surfaces it as 404.
+-- This migration switches to plaintext compare (default 1234) and removes
+-- the bcrypt write trigger.
 
 create extension if not exists "pgcrypto";
 
@@ -13,7 +18,6 @@ drop trigger if exists organizations_hash_tablet_password on public.organization
 drop function if exists public.hash_tablet_password_on_write();
 drop function if exists public.verify_tablet_password(uuid, text);
 
--- Bcrypt values cannot be reversed; reset to default kiosk code.
 update public.organizations
 set tablet_password = '1234'
 where tablet_password is null
@@ -68,7 +72,5 @@ $$;
 
 grant execute on function public.verify_tablet_password(uuid, text) to anon, authenticated;
 
-comment on column public.organizations.tablet_password is
-  'Org tablet kiosk PIN (readable by org admins). Defaults to 1234.';
 comment on function public.verify_tablet_password(uuid, text) is
   'Compare tablet kiosk PIN (plaintext, default 1234) with org-scoped lockout after 5 failures.';

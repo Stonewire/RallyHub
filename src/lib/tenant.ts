@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { isPublicLivePath, RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
 import { fetchOrganizationTenantBySubdomain } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 
 export type TenantPublicOrg = {
   id: string
@@ -240,10 +241,13 @@ export async function verifyTabletPassword(
   orgId: string,
   password: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc('verify_tablet_password', {
+  // PostgREST requires exact parameter names from the function signature:
+  // verify_tablet_password(p_org_id uuid, p_password text)
+  const args: Database['public']['Functions']['verify_tablet_password']['Args'] = {
     p_org_id: orgId,
     p_password: password,
-  })
+  }
+  const { data, error } = await supabase.rpc('verify_tablet_password', args)
   if (error) throw error
   return Boolean(data)
 }
