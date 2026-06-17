@@ -20,4 +20,5 @@ export const queryKeys = {
     ['bingo-run', eventId, stageIndex] as const,
   organizationFacilitators: (orgId: string | null) =>
     ['organization-facilitators', orgId] as const,
+  organizationUsers: (orgId: string | null) => ['organization-users', orgId] as const,
 }

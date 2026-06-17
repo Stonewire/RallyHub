@@ -21,23 +21,39 @@ import {
   getTabletLink,
   orgToForm,
   uploadOrganizationLogo,
-  useAddOrganizationMember,
-  useCreateFacilitator,
+  useCreateOrganizationUser,
   useOrganization,
-  useOrganizationFacilitators,
-  useOrganizationMembers,
-  useRemoveOrganizationMember,
+  useOrganizationUsers,
+  useRemoveOrganizationUser,
   useSaveOrganization,
   useSaveOrganizationLogo,
-  type MemberRole,
+  type CreateOrganizationUserResult,
+  type OrgUserRole,
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { normalizeUsername, validateUsername } from '@/lib/auth-identifier'
+import { generateTempPassword } from '@/lib/temp-password'
 import { cn } from '@/lib/utils'
 
 type SettingsTab = 'profile' | 'billing'
+
+function formatUserRole(role: OrgUserRole): string {
+  return role.replace(/_/g, ' ')
+}
+
+function displayUserName(user: {
+  first_name: string | null
+  last_name: string | null
+  username: string
+}): string {
+  const fromParts = [user.first_name, user.last_name]
+    .map((p) => p?.trim())
+    .filter(Boolean)
+    .join(' ')
+  return fromParts || user.username
+}
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
@@ -46,29 +62,26 @@ export function AdminSettingsPage() {
     searchParams.get('tab') === 'billing' ? 'billing' : 'profile'
 
   const orgQuery = useOrganization(organizationId)
-  const membersQuery = useOrganizationMembers(organizationId)
-  const facilitatorsQuery = useOrganizationFacilitators(organizationId)
+  const usersQuery = useOrganizationUsers(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
   const saveLogo = useSaveOrganizationLogo(organizationId)
-  const addMember = useAddOrganizationMember(organizationId)
-  const createFacilitator = useCreateFacilitator(organizationId)
-  const removeMember = useRemoveOrganizationMember(organizationId)
+  const createUser = useCreateOrganizationUser(organizationId)
+  const removeUser = useRemoveOrganizationUser(organizationId)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
   const [copied, setCopied] = useState(false)
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const [facilitatorModalOpen, setFacilitatorModalOpen] = useState(false)
-  const [memberName, setMemberName] = useState('')
-  const [memberEmail, setMemberEmail] = useState('')
-  const [memberRole, setMemberRole] = useState<MemberRole>('event_manager')
-  const [facUsername, setFacUsername] = useState('')
-  const [facEmail, setFacEmail] = useState('')
-  const [facFirstName, setFacFirstName] = useState('')
-  const [facLastName, setFacLastName] = useState('')
-  const [facPassword, setFacPassword] = useState('')
+  const [userModalOpen, setUserModalOpen] = useState(false)
+  const [createdUser, setCreatedUser] = useState<CreateOrganizationUserResult | null>(null)
+  const [credentialsCopied, setCredentialsCopied] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newFirstName, setNewFirstName] = useState('')
+  const [newLastName, setNewLastName] = useState('')
+  const [newRole, setNewRole] = useState<OrgUserRole>('event_manager')
+  const [newTempPassword, setNewTempPassword] = useState('')
   const [logoUploading, setLogoUploading] = useState(false)
 
   useEffect(() => {
@@ -121,65 +134,71 @@ export function AdminSettingsPage() {
     }
   }
 
-  async function handleAddMember() {
-    if (!memberName.trim() || !memberEmail.trim()) {
-      setSaveMessage('Name and email are required for new members.')
-      return
-    }
-    setSaveMessage(null)
-    try {
-      const result = await addMember.mutateAsync({
-        name: memberName.trim(),
-        email: memberEmail.trim(),
-        role: memberRole,
-      })
-      setMemberModalOpen(false)
-      setMemberName('')
-      setMemberEmail('')
-      setMemberRole('event_manager')
-      if (result?.inviteWarning) {
-        setSaveMessage(result.inviteWarning)
-      } else {
-        setSaveMessage('Team member added and invitation sent.')
-      }
-    } catch (err) {
-      setSaveMessage(
-        err instanceof Error ? err.message : 'Failed to add team member.',
-      )
-    }
+  function resetUserForm() {
+    setNewUsername('')
+    setNewEmail('')
+    setNewFirstName('')
+    setNewLastName('')
+    setNewRole('event_manager')
+    setNewTempPassword('')
+    setCreatedUser(null)
+    setCredentialsCopied(false)
   }
 
-  async function handleAddFacilitator() {
-    const usernameErr = validateUsername(facUsername)
+  function openUserModal() {
+    resetUserForm()
+    setUserModalOpen(true)
+  }
+
+  function closeUserModal() {
+    setUserModalOpen(false)
+    resetUserForm()
+  }
+
+  async function handleCreateUser() {
+    const usernameErr = validateUsername(newUsername)
     if (usernameErr) {
       setSaveMessage(usernameErr)
       return
     }
-    if (!facEmail.trim() || !facFirstName.trim() || !facLastName.trim() || !facPassword.trim()) {
-      setSaveMessage('All facilitator fields are required.')
+    if (
+      !newEmail.trim() ||
+      !newFirstName.trim() ||
+      !newLastName.trim() ||
+      !newTempPassword.trim()
+    ) {
+      setSaveMessage('All user fields are required, including a temporary password.')
       return
     }
+    if (newTempPassword.trim().length < 8) {
+      setSaveMessage('Temporary password must be at least 8 characters.')
+      return
+    }
+
     setSaveMessage(null)
     try {
-      await createFacilitator.mutateAsync({
-        username: normalizeUsername(facUsername),
-        email: facEmail.trim().toLowerCase(),
-        first_name: facFirstName.trim(),
-        last_name: facLastName.trim(),
-        password: facPassword,
+      const result = await createUser.mutateAsync({
+        username: normalizeUsername(newUsername),
+        email: newEmail.trim().toLowerCase(),
+        first_name: newFirstName.trim(),
+        last_name: newLastName.trim(),
+        role: newRole,
+        temporary_password: newTempPassword.trim(),
       })
-      setFacilitatorModalOpen(false)
-      setFacUsername('')
-      setFacEmail('')
-      setFacFirstName('')
-      setFacLastName('')
-      setFacPassword('')
-      setSaveMessage('Facilitator account created.')
+      setCreatedUser(result)
     } catch (err) {
       setSaveMessage(
-        err instanceof Error ? err.message : 'Failed to create facilitator.',
+        err instanceof Error ? err.message : 'Failed to create user.',
       )
     }
+  }
+
+  async function handleCopyCredentials() {
+    if (!createdUser) return
+    const text = `Username: ${createdUser.username}\nTemporary password: ${createdUser.temporary_password}`
+    await navigator.clipboard.writeText(text)
+    setCredentialsCopied(true)
+    window.setTimeout(() => setCredentialsCopied(false), 2000)
   }
 
   async function handleCopyLink() {
@@ -433,36 +452,42 @@ export function AdminSettingsPage() {
 
           <Card className="border-border/80 bg-card p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-foreground text-lg font-semibold">
-                Team Members
-              </h2>
+              <div>
+                <h2 className="text-foreground text-lg font-semibold">Team</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Organization accounts with username login and a temporary password on first sign-in.
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setMemberModalOpen(true)}
+                onClick={openUserModal}
               >
                 <Plus className="size-4" />
-                Add Member
+                Add user
               </Button>
             </div>
-            {membersQuery.isLoading ? (
+            {usersQuery.isLoading ? (
               <QueryLoading rows={2} />
-            ) : membersQuery.isError ? (
-              <QueryError message={membersQuery.error.message} />
-            ) : (membersQuery.data?.length ?? 0) === 0 ? (
-              <p className="text-muted-foreground text-sm">No team members yet.</p>
+            ) : usersQuery.isError ? (
+              <QueryError message={usersQuery.error.message} />
+            ) : (usersQuery.data?.length ?? 0) === 0 ? (
+              <p className="text-muted-foreground text-sm">No users yet.</p>
             ) : (
               <ul className="divide-border divide-y">
-                {membersQuery.data?.map((member) => (
+                {usersQuery.data?.map((user) => (
                   <li
-                    key={member.id}
+                    key={user.id}
                     className="flex items-center justify-between gap-3 py-3"
                   >
                     <div>
-                      <p className="text-foreground font-medium">{member.name}</p>
+                      <p className="text-foreground font-medium">
+                        {displayUserName(user)}
+                      </p>
                       <p className="text-muted-foreground text-sm">
-                        {member.email} · {member.role.replace('_', ' ')}
+                        @{user.username} · {user.email} · {formatUserRole(user.role)}
+                        {user.must_change_password ? ' · pending password change' : ''}
                       </p>
                     </div>
                     <Button
@@ -470,50 +495,11 @@ export function AdminSettingsPage() {
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive"
-                      onClick={() => void removeMember.mutateAsync(member.id)}
+                      disabled={removeUser.isPending}
+                      onClick={() => void removeUser.mutateAsync(user.id)}
                     >
                       <Trash2 className="size-4" />
                     </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card className="border-border/80 bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-foreground text-lg font-semibold">Facilitators</h2>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Event runners who sign in to open facilitator links. They cannot access admin settings.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFacilitatorModalOpen(true)}
-              >
-                <Plus className="size-4" />
-                Add facilitator
-              </Button>
-            </div>
-            {facilitatorsQuery.isLoading ? (
-              <QueryLoading rows={2} />
-            ) : facilitatorsQuery.isError ? (
-              <QueryError message={facilitatorsQuery.error.message} />
-            ) : (facilitatorsQuery.data?.length ?? 0) === 0 ? (
-              <p className="text-muted-foreground text-sm">No facilitator accounts yet.</p>
-            ) : (
-              <ul className="divide-border divide-y">
-                {facilitatorsQuery.data?.map((fac) => (
-                  <li key={fac.id} className="py-3">
-                    <p className="text-foreground font-medium">
-                      {[fac.first_name, fac.last_name].filter(Boolean).join(' ') || fac.username}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      @{fac.username} · {fac.email}
-                    </p>
                   </li>
                 ))}
               </ul>
@@ -589,154 +575,148 @@ export function AdminSettingsPage() {
         />
       ) : null}
 
-      {memberModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="text-foreground font-semibold">Add team member</h3>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setMemberModalOpen(false)}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="member-name">Name</Label>
-              <Input
-                id="member-name"
-                value={memberName}
-                onChange={(e) => setMemberName(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="member-email">Email</Label>
-              <Input
-                id="member-email"
-                type="email"
-                value={memberEmail}
-                onChange={(e) => setMemberEmail(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="member-role">Role</Label>
-              <select
-                id="member-role"
-                value={memberRole}
-                onChange={(e) => setMemberRole(e.target.value as MemberRole)}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              >
-                <option value="event_manager">Event manager</option>
-                <option value="client_admin">Client admin</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setMemberModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <NeoButton
-                type="button"
-                variant="primary"
-                disabled={addMember.isPending}
-                onClick={() => void handleAddMember()}
-              >
-                {addMember.isPending ? 'Adding…' : 'Add member'}
-              </NeoButton>
-            </div>
-          </Card>
-        </div>
-      ) : null}
-
-      {facilitatorModalOpen ? (
+      {userModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto bg-card p-6 shadow-lg">
             <div className="flex items-center justify-between">
-              <h3 className="text-foreground font-semibold">Add facilitator</h3>
+              <h3 className="text-foreground font-semibold">
+                {createdUser ? 'User created' : 'Add user'}
+              </h3>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setFacilitatorModalOpen(false)}
+                onClick={closeUserModal}
               >
                 <X className="size-4" />
               </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="fac-username">Username</Label>
-              <Input
-                id="fac-username"
-                value={facUsername}
-                onChange={(e) => setFacUsername(e.target.value)}
-                autoComplete="off"
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fac-email">Email</Label>
-              <Input
-                id="fac-email"
-                type="email"
-                value={facEmail}
-                onChange={(e) => setFacEmail(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fac-first">Name</Label>
-                <Input
-                  id="fac-first"
-                  value={facFirstName}
-                  onChange={(e) => setFacFirstName(e.target.value)}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fac-last">Surname</Label>
-                <Input
-                  id="fac-last"
-                  value={facLastName}
-                  onChange={(e) => setFacLastName(e.target.value)}
-                  className="bg-background"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fac-password">Password</Label>
-              <Input
-                id="fac-password"
-                type="password"
-                value={facPassword}
-                onChange={(e) => setFacPassword(e.target.value)}
-                autoComplete="new-password"
-                className="bg-background"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setFacilitatorModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <NeoButton
-                type="button"
-                variant="primary"
-                disabled={createFacilitator.isPending}
-                onClick={() => void handleAddFacilitator()}
-              >
-                {createFacilitator.isPending ? 'Creating…' : 'Create facilitator'}
-              </NeoButton>
-            </div>
+
+            {createdUser ? (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  Share these credentials with the user. They must change the password on first
+                  login.
+                </p>
+                <div className="bg-muted/40 space-y-3 rounded-lg p-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Username</p>
+                    <p className="text-foreground font-mono">{createdUser.username}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Temporary password
+                    </p>
+                    <p className="text-foreground font-mono">{createdUser.temporary_password}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Role</p>
+                    <p className="text-foreground">{formatUserRole(createdUser.role)}</p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => void handleCopyCredentials()}>
+                    {credentialsCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    Copy credentials
+                  </Button>
+                  <NeoButton type="button" variant="primary" onClick={closeUserModal}>
+                    Done
+                  </NeoButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="user-username">Username</Label>
+                  <Input
+                    id="user-username"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    autoComplete="off"
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-email">Email</Label>
+                  <Input
+                    id="user-email"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="user-first">First name</Label>
+                    <Input
+                      id="user-first"
+                      value={newFirstName}
+                      onChange={(e) => setNewFirstName(e.target.value)}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="user-last">Surname</Label>
+                    <Input
+                      id="user-last"
+                      value={newLastName}
+                      onChange={(e) => setNewLastName(e.target.value)}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-role">Role</Label>
+                  <select
+                    id="user-role"
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value as OrgUserRole)}
+                    className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+                  >
+                    <option value="facilitator">Facilitator</option>
+                    <option value="event_manager">Event manager</option>
+                    <option value="client_admin">Client admin</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-temp-password">Temporary password</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="user-temp-password"
+                      type="text"
+                      value={newTempPassword}
+                      onChange={(e) => setNewTempPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="bg-background flex-1 font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setNewTempPassword(generateTempPassword())}
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Minimum 8 characters. The user must change this on first login.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={closeUserModal}>
+                    Cancel
+                  </Button>
+                  <NeoButton
+                    type="button"
+                    variant="primary"
+                    disabled={createUser.isPending}
+                    onClick={() => void handleCreateUser()}
+                  >
+                    {createUser.isPending ? 'Creating…' : 'Create user'}
+                  </NeoButton>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       ) : null}

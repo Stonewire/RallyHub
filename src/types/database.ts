@@ -48,6 +48,7 @@ export type Database = {
           last_name: string | null
           role: AppRole
           organization_id: string | null
+          must_change_password: boolean
           created_at: string
           updated_at: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           last_name?: string | null
           role?: AppRole
           organization_id?: string | null
+          must_change_password?: boolean
         }
         Update: {
           username?: string
@@ -67,6 +69,7 @@ export type Database = {
           last_name?: string | null
           role?: AppRole
           organization_id?: string | null
+          must_change_password?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -671,6 +674,27 @@ export type Database = {
           last_name: string | null
           created_at: string
         }[]
+      }
+      get_organization_users: {
+        Args: { p_org_id: string }
+        Returns: {
+          id: string
+          username: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          role: AppRole
+          must_change_password: boolean
+          created_at: string
+        }[]
+      }
+      clear_must_change_password: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
+      remove_organization_user: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: undefined
       }
       get_organization_tenant_public: {
         Args: { p_org_id: string }

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DEFAULT_BRAND_COLORS } from '@/lib/live-event'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
+import type { AppRole } from '@/types/database'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 export type OrganizationRow = Tables<'organizations'>
@@ -196,47 +197,84 @@ export function useSaveOrganizationLogo(organizationId: string | null) {
   })
 }
 
-export type MemberRole = 'client_admin' | 'event_manager'
+export type OrgUserRole = Extract<AppRole, 'facilitator' | 'event_manager' | 'client_admin'>
 
-export function useAddOrganizationMember(organizationId: string | null) {
-  const queryClient = useQueryClient()
+export type OrganizationUser = {
+  id: string
+  username: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  role: OrgUserRole
+  must_change_password: boolean
+  created_at: string
+}
 
-  return useMutation({
-    mutationFn: async ({
-      name,
-      email,
-      role,
-    }: {
-      name: string
-      email: string
-      role: MemberRole
-    }) => {
-      if (!organizationId) throw new Error('No organization')
+export function useOrganizationUsers(organizationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.organizationUsers(organizationId),
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<OrganizationUser[]> => {
+      if (!organizationId) return []
 
-      const { error } = await supabase.from('organization_members').insert({
-        organization_id: organizationId,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        role,
+      const { data, error } = await supabase.rpc('get_organization_users', {
+        p_org_id: organizationId,
       })
 
       if (error) throw error
+      return (data ?? []) as OrganizationUser[]
+    },
+  })
+}
 
-      const { error: inviteError } = await supabase.functions.invoke('invite-member', {
-        body: { email: email.trim().toLowerCase(), organizationId },
+export type CreateOrganizationUserPayload = {
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  role: OrgUserRole
+  temporary_password: string
+}
+
+export type CreateOrganizationUserResult = {
+  userId?: string
+  username: string
+  email: string
+  role: OrgUserRole
+  temporary_password: string
+}
+
+export function useCreateOrganizationUser(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      payload: CreateOrganizationUserPayload,
+    ): Promise<CreateOrganizationUserResult> => {
+      if (!organizationId) throw new Error('No organization')
+
+      const { data, error } = await supabase.functions.invoke('create-org-user', {
+        body: {
+          organizationId,
+          username: payload.username,
+          email: payload.email,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          role: payload.role,
+          temporary_password: payload.temporary_password,
+        },
       })
 
-      if (inviteError) {
-        return {
-          inviteWarning:
-            inviteError.message ||
-            'Member added but invitation email could not be sent.',
-        }
+      if (error) throw error
+      if (data && typeof data === 'object' && 'error' in data && data.error) {
+        throw new Error(String(data.error))
       }
-
-      return {}
+      return data as CreateOrganizationUserResult
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationUsers(organizationId),
+      })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.organizationMembers(organizationId),
       })
@@ -244,19 +282,24 @@ export function useAddOrganizationMember(organizationId: string | null) {
   })
 }
 
-export function useRemoveOrganizationMember(organizationId: string | null) {
+export function useRemoveOrganizationUser(organizationId: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (memberId: string) => {
-      const { error } = await supabase
-        .from('organization_members')
-        .delete()
-        .eq('id', memberId)
+    mutationFn: async (userId: string) => {
+      if (!organizationId) throw new Error('No organization')
+
+      const { error } = await supabase.rpc('remove_organization_user', {
+        p_org_id: organizationId,
+        p_user_id: userId,
+      })
 
       if (error) throw error
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationUsers(organizationId),
+      })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.organizationMembers(organizationId),
       })
@@ -272,70 +315,4 @@ export async function uploadOrganizationLogo(
   const path = `${organizationId}/logo.${ext}`
   const { uploadAsset } = await import('@/lib/storage')
   return uploadAsset('organization-logos', path, file)
-}
-
-export type OrganizationFacilitator = {
-  id: string
-  username: string
-  email: string
-  first_name: string | null
-  last_name: string | null
-  created_at: string
-}
-
-export function useOrganizationFacilitators(organizationId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.organizationFacilitators(organizationId),
-    enabled: Boolean(organizationId),
-    queryFn: async (): Promise<OrganizationFacilitator[]> => {
-      if (!organizationId) return []
-
-      const { data, error } = await supabase.rpc('get_organization_facilitators', {
-        p_org_id: organizationId,
-      })
-
-      if (error) throw error
-      return (data ?? []) as OrganizationFacilitator[]
-    },
-  })
-}
-
-export type CreateFacilitatorPayload = {
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-  password: string
-}
-
-export function useCreateFacilitator(organizationId: string | null) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (payload: CreateFacilitatorPayload) => {
-      if (!organizationId) throw new Error('No organization')
-
-      const { data, error } = await supabase.functions.invoke('create-facilitator', {
-        body: {
-          organizationId,
-          username: payload.username,
-          email: payload.email,
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          password: payload.password,
-        },
-      })
-
-      if (error) throw error
-      if (data && typeof data === 'object' && 'error' in data && data.error) {
-        throw new Error(String(data.error))
-      }
-      return data
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.organizationFacilitators(organizationId),
-      })
-    },
-  })
 }

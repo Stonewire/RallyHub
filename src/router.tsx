@@ -19,6 +19,7 @@ import { AppRootLayout } from '@/components/routing/AppRootLayout'
 import { TenantScope } from '@/components/routing/TenantScope'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { FacilitatorEventRoute } from '@/components/routing/FacilitatorEventRoute'
@@ -125,6 +126,14 @@ export const router = createBrowserRouter([
     element: (
       <TenantScope>
         <ForgotPasswordPage />
+      </TenantScope>
+    ),
+  },
+  {
+    path: '/login/change-password',
+    element: (
+      <TenantScope>
+        <ChangePasswordPage />
       </TenantScope>
     ),
   },

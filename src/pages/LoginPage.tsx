@@ -10,7 +10,7 @@ import { resolvePostLoginPath } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 export function LoginPage() {
-  const { user, role, loading, profileLoading, signInWithIdentifier } = useAuth()
+  const { user, role, loading, profileLoading, profile, signInWithIdentifier } = useAuth()
   const location = useLocation()
 
   const from =
@@ -39,6 +39,9 @@ export function LoginPage() {
   }
 
   if (!loading && user && !profileLoading) {
+    if (profile?.must_change_password) {
+      return <Navigate to="/login/change-password" replace state={{ from }} />
+    }
     const target = resolvePostLoginPath(from, role)
     return <Navigate to={target} replace />
   }

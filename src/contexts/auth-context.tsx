@@ -26,6 +26,7 @@ type AuthContextValue = {
   signInWithPassword: (email: string, password: string) => Promise<void>
   signInWithIdentifier: (identifier: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -110,6 +111,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [signInWithPassword],
   )
 
+  const refreshProfile = useCallback(async () => {
+    const userId = session?.user?.id
+    if (!userId) {
+      setProfile(null)
+      return
+    }
+    setProfileLoading(true)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) {
+      console.warn('[RallyHub] profile fetch failed', error.message)
+      setProfile(null)
+    } else {
+      setProfile(data ?? null)
+    }
+    setProfileLoading(false)
+  }, [session?.user?.id])
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -131,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       signInWithIdentifier,
       signOut,
+      refreshProfile,
     }),
     [
       session,
@@ -140,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       signInWithIdentifier,
       signOut,
+      refreshProfile,
     ],
   )
 
