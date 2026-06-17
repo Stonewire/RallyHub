@@ -80,13 +80,17 @@ import {
   unlockAudioFromUserGesture,
 } from '@/lib/sounds'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
-import { supabase } from '@/lib/supabase'
+import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
 
 export function FacilitatorEventPage() {
+  // The facilitator acts via their authenticated session. Clear any participant
+  // anon override left over from in-tab navigation off a join/display route.
+  setLiveParticipantMode(false)
+
   const { eventId } = useParams<{ eventId: string }>()
   const { profile, user } = useAuth()
   const name =

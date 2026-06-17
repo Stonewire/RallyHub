@@ -12,6 +12,9 @@ if (!url?.trim() || !anonKey?.trim()) {
 }
 
 let liveJoinToken: string | null = null
+let participantAnonMode = false
+
+const resolvedAnonKey = anonKey || 'placeholder'
 
 function isSupabaseAuthRequest(input: RequestInfo | URL): boolean {
   const requestUrl =
@@ -28,17 +31,37 @@ export function setLiveJoinToken(token: string | null): void {
   liveJoinToken = token?.trim() || null
 }
 
+/**
+ * Participant/display pages are anonymous by design. If the same browser also has
+ * a logged-in session (e.g. a facilitator testing the join flow in another tab),
+ * Supabase would otherwise attach that JWT and run participant writes as the
+ * `authenticated` role — which Phase 3 RLS does not grant submission INSERT, so the
+ * write fails (403/42501). Forcing the anon key here keeps participant requests on
+ * the anon + join-token policies regardless of any session.
+ */
+export function setLiveParticipantMode(enabled: boolean): void {
+  participantAnonMode = enabled
+}
+
 export const supabase = createClient<Database>(
   url || 'https://placeholder.supabase.co',
-  anonKey || 'placeholder',
+  resolvedAnonKey,
   {
     global: {
       fetch: (input, init) => {
-        if (!liveJoinToken || isSupabaseAuthRequest(input)) {
+        if (isSupabaseAuthRequest(input)) {
+          return fetch(input, init)
+        }
+        if (!liveJoinToken && !participantAnonMode) {
           return fetch(input, init)
         }
         const headers = new Headers(init?.headers)
-        headers.set('x-join-token', liveJoinToken)
+        if (liveJoinToken) {
+          headers.set('x-join-token', liveJoinToken)
+        }
+        if (participantAnonMode) {
+          headers.set('Authorization', `Bearer ${resolvedAnonKey}`)
+        }
         return fetch(input, { ...init, headers })
       },
     },

@@ -23,7 +23,7 @@ import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-even
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
-import { supabase } from '@/lib/supabase'
+import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import type { Tables } from '@/types/helpers'
@@ -33,6 +33,13 @@ function teamKey(eventId: string) {
 }
 
 export function JoinEventPage() {
+  // Participants are anonymous. Force the anon role for all live requests so a
+  // logged-in session in the same browser never makes participant writes run as
+  // `authenticated` (which Phase 3 RLS rejects for submission inserts). Set during
+  // render so it is active before the first data fetch; cleared on unmount.
+  setLiveParticipantMode(true)
+  useEffect(() => () => setLiveParticipantMode(false), [])
+
   const { eventId } = useParams<{ eventId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()

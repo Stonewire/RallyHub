@@ -13,6 +13,7 @@ import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useLiveEvent } from '@/hooks/use-live-event'
+import { setLiveParticipantMode } from '@/lib/supabase'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard, unlockAudioFromUserGesture } from '@/lib/sounds'
@@ -50,6 +51,17 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const [searchParams] = useSearchParams()
   const embedFromUrl = searchParams.get('embed') === '1'
   const embedded = embeddedProp ?? embedFromUrl
+
+  // A standalone display is an anonymous surface. Force the anon role so a
+  // logged-in session in the same browser doesn't run its requests as
+  // `authenticated`. The embedded preview lives inside the facilitator panel and
+  // must keep that session, so it is left untouched.
+  if (!embedded) setLiveParticipantMode(true)
+  useEffect(() => {
+    if (embedded) return
+    return () => setLiveParticipantMode(false)
+  }, [embedded])
+
   const { bundle, loading, error } = useLiveEvent(eventId)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
