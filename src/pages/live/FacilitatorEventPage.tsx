@@ -17,6 +17,7 @@ import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
+import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -48,8 +49,8 @@ import { parseAnnouncedWinnerIds, parseRevealedTrackIds } from '@/lib/bingo-cell
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import { isOpenStageSubmissionMediaType, textSubmissionDisplayLabel } from '@/lib/text-game'
+import { profileDisplayName } from '@/lib/auth-routes'
 import {
-  FACILITATOR_NAME_KEY,
   bingoBonusChallenges,
   bingoBonusChallenge,
   bingoTracks,
@@ -86,8 +87,11 @@ const ANNOUNCEMENT_MS = 60_000
 
 export function FacilitatorEventPage() {
   const { eventId } = useParams<{ eventId: string }>()
-  const [name, setName] = useState(() => localStorage.getItem(FACILITATOR_NAME_KEY) ?? '')
-  const [namePrompt, setNamePrompt] = useState(!localStorage.getItem(FACILITATOR_NAME_KEY))
+  const { profile, user } = useAuth()
+  const name =
+    profileDisplayName(profile) ||
+    user?.email?.split('@')[0] ||
+    'Facilitator'
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
@@ -356,32 +360,6 @@ export function FacilitatorEventPage() {
     }
     pendingSubmissionCountRef.current = pendingCount
   }, [liveSubmissions])
-
-  if (namePrompt) {
-    return (
-      <FacilitatorPanelShell title="Facilitator" titleCentered>
-        <NeoCard className="mx-auto w-full max-w-sm space-y-4 p-6">
-          <NeoLabel htmlFor="facilitator-name">Your name</NeoLabel>
-          <NeoInput
-            id="facilitator-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-background"
-          />
-          <NeoButton
-            variant="primary"
-            disabled={!name.trim()}
-            onClick={() => {
-              localStorage.setItem(FACILITATOR_NAME_KEY, name.trim())
-              setNamePrompt(false)
-            }}
-          >
-            Continue
-          </NeoButton>
-        </NeoCard>
-      </FacilitatorPanelShell>
-    )
-  }
 
   if (loading || !bundle || !state) {
     return (

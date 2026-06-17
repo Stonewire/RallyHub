@@ -1,6 +1,5 @@
 /** Live panel paths that must never require authentication. */
 const PUBLIC_LIVE_PATTERNS = [
-  /^\/facilitator\/[^/]+$/,
   /^\/display\/[^/]+$/,
   /^\/join\/[^/]+$/,
   /^\/tablet\/?$/,

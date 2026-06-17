@@ -21,8 +21,9 @@ import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
+import { FacilitatorEventRoute } from '@/components/routing/FacilitatorEventRoute'
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
-import { FacilitatorEventPage } from '@/pages/live/FacilitatorEventPage'
+import { FacilitatorLandingPage } from '@/pages/live/FacilitatorLandingPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
 import { TabletPage } from '@/pages/live/TabletPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
@@ -34,7 +35,7 @@ import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage'
 import { PlayTokenPage } from '@/pages/placeholders'
 import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
-import { resolvePostLoginPath } from '@/lib/auth-routes'
+import { resolvePostLoginPath, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 function RootPage() {
@@ -53,7 +54,10 @@ function RootPage() {
   }
 
   if (user && !profileLoading) {
-    return <Navigate to={resolvePostLoginPath(undefined, role)} replace />
+    const target = isFacilitatorOnlyRole(role)
+      ? '/facilitator'
+      : resolvePostLoginPath(undefined, role)
+    return <Navigate to={target} replace />
   }
 
   return <MarketingLandingPage />
@@ -80,8 +84,13 @@ export const router = createBrowserRouter([
     element: <AppRootLayout />,
     children: [
   {
+    path: '/facilitator',
+    element: <FacilitatorLandingPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: '/facilitator/:eventId',
-    element: <FacilitatorEventPage />,
+    element: <FacilitatorEventRoute />,
     errorElement: <RouteErrorBoundary />,
   },
   {

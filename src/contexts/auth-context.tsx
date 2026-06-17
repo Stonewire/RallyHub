@@ -10,6 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 
 import { supabase } from '@/lib/supabase'
+import { resolveLoginEmail } from '@/lib/auth-identifier'
 import type { AppRole } from '@/types/database'
 import type { Tables } from '@/types/helpers'
 
@@ -23,6 +24,7 @@ type AuthContextValue = {
   loading: boolean
   profileLoading: boolean
   signInWithPassword: (email: string, password: string) => Promise<void>
+  signInWithIdentifier: (identifier: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -97,6 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const signInWithIdentifier = useCallback(
+    async (identifier: string, password: string) => {
+      const email = await resolveLoginEmail(identifier)
+      if (!email) {
+        throw new Error('No account found for that username or email.')
+      }
+      await signInWithPassword(email, password)
+    },
+    [signInWithPassword],
+  )
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -116,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       profileLoading: Boolean(session?.user?.id) && profileLoading,
       signInWithPassword,
+      signInWithIdentifier,
       signOut,
     }),
     [
@@ -124,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       profileLoading,
       signInWithPassword,
+      signInWithIdentifier,
       signOut,
     ],
   )

@@ -10,7 +10,7 @@ import { resolvePostLoginPath } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 export function LoginPage() {
-  const { user, role, loading, profileLoading, signInWithPassword } = useAuth()
+  const { user, role, loading, profileLoading, signInWithIdentifier } = useAuth()
   const location = useLocation()
 
   const from =
@@ -29,7 +29,7 @@ export function LoginPage() {
       ? (location.state as { message: string }).message
       : null
 
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -48,7 +48,7 @@ export function LoginPage() {
     setError(null)
     setPending(true)
     try {
-      await signInWithPassword(email, password)
+      await signInWithIdentifier(identifier, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
     } finally {
@@ -76,15 +76,15 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="space-y-2">
-            <NeoLabel htmlFor="login-email">Email</NeoLabel>
+            <NeoLabel htmlFor="login-identifier">Username or email</NeoLabel>
             <NeoInput
-              id="login-email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="login-identifier"
+              name="identifier"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
           <div className="space-y-2">

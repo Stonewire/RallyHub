@@ -273,3 +273,69 @@ export async function uploadOrganizationLogo(
   const { uploadAsset } = await import('@/lib/storage')
   return uploadAsset('organization-logos', path, file)
 }
+
+export type OrganizationFacilitator = {
+  id: string
+  username: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  created_at: string
+}
+
+export function useOrganizationFacilitators(organizationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.organizationFacilitators(organizationId),
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<OrganizationFacilitator[]> => {
+      if (!organizationId) return []
+
+      const { data, error } = await supabase.rpc('get_organization_facilitators', {
+        p_org_id: organizationId,
+      })
+
+      if (error) throw error
+      return (data ?? []) as OrganizationFacilitator[]
+    },
+  })
+}
+
+export type CreateFacilitatorPayload = {
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  password: string
+}
+
+export function useCreateFacilitator(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: CreateFacilitatorPayload) => {
+      if (!organizationId) throw new Error('No organization')
+
+      const { data, error } = await supabase.functions.invoke('create-facilitator', {
+        body: {
+          organizationId,
+          username: payload.username,
+          email: payload.email,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          password: payload.password,
+        },
+      })
+
+      if (error) throw error
+      if (data && typeof data === 'object' && 'error' in data && data.error) {
+        throw new Error(String(data.error))
+      }
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationFacilitators(organizationId),
+      })
+    },
+  })
+}

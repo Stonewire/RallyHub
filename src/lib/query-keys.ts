@@ -18,4 +18,6 @@ export const queryKeys = {
   musicCatalog: (orgId: string | null) => ['music-catalog', orgId] as const,
   bingoRun: (eventId: string, stageIndex: number) =>
     ['bingo-run', eventId, stageIndex] as const,
+  organizationFacilitators: (orgId: string | null) =>
+    ['organization-facilitators', orgId] as const,
 }

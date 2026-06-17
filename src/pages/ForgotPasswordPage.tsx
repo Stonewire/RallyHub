@@ -7,10 +7,11 @@ import {
   PASSWORD_RESET_REQUEST_CONFIRMATION,
   passwordResetRedirectUrl,
 } from '@/lib/auth-password-reset'
+import { resolveLoginEmail } from '@/lib/auth-identifier'
 import { supabase } from '@/lib/supabase'
 
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -19,14 +20,28 @@ export function ForgotPasswordPage() {
     e.preventDefault()
     setError(null)
 
-    const trimmed = email.trim()
+    const trimmed = identifier.trim()
     if (!trimmed) {
-      setError('Enter your email address.')
+      setError('Enter your username or email.')
       return
     }
 
     setPending(true)
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed, {
+    let emailForReset: string | null = null
+    try {
+      emailForReset = await resolveLoginEmail(trimmed)
+    } catch {
+      setPending(false)
+      setError('Could not look up that account.')
+      return
+    }
+    if (!emailForReset) {
+      setPending(false)
+      setSent(true)
+      return
+    }
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailForReset, {
       redirectTo: passwordResetRedirectUrl(),
     })
     setPending(false)
@@ -47,7 +62,7 @@ export function ForgotPasswordPage() {
             Reset password
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Enter your email and we&apos;ll send you a link to choose a new password.
+            Enter your username or email and we&apos;ll send you a link to choose a new password.
           </p>
         </div>
 
@@ -63,15 +78,15 @@ export function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="space-y-2">
-              <NeoLabel htmlFor="forgot-email">Email</NeoLabel>
+              <NeoLabel htmlFor="forgot-identifier">Username or email</NeoLabel>
               <NeoInput
-                id="forgot-email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="forgot-identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
               />
             </div>
             {error ? (

@@ -22,7 +22,9 @@ import {
   orgToForm,
   uploadOrganizationLogo,
   useAddOrganizationMember,
+  useCreateFacilitator,
   useOrganization,
+  useOrganizationFacilitators,
   useOrganizationMembers,
   useRemoveOrganizationMember,
   useSaveOrganization,
@@ -32,6 +34,7 @@ import {
 } from '@/hooks/use-organization-settings'
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
+import { normalizeUsername, validateUsername } from '@/lib/auth-identifier'
 import { cn } from '@/lib/utils'
 
 type SettingsTab = 'profile' | 'billing'
@@ -44,9 +47,11 @@ export function AdminSettingsPage() {
 
   const orgQuery = useOrganization(organizationId)
   const membersQuery = useOrganizationMembers(organizationId)
+  const facilitatorsQuery = useOrganizationFacilitators(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
   const saveLogo = useSaveOrganizationLogo(organizationId)
   const addMember = useAddOrganizationMember(organizationId)
+  const createFacilitator = useCreateFacilitator(organizationId)
   const removeMember = useRemoveOrganizationMember(organizationId)
 
   const fileRef = useRef<HTMLInputElement>(null)
@@ -55,9 +60,15 @@ export function AdminSettingsPage() {
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [memberModalOpen, setMemberModalOpen] = useState(false)
+  const [facilitatorModalOpen, setFacilitatorModalOpen] = useState(false)
   const [memberName, setMemberName] = useState('')
   const [memberEmail, setMemberEmail] = useState('')
   const [memberRole, setMemberRole] = useState<MemberRole>('event_manager')
+  const [facUsername, setFacUsername] = useState('')
+  const [facEmail, setFacEmail] = useState('')
+  const [facFirstName, setFacFirstName] = useState('')
+  const [facLastName, setFacLastName] = useState('')
+  const [facPassword, setFacPassword] = useState('')
   const [logoUploading, setLogoUploading] = useState(false)
 
   useEffect(() => {
@@ -134,6 +145,39 @@ export function AdminSettingsPage() {
     } catch (err) {
       setSaveMessage(
         err instanceof Error ? err.message : 'Failed to add team member.',
+      )
+    }
+  }
+
+  async function handleAddFacilitator() {
+    const usernameErr = validateUsername(facUsername)
+    if (usernameErr) {
+      setSaveMessage(usernameErr)
+      return
+    }
+    if (!facEmail.trim() || !facFirstName.trim() || !facLastName.trim() || !facPassword.trim()) {
+      setSaveMessage('All facilitator fields are required.')
+      return
+    }
+    setSaveMessage(null)
+    try {
+      await createFacilitator.mutateAsync({
+        username: normalizeUsername(facUsername),
+        email: facEmail.trim().toLowerCase(),
+        first_name: facFirstName.trim(),
+        last_name: facLastName.trim(),
+        password: facPassword,
+      })
+      setFacilitatorModalOpen(false)
+      setFacUsername('')
+      setFacEmail('')
+      setFacFirstName('')
+      setFacLastName('')
+      setFacPassword('')
+      setSaveMessage('Facilitator account created.')
+    } catch (err) {
+      setSaveMessage(
+        err instanceof Error ? err.message : 'Failed to create facilitator.',
       )
     }
   }
@@ -436,6 +480,46 @@ export function AdminSettingsPage() {
             )}
           </Card>
 
+          <Card className="border-border/80 bg-card p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-foreground text-lg font-semibold">Facilitators</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Event runners who sign in to open facilitator links. They cannot access admin settings.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFacilitatorModalOpen(true)}
+              >
+                <Plus className="size-4" />
+                Add facilitator
+              </Button>
+            </div>
+            {facilitatorsQuery.isLoading ? (
+              <QueryLoading rows={2} />
+            ) : facilitatorsQuery.isError ? (
+              <QueryError message={facilitatorsQuery.error.message} />
+            ) : (facilitatorsQuery.data?.length ?? 0) === 0 ? (
+              <p className="text-muted-foreground text-sm">No facilitator accounts yet.</p>
+            ) : (
+              <ul className="divide-border divide-y">
+                {facilitatorsQuery.data?.map((fac) => (
+                  <li key={fac.id} className="py-3">
+                    <p className="text-foreground font-medium">
+                      {[fac.first_name, fac.last_name].filter(Boolean).join(' ') || fac.username}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      @{fac.username} · {fac.email}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
           <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
             <h2 className="text-foreground text-lg font-semibold">
               Tablet Access
@@ -565,6 +649,92 @@ export function AdminSettingsPage() {
                 onClick={() => void handleAddMember()}
               >
                 {addMember.isPending ? 'Adding…' : 'Add member'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {facilitatorModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="border-border/80 max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto bg-card p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="text-foreground font-semibold">Add facilitator</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setFacilitatorModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fac-username">Username</Label>
+              <Input
+                id="fac-username"
+                value={facUsername}
+                onChange={(e) => setFacUsername(e.target.value)}
+                autoComplete="off"
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fac-email">Email</Label>
+              <Input
+                id="fac-email"
+                type="email"
+                value={facEmail}
+                onChange={(e) => setFacEmail(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fac-first">Name</Label>
+                <Input
+                  id="fac-first"
+                  value={facFirstName}
+                  onChange={(e) => setFacFirstName(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fac-last">Surname</Label>
+                <Input
+                  id="fac-last"
+                  value={facLastName}
+                  onChange={(e) => setFacLastName(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fac-password">Password</Label>
+              <Input
+                id="fac-password"
+                type="password"
+                value={facPassword}
+                onChange={(e) => setFacPassword(e.target.value)}
+                autoComplete="new-password"
+                className="bg-background"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFacilitatorModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <NeoButton
+                type="button"
+                variant="primary"
+                disabled={createFacilitator.isPending}
+                onClick={() => void handleAddFacilitator()}
+              >
+                {createFacilitator.isPending ? 'Creating…' : 'Create facilitator'}
               </NeoButton>
             </div>
           </Card>

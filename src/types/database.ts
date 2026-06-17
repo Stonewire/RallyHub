@@ -1,6 +1,6 @@
 import type { Json } from '@/types/json'
 
-export type AppRole = 'super_admin' | 'client_admin' | 'event_manager'
+export type AppRole = 'super_admin' | 'client_admin' | 'event_manager' | 'facilitator'
 
 export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text'
 export type PointsType = 'static' | 'range'
@@ -42,7 +42,10 @@ export type Database = {
       profiles: {
         Row: {
           id: string
+          username: string
           full_name: string | null
+          first_name: string | null
+          last_name: string | null
           role: AppRole
           organization_id: string | null
           created_at: string
@@ -50,12 +53,18 @@ export type Database = {
         }
         Insert: {
           id: string
+          username?: string
           full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           role?: AppRole
           organization_id?: string | null
         }
         Update: {
+          username?: string
           full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           role?: AppRole
           organization_id?: string | null
           updated_at?: string
@@ -647,6 +656,21 @@ export type Database = {
       verify_tablet_password: {
         Args: { p_org_id: string; p_password: string }
         Returns: boolean
+      }
+      resolve_login_email: {
+        Args: { p_identifier: string }
+        Returns: string
+      }
+      get_organization_facilitators: {
+        Args: { p_org_id: string }
+        Returns: {
+          id: string
+          username: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          created_at: string
+        }[]
       }
       get_organization_tenant_public: {
         Args: { p_org_id: string }

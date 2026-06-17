@@ -1,3 +1,5 @@
+import { Navigate } from 'react-router-dom'
+
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { RequireRallyHubAccess } from '@/components/auth/RequireRallyHubAccess'
@@ -5,7 +7,7 @@ import { RequireTenantAccess } from '@/components/auth/RequireTenantAccess'
 import { useAuth } from '@/contexts/auth-context'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { RallyHubLayout } from '@/layouts/RallyHubLayout'
-import { canAccessRallyHub } from '@/lib/auth-routes'
+import { canAccessRallyHub, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPlatformHost, isTenantHost } from '@/lib/tenant'
 
 export function HostAdminLayout() {
@@ -13,6 +15,10 @@ export function HostAdminLayout() {
 
   if (profileLoading) {
     return <AuthLoadingScreen label="Loading profile" />
+  }
+
+  if (isFacilitatorOnlyRole(role)) {
+    return <Navigate to="/facilitator" replace />
   }
 
   if (isPlatformHost() && canAccessRallyHub(role)) {

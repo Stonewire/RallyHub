@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
-import { canAccessRallyHub, isClientRole } from '@/lib/auth-routes'
+import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPublicLivePath } from '@/lib/public-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
@@ -27,6 +27,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
         state={{ from: `${location.pathname}${location.search}` }}
       />
     )
+  }
+
+  if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(location.pathname)) {
+    return <Navigate to="/facilitator" replace />
   }
 
   if (

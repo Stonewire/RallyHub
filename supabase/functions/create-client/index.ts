@@ -64,6 +64,10 @@ Deno.serve(async (req) => {
       })
     }
 
+    const emailTrimmed = email.trim().toLowerCase()
+    let usernameBase = emailTrimmed.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '')
+    if (usernameBase.length < 3) usernameBase = 'admin'
+
     let sub = (subdomain ?? slugify(name)).trim().toLowerCase()
     const { data: existing } = await supabaseAdmin
       .from('organizations')
@@ -98,9 +102,15 @@ Deno.serve(async (req) => {
     await supabaseAdmin.rpc('seed_organization_defaults', { p_org_id: org.id })
 
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-      email: email.trim(),
+      email: emailTrimmed,
       password,
       email_confirm: true,
+      user_metadata: {
+        username: usernameBase,
+        full_name: name.trim(),
+        role: 'client_admin',
+        organization_id: org.id,
+      },
     })
 
     if (authErr) {
@@ -114,7 +124,12 @@ Deno.serve(async (req) => {
     if (authUser.user) {
       await supabaseAdmin
         .from('profiles')
-        .update({ organization_id: org.id, role: 'client_admin' })
+        .update({
+          organization_id: org.id,
+          role: 'client_admin',
+          username: usernameBase,
+          full_name: name.trim(),
+        })
         .eq('id', authUser.user.id)
     }
 

@@ -4,7 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
-import { canAccessRallyHub } from '@/lib/auth-routes'
+import { canAccessRallyHub, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPublicLivePath } from '@/lib/public-routes'
 import { getPlatformOrigin } from '@/lib/tenant'
 
@@ -33,6 +33,10 @@ export function RequireTenantAccess({ children }: { children: ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (isFacilitatorOnlyRole(role)) {
+    return <Navigate to="/facilitator" replace />
   }
 
   if (canAccessRallyHub(role)) {
