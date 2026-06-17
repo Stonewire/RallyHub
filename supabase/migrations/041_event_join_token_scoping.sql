@@ -253,17 +253,54 @@ end;
 $$;
 
 -- Tablet event list (org-scoped; not join-token scoped).
+drop function if exists public.get_tablet_events_for_org(uuid);
+
 create or replace function public.get_tablet_events_for_org(p_org_id uuid)
-returns setof public.events
+returns table (
+  id uuid,
+  organization_id uuid,
+  name text,
+  event_date timestamptz,
+  status text,
+  team_count integer,
+  branding_enabled boolean,
+  logo_url text,
+  brand_colors jsonb,
+  teams_config jsonb,
+  stages_config jsonb,
+  display_layout text,
+  display_text_color text,
+  list_order integer,
+  invoice_paid boolean,
+  invoiced_at timestamptz,
+  created_at timestamptz
+)
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select e.*
+  select
+    e.id,
+    e.organization_id,
+    e.name,
+    e.event_date,
+    e.status,
+    e.team_count,
+    e.branding_enabled,
+    e.logo_url,
+    e.brand_colors,
+    e.teams_config,
+    e.stages_config,
+    e.display_layout,
+    e.display_text_color,
+    e.list_order,
+    e.invoice_paid,
+    e.invoiced_at,
+    e.created_at
   from public.events e
   where e.organization_id = p_org_id
-    and e.status in ('active', 'ready')
+    and e.status in ('active', 'ready', 'demo')
   order by e.event_date asc nulls last;
 $$;
 

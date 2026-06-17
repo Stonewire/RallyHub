@@ -13,7 +13,7 @@ if (!url?.trim() || !anonKey?.trim()) {
 
 let liveJoinToken: string | null = null
 
-/** Sets the join token sent on all Supabase REST/realtime requests (Phase 2 event scoping). */
+/** Sets the join token sent on Supabase REST requests (x-join-token header for Phase 2 RLS). */
 export function setLiveJoinToken(token: string | null): void {
   liveJoinToken = token?.trim() || null
 }

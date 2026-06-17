@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
-import { ensureLiveEventAccess } from '@/lib/live-event-access'
+import {
+  ensureLiveEventAccess,
+  getStoredLiveJoinToken,
+} from '@/lib/live-event-access'
 import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesUpdate } from '@/types/helpers'
@@ -331,9 +334,27 @@ export function useLiveEvent(eventId: string | undefined) {
   }
 }
 
+function mergeChatMessage(
+  prev: Tables<'chat_messages'>[],
+  row: Tables<'chat_messages'>,
+): Tables<'chat_messages'>[] {
+  if (prev.some((m) => m.id === row.id)) return prev
+  return [...prev, row].sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
+function chatBroadcastChannelName(eventId: string, joinToken: string): string {
+  return `chat:${eventId}:${joinToken.slice(0, 16)}`
+}
+
 export function useChatMessages(eventId: string | undefined) {
   const [messages, setMessages] = useState<Tables<'chat_messages'>[]>([])
   const [chatHistoryReady, setChatHistoryReady] = useState(false)
+  const reloadGenRef = useRef(0)
+  const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  const appendMessage = useCallback((row: Tables<'chat_messages'>) => {
+    setMessages((prev) => mergeChatMessage(prev, row))
+  }, [])
 
   const reload = useCallback(async () => {
     if (!eventId) {
@@ -341,11 +362,22 @@ export function useChatMessages(eventId: string | undefined) {
       setChatHistoryReady(false)
       return
     }
+
+    const gen = ++reloadGenRef.current
+    const access = await ensureLiveEventAccess(eventId)
+    if (!access) {
+      if (gen === reloadGenRef.current) {
+        setChatHistoryReady(true)
+      }
+      return
+    }
+
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
       .eq('event_id', eventId)
       .order('created_at', { ascending: true })
+    if (gen !== reloadGenRef.current) return
     if (error) throw error
     setMessages(data ?? [])
     setChatHistoryReady(true)
@@ -358,47 +390,76 @@ export function useChatMessages(eventId: string | undefined) {
   useEffect(() => {
     if (!eventId) return
 
+    let cancelled = false
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
     let subscribedOnce = false
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    const channel = supabase
-      .channel(`chat:${eventId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
-        (payload) => {
-          const row = payload.new as Tables<'chat_messages'>
-          if (!row?.id) return
-          console.log('[msg-sound] chat_messages INSERT (realtime)', {
+    void (async () => {
+      const access = await ensureLiveEventAccess(eventId)
+      if (!access || cancelled) return
+
+      const joinToken = getStoredLiveJoinToken(eventId)
+      if (!joinToken || cancelled) return
+
+      channel = supabase
+        .channel(chatBroadcastChannelName(eventId, joinToken), {
+          config: { broadcast: { self: true } },
+        })
+        .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+          const row = payload as Tables<'chat_messages'>
+          if (!row?.id || row.event_id !== eventId) return
+          console.log('[msg-sound] chat_messages INSERT (broadcast)', {
             id: row.id,
             team_id: row.team_id,
             sender: row.sender,
             event_id: row.event_id,
           })
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev
-            return [...prev, row]
-          })
-        },
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Initial reload already runs on mount; only refetch after reconnect.
-          if (subscribedOnce) void reload()
-          subscribedOnce = true
-          return
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          if (reconnectTimer) clearTimeout(reconnectTimer)
-          reconnectTimer = setTimeout(() => void reload(), 600)
-        }
-      })
+          appendMessage(row)
+        })
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `event_id=eq.${eventId}`,
+          },
+          (payload) => {
+            const row = payload.new as Tables<'chat_messages'>
+            if (!row?.id) return
+            console.log('[msg-sound] chat_messages INSERT (realtime)', {
+              id: row.id,
+              team_id: row.team_id,
+              sender: row.sender,
+              event_id: row.event_id,
+            })
+            appendMessage(row)
+          },
+        )
+        .subscribe((status) => {
+          if (cancelled) return
+          if (status === 'SUBSCRIBED') {
+            broadcastChannelRef.current = channel
+            if (subscribedOnce) void reload()
+            subscribedOnce = true
+            return
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            broadcastChannelRef.current = null
+            if (reconnectTimer) clearTimeout(reconnectTimer)
+            reconnectTimer = setTimeout(() => void reload(), 600)
+          }
+        })
+    })()
 
     return () => {
+      cancelled = true
+      broadcastChannelRef.current = null
       if (reconnectTimer) clearTimeout(reconnectTimer)
-      void supabase.removeChannel(channel)
+      if (channel) void supabase.removeChannel(channel)
     }
-  }, [eventId, reload])
+  }, [eventId, reload, appendMessage])
 
   const sendMessage = useCallback(
     async (sender: string, message: string, teamId?: string | null) => {
@@ -406,15 +467,31 @@ export function useChatMessages(eventId: string | undefined) {
       const trimmedSender = sender.trim()
       const trimmedMessage = message.trim()
       if (!trimmedSender || !trimmedMessage) return
-      const { error } = await supabase.from('chat_messages').insert({
-        event_id: eventId,
-        sender: trimmedSender,
-        message: trimmedMessage,
-        team_id: teamId ?? null,
-      })
+
+      const access = await ensureLiveEventAccess(eventId)
+      if (!access) throw new Error('Event access denied')
+
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          event_id: eventId,
+          sender: trimmedSender,
+          message: trimmedMessage,
+          team_id: teamId ?? null,
+        })
+        .select()
+        .single()
       if (error) throw error
+      if (!data) return
+
+      appendMessage(data)
+      await broadcastChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'chat_message',
+        payload: data,
+      })
     },
-    [eventId],
+    [eventId, appendMessage],
   )
 
   return { messages, chatHistoryReady, sendMessage, reload }
