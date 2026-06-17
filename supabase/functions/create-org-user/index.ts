@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-import { requireAuthUser, requireOrgAdminOrSuperAdmin } from '../_shared/auth.ts'
+import { requireAuthUser, requireOrgUserManagerOrSuperAdmin } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const orgAuth = await requireOrgAdminOrSuperAdmin(
+    const orgAuth = await requireOrgUserManagerOrSuperAdmin(
       supabaseAdmin,
       auth.user.id,
       organizationId,
@@ -91,6 +91,16 @@ Deno.serve(async (req) => {
         status: orgAuth.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    if (orgAuth.role === 'event_manager' && role !== 'facilitator') {
+      return new Response(
+        JSON.stringify({ error: 'Event managers can only create facilitator accounts' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
     }
 
     const { data: existingUsername } = await supabaseAdmin

@@ -2,6 +2,11 @@ import type { AppRole } from '@/types/database'
 
 import { isPlatformHost, isTenantHost } from '@/lib/tenant'
 
+export type AssignableOrgUserRole = Extract<
+  AppRole,
+  'facilitator' | 'event_manager' | 'client_admin'
+>
+
 export function defaultPathForRole(role: AppRole | null): string {
   if (!role) return '/login'
   if (role === 'facilitator') return '/facilitator'
@@ -14,6 +19,55 @@ export function canAccessRallyHub(role: AppRole | null): boolean {
 
 export function isClientRole(role: AppRole | null): boolean {
   return role === 'client_admin' || role === 'event_manager'
+}
+
+/** Full org settings: profile, billing, tablet, all user roles. */
+export function canAccessOrgSettings(role: AppRole | null): boolean {
+  return role === 'client_admin' || role === 'super_admin'
+}
+
+/** May open team / add-user flows (event_manager: facilitators only). */
+export function canManageOrgUsers(role: AppRole | null): boolean {
+  return (
+    role === 'client_admin' ||
+    role === 'super_admin' ||
+    role === 'event_manager'
+  )
+}
+
+export function isEventManagerRole(role: AppRole | null): boolean {
+  return role === 'event_manager'
+}
+
+export function assignableOrgUserRoles(
+  actorRole: AppRole | null,
+): AssignableOrgUserRole[] {
+  if (actorRole === 'super_admin' || actorRole === 'client_admin') {
+    return ['facilitator', 'event_manager', 'client_admin']
+  }
+  if (actorRole === 'event_manager') {
+    return ['facilitator']
+  }
+  return []
+}
+
+export function canAssignOrgUserRole(
+  actorRole: AppRole | null,
+  targetRole: AssignableOrgUserRole,
+): boolean {
+  return assignableOrgUserRoles(actorRole).includes(targetRole)
+}
+
+/** Admin paths an event_manager may visit (direct URL guard). */
+export function eventManagerAllowedAdminPath(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '') || '/'
+  if (path === '/admin') return true
+  if (path.startsWith('/admin/events')) return true
+  if (path.startsWith('/admin/games')) return true
+  if (path.startsWith('/admin/support')) return true
+  if (path.startsWith('/admin/team')) return true
+  if (path.startsWith('/login')) return true
+  return false
 }
 
 /** Dedicated facilitator account — no admin panel access. */

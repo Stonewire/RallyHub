@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
-import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole } from '@/lib/auth-routes'
+import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole, eventManagerAllowedAdminPath } from '@/lib/auth-routes'
 import { isPublicLivePath } from '@/lib/public-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
@@ -31,6 +31,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(location.pathname)) {
     return <Navigate to="/facilitator" replace />
+  }
+
+  if (
+    role === 'event_manager' &&
+    location.pathname.startsWith('/admin') &&
+    !eventManagerAllowedAdminPath(location.pathname)
+  ) {
+    return <Navigate to="/admin/events" replace />
   }
 
   if (

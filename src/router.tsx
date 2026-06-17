@@ -12,6 +12,7 @@ import {
   ClientGameDetailRoute,
   ClientGamesNewRoute,
   ClientSettingsRoute,
+  ClientTeamRoute,
   SuperAdminOnly,
 } from '@/components/routing/AdminRouteDispatchers'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
@@ -161,6 +162,7 @@ export const router = createBrowserRouter([
       { path: 'events/new', element: <ClientEventsNewRoute /> },
       { path: 'events/:eventId', element: <ClientEventEditRoute /> },
       { path: 'settings', element: <ClientSettingsRoute /> },
+      { path: 'team', element: <ClientTeamRoute /> },
       {
         path: 'settings/organization',
         element: <Navigate to="/admin/settings" replace />,

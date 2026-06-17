@@ -47,6 +47,38 @@ export async function requireOrgAdminOrSuperAdmin(
   return { ok: false, status: 403, message: 'Forbidden' }
 }
 
+type OrgStaffRole = 'super_admin' | 'client_admin' | 'event_manager'
+
+/** Org user management: client_admin, event_manager (facilitators only), or super_admin. */
+export async function requireOrgUserManagerOrSuperAdmin(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<AuthFailure | { ok: true; role: OrgStaffRole }> {
+  const { data: profile, error } = await supabaseAdmin
+    .from('profiles')
+    .select('role, organization_id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !profile) {
+    return { ok: false, status: 403, message: 'Forbidden' }
+  }
+
+  if (profile.role === 'super_admin') {
+    return { ok: true, role: 'super_admin' }
+  }
+
+  if (
+    (profile.role === 'client_admin' || profile.role === 'event_manager') &&
+    profile.organization_id === organizationId
+  ) {
+    return { ok: true, role: profile.role as OrgStaffRole }
+  }
+
+  return { ok: false, status: 403, message: 'Forbidden' }
+}
+
 export async function requireEventOrgAdminOrSuperAdmin(
   supabaseAdmin: SupabaseClient,
   userId: string,

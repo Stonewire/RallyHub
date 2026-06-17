@@ -7,6 +7,7 @@ import {
   LifeBuoy,
   LogOut,
   UserCircle,
+  Users,
 } from 'lucide-react'
 import * as React from 'react'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
+import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 
 const mainNav = [
@@ -59,9 +61,11 @@ const orgRoutes = [
 export function AdminAppSidebar() {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
-  const { signOut } = useAuth()
+  const { signOut, role } = useAuth()
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
+  const showOrgSettings = canAccessOrgSettings(role)
+  const showTeamNav = canManageOrgUsers(role) && !showOrgSettings
 
   const orgChildActive =
     pathname.startsWith('/admin/settings/') ||
@@ -112,6 +116,23 @@ export function AdminAppSidebar() {
                 </SidebarMenuItem>
               ))}
 
+              {showTeamNav ? (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Team"
+                    isActive={isAdminNavActive(pathname, '/admin/team', true)}
+                    className="text-[#3E3D3E]"
+                  >
+                    <NavLink to="/admin/team">
+                      <Users className="shrink-0" strokeWidth={1.75} />
+                      <span className="font-medium">Team</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ) : null}
+
+              {showOrgSettings ? (
               <Collapsible
                 open={orgMenuOpen}
                 onOpenChange={onOrgMenuOpenChange}
@@ -168,6 +189,7 @@ export function AdminAppSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+              ) : null}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

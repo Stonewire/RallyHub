@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
-import { canAccessRallyHub } from '@/lib/auth-routes'
+import { canAccessOrgSettings, canAccessRallyHub, canManageOrgUsers } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 import { AdminEventsPage } from '@/pages/admin/EventsPage'
 import { AdminEventEditPage } from '@/pages/admin/events/EditEventPage'
@@ -12,6 +12,7 @@ import { AdminGamesNewPage } from '@/pages/admin/games/NewGamePage'
 import { AdminGamesPage } from '@/pages/admin/GamesPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
 import { AdminSupportPage } from '@/pages/admin/SupportPage'
+import { AdminTeamPage } from '@/pages/admin/TeamPage'
 import { RallyHubOverviewPage } from '@/pages/rallyhub/DashboardPage'
 import { RallyHubSupportPage } from '@/pages/rallyhub/SupportPage'
 import type { ReactNode } from 'react'
@@ -87,9 +88,27 @@ export function ClientEventEditRoute() {
 }
 
 export function ClientSettingsRoute() {
+  const { role, profileLoading } = useAuth()
+  if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
+  if (!canAccessOrgSettings(role)) {
+    return <Navigate to="/admin/events" replace />
+  }
   return (
     <ClientAdminOnly>
       <AdminSettingsPage />
+    </ClientAdminOnly>
+  )
+}
+
+export function ClientTeamRoute() {
+  const { role, profileLoading } = useAuth()
+  if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
+  if (!canManageOrgUsers(role)) {
+    return <Navigate to="/admin/events" replace />
+  }
+  return (
+    <ClientAdminOnly>
+      <AdminTeamPage />
     </ClientAdminOnly>
   )
 }
