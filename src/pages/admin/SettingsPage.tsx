@@ -52,6 +52,7 @@ export function AdminSettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
   const [copied, setCopied] = useState(false)
+  const [passwordCopied, setPasswordCopied] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [memberModalOpen, setMemberModalOpen] = useState(false)
   const [memberName, setMemberName] = useState('')
@@ -142,6 +143,13 @@ export function AdminSettingsPage() {
     await navigator.clipboard.writeText(tabletLink)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleCopyPassword() {
+    const password = form.tablet_password.trim() || '1234'
+    await navigator.clipboard.writeText(password)
+    setPasswordCopied(true)
+    window.setTimeout(() => setPasswordCopied(false), 2000)
   }
 
   function setTab(next: SettingsTab) {
@@ -443,17 +451,34 @@ export function AdminSettingsPage() {
             ) : null}
             <div className="space-y-2">
               <Label htmlFor="tablet-password">Tablet Password</Label>
-              <Input
-                id="tablet-password"
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                value={form.tablet_password}
-                onChange={(e) =>
-                  setForm({ ...form, tablet_password: e.target.value })
-                }
-                className="bg-background max-w-md"
-              />
+              <div className="flex max-w-md gap-2">
+                <Input
+                  id="tablet-password"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={form.tablet_password}
+                  onChange={(e) =>
+                    setForm({ ...form, tablet_password: e.target.value })
+                  }
+                  className="bg-background flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleCopyPassword()}
+                >
+                  {passwordCopied ? (
+                    <Check className="size-4" />
+                  ) : (
+                    <Copy className="size-4" />
+                  )}
+                  Copy
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Shared venue code for the tablet kiosk. Defaults to 1234 if unchanged.
+              </p>
             </div>
             {tabletLink ? (
               <div className="flex flex-wrap gap-2">

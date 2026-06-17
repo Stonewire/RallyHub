@@ -36,8 +36,29 @@ export const EMPTY_ORG_FORM: OrganizationFormState = {
   address_state: '',
   address_postal: '',
   address_country: '',
-  tablet_password: '',
+  tablet_password: '1234',
   tablet_slug: '',
+}
+
+const DEFAULT_TABLET_PASSWORD = '1234'
+
+/** Admin-facing tablet PIN (plaintext venue code; 040 bcrypt rows show as default until migrated). */
+export function displayTabletPassword(stored: string | null | undefined): string {
+  const trimmed = stored?.trim()
+  if (!trimmed) return DEFAULT_TABLET_PASSWORD
+  if (
+    trimmed.startsWith('$2a$') ||
+    trimmed.startsWith('$2b$') ||
+    trimmed.startsWith('$2y$')
+  ) {
+    return DEFAULT_TABLET_PASSWORD
+  }
+  return trimmed
+}
+
+function normalizeTabletPasswordForSave(value: string): string {
+  const trimmed = value.trim()
+  return trimmed || DEFAULT_TABLET_PASSWORD
 }
 
 function normalizeOrgColor(value: string | null | undefined, fallback: string): string {
@@ -62,7 +83,7 @@ export function orgToForm(org: OrganizationRow): OrganizationFormState {
     address_state: org.address_state ?? '',
     address_postal: org.address_postal ?? '',
     address_country: org.address_country ?? '',
-    tablet_password: org.tablet_password ?? '',
+    tablet_password: displayTabletPassword(org.tablet_password),
     tablet_slug: org.tablet_slug ?? '',
   }
 }
@@ -133,7 +154,7 @@ export function useSaveOrganization(organizationId: string | null) {
         address_state: payload.address_state || null,
         address_postal: payload.address_postal || null,
         address_country: payload.address_country || null,
-        tablet_password: payload.tablet_password || null,
+        tablet_password: normalizeTabletPasswordForSave(payload.tablet_password),
         tablet_slug: payload.tablet_slug.trim(),
       }
 
