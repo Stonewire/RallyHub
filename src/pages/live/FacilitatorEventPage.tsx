@@ -34,6 +34,7 @@ import {
   isEventDemoStatus,
 } from '@/lib/event-demo'
 import { incrementTeamScore } from '@/lib/increment-team-score'
+import { publishSubmissionChange, publishLiveBundleReload } from '@/lib/live-broadcast'
 import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
 import {
   isLastQuestionInRound,
@@ -422,7 +423,7 @@ export function FacilitatorEventPage() {
       .update({ status: 'approved', points_awarded: points })
       .eq('id', sub.id)
       .eq('status', 'pending')
-      .select('id, team_id')
+      .select('*')
       .maybeSingle()
     if (error) {
       notify(error.message || 'Could not approve submission')
@@ -432,18 +433,29 @@ export function FacilitatorEventPage() {
       notify('Submission already processed')
       return
     }
+    if (eventId) {
+      await publishSubmissionChange(eventId, 'UPDATE', data)
+    }
     if (points > 0) {
-      await incrementTeamScore(data.team_id, points)
+      await incrementTeamScore(data.team_id, points, eventId)
     }
     notify(`Approved +${points} pts`)
   }
 
   async function rejectSubmission(id: string) {
     if (!controlsLiveRef.current) return
-    const { error } = await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id)
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({ status: 'rejected' })
+      .eq('id', id)
+      .select('*')
+      .maybeSingle()
     if (error) {
       notify(error.message || 'Could not reject submission')
       return
+    }
+    if (data && eventId) {
+      await publishSubmissionChange(eventId, 'UPDATE', data)
     }
     notify('Submission rejected')
   }
@@ -609,11 +621,12 @@ export function FacilitatorEventPage() {
       }
     }
     for (const [teamId, total] of totalsByTeam) {
-      await incrementTeamScore(teamId, -total)
+      await incrementTeamScore(teamId, -total, eventId)
     }
     for (const sub of quizSubs) {
       await supabase.from('submissions').delete().eq('id', sub.id)
     }
+    if (eventId) await publishLiveBundleReload(eventId)
     await patchState({
       current_question_index: 0,
       quiz_state: 'idle',

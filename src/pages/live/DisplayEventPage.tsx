@@ -71,7 +71,9 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     () => (bundle ? parseStages(bundle.event.stages_config) : []),
     [bundle],
   )
-  const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
+  const stage = bundle && bundle.state
+    ? currentStage(stages, bundle.state.current_stage_index)
+    : null
 
   const timerSyncRef = useRef(
     createThrottledTimerSync(() => {

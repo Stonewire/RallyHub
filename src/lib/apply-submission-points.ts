@@ -4,7 +4,8 @@ import { incrementTeamScore } from '@/lib/increment-team-score'
 export async function applySubmissionPoints(
   teamId: string,
   points: number,
+  eventId?: string,
 ): Promise<void> {
   if (points <= 0) return
-  await incrementTeamScore(teamId, points)
+  await incrementTeamScore(teamId, points, eventId)
 }

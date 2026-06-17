@@ -1,5 +1,10 @@
 import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { generateBingoRun } from '@/lib/bingo-engine'
+import type { BingoCell } from '@/lib/bingo-engine'
+import {
+  bingoRunRowToBroadcast,
+  publishLiveBundlePatch,
+} from '@/lib/live-broadcast'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
 
@@ -26,9 +31,60 @@ export async function activateBingoRun(
     if (error) throw error
     const body = data as { error?: string } & ActivateBingoRunResult
     if (body.error) throw new Error(body.error)
+    await publishBingoActivationBroadcasts(eventId, gameId, stageIndex, body)
     return body
   } catch {
     return activateBingoRunLocal(eventId, gameId, stageIndex)
+  }
+}
+
+async function publishBingoActivationBroadcasts(
+  eventId: string,
+  _gameId: string,
+  stageIndex: number,
+  result: ActivateBingoRunResult,
+): Promise<void> {
+  const { data: runRow } = await supabase
+    .from('bingo_runs')
+    .select('*')
+    .eq('id', result.runId)
+    .maybeSingle()
+
+  if (runRow) {
+    await publishLiveBundlePatch(eventId, {
+      kind: 'bingo_run',
+      eventId,
+      stageIndex,
+      row: bingoRunRowToBroadcast({
+        ...runRow,
+        play_order: (runRow.play_order as string[]) ?? [],
+      }),
+    })
+  }
+
+  const { data: cards } = await supabase
+    .from('bingo_team_cards')
+    .select('run_id, team_id, cells')
+    .eq('run_id', result.runId)
+
+  for (const card of cards ?? []) {
+    await publishLiveBundlePatch(eventId, {
+      kind: 'bingo_team_card',
+      runId: card.run_id,
+      teamId: card.team_id,
+      cells: card.cells as BingoCell[],
+    })
+  }
+
+  if (!result.alreadyActive) {
+    const { data: stateRow } = await supabase
+      .from('event_state')
+      .select('*')
+      .eq('event_id', eventId)
+      .single()
+    if (stateRow) {
+      await publishLiveBundlePatch(eventId, { kind: 'event_state', row: stateRow })
+    }
   }
 }
 
@@ -47,12 +103,27 @@ async function activateBingoRunLocal(
     .maybeSingle()
 
   if (existing) {
-    return {
+    const result = {
       runId: existing.id,
       playOrder: (existing.play_order as string[]) ?? [],
       currentPlayIndex: existing.current_play_index,
       alreadyActive: true,
     }
+    await publishLiveBundlePatch(eventId, {
+      kind: 'bingo_run',
+      eventId,
+      stageIndex,
+      row: bingoRunRowToBroadcast({
+        id: existing.id,
+        event_id: eventId,
+        game_id: gameId,
+        stage_index: stageIndex,
+        play_order: result.playOrder,
+        current_play_index: result.currentPlayIndex,
+        status: 'active',
+      }),
+    })
+    return result
   }
 
   const [{ data: teams }, { data: games }] = await Promise.all([
@@ -107,6 +178,41 @@ async function activateBingoRunLocal(
       updated_at: new Date().toISOString(),
     })
     .eq('event_id', eventId)
+
+  const { data: stateRow } = await supabase
+    .from('event_state')
+    .select('*')
+    .eq('event_id', eventId)
+    .single()
+
+  if (stateRow) {
+    await publishLiveBundlePatch(eventId, { kind: 'event_state', row: stateRow })
+  }
+
+  const runBroadcast = bingoRunRowToBroadcast({
+    id: run.id,
+    event_id: eventId,
+    game_id: gameId,
+    stage_index: stageIndex,
+    play_order: plan.playOrder,
+    current_play_index: 0,
+    status: 'active',
+  })
+  await publishLiveBundlePatch(eventId, {
+    kind: 'bingo_run',
+    eventId,
+    stageIndex,
+    row: runBroadcast,
+  })
+
+  for (const [teamId, cells] of Object.entries(plan.cardsByTeamId)) {
+    await publishLiveBundlePatch(eventId, {
+      kind: 'bingo_team_card',
+      runId: run.id,
+      teamId,
+      cells,
+    })
+  }
 
   return {
     runId: run.id,

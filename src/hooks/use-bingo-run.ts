@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import type { BingoCell } from '@/lib/bingo-engine'
+import { subscribeLiveBundleBroadcast } from '@/lib/live-broadcast'
 import { supabase } from '@/lib/supabase'
 
 export type BingoRunRow = {
@@ -15,6 +17,29 @@ export type BingoRunRow = {
 }
 
 export function useBingoRun(eventId: string | undefined, stageIndex: number | undefined) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!eventId || stageIndex == null || stageIndex < 0) return
+
+    return subscribeLiveBundleBroadcast(eventId, {
+      onBingoRun: (patch) => {
+        if (patch.stageIndex !== stageIndex) return
+        queryClient.setQueryData(
+          queryKeys.bingoRun(eventId, stageIndex),
+          patch.row,
+        )
+      },
+      onBundlePatch: (patch) => {
+        if (patch.kind === 'full_reload') {
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.bingoRun(eventId, stageIndex),
+          })
+        }
+      },
+    })
+  }, [eventId, stageIndex, queryClient])
+
   return useQuery({
     queryKey: queryKeys.bingoRun(eventId ?? '', stageIndex ?? -1),
     enabled: Boolean(eventId) && stageIndex != null && stageIndex >= 0,
@@ -43,7 +68,31 @@ export function useBingoRun(eventId: string | undefined, stageIndex: number | un
   })
 }
 
-export function useBingoTeamCard(runId: string | undefined, teamId: string | undefined) {
+export function useBingoTeamCard(
+  eventId: string | undefined,
+  runId: string | undefined,
+  teamId: string | undefined,
+) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!eventId || !runId || !teamId) return
+
+    return subscribeLiveBundleBroadcast(eventId, {
+      onBingoTeamCard: (patch) => {
+        if (patch.runId !== runId || patch.teamId !== teamId) return
+        queryClient.setQueryData(['bingo-team-card', runId, teamId], patch.cells)
+      },
+      onBundlePatch: (patch) => {
+        if (patch.kind === 'full_reload') {
+          void queryClient.invalidateQueries({
+            queryKey: ['bingo-team-card', runId, teamId],
+          })
+        }
+      },
+    })
+  }, [eventId, runId, teamId, queryClient])
+
   return useQuery({
     queryKey: ['bingo-team-card', runId, teamId],
     enabled: Boolean(runId && teamId),

@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
+  applyLiveBundlePatch,
+  liveBroadcastChannelName,
+  publishLiveBundlePatch,
+  type LiveBundlePatch,
+} from '@/lib/live-broadcast'
+import {
   ensureLiveEventAccess,
   getStoredLiveJoinToken,
 } from '@/lib/live-event-access'
@@ -51,13 +57,22 @@ async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
 
   let state = stateRes.data
   if (!state) {
-    const { data: created, error } = await supabase
-      .from('event_state')
-      .insert({ event_id: eventId })
-      .select()
-      .single()
-    if (error) throw error
-    state = created
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (session?.user) {
+      const { data: created, error } = await supabase
+        .from('event_state')
+        .insert({ event_id: eventId })
+        .select()
+        .single()
+      if (!error && created) state = created
+    }
+    if (!state) {
+      throw new Error(
+        'Event is not ready yet. Ask your facilitator to open the facilitator panel.',
+      )
+    }
   }
 
   const games = (gamesRes.data ?? []) as Tables<'games'>[]
@@ -175,6 +190,40 @@ export function useLiveEvent(eventId: string | undefined) {
   useEffect(() => {
     if (!eventId) return
 
+    let cancelled = false
+    let broadcastChannel: ReturnType<typeof supabase.channel> | null = null
+
+    void (async () => {
+      const access = await ensureLiveEventAccess(eventId)
+      if (!access || cancelled) return
+      const joinToken = getStoredLiveJoinToken(eventId)
+      if (!joinToken || cancelled) return
+
+      broadcastChannel = supabase
+        .channel(liveBroadcastChannelName(eventId, joinToken), {
+          config: { broadcast: { self: true } },
+        })
+        .on('broadcast', { event: 'live_bundle' }, ({ payload }) => {
+          const patch = payload as LiveBundlePatch
+          if (!patch?.kind) return
+          if (patch.kind === 'full_reload') {
+            scheduleReloadRef.current()
+            return
+          }
+          if (
+            patch.kind === 'bingo_run' ||
+            patch.kind === 'bingo_team_card'
+          ) {
+            return
+          }
+          setBundle((b) => {
+            if (!b) return b
+            return applyLiveBundlePatch(b, patch)
+          })
+        })
+        .subscribe()
+    })()
+
     const channel = supabase.channel(`live:event:${eventId}:bundle`)
       .on(
         'postgres_changes',
@@ -272,8 +321,10 @@ export function useLiveEvent(eventId: string | undefined) {
       })
 
     return () => {
+      cancelled = true
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (reconnectRef.current) clearTimeout(reconnectRef.current)
+      if (broadcastChannel) void supabase.removeChannel(broadcastChannel)
       void supabase.removeChannel(channel)
     }
   }, [eventId, channelCycle, eventGameIdsKey])
@@ -295,8 +346,11 @@ export function useLiveEvent(eventId: string | undefined) {
         void reload()
         throw error
       }
+      if (eventId) {
+        await publishLiveBundlePatch(eventId, { kind: 'event_state', row: merged })
+      }
     },
-    [reload],
+    [eventId, reload],
   )
 
   const updateTeam = useCallback(
@@ -314,13 +368,25 @@ export function useLiveEvent(eventId: string | undefined) {
             : b,
         )
       }
-      const { error } = await supabase.from('teams').update(patch).eq('id', teamId)
+      const { data, error } = await supabase
+        .from('teams')
+        .update(patch)
+        .eq('id', teamId)
+        .select()
+        .single()
       if (error) {
         void reload()
         throw error
       }
+      if (eventId && data) {
+        await publishLiveBundlePatch(eventId, {
+          kind: 'team',
+          op: 'UPDATE',
+          row: data,
+        })
+      }
     },
-    [reload],
+    [eventId, reload],
   )
 
   return {

@@ -20,6 +20,7 @@ import {
 } from '@/lib/event-demo'
 import { unlockAudioFromUserGesture } from '@/lib/sounds'
 import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
+import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { supabase } from '@/lib/supabase'
@@ -140,7 +141,7 @@ export function JoinEventPage() {
         )
       }
       const trimmed = claimName.trim()
-      const { error: updateError } = await supabase
+      const { data: updatedTeam, error: updateError } = await supabase
         .from('teams')
         .update({
           name: trimmed,
@@ -148,8 +149,18 @@ export function JoinEventPage() {
           status: 'active',
         })
         .eq('id', claimSlot.id)
+        .select()
+        .single()
 
       if (updateError) throw updateError
+
+      if (updatedTeam) {
+        await publishLiveBundlePatch(eventId, {
+          kind: 'team',
+          op: 'UPDATE',
+          row: updatedTeam,
+        })
+      }
 
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       setTeamId(claimSlot.id)

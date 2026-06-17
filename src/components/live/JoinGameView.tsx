@@ -72,6 +72,7 @@ import {
   activeSubmissionForGame,
 } from '@/lib/live-event'
 import { isFacilitatorToTeamChatMessage, explainFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
+import { publishSubmissionChange } from '@/lib/live-broadcast'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -139,7 +140,11 @@ export function JoinGameView({
     event.id,
     stage?.type === 'bingo' ? state.current_stage_index : undefined,
   )
-  const bingoCardQuery = useBingoTeamCard(bingoRunQuery.data?.id, teamId)
+  const bingoCardQuery = useBingoTeamCard(
+    event.id,
+    bingoRunQuery.data?.id,
+    teamId,
+  )
   const queryClient = useQueryClient()
 
   // When the facilitator starts (or restarts) bingo, the run + team cards are
@@ -507,15 +512,20 @@ export function JoinGameView({
     }
     beginOpenSubmit()
     try {
-      const { error } = await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: game.id,
-        media_url: mediaUrl,
-        media_type: 'text',
-        status: 'pending',
-      })
+      const { data, error } = await supabase
+        .from('submissions')
+        .insert({
+          event_id: event.id,
+          team_id: teamId,
+          game_id: game.id,
+          media_url: mediaUrl,
+          media_type: 'text',
+          status: 'pending',
+        })
+        .select()
+        .single()
       if (error) throw error
+      if (data) await publishSubmissionChange(event.id, 'INSERT', data)
       finishOpenSubmitSuccess()
     } catch {
       notify("Couldn't submit — tap to retry")
@@ -537,15 +547,20 @@ export function JoinGameView({
         file,
         { mediaKind: game.type === 'video' ? 'video' : 'photo' },
       )
-      const { error } = await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: game.id,
-        media_url: url,
-        media_type: game.type === 'video' ? 'video' : 'photo',
-        status: 'pending',
-      })
+      const { data, error } = await supabase
+        .from('submissions')
+        .insert({
+          event_id: event.id,
+          team_id: teamId,
+          game_id: game.id,
+          media_url: url,
+          media_type: game.type === 'video' ? 'video' : 'photo',
+          status: 'pending',
+        })
+        .select()
+        .single()
       if (error) throw error
+      if (data) await publishSubmissionChange(event.id, 'INSERT', data)
       finishOpenSubmitSuccess()
     } catch (err) {
       const msg =
@@ -572,22 +587,36 @@ export function JoinGameView({
     )
     const previousAnswer = existing?.media_url ?? quizAnswer
     setQuizAnswer(answerId)
-    const { error } = existing
+    const { data: quizRow, error } = existing
       ? await supabase
           .from('submissions')
           .update({ media_url: answerId })
           .eq('id', existing.id)
-      : await supabase.from('submissions').insert({
-          event_id: event.id,
-          team_id: teamId,
-          game_id: gameId,
-          media_url: answerId,
-          media_type: mediaType,
-          status: 'pending',
-        })
+          .select()
+          .single()
+      : await supabase
+          .from('submissions')
+          .insert({
+            event_id: event.id,
+            team_id: teamId,
+            game_id: gameId,
+            media_url: answerId,
+            media_type: mediaType,
+            status: 'pending',
+          })
+          .select()
+          .single()
     if (error) {
       setQuizAnswer(previousAnswer)
       notify("Couldn't submit answer — tap to retry")
+      return
+    }
+    if (quizRow) {
+      await publishSubmissionChange(
+        event.id,
+        existing ? 'UPDATE' : 'INSERT',
+        quizRow,
+      )
     }
   }
 
@@ -640,17 +669,33 @@ export function JoinGameView({
       const existing = mySubs.find(
         (s) => s.media_type === mediaType && s.game_id === gameId,
       )
-      const { error } = existing
-        ? await supabase.from('submissions').update({ media_url: mediaUrl }).eq('id', existing.id)
-        : await supabase.from('submissions').insert({
-            event_id: event.id,
-            team_id: teamId,
-            game_id: gameId,
-            media_url: mediaUrl,
-            media_type: mediaType,
-            status: 'pending',
-          })
+      const { data: bonusRow, error } = existing
+        ? await supabase
+            .from('submissions')
+            .update({ media_url: mediaUrl })
+            .eq('id', existing.id)
+            .select()
+            .single()
+        : await supabase
+            .from('submissions')
+            .insert({
+              event_id: event.id,
+              team_id: teamId,
+              game_id: gameId,
+              media_url: mediaUrl,
+              media_type: mediaType,
+              status: 'pending',
+            })
+            .select()
+            .single()
       if (error) throw error
+      if (bonusRow) {
+        await publishSubmissionChange(
+          event.id,
+          existing ? 'UPDATE' : 'INSERT',
+          bonusRow,
+        )
+      }
       setBonusCaptureFile(null)
       playSubmitSound()
       notify('Bonus answer submitted')
@@ -713,6 +758,10 @@ export function JoinGameView({
         )
         setBingoPick(idx >= 0 ? idx : null)
         notify("Couldn't update selection — tap to retry")
+      } else {
+        await publishSubmissionChange(event.id, 'DELETE', undefined, {
+          id: existingPending!.id,
+        })
       }
       return
     }
@@ -731,15 +780,18 @@ export function JoinGameView({
 
     try {
       if (existingPending) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('submissions')
           .update({ media_url: trackId })
           .eq('id', existingPending.id)
+          .select()
+          .single()
         if (error) {
           revertBingoPick()
           notify("Couldn't mark cell — tap to retry")
           return
         }
+        if (data) await publishSubmissionChange(event.id, 'UPDATE', data)
         return
       }
 
@@ -760,21 +812,31 @@ export function JoinGameView({
         if (error) {
           revertBingoPick()
           notify("Couldn't update selection — tap to retry")
+        } else {
+          await publishSubmissionChange(event.id, 'DELETE', undefined, {
+            id: existingSameCell.id,
+          })
         }
         return
       }
 
-      const { error } = await supabase.from('submissions').insert({
-        event_id: event.id,
-        team_id: teamId,
-        game_id: gameId,
-        media_url: trackId,
-        media_type: 'bingo',
-        status: 'pending',
-      })
+      const { data: bingoRow, error } = await supabase
+        .from('submissions')
+        .insert({
+          event_id: event.id,
+          team_id: teamId,
+          game_id: gameId,
+          media_url: trackId,
+          media_type: 'bingo',
+          status: 'pending',
+        })
+        .select()
+        .single()
       if (error) {
         revertBingoPick()
         notify("Couldn't mark cell — tap to retry")
+      } else if (bingoRow) {
+        await publishSubmissionChange(event.id, 'INSERT', bingoRow)
       }
     } finally {
       bingoPickOptimisticRef.current = undefined

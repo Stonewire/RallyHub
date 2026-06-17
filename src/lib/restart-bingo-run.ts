@@ -1,5 +1,6 @@
 import { activateBingoRun, type ActivateBingoRunResult } from '@/lib/activate-bingo-run'
 import { ensureLiveEventAccess } from '@/lib/live-event-access'
+import { publishLiveBundlePatch, publishLiveBundleReload } from '@/lib/live-broadcast'
 import { incrementTeamScore } from '@/lib/increment-team-score'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
@@ -50,7 +51,7 @@ export async function restartBingoRun(
   }
 
   for (const [teamId, total] of totalsByTeam) {
-    await incrementTeamScore(teamId, -total)
+    await incrementTeamScore(teamId, -total, eventId)
   }
 
   await supabase
@@ -59,7 +60,16 @@ export async function restartBingoRun(
     .eq('event_id', eventId)
     .eq('stage_index', stageIndex)
 
+  await publishLiveBundlePatch(eventId, {
+    kind: 'bingo_run',
+    eventId,
+    stageIndex,
+    row: null,
+  })
+
   await supabase.from('submissions').delete().eq('event_id', eventId).eq('game_id', gameId)
 
-  return activateBingoRun(eventId, gameId, stageIndex)
+  const result = await activateBingoRun(eventId, gameId, stageIndex)
+  await publishLiveBundleReload(eventId)
+  return result
 }

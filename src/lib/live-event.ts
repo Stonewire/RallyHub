@@ -11,6 +11,8 @@ import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
+import { publishLiveBundleReload } from '@/lib/live-broadcast'
+
 export type DisplayLayout = 'rank_list' | 'orbit_view'
 export type DisplayTextColor = 'black' | 'white'
 
@@ -354,6 +356,7 @@ export async function scoreCurrentQuizQuestion(
     p_question_id: question.id,
   })
   if (error) throw error
+  await publishLiveBundleReload(eventId)
 }
 
 export function quizLeaderboard(

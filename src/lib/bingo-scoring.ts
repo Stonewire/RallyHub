@@ -6,6 +6,7 @@ import {
   bingoWinAchieved,
   resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
+import { publishLiveBundleReload } from '@/lib/live-broadcast'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
 
@@ -104,7 +105,7 @@ export async function scoreBingoRound(params: {
   }
 
   for (const [teamId, delta] of teamScoreDeltas) {
-    await applySubmissionPoints(teamId, delta)
+    await applySubmissionPoints(teamId, delta, eventId)
   }
 
   // Win detection runs every round on the team's FULL set of approved cells
@@ -127,7 +128,7 @@ export async function scoreBingoRound(params: {
     winningTeamIds.push(row.team_id)
     const lineBonusAlreadyPaid = paidLineBonusTeamIds.has(row.team_id)
     if (linePoints > 0 && !lineBonusAlreadyPaid) {
-      await applySubmissionPoints(row.team_id, linePoints)
+      await applySubmissionPoints(row.team_id, linePoints, eventId)
       paidLineBonusTeamIds.add(row.team_id)
       newlyPaidLineBonusTeamIds.push(row.team_id)
     }
@@ -142,6 +143,8 @@ export async function scoreBingoRound(params: {
       console.error('Failed to persist paid line bonus team ids', paidErr)
     }
   }
+
+  await publishLiveBundleReload(eventId)
 
   return { correctIndex, trackId, winningTeamIds }
 }
