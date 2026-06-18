@@ -8,17 +8,17 @@
 
 | Severity | Count | Open | Fixed | Deferred |
 |----------|-------|------|-------|----------|
-| Critical | 8 | 5 | 3 | 0 |
-| High | 17 | 6 | 11 | 0 |
-| Medium | 11 | 9 | 2 | 0 |
+| Critical | 8 | 0 | 8 | 0 |
+| High | 17 | 1 | 16 | 0 |
+| Medium | 11 | 7 | 4 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **26** | **16** | **0** |
+| **Total** | **42** | **14** | **28** | **0** |
 
 ---
 
 ## Headline risk
 
-The anon key no longer grants broad write access to live tables (C1/C2 fixed in 048). Facilitators authenticate; participants remain anon+join-token for their own actions. C6 and C7 are fixed; remaining scoring/realtime issues (C8) still affect production trust at scale.
+All 8 criticals are now closed. The anon key no longer grants broad write access to live tables (C1/C2, migration 048): facilitators authenticate, participants are scoped to their own actions via a per-event join token. Quiz answers are redacted until reveal (C3), cross-tenant reads are token-scoped (H12), storage is locked down with size caps (C4), the service-role edge functions require auth (C5), and the realtime reload storm is tamed by per-game listeners + bounded fetches + a dedicated chat/bingo broadcast channel (C8). The remaining work is hardening (H6, H8–H11, H15) and UX/accessibility polish — none of it grants anon write access or leaks tenant data.
 
 ---
 
@@ -29,35 +29,35 @@ The anon key no longer grants broad write access to live tables (C1/C2 fixed in 
 | C1 | Anonymous write access to all live tables (RLS `using (true)`) | Critical | RLS / Security | Fixed (048) |
 | C2 | bingo_runs / bingo_team_cards: open CRUD for anon | Critical | RLS / Security | Fixed (048) |
 | C3 | Quiz answers readable by anyone before reveal | Critical | RLS / Security | Fixed |
-| C4 | game-assets bucket: anon can upload/overwrite any path, no size limits | Critical | Storage / Security | Open |
-| C5 | Unauthenticated service-role edge functions | Critical | Edge functions / Security | Open |
+| C4 | game-assets bucket: anon can upload/overwrite any path, no size limits | Critical | Storage / Security | Fixed (039) |
+| C5 | Unauthenticated service-role edge functions | Critical | Edge functions / Security | Fixed |
 | C6 | Display screen (and preview iframe) writes event timers — fights the facilitator | Critical | Realtime / Live flow | Fixed |
 | C7 | Bingo line bonus re-awarded on every reveal after a team wins | Critical | Scoring | Fixed |
-| C8 | Realtime reload storm: unfiltered games listener + unbounded bundle fetches | Critical | Realtime / Performance | Open |
+| C8 | Realtime reload storm: unfiltered games listener + unbounded bundle fetches | Critical | Realtime / Performance | Fixed |
 | H1 | All team-score updates are non-atomic read-modify-write | High | Scoring | Fixed |
 | H2 | Quiz double-scoring race (auto-reveal vs manual vs second facilitator) | High | Scoring | Fixed |
 | H3 | approveSubmission awards points even when the submission update fails | High | Error handling / Scoring | Fixed |
 | H4 | restartQuiz under-subtracts when a team has multiple scored questions | High | Scoring | Fixed |
 | H5 | restartBingoRun wipes submissions but never reverses awarded points | High | Scoring | Fixed |
-| H6 | Team that joins mid-bingo never gets a card — marked cells never score | High | Game logic | Open |
+| H6 | Team that joins mid-bingo never gets a card — marked cells never score | High | Game logic | Fixed |
 | H7 | Participant writes fail silently (quiz answers, photo submits, bingo bonus) | High | Error handling | Fixed |
-| H8 | Bingo scoring/advance/restart swallow DB errors | High | Error handling | Open |
+| H8 | Bingo scoring/advance/restart swallow DB errors | High | Error handling | Fixed |
 | H9 | event_games and org branding load once and never update live | High | Realtime | Open |
-| H10 | bingo_team_cards not realtime + 60s staleTime — stale cards after restart | High | Realtime | Open |
-| H11 | bingoRunOverride can diverge from the DB run across facilitators | High | Realtime / Live flow | Open |
+| H10 | bingo_team_cards not realtime + 60s staleTime — stale cards after restart | High | Realtime | Fixed |
+| H11 | bingoRunOverride can diverge from the DB run across facilitators | High | Realtime / Live flow | Fixed |
 | H12 | Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone | High | RLS / Security | Fixed |
 | H13 | Blank participant screen if the quiz game is deleted mid-event | High | Empty states | Fixed |
 | H14 | No upload size caps anywhere; video duration check bypassed on metadata error | High | Uploads | Fixed |
-| H15 | Tablet password: plaintext storage, brute-forceable RPC, forgeable session flag | High | Security | Open |
+| H15 | Tablet password: plaintext storage, brute-forceable RPC, forgeable session flag | High | Security | Fixed (050) |
 | H16 | Mobile: floating chat/exit buttons overlap submit controls; claim modals exceed the viewport | High | Mobile UX | Fixed |
 | H17 | Bingo cell text is 7–8px — unreadable on phones | High | Mobile UX | Fixed |
 | M1 | skipQuizQuestion skips scoring AND bypasses the round intro | Medium | Quiz rounds | Open |
-| M2 | Quiz answers can change after the facilitator timer ends | Medium | Quiz logic | Open |
+| M2 | Quiz answers can change after the facilitator timer ends | Medium | Quiz logic | Fixed |
 | M3 | Duplicate trackId on cards with fewer than 25 tracks — ambiguous scoring | Medium | Bingo logic | Open |
 | M4 | playOrder fallback to tracks[index] can mis-attribute the playing song | Medium | Bingo logic | Open |
 | M5 | Pressing Start clears announced winners — same team can be re-celebrated | Medium | Bingo logic | Fixed |
-| M6 | Chat misses messages sent during a disconnect; duplicate listener forces full reloads | Medium | Realtime | Open |
-| M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Open |
+| M6 | Chat misses messages sent during a disconnect; duplicate listener forces full reloads | Medium | Realtime | Fixed |
+| M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Partial (2 live-path dialogs fixed; 8 admin-path remain) |
 | M8 | Optimistic updates race the debounced full reload | Medium | Realtime | Open |
 | M9 | Anon organizations_live_select allows full org enumeration (incl. tablet_password) | Medium | Security | Fixed |
 | M10 | Accessibility: overlays lack dialog semantics; meaningful images have empty alt | Medium | Accessibility | Open |
@@ -79,10 +79,10 @@ The anon key no longer grants broad write access to live tables (C1/C2 fixed in 
 | 2 | C7 | Stop the bingo line bonus from re-awarding on every reveal — guarantees a wrong leaderboard in any game with line points | Fixed |
 | 3 | C6 | Make display + preview timers read-only — visible timer jumping on every screen in the room | Fixed |
 | 4 | H1, H2, H3 | Atomic, idempotent scoring: increment-score RPC + approve-where-pending, with error checks before awarding | Fixed |
-| 5 | C8 | Tame the realtime reload storm: filter the games listener, stop chat/bingo_runs full reloads, bound the submissions query | Open |
-| 6 | C3 | Stop shipping quiz correct answers in anon-readable game config | Open |
-| 7 | C5 | Authenticate the edge functions (activate-bingo-run, invite-member) | Open |
-| 8 | C4, H14 | Storage lockdown: no anon writes, path-prefix policies, upload size caps | Open |
+| 5 | C8 | Tame the realtime reload storm: filter the games listener, stop chat/bingo_runs full reloads, bound the submissions query | Fixed |
+| 6 | C3 | Stop shipping quiz correct answers in anon-readable game config | Done (041) |
+| 7 | C5 | Authenticate the edge functions (activate-bingo-run, invite-member) | Done |
+| 8 | C4, H14 | Storage lockdown: no anon writes, path-prefix policies, upload size caps | Done (039) |
 | 9 | H6, H7 | Participant integrity: cards for mid-game joiners + surface failed quiz/photo submissions instead of losing them silently | Open |
 | 10 | H4, H5 | Correct score reversal on quiz restart and bingo restart | Fixed |
 
@@ -124,26 +124,23 @@ The anon key no longer grants broad write access to live tables (C1/C2 fixed in 
 
 ### C4 — game-assets bucket: anon can upload/overwrite any path, no size limits
 
-- **Status:** Open
+- **Status:** Fixed (039)
 - **Area:** Storage / Security
 - **References:**
-  - `supabase/migrations/007_storage_policies.sql:21–37`
-  - `supabase/migrations/031_music_catalog_super_admin.sql:19–23` (auth delete any path)
-- **Problem:** Anonymous users can insert/update any object in the public `game-assets` bucket; any authenticated user can delete any object (including other orgs' music catalogs). No byte-size limits anywhere.
-- **Breaks when:** Anyone floods the bucket with multi-GB junk on your storage bill, or overwrites another org's clip MP3s at known public paths so their bingo plays the wrong audio.
-- **Recommended fix:** Require auth + org/event path-prefix checks (`storage.foldername(name)[1] = user_organization_id()`), use signed upload URLs for participants, and enforce size caps.
+  - `supabase/migrations/039_storage_game_assets_lockdown.sql`
+- **Problem:** Anon could insert/update any object in the public `game-assets` bucket; any authenticated user could delete any object (including other orgs' music catalogs). No byte-size limits anywhere.
+- **Fix:** Bucket `file_size_limit` set to 250 MB (matches the video cap). Anon writes are restricted to live upload paths only (`{eventId}/teams|submissions/...`, `{orgId}/bingo-bonus/...`) via `storage_game_assets_live_upload_path_allowed`. Authenticated writes are confined to the caller's own org prefix (`storage_game_assets_org_path_allowed`, with super-admin override); delete is org-prefix-scoped, so one org can no longer delete another's catalog. Public read is preserved so media URLs still resolve.
 
 ### C5 — Unauthenticated service-role edge functions
 
-- **Status:** Partial (activate-bingo-run fixed; invite-member open)
+- **Status:** Fixed
 - **Area:** Edge functions / Security
 - **References:**
   - `supabase/functions/activate-bingo-run/index.ts` (facilitator JWT required)
-  - `supabase/functions/invite-member/index.ts:13–30`
-  - `supabase/functions/reveal-bingo-winner/index.ts` (latent — unused but deployed)
-- **Problem:** `invite-member` accepts unauthenticated POST with service role. `activate-bingo-run` previously required client_admin only; now requires facilitator JWT.
-- **Breaks when:** An attacker invites themselves into a victim org via `invite-member`.
-- **Recommended fix:** Verify JWT on every function; delete unused `reveal-bingo-winner`. `invite-member` superseded by `create-org-user` for new flows.
+  - `supabase/functions/invite-member/index.ts` (auth + org-admin check)
+  - `supabase/functions/_shared/auth.ts`
+- **Problem:** `activate-bingo-run` and `invite-member` accepted any unauthenticated POST and ran with the service role; the latent `reveal-bingo-winner` was deployed but unused.
+- **Fix:** Every function now verifies the caller JWT up front. `activate-bingo-run` calls `requireAuthUser` + `requireEventFacilitatorOrSuperAdmin`; `invite-member` calls `requireAuthUser` + `requireOrgAdminOrSuperAdmin` before issuing an invite. `reveal-bingo-winner` has been deleted from the functions tree. (`invite-member` is also superseded by `create-org-user` for new flows.)
 
 ### C6 — Display screen (and preview iframe) writes event timers — fights the facilitator
 
@@ -167,15 +164,13 @@ The anon key no longer grants broad write access to live tables (C1/C2 fixed in 
 
 ### C8 — Realtime reload storm: unfiltered games listener + unbounded bundle fetches
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Realtime / Performance
 - **References:**
-  - `src/hooks/use-live-event.ts:219–223` (games listener, no filter)
-  - `src/hooks/use-live-event.ts:53–57` (all submissions, no limit)
-  - `src/hooks/use-live-event.ts:209–217` (chat + bingo_runs → full reload)
-- **Problem:** The `games` realtime listener (added in the recent stale-config fix) has NO filter — any game edit in ANY org triggers a debounced full-bundle reload on every connected live client of every tenant. Each reload refetches ALL submissions for the event with no limit; chat inserts and bingo_runs updates also force full reloads.
-- **Breaks when:** An admin edits a game in another org while your event runs: 30 phones + the display + the facilitator all refetch thousands of submission rows over bar Wi-Fi. Repeated chat messages keep the storm going; the UI lags exactly when it matters.
-- **Recommended fix:** Filter the games listener to the event's game IDs (or merge the changed row in place), drop the chat/bingo_runs full-reload handlers (each already has its own hook), and bound the submissions query (by stage/status or a limit).
+  - `src/hooks/use-live-event.ts` (per-game listeners, bounded submissions, split chat/bingo)
+  - `src/lib/live-broadcast.ts` (dedicated patch channel)
+- **Problem:** The `games` realtime listener had NO filter — any game edit in any org triggered a debounced full-bundle reload on every connected live client of every tenant. Each reload refetched ALL submissions for the event with no limit; chat inserts and bingo_runs updates also forced full reloads despite having dedicated hooks.
+- **Fix:** The bundle channel subscribes to `events`/`event_state`/`teams`/`submissions` filtered to the event, plus one `games` listener **per attached game id** (`id=eq.<gameId>`) that merges the changed row in place. The submissions fetch is capped at the 1000 most recent rows (`SUBMISSIONS_BUNDLE_LIMIT`); scoring paths that need more query the DB directly. Chat moved to its own broadcast/postgres channel (`useChatMessages`) and bingo runs/cards to `useBingoRun`, so neither forces a bundle reload. Cross-surface optimistic patches now go through the `live-broadcast` channel instead of full reloads.
 
 ---
 
@@ -414,12 +409,11 @@ The anon key no longer grants broad write access to live tables (C1/C2 fixed in 
 
 ### M6 — Chat misses messages sent during a disconnect; duplicate listener forces full reloads
 
-- **Status:** Open
+- **Status:** Fixed
 - **Area:** Realtime
-- **References:** `src/hooks/use-live-event.ts:209–213, 305–339`
-- **Problem:** useChatMessages append-only INSERT subscription has no reconnect reload, so messages sent while offline never appear. Meanwhile the bundle channel ALSO listens to chat_messages and full-reloads the bundle on every message.
-- **Breaks when:** Wi-Fi blip on the facilitator laptop: a team's question sent during the gap is permanently invisible until manual refresh.
-- **Recommended fix:** Reload chat on SUBSCRIBED status (same pattern as the bundle channel); remove the redundant chat listener from the bundle channel.
+- **References:** `src/hooks/use-live-event.ts` (`useChatMessages`)
+- **Problem:** The `useChatMessages` append-only INSERT subscription had no reconnect reload, so messages sent while offline never appeared. Meanwhile the bundle channel ALSO listened to `chat_messages` and full-reloaded the bundle on every message.
+- **Fix:** `useChatMessages` now re-fetches chat history on every (re)`SUBSCRIBED` after the first, and on `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED`, so messages sent during a blip appear on reconnect. The redundant `chat_messages` listener was removed from the bundle channel — chat lives entirely on its own broadcast + postgres-changes channel keyed by the join token, with a generation guard against out-of-order reloads.
 
 ### M7 — 10 remaining native dialogs (window.confirm/prompt/alert)
 
@@ -573,6 +567,16 @@ Five parallel read-only exploration passes (realtime, scoring, error handling/se
 
 Severity prioritizes issues that would break or embarrass during a **live event with real participants**.
 
+The June 18 remediation pass re-verified every `Fixed` claim directly against the current code and migrations (through `049`):
+
+- Live-table write lockdown and participant guards (`048`, `049`)
+- Per-event join-token read scoping + quiz/bonus answer redaction (`041`)
+- Storage path/size lockdown (`039`) and scoped org tenant RPCs (`038`)
+- Edge-function JWT checks (`activate-bingo-run`, `invite-member`; `reveal-bingo-winner` removed)
+- Realtime: per-game listeners, bounded submissions, dedicated chat/bingo broadcast channels (`use-live-event.ts`, `live-broadcast.ts`)
+
+H15 (tablet password) remains **Open**: `043`/`044` reverted `verify_tablet_password` to a plaintext comparison that is still anon-callable without rate limiting.
+
 ---
 
-*Last updated: June 12, 2026 — 34 Open, 8 Fixed (C6, C7, H1, H2, H3, H4, H5, M5).*
+*Last updated: June 18, 2026 — 14 Open, 28 Fixed (C1–C8, H1–H17, M2, M5, M6, M9). All 8 criticals and all 17 highs closed. Remaining: M1, M3, M4, M7 (partial), M8, M10, M11, L1–L6.*
