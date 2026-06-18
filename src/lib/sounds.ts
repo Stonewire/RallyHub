@@ -52,6 +52,19 @@ const ALL_SOUNDS = Object.keys(SOUND_VOLUME)
 const DEFAULT_VOLUME = 0.5
 const MAX_POOL_PER_SOUND = 8
 
+/**
+ * Flip to true to surface the verbose [msg-sound]/[win-audio]/AudioContext
+ * diagnostics in the console (used when chasing iOS Safari autoplay issues).
+ * Off in production so the console stays clean.
+ */
+const DEBUG_AUDIO = false
+function audioDebug(...args: unknown[]): void {
+  if (DEBUG_AUDIO) console.log(...args)
+}
+function audioDebugError(...args: unknown[]): void {
+  if (DEBUG_AUDIO) console.error(...args)
+}
+
 function soundUrl(name: string): string {
   return `${SOUND_DIR}/${name}.mp3`
 }
@@ -78,15 +91,22 @@ const pools = new Map<string, HTMLAudioElement[]>()
 // Auto-stop timers for capped (trimmed) sounds, keyed by element.
 const capTimers = new WeakMap<HTMLAudioElement, number>()
 
+let soundsPreloaded = false
+
+/**
+ * Build the preloaded element pools. Deferred until a live surface first needs
+ * audio (first unlock gesture / ensureAudioReady) so public pages — marketing,
+ * login, legal — never fetch any sound files. Idempotent.
+ */
 function preloadAll() {
+  if (soundsPreloaded) return
   if (typeof Audio === 'undefined') return
+  soundsPreloaded = true
   for (const name of ALL_SOUNDS) {
     const el = createEl(name)
     if (el) pools.set(name, [el])
   }
 }
-
-preloadAll()
 
 // ---- Shared Web Audio context + autoplay unlock ----------------------------
 
@@ -135,7 +155,7 @@ function getSharedAudioContext(): AudioContext | null {
   if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
     sharedAudioContext = new Ctor()
     sharedAudioContext.addEventListener('statechange', () => {
-      console.log('[msg-sound] AudioContext statechange', {
+      audioDebug('[msg-sound] AudioContext statechange', {
         state: sharedAudioContext?.state,
         ...msgSoundDebugSnapshot(),
       })
@@ -240,6 +260,7 @@ async function primePoolSoundNames(names: readonly string[]): Promise<void> {
  */
 export function unlockOperationalSounds() {
   if (operationalSoundsUnlocked || typeof window === 'undefined') return
+  preloadAll()
   operationalSoundsUnlocked = true
   void primePoolSoundNames(OPERATIONAL_SOUND_NAMES)
 }
@@ -250,6 +271,7 @@ export function unlockOperationalSounds() {
  * Display panel and team devices call this; facilitator should not.
  */
 export function unlockSounds() {
+  preloadAll()
   unlockOperationalSounds()
   if (celebrationSoundsUnlocked || typeof window === 'undefined') return
   celebrationSoundsUnlocked = true
@@ -275,13 +297,14 @@ export function unlockAudioFromUserGesture(scope: 'operational' | 'full' = 'full
  */
 export function installAudioUnlock(scope: 'operational' | 'full' = 'full'): void {
   if (typeof window === 'undefined') return
+  preloadAll()
   audioUnlockListenersInstalled = true
   audioUnlockScope = scope
-  console.log('[msg-sound] installAudioUnlock registered', { scope })
+  audioDebug('[msg-sound] installAudioUnlock registered', { scope })
   const onFirstGesture = () => {
-    console.log('[msg-sound] installAudioUnlock — first user gesture', { scope })
+    audioDebug('[msg-sound] installAudioUnlock — first user gesture', { scope })
     unlockAudioFromUserGesture(scope)
-    console.log('[msg-sound] installAudioUnlock — unlock complete', msgSoundDebugSnapshot())
+    audioDebug('[msg-sound] installAudioUnlock — unlock complete', msgSoundDebugSnapshot())
   }
   window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true })
   window.addEventListener('touchend', onFirstGesture, { once: true, passive: true })
@@ -297,8 +320,9 @@ export async function ensureAudioReady(
   celebration = false,
   debug?: 'msg-sound',
 ): Promise<void> {
+  preloadAll()
   if (debug === 'msg-sound') {
-    console.log('[msg-sound] ensureAudioReady start', msgSoundDebugSnapshot())
+    audioDebug('[msg-sound] ensureAudioReady start', msgSoundDebugSnapshot())
   }
   if (celebration) unlockSounds()
   else unlockOperationalSounds()
@@ -315,7 +339,7 @@ export async function ensureAudioReady(
     }
   }
   if (debug === 'msg-sound') {
-    console.log('[msg-sound] resume() in ensureAudioReady', {
+    audioDebug('[msg-sound] resume() in ensureAudioReady', {
       stateBefore: stateBeforeResume,
       resumeCalled,
       stateAfter: getSharedAudioContext()?.state ?? 'none',
@@ -329,7 +353,7 @@ export async function ensureAudioReady(
   await primePoolSoundNames(names)
 
   if (debug === 'msg-sound') {
-    console.log('[msg-sound] ensureAudioReady complete', msgSoundDebugSnapshot())
+    audioDebug('[msg-sound] ensureAudioReady complete', msgSoundDebugSnapshot())
   }
 }
 
@@ -446,17 +470,17 @@ export function playNewSubmissionSound() {
 
 export function playNewMessageSound() {
   void (async () => {
-    console.log('[msg-sound] playNewMessageSound start', msgSoundDebugSnapshot())
+    audioDebug('[msg-sound] playNewMessageSound start', msgSoundDebugSnapshot())
 
     const ctxBefore = getSharedAudioContext()
     const stateBefore = ctxBefore?.state ?? 'none'
-    console.log('[msg-sound] AudioContext BEFORE ensureAudioReady', { state: stateBefore })
+    audioDebug('[msg-sound] AudioContext BEFORE ensureAudioReady', { state: stateBefore })
 
     await ensureAudioReady(false, 'msg-sound')
 
     const ctxAfterEnsure = getSharedAudioContext()
     const stateAfterEnsure = ctxAfterEnsure?.state ?? 'none'
-    console.log('[msg-sound] AudioContext AFTER ensureAudioReady', {
+    audioDebug('[msg-sound] AudioContext AFTER ensureAudioReady', {
       stateBefore,
       stateAfter: stateAfterEnsure,
       stillSuspended: stateAfterEnsure === 'suspended',
@@ -465,14 +489,14 @@ export function playNewMessageSound() {
 
     const el = prepareSoundElement('new-message')
     if (!el) {
-      console.error('[msg-sound] play() not invoked — failed to acquire new-message element', {
+      audioDebugError('[msg-sound] play() not invoked — failed to acquire new-message element', {
         ...msgSoundDebugSnapshot(),
       })
       return
     }
 
     const primed = primedElements.has(el)
-    console.log('[msg-sound] invoking HTMLAudioElement.play()', {
+    audioDebug('[msg-sound] invoking HTMLAudioElement.play()', {
       primed,
       paused: el.paused,
       muted: el.muted,
@@ -484,13 +508,13 @@ export function playNewMessageSound() {
     try {
       await el.play()
       scheduleTrimCap(el, 'new-message')
-      console.log('[msg-sound] play() succeeded', {
+      audioDebug('[msg-sound] play() succeeded', {
         paused: el.paused,
         currentTime: el.currentTime,
       })
     } catch (err) {
       const stillSuspended = getSharedAudioContext()?.state === 'suspended'
-      console.error('[msg-sound] play() BLOCKED or threw', {
+      audioDebugError('[msg-sound] play() BLOCKED or threw', {
         error: err instanceof Error ? err.message : String(err),
         errorName: err instanceof Error ? err.name : undefined,
         audioContextStillSuspended: stillSuspended,
@@ -558,6 +582,7 @@ const WIN_CROSSFADE_SEC = 5
 const CELEBRATION_FIREWORKS_TAIL_SEC = 20
 
 function logWinAudio(message: string, detail?: Record<string, unknown>) {
+  if (!DEBUG_AUDIO) return
   if (detail) {
     console.log('[win-audio]', message, detail)
   } else {
