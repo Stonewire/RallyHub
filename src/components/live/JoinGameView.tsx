@@ -293,11 +293,15 @@ export function JoinGameView({
   const currentQuizQ = quizQs[state.current_question_index]
 
   useEffect(() => {
+    // Reset only when the question (or game) changes — NOT on quiz_state
+    // transitions. Including quiz_state here wiped the player's selection the
+    // instant the facilitator revealed, causing a wrong-answer flash. Locking on
+    // reveal/results is handled by the dedicated effect below.
     quizChangeDeadlineRef.current = null
     setQuizAnswer(null)
     setQuizLocked(false)
     setQuizChangeLeft(null)
-  }, [state.current_question_index, stage?.gameId, state.quiz_state])
+  }, [state.current_question_index, stage?.gameId])
 
   useEffect(() => {
     if (stage?.type !== 'quiz' || !stage.gameId || !currentQuizQ) return
@@ -481,18 +485,23 @@ export function JoinGameView({
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
     if (state.quiz_state !== 'revealed' || !currentQuizQ) return
+    // The correct answer is redacted for participants until reveal delivers it
+    // (a follow-up games update). Wait for it — otherwise the sound fires with an
+    // undefined correctAnswerId and always plays the "wrong" cue. The effect
+    // re-runs once the answer arrives.
+    if (!currentQuizQ.correctAnswerId) return
     const key = `${stage?.gameId ?? 'quiz'}:${state.current_question_index}`
     if (lastQuizRevealKeyRef.current === key) return
     lastQuizRevealKeyRef.current = key
-    const isCorrect =
+    const myAnswerId =
       mySubs.find(
         (s) =>
           s.media_type === quizSubmissionMediaType(currentQuizQ.id) &&
           s.game_id === stage?.gameId,
-      )?.media_url === currentQuizQ.correctAnswerId
-    if (isCorrect) playQuizCorrectSound()
+      )?.media_url ?? quizAnswer
+    if (myAnswerId === currentQuizQ.correctAnswerId) playQuizCorrectSound()
     else playQuizWrongSound()
-  }, [state.quiz_state, currentQuizQ, mySubs, stage?.gameId, state.current_question_index])
+  }, [state.quiz_state, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
   function beginOpenSubmit() {
     flushSync(() => {
@@ -1093,19 +1102,31 @@ export function JoinGameView({
         </div>
       )
     } else if (state.quiz_state === 'revealed' && q) {
-      const ok = existing?.media_url === q.correctAnswerId
+      // The correct answer is redacted until reveal delivers it. Until it lands,
+      // show a neutral "locked in" state — never a red/Incorrect verdict — so the
+      // player's correct pick can't briefly flash wrong.
+      const answerKnown = Boolean(q.correctAnswerId)
+      const myAnswerId = existing?.media_url ?? quizAnswer
+      const ok = answerKnown && myAnswerId === q.correctAnswerId
       body = (
         <div className="mx-auto max-w-lg px-4">
-          <p className={`mb-4 text-center text-lg font-bold ${ok ? 'text-green-400' : 'text-red-400'}`}>
-            {ok ? 'Correct!' : 'Incorrect'}
-          </p>
+          {answerKnown ? (
+            <p className={`mb-4 text-center text-lg font-bold ${ok ? 'text-green-400' : 'text-red-400'}`}>
+              {ok ? 'Correct!' : 'Incorrect'}
+            </p>
+          ) : (
+            <p className="mb-4 text-center text-lg font-bold text-white/80">
+              Answer locked in — revealing…
+            </p>
+          )}
           <div className="space-y-2">
             {q.answers.map((a) => {
-              const isCorrect = a.id === q.correctAnswerId
-              const isMine = a.id === existing?.media_url
+              const isCorrect = answerKnown && a.id === q.correctAnswerId
+              const isMine = a.id === myAnswerId
               let cls = 'bg-white/15'
               if (isCorrect) cls = 'bg-green-600/80 ring-2 ring-green-300'
-              else if (isMine && !isCorrect) cls = 'bg-red-600/70'
+              else if (answerKnown && isMine && !isCorrect) cls = 'bg-red-600/70'
+              else if (isMine) cls = 'bg-white/25 ring-2 ring-white/40'
               return (
                 <div key={a.id} className={`xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium ${cls}`}>
                   {a.text}

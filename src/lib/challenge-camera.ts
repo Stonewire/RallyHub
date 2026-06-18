@@ -300,8 +300,49 @@ async function rotatePhotoBlob(blob: Blob, quarterTurn: boolean): Promise<Blob> 
   }
 }
 
-/** Downscale a photo blob so its longest side is at most maxDim px. No-ops if already small enough. */
+/**
+ * Downscale a photo blob so its longest side is at most maxDim px. No-ops if
+ * already small enough. Prefers createImageBitmap with native resize (decodes
+ * and resizes in one fast step, off the main thread where supported) and falls
+ * back to the canvas/<img> path. Always resolves to a usable blob — on any
+ * failure it returns the original rather than throwing, so a submit is never
+ * blocked by downscaling.
+ */
 export async function downscalePhoto(blob: Blob, maxDim = 1600, quality = 0.75): Promise<Blob> {
+  if (typeof createImageBitmap === 'function') {
+    let probe: ImageBitmap | null = null
+    let resized: ImageBitmap | null = null
+    try {
+      probe = await createImageBitmap(blob)
+      const { width, height } = probe
+      if (width <= maxDim && height <= maxDim) return blob
+      const scale = maxDim / Math.max(width, height)
+      const w = Math.round(width * scale)
+      const h = Math.round(height * scale)
+      resized = await createImageBitmap(blob, {
+        resizeWidth: w,
+        resizeHeight: h,
+        resizeQuality: 'high',
+      })
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return blob
+      ctx.drawImage(resized, 0, 0)
+      const out = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', quality),
+      )
+      return out ?? blob
+    } catch {
+      return blob
+    } finally {
+      probe?.close()
+      resized?.close()
+    }
+  }
+
+  // Fallback: <img> + canvas for environments without createImageBitmap.
   const url = URL.createObjectURL(blob)
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -320,13 +361,12 @@ export async function downscalePhoto(blob: Blob, maxDim = 1600, quality = 0.75):
     const ctx = canvas.getContext('2d')
     if (!ctx) return blob
     ctx.drawImage(img, 0, 0, w, h)
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
-        'image/jpeg',
-        quality,
-      )
-    })
+    const out = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', quality),
+    )
+    return out ?? blob
+  } catch {
+    return blob
   } finally {
     URL.revokeObjectURL(url)
   }

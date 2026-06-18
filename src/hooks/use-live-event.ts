@@ -279,11 +279,11 @@ export function useLiveEvent(eventId: string | undefined) {
         },
       )
 
-    channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'event_games', filter: `event_id=eq.${eventId}` },
-      () => scheduleReloadRef.current(),
-    )
+    // NOTE: do not add a postgres_changes listener for `event_games` here — that
+    // table is not in the supabase_realtime publication, and subscribing to an
+    // unpublished table makes the whole channel fail with CHANNEL_ERROR (no live
+    // updates at all). Mid-event game changes already propagate via the `events`
+    // listener above (saving an event updates the events row → scheduleReload).
 
     for (const gameId of eventGameIdsKey ? eventGameIdsKey.split('|') : []) {
       channel.on(

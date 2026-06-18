@@ -13,7 +13,6 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
-import { playShutterSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import type { GameConfig } from '@/types/game-config'
 
@@ -118,8 +117,6 @@ export function ChallengeMediaCaptureFlow({
       const ok = await validateVideoDuration(file)
       if (!ok) return
     }
-
-    if (mediaType === 'photo') playShutterSound()
 
     revokeNativePreviewUrl()
     const url = URL.createObjectURL(file)

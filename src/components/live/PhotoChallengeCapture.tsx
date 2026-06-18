@@ -14,7 +14,6 @@ import {
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
-import { playShutterSound } from '@/lib/sounds'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
@@ -94,7 +93,6 @@ export function PhotoChallengeCapture({
     if (!streamRef.current || capturing) return
     setCapturing(true)
     try {
-      playShutterSound()
       const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
       const blob = await downscalePhoto(raw)
       revokeSnapshotUrl()
