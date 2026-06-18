@@ -36,7 +36,7 @@ export function QuizResultsPanel({
               {team.photo_url ? (
                 <img
                   src={team.photo_url}
-                  alt=""
+                  alt={team.name ?? ''}
                   className={`rounded-full object-cover ${large ? 'size-12' : 'size-8'}`}
                 />
               ) : (

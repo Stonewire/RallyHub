@@ -1,5 +1,6 @@
 import { Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -119,6 +120,7 @@ export function RallyHubClientDetailPage() {
   const [adminResetMessage, setAdminResetMessage] = useState<string | null>(null)
   const [adminResetError, setAdminResetError] = useState<string | null>(null)
   const [adminResetSending, setAdminResetSending] = useState(false)
+  const [adminResetConfirmEmail, setAdminResetConfirmEmail] = useState<string | null>(null)
 
   useEffect(() => {
     if (!data?.org) return
@@ -180,17 +182,19 @@ export function RallyHubClientDetailPage() {
       return
     }
 
-    const confirmed = window.confirm(
-      `Send a password reset email to ${adminLoginEmail}? The client will receive a secure link to set a new password.`,
-    )
-    if (!confirmed) return
+    setAdminResetConfirmEmail(adminLoginEmail)
+  }
 
+  async function confirmAdminPasswordReset() {
+    if (!adminResetConfirmEmail) return
+    const email = adminResetConfirmEmail
+    setAdminResetConfirmEmail(null)
     setAdminResetSending(true)
     setAdminResetError(null)
     setAdminResetMessage(null)
     try {
-      await sendPasswordResetEmail(adminLoginEmail, loginPageRedirectUrl(data.org))
-      setAdminResetMessage(`Password reset email sent to ${adminLoginEmail}`)
+      await sendPasswordResetEmail(email, loginPageRedirectUrl(data?.org))
+      setAdminResetMessage(`Password reset email sent to ${email}`)
     } catch (err) {
       setAdminResetError(
         err instanceof Error ? err.message : 'Failed to send password reset email',
@@ -732,6 +736,27 @@ export function RallyHubClientDetailPage() {
           saving={saving}
           onSave={() => void handleSave()}
         />
+      ) : null}
+
+      {adminResetConfirmEmail ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="admin-reset-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2 id="admin-reset-title" className="text-foreground mb-2 font-semibold">Send password reset?</h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              A secure reset link will be sent to <strong className="text-foreground">{adminResetConfirmEmail}</strong>.
+            </p>
+            <div className="flex justify-end gap-2">
+              <NeoButton variant="surface" size="sm" onClick={() => setAdminResetConfirmEmail(null)}>Cancel</NeoButton>
+              <NeoButton size="sm" onClick={() => void confirmAdminPasswordReset()}>Send</NeoButton>
+            </div>
+          </div>
+        </div>,
+        document.body,
       ) : null}
     </NeoPageShell>
   )

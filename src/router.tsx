@@ -105,8 +105,8 @@ export const router = createBrowserRouter([
     element: <JoinEventPage />,
     errorElement: <RouteErrorBoundary />,
   },
-  { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage /> },
-  { path: '/tablet', element: <TabletPage /> },
+  { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
+  { path: '/tablet', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
 
   { path: '/', element: <RootPage /> },
   { path: '/contact', element: <ContactPage /> },

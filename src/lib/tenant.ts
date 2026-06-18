@@ -205,16 +205,6 @@ async function fetchTenantBySubdomain(subdomain: string): Promise<TenantPublicOr
   return fetchOrganizationTenantBySubdomain(subdomain)
 }
 
-export async function fetchOrgSubdomain(organizationId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('subdomain')
-    .eq('id', organizationId)
-    .maybeSingle()
-  if (error) throw error
-  return data?.subdomain ?? null
-}
-
 export function useTenantOrganization() {
   const ctx = getTenantContext()
   const host =

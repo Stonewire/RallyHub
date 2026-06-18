@@ -10,9 +10,9 @@
 |----------|-------|------|-------|----------|
 | Critical | 8 | 0 | 8 | 0 |
 | High | 17 | 0 | 17 | 0 |
-| Medium | 11 | 2 | 9 | 0 |
-| Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **8** | **34** | **0** |
+| Medium | 11 | 1 | 10 | 0 |
+| Low | 6 | 1 | 5 | 0 |
+| **Total** | **42** | **2** | **40** | **0** |
 
 ---
 
@@ -57,17 +57,17 @@ All 8 criticals are now closed. The anon key no longer grants broad write access
 | M4 | playOrder fallback to tracks[index] can mis-attribute the playing song | Medium | Bingo logic | Fixed |
 | M5 | Pressing Start clears announced winners — same team can be re-celebrated | Medium | Bingo logic | Fixed |
 | M6 | Chat misses messages sent during a disconnect; duplicate listener forces full reloads | Medium | Realtime | Fixed |
-| M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Partial (2 live-path dialogs fixed; 8 admin-path remain) |
+| M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Fixed |
 | M8 | Optimistic updates race the debounced full reload | Medium | Realtime | Fixed |
 | M9 | Anon organizations_live_select allows full org enumeration (incl. tablet_password) | Medium | Security | Fixed |
-| M10 | Accessibility: overlays lack dialog semantics; meaningful images have empty alt | Medium | Accessibility | Open |
+| M10 | Accessibility: overlays lack dialog semantics; meaningful images have empty alt | Medium | Accessibility | Fixed |
 | M11 | Uncompressed camera photos + silent admin upload failures + display layout shift | Medium | Performance / Uploads | Fixed |
-| L1 | Quiz can stall on active with zero named teams and a paused timer | Low | Quiz logic | Open |
-| L2 | Leaderboard renders blank with zero named teams | Low | Empty states | Open |
-| L3 | Storage path hygiene: raw file.name segments and extensionless live keys | Low | Uploads | Open |
-| L4 | Dead fetchOrgSubdomain queries the RLS-blocked organizations base table | Low | RLS | Open |
+| L1 | Quiz can stall on active with zero named teams and a paused timer | Low | Quiz logic | Fixed |
+| L2 | Leaderboard renders blank with zero named teams | Low | Empty states | Fixed |
+| L3 | Storage path hygiene: raw file.name segments and extensionless live keys | Low | Uploads | Fixed |
+| L4 | Dead fetchOrgSubdomain queries the RLS-blocked organizations base table | Low | RLS | Fixed |
 | L5 | Bingo tap optimistic state flickers before realtime confirms | Low | Live UX | Open |
-| L6 | Misc: /tablet has no error boundary; stale localStorage team id; super-admin member lists silently empty | Low | Resilience | Open |
+| L6 | Misc: /tablet has no error boundary; stale localStorage team id; super-admin member lists silently empty | Low | Resilience | Fixed |
 
 ---
 

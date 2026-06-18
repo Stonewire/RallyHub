@@ -49,7 +49,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
                 {team.photo_url ? (
                   <img
                     src={team.photo_url}
-                    alt=""
+                    alt={team.name ?? ''}
                     className="size-full rounded-full object-cover"
                   />
                 ) : (
@@ -91,7 +91,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
                 {team.photo_url ? (
                   <img
                     src={team.photo_url}
-                    alt=""
+                    alt={team.name ?? ''}
                     className="size-12 rounded-full object-cover ring-2 ring-white/20"
                   />
                 ) : (

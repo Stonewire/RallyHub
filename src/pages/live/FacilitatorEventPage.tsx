@@ -1412,6 +1412,11 @@ export function FacilitatorEventPage() {
                   </li>
                 ))}
               </ul>
+              {state.quiz_state === 'active' && namedTeams.length === 0 ? (
+                <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-3 text-center text-sm">
+                  No teams have joined yet — participants won't receive quiz answers until they join.
+                </p>
+              ) : null}
               {state.quiz_state === 'active' || state.quiz_state === 'revealed' ? (
                 <Card className="border-border/80 bg-muted/20 p-6 text-center shadow-inner">
                   <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">

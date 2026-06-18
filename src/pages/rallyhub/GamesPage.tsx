@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
@@ -6,28 +7,37 @@ import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { CoverImage } from '@/components/ui/cover-image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useNotification } from '@/contexts/notification-context'
 import { platformGameInstallPayload } from '@/lib/install-platform-game'
 import { usePlatformGames, useRallyHubClients } from '@/hooks/use-rallyhub'
 import { supabase } from '@/lib/supabase'
+import { useState } from 'react'
 
 export function RallyHubGamesPage() {
   const { data: games, isLoading, isError, error, refetch } = usePlatformGames()
   const { data: clients } = useRallyHubClients()
+  const { notify } = useNotification()
+  const [installDialog, setInstallDialog] = useState<{ gameId: string; orgId: string } | null>(null)
+  const [installing, setInstalling] = useState(false)
 
-  async function forceInstall(gameId: string) {
-    const target = window.prompt(
-      'Client organization ID (leave empty to install on ALL clients)',
-    )
-    const orgs = target?.trim()
-      ? clients?.filter((c) => c.id === target.trim()) ?? []
+  async function runForceInstall(gameId: string, orgId: string) {
+    const orgs = orgId.trim()
+      ? clients?.filter((c) => c.id === orgId.trim()) ?? []
       : clients ?? []
-
-    for (const org of orgs) {
-      const game = games?.find((g) => g.id === gameId)
-      if (!game) continue
-      await supabase.from('games').insert(platformGameInstallPayload(game, org.id))
+    setInstalling(true)
+    try {
+      for (const org of orgs) {
+        const game = games?.find((g) => g.id === gameId)
+        if (!game) continue
+        await supabase.from('games').insert(platformGameInstallPayload(game, org.id))
+      }
+      notify(`Installed on ${orgs.length} client(s).`)
+    } finally {
+      setInstalling(false)
+      setInstallDialog(null)
     }
-    alert(`Installed on ${orgs.length} client(s).`)
   }
 
   async function toggleDefault(gameId: string, current: boolean) {
@@ -74,7 +84,7 @@ export function RallyHubGamesPage() {
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => void forceInstall(game.id)}
+                  onClick={() => setInstallDialog({ gameId: game.id, orgId: '' })}
                 >
                   Force Install
                 </Button>
@@ -83,6 +93,40 @@ export function RallyHubGamesPage() {
           ))}
         </div>
       )}
+
+      {installDialog ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="force-install-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2 id="force-install-title" className="text-foreground mb-4 font-semibold">Force Install</h2>
+            <div className="mb-5 space-y-2">
+              <Label htmlFor="force-install-org">Client org ID (leave empty for ALL clients)</Label>
+              <Input
+                id="force-install-org"
+                value={installDialog.orgId}
+                onChange={(e) => setInstallDialog((d) => d ? { ...d, orgId: e.target.value } : d)}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="bg-background"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setInstallDialog(null)}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={installing}
+                onClick={() => void runForceInstall(installDialog.gameId, installDialog.orgId)}
+              >
+                {installing ? 'Installing…' : 'Install'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
     </AdminPageShell>
   )
 }

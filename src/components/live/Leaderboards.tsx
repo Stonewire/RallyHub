@@ -26,10 +26,18 @@ export function Leaderboard({
   textClass = 'text-white',
 }: LeaderboardProps) {
   const ranked = [...teams]
-    .filter((t) => t.name)
+    .filter((t) => t.name?.trim())
     .sort((a, b) => b.score - a.score)
 
   const orbit = useMemo(() => orbitGrid(ranked.length), [ranked.length])
+
+  if (ranked.length === 0) {
+    return (
+      <p className={`py-12 text-center text-sm opacity-60 ${textClass}`}>
+        No teams have joined yet.
+      </p>
+    )
+  }
 
   if (layout === 'orbit_view') {
     const maxScore = Math.max(1, ...ranked.map((t) => t.score))

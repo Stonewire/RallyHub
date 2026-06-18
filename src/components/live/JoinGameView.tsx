@@ -554,7 +554,7 @@ export function JoinGameView({
     try {
       const url = await uploadAsset(
         'game-assets',
-        `${event.id}/submissions/${teamId}/${Date.now()}`,
+        `${event.id}/submissions/${teamId}/${Date.now()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
         file,
         { mediaKind: game.type === 'video' ? 'video' : 'photo' },
       )

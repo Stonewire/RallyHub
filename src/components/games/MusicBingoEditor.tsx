@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { createPortal } from 'react-dom'
 
 import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
 import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
@@ -40,6 +41,7 @@ export function MusicBingoEditor({
   const bonuses = config.bonus_challenges ?? []
   const [clipBusy, setClipBusy] = useState(false)
   const [clipError, setClipError] = useState<string | null>(null)
+  const [clipLengthIntent, setClipLengthIntent] = useState<string | null>(null)
   const existingTrackIds = useMemo(() => new Set(tracks.map((t) => t.id)), [tracks])
   const clipLen = bingoClipLength(config)
   const missingClips = tracks.filter(
@@ -48,18 +50,21 @@ export function MusicBingoEditor({
       (!t.clipUrl?.trim() || t.clipDurationSeconds !== clipLen),
   )
 
+  function applyClipLengthChange(value: string) {
+    const next = value === '30' ? 30 : value === '90' ? 90 : null
+    setConfig((c) => ({ ...clearAllTrackClips(c), bingo_clip_length: next }))
+    setClipLengthIntent(null)
+  }
+
   function onClipLengthChange(value: string) {
-    const next =
-      value === '30' ? 30 : value === '90' ? 90 : null
+    const next = value === '30' ? 30 : value === '90' ? 90 : null
     if (next === clipLen) return
     const hadClips = tracks.some((t) => t.clipUrl)
-    if (hadClips && !window.confirm('Change clip length? Existing generated clips will be cleared.')) {
+    if (hadClips) {
+      setClipLengthIntent(value)
       return
     }
-    setConfig((c) => ({
-      ...clearAllTrackClips(c),
-      bingo_clip_length: next,
-    }))
+    applyClipLengthChange(value)
   }
 
   async function generateMissingClips() {
@@ -508,6 +513,27 @@ export function MusicBingoEditor({
           </Card>
         ))}
       </div>
+
+      {clipLengthIntent ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clip-length-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2 id="clip-length-title" className="text-foreground mb-2 font-semibold">Change clip length?</h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              Existing generated clips will be cleared. You'll need to re-generate them.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setClipLengthIntent(null)}>Cancel</Button>
+              <Button size="sm" onClick={() => applyClipLengthChange(clipLengthIntent)}>Continue</Button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
     </Card>
   )
 }

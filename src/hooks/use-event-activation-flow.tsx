@@ -12,9 +12,10 @@ type PendingActivation = {
 
 type UseEventActivationFlowOptions = {
   billingPlan: string | null | undefined
+  onValidationError?: (msg: string) => void
 }
 
-export function useEventActivationFlow({ billingPlan }: UseEventActivationFlowOptions) {
+export function useEventActivationFlow({ billingPlan, onValidationError }: UseEventActivationFlowOptions) {
   const [pending, setPending] = useState<PendingActivation | null>(null)
   const [confirming, setConfirming] = useState(false)
   const warning = getEventActivationWarning(billingPlan)
@@ -55,7 +56,7 @@ export function useEventActivationFlow({ billingPlan }: UseEventActivationFlowOp
         nextStatus,
       )
       if (transitionError) {
-        window.alert(transitionError)
+        onValidationError?.(transitionError)
         return
       }
       if (isActivationBillingRequired(currentStatus, nextStatus, invoicedAt)) {

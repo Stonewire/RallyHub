@@ -75,6 +75,10 @@ export function JoinEventPage() {
     if (team?.name?.trim()) {
       setTeamId(saved)
       setJustJoined(false)
+    } else {
+      // Team was deleted or name cleared — purge stale ID so the join screen shows
+      localStorage.removeItem(teamKey(eventId))
+      setTeamId(null)
     }
   }, [eventId, bundle])
 
@@ -277,7 +281,7 @@ export function JoinEventPage() {
               style={{ background: team.color ?? '#888' }}
             />
             {team.photo_url && team.name ? (
-              <img src={team.photo_url} alt="" className="size-12 rounded-full object-cover" />
+              <img src={team.photo_url} alt={team.name} className="size-12 rounded-full object-cover" />
             ) : null}
             <span className="font-medium">
               {team.name?.trim() || 'Available'}

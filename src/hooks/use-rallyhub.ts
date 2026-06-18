@@ -98,6 +98,8 @@ export function useRallyHubClient(clientId: string | undefined) {
         .select('id, full_name, role')
         .eq('organization_id', clientId!)
 
+      if (members.error) throw members.error
+
       return {
         org,
         members: members.data ?? [],

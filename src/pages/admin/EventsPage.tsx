@@ -1,5 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 
 import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
@@ -11,7 +12,9 @@ import {
 import { EventLinksModal } from '@/components/events/EventLinksModal'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton } from '@/components/neo-minimal'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useNotification } from '@/contexts/notification-context'
 import {
   STATUS_ORDER,
   useDeleteEvent,
@@ -37,11 +40,14 @@ export function AdminEventsPage() {
   const eventsQuery = useEvents(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
+    onValidationError: notify,
   })
 
   const [linksModal, setLinksModal] = useState<EventRow | null>(null)
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<EventRow | null>(null)
 
   const applyReorder = useCallback(
     async (eventId: string, newStatus: EventStatus, indexInGroup: number) => {
@@ -89,7 +95,7 @@ export function AdminEventsPage() {
     if (!event) return
     const transitionError = eventStatusTransitionError(event, status)
     if (transitionError) {
-      window.alert(transitionError)
+      notify(transitionError)
       return
     }
     activation.requestStatusChange(
@@ -108,7 +114,7 @@ export function AdminEventsPage() {
       newStatus !== event.status &&
       !canTransitionEventStatus(event, newStatus)
     ) {
-      window.alert(eventStatusTransitionError(event, newStatus) ?? 'Status change not allowed.')
+      notify(eventStatusTransitionError(event, newStatus) ?? 'Status change not allowed.')
       return
     }
     activation.requestStatusChange(
@@ -120,9 +126,14 @@ export function AdminEventsPage() {
     )
   }
 
-  async function handleDelete(event: EventRow) {
-    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return
-    await deleteEvent.mutateAsync(event.id)
+  function handleDelete(event: EventRow) {
+    setDeleteConfirmEvent(event)
+  }
+
+  async function confirmDelete() {
+    if (!deleteConfirmEvent) return
+    await deleteEvent.mutateAsync(deleteConfirmEvent.id)
+    setDeleteConfirmEvent(null)
   }
 
   if (!organizationId) {
@@ -173,6 +184,34 @@ export function AdminEventsPage() {
       )}
 
       <activation.ActivationDialog />
+
+      {deleteConfirmEvent ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-event-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2 id="delete-event-title" className="text-foreground mb-2 font-semibold">Delete event</h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              Delete <strong className="text-foreground">{deleteConfirmEvent.name}</strong>? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmEvent(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteEvent.isPending}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteEvent.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
 
       {linksModal ? (
         <EventLinksModal
