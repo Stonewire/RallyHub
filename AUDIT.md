@@ -9,10 +9,10 @@
 | Severity | Count | Open | Fixed | Deferred |
 |----------|-------|------|-------|----------|
 | Critical | 8 | 0 | 8 | 0 |
-| High | 17 | 1 | 16 | 0 |
-| Medium | 11 | 7 | 4 | 0 |
+| High | 17 | 0 | 17 | 0 |
+| Medium | 11 | 2 | 9 | 0 |
 | Low | 6 | 6 | 0 | 0 |
-| **Total** | **42** | **14** | **28** | **0** |
+| **Total** | **42** | **8** | **34** | **0** |
 
 ---
 
@@ -42,7 +42,7 @@ All 8 criticals are now closed. The anon key no longer grants broad write access
 | H6 | Team that joins mid-bingo never gets a card — marked cells never score | High | Game logic | Fixed |
 | H7 | Participant writes fail silently (quiz answers, photo submits, bingo bonus) | High | Error handling | Fixed |
 | H8 | Bingo scoring/advance/restart swallow DB errors | High | Error handling | Fixed |
-| H9 | event_games and org branding load once and never update live | High | Realtime | Open |
+| H9 | event_games and org branding load once and never update live | High | Realtime | Fixed |
 | H10 | bingo_team_cards not realtime + 60s staleTime — stale cards after restart | High | Realtime | Fixed |
 | H11 | bingoRunOverride can diverge from the DB run across facilitators | High | Realtime / Live flow | Fixed |
 | H12 | Cross-tenant enumeration: events, games, event_games, music_catalog readable by anyone | High | RLS / Security | Fixed |
@@ -51,17 +51,17 @@ All 8 criticals are now closed. The anon key no longer grants broad write access
 | H15 | Tablet password: plaintext storage, brute-forceable RPC, forgeable session flag | High | Security | Fixed (050) |
 | H16 | Mobile: floating chat/exit buttons overlap submit controls; claim modals exceed the viewport | High | Mobile UX | Fixed |
 | H17 | Bingo cell text is 7–8px — unreadable on phones | High | Mobile UX | Fixed |
-| M1 | skipQuizQuestion skips scoring AND bypasses the round intro | Medium | Quiz rounds | Open |
+| M1 | skipQuizQuestion skips scoring AND bypasses the round intro | Medium | Quiz rounds | Fixed |
 | M2 | Quiz answers can change after the facilitator timer ends | Medium | Quiz logic | Fixed |
-| M3 | Duplicate trackId on cards with fewer than 25 tracks — ambiguous scoring | Medium | Bingo logic | Open |
-| M4 | playOrder fallback to tracks[index] can mis-attribute the playing song | Medium | Bingo logic | Open |
+| M3 | Duplicate trackId on cards with fewer than 25 tracks — ambiguous scoring | Medium | Bingo logic | Fixed |
+| M4 | playOrder fallback to tracks[index] can mis-attribute the playing song | Medium | Bingo logic | Fixed |
 | M5 | Pressing Start clears announced winners — same team can be re-celebrated | Medium | Bingo logic | Fixed |
 | M6 | Chat misses messages sent during a disconnect; duplicate listener forces full reloads | Medium | Realtime | Fixed |
 | M7 | 10 remaining native dialogs (window.confirm/prompt/alert) | Medium | UX | Partial (2 live-path dialogs fixed; 8 admin-path remain) |
-| M8 | Optimistic updates race the debounced full reload | Medium | Realtime | Open |
+| M8 | Optimistic updates race the debounced full reload | Medium | Realtime | Fixed |
 | M9 | Anon organizations_live_select allows full org enumeration (incl. tablet_password) | Medium | Security | Fixed |
 | M10 | Accessibility: overlays lack dialog semantics; meaningful images have empty alt | Medium | Accessibility | Open |
-| M11 | Uncompressed camera photos + silent admin upload failures + display layout shift | Medium | Performance / Uploads | Open |
+| M11 | Uncompressed camera photos + silent admin upload failures + display layout shift | Medium | Performance / Uploads | Fixed |
 | L1 | Quiz can stall on active with zero named teams and a paused timer | Low | Quiz logic | Open |
 | L2 | Leaderboard renders blank with zero named teams | Low | Empty states | Open |
 | L3 | Storage path hygiene: raw file.name segments and extensionless live keys | Low | Uploads | Open |

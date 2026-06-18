@@ -436,15 +436,16 @@ export function MusicBingoEditor({
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
-                    void uploadGameFile(organizationId, `bingo/bonus-${b.id}-q`, file).then(
-                      (url) =>
+                    void uploadGameFile(organizationId, `bingo/bonus-${b.id}-q`, file)
+                      .then((url) =>
                         setConfig((c) => ({
                           ...c,
                           bonus_challenges: bonuses.map((x) =>
                             x.id === b.id ? { ...x, questionImageUrl: url } : x,
                           ),
                         })),
-                    )
+                      )
+                      .catch(() => {})
                   }}
                 />
               </div>
@@ -456,15 +457,16 @@ export function MusicBingoEditor({
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (!file) return
-                  void uploadGameFile(organizationId, `bingo/bonus-${b.id}-v`, file).then(
-                    (url) =>
+                  void uploadGameFile(organizationId, `bingo/bonus-${b.id}-v`, file)
+                    .then((url) =>
                       setConfig((c) => ({
                         ...c,
                         bonus_challenges: bonuses.map((x) =>
                           x.id === b.id ? { ...x, mediaUrl: url } : x,
                         ),
                       })),
-                  )
+                    )
+                    .catch(() => {})
                 }}
               />
             ) : null}

@@ -299,3 +299,35 @@ async function rotatePhotoBlob(blob: Blob, quarterTurn: boolean): Promise<Blob> 
     URL.revokeObjectURL(url)
   }
 }
+
+/** Downscale a photo blob so its longest side is at most maxDim px. No-ops if already small enough. */
+export async function downscalePhoto(blob: Blob, maxDim = 1600, quality = 0.75): Promise<Blob> {
+  const url = URL.createObjectURL(blob)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('Could not decode photo'))
+      el.src = url
+    })
+    if (img.naturalWidth <= maxDim && img.naturalHeight <= maxDim) return blob
+    const scale = maxDim / Math.max(img.naturalWidth, img.naturalHeight)
+    const w = Math.round(img.naturalWidth * scale)
+    const h = Math.round(img.naturalHeight * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return blob
+    ctx.drawImage(img, 0, 0, w, h)
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
+        'image/jpeg',
+        quality,
+      )
+    })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}

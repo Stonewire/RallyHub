@@ -149,6 +149,7 @@ export function useLiveEvent(eventId: string | undefined) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bundleRef = useRef(bundle)
+  const lastWrittenAtRef = useRef<string | null>(null)
   bundleRef.current = bundle
 
   const reload = useCallback(async () => {
@@ -225,6 +226,8 @@ export function useLiveEvent(eventId: string | undefined) {
         (payload) => {
           const row = payload.new as Tables<'event_state'> | null
           if (row?.id && bundleRef.current?.state.id === row.id) {
+            // Skip stale echoes that arrive while an optimistic update is in flight
+            if (lastWrittenAtRef.current && row.updated_at && row.updated_at < lastWrittenAtRef.current) return
             setBundle((b) => (b ? { ...b, state: row } : b))
             return
           }
@@ -276,6 +279,12 @@ export function useLiveEvent(eventId: string | undefined) {
         },
       )
 
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'event_games', filter: `event_id=eq.${eventId}` },
+      () => scheduleReloadRef.current(),
+    )
+
     for (const gameId of eventGameIdsKey ? eventGameIdsKey.split('|') : []) {
       channel.on(
         'postgres_changes',
@@ -326,6 +335,7 @@ export function useLiveEvent(eventId: string | undefined) {
         ...patch,
         updated_at: new Date().toISOString(),
       } as Tables<'event_state'>
+      lastWrittenAtRef.current = merged.updated_at
       setBundle((b) => (b ? { ...b, state: merged } : b))
       const { error } = await supabase
         .from('event_state')

@@ -66,6 +66,8 @@ export function Leaderboard({
                     <img
                       src={team.photo_url}
                       alt=""
+                      width={size}
+                      height={size}
                       className="size-full rounded-full object-cover"
                     />
                   ) : (
@@ -106,6 +108,8 @@ export function Leaderboard({
             <img
               src={team.photo_url}
               alt=""
+              width={40}
+              height={40}
               className="size-10 rounded-full object-cover"
             />
           ) : (

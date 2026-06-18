@@ -581,20 +581,21 @@ export function FacilitatorEventPage() {
 
   async function skipQuizQuestion() {
     quizAutoRevealKey.current = ''
-    const next = liveState.current_question_index + 1
+    const idx = liveState.current_question_index
+    const next = idx + 1
     if (next >= questions.length) {
+      await patchState({ quiz_state: 'results', quiz_timer_running: false })
+      return
+    }
+    if (quizConfig.rounds_enabled && quizGame && isLastQuestionInRound(quizGame, idx)) {
       await patchState({
-        quiz_state: 'results',
+        current_question_index: next,
+        quiz_state: 'round_intro',
         quiz_timer_running: false,
       })
       return
     }
-    await patchState({
-      current_question_index: next,
-      quiz_state: 'active',
-      quiz_timer_seconds: questionSeconds,
-      quiz_timer_running: true,
-    })
+    startQuizQuestion(next)
   }
 
   async function goToNextQuestion() {
@@ -718,13 +719,13 @@ export function FacilitatorEventPage() {
   const bingoPlayIndex = liveState.current_question_index
   const playTrackId = bingoPlayOrder[bingoPlayIndex]
   const track = playTrackId
-    ? tracks.find((t) => t.id === playTrackId) ?? tracks[bingoPlayIndex]
-    : tracks[bingoPlayIndex]
+    ? (tracks.find((t) => t.id === playTrackId) ?? null)
+    : (tracks[bingoPlayIndex] ?? null)
   const trackPlaybackUrl = track ? bingoTrackPlaybackUrl(track) : ''
   const nextTrackForCrossfade = (() => {
     const nextId = bingoPlayOrder[bingoPlayIndex + 1]
     if (!nextId) return undefined
-    const nextTrack = tracks.find((t) => t.id === nextId) ?? tracks[bingoPlayIndex + 1]
+    const nextTrack = tracks.find((t) => t.id === nextId) ?? null
     return nextTrack ? bingoTrackPlaybackUrl(nextTrack) : undefined
   })()
   const showBingoPlayer =
@@ -781,8 +782,8 @@ export function FacilitatorEventPage() {
   ) {
     if (!trackList.length) return null
     const id = run?.playOrder[index]
-    if (!id) return trackList[index] ?? null
-    return trackList.find((t) => t.id === id) ?? trackList[index] ?? null
+    if (!id) return null
+    return trackList.find((t) => t.id === id) ?? null
   }
 
   function resolvePlaybackUrlForIndex(

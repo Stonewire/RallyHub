@@ -793,7 +793,7 @@ export function JoinGameView({
       if (existingPending) {
         const { data, error } = await supabase
           .from('submissions')
-          .update({ media_url: trackId })
+          .update({ media_url: String(index) })
           .eq('id', existingPending.id)
           .select()
           .single()
@@ -837,7 +837,7 @@ export function JoinGameView({
           event_id: event.id,
           team_id: teamId,
           game_id: gameId,
-          media_url: trackId,
+          media_url: String(index),
           media_type: 'bingo',
           status: 'pending',
         })

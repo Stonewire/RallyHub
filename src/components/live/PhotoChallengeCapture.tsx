@@ -8,6 +8,7 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
+  downscalePhoto,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
@@ -94,9 +95,8 @@ export function PhotoChallengeCapture({
     setCapturing(true)
     try {
       playShutterSound()
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current, {
-        quarterTurn,
-      })
+      const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      const blob = await downscalePhoto(raw)
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
