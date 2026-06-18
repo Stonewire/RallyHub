@@ -508,6 +508,8 @@ export function FacilitatorEventPage() {
       setClaimSlot(null)
       setClaimName('')
       setClaimPhoto(null)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not save the team')
     } finally {
       setUploading(false)
     }
@@ -992,6 +994,8 @@ export function FacilitatorEventPage() {
       })
       void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
       if (!nextUrl) setAudioPlayNonce((n) => n + 1)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not score or advance the bingo round')
     } finally {
       setBingoAdvancing(false)
     }
@@ -1003,6 +1007,8 @@ export function FacilitatorEventPage() {
     setBingoAdvancing(true)
     try {
       await lockAndRevealBingoRound()
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not score or reveal the bingo round')
     } finally {
       setBingoAdvancing(false)
     }
@@ -1473,9 +1479,15 @@ export function FacilitatorEventPage() {
                             gameId: stage.gameId,
                             challengeId: ch.id,
                             correctAnswerId: ch.correctAnswerId,
-                          }).then(() =>
-                            void patchState({ bingo_state: 'bonus_revealed' }),
-                          )
+                          })
+                            .then(() => void patchState({ bingo_state: 'bonus_revealed' }))
+                            .catch((err) =>
+                              notify(
+                                err instanceof Error
+                                  ? err.message
+                                  : 'Could not score the bonus round',
+                              ),
+                            )
                         }}
                       >
                         Reveal bonus answers
