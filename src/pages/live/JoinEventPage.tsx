@@ -146,7 +146,7 @@ export function JoinEventPage() {
       if (claimPhoto) {
         photoUrl = await uploadAsset(
           'game-assets',
-          `${eventId}/teams/${claimSlot.id}/${Date.now()}`,
+          `${eventId}/teams/${claimSlot.id}/${Date.now()}.jpg`,
           claimPhoto,
           { mediaKind: 'photo' },
         )
