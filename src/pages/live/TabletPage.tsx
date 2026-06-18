@@ -11,7 +11,7 @@ import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import { resolveTabletOrganization } from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import { verifyTabletPassword } from '@/lib/tenant'
+import { verifyTabletPassword, validateTabletSession } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
 const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
@@ -71,7 +71,15 @@ export function TabletPage() {
     }
 
     setOrg(organization as TenantPublicOrg)
-    setAuthed(sessionStorage.getItem(tabletSessionKey(organization.id)) === '1')
+    // Validate stored token server-side; fall back to unauthed on any failure
+    const storedToken = sessionStorage.getItem(tabletSessionKey(organization.id))
+    if (storedToken) {
+      const valid = await validateTabletSession(organization.id, storedToken).catch(() => false)
+      if (!valid) sessionStorage.removeItem(tabletSessionKey(organization.id))
+      setAuthed(valid)
+    } else {
+      setAuthed(false)
+    }
 
     try {
       const { data: ev, error: evError } = await supabase.rpc('get_tablet_events_for_org', {
@@ -98,12 +106,12 @@ export function TabletPage() {
     setCheckingIn(true)
     setAuthError(null)
     try {
-      const ok = await verifyTabletPassword(org.id, password)
-      if (!ok) {
+      const token = await verifyTabletPassword(org.id, password)
+      if (!token) {
         setAuthError('Incorrect password')
         return
       }
-      sessionStorage.setItem(tabletSessionKey(org.id), '1')
+      sessionStorage.setItem(tabletSessionKey(org.id), token)
       setAuthed(true)
       setPassword('')
       if (orgSlug && tabletCode) return

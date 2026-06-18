@@ -84,11 +84,12 @@ export async function scoreBingoRound(params: {
   }
 
   const approveResults = await Promise.all(
-    approveUpdates.map(({ id, points }) =>
+    approveUpdates.map(({ id, teamId, points }) =>
       supabase
         .from('submissions')
         .update({ status: 'approved', points_awarded: points })
-        .eq('id', id),
+        .eq('id', id)
+        .then((r) => ({ ...r, teamId, points })),
     ),
   )
   const rejectResult =
@@ -96,16 +97,24 @@ export async function scoreBingoRound(params: {
       ? await supabase.from('submissions').update({ status: 'rejected' }).in('id', rejectIds)
       : null
 
-  const approveErrors = approveResults.filter((r) => r.error).map((r) => r.error)
-  if (approveErrors.length > 0) {
-    console.error('Failed to approve bingo submissions', approveErrors)
-  }
-  if (rejectResult?.error) {
-    console.error('Failed to reject bingo submissions', rejectResult.error)
+  const approveErrors = approveResults.filter((r) => r.error)
+  const confirmedDeltas = new Map<string, number>()
+  for (const r of approveResults) {
+    if (!r.error) {
+      confirmedDeltas.set(r.teamId, (confirmedDeltas.get(r.teamId) ?? 0) + r.points)
+    }
   }
 
-  for (const [teamId, delta] of teamScoreDeltas) {
+  for (const [teamId, delta] of confirmedDeltas) {
     await applySubmissionPoints(teamId, delta, eventId)
+  }
+
+  if (approveErrors.length > 0 || rejectResult?.error) {
+    const msgs = [
+      ...approveErrors.map((r) => r.error?.message ?? 'approve failed'),
+      ...(rejectResult?.error ? [rejectResult.error.message] : []),
+    ]
+    throw new Error(`Bingo scoring DB errors: ${msgs.join('; ')}`)
   }
 
   // Win detection runs every round on the team's FULL set of approved cells

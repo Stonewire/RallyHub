@@ -118,6 +118,7 @@ export function FacilitatorEventPage() {
   const [audioPlayNonce, setAudioPlayNonce] = useState(0)
   const [bingoAdvancing, setBingoAdvancing] = useState(false)
   const [bingoRunOverride, setBingoRunOverride] = useState<BingoRunRow | null>(null)
+  const [bingoRestartOpen, setBingoRestartOpen] = useState(false)
   const [bingoTracksLive, setBingoTracksLive] = useState<MusicTrack[]>([])
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
@@ -182,6 +183,14 @@ export function FacilitatorEventPage() {
     eventId,
     stage?.type === 'bingo' ? bundle?.state.current_stage_index : undefined,
   )
+
+  // When another facilitator restarts bingo the DB run gets a new id.
+  // Clear the local override so this facilitator syncs to the new run.
+  useEffect(() => {
+    if (!bingoRunOverride) return
+    const dbRun = bingoRunQuery.data
+    if (dbRun && dbRun.id !== bingoRunOverride.id) setBingoRunOverride(null)
+  }, [bingoRunQuery.data, bingoRunOverride])
 
   async function patchState(patch: Parameters<typeof updateState>[0]) {
     if (!controlsLiveRef.current) return
@@ -317,6 +326,14 @@ export function FacilitatorEventPage() {
     quizAutoRevealKey.current = key
 
     void (async () => {
+      // Lock answers first (flip to revealed) before scoring so participants
+      // with clock skew can't change their answer during the scoring window.
+      try {
+        await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
+      } catch {
+        quizAutoRevealKey.current = ''
+        return
+      }
       try {
         await scoreCurrentQuizQuestion(bundle.event.id, quizGame, question)
       } catch (err) {
@@ -326,11 +343,6 @@ export function FacilitatorEventPage() {
             ? err.message
             : 'Quiz scoring failed — verify increment_team_score migration is applied',
         )
-      }
-      try {
-        await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
-      } catch {
-        quizAutoRevealKey.current = ''
       }
     })()
   }, [bundle, state, quizTimerDisplay, updateState, notify])
@@ -1557,43 +1569,76 @@ export function FacilitatorEventPage() {
                 variant="outline"
                 onClick={() => {
                   if (!eventId || !stage.gameId) return
-                  const ok = window.confirm(
-                    'Restart bingo for this stage? New cards and play order. Clears all marks for this game.',
-                  )
-                  if (!ok) return
-                  const gameId = stage.gameId
-                  const stageIndex = liveState.current_stage_index
-                  void restartBingoRun(eventId, gameId, stageIndex)
-                    .then((result) => {
-                      // Refresh the facilitator's run to the NEW run id + play order so
-                      // scoring reads the same cards/run the participants now see.
-                      const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
-                      flushSync(() => setBingoRunOverride(row))
-                      queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
-                      void queryClient.invalidateQueries({
-                        queryKey: queryKeys.bingoRun(eventId, stageIndex),
-                      })
-                      setAudioPlayNonce((n) => n + 1)
-                      bingoWinHaltRef.current = false
-                      notify('Bingo run restarted')
-                      void patchState({
-                        current_question_index: 0,
-                        bingo_state: 'waiting',
-                        bingo_bonus_id: null,
-                        bingo_revealed_track_ids: [],
-                      })
-                      void patchWinnerFieldsSafe({
-                        bingo_winner_team_id: null,
-                        bingo_announced_winner_ids: [],
-                      })
-                    })
-                    .catch((err) =>
-                      notify(err instanceof Error ? err.message : 'Restart failed'),
-                    )
+                  setBingoRestartOpen(true)
                 }}
               >
                 Restart bingo run
               </FacilitatorButton>
+              {bingoRestartOpen && stage.gameId && eventId ? (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="bingo-restart-title"
+                >
+                  <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+                    <div className="space-y-2">
+                      <h3 id="bingo-restart-title" className="text-foreground font-semibold">
+                        Restart bingo run?
+                      </h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Generates new cards and a new play order. Clears all marks and scores for this bingo game.
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <NeoButton
+                        type="button"
+                        variant="surface"
+                        onClick={() => setBingoRestartOpen(false)}
+                      >
+                        Cancel
+                      </NeoButton>
+                      <NeoButton
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          setBingoRestartOpen(false)
+                          if (!eventId || !stage.gameId) return
+                          const gameId = stage.gameId
+                          const stageIndex = liveState.current_stage_index
+                          void restartBingoRun(eventId, gameId, stageIndex)
+                            .then((result) => {
+                              const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
+                              flushSync(() => setBingoRunOverride(row))
+                              queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
+                              void queryClient.invalidateQueries({
+                                queryKey: queryKeys.bingoRun(eventId, stageIndex),
+                              })
+                              setAudioPlayNonce((n) => n + 1)
+                              bingoWinHaltRef.current = false
+                              notify('Bingo run restarted')
+                              void patchState({
+                                current_question_index: 0,
+                                bingo_state: 'waiting',
+                                bingo_bonus_id: null,
+                                bingo_revealed_track_ids: [],
+                              })
+                              void patchWinnerFieldsSafe({
+                                bingo_winner_team_id: null,
+                                bingo_announced_winner_ids: [],
+                              })
+                          })
+                          .catch((err) =>
+                            notify(err instanceof Error ? err.message : 'Restart failed'),
+                          )
+                        }}
+                      >
+                        Restart bingo run
+                      </NeoButton>
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
             </div>
           ) : stage.type === 'break' ? (
             <div className="space-y-4">

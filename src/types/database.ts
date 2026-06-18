@@ -658,6 +658,10 @@ export type Database = {
       }
       verify_tablet_password: {
         Args: { p_org_id: string; p_password: string }
+        Returns: string | null
+      }
+      validate_tablet_session: {
+        Args: { p_org_id: string; p_token: string }
         Returns: boolean
       }
       resolve_login_email: {

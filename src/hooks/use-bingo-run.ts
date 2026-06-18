@@ -121,6 +121,7 @@ export function useBingoTeamCard(
       if (error) throw error
       return (data?.cells as BingoCell[]) ?? null
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }

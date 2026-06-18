@@ -39,24 +39,26 @@ export async function advanceBingoTrack(params: {
     (s) => s.media_url != null && s.media_url !== 'claim',
   )
   if (toClear.length > 0) {
-    await supabase
+    const { error: clearErr } = await supabase
       .from('submissions')
       .delete()
       .in(
         'id',
         toClear.map((s) => s.id),
       )
+    if (clearErr) throw new Error(`Failed to clear pending marks: ${clearErr.message}`)
   }
 
   const nextIndex = Math.min(Math.max(0, playOrder.length - 1), currentIndex + 1)
 
   if (runId) {
-    const { data: runRow } = await supabase
+    const { data: runRow, error: advanceErr } = await supabase
       .from('bingo_runs')
       .update({ current_play_index: nextIndex })
       .eq('id', runId)
       .select('*')
       .single()
+    if (advanceErr) throw new Error(`Failed to advance bingo run: ${advanceErr.message}`)
 
     if (runRow) {
       await publishLiveBundlePatch(eventId, {

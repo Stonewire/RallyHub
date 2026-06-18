@@ -237,17 +237,29 @@ export function useTenantOrganization() {
   })
 }
 
+/** Returns a session token on success, null on incorrect password or lockout. */
 export async function verifyTabletPassword(
   orgId: string,
   password: string,
-): Promise<boolean> {
-  // PostgREST requires exact parameter names from the function signature:
-  // verify_tablet_password(p_org_id uuid, p_password text)
+): Promise<string | null> {
   const args: Database['public']['Functions']['verify_tablet_password']['Args'] = {
     p_org_id: orgId,
     p_password: password,
   }
   const { data, error } = await supabase.rpc('verify_tablet_password', args)
   if (error) throw error
+  return data ?? null
+}
+
+export async function validateTabletSession(
+  orgId: string,
+  token: string,
+): Promise<boolean> {
+  const args: Database['public']['Functions']['validate_tablet_session']['Args'] = {
+    p_org_id: orgId,
+    p_token: token,
+  }
+  const { data, error } = await supabase.rpc('validate_tablet_session', args)
+  if (error) return false
   return Boolean(data)
 }

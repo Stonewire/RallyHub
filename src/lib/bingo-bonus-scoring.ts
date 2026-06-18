@@ -22,18 +22,30 @@ export async function scoreBingoBonusRound(params: {
     .eq('media_type', mediaType)
     .eq('status', 'pending')
 
+  const errors: string[] = []
   for (const sub of subs ?? []) {
     const { answerId } = parseBingoBonusSubmission(sub.media_url)
     if (answerId === correctAnswerId) {
       const points = 2
-      await supabase
+      const { error: approveErr } = await supabase
         .from('submissions')
         .update({ status: 'approved', points_awarded: points })
         .eq('id', sub.id)
+      if (approveErr) {
+        errors.push(approveErr.message)
+        continue
+      }
       await applySubmissionPoints(sub.team_id, points, eventId)
     } else {
-      await supabase.from('submissions').update({ status: 'rejected' }).eq('id', sub.id)
+      const { error: rejectErr } = await supabase
+        .from('submissions')
+        .update({ status: 'rejected' })
+        .eq('id', sub.id)
+      if (rejectErr) errors.push(rejectErr.message)
     }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Bingo bonus scoring DB errors: ${errors.join('; ')}`)
   }
 
   await publishLiveBundleReload(eventId)

@@ -184,6 +184,10 @@ export function JoinGameView({
   const [bonusCaptureFile, setBonusCaptureFile] = useState<File | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [exitDialogOpen, setExitDialogOpen] = useState(false)
+  const [exitPasswordValue, setExitPasswordValue] = useState('')
+  const [exitPasswordError, setExitPasswordError] = useState<string | null>(null)
+  const [exitVerifying, setExitVerifying] = useState(false)
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
 
@@ -371,27 +375,34 @@ export function JoinGameView({
     setBingoPick(null)
   }, [stage?.type, stage?.gameId, state.current_question_index, state.bingo_state])
 
-  async function handleExitTeam() {
+  function handleExitTeam() {
     if (!organization?.id) return
-    const pw = window.prompt(
-      exitMode === 'tablet'
-        ? 'Tablet password to return to events'
-        : 'Tablet password to leave this team',
-    )
-    if (pw == null) return
+    setExitPasswordValue('')
+    setExitPasswordError(null)
+    setExitDialogOpen(true)
+  }
+
+  async function handleExitPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!organization?.id) return
+    setExitVerifying(true)
+    setExitPasswordError(null)
     try {
-      const ok = await verifyTabletPassword(organization.id, pw)
-      if (!ok) {
-        notify('Incorrect password')
+      const token = await verifyTabletPassword(organization.id, exitPasswordValue)
+      if (!token) {
+        setExitPasswordError('Incorrect password')
         return
       }
+      setExitDialogOpen(false)
       if (exitMode === 'tablet' && onExitToTablet) {
         onExitToTablet()
       } else {
         onExitTeam()
       }
     } catch {
-      notify('Could not verify password')
+      setExitPasswordError('Could not verify password')
+    } finally {
+      setExitVerifying(false)
     }
   }
 
@@ -1273,6 +1284,18 @@ export function JoinGameView({
           </p>
         </div>
       )
+    } else if (bingoRunQuery.data && !bingoCardQuery.isLoading && !bingoCardQuery.data) {
+      body = (
+        <div className="mx-auto max-w-lg px-6 py-20 text-center">
+          <p className="text-lg font-bold text-white">{game?.name ?? 'Music Bingo'}</p>
+          <p className="mt-6 text-white/70">
+            This round started before you joined.
+          </p>
+          <p className="mt-2 text-white/50 text-sm">
+            You'll be included in the next round!
+          </p>
+        </div>
+      )
     } else {
     const tracks = game ? bingoTracks(game) : []
     const cellLabels = bingoCardQuery.data
@@ -1569,6 +1592,56 @@ export function JoinGameView({
             <LiveAccentButton accentColor={accent} onClick={onDismissAnnouncement}>
               Dismiss
             </LiveAccentButton>
+          </Card>
+        </div>
+      ) : null}
+      {exitDialogOpen ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exit-dialog-title"
+        >
+          <Card className="w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+            <h3 id="exit-dialog-title" className="font-semibold">
+              {exitMode === 'tablet' ? 'Return to events' : 'Leave team'}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Enter the tablet password to continue.
+            </p>
+            <form className="space-y-3" onSubmit={(e) => void handleExitPasswordSubmit(e)}>
+              <input
+                type="password"
+                autoComplete="current-password"
+                className="xp-field w-full rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
+                placeholder="Password"
+                value={exitPasswordValue}
+                onChange={(e) => setExitPasswordValue(e.target.value)}
+                autoFocus
+              />
+              {exitPasswordError ? (
+                <p className="text-destructive text-sm" role="alert">{exitPasswordError}</p>
+              ) : null}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => setExitDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={exitVerifying || !exitPasswordValue.trim()}
+                  style={{ backgroundColor: accent, color: 'white' }}
+                >
+                  {exitVerifying ? 'Checking…' : 'Continue'}
+                </Button>
+              </div>
+            </form>
           </Card>
         </div>
       ) : null}
