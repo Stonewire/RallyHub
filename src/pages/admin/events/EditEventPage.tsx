@@ -58,6 +58,7 @@ export function AdminEventEditPage() {
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
+    onValidationError: notify,
   })
 
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)

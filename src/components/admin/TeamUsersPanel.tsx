@@ -17,6 +17,8 @@ import {
 } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import { useAuth } from '@/contexts/auth-context'
+import { useNotification } from '@/contexts/notification-context'
+import { copyToClipboard } from '@/lib/clipboard'
 import { normalizeUsername, validateUsername } from '@/lib/auth-identifier'
 import {
   assignableOrgUserRoles,
@@ -49,9 +51,11 @@ type TeamUsersPanelProps = {
 export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps) {
   const organizationId = useOrganizationId()
   const { role: actorRole } = useAuth()
+  const { notify } = useNotification()
   const usersQuery = useOrganizationUsers(organizationId)
   const createUser = useCreateOrganizationUser(organizationId)
   const removeUser = useRemoveOrganizationUser(organizationId)
+  const [userToRemove, setUserToRemove] = useState<OrganizationUser | null>(null)
 
   const assignableRoles = assignableOrgUserRoles(actorRole)
   const defaultRole: AssignableOrgUserRole = facilitatorsOnly
@@ -139,9 +143,23 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
   async function handleCopyCredentials() {
     if (!createdUser) return
     const text = `Username: ${createdUser.username}\nTemporary password: ${createdUser.temporary_password}`
-    await navigator.clipboard.writeText(text)
+    if (!(await copyToClipboard(text))) {
+      notify('Could not copy — copy the credentials manually before closing')
+      return
+    }
     setCredentialsCopied(true)
     window.setTimeout(() => setCredentialsCopied(false), 2000)
+  }
+
+  async function confirmRemoveUser() {
+    if (!userToRemove) return
+    try {
+      await removeUser.mutateAsync(userToRemove.id)
+      setUserToRemove(null)
+    } catch (err) {
+      setUserToRemove(null)
+      notify(err instanceof Error ? err.message : 'Could not remove user')
+    }
   }
 
   const title = facilitatorsOnly ? 'Facilitators' : 'Team'
@@ -191,7 +209,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     size="icon-sm"
                     className="text-destructive"
                     disabled={removeUser.isPending}
-                    onClick={() => void removeUser.mutateAsync(user.id)}
+                    onClick={() => setUserToRemove(user)}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -359,6 +377,38 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 </div>
               </>
             )}
+          </Card>
+        </div>
+      ) : null}
+
+      {userToRemove ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-user-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        >
+          <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+            <h3 id="remove-user-title" className="text-foreground font-semibold">
+              Remove {facilitatorsOnly ? 'facilitator' : 'user'}?
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              <span className="text-foreground font-medium">{displayUserName(userToRemove)}</span>{' '}
+              (@{userToRemove.username}) will lose access to this organization. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setUserToRemove(null)}>
+                Cancel
+              </Button>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={removeUser.isPending}
+                onClick={() => void confirmRemoveUser()}
+              >
+                {removeUser.isPending ? 'Removing…' : 'Remove'}
+              </NeoButton>
+            </div>
           </Card>
         </div>
       ) : null}

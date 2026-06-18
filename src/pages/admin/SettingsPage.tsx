@@ -28,6 +28,8 @@ import {
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
 import { BillingOverview } from '@/components/billing/BillingOverview'
+import { useNotification } from '@/contexts/notification-context'
+import { copyToClipboard } from '@/lib/clipboard'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +41,7 @@ export function AdminSettingsPage() {
   const tab: SettingsTab =
     searchParams.get('tab') === 'billing' ? 'billing' : 'profile'
 
+  const { notify } = useNotification()
   const orgQuery = useOrganization(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
   const saveLogo = useSaveOrganizationLogo(organizationId)
@@ -102,14 +105,20 @@ export function AdminSettingsPage() {
 
   async function handleCopyLink() {
     if (!tabletLink) return
-    await navigator.clipboard.writeText(tabletLink)
+    if (!(await copyToClipboard(tabletLink))) {
+      notify('Could not copy — copy it manually')
+      return
+    }
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleCopyPassword() {
     const password = form.tablet_password.trim() || '1234'
-    await navigator.clipboard.writeText(password)
+    if (!(await copyToClipboard(password))) {
+      notify('Could not copy — copy it manually')
+      return
+    }
     setPasswordCopied(true)
     window.setTimeout(() => setPasswordCopied(false), 2000)
   }

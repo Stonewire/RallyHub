@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useNotification } from '@/contexts/notification-context'
+import { copyToClipboard } from '@/lib/clipboard'
 import { useCreateEvent, useUpdateEventStatus } from '@/hooks/use-events'
 import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useGameGroups } from '@/hooks/use-game-groups'
@@ -36,8 +38,10 @@ export function AdminEventsNewPage() {
   const groupsQuery = useGameGroups(organizationId)
   const createEvent = useCreateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
+    onValidationError: notify,
   })
 
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
@@ -115,12 +119,19 @@ export function AdminEventsNewPage() {
       })
       return
     }
-    await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status })
-    navigate('/admin/events', { replace: true })
+    try {
+      await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status })
+      navigate('/admin/events', { replace: true })
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not set event status')
+    }
   }
 
   async function copyLink(key: string, url: string) {
-    await navigator.clipboard.writeText(url)
+    if (!(await copyToClipboard(url))) {
+      notify('Could not copy — copy it manually')
+      return
+    }
     setCopied(key)
     window.setTimeout(() => setCopied(null), 2000)
   }
