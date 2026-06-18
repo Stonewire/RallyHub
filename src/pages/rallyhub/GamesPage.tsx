@@ -41,10 +41,14 @@ export function RallyHubGamesPage() {
   }
 
   async function toggleDefault(gameId: string, current: boolean) {
-    await supabase
+    const { error } = await supabase
       .from('games')
       .update({ is_default_for_new_clients: !current })
       .eq('id', gameId)
+    if (error) {
+      notify(error.message || 'Could not update default')
+      return
+    }
     void refetch()
   }
 

@@ -40,6 +40,7 @@ import { countClientEvents } from '@/lib/client-events'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
+import { useNotification } from '@/contexts/notification-context'
 
 const STATUSES = ['active', 'suspended', 'trial'] as const
 
@@ -92,6 +93,7 @@ export function RallyHubClientDetailPage() {
   )
   const createClient = useCreateRallyHubClient()
   const updateClient = useUpdateClientAdmin()
+  const { notify } = useNotification()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [orgName, setOrgName] = useState('')
@@ -170,7 +172,12 @@ export function RallyHubClientDetailPage() {
             ? { subdomain: subdomain.trim().toLowerCase(), custom_domain: null }
             : undefined,
         )
-    await sendPasswordResetEmail(emailAddress, redirectTo)
+    try {
+      await sendPasswordResetEmail(emailAddress, redirectTo)
+      notify(`Password reset email sent to ${emailAddress}`)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to send password reset email')
+    }
   }
 
   async function handleAdminPasswordReset() {
