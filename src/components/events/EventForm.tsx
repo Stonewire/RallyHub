@@ -410,7 +410,7 @@ export function EventForm({
                 }
                 className="border-input bg-background rounded-lg border px-2 py-1.5 text-sm"
               >
-                <option value="open">Open</option>
+                <option value="open">Quest</option>
                 <option value="quiz">Quiz</option>
                 <option value="bingo">Bingo</option>
                 <option value="break">Break</option>
