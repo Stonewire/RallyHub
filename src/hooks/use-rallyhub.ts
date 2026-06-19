@@ -20,6 +20,14 @@ export {
   useUpdateTicketStatus,
 } from '@/hooks/use-support-tickets'
 
+export type DashboardRecentEvent = {
+  id: string
+  name: string
+  status: string
+  dateISO: string | null
+  clientName: string
+}
+
 export function useRallyHubDashboard() {
   const { profile, role } = useAuth()
   const excludedOrganizationIds =
@@ -28,26 +36,67 @@ export function useRallyHubDashboard() {
   return useQuery({
     queryKey: ['rallyhub', 'dashboard', ...excludedOrganizationIds],
     queryFn: async () => {
-      const [orgsRes, eventsRes, activeRes] = await Promise.all([
-        // Count clients the same way the clients list does — exclude the platform
-        // library org and the super-admin's own org — so the stat matches the list.
-        supabase.from('organizations').select('id, subdomain'),
-        supabase.from('events').select('id', { count: 'exact', head: true }),
+      const [orgsRes, eventsRes, invoicesRes] = await Promise.all([
+        supabase.from('organizations').select('id, subdomain, name'),
         supabase
           .from('events')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'active'),
+          .select('id, name, status, event_date, organization_id, created_at'),
+        supabase.from('invoices').select('amount_due, status, organization_id'),
       ])
       if (orgsRes.error) throw orgsRes.error
       if (eventsRes.error) throw eventsRes.error
-      if (activeRes.error) throw activeRes.error
-      const clientCount = (orgsRes.data ?? []).filter((org) =>
+      if (invoicesRes.error) throw invoicesRes.error
+
+      // Clients are the listed orgs (exclude platform library + super-admin's own).
+      const clients = (orgsRes.data ?? []).filter((org) =>
         isListedClientOrganization(org, excludedOrganizationIds),
+      )
+      const clientIds = new Set(clients.map((c) => c.id))
+      const clientName = new Map(clients.map((c) => [c.id, c.name]))
+
+      const events = (eventsRes.data ?? []).filter((e) =>
+        clientIds.has(e.organization_id),
+      )
+
+      const statusBreakdown: Record<string, number> = {}
+      for (const e of events) {
+        statusBreakdown[e.status] = (statusBreakdown[e.status] ?? 0) + 1
+      }
+
+      const now = Date.now()
+      const upcomingEvents = events.filter(
+        (e) => e.event_date && new Date(e.event_date).getTime() > now,
       ).length
+
+      const recentEvents: DashboardRecentEvent[] = [...events]
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+        .slice(0, 6)
+        .map((e) => ({
+          id: e.id,
+          name: e.name,
+          status: e.status,
+          dateISO: e.event_date,
+          clientName: clientName.get(e.organization_id) ?? 'Unknown client',
+        }))
+
+      const invoices = (invoicesRes.data ?? []).filter((i) =>
+        clientIds.has(i.organization_id),
+      )
+      const outstanding = invoices
+        .filter((i) => i.status === 'unpaid')
+        .reduce((sum, i) => sum + Number(i.amount_due ?? 0), 0)
+      const collected = invoices
+        .filter((i) => i.status === 'paid')
+        .reduce((sum, i) => sum + Number(i.amount_due ?? 0), 0)
+
       return {
-        clientCount,
-        totalEvents: eventsRes.count ?? 0,
-        activeEvents: activeRes.count ?? 0,
+        clientCount: clients.length,
+        totalEvents: events.length,
+        activeEvents: statusBreakdown['active'] ?? 0,
+        upcomingEvents,
+        statusBreakdown,
+        recentEvents,
+        revenue: { outstanding, collected },
       }
     },
   })
