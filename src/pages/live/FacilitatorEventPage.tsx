@@ -14,6 +14,8 @@ import {
   useFacilitatorChatInbox,
 } from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
+import { TeamQuestProgressModal } from '@/components/live/TeamQuestProgressModal'
+import { questGamesForEvent, teamQuestProgress } from '@/lib/quest-progress'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
@@ -106,6 +108,7 @@ export function FacilitatorEventPage() {
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [resetConfirmTeam, setResetConfirmTeam] = useState<Tables<'teams'> | null>(null)
   const [resettingTeam, setResettingTeam] = useState(false)
+  const [progressTeam, setProgressTeam] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -397,6 +400,9 @@ export function FacilitatorEventPage() {
   const displayUrl = eventId
     ? getEventLinks(eventId, organization).display
     : ''
+
+  // Quest (open-stage) games drive the per-team progress fill + "View Quests" modal.
+  const questGames = questGamesForEvent(stages, games)
 
   const filteredSubs = submissions.filter((s) => {
     if (subTab === 'all') return true
@@ -1212,10 +1218,23 @@ export function FacilitatorEventPage() {
               Tap a slot to set name/photo. Scores update when you approve submissions.
             </p>
             <ul className="space-y-2">
-              {teams.map((team) => (
+              {teams.map((team) => {
+                const claimed = Boolean(team.name?.trim())
+                const prog =
+                  questGames.length > 0 && claimed
+                    ? teamQuestProgress(team.id, questGames, submissions)
+                    : null
+                return (
                 <li
                   key={team.id}
-                  className="border-border/80 flex items-center gap-3 rounded-lg border p-2"
+                  className="border-border/80 relative flex flex-wrap items-center gap-3 overflow-hidden rounded-lg border p-2"
+                  style={
+                    prog
+                      ? {
+                          background: `linear-gradient(to right, rgba(34,197,94,0.22) ${prog.percent}%, transparent ${prog.percent}%)`,
+                        }
+                      : undefined
+                  }
                 >
                   <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
                   <div
@@ -1271,8 +1290,25 @@ export function FacilitatorEventPage() {
                     <option value="active">active</option>
                     <option value="stopped">stopped</option>
                   </select>
+                  {prog ? (
+                    <div className="flex w-full items-center gap-2 pl-6">
+                      <span className="text-muted-foreground text-xs font-medium tabular-nums">
+                        {prog.doneCount}/{prog.total} Quests done
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto h-7 px-2 text-xs"
+                        onClick={() => setProgressTeam(team)}
+                      >
+                        View Quests
+                      </Button>
+                    </div>
+                  ) : null}
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </Card>
           </fieldset>
@@ -1764,6 +1800,25 @@ export function FacilitatorEventPage() {
           onReject={() => rejectSubmission(selectedSub.id)}
         />
       ) : null}
+
+      {progressTeam
+        ? (() => {
+            const prog = teamQuestProgress(progressTeam.id, questGames, submissions)
+            return (
+              <TeamQuestProgressModal
+                team={progressTeam}
+                items={prog.items}
+                doneCount={prog.doneCount}
+                total={prog.total}
+                onClose={() => setProgressTeam(null)}
+                onOpenSubmission={(sub) => {
+                  setProgressTeam(null)
+                  setSelectedSub(sub)
+                }}
+              />
+            )
+          })()
+        : null}
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
