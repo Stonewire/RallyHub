@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
 import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/event-activation-billing'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
+import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
 import type { EventStatus } from '@/types/database'
 
 type PendingActivation = {
@@ -12,13 +13,22 @@ type PendingActivation = {
 
 type UseEventActivationFlowOptions = {
   billingPlan: string | null | undefined
+  organizationId?: string | null
   onValidationError?: (msg: string) => void
 }
 
-export function useEventActivationFlow({ billingPlan, onValidationError }: UseEventActivationFlowOptions) {
+export function useEventActivationFlow({
+  billingPlan,
+  organizationId,
+  onValidationError,
+}: UseEventActivationFlowOptions) {
   const [pending, setPending] = useState<PendingActivation | null>(null)
   const [confirming, setConfirming] = useState(false)
-  const warning = getEventActivationWarning(billingPlan)
+  const redemptionsQuery = useOrgPromoRedemptions(organizationId)
+  const bestEventDiscount = (redemptionsQuery.data ?? [])
+    .filter((r) => r.purpose === 'event' && r.status === 'active')
+    .reduce((max, r) => Math.max(max, r.discount_percent), 0)
+  const warning = getEventActivationWarning(billingPlan, bestEventDiscount)
 
   const requestActivation = useCallback(
     (eventName: string, onConfirm: () => Promise<void>) => {

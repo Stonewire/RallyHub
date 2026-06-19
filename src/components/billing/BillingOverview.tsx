@@ -1,5 +1,6 @@
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
+import { PromoCodeSection } from '@/components/billing/PromoCodeSection'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Card } from '@/components/ui/card'
 import {
@@ -139,6 +140,8 @@ export function BillingOverview({
           </p>
         </Card>
       </section>
+
+      <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
 
       {showAvailablePlans ? (
         <section className="space-y-3">

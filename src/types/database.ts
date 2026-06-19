@@ -352,6 +352,7 @@ export type Database = {
           discount: number
           amount_due: number
           status: 'unpaid' | 'paid' | 'comped'
+          promo_code_id: string | null
           created_at: string
         }
         Insert: {
@@ -363,10 +364,78 @@ export type Database = {
           discount?: number
           amount_due: number
           status: 'unpaid' | 'paid' | 'comped'
+          promo_code_id?: string | null
           created_at?: string
         }
         Update: {
           status?: 'unpaid' | 'paid' | 'comped'
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          id: string
+          code: string
+          purpose: 'event' | 'subscription'
+          discount_percent: number
+          duration_months: number | null
+          max_redemptions: number | null
+          redemption_count: number
+          is_active: boolean
+          notes: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          purpose: 'event' | 'subscription'
+          discount_percent?: number
+          duration_months?: number | null
+          max_redemptions?: number | null
+          redemption_count?: number
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          code?: string
+          discount_percent?: number
+          duration_months?: number | null
+          max_redemptions?: number | null
+          is_active?: boolean
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      promo_code_redemptions: {
+        Row: {
+          id: string
+          promo_code_id: string
+          organization_id: string
+          purpose: 'event' | 'subscription'
+          discount_percent: number
+          duration_months: number | null
+          status: 'active' | 'used' | 'expired'
+          applied_at: string | null
+          applied_event_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          promo_code_id: string
+          organization_id: string
+          purpose: 'event' | 'subscription'
+          discount_percent: number
+          duration_months?: number | null
+          status?: 'active' | 'used' | 'expired'
+          applied_at?: string | null
+          applied_event_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          status?: 'active' | 'used' | 'expired'
         }
         Relationships: []
       }
@@ -663,6 +732,21 @@ export type Database = {
       validate_tablet_session: {
         Args: { p_org_id: string; p_token: string }
         Returns: boolean
+      }
+      redeem_promo_code: {
+        Args: { p_code: string }
+        Returns: {
+          id: string
+          promo_code_id: string
+          organization_id: string
+          purpose: 'event' | 'subscription'
+          discount_percent: number
+          duration_months: number | null
+          status: 'active' | 'used' | 'expired'
+          applied_at: string | null
+          applied_event_id: string | null
+          created_at: string
+        }
       }
       resolve_login_email: {
         Args: { p_identifier: string }

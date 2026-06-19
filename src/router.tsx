@@ -37,6 +37,7 @@ import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage'
 import { PlayTokenPage } from '@/pages/placeholders'
 import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
+import { RallyHubPromoCodesPage } from '@/pages/rallyhub/PromoCodesPage'
 import { resolvePostLoginPath, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
@@ -193,6 +194,14 @@ export const router = createBrowserRouter([
         element: (
           <SuperAdminOnly>
             <RallyHubClientDetailPage />
+          </SuperAdminOnly>
+        ),
+      },
+      {
+        path: 'promo-codes',
+        element: (
+          <SuperAdminOnly>
+            <RallyHubPromoCodesPage />
           </SuperAdminOnly>
         ),
       },

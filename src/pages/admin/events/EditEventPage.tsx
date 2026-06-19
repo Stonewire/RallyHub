@@ -58,6 +58,7 @@ export function AdminEventEditPage() {
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
+    organizationId,
     onValidationError: notify,
   })
 
