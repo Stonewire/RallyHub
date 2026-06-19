@@ -521,6 +521,7 @@ export type Database = {
           announcement: string | null
           announcement_target: string | null
           winner_reveal_stage: number
+          winner_sound_targets: string[] | null
           break_timer_seconds: number | null
           break_timer_running: boolean
           submissions_open: boolean
@@ -546,6 +547,7 @@ export type Database = {
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
+          winner_sound_targets?: string[] | null
           break_timer_seconds?: number | null
           break_timer_running?: boolean
           submissions_open?: boolean
@@ -568,6 +570,7 @@ export type Database = {
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
+          winner_sound_targets?: string[] | null
           break_timer_seconds?: number | null
           break_timer_running?: boolean
           submissions_open?: boolean

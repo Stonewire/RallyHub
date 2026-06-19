@@ -71,6 +71,7 @@ import {
   quizSubmissionMediaType,
   activeSubmissionForGame,
 } from '@/lib/live-event'
+import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage, explainFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { publishSubmissionChange } from '@/lib/live-broadcast'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
@@ -472,6 +473,8 @@ export function JoinGameView({
     if (eventWinnerAudioKeyRef.current === revealKey) return
     eventWinnerAudioKeyRef.current = revealKey
 
+    // Player-device winner/loser audio is gated by the facilitator's sound routing.
+    if (!winnerSoundEnabled(state.winner_sound_targets, 'players')) return
     const myRank = eventRankedTeams(bundle.teams).find((r) => r.team.id === teamId)?.rank ?? 0
     if (myRank === 1) {
       const stopAudio = playEventWinnerSequence(revealKey)
@@ -480,7 +483,7 @@ export function JoinGameView({
     if (myRank > 0) {
       playLoserSound()
     }
-  }, [state.winner_reveal_stage, stage?.type, event.id, teamId, bundle.teams])
+  }, [state.winner_reveal_stage, state.winner_sound_targets, stage?.type, event.id, teamId, bundle.teams])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {

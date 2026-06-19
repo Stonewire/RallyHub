@@ -16,6 +16,12 @@ import {
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { TeamQuestProgressModal } from '@/components/live/TeamQuestProgressModal'
 import { questGamesForEvent, teamQuestProgress } from '@/lib/quest-progress'
+import {
+  WINNER_SOUND_SURFACES,
+  parseWinnerSoundTargets,
+  winnerSoundEnabled,
+  type WinnerSoundSurface,
+} from '@/lib/winner-sound'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
@@ -78,6 +84,7 @@ import {
   playAnnouncementSound,
   playNewMessageSound,
   playNewSubmissionSound,
+  playEventWinnerSequence,
   installAudioUnlock,
   unlockAudioFromUserGesture,
 } from '@/lib/sounds'
@@ -109,6 +116,11 @@ export function FacilitatorEventPage() {
   const [resetConfirmTeam, setResetConfirmTeam] = useState<Tables<'teams'> | null>(null)
   const [resettingTeam, setResettingTeam] = useState(false)
   const [progressTeam, setProgressTeam] = useState<Tables<'teams'> | null>(null)
+  const [winnerRoutingOpen, setWinnerRoutingOpen] = useState(false)
+  const [winnerRoutingSel, setWinnerRoutingSel] = useState<WinnerSoundSurface[]>([
+    'display',
+    'players',
+  ])
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -381,6 +393,21 @@ export function FacilitatorEventPage() {
     pendingSubmissionCountRef.current = pendingCount
   }, [liveSubmissions])
 
+  // Play the winner celebration on the facilitator device when 'facilitator' is a
+  // chosen sound target and the reveal reaches its final stage.
+  const facilitatorWinnerAudioRef = useRef(false)
+  useEffect(() => {
+    const stageNum = state?.winner_reveal_stage ?? 0
+    if (stageNum < 2 || !winnerSoundEnabled(state?.winner_sound_targets, 'facilitator')) {
+      facilitatorWinnerAudioRef.current = false
+      return
+    }
+    if (facilitatorWinnerAudioRef.current) return
+    facilitatorWinnerAudioRef.current = true
+    const stop = playEventWinnerSequence(`${eventId}:facilitator-winner:2`)
+    return () => stop()
+  }, [state?.winner_reveal_stage, state?.winner_sound_targets, eventId])
+
   if (loading || !bundle || !state) {
     return (
       <FacilitatorPanelShell title="Facilitator" titleCentered>
@@ -403,6 +430,32 @@ export function FacilitatorEventPage() {
 
   // Quest (open-stage) games drive the per-team progress fill + "View Quests" modal.
   const questGames = questGamesForEvent(stages, games)
+
+  const winnerTargetsChosen = parseWinnerSoundTargets(liveState.winner_sound_targets) !== null
+
+  function handleRevealWinnerClick() {
+    // First reveal forces the facilitator to choose where the sound plays.
+    if (liveState.winner_reveal_stage === 0 && !winnerTargetsChosen) {
+      setWinnerRoutingOpen(true)
+      return
+    }
+    void patchState({
+      winner_reveal_stage: Math.min(2, liveState.winner_reveal_stage + 1),
+    })
+  }
+
+  function saveWinnerRoutingAndReveal() {
+    // Prime audio from this click so a 'facilitator' target can play later.
+    if (winnerRoutingSel.includes('facilitator')) unlockAudioFromUserGesture('full')
+    // First time (stage 0) this also starts the reveal; re-opening to change the
+    // routing mid-reveal only updates the targets.
+    const advance = liveState.winner_reveal_stage === 0
+    void patchState({
+      winner_sound_targets: winnerRoutingSel,
+      ...(advance ? { winner_reveal_stage: 1 } : {}),
+    })
+    setWinnerRoutingOpen(false)
+  }
 
   const filteredSubs = submissions.filter((s) => {
     if (subTab === 'all') return true
@@ -1126,16 +1179,27 @@ export function FacilitatorEventPage() {
               <p className="text-muted-foreground text-xs">
                 Run the winner ceremony on display and team phones
               </p>
-              <FacilitatorButtonLarge
-                className="w-full"
-                onClick={() =>
-                  void patchState({
-                    winner_reveal_stage: Math.min(2, state.winner_reveal_stage + 1),
-                  })
-                }
-              >
+              <FacilitatorButtonLarge className="w-full" onClick={handleRevealWinnerClick}>
                 Reveal Winner ({state.winner_reveal_stage}/2)
               </FacilitatorButtonLarge>
+              {winnerTargetsChosen && state.winner_reveal_stage > 0 ? (
+                <button
+                  type="button"
+                  className="text-muted-foreground text-xs underline-offset-2 hover:underline"
+                  onClick={() => {
+                    setWinnerRoutingSel(
+                      parseWinnerSoundTargets(liveState.winner_sound_targets) ?? ['display', 'players'],
+                    )
+                    setWinnerRoutingOpen(true)
+                  }}
+                >
+                  Sound:{' '}
+                  {(parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).length === 0
+                    ? 'muted'
+                    : (parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).join(', ')}{' '}
+                  · change
+                </button>
+              ) : null}
               {state.winner_reveal_stage > 0 ? (
                 <FacilitatorButton
                   size="sm"
@@ -1819,6 +1883,63 @@ export function FacilitatorEventPage() {
             )
           })()
         : null}
+
+      {winnerRoutingOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="winner-routing-title"
+        >
+          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
+            <div>
+              <h3 id="winner-routing-title" className="text-foreground font-semibold">
+                Where should the winner sound play?
+              </h3>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Choose before revealing the winner. The celebration audio plays only on the
+                selected surfaces.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {WINNER_SOUND_SURFACES.map((s) => {
+                const checked = winnerRoutingSel.includes(s.id)
+                return (
+                  <label
+                    key={s.id}
+                    className="border-border/80 flex cursor-pointer gap-3 rounded-lg border p-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      className="mt-1"
+                      onChange={(e) =>
+                        setWinnerRoutingSel((prev) =>
+                          e.target.checked
+                            ? [...prev, s.id]
+                            : prev.filter((x) => x !== s.id),
+                        )
+                      }
+                    />
+                    <span className="min-w-0">
+                      <span className="text-foreground block text-sm font-medium">{s.label}</span>
+                      <span className="text-muted-foreground block text-xs">{s.description}</span>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+            <div className="flex justify-end gap-2">
+              <NeoButton variant="surface" onClick={() => setWinnerRoutingOpen(false)}>
+                Cancel
+              </NeoButton>
+              <NeoButton variant="primary" onClick={saveWinnerRoutingAndReveal}>
+                {liveState.winner_reveal_stage === 0 ? 'Save & reveal' : 'Save'}
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </div>
+      ) : null}
 
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

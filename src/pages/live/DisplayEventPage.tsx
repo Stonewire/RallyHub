@@ -17,6 +17,7 @@ import { setLiveParticipantMode } from '@/lib/supabase'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard, unlockAudioFromUserGesture } from '@/lib/sounds'
+import { winnerSoundEnabled } from '@/lib/winner-sound'
 import {
   currentStage,
   breakDurationSeconds,
@@ -148,7 +149,11 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     eventWinnerAudioStageRef.current = 2
 
     const revealKey = `${bundle.event.id}:winner-reveal:2`
-    const stopAudio = playEventWinnerSequence(revealKey)
+    // Confetti always runs; the celebration audio is gated by the facilitator's
+    // winner sound routing.
+    const stopAudio = winnerSoundEnabled(bundle.state.winner_sound_targets, 'display')
+      ? playEventWinnerSequence(revealKey)
+      : () => {}
 
     const confettiEnd = Date.now() + EVENT_WINNER_CONFETTI_MS
     let rafId = 0
