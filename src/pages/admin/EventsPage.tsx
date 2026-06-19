@@ -10,6 +10,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventLinksModal } from '@/components/events/EventLinksModal'
+import { OrgSuspendedBanner } from '@/components/admin/OrgSuspendedBanner'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ import {
   eventStatusTransitionError,
 } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
+import { isOrgSuspended } from '@/lib/account-status'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 import { useState } from 'react'
@@ -164,17 +166,25 @@ export function AdminEventsPage() {
   }
 
   const events = eventsQuery.data ?? []
+  const suspended = isOrgSuspended(orgQuery.data?.account_status)
 
   return (
     <AdminPageShell
       title="Events"
       subtitle="Drag cards to reorder or move between status groups. Click a card to edit."
       actions={
-        <NeoButton variant="accent" asChild>
-          <Link to="/admin/events/new">Create New Event</Link>
-        </NeoButton>
+        suspended ? (
+          <NeoButton variant="accent" disabled>
+            Create New Event
+          </NeoButton>
+        ) : (
+          <NeoButton variant="accent" asChild>
+            <Link to="/admin/events/new">Create New Event</Link>
+          </NeoButton>
+        )
       }
     >
+      <OrgSuspendedBanner accountStatus={orgQuery.data?.account_status} />
       {eventsQuery.isLoading ? (
         <QueryLoading rows={5} />
       ) : eventsQuery.isError ? (
@@ -186,9 +196,15 @@ export function AdminEventsPage() {
           <p className="text-muted-foreground max-w-sm text-sm">
             Create an event to schedule team activities and manage live sessions.
           </p>
-          <NeoButton variant="accent" asChild className="mt-2">
-            <Link to="/admin/events/new">Create New Event</Link>
-          </NeoButton>
+          {suspended ? (
+            <NeoButton variant="accent" disabled className="mt-2">
+              Create New Event
+            </NeoButton>
+          ) : (
+            <NeoButton variant="accent" asChild className="mt-2">
+              <Link to="/admin/events/new">Create New Event</Link>
+            </NeoButton>
+          )}
         </Card>
       ) : (
         <DraggableEventsGrid
