@@ -32,6 +32,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
@@ -63,6 +64,8 @@ export function AdminAppSidebar() {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { signOut, role } = useAuth()
+  const { state: sidebarState } = useSidebar()
+  const sidebarCollapsed = sidebarState === 'collapsed'
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
   const showOrgSettings = canAccessOrgSettings(role)
@@ -142,7 +145,23 @@ export function AdminAppSidebar() {
                 </SidebarMenuItem>
               ) : null}
 
-              {showOrgSettings ? (
+              {showOrgSettings && sidebarCollapsed ? (
+                // Icon-only mode hides the submenu, so the trigger would toggle an
+                // invisible list. Link straight to Organization Profile instead.
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Org Settings"
+                    isActive={orgChildActive}
+                    className="text-[#3E3D3E]"
+                  >
+                    <NavLink to="/admin/settings">
+                      <Building2 className="shrink-0" strokeWidth={1.75} />
+                      <span className="font-medium">Org Settings</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ) : showOrgSettings ? (
                 <SidebarMenuItem>
                   <Collapsible
                     open={orgMenuOpen}

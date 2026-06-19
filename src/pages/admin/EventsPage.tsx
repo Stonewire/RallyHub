@@ -1,7 +1,7 @@
 import { Calendar } from 'lucide-react'
 import { useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
 import {
@@ -18,6 +18,7 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   STATUS_ORDER,
   useDeleteEvent,
+  useDuplicateEvent,
   useEvents,
   useUpdateEventStatus,
   type EventRow,
@@ -40,6 +41,8 @@ export function AdminEventsPage() {
   const eventsQuery = useEvents(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
+  const duplicateEvent = useDuplicateEvent(organizationId)
+  const navigate = useNavigate()
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
@@ -136,6 +139,21 @@ export function AdminEventsPage() {
     setDeleteConfirmEvent(null)
   }
 
+  async function handleDuplicate(event: EventRow) {
+    try {
+      const { data: links, error } = await supabase
+        .from('event_games')
+        .select('game_id')
+        .eq('event_id', event.id)
+      if (error) throw error
+      const gameIds = (links ?? []).map((l) => l.game_id)
+      const copy = await duplicateEvent.mutateAsync({ source: event, gameIds })
+      navigate(`/admin/events/${copy.id}`)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not duplicate event')
+    }
+  }
+
   if (!organizationId) {
     return (
       <AdminPageShell title="Events" subtitle="Schedule and oversee live team events.">
@@ -179,6 +197,8 @@ export function AdminEventsPage() {
           onStatusChange={handleStatusChange}
           onDelete={(e) => void handleDelete(e)}
           onViewLinks={setLinksModal}
+          onDuplicate={(e) => void handleDuplicate(e)}
+          duplicating={duplicateEvent.isPending}
           onReorder={handleReorder}
         />
       )}

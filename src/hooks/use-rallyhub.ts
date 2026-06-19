@@ -21,11 +21,17 @@ export {
 } from '@/hooks/use-support-tickets'
 
 export function useRallyHubDashboard() {
+  const { profile, role } = useAuth()
+  const excludedOrganizationIds =
+    role === 'super_admin' && profile?.organization_id ? [profile.organization_id] : []
+
   return useQuery({
-    queryKey: ['rallyhub', 'dashboard'],
+    queryKey: ['rallyhub', 'dashboard', ...excludedOrganizationIds],
     queryFn: async () => {
       const [orgsRes, eventsRes, activeRes] = await Promise.all([
-        supabase.from('organizations').select('id', { count: 'exact', head: true }),
+        // Count clients the same way the clients list does — exclude the platform
+        // library org and the super-admin's own org — so the stat matches the list.
+        supabase.from('organizations').select('id, subdomain'),
         supabase.from('events').select('id', { count: 'exact', head: true }),
         supabase
           .from('events')
@@ -35,8 +41,11 @@ export function useRallyHubDashboard() {
       if (orgsRes.error) throw orgsRes.error
       if (eventsRes.error) throw eventsRes.error
       if (activeRes.error) throw activeRes.error
+      const clientCount = (orgsRes.data ?? []).filter((org) =>
+        isListedClientOrganization(org, excludedOrganizationIds),
+      ).length
       return {
-        clientCount: orgsRes.count ?? 0,
+        clientCount,
         totalEvents: eventsRes.count ?? 0,
         activeEvents: activeRes.count ?? 0,
       }

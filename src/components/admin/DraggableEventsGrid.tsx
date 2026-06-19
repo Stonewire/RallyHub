@@ -1,4 +1,4 @@
-import { GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
+import { Copy, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -23,7 +23,9 @@ type DraggableEventsGridProps = {
   onStatusChange: (eventId: string, status: EventStatus) => void
   onDelete: (event: EventRow) => void
   onViewLinks: (event: EventRow) => void
+  onDuplicate: (event: EventRow) => void
   onReorder: (eventId: string, status: EventStatus, indexInGroup: number) => void
+  duplicating?: boolean
 }
 
 export function DraggableEventsGrid({
@@ -33,7 +35,9 @@ export function DraggableEventsGrid({
   onStatusChange,
   onDelete,
   onViewLinks,
+  onDuplicate,
   onReorder,
+  duplicating = false,
 }: DraggableEventsGridProps) {
   const navigate = useNavigate()
   const [dragId, setDragId] = useState<string | null>(null)
@@ -152,21 +156,38 @@ export function DraggableEventsGrid({
                   className="flex flex-wrap gap-1.5 pl-6"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <NeoButton
-                    type="button"
-                    variant="surface"
-                    size="sm"
-                    onClick={() => onViewLinks(event)}
-                  >
-                    <Link2 className="size-3" />
-                    View Links
-                  </NeoButton>
-                  <NeoButton variant="surface" size="sm" asChild>
-                    <Link to={`/admin/events/${event.id}`}>
-                      <Pencil className="size-3" />
-                      Edit
-                    </Link>
-                  </NeoButton>
+                  {(event.status as EventStatus) === 'archived' ? (
+                    // Archived events are read-only: no editing, no live links —
+                    // the only forward action is duplicating into a fresh event.
+                    <NeoButton
+                      type="button"
+                      variant="surface"
+                      size="sm"
+                      disabled={duplicating}
+                      onClick={() => onDuplicate(event)}
+                    >
+                      <Copy className="size-3" />
+                      {duplicating ? 'Duplicating…' : 'Duplicate'}
+                    </NeoButton>
+                  ) : (
+                    <>
+                      <NeoButton
+                        type="button"
+                        variant="surface"
+                        size="sm"
+                        onClick={() => onViewLinks(event)}
+                      >
+                        <Link2 className="size-3" />
+                        View Links
+                      </NeoButton>
+                      <NeoButton variant="surface" size="sm" asChild>
+                        <Link to={`/admin/events/${event.id}`}>
+                          <Pencil className="size-3" />
+                          Edit
+                        </Link>
+                      </NeoButton>
+                    </>
+                  )}
                   <NeoButton
                     type="button"
                     variant="destructive"
