@@ -1,6 +1,6 @@
 export type BillingPeriod = 'monthly' | 'yearly'
 
-export type PlanId = 'free' | 'starter' | 'pro' | 'partner'
+export type PlanId = 'rookie' | 'arena' | 'pro' | 'max' | 'partner'
 
 export type SubscriptionPlan = {
   id: PlanId
@@ -16,21 +16,21 @@ export type SubscriptionPlan = {
 }
 
 export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
-  free: {
-    id: 'free',
-    name: 'Free',
+  rookie: {
+    id: 'rookie',
+    name: 'Rookie',
     monthlyPriceEur: 0,
     yearlyPriceEur: 0,
     perEventPriceEur: 150,
-    monthlyEventLimit: 1,
+    monthlyEventLimit: null,
     billingPeriods: ['monthly', 'yearly'],
     hidden: false,
   },
-  starter: {
-    id: 'starter',
-    name: 'Starter',
-    monthlyPriceEur: 20,
-    yearlyPriceEur: 200,
+  arena: {
+    id: 'arena',
+    name: 'Arena',
+    monthlyPriceEur: 10,
+    yearlyPriceEur: 100,
     perEventPriceEur: 100,
     monthlyEventLimit: null,
     billingPeriods: ['monthly', 'yearly'],
@@ -39,9 +39,19 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
   pro: {
     id: 'pro',
     name: 'Pro',
+    monthlyPriceEur: 30,
+    yearlyPriceEur: 300,
+    perEventPriceEur: 50,
+    monthlyEventLimit: null,
+    billingPeriods: ['monthly', 'yearly'],
+    hidden: false,
+  },
+  max: {
+    id: 'max',
+    name: 'Max',
     monthlyPriceEur: 50,
     yearlyPriceEur: 500,
-    perEventPriceEur: 50,
+    perEventPriceEur: 25,
     monthlyEventLimit: null,
     billingPeriods: ['monthly', 'yearly'],
     hidden: false,
@@ -62,15 +72,22 @@ export const PLAN_IDS = Object.keys(SUBSCRIPTION_PLANS) as PlanId[]
 
 export const BILLING_PERIODS: BillingPeriod[] = ['monthly', 'yearly']
 
+/**
+ * Maps old plan IDs (from before the Rookie/Arena/Pro/Max rename) to new IDs.
+ * Allows existing DB values to keep working without a migration.
+ */
 const LEGACY_PLAN_ALIASES: Record<string, PlanId> = {
+  free: 'rookie',
+  starter: 'arena',
+  // old 'pro' (€500/yr) maps to 'max'; the new 'pro' is €300/yr
   enterprise: 'partner',
 }
 
 export function normalizePlanId(plan: string | null | undefined): PlanId {
   const key = plan?.toLowerCase().trim()
-  if (!key) return 'free'
+  if (!key) return 'rookie'
   if (key in SUBSCRIPTION_PLANS) return key as PlanId
-  return LEGACY_PLAN_ALIASES[key] ?? 'free'
+  return LEGACY_PLAN_ALIASES[key] ?? 'rookie'
 }
 
 export function normalizeBillingPeriod(

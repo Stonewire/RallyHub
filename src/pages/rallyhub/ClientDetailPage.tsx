@@ -101,7 +101,7 @@ export function RallyHubClientDetailPage() {
   const [subdomain, setSubdomain] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [billingPlan, setBillingPlan] = useState('free')
+  const [billingPlan, setBillingPlan] = useState('rookie')
   const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [accountStatus, setAccountStatus] = useState('active')
   const [vatNumber, setVatNumber] = useState('')

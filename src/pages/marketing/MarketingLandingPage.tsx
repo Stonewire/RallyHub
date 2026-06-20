@@ -297,9 +297,9 @@ export function MarketingLandingPage() {
               {plans.map((plan) => (
                 <li key={plan.id}>
                   <NeoCard
-                    className={`flex h-full flex-col gap-4 p-6 ${plan.id === 'starter' ? 'ring-2 ring-[color-mix(in_srgb,var(--nm-yellow)_45%,transparent)]' : ''}`}
+                    className={`flex h-full flex-col gap-4 p-6 ${plan.id === 'arena' ? 'ring-2 ring-[color-mix(in_srgb,var(--nm-yellow)_45%,transparent)]' : ''}`}
                   >
-                    {plan.id === 'starter' ? (
+                    {plan.id === 'arena' ? (
                       <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                         Most popular
                       </span>
@@ -314,12 +314,12 @@ export function MarketingLandingPage() {
                       {formatPerEventPrice(plan)} · {formatEventLimit(plan)}
                     </p>
                     <NeoButton
-                      variant={plan.id === 'free' ? 'surface' : 'primary'}
+                      variant={plan.id === 'rookie' ? 'surface' : 'primary'}
                       className="w-full"
                       asChild
                     >
-                      <Link to={plan.id === 'free' ? '/login' : '/contact'}>
-                        {plan.id === 'free' ? 'Start free' : 'Book a Demo'}
+                      <Link to={plan.id === 'rookie' ? '/login' : '/contact'}>
+                        {plan.id === 'rookie' ? 'Start free' : 'Book a Demo'}
                       </Link>
                     </NeoButton>
                   </NeoCard>

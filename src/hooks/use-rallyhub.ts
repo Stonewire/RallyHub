@@ -262,7 +262,7 @@ export function useUpdateClientAdmin() {
         ...(name !== undefined ? { name: name.trim() } : {}),
         internal_notes: notes ?? null,
         account_status: account_status ?? 'active',
-        billing_plan: billing_plan ?? 'free',
+        billing_plan: billing_plan ?? 'rookie',
         billing_period: billing_period ?? 'monthly',
         email: trimmedEmail || null,
         contact_email: trimmedEmail || null,
