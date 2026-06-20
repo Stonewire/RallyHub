@@ -927,6 +927,7 @@ export function FacilitatorEventPage() {
   }
 
   function handleBingoStartClick() {
+    if (bingoAdvancing) return
     bingoWinHaltRef.current = false
 
     const player = bingoAudioRef.current
@@ -939,6 +940,7 @@ export function FacilitatorEventPage() {
 
     const syncUrl = trackPlaybackUrl || resolvePlaybackUrlForIndex(effectiveBingoRun, bingoPlayIndex)
     if (syncUrl) {
+      setBingoAdvancing(true)
       void player.playFromUserGesture(syncUrl).then((played) => {
         if (played) {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
@@ -946,35 +948,40 @@ export function FacilitatorEventPage() {
         } else {
           notify('Could not start playback — check console for details')
         }
-      })
+      }).finally(() => setBingoAdvancing(false))
       return
     }
 
+    setBingoAdvancing(true)
     void (async () => {
-      const run = await ensureBingoRunReady()
-      let trackList = tracks
-      let url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, trackList)
-      if (!url && stage?.gameId) {
-        try {
-          const fresh = await fetchMusicTracksForGame(eventId!, stage.gameId)
-          if (fresh.length > 0) {
-            trackList = fresh
-            setBingoTracksLive(fresh)
-            url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, fresh)
+      try {
+        const run = await ensureBingoRunReady()
+        let trackList = tracks
+        let url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, trackList)
+        if (!url && stage?.gameId) {
+          try {
+            const fresh = await fetchMusicTracksForGame(eventId!, stage.gameId)
+            if (fresh.length > 0) {
+              trackList = fresh
+              setBingoTracksLive(fresh)
+              url = resolvePlaybackUrlForIndex(run, bingoPlayIndex, fresh)
+            }
+          } catch {
+            // fall through to error below
           }
-        } catch {
-          // fall through to error below
         }
+        if (!url) {
+          notify('No playable track URL — ensure MP3 clips are uploaded for this bingo game')
+          return
+        }
+        const played = await player.playFromUserGesture(url)
+        if (played) {
+          await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
+          void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
+        } else notify('Run loaded — press Start again to play')
+      } finally {
+        setBingoAdvancing(false)
       }
-      if (!url) {
-        notify('No playable track URL — ensure MP3 clips are uploaded for this bingo game')
-        return
-      }
-      const played = await player.playFromUserGesture(url)
-      if (played) {
-        await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
-        void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
-      } else notify('Run loaded — press Start again to play')
     })()
   }
 
