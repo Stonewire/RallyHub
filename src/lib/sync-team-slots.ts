@@ -79,7 +79,9 @@ export async function syncTeamSlots(eventId: string, teamCount: number) {
         score: 0,
         status: 'idle',
       })
-      if (error) throw error
+      // 23505 = a concurrent insert (DB trigger / realtime) already created this
+      // slot. Harmless on duplicate create — only re-throw genuine errors.
+      if (error && error.code !== '23505') throw error
     }
   }
 
@@ -93,6 +95,8 @@ export async function syncTeamSlots(eventId: string, teamCount: number) {
     const { error } = await supabase.from('event_state').insert({
       event_id: eventId,
     })
-    if (error) throw error
+    // event_state may be auto-created by a trigger right after the event insert;
+    // tolerate that race so a freshly duplicated event doesn't report failure.
+    if (error && error.code !== '23505') throw error
   }
 }

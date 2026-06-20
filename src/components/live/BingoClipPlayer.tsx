@@ -84,6 +84,26 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
 
     async function primeAudioContext(): Promise<void> {}
 
+    /** Resolve once the element has buffered enough to start, or on timeout. */
+    function waitForReady(el: HTMLAudioElement, timeoutMs = 4000): Promise<boolean> {
+      if (el.readyState >= 3 /* HAVE_FUTURE_DATA */) return Promise.resolve(true)
+      return new Promise((resolve) => {
+        let done = false
+        const finish = (ok: boolean) => {
+          if (done) return
+          done = true
+          el.removeEventListener('canplay', onReady)
+          el.removeEventListener('loadeddata', onReady)
+          window.clearTimeout(timer)
+          resolve(ok)
+        }
+        const onReady = () => finish(true)
+        el.addEventListener('canplay', onReady, { once: true })
+        el.addEventListener('loadeddata', onReady, { once: true })
+        const timer = window.setTimeout(() => finish(false), timeoutMs)
+      })
+    }
+
     async function playFromUserGesture(url: string): Promise<boolean> {
       if (!url?.trim()) return false
       void probeUrl(url)
@@ -94,13 +114,20 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       }
       el.volume = 1
       el.muted = false
+      // Assigning .src already starts loading. Calling el.load() here aborts the
+      // immediate play() below (AbortError), which forced a second Start press.
       if (el.src !== url) {
         el.src = url
-        el.load()
       }
       autoFadeTriggeredRef.current = false
       lockRevealTriggeredRef.current = false
-      return playElement(el, 'gesture')
+      const ok = await playElement(el, 'gesture')
+      if (ok) return true
+      // Source was just (re)assigned and wasn't ready yet — wait for it to buffer
+      // and try once more so a single press reliably starts playback.
+      const ready = await waitForReady(el)
+      if (!ready) return false
+      return playElement(el, 'gesture-retry')
     }
 
     async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
