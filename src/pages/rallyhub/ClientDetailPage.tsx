@@ -26,7 +26,7 @@ import {
   useUpdateClientAdmin,
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
-import { uploadOrganizationLogo } from '@/hooks/use-organization-settings'
+import { uploadOrganizationLogo, useOrganizationUsers } from '@/hooks/use-organization-settings'
 import {
   BILLING_PERIODS,
   formatBillingPeriodLabel,
@@ -40,7 +40,6 @@ import { countClientEvents } from '@/lib/client-events'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import { useNotification } from '@/contexts/notification-context'
 
 const STATUSES = ['active', 'suspended', 'trial'] as const
 
@@ -93,7 +92,6 @@ export function RallyHubClientDetailPage() {
   )
   const createClient = useCreateRallyHubClient()
   const updateClient = useUpdateClientAdmin()
-  const { notify } = useNotification()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [orgName, setOrgName] = useState('')
@@ -118,7 +116,7 @@ export function RallyHubClientDetailPage() {
   const [logoUploading, setLogoUploading] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [memberResetEmail, setMemberResetEmail] = useState<Record<string, string>>({})
+  const orgUsersQuery = useOrganizationUsers(isCreateMode ? null : (clientId ?? null))
   const [adminResetMessage, setAdminResetMessage] = useState<string | null>(null)
   const [adminResetError, setAdminResetError] = useState<string | null>(null)
   const [adminResetSending, setAdminResetSending] = useState(false)
@@ -162,22 +160,6 @@ export function RallyHubClientDetailPage() {
       return
     }
     setSearchParams({ tab })
-  }
-
-  async function sendMemberPasswordReset(emailAddress: string) {
-    const redirectTo = data?.org
-      ? loginPageRedirectUrl(data.org)
-      : loginPageRedirectUrl(
-          subdomain.trim()
-            ? { subdomain: subdomain.trim().toLowerCase(), custom_domain: null }
-            : undefined,
-        )
-    try {
-      await sendPasswordResetEmail(emailAddress, redirectTo)
-      notify(`Password reset email sent to ${emailAddress}`)
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to send password reset email')
-    }
   }
 
   async function handleAdminPasswordReset() {
@@ -634,56 +616,38 @@ export function RallyHubClientDetailPage() {
       {!isCreateMode && data ? (
         <NeoCard className="border-border/80 bg-card p-6 shadow-sm">
           <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
-          <ul className="space-y-3">
-            {data.profiles.map((p) => (
-              <li
-                key={p.id}
-                className="border-border/80 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-              >
-                <div>
-                  <p className="font-medium">{p.full_name || p.id}</p>
-                  <p className="text-muted-foreground text-xs capitalize">{p.role}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <NeoInput
-                    type="email"
-                    value={memberResetEmail[p.id] ?? ''}
-                    onChange={(e) =>
-                      setMemberResetEmail((prev) => ({ ...prev, [p.id]: e.target.value }))
-                    }
-                    placeholder="User email"
-                    className="bg-background h-8 max-w-[14rem] text-sm"
-                  />
-                  <NeoButton
-                    type="button"
-                    size="sm"
-                    variant="surface"
-                    disabled={!memberResetEmail[p.id]?.trim()}
-                    onClick={() => {
-                      const addr = memberResetEmail[p.id]?.trim()
-                      if (addr) void sendMemberPasswordReset(addr)
-                    }}
+          {orgUsersQuery.isLoading ? (
+            <p className="text-muted-foreground text-sm">Loading users…</p>
+          ) : (orgUsersQuery.data?.length ?? 0) === 0 ? (
+            <p className="text-muted-foreground text-sm">No users yet.</p>
+          ) : (
+            <ul className="divide-border divide-y">
+              {orgUsersQuery.data?.map((u) => {
+                const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username
+                return (
+                  <li
+                    key={u.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-3"
                   >
-                    Send reset email
-                  </NeoButton>
-                </div>
-              </li>
-            ))}
-            {data.members.map((m) => (
-              <li key={m.id} className="text-muted-foreground text-sm">
-                {m.email} (invited)
-                <NeoButton
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="ml-2"
-                  onClick={() => void sendMemberPasswordReset(m.email)}
-                >
-                  Send reset email
-                </NeoButton>
-              </li>
-            ))}
-          </ul>
+                    <div>
+                      <p className="text-foreground font-medium">{displayName}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {u.email} · {u.role.replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                    <NeoButton
+                      type="button"
+                      size="sm"
+                      variant="surface"
+                      onClick={() => setAdminResetConfirmEmail(u.email)}
+                    >
+                      Reset password
+                    </NeoButton>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </NeoCard>
       ) : null}
 
