@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
@@ -450,6 +451,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       <DisplayShell logo={logo} title={event.name} headerRight={headerTimer}>
         {body}
       </DisplayShell>
+      <PoweredByRallyHub hidden={organization?.hide_platform_branding} position="bottom-right" />
       {showAnnouncement ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-8">
           <p className="font-display max-w-4xl text-center text-3xl font-bold text-white md:text-5xl">

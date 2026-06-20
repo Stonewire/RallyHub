@@ -12,6 +12,7 @@ export type OrganizationTenantPublic = {
   secondary_color: string
   accent_color: string
   tablet_slug: string
+  hide_platform_branding: boolean
 }
 
 function firstRow<T>(data: T | T[] | null): T | null {

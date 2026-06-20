@@ -106,6 +106,7 @@ export function RallyHubClientDetailPage() {
   const [accountStatus, setAccountStatus] = useState('active')
   const [trialEndsAt, setTrialEndsAt] = useState<string>('')
   const [trialReviewNeeded, setTrialReviewNeeded] = useState(false)
+  const [hidePlatformBranding, setHidePlatformBranding] = useState(false)
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
   const [addressCity, setAddressCity] = useState('')
@@ -137,6 +138,7 @@ export function RallyHubClientDetailPage() {
     setAccountStatus(org.account_status ?? 'active')
     setTrialEndsAt(org.trial_ends_at ? org.trial_ends_at.slice(0, 10) : '')
     setTrialReviewNeeded(org.trial_review_needed ?? false)
+    setHidePlatformBranding(org.hide_platform_branding ?? false)
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
     setAddressCity(org.address_city ?? '')
@@ -230,6 +232,7 @@ export function RallyHubClientDetailPage() {
       account_status: accountStatus,
       trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
       trial_review_needed: trialReviewNeeded,
+      hide_platform_branding: hidePlatformBranding,
       logo_url: logo !== undefined ? logo : logoUrl,
       vat_number: vatNumber,
       address_street: addressStreet,
@@ -589,6 +592,18 @@ export function RallyHubClientDetailPage() {
             lists.
           </p>
         ) : null}
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            checked={hidePlatformBranding}
+            onChange={(e) => setHidePlatformBranding(e.target.checked)}
+            className="accent-primary size-4 rounded"
+          />
+          <span className="text-sm">
+            Hide "Powered by RallyHub" watermark on live event surfaces
+            <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
+          </span>
+        </label>
       </NeoCard>
 
       <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">

@@ -186,6 +186,7 @@ export type ClientAdminUpdateInput = {
   account_status?: string
   trial_ends_at?: string | null
   trial_review_needed?: boolean
+  hide_platform_branding?: boolean
   billing_plan?: string
   billing_period?: string
   subdomain?: string
@@ -258,6 +259,7 @@ export function useUpdateClientAdmin() {
       account_status,
       trial_ends_at,
       trial_review_needed,
+      hide_platform_branding,
       billing_plan,
       billing_period,
       subdomain,
@@ -279,6 +281,7 @@ export function useUpdateClientAdmin() {
         account_status: account_status ?? 'active',
         trial_ends_at: trial_ends_at ?? null,
         ...(trial_review_needed !== undefined ? { trial_review_needed } : {}),
+        ...(hide_platform_branding !== undefined ? { hide_platform_branding } : {}),
         billing_plan: billing_plan ?? 'rookie',
         billing_period: billing_period ?? 'monthly',
         email: trimmedEmail || null,

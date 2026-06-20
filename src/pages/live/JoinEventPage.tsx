@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AccentButton } from '@/components/admin/AccentButton'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
+import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
@@ -264,6 +265,7 @@ export function JoinEventPage() {
 
   return (
     <LivePanelShell title={event.name} titleCentered className="experience-scope">
+      <PoweredByRallyHub hidden={organization?.hide_platform_branding} position="bottom-center" />
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (
         <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />

@@ -15,6 +15,7 @@ export type TenantPublicOrg = {
   secondary_color: string
   accent_color: string
   tablet_slug: string
+  hide_platform_branding: boolean
 }
 
 export type TenantContext =
