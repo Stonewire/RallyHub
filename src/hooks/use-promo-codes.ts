@@ -93,6 +93,73 @@ export function useOrgPromoRedemptions(orgId: string | null | undefined) {
   })
 }
 
+export type UpdatePromoCodeInput = {
+  id: string
+  discount_percent: number
+  max_redemptions: number | null
+  duration_months: number | null
+  notes: string | null
+}
+
+export function useUpdatePromoCode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: UpdatePromoCodeInput) => {
+      const { error } = await supabase
+        .from('promo_codes')
+        .update(fields)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: promoCodesKey })
+    },
+  })
+}
+
+export function useDeletePromoCode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('promo_codes').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: promoCodesKey })
+    },
+  })
+}
+
+export type PromoCodeRedemptionWithOrg = PromoRedemption & { org_name: string }
+
+const redemptionsForCodeKey = (codeId: string | null) =>
+  ['rallyhub', 'promo-code-redemptions', codeId] as const
+
+export function usePromoCodeRedemptions(codeId: string | null) {
+  return useQuery({
+    queryKey: redemptionsForCodeKey(codeId),
+    enabled: Boolean(codeId),
+    queryFn: async (): Promise<PromoCodeRedemptionWithOrg[]> => {
+      const { data, error } = await supabase
+        .from('promo_code_redemptions')
+        .select('*')
+        .eq('promo_code_id', codeId!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = data ?? []
+      const orgIds = [...new Set(rows.map((r) => r.organization_id))]
+      const { data: orgs } = orgIds.length
+        ? await supabase.from('organizations').select('id, name').in('id', orgIds)
+        : { data: [] }
+      const orgMap = new Map((orgs ?? []).map((o) => [o.id, o.name]))
+      return rows.map((r) => ({
+        ...r,
+        org_name: orgMap.get(r.organization_id) ?? r.organization_id,
+      }))
+    },
+  })
+}
+
 /** Client: add a promo code to this org via the redeem RPC. */
 export function useRedeemPromoCode(orgId: string | null | undefined) {
   const qc = useQueryClient()
