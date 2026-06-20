@@ -1,4 +1,4 @@
-import { Copy, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
+import { Copy, Eye, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -157,18 +157,25 @@ export function DraggableEventsGrid({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {(event.status as EventStatus) === 'archived' ? (
-                    // Archived events are read-only: no editing, no live links —
-                    // the only forward action is duplicating into a fresh event.
-                    <NeoButton
-                      type="button"
-                      variant="surface"
-                      size="sm"
-                      disabled={duplicating}
-                      onClick={() => onDuplicate(event)}
-                    >
-                      <Copy className="size-3" />
-                      {duplicating ? 'Duplicating…' : 'Duplicate'}
-                    </NeoButton>
+                    // Archived events are read-only: view details or duplicate — no editing.
+                    <>
+                      <NeoButton variant="surface" size="sm" asChild>
+                        <Link to={`/admin/events/${event.id}`}>
+                          <Eye className="size-3" />
+                          View
+                        </Link>
+                      </NeoButton>
+                      <NeoButton
+                        type="button"
+                        variant="surface"
+                        size="sm"
+                        disabled={duplicating}
+                        onClick={() => onDuplicate(event)}
+                      >
+                        <Copy className="size-3" />
+                        {duplicating ? 'Duplicating…' : 'Duplicate'}
+                      </NeoButton>
+                    </>
                   ) : (
                     <>
                       <NeoButton

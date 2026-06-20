@@ -487,11 +487,12 @@ export function JoinGameView({
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
-    if (state.quiz_state !== 'revealed' || !currentQuizQ) return
-    // The correct answer is redacted for participants until reveal delivers it
-    // (a follow-up games update). Wait for it — otherwise the sound fires with an
-    // undefined correctAnswerId and always plays the "wrong" cue. The effect
-    // re-runs once the answer arrives.
+    // Fire on 'revealed' OR 'results' — facilitator may advance to results before
+    // the full_reload carrying correctAnswerId arrives on the player's device.
+    if (
+      (state.quiz_state !== 'revealed' && state.quiz_state !== 'results') ||
+      !currentQuizQ
+    ) return
     if (!currentQuizQ.correctAnswerId) return
     const key = `${stage?.gameId ?? 'quiz'}:${state.current_question_index}`
     if (lastQuizRevealKeyRef.current === key) return
@@ -1126,12 +1127,21 @@ export function JoinGameView({
             {q.answers.map((a) => {
               const isCorrect = answerKnown && a.id === q.correctAnswerId
               const isMine = a.id === myAnswerId
-              let cls = 'bg-white/15'
-              if (isCorrect) cls = 'bg-green-600/80 ring-2 ring-green-300'
-              else if (answerKnown && isMine && !isCorrect) cls = 'bg-red-600/70'
-              else if (isMine) cls = 'bg-white/25 ring-2 ring-white/40'
+              let cls = 'xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium '
+              let style: CSSProperties | undefined
+              if (isCorrect) {
+                cls += 'bg-green-600/80 ring-2 ring-green-300'
+              } else if (answerKnown && isMine && !isCorrect) {
+                cls += 'bg-red-600/70'
+              } else if (isMine) {
+                // Keep yellow selection while waiting for correctAnswerId to arrive.
+                cls += 'ring-2 ring-white/40'
+                style = { backgroundColor: STANDBY_ACCENT, color: textOnAccent(STANDBY_ACCENT) }
+              } else {
+                cls += 'bg-white/15'
+              }
               return (
-                <div key={a.id} className={`xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium ${cls}`}>
+                <div key={a.id} className={cls} style={style}>
                   {a.text}
                 </div>
               )

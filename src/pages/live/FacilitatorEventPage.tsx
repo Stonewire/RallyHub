@@ -639,6 +639,13 @@ export function FacilitatorEventPage() {
   async function resetTeamSlot(team: Tables<'teams'>) {
     setResettingTeam(true)
     try {
+      // Wipe all submissions for this team so the next occupant starts clean.
+      const { error: delErr } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('team_id', team.id)
+      if (delErr) throw delErr
+
       await updateTeam(team.id, {
         name: null,
         photo_url: null,

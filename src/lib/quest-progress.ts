@@ -12,7 +12,7 @@ export type QuestGameProgress = {
 
 export type TeamQuestProgress = {
   items: QuestGameProgress[]
-  /** Games with an approved submission. */
+  /** Games the team has completed an attempt on (approved or rejected). */
   doneCount: number
   total: number
   /** 0–100 completion for the cell fill. */
@@ -71,7 +71,7 @@ export function teamQuestProgress(
     return { game, status: 'none', submission: null }
   })
   const total = questGames.length
-  const doneCount = items.filter((i) => i.status === 'approved').length
+  const doneCount = items.filter((i) => i.status === 'approved' || i.status === 'rejected').length
   const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0
   return { items, doneCount, total, percent }
 }

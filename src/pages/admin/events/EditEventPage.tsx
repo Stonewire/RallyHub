@@ -157,6 +157,7 @@ export function AdminEventEditPage() {
     eventQuery.isLoading || gameIdsQuery.isLoading || !hydrated
 
   const eventStatus = (eventQuery.data?.status ?? 'draft') as EventStatus
+  const isArchived = eventStatus === 'archived'
   const activated = eventQuery.data ? isEventActivated(eventQuery.data) : false
   const resetAllowed = canResetEventData(eventStatus)
 
@@ -173,30 +174,36 @@ export function AdminEventEditPage() {
 
   return (
     <AdminPageShell
-      title="Edit event"
-      subtitle="Update event details, teams, games, and stages."
+      title={isArchived ? 'View event' : 'Edit event'}
+      subtitle={
+        isArchived
+          ? 'Archived event — view only. Duplicate it to run the setup again.'
+          : 'Update event details, teams, games, and stages.'
+      }
       backTo="/admin/events"
       backLabel="Back to events"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <EventStatusMenu
-            status={eventStatus}
-            invoicedAt={eventQuery.data?.invoiced_at}
-            size="default"
-            disabled={
-              updateStatus.isPending || activation.confirmingActivation || loading
-            }
-            onSelect={(status) => {
-              if (!eventId || !eventQuery.data) return
-              activation.requestStatusChange(
-                eventStatus,
-                status,
-                eventQuery.data.name,
-                eventQuery.data.invoiced_at,
-                () => updateStatus.mutateAsync({ eventId, status }),
-              )
-            }}
-          />
+          {!isArchived && (
+            <EventStatusMenu
+              status={eventStatus}
+              invoicedAt={eventQuery.data?.invoiced_at}
+              size="default"
+              disabled={
+                updateStatus.isPending || activation.confirmingActivation || loading
+              }
+              onSelect={(status) => {
+                if (!eventId || !eventQuery.data) return
+                activation.requestStatusChange(
+                  eventStatus,
+                  status,
+                  eventQuery.data.name,
+                  eventQuery.data.invoiced_at,
+                  () => updateStatus.mutateAsync({ eventId, status }),
+                )
+              }}
+            />
+          )}
           <NeoButton
             type="button"
             variant="surface"
@@ -205,14 +212,16 @@ export function AdminEventEditPage() {
           >
             {duplicateEvent.isPending ? 'Duplicating…' : 'Duplicate event'}
           </NeoButton>
-          <NeoButton
-            type="button"
-            variant="primary"
-            disabled={saving || loading}
-            onClick={() => void handleSave()}
-          >
-            {saving ? 'Saving…' : 'Save Changes'}
-          </NeoButton>
+          {!isArchived && (
+            <NeoButton
+              type="button"
+              variant="primary"
+              disabled={saving || loading}
+              onClick={() => void handleSave()}
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </NeoButton>
+          )}
         </div>
       }
     >
@@ -241,13 +250,15 @@ export function AdminEventEditPage() {
 
           {activeTab === 'settings' && (
             <>
-              {error ? (
-                <p className="text-destructive mb-4 text-sm" role="alert">
-                  {error}
-                </p>
-              ) : null}
-
-              {activated ? (
+              {isArchived ? (
+                <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
+                  <p className="text-foreground font-medium">Archived — read only</p>
+                  <p className="text-muted-foreground mt-1">
+                    This event is archived and cannot be edited. Use "Duplicate event" to create
+                    a fresh copy with the same setup.
+                  </p>
+                </Card>
+              ) : activated ? (
                 <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
                   <p className="text-foreground font-medium">This event has been activated</p>
                   <p className="text-muted-foreground mt-1">
@@ -257,15 +268,23 @@ export function AdminEventEditPage() {
                 </Card>
               ) : null}
 
-              <EventForm
-                organizationId={organizationId}
-                values={values}
-                onChange={setValues}
-                games={gamesQuery.data ?? []}
-                groups={groupsQuery.data ?? []}
-                orgDefaults={orgQuery.data ?? null}
-                maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
-              />
+              {error ? (
+                <p className="text-destructive mb-4 text-sm" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              <fieldset disabled={isArchived} className="contents">
+                <EventForm
+                  organizationId={organizationId}
+                  values={values}
+                  onChange={setValues}
+                  games={gamesQuery.data ?? []}
+                  groups={groupsQuery.data ?? []}
+                  orgDefaults={orgQuery.data ?? null}
+                  maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
+                />
+              </fieldset>
 
               {eventId && eventQuery.data ? (
                 <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
@@ -317,7 +336,7 @@ export function AdminEventEditPage() {
                 </Card>
               ) : null}
 
-              {resetAllowed ? (
+              {resetAllowed && !isArchived ? (
                 <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
                   <div>
                     <h2 className="text-foreground text-lg font-semibold">Reset event data</h2>
@@ -337,11 +356,13 @@ export function AdminEventEditPage() {
                 </Card>
               ) : null}
 
-              <FormSaveFooter
-                onSave={() => void handleSave()}
-                saving={saving}
-                label="Save Changes"
-              />
+              {!isArchived && (
+                <FormSaveFooter
+                  onSave={() => void handleSave()}
+                  saving={saving}
+                  label="Save Changes"
+                />
+              )}
             </>
           )}
 
