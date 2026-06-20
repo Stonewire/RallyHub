@@ -17,7 +17,7 @@ export type DisplayLayout = 'rank_list' | 'orbit_view'
 export type DisplayTextColor = 'black' | 'white'
 
 /** Quiz / bingo “stand by” highlight — not event branding. */
-export const STANDBY_ACCENT = '#FFCB03'
+export const STANDBY_ACCENT = '#FFC107'
 
 export function textOnAccent(accentHex: string): string {
   const hex = accentHex.replace('#', '').slice(0, 6)
@@ -89,7 +89,7 @@ export function currentStage(
 export const DEFAULT_BRAND_COLORS: [string, string, string] = [
   '#3E3D3E',
   '#6f6f6f',
-  '#FFCB03',
+  '#FFC107',
 ]
 
 function brandColorSlot(value: unknown): string | null {

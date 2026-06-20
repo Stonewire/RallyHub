@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { textOnAccent } from '@/lib/live-event'
 import { playBingoWinJingle, playLoserSound } from '@/lib/sounds'
 
-const DEFAULT_ACCENT = '#FFCB03'
+const DEFAULT_ACCENT = '#FFC107'
 
 type BingoWinCelebrationProps = {
   teamName: string

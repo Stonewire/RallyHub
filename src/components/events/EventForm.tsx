@@ -600,7 +600,7 @@ export function EventForm({
                         alreadyAdded
                           ? 'border-border/60 bg-muted/30 cursor-not-allowed opacity-60'
                           : checked
-                            ? 'border-[#FFCB03]/60 bg-[#FFCB03]/10 hover:bg-muted/50'
+                            ? 'border-[#FFC107]/60 bg-[#FFC107]/10 hover:bg-muted/50'
                             : 'border-border/80 hover:bg-muted/50',
                       )}
                       onClick={() => {

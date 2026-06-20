@@ -97,14 +97,14 @@ export function AdminAppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal"
+      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-foreground [&_*]:tracking-normal"
       style={{
         /** Ensure nav label color even inside nested spans */
         color: 'var(--foreground)',
       }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        <div className="group-data-[collapsible=icon]/sidebar:flex group-data-[collapsible=icon]/sidebar:justify-center">
+        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <RallySidebarLogo />
         </div>
       </SidebarHeader>
@@ -119,7 +119,7 @@ export function AdminAppSidebar() {
                     asChild
                     tooltip={label}
                     isActive={isAdminNavActive(pathname, to, end)}
-                    className="text-[#3E3D3E]"
+                    className="text-foreground"
                   >
                     <NavLink to={to} end={end}>
                       <Icon className="shrink-0" strokeWidth={1.75} />
@@ -135,7 +135,7 @@ export function AdminAppSidebar() {
                     asChild
                     tooltip="Team"
                     isActive={isAdminNavActive(pathname, '/admin/team', true)}
-                    className="text-[#3E3D3E]"
+                    className="text-foreground"
                   >
                     <NavLink to="/admin/team">
                       <Users className="shrink-0" strokeWidth={1.75} />
@@ -153,7 +153,7 @@ export function AdminAppSidebar() {
                     asChild
                     tooltip="Org Settings"
                     isActive={orgChildActive}
-                    className="text-[#3E3D3E]"
+                    className="text-foreground"
                   >
                     <NavLink to="/admin/settings">
                       <Building2 className="shrink-0" strokeWidth={1.75} />
@@ -174,7 +174,7 @@ export function AdminAppSidebar() {
                         isActive={false}
                         type="button"
                         className={[
-                          'group admin-org-trigger font-medium text-[#3E3D3E]',
+                          'group admin-org-trigger font-medium text-foreground',
                           orgChildActive ? 'admin-org-trigger-active' : '',
                         ].join(' ')}
                       >
@@ -231,7 +231,7 @@ export function AdminAppSidebar() {
               asChild
               tooltip="Support"
               isActive={isAdminNavActive(pathname, '/admin/support', true)}
-              className="text-[#3E3D3E]"
+              className="text-foreground"
             >
               <NavLink to="/admin/support">
                 <LifeBuoy className="shrink-0" strokeWidth={1.75} />
@@ -247,7 +247,7 @@ export function AdminAppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"
-              className="text-[#3E3D3E]"
+              className="text-foreground"
               tooltip="Sign out"
               onClick={() => void handleSignOut()}
             >

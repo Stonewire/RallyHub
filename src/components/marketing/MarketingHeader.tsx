@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
+import { ThemeToggle } from '@/components/brand/ThemeToggle'
 import { NeoButton } from '@/components/neo-minimal'
 
 const NAV = [
@@ -42,6 +43,7 @@ export function MarketingHeader() {
           )}
         </nav>
         <div className="order-2 flex shrink-0 items-center gap-2 sm:order-3">
+          <ThemeToggle />
           <NeoButton variant="ghost" size="sm" asChild>
             <Link to="/login">Login</Link>
           </NeoButton>

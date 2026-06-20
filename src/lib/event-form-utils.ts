@@ -136,7 +136,7 @@ export function emptyEventForm(): EventFormValues {
     teams: defaultTeams(4),
     brandingEnabled: true,
     logoUrl: null,
-    brandColors: ['#3E3D3E', '#6f6f6f', '#FFCB03'],
+    brandColors: ['#3E3D3E', '#6f6f6f', '#FFC107'],
     displayLayout: 'rank_list',
     displayTextColor: 'white',
     selectedGameIds: [],

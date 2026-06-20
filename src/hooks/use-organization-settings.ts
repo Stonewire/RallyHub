@@ -30,7 +30,7 @@ export const EMPTY_ORG_FORM: OrganizationFormState = {
   logo_url: null,
   primary_color: '#3E3D3E',
   secondary_color: '#6f6f6f',
-  accent_color: '#FFCB03',
+  accent_color: '#FFC107',
   vat_number: '',
   address_street: '',
   address_city: '',

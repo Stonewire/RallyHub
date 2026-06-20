@@ -23,7 +23,7 @@ type NotificationContextValue = {
 const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 const DISPLAY_MS = 5000
-const DEFAULT_ACCENT = '#FFCB03'
+const DEFAULT_ACCENT = '#FFC107'
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<Notification | null>(null)

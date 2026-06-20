@@ -105,7 +105,7 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
   y += 28
 
   pdf.setFontSize(14)
-  pdf.setTextColor(accent === '#FFCB03' ? 120 : 0, 80, 80)
+  pdf.setTextColor(accent === '#FFC107' ? 120 : 0, 80, 80)
   pdf.text('Final ranking', margin, y)
   y += 20
   pdf.setFontSize(11)

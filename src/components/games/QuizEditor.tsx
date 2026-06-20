@@ -299,7 +299,7 @@ export function QuizEditor({
           }}
           className={
             dropTarget?.roundId === roundId && dropTarget.index === list.length
-              ? 'ring-[#FFCB03]/50 rounded-lg ring-2'
+              ? 'ring-[#FFC107]/50 rounded-lg ring-2'
               : ''
           }
         >

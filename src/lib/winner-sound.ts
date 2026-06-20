@@ -8,17 +8,17 @@ export const WINNER_SOUND_SURFACES: {
   {
     id: 'display',
     label: 'Display',
-    description: 'The big-screen audience display plays the full celebration (fanfare, cheer, fireworks, song).',
+    description: 'The big-screen audience display plays the winner announcement.',
   },
   {
     id: 'facilitator',
     label: 'Facilitator',
-    description: 'Your facilitator device plays the celebration audio.',
+    description: 'Your facilitator device plays the winner announcement.',
   },
   {
     id: 'players',
     label: 'Players',
-    description: 'Every player phone plays the winner sound.',
+    description: 'Every player phone plays the winner announcement.',
   },
 ]
 

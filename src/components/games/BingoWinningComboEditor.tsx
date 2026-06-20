@@ -63,7 +63,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
             className={cn(
               'rounded-md border px-3 py-1.5 text-sm font-medium',
               win.mode === 'lines'
-                ? 'border-[#FFCB03] bg-[#FFCB03]/20'
+                ? 'border-[#FFC107] bg-[#FFC107]/20'
                 : 'border-border/80 hover:bg-muted/40',
             )}
             onClick={() => setMode('lines')}
@@ -75,7 +75,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
             className={cn(
               'rounded-md border px-3 py-1.5 text-sm font-medium',
               win.mode === 'full_house'
-                ? 'border-[#FFCB03] bg-[#FFCB03]/20'
+                ? 'border-[#FFC107] bg-[#FFC107]/20'
                 : 'border-border/80 hover:bg-muted/40',
             )}
             onClick={() => setMode('full_house')}
@@ -122,7 +122,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
             <input
               type="checkbox"
-              className="size-4 accent-[#FFCB03]"
+              className="size-4 accent-[#FFC107]"
               checked={win.includeDiagonals}
               onChange={(e) => setIncludeDiagonals(e.target.checked)}
             />
@@ -179,7 +179,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
               key={i}
               className={cn(
                 'aspect-square rounded-sm text-[8px]',
-                highlight ? 'bg-[#FFCB03]/40' : 'bg-muted/30',
+                highlight ? 'bg-[#FFC107]/40' : 'bg-muted/30',
               )}
             />
           )

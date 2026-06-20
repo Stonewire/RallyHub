@@ -207,7 +207,7 @@ export function AdminGamesNewPage() {
               key={type}
               type="button"
               onClick={() => selectType(type)}
-              className="border-border/80 hover:border-[#FFCB03]/60 bg-card text-left rounded-xl border p-6 shadow-sm transition-colors"
+              className="border-border/80 hover:border-[#FFC107]/60 bg-card text-left rounded-xl border p-6 shadow-sm transition-colors"
             >
               <Icon className="text-foreground mb-4 size-10" strokeWidth={1.5} />
               <h3 className="text-foreground text-lg font-semibold">{label}</h3>
@@ -566,7 +566,7 @@ function ColorPickers({
           <Label>{label} (optional)</Label>
           <input
             type="color"
-            value={config[key] ?? '#3E3D3E'}
+            value={config[key] ?? '#333333'}
             onChange={(e) => setConfig((c) => ({ ...c, [key]: e.target.value }))}
             className="size-10 w-full cursor-pointer rounded border"
           />

@@ -1,17 +1,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "./styles/fonts.css";
 @import "./styles/neo-minimal.css";
 @import "./styles/experience-unified.css";
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
-    --font-display: 'Montserrat', 'Geist Variable', sans-serif;
+    --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+    --font-display: 'Abril Fatface', Georgia, 'Times New Roman', serif;
 
     --shadow-soft: var(--shadow-rh-soft);
 
@@ -69,24 +68,21 @@
 }
 
 :root {
-    /* ─── RallyHub semantics (reuse in .dark later) ─── */
-    --rh-text-primary: #3E3D3E;
-    --rh-accent: #FFCB03;
-    --rh-accent-foreground: #3E3D3E;
+    /* ─── RallyHub brand semantics (light = Warm Ivory) ─── */
+    --rh-text-primary: #333333;          /* Charcoal */
+    --rh-accent: #FFC107;                /* Gold */
+    --rh-accent-foreground: #333333;
 
-    --rh-surface-app: #f2f3f5;
-    --rh-surface-elevated: #ffffff;
-    --rh-surface-sidebar: #fafafb;
+    --rh-surface-app: #FAF7F2;           /* Warm Ivory */
+    --rh-surface-elevated: #FFFDF9;
+    --rh-surface-sidebar: #FAF7F2;       /* Ivory sidebar */
 
-    --rh-border-subtle: rgb(62 61 62 / 0.1);
+    --rh-border-subtle: rgb(51 51 51 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(62 61 62 / 0.05);
-    --rh-sidebar-row-active-bg: color-mix(
-        in srgb,
-        var(--rh-accent) 16%,
-        transparent
-    );
-    --rh-sidebar-row-active-fg: color-mix(in srgb, var(--rh-accent) 65%, var(--rh-text-primary));
+    --rh-sidebar-row-hover-bg: rgb(51 51 51 / 0.05);
+    /* Light: selected row = Charcoal block with Ivory text + icon. */
+    --rh-sidebar-row-active-bg: var(--rh-text-primary);
+    --rh-sidebar-row-active-fg: #FAF7F2;
 
     --rh-status-dot-active: #1f9d55;
     --rh-status-dot-demo: #7c5cff;
@@ -96,9 +92,9 @@
 
     --shadow-rh-soft:
         0 1px 2px rgb(62 61 62 / 0.04),
-        0 8px 22px rgb(62 61 62 / 0.06);
+        0 8px 22px rgb(51 51 51 / 0.06);
 
-    /* ─── Shadcn token mapping (light — no blues) ─── */
+    /* ─── Shadcn token mapping (light — Warm Ivory) ─── */
     --background: var(--rh-surface-app);
     --foreground: var(--rh-text-primary);
     --card: var(--rh-surface-elevated);
@@ -109,51 +105,48 @@
     --primary: var(--rh-accent);
     --primary-foreground: var(--rh-accent-foreground);
 
-    --secondary: #ececee;
+    --secondary: #EFEAE2;
     --secondary-foreground: var(--rh-text-primary);
 
-    --muted: #e8e8ea;
-    --muted-foreground: #6f6f6f;
+    --muted: #ECE6DD;
+    --muted-foreground: #75716B;
 
-    --accent: #f0f1f3;
+    --accent: #F1ECE4;
     --accent-foreground: var(--rh-text-primary);
 
     --destructive: #9b3f3f;
     --border: var(--rh-border-subtle);
-    --input: rgb(62 61 62 / 0.12);
-    --ring: color-mix(in srgb, var(--rh-text-primary) 35%, transparent);
+    --input: rgb(51 51 51 / 0.12);
+    --ring: color-mix(in srgb, var(--rh-accent) 45%, transparent);
 
     --radius: 0.625rem;
 
     --sidebar: var(--rh-surface-sidebar);
     --sidebar-foreground: var(--rh-text-primary);
     --sidebar-primary: var(--rh-text-primary);
-    --sidebar-primary-foreground: #fafafb;
+    --sidebar-primary-foreground: #FAF7F2;
     --sidebar-accent: var(--rh-sidebar-row-hover-bg);
     --sidebar-accent-foreground: var(--rh-text-primary);
-    --sidebar-border: rgb(62 61 62 / 0.08);
+    --sidebar-border: rgb(51 51 51 / 0.08);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 40%, transparent);
 }
 
 .dark {
-    /* Foundation for future dark theme — mirrored semantics */
-    --rh-text-primary: #ececec;
-    --rh-accent: #FFCB03;
+    /* ─── RallyHub brand semantics (dark = Charcoal) ─── */
+    --rh-text-primary: #FAF7F2;          /* Warm Ivory */
+    --rh-accent: #FFC107;                /* Gold */
     --rh-accent-foreground: #1a1a1a;
 
-    --rh-surface-app: #171717;
-    --rh-surface-elevated: #1f1f1f;
-    --rh-surface-sidebar: #1a1a1a;
+    --rh-surface-app: #262626;           /* deep charcoal base */
+    --rh-surface-elevated: #333333;      /* Charcoal */
+    --rh-surface-sidebar: #2B2B2B;
 
-    --rh-border-subtle: rgb(255 255 255 / 0.08);
+    --rh-border-subtle: rgb(250 247 242 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(255 255 255 / 0.06);
-    --rh-sidebar-row-active-bg: color-mix(
-        in srgb,
-        var(--rh-accent) 22%,
-        transparent
-    );
-    --rh-sidebar-row-active-fg: color-mix(in srgb, var(--rh-accent) 55%, white);
+    --rh-sidebar-row-hover-bg: rgb(250 247 242 / 0.07);
+    /* Dark: selected row = Gold block with charcoal text + icon (test look). */
+    --rh-sidebar-row-active-bg: var(--rh-accent);
+    --rh-sidebar-row-active-fg: #1a1a1a;
 
     --rh-status-dot-active: #37c074;
     --rh-status-dot-demo: #9b87ff;
@@ -175,18 +168,18 @@
     --primary: var(--rh-accent);
     --primary-foreground: var(--rh-accent-foreground);
 
-    --secondary: #2a2a2a;
+    --secondary: #3d3d3d;
     --secondary-foreground: var(--rh-text-primary);
 
-    --muted: #2a2a2a;
-    --muted-foreground: #b0b0b0;
+    --muted: #3a3a3a;
+    --muted-foreground: #b8b3ab;
 
-    --accent: #2c2c2c;
+    --accent: #3f3f3f;
     --accent-foreground: var(--rh-text-primary);
 
     --destructive: #c96b6b;
     --border: var(--rh-border-subtle);
-    --input: rgb(255 255 255 / 0.12);
+    --input: rgb(250 247 242 / 0.14);
 
     --ring: color-mix(in srgb, var(--rh-accent) 45%, transparent);
 
@@ -194,9 +187,9 @@
     --sidebar-foreground: var(--rh-text-primary);
     --sidebar-primary: var(--rh-accent);
     --sidebar-primary-foreground: var(--rh-accent-foreground);
-    --sidebar-accent: rgb(255 255 255 / 0.05);
+    --sidebar-accent: rgb(250 247 242 / 0.05);
     --sidebar-accent-foreground: var(--rh-text-primary);
-    --sidebar-border: rgb(255 255 255 / 0.08);
+    --sidebar-border: rgb(250 247 242 / 0.1);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 50%, transparent);
 }
 

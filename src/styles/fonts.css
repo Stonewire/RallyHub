@@ -1,0 +1,21 @@
+/**
+ * RallyHub brand typography.
+ * Display: Abril Fatface (H1–H2, hero).  Body/UI: Manrope (variable).
+ * Font files live in /public/fonts.
+ */
+
+@font-face {
+  font-family: 'Abril Fatface';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/AbrilFatface-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/Manrope-VariableFont_wght.ttf') format('truetype');
+}

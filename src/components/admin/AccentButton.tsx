@@ -10,7 +10,7 @@ export function AccentButton({
   return (
     <Button
       className={cn(
-        'border-[#FFCB03]/80 bg-[#FFCB03] font-semibold text-[#3E3D3E] shadow-sm hover:bg-[#FFCB03]/90',
+        'border-[#FFC107]/80 bg-[#FFC107] font-semibold text-[#3E3D3E] shadow-sm hover:bg-[#FFC107]/90',
         className,
       )}
       {...props}

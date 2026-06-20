@@ -1445,7 +1445,7 @@ export function JoinGameView({
           })}
         </div>
         <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-white/85 sm:text-xs">
-          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFCB03]" />Your selection</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFC107]" />Your selection</span>
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-green-500" />Correct</span>
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-red-500" />Wrong</span>
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-gray-500" />Missed</span>

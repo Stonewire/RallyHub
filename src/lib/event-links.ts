@@ -86,7 +86,7 @@ export async function downloadAllEventQrsPdf(
   if (!ctx) return
 
   const primary = branding.primaryColor ?? '#3E3D3E'
-  const accent = branding.accentColor ?? '#FFCB03'
+  const accent = branding.accentColor ?? '#FFC107'
 
   ctx.fillStyle = '#f8f8f8'
   ctx.fillRect(0, 0, w, h)

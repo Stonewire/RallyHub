@@ -51,7 +51,7 @@ export function WinnerRevealPanel({
     <div className="xp-break-panel mx-auto flex max-w-lg flex-col items-center px-6 py-12 text-center">
       {isWinner ? (
         <>
-          <p className="mb-2 text-4xl font-black tracking-tight text-[#FFCB03] drop-shadow-lg sm:text-5xl">
+          <p className="mb-2 text-4xl font-black tracking-tight text-[#FFC107] drop-shadow-lg sm:text-5xl">
             YOU ARE THE WINNER!
           </p>
           <p className="mb-6 text-lg text-white/90">Congratulations!</p>

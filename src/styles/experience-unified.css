@@ -292,7 +292,7 @@
   }
 
   /* ─── Join lobby accent button (shape only, keeps RallyHub yellow) ─── */
-  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\] {
+  .experience-scope .border-\[\#FFC107\]\/80.bg-\[\#FFC107\] {
     border-radius: var(--xp-radius-md) !important;
     box-shadow: var(--xp-shadow-raised);
     font-weight: 600;
@@ -301,11 +301,11 @@
       transform var(--xp-transition);
   }
 
-  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:hover:not(:disabled) {
+  .experience-scope .border-\[\#FFC107\]\/80.bg-\[\#FFC107\]:hover:not(:disabled) {
     transform: translateY(-1px);
   }
 
-  .experience-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:active:not(:disabled) {
+  .experience-scope .border-\[\#FFC107\]\/80.bg-\[\#FFC107\]:active:not(:disabled) {
     box-shadow: var(--xp-shadow-pressed);
     transform: translateY(0);
   }

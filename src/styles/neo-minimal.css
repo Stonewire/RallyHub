@@ -4,24 +4,24 @@
  */
 
 :root {
-  /* ─── Brand (unchanged) ─── */
-  --nm-charcoal: #3e3d3e;
-  --nm-yellow: #ffcb03;
-  --nm-yellow-foreground: #3e3d3e;
+  /* ─── Brand (RallyHub identity) ─── */
+  --nm-charcoal: #333333;
+  --nm-yellow: #ffc107;
+  --nm-yellow-foreground: #333333;
 
-  /* ─── Warm neutral scale ─── */
-  --nm-bg-base: #f6f2ec;
-  --nm-bg-surface: #faf7f3;
-  --nm-bg-elevated: #fffcf8;
-  --nm-bg-muted: #ede8e1;
-  --nm-bg-inset: #e8e2da;
+  /* ─── Warm Ivory neutral scale (light) ─── */
+  --nm-bg-base: #faf7f2;
+  --nm-bg-surface: #fdfbf7;
+  --nm-bg-elevated: #fffdf9;
+  --nm-bg-muted: #ece6dd;
+  --nm-bg-inset: #e6e0d6;
 
   --nm-text-primary: var(--nm-charcoal);
-  --nm-text-secondary: #6b6560;
-  --nm-text-muted: #8a837c;
+  --nm-text-secondary: #66625c;
+  --nm-text-muted: #857f77;
 
-  --nm-border: rgb(62 61 62 / 0.08);
-  --nm-border-strong: rgb(62 61 62 / 0.12);
+  --nm-border: rgb(51 51 51 / 0.08);
+  --nm-border-strong: rgb(51 51 51 / 0.12);
 
   /* ─── Spacing scale ─── */
   --nm-space-1: 0.25rem;
@@ -58,10 +58,48 @@
 
   --nm-shadow-accent:
     0 1px 0 rgb(255 255 255 / 0.4) inset,
-    0 3px 12px rgb(255 203 3 / 0.28),
+    0 3px 12px rgb(255 193 7 / 0.28),
     0 2px 4px rgb(62 61 62 / 0.08);
 
   --nm-transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Dark mode (Charcoal) — overrides neo tokens ─── */
+.dark {
+  --nm-yellow: #ffc107;
+  --nm-yellow-foreground: #1a1a1a;
+
+  --nm-bg-base: #262626;
+  --nm-bg-surface: #2e2e2e;
+  --nm-bg-elevated: #333333;
+  --nm-bg-muted: #3a3a3a;
+  --nm-bg-inset: #1f1f1f;
+
+  --nm-text-primary: #faf7f2;
+  --nm-text-secondary: #c7c2ba;
+  --nm-text-muted: #9a958d;
+
+  --nm-border: rgb(250 247 242 / 0.1);
+  --nm-border-strong: rgb(250 247 242 / 0.16);
+
+  --nm-shadow-soft:
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 4px 12px rgb(0 0 0 / 0.35);
+
+  --nm-shadow-raised:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 2px 4px rgb(0 0 0 / 0.3),
+    0 8px 22px rgb(0 0 0 / 0.4),
+    0 1px 2px rgb(0 0 0 / 0.3);
+
+  --nm-shadow-pressed:
+    0 2px 4px rgb(0 0 0 / 0.4) inset,
+    0 1px 1px rgb(0 0 0 / 0.25);
+
+  --nm-shadow-accent:
+    0 1px 0 rgb(255 255 255 / 0.08) inset,
+    0 3px 12px rgb(255 193 7 / 0.32),
+    0 2px 4px rgb(0 0 0 / 0.4);
 }
 
 /* Scoped shell — warm surfaces for RallyHub admin */
@@ -90,6 +128,34 @@
   background-color: var(--nm-bg-surface);
   border-color: var(--nm-border);
   box-shadow: var(--nm-shadow-soft);
+}
+
+/* Admin / super-admin main content: Off White canvas with Warm Ivory blocks.
+   The sidebar stays Ivory (see --rh-surface-sidebar). Marketing is untouched
+   (it uses the global warm-ivory scale, not .admin-shell-inset). Dark reverses:
+   the canvas is the darkest layer and cards lift above it. */
+.neo-minimal-scope .admin-shell-inset {
+  --nm-bg-base: #ffffff; /* Clean white canvas (no gray) */
+  --nm-bg-surface: #faf7f2;
+  --nm-bg-elevated: #faf7f2; /* Warm Ivory blocks — lift via warmth + shadow */
+  --nm-bg-muted: #f1ece4;
+  --nm-bg-inset: #ece6dd;
+  --background: #ffffff;
+  --card: #faf7f2;
+  --popover: #faf7f2;
+  --muted: #f1ece4;
+}
+
+.dark .neo-minimal-scope .admin-shell-inset {
+  --nm-bg-base: #1f1f1f; /* darkest canvas */
+  --nm-bg-surface: #272727;
+  --nm-bg-elevated: #313131; /* lifted blocks */
+  --nm-bg-muted: #383838;
+  --nm-bg-inset: #181818;
+  --background: #1f1f1f;
+  --card: #313131;
+  --popover: #313131;
+  --muted: #383838;
 }
 
 @layer components {
@@ -291,10 +357,11 @@
   /* ─── Page header (pilot) ─── */
   .neo-page-title {
     color: var(--nm-text-primary);
-    font-size: clamp(1.75rem, 4vw, 2rem);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
+    font-family: var(--font-display); /* Abril Fatface — brand H1 */
+    font-size: clamp(1.875rem, 4vw, 2.25rem);
+    font-weight: 400; /* Abril is a single 400 weight; never synth-bold it */
+    letter-spacing: -0.015em;
+    line-height: 1.12;
   }
 
   .neo-page-subtitle {
@@ -510,14 +577,14 @@
   }
 
   /* AccentButton → charcoal primary under neo scope */
-  .neo-minimal-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\] {
+  .neo-minimal-scope .border-\[\#FFC107\]\/80.bg-\[\#FFC107\] {
     background: var(--nm-charcoal) !important;
     color: #faf7f3 !important;
     border-color: color-mix(in srgb, var(--nm-charcoal) 88%, black) !important;
     box-shadow: var(--nm-shadow-raised) !important;
   }
 
-  .neo-minimal-scope .border-\[\#FFCB03\]\/80.bg-\[\#FFCB03\]:hover:not(:disabled) {
+  .neo-minimal-scope .border-\[\#FFC107\]\/80.bg-\[\#FFC107\]:hover:not(:disabled) {
     background: color-mix(in srgb, var(--nm-charcoal) 92%, black) !important;
     transform: translateY(-1px);
   }
@@ -674,10 +741,11 @@
 
   /* ─── AdminPageShell typography (Games editors on platform) ─── */
   .neo-minimal-scope .flex.w-full.flex-1.justify-center h1.text-3xl {
-    font-size: clamp(1.75rem, 4vw, 2rem);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
+    font-family: var(--font-display); /* Abril Fatface — brand H1 */
+    font-size: clamp(1.875rem, 4vw, 2.25rem);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
     color: var(--nm-text-primary);
   }
 
@@ -700,5 +768,47 @@
     background: var(--nm-bg-muted) !important;
     border-radius: var(--nm-radius-md);
     box-shadow: inset 0 1px 2px rgb(62 61 62 / 0.04);
+  }
+
+  /* ─── Status badges — dark-mode legibility ───
+     Light-mode tints use dark hue text; on charcoal those go invisible, so
+     lighten the text and lift the tint. Hue semantics are unchanged. */
+  .dark .neo-minimal-scope .neo-status-badge--in_progress {
+    background: color-mix(in srgb, #6b8cae 26%, var(--nm-bg-muted)) !important;
+    color: #b9d1ea !important;
+    border-color: color-mix(in srgb, #6b8cae 42%, var(--nm-border)) !important;
+  }
+
+  .dark .neo-minimal-scope .neo-status-badge--resolved,
+  .dark .neo-minimal-scope .neo-status-badge--paid,
+  .dark .neo-minimal-scope .neo-status-badge--active {
+    background: color-mix(in srgb, #5a9a6e 24%, var(--nm-bg-muted)) !important;
+    color: #9fdcb7 !important;
+    border-color: color-mix(in srgb, #5a9a6e 40%, var(--nm-border)) !important;
+  }
+
+  .dark .neo-minimal-scope .neo-status-badge--demo-event,
+  .dark .neo-minimal-scope .neo-status-badge--demo {
+    background: color-mix(in srgb, #8b7cb8 24%, var(--nm-bg-muted)) !important;
+    color: #d0bef2 !important;
+    border-color: color-mix(in srgb, #8b7cb8 40%, var(--nm-border)) !important;
+  }
+
+  .dark .neo-minimal-scope .neo-status-badge--unpaid {
+    background: color-mix(in srgb, #c49a5a 24%, var(--nm-bg-muted)) !important;
+    color: #e8c997 !important;
+    border-color: color-mix(in srgb, #c49a5a 40%, var(--nm-border)) !important;
+  }
+
+  .dark .neo-minimal-scope .neo-status-badge--ready {
+    background: color-mix(in srgb, var(--nm-yellow) 22%, var(--nm-bg-muted)) !important;
+    color: #ffda7a !important;
+    border-color: color-mix(in srgb, var(--nm-yellow) 38%, var(--nm-border)) !important;
+  }
+
+  .dark .neo-minimal-scope .bg-primary\/15.text-foreground {
+    background: color-mix(in srgb, #c49a5a 24%, var(--nm-bg-muted)) !important;
+    color: #e8c997 !important;
+    border-color: color-mix(in srgb, #c49a5a 40%, var(--nm-border)) !important;
   }
 }

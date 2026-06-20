@@ -133,7 +133,7 @@ export function Leaderboard({
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${(team.score / maxScore) * 100}%`,
-                  background: team.color ?? '#FFCB03',
+                  background: team.color ?? '#FFC107',
                 }}
               />
             </div>

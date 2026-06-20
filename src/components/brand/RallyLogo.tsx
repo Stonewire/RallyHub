@@ -3,23 +3,30 @@ import type { ImgHTMLAttributes } from 'react'
 import {
   getRallyhubBrandMarkUrl,
   type RallyBrandMark,
+  type RallyBrandTheme,
 } from '@/constants/brand'
+import { useTheme } from '@/contexts/theme-context'
 import { cn } from '@/lib/utils'
 
 type RallyLogoProps = ImgHTMLAttributes<HTMLImageElement> & {
-  /** `full` wordmark (default) or square `profile` mark with background. */
+  /** `full` wordmark w/ slogan, compact `wordmark`, or square `profile` icon. */
   mark?: RallyBrandMark
+  /** Force a colourway. Defaults to the active app theme (charcoal/ivory). */
+  theme?: RallyBrandTheme
 }
 
 export function RallyLogo({
   mark = 'full',
+  theme,
   className,
   alt = 'RallyHub',
   ...props
 }: RallyLogoProps) {
+  const { resolvedTheme } = useTheme()
+  const variant = theme ?? resolvedTheme
   return (
     <img
-      src={getRallyhubBrandMarkUrl(mark)}
+      src={getRallyhubBrandMarkUrl(mark, variant)}
       alt={alt}
       decoding="async"
       className={cn('block h-auto w-full max-w-none object-contain', className)}
@@ -28,7 +35,7 @@ export function RallyLogo({
   )
 }
 
-/** Admin sidebar: full wordmark expanded, square profile mark when collapsed. */
+/** Admin sidebar: compact wordmark when expanded, square icon when collapsed. */
 export function RallySidebarLogo({
   className,
   alt = 'RallyHub',
@@ -39,13 +46,13 @@ export function RallySidebarLogo({
       <RallyLogo
         mark="full"
         alt={alt}
-        className="group-data-[collapsible=icon]/sidebar:hidden max-h-[52px] w-full max-w-[200px] object-contain"
+        className="group-data-[collapsible=icon]:hidden max-h-[56px] w-full max-w-[190px] object-contain"
         {...props}
       />
       <RallyLogo
         mark="profile"
         alt={alt}
-        className="hidden size-8 shrink-0 rounded-md object-cover group-data-[collapsible=icon]/sidebar:block"
+        className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
         {...props}
       />
     </span>

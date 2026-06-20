@@ -55,12 +55,12 @@ export function RallyHubAppSidebar() {
     <Sidebar
       collapsible="icon"
       className={cn(
-        'admin-shell-sidebar neo-minimal-sidebar border-border/70 text-[#3E3D3E] [&_*]:tracking-normal',
+        'admin-shell-sidebar neo-minimal-sidebar border-border/70 text-foreground [&_*]:tracking-normal',
       )}
       style={{ color: 'var(--foreground)' }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        <div className="group-data-[collapsible=icon]/sidebar:flex group-data-[collapsible=icon]/sidebar:justify-center">
+        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <RallySidebarLogo />
         </div>
       </SidebarHeader>
@@ -75,7 +75,7 @@ export function RallyHubAppSidebar() {
                     asChild
                     tooltip={label}
                     isActive={isAdminNavActive(pathname, to, end)}
-                    className="text-[#3E3D3E]"
+                    className="text-foreground"
                   >
                     <NavLink to={to} end={end}>
                       <Icon className="shrink-0" strokeWidth={1.75} />
@@ -99,7 +99,7 @@ export function RallyHubAppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"
-              className="text-[#3E3D3E]"
+              className="text-foreground"
               tooltip="Sign out"
               onClick={() => void handleSignOut()}
             >

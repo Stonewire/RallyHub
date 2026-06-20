@@ -127,7 +127,7 @@ export function MarketingLandingPage() {
               <p className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 Live team games, run in real time
               </p>
-              <h1 className="text-foreground text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-[3.25rem]">
+              <h1 className="text-foreground font-display text-5xl font-normal leading-[1.05] tracking-tight sm:text-6xl lg:text-[4rem]">
                 Turn any room into a competition.
               </h1>
               <p className="text-muted-foreground max-w-xl text-lg leading-relaxed">
@@ -169,7 +169,7 @@ export function MarketingLandingPage() {
         <section id="features" className="scroll-mt-24 py-16 lg:py-24">
           <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-14">
             <div className="mb-12 max-w-2xl">
-              <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-4 font-display text-3xl font-normal tracking-tight sm:text-4xl">
                 Everything you need to run the show
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -212,7 +212,7 @@ export function MarketingLandingPage() {
         >
           <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-14">
             <div className="mb-12 text-center">
-              <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-4 font-display text-3xl font-normal tracking-tight sm:text-4xl">
                 Live in four steps
               </h2>
             </div>
@@ -243,7 +243,7 @@ export function MarketingLandingPage() {
         <section className="py-16 lg:py-24">
           <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-14">
             <div className="mb-12 max-w-2xl">
-              <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground font-display text-3xl font-normal tracking-tight sm:text-4xl">
                 Made for two kinds of host
               </h2>
             </div>
@@ -286,7 +286,7 @@ export function MarketingLandingPage() {
         >
           <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-14">
             <div className="mb-12 text-center">
-              <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-4 font-display text-3xl font-normal tracking-tight sm:text-4xl">
                 Simple pricing that scales with you
               </h2>
               <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
@@ -352,7 +352,7 @@ export function MarketingLandingPage() {
                 }}
               />
               <div className="relative space-y-6">
-                <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
+                <h2 className="text-foreground font-display text-3xl font-normal tracking-tight sm:text-4xl">
                   Ready to get the room on its feet?
                 </h2>
                 <p className="text-muted-foreground mx-auto max-w-xl text-lg">

@@ -2,11 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/rallyhub-profile-icon.png" />
-    <link rel="apple-touch-icon" href="/rallyhub-profile-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/icon-yellow.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/icon-yellow.png" />
+    <link rel="apple-touch-icon" href="/brand/icon-yellow.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RallyHub</title>
+    <script>
+      // Apply stored theme before paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var pref = localStorage.getItem('rallyhub-theme') || 'light'
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            document.documentElement.style.colorScheme = 'dark'
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
