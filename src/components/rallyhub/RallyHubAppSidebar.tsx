@@ -23,7 +23,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
@@ -64,18 +63,19 @@ export function RallyHubAppSidebar() {
       )}
       style={{ color: 'var(--sidebar-foreground)' }}
     >
-      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-4 py-4">
-        {/* Expanded: full logo left + sidebar trigger right */}
-        <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between gap-2">
+      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
+        {/* Sidebar is always charcoal → always the Ivory + Yellow logo. */}
+        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <RallyLogo
             mark="full"
-            className="max-h-[52px] max-w-[160px] object-contain"
+            theme="dark"
+            className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
           />
-          <SidebarTrigger className="text-sidebar-foreground shrink-0 opacity-60 hover:opacity-100" />
-        </div>
-        {/* Collapsed: just the trigger centered */}
-        <div className="hidden group-data-[collapsible=icon]:flex justify-center">
-          <SidebarTrigger className="text-sidebar-foreground" />
+          <RallyLogo
+            mark="profile"
+            theme="dark"
+            className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
+          />
         </div>
       </SidebarHeader>
 

@@ -390,8 +390,10 @@ export function playWinnerSound() {
 // Kept as no-ops so existing call sites compile and nothing 404s. The
 // corresponding mp3s were removed from public/sounds on purpose.
 
-/** @deprecated player submit confirmation sound removed. */
-export function playSubmitSound() {}
+/** Player's own "submitted" confirmation cue — uses the player submission sound. */
+export function playSubmitSound() {
+  void ensureAudioReady(false).then(() => playSoundImmediate('new-submission'))
+}
 /** @deprecated quiz answer-select sound removed. */
 export function playQuizSelectSound() {}
 /** @deprecated quiz timer-warning sound removed. */

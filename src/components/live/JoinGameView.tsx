@@ -85,7 +85,6 @@ import { createThrottledTimerSync } from '@/lib/live-timer-sync'
 import {
   playAnnouncementSound,
   playEventWinnerSequence,
-  playLoserSound,
   playNewMessageSound,
   playPushNotificationSound,
   playQuizCorrectSound,
@@ -457,6 +456,16 @@ export function JoinGameView({
   }, [announcement])
 
   const eventWinnerAudioKeyRef = useRef<string | null>(null)
+  // Read teams + sound routing inside the effect without depending on them, so
+  // routine realtime patches don't re-run the effect and cut the song after ~1s.
+  const winnerAudioDataRef = useRef({
+    teams: bundle.teams,
+    soundTargets: state.winner_sound_targets,
+  })
+  winnerAudioDataRef.current = {
+    teams: bundle.teams,
+    soundTargets: state.winner_sound_targets,
+  }
   useEffect(() => {
     // Bingo wins use BingoWinCelebration audio — never the podium fanfare here.
     if (stage?.type === 'bingo') return
@@ -473,17 +482,15 @@ export function JoinGameView({
     if (eventWinnerAudioKeyRef.current === revealKey) return
     eventWinnerAudioKeyRef.current = revealKey
 
-    // Player-device winner/loser audio is gated by the facilitator's sound routing.
-    if (!winnerSoundEnabled(state.winner_sound_targets, 'players')) return
-    const myRank = eventRankedTeams(bundle.teams).find((r) => r.team.id === teamId)?.rank ?? 0
+    // Player-device winner audio is gated by the facilitator's sound routing.
+    const { teams, soundTargets } = winnerAudioDataRef.current
+    if (!winnerSoundEnabled(soundTargets, 'players')) return
+    const myRank = eventRankedTeams(teams).find((r) => r.team.id === teamId)?.rank ?? 0
     if (myRank === 1) {
       const stopAudio = playEventWinnerSequence(revealKey)
       return () => stopAudio()
     }
-    if (myRank > 0) {
-      playLoserSound()
-    }
-  }, [state.winner_reveal_stage, state.winner_sound_targets, stage?.type, event.id, teamId, bundle.teams])
+  }, [state.winner_reveal_stage, stage?.type, event.id, teamId])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {

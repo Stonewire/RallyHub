@@ -132,27 +132,38 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
 
   const eventWinnerAudioStageRef = useRef(0)
 
-  // Overall event winner (Reveal Winner stage 2): full celebration audio on the
-  // standalone display only — winner → celebration crossfade, cheer, fireworks.
-  // Embedded facilitator preview skips audio. Phones keep their own winner.mp3.
+  // Latest bundle, read inside the winner effect without making it a dependency
+  // (so routine realtime patches don't re-run the effect and cut the song).
+  const bundleRef = useRef(bundle)
+  bundleRef.current = bundle
+
+  // Primitives that should actually (re)trigger the winner celebration.
+  const winnerRevealStage = bundle?.state.winner_reveal_stage ?? 0
+  const audioEventId = bundle?.event.id
+  const audioEventLive = bundle ? isEventLive(bundle.event) : false
+
+  // Overall event winner (Reveal Winner stage 2): winner announcement audio plays
+  // on the standalone display only. Embedded facilitator preview skips audio.
+  // IMPORTANT: depend only on the primitives below — depending on `bundle` made
+  // every realtime patch re-run this effect, firing the cleanup's stopAudio() and
+  // cutting the announcement after ~1s.
   useEffect(() => {
     if (embedded) return
-    if (!bundle || !isEventLive(bundle.event)) return
-    const revealStage = bundle.state.winner_reveal_stage ?? 0
-    if (revealStage === 0) {
+    if (!audioEventId || !audioEventLive) return
+    if (winnerRevealStage === 0) {
       eventWinnerAudioStageRef.current = 0
       resetEventWinnerAudioGuard()
       return
     }
     // Stage 1 is silent — no audio during the build-up.
-    if (revealStage !== 2) return
+    if (winnerRevealStage !== 2) return
     if (eventWinnerAudioStageRef.current >= 2) return
     eventWinnerAudioStageRef.current = 2
 
-    const revealKey = `${bundle.event.id}:winner-reveal:2`
+    const revealKey = `${audioEventId}:winner-reveal:2`
     // Confetti always runs; the celebration audio is gated by the facilitator's
     // winner sound routing.
-    const stopAudio = winnerSoundEnabled(bundle.state.winner_sound_targets, 'display')
+    const stopAudio = winnerSoundEnabled(bundleRef.current?.state.winner_sound_targets, 'display')
       ? playEventWinnerSequence(revealKey)
       : () => {}
 
@@ -174,7 +185,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       if (rafId) cancelAnimationFrame(rafId)
       window.clearInterval(burst)
     }
-  }, [bundle, bundle?.state.winner_reveal_stage, embedded])
+  }, [embedded, audioEventId, audioEventLive, winnerRevealStage])
 
   if (loading) {
     return (

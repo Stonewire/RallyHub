@@ -215,9 +215,19 @@
   }
 
   /* ─── Break timer panel ─── */
+  /* No box: the winner-announcement text and break/timer screens read as plain
+     text on the gradient, not a floating bordered card. */
   .experience-scope .xp-break-panel {
     border-radius: var(--xp-radius-xl);
-    box-shadow: var(--xp-shadow-soft);
+    box-shadow: none;
+  }
+
+  /* Live surfaces (display + players) never use Abril Fatface — the audience /
+     player screens use the secondary font (Manrope) at extra-bold for titles. */
+  .experience-scope .font-display {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
   /* ─── Celebration badge ─── */

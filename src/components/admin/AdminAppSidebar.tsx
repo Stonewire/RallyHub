@@ -34,7 +34,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
@@ -105,18 +104,19 @@ export function AdminAppSidebar() {
       className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal"
       style={{ color: 'var(--sidebar-foreground)' }}
     >
-      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-4 py-4">
-        {/* Expanded: full logo left + sidebar trigger right */}
-        <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between gap-2">
+      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
+        {/* Sidebar is always charcoal → always the Ivory + Yellow logo. */}
+        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <RallyLogo
             mark="full"
-            className="max-h-[52px] max-w-[160px] object-contain"
+            theme="dark"
+            className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
           />
-          <SidebarTrigger className="text-sidebar-foreground shrink-0 opacity-60 hover:opacity-100" />
-        </div>
-        {/* Collapsed: just the trigger centered */}
-        <div className="hidden group-data-[collapsible=icon]:flex justify-center">
-          <SidebarTrigger className="text-sidebar-foreground" />
+          <RallyLogo
+            mark="profile"
+            theme="dark"
+            className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
+          />
         </div>
       </SidebarHeader>
 

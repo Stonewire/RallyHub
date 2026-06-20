@@ -130,24 +130,29 @@
   box-shadow: var(--nm-shadow-soft);
 }
 
-/* Admin / super-admin main content: Ivory canvas with Charcoal blocks.
-   Strong contrast: dark cards on warm canvas. Dark mode keeps its own
-   dark-on-darker treatment via the .dark override below. */
+/* Admin / super-admin main content: white canvas with Warm Ivory blocks and
+   near-black text. Blocks lift off the white via a soft shadow (see the
+   .bg-card rule below). The sidebar stays charcoal (set on --rh-surface-sidebar).
+   Dark mode keeps its own dark-on-darker treatment via the .dark override. */
 .neo-minimal-scope .admin-shell-inset {
-  --nm-bg-base: #faf7f2;    /* Warm Ivory canvas */
-  --nm-bg-surface: #333333; /* Charcoal blocks */
-  --nm-bg-elevated: #333333;
-  --nm-bg-muted: #3d3d3d;
-  --nm-bg-inset: #2b2b2b;
-  --background: #faf7f2;
-  --card: #333333;
-  --card-foreground: #faf7f2;
-  --popover: #333333;
-  --popover-foreground: #faf7f2;
-  --muted: #3d3d3d;
-  --muted-foreground: #9a958d;
-  --border: rgb(250 247 242 / 0.1);
-  --input: rgb(250 247 242 / 0.12);
+  --nm-bg-base: #ffffff;    /* White canvas */
+  --nm-bg-surface: #faf7f2; /* Warm Ivory blocks */
+  --nm-bg-elevated: #faf7f2;
+  --nm-bg-muted: #f1ece4;
+  --nm-bg-inset: #ece6dd;
+  --nm-text-primary: #111111;   /* Near-black text */
+  --nm-text-secondary: #3a3a3a;
+  --nm-text-muted: #5c5854;
+  --background: #ffffff;
+  --foreground: #111111;
+  --card: #faf7f2;
+  --card-foreground: #111111;
+  --popover: #faf7f2;
+  --popover-foreground: #111111;
+  --muted: #f1ece4;
+  --muted-foreground: #5c5854;
+  --border: rgb(17 17 17 / 0.08);
+  --input: rgb(17 17 17 / 0.14);
 }
 
 .dark .neo-minimal-scope .admin-shell-inset {
@@ -816,18 +821,20 @@
     border-color: color-mix(in srgb, #c49a5a 40%, var(--nm-border)) !important;
   }
 
-  /* Light-mode admin: charcoal cards need ivory text + dark-variant sub-tokens.
-     Covers both shadcn bg-card elements and neo-card components. */
+  /* Light-mode admin: lift the Warm Ivory blocks off the white canvas with a
+     soft shadow so each card reads as a distinct surface. Dark mode keeps its
+     own elevation treatment (handled by neo-card / shadcn defaults). */
   .neo-minimal-scope .admin-shell-inset .bg-card,
-  .neo-minimal-scope .admin-shell-inset [class*="bg-card"],
   .neo-minimal-scope .admin-shell-inset .neo-card {
-    color: var(--card-foreground);
-    --nm-text-primary: #faf7f2;
-    --nm-text-secondary: #c7c2ba;
-    --nm-text-muted: #9a958d;
-    --nm-border: rgb(250 247 242 / 0.1);
-    --nm-border-strong: rgb(250 247 242 / 0.16);
-    --muted-foreground: #9a958d;
-    --input: rgb(250 247 242 / 0.12);
+    box-shadow:
+      0 1px 2px rgb(17 17 17 / 0.04),
+      0 6px 20px rgb(17 17 17 / 0.06);
+  }
+
+  .dark .neo-minimal-scope .admin-shell-inset .bg-card,
+  .dark .neo-minimal-scope .admin-shell-inset .neo-card {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.3),
+      0 6px 20px rgb(0 0 0 / 0.35);
   }
 }
