@@ -542,6 +542,7 @@ export type Database = {
           show_scores: boolean
           show_timer_on_display: boolean
           quiz_state: string
+          quiz_correct_answer_id: string | null
           bingo_state: string
           bingo_revealed_track_ids: unknown
           bingo_winner_team_id: string | null
@@ -568,6 +569,7 @@ export type Database = {
           show_scores?: boolean
           show_timer_on_display?: boolean
           quiz_state?: string
+          quiz_correct_answer_id?: string | null
           bingo_state?: string
           bingo_revealed_track_ids?: unknown
           bingo_winner_team_id?: string | null
@@ -591,6 +593,7 @@ export type Database = {
           show_scores?: boolean
           show_timer_on_display?: boolean
           quiz_state?: string
+          quiz_correct_answer_id?: string | null
           bingo_state?: string
           bingo_revealed_track_ids?: unknown
           bingo_winner_team_id?: string | null

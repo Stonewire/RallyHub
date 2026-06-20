@@ -252,6 +252,7 @@ export function FacilitatorEventPage() {
     }
     if (next?.type === 'quiz') {
       patch.quiz_state = 'idle'
+      patch.quiz_correct_answer_id = null
       patch.quiz_timer_running = false
     }
     if (next?.type === 'bingo' && next.gameId && eventId) {
@@ -688,6 +689,7 @@ export function FacilitatorEventPage() {
     void patchState({
       current_question_index: index,
       quiz_state: 'active',
+      quiz_correct_answer_id: null,
       quiz_timer_seconds: sec,
       quiz_timer_running: true,
     })
@@ -705,7 +707,11 @@ export function FacilitatorEventPage() {
           : 'Quiz scoring failed — verify increment_team_score migration is applied',
       )
     }
-    await patchState({ quiz_timer_running: false, quiz_state: 'revealed' })
+    await patchState({
+      quiz_timer_running: false,
+      quiz_state: 'revealed',
+      quiz_correct_answer_id: question.correctAnswerId,
+    })
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
 

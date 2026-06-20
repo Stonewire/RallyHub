@@ -487,13 +487,12 @@ export function JoinGameView({
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
-    // Fire on 'revealed' OR 'results' — facilitator may advance to results before
-    // the full_reload carrying correctAnswerId arrives on the player's device.
     if (
       (state.quiz_state !== 'revealed' && state.quiz_state !== 'results') ||
       !currentQuizQ
     ) return
-    if (!currentQuizQ.correctAnswerId) return
+    const correctAnswerId = state.quiz_correct_answer_id
+    if (!correctAnswerId) return
     const key = `${stage?.gameId ?? 'quiz'}:${state.current_question_index}`
     if (lastQuizRevealKeyRef.current === key) return
     lastQuizRevealKeyRef.current = key
@@ -503,9 +502,9 @@ export function JoinGameView({
           s.media_type === quizSubmissionMediaType(currentQuizQ.id) &&
           s.game_id === stage?.gameId,
       )?.media_url ?? quizAnswer
-    if (myAnswerId === currentQuizQ.correctAnswerId) playQuizCorrectSound()
+    if (myAnswerId === correctAnswerId) playQuizCorrectSound()
     else playQuizWrongSound()
-  }, [state.quiz_state, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
+  }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
   function beginOpenSubmit() {
     flushSync(() => {
@@ -1106,12 +1105,12 @@ export function JoinGameView({
         </div>
       )
     } else if (state.quiz_state === 'revealed' && q) {
-      // The correct answer is redacted until reveal delivers it. Until it lands,
-      // show a neutral "locked in" state — never a red/Incorrect verdict — so the
-      // player's correct pick can't briefly flash wrong.
-      const answerKnown = Boolean(q.correctAnswerId)
+      // correctAnswerId is redacted from the live game bundle; the facilitator
+      // broadcasts it via event_state.quiz_correct_answer_id at reveal time.
+      const correctAnswerId = state.quiz_correct_answer_id
+      const answerKnown = Boolean(correctAnswerId)
       const myAnswerId = existing?.media_url ?? quizAnswer
-      const ok = answerKnown && myAnswerId === q.correctAnswerId
+      const ok = answerKnown && myAnswerId === correctAnswerId
       body = (
         <div className="mx-auto max-w-lg px-4">
           {answerKnown ? (
@@ -1125,7 +1124,7 @@ export function JoinGameView({
           )}
           <div className="space-y-2">
             {q.answers.map((a) => {
-              const isCorrect = answerKnown && a.id === q.correctAnswerId
+              const isCorrect = answerKnown && a.id === correctAnswerId
               const isMine = a.id === myAnswerId
               let cls = 'xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium '
               let style: CSSProperties | undefined
@@ -1134,7 +1133,6 @@ export function JoinGameView({
               } else if (answerKnown && isMine && !isCorrect) {
                 cls += 'bg-red-600/70'
               } else if (isMine) {
-                // Keep yellow selection while waiting for correctAnswerId to arrive.
                 cls += 'ring-2 ring-white/40'
                 style = { backgroundColor: STANDBY_ACCENT, color: textOnAccent(STANDBY_ACCENT) }
               } else {

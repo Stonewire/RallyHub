@@ -343,7 +343,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
           {question.answers.map((a) => {
             const revealed = state.quiz_state === 'revealed'
-            const correct = a.id === question.correctAnswerId
+            const correct = a.id === state.quiz_correct_answer_id
             let cls =
               'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
             if (revealed) {
