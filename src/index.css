@@ -75,19 +75,19 @@
 
     --rh-surface-app: #FAF7F2;           /* Warm Ivory */
     --rh-surface-elevated: #FFFDF9;
-    --rh-surface-sidebar: #FAF7F2;       /* Ivory sidebar */
+    --rh-surface-sidebar: #2B2B2B;       /* Always charcoal — gold selection in both themes */
 
     --rh-border-subtle: rgb(51 51 51 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(51 51 51 / 0.05);
-    /* Light: selected row = Charcoal block with Ivory text + icon. */
-    --rh-sidebar-row-active-bg: var(--rh-text-primary);
-    --rh-sidebar-row-active-fg: #FAF7F2;
+    --rh-sidebar-row-hover-bg: rgb(250 247 242 / 0.07);
+    /* Sidebar always charcoal: selected row = Gold block with dark text */
+    --rh-sidebar-row-active-bg: var(--rh-accent);
+    --rh-sidebar-row-active-fg: #1a1a1a;
 
     --rh-status-dot-active: #1f9d55;
     --rh-status-dot-demo: #7c5cff;
     --rh-status-dot-draft: #b8b8b8;
-    --rh-status-dot-ready: #dba900;
+    --rh-status-dot-ready: #FFC107;
     --rh-status-dot-archived: #5c5956;
 
     --shadow-rh-soft:
@@ -122,12 +122,12 @@
     --radius: 0.625rem;
 
     --sidebar: var(--rh-surface-sidebar);
-    --sidebar-foreground: var(--rh-text-primary);
-    --sidebar-primary: var(--rh-text-primary);
-    --sidebar-primary-foreground: #FAF7F2;
+    --sidebar-foreground: #FAF7F2;
+    --sidebar-primary: var(--rh-accent);
+    --sidebar-primary-foreground: #1a1a1a;
     --sidebar-accent: var(--rh-sidebar-row-hover-bg);
-    --sidebar-accent-foreground: var(--rh-text-primary);
-    --sidebar-border: rgb(51 51 51 / 0.08);
+    --sidebar-accent-foreground: #FAF7F2;
+    --sidebar-border: rgb(250 247 242 / 0.1);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 40%, transparent);
 }
 

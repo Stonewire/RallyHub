@@ -60,7 +60,7 @@ export function EventInvoiceRow({ invoice, showPayIndicator = false }: EventInvo
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-              'bg-primary/15 text-foreground',
+              'border border-primary text-primary bg-transparent',
             )}
           >
             <CreditCard className="size-3" aria-hidden />
