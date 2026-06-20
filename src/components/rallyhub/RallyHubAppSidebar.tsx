@@ -5,11 +5,13 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Moon,
+  Sun,
   Ticket,
 } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 
-import { RallySidebarLogo } from '@/components/brand/RallyLogo'
+import { RallyLogo } from '@/components/brand/RallyLogo'
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +23,10 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
+import { useTheme } from '@/contexts/theme-context'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { cn } from '@/lib/utils'
@@ -40,6 +44,7 @@ export function RallyHubAppSidebar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { signOut } = useAuth()
+  const { resolvedTheme, toggleTheme } = useTheme()
   const { data: supportUnread = 0 } = useSupportUnreadCount('support')
 
   async function handleSignOut() {
@@ -55,13 +60,22 @@ export function RallyHubAppSidebar() {
     <Sidebar
       collapsible="icon"
       className={cn(
-        'admin-shell-sidebar neo-minimal-sidebar border-border/70 text-foreground [&_*]:tracking-normal',
+        'admin-shell-sidebar neo-minimal-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal',
       )}
-      style={{ color: 'var(--foreground)' }}
+      style={{ color: 'var(--sidebar-foreground)' }}
     >
-      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-          <RallySidebarLogo />
+      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-4 py-4">
+        {/* Expanded: full logo left + sidebar trigger right */}
+        <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between gap-2">
+          <RallyLogo
+            mark="full"
+            className="max-h-[52px] max-w-[160px] object-contain"
+          />
+          <SidebarTrigger className="text-sidebar-foreground shrink-0 opacity-60 hover:opacity-100" />
+        </div>
+        {/* Collapsed: just the trigger centered */}
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center">
+          <SidebarTrigger className="text-sidebar-foreground" />
         </div>
       </SidebarHeader>
 
@@ -75,7 +89,7 @@ export function RallyHubAppSidebar() {
                     asChild
                     tooltip={label}
                     isActive={isAdminNavActive(pathname, to, end)}
-                    className="text-foreground"
+                    className="text-sidebar-foreground"
                   >
                     <NavLink to={to} end={end}>
                       <Icon className="shrink-0" strokeWidth={1.75} />
@@ -99,7 +113,22 @@ export function RallyHubAppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"
-              className="text-foreground"
+              className="text-sidebar-foreground"
+              tooltip={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+              onClick={toggleTheme}
+            >
+              {resolvedTheme === 'dark'
+                ? <Sun className="shrink-0" strokeWidth={1.75} />
+                : <Moon className="shrink-0" strokeWidth={1.75} />}
+              <span className="font-medium">
+                {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              type="button"
+              className="text-sidebar-foreground"
               tooltip="Sign out"
               onClick={() => void handleSignOut()}
             >

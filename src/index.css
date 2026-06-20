@@ -209,12 +209,12 @@
 
 @layer components {
   .admin-shell-sidebar [data-slot="sidebar-menu-button"] {
-    color: var(--foreground);
+    color: var(--sidebar-foreground);
     }
 
   .admin-shell-sidebar [data-slot="sidebar-menu-button"]:hover:not([data-active="true"]) {
     background: var(--rh-sidebar-row-hover-bg);
-    color: var(--foreground);
+    color: var(--sidebar-foreground);
     }
 
   /* Active row — subtle yellow (not the org collapsible parent) */

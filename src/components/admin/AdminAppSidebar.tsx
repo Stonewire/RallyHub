@@ -6,13 +6,15 @@ import {
   Gamepad2,
   LifeBuoy,
   LogOut,
+  Moon,
+  Sun,
   UserCircle,
   Users,
 } from 'lucide-react'
 import * as React from 'react'
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
-import { RallySidebarLogo } from '@/components/brand/RallyLogo'
+import { RallyLogo } from '@/components/brand/RallyLogo'
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,10 +34,12 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
+import { useTheme } from '@/contexts/theme-context'
 import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 
@@ -64,6 +68,7 @@ export function AdminAppSidebar() {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { signOut, role } = useAuth()
+  const { resolvedTheme, toggleTheme } = useTheme()
   const { state: sidebarState } = useSidebar()
   const sidebarCollapsed = sidebarState === 'collapsed'
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
@@ -97,15 +102,21 @@ export function AdminAppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-foreground [&_*]:tracking-normal"
-      style={{
-        /** Ensure nav label color even inside nested spans */
-        color: 'var(--foreground)',
-      }}
+      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal"
+      style={{ color: 'var(--sidebar-foreground)' }}
     >
-      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-          <RallySidebarLogo />
+      <SidebarHeader className="border-sidebar-border shrink-0 border-b px-4 py-4">
+        {/* Expanded: full logo left + sidebar trigger right */}
+        <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between gap-2">
+          <RallyLogo
+            mark="full"
+            className="max-h-[52px] max-w-[160px] object-contain"
+          />
+          <SidebarTrigger className="text-sidebar-foreground shrink-0 opacity-60 hover:opacity-100" />
+        </div>
+        {/* Collapsed: just the trigger centered */}
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center">
+          <SidebarTrigger className="text-sidebar-foreground" />
         </div>
       </SidebarHeader>
 
@@ -119,7 +130,7 @@ export function AdminAppSidebar() {
                     asChild
                     tooltip={label}
                     isActive={isAdminNavActive(pathname, to, end)}
-                    className="text-foreground"
+                    className="text-sidebar-foreground"
                   >
                     <NavLink to={to} end={end}>
                       <Icon className="shrink-0" strokeWidth={1.75} />
@@ -135,7 +146,7 @@ export function AdminAppSidebar() {
                     asChild
                     tooltip="Team"
                     isActive={isAdminNavActive(pathname, '/admin/team', true)}
-                    className="text-foreground"
+                    className="text-sidebar-foreground"
                   >
                     <NavLink to="/admin/team">
                       <Users className="shrink-0" strokeWidth={1.75} />
@@ -146,14 +157,12 @@ export function AdminAppSidebar() {
               ) : null}
 
               {showOrgSettings && sidebarCollapsed ? (
-                // Icon-only mode hides the submenu, so the trigger would toggle an
-                // invisible list. Link straight to Organization Profile instead.
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
                     tooltip="Org Settings"
                     isActive={orgChildActive}
-                    className="text-foreground"
+                    className="text-sidebar-foreground"
                   >
                     <NavLink to="/admin/settings">
                       <Building2 className="shrink-0" strokeWidth={1.75} />
@@ -174,7 +183,7 @@ export function AdminAppSidebar() {
                         isActive={false}
                         type="button"
                         className={[
-                          'group admin-org-trigger font-medium text-foreground',
+                          'group admin-org-trigger font-medium text-sidebar-foreground',
                           orgChildActive ? 'admin-org-trigger-active' : '',
                         ].join(' ')}
                       >
@@ -228,10 +237,25 @@ export function AdminAppSidebar() {
         <SidebarMenu className="gap-px">
           <SidebarMenuItem>
             <SidebarMenuButton
+              type="button"
+              className="text-sidebar-foreground"
+              tooltip={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+              onClick={toggleTheme}
+            >
+              {resolvedTheme === 'dark'
+                ? <Sun className="shrink-0" strokeWidth={1.75} />
+                : <Moon className="shrink-0" strokeWidth={1.75} />}
+              <span className="font-medium">
+                {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               asChild
               tooltip="Support"
               isActive={isAdminNavActive(pathname, '/admin/support', true)}
-              className="text-foreground"
+              className="text-sidebar-foreground"
             >
               <NavLink to="/admin/support">
                 <LifeBuoy className="shrink-0" strokeWidth={1.75} />
@@ -247,7 +271,7 @@ export function AdminAppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"
-              className="text-foreground"
+              className="text-sidebar-foreground"
               tooltip="Sign out"
               onClick={() => void handleSignOut()}
             >
