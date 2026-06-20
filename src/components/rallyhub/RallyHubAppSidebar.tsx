@@ -1,5 +1,6 @@
 import {
   Building2,
+  CreditCard,
   Gamepad2,
   LayoutDashboard,
   LifeBuoy,
@@ -30,6 +31,7 @@ const mainNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/clients', label: 'Clients', icon: Building2, end: false },
   { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false },
+  { to: '/admin/payments', label: 'Payments', icon: CreditCard, end: false },
   { to: '/admin/promo-codes', label: 'Promo Codes', icon: Ticket, end: false },
   { to: '/admin/support', label: 'Support', icon: LifeBuoy, end: true },
 ] as const

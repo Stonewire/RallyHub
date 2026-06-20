@@ -116,15 +116,26 @@ export function useRallyHubClients() {
         .order('name')
       if (error) throw error
 
-      const { data: events } = await supabase.from('events').select('organization_id, status')
+      const [eventsRes, invoicesRes] = await Promise.all([
+        supabase.from('events').select('organization_id, status'),
+        supabase.from('invoices').select('organization_id, status'),
+      ])
+
+      const unpaidByOrg = new Map<string, number>()
+      for (const inv of invoicesRes.data ?? []) {
+        if (inv.status === 'unpaid') {
+          unpaidByOrg.set(inv.organization_id, (unpaidByOrg.get(inv.organization_id) ?? 0) + 1)
+        }
+      }
 
       return (orgs ?? [])
         .filter((org) => isListedClientOrganization(org, excludedOrganizationIds))
         .map((org) => {
-        const orgEvents = (events ?? []).filter((e) => e.organization_id === org.id)
+        const orgEvents = (eventsRes.data ?? []).filter((e) => e.organization_id === org.id)
         return {
           ...org,
           ...countClientEvents(orgEvents),
+          unpaidInvoiceCount: unpaidByOrg.get(org.id) ?? 0,
         }
       })
     },

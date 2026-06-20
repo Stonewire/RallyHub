@@ -19,6 +19,7 @@ export type ClientCardData = {
   billing_period?: string | null
   completedEvents: number
   upcomingEvents: number
+  unpaidInvoiceCount?: number
 }
 
 type ClientCardProps = {
@@ -57,9 +58,16 @@ export function ClientCard({ client, className }: ClientCardProps) {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-foreground line-clamp-2 text-sm font-semibold leading-snug">
-            {client.name}
-          </p>
+          <div className="flex flex-wrap items-start gap-2">
+            <p className="text-foreground line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-snug">
+              {client.name}
+            </p>
+            {(client.unpaidInvoiceCount ?? 0) > 0 ? (
+              <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+                {client.unpaidInvoiceCount} unpaid
+              </span>
+            ) : null}
+          </div>
           <p className="text-muted-foreground mt-1 text-xs">
             Plan: {formatClientPlanLabel(client.billing_plan)} (
             {formatBillingPeriodLabel(normalizeBillingPeriod(client.billing_period))})

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
@@ -41,6 +41,59 @@ export function useOrganizationInvoices(organizationId: string | null | undefine
         ...invoice,
         event: eventsById.get(invoice.event_id) ?? null,
       }))
+    },
+  })
+}
+
+export type InvoiceWithOrgAndEvent = Tables<'invoices'> & {
+  org_name: string
+  event_name: string
+  event_date: string | null
+}
+
+const allInvoicesKey = ['rallyhub', 'all-invoices'] as const
+
+export function useAllInvoices() {
+  return useQuery({
+    queryKey: allInvoicesKey,
+    queryFn: async (): Promise<InvoiceWithOrgAndEvent[]> => {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = invoices ?? []
+      if (!rows.length) return []
+
+      const orgIds = [...new Set(rows.map((i) => i.organization_id))]
+      const eventIds = [...new Set(rows.map((i) => i.event_id))]
+      const [orgsRes, eventsRes] = await Promise.all([
+        supabase.from('organizations').select('id, name').in('id', orgIds),
+        supabase.from('events').select('id, name, event_date').in('id', eventIds),
+      ])
+
+      const orgMap = new Map((orgsRes.data ?? []).map((o) => [o.id, o.name]))
+      const eventMap = new Map((eventsRes.data ?? []).map((e) => [e.id, e]))
+      return rows.map((inv) => ({
+        ...inv,
+        org_name: orgMap.get(inv.organization_id) ?? inv.organization_id,
+        event_name: eventMap.get(inv.event_id)?.name ?? 'Unknown event',
+        event_date: eventMap.get(inv.event_id)?.event_date ?? null,
+      }))
+    },
+  })
+}
+
+export function useMarkInvoiceStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'paid' | 'comped' | 'unpaid' }) => {
+      const { error } = await supabase.from('invoices').update({ status }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: allInvoicesKey })
+      void qc.invalidateQueries({ queryKey: ['organization-invoices'] })
     },
   })
 }
