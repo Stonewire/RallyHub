@@ -640,7 +640,6 @@ export function FacilitatorEventPage() {
   async function resetTeamSlot(team: Tables<'teams'>) {
     setResettingTeam(true)
     try {
-      // Wipe all submissions for this team so the next occupant starts clean.
       const { error: delErr } = await supabase
         .from('submissions')
         .delete()
@@ -653,6 +652,9 @@ export function FacilitatorEventPage() {
         score: 0,
         status: 'idle',
       })
+      // Broadcast a full reload so display and player panels see the cleared
+      // submissions immediately (submission deletes are not individually patched).
+      if (eventId) await publishLiveBundleReload(eventId)
       notify(`Team slot ${team.slot_number} cleared — available for a new team`)
       setResetConfirmTeam(null)
     } catch (err) {
