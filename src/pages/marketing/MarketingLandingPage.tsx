@@ -16,9 +16,10 @@ import { PlaceholderImage } from '@/components/marketing/PlaceholderImage'
 import { NeoButton, NeoCard, NeoIconContainer } from '@/components/neo-minimal'
 import {
   formatEventLimit,
+  formatMonthlyEquivalentPrice,
   formatPerEventPrice,
-  formatSubscriptionPrice,
-  getVisiblePlans,
+  formatYearlyPrice,
+  getPaidPlans,
 } from '@/lib/subscription-plans'
 
 const FEATURES = [
@@ -98,7 +99,7 @@ const STEPS = [
 ] as const
 
 export function MarketingLandingPage() {
-  const plans = getVisiblePlans()
+  const plans = getPaidPlans()
 
   return (
     <div className="neo-minimal-scope neo-minimal-inset min-h-svh">
@@ -297,9 +298,9 @@ export function MarketingLandingPage() {
               {plans.map((plan) => (
                 <li key={plan.id}>
                   <NeoCard
-                    className={`flex h-full flex-col gap-4 p-6 ${plan.id === 'arena' ? 'ring-2 ring-[color-mix(in_srgb,var(--nm-yellow)_45%,transparent)]' : ''}`}
+                    className={`flex h-full flex-col gap-4 p-6 ${plan.id === 'pro' ? 'ring-2 ring-[color-mix(in_srgb,var(--nm-yellow)_45%,transparent)]' : ''}`}
                   >
-                    {plan.id === 'arena' ? (
+                    {plan.id === 'pro' ? (
                       <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                         Most popular
                       </span>
@@ -307,34 +308,46 @@ export function MarketingLandingPage() {
                       <span className="h-4" aria-hidden />
                     )}
                     <h3 className="text-foreground text-xl font-bold">{plan.name}</h3>
-                    <p className="text-foreground text-3xl font-bold tracking-tight">
-                      {formatSubscriptionPrice(plan, 'monthly')}
-                    </p>
-                    <p className="text-muted-foreground flex-1 text-sm">
-                      {formatPerEventPrice(plan)} · {formatEventLimit(plan)}
-                    </p>
-                    <NeoButton
-                      variant={plan.id === 'rookie' ? 'surface' : 'primary'}
-                      className="w-full"
-                      asChild
-                    >
-                      <Link to={plan.id === 'rookie' ? '/login' : '/contact'}>
-                        {plan.id === 'rookie' ? 'Start free' : 'Book a Demo'}
-                      </Link>
-                    </NeoButton>
+                    <div>
+                      <p className="text-foreground text-3xl font-bold tracking-tight">
+                        {formatYearlyPrice(plan)}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {formatMonthlyEquivalentPrice(plan)} · billed yearly
+                      </p>
+                    </div>
+                    <ul className="text-muted-foreground flex-1 space-y-1.5 text-sm">
+                      <li>{formatPerEventPrice(plan)}</li>
+                      <li>{formatEventLimit(plan)}</li>
+                      {plan.customBranding ? (
+                        <li className="text-foreground font-medium">
+                          Completely custom branding across the app & deliverables
+                        </li>
+                      ) : null}
+                      <li className="text-foreground font-medium">1 month free trial</li>
+                    </ul>
+                    <div className="flex flex-col gap-2">
+                      <NeoButton variant="primary" className="w-full" asChild>
+                        {/* TODO: point to /register?plan once the signup flow ships */}
+                        <Link to="/login">Start for free</Link>
+                      </NeoButton>
+                      <NeoButton variant="surface" className="w-full" asChild>
+                        <Link to="/contact">Book a demo</Link>
+                      </NeoButton>
+                    </div>
                   </NeoCard>
                 </li>
               ))}
             </ul>
             <p className="text-muted-foreground mt-8 text-center text-sm">
-              Yearly billing available. Looking for a tailored plan?{' '}
+              No subscription? {' '}
               <Link
-                to="/contact"
+                to="/login"
                 className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-2"
               >
-                Book a demo
+                Or start with a Free plan
               </Link>
-              .
+              {' '}— pay only €150 per event, one event a month.
             </p>
           </div>
         </section>
