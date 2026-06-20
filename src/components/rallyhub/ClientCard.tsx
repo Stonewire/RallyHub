@@ -17,6 +17,8 @@ export type ClientCardData = {
   contact_email: string | null
   billing_plan: string | null
   billing_period?: string | null
+  account_status?: string | null
+  trial_review_needed?: boolean | null
   completedEvents: number
   upcomingEvents: number
   unpaidInvoiceCount?: number
@@ -65,6 +67,11 @@ export function ClientCard({ client, className }: ClientCardProps) {
             {(client.unpaidInvoiceCount ?? 0) > 0 ? (
               <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
                 {client.unpaidInvoiceCount} unpaid
+              </span>
+            ) : null}
+            {client.trial_review_needed ? (
+              <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                Review
               </span>
             ) : null}
           </div>

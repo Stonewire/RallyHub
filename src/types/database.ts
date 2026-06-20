@@ -31,6 +31,8 @@ type OrgRow = {
   email: string | null
   phone: string | null
   account_status: string
+  trial_ends_at: string | null
+  trial_review_needed: boolean
   internal_notes: string | null
   created_at: string
   updated_at: string
@@ -746,6 +748,10 @@ export type Database = {
       }
     }
     Functions: {
+      expire_overdue_trials: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
       log_event_activity: {
         Args: {
           p_event_id: string

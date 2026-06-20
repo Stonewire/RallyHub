@@ -131,13 +131,13 @@ export function useRallyHubClients() {
       return (orgs ?? [])
         .filter((org) => isListedClientOrganization(org, excludedOrganizationIds))
         .map((org) => {
-        const orgEvents = (eventsRes.data ?? []).filter((e) => e.organization_id === org.id)
-        return {
-          ...org,
-          ...countClientEvents(orgEvents),
-          unpaidInvoiceCount: unpaidByOrg.get(org.id) ?? 0,
-        }
-      })
+          const orgEvents = (eventsRes.data ?? []).filter((e) => e.organization_id === org.id)
+          return {
+            ...org,
+            ...countClientEvents(orgEvents),
+            unpaidInvoiceCount: unpaidByOrg.get(org.id) ?? 0,
+          }
+        })
     },
   })
 }
@@ -184,6 +184,8 @@ export type ClientAdminUpdateInput = {
   name?: string
   notes?: string
   account_status?: string
+  trial_ends_at?: string | null
+  trial_review_needed?: boolean
   billing_plan?: string
   billing_period?: string
   subdomain?: string
@@ -254,6 +256,8 @@ export function useUpdateClientAdmin() {
       name,
       notes,
       account_status,
+      trial_ends_at,
+      trial_review_needed,
       billing_plan,
       billing_period,
       subdomain,
@@ -273,6 +277,8 @@ export function useUpdateClientAdmin() {
         ...(name !== undefined ? { name: name.trim() } : {}),
         internal_notes: notes ?? null,
         account_status: account_status ?? 'active',
+        trial_ends_at: trial_ends_at ?? null,
+        ...(trial_review_needed !== undefined ? { trial_review_needed } : {}),
         billing_plan: billing_plan ?? 'rookie',
         billing_period: billing_period ?? 'monthly',
         email: trimmedEmail || null,
@@ -335,6 +341,20 @@ export function useUpdateClientNotes() {
     onSuccess: (_, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', orgId] })
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
+    },
+  })
+}
+
+export function useExpireOverdueTrials() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('expire_overdue_trials')
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'dashboard'] })
     },
   })
 }

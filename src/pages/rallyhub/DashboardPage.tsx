@@ -1,9 +1,10 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoCard, NeoPageShell } from '@/components/neo-minimal'
 import { StatusIndicator, type RallyStatusTone } from '@/components/ui/status-indicator'
-import { useRallyHubDashboard } from '@/hooks/use-rallyhub'
+import { useExpireOverdueTrials, useRallyHubDashboard } from '@/hooks/use-rallyhub'
 import { formatEur } from '@/lib/subscription-plans'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +20,14 @@ function formatEventDate(iso: string | null) {
 
 export function RallyHubOverviewPage() {
   const { data, isLoading, isError, error } = useRallyHubDashboard()
+  const expireTrials = useExpireOverdueTrials()
+
+  useEffect(() => {
+    void expireTrials.mutateAsync().catch(() => {
+      // Fire-and-forget; failures are non-critical
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <NeoPageShell

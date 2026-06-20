@@ -104,6 +104,8 @@ export function RallyHubClientDetailPage() {
   const [billingPlan, setBillingPlan] = useState('rookie')
   const [billingPeriod, setBillingPeriod] = useState('monthly')
   const [accountStatus, setAccountStatus] = useState('active')
+  const [trialEndsAt, setTrialEndsAt] = useState<string>('')
+  const [trialReviewNeeded, setTrialReviewNeeded] = useState(false)
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
   const [addressCity, setAddressCity] = useState('')
@@ -133,6 +135,8 @@ export function RallyHubClientDetailPage() {
     setBillingPlan(normalizeClientPlan(org.billing_plan))
     setBillingPeriod(normalizeBillingPeriod(org.billing_period))
     setAccountStatus(org.account_status ?? 'active')
+    setTrialEndsAt(org.trial_ends_at ? org.trial_ends_at.slice(0, 10) : '')
+    setTrialReviewNeeded(org.trial_review_needed ?? false)
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
     setAddressCity(org.address_city ?? '')
@@ -224,6 +228,8 @@ export function RallyHubClientDetailPage() {
       billing_plan: billingPlan,
       billing_period: billingPeriod,
       account_status: accountStatus,
+      trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
+      trial_review_needed: trialReviewNeeded,
       logo_url: logo !== undefined ? logo : logoUrl,
       vat_number: vatNumber,
       address_street: addressStreet,
@@ -531,7 +537,10 @@ export function RallyHubClientDetailPage() {
             <select
               id="account-status"
               value={accountStatus}
-              onChange={(e) => setAccountStatus(e.target.value)}
+              onChange={(e) => {
+                setAccountStatus(e.target.value)
+                if (e.target.value !== 'trial') setTrialEndsAt('')
+              }}
               className="neo-field w-full px-3 py-2 text-sm"
             >
               {STATUSES.map((s) => (
@@ -541,6 +550,37 @@ export function RallyHubClientDetailPage() {
               ))}
             </select>
           </div>
+          {accountStatus === 'trial' ? (
+            <div className="space-y-2">
+              <NeoLabel htmlFor="trial-ends-at">Trial end date</NeoLabel>
+              <NeoInput
+                id="trial-ends-at"
+                type="date"
+                value={trialEndsAt}
+                onChange={(e) => setTrialEndsAt(e.target.value)}
+                className="bg-background"
+              />
+              <p className="text-muted-foreground text-xs">
+                When this date passes, the account will be automatically suspended and flagged
+                for review.
+              </p>
+            </div>
+          ) : null}
+          {trialReviewNeeded ? (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm">
+              <p className="text-orange-800 font-medium">Trial expired — review needed</p>
+              <p className="text-orange-700 mt-0.5 text-xs">
+                This account was suspended automatically when its trial ended.
+              </p>
+              <button
+                type="button"
+                className="text-orange-800 underline text-xs mt-1"
+                onClick={() => setTrialReviewNeeded(false)}
+              >
+                Mark as reviewed (clears flag on save)
+              </button>
+            </div>
+          ) : null}
         </div>
         <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
         {getPlan(billingPlan).hidden ? (
