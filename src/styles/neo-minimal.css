@@ -161,10 +161,19 @@
   --nm-bg-elevated: #313131; /* lifted blocks */
   --nm-bg-muted: #383838;
   --nm-bg-inset: #181818;
+  --nm-text-primary: #faf7f2; /* keep ivory text in dark — overrides the light block */
+  --nm-text-secondary: #c7c2ba;
+  --nm-text-muted: #9a958d;
   --background: #1f1f1f;
+  --foreground: #faf7f2;
   --card: #313131;
+  --card-foreground: #faf7f2;
   --popover: #313131;
+  --popover-foreground: #faf7f2;
   --muted: #383838;
+  --muted-foreground: #9a958d;
+  --border: rgb(250 247 242 / 0.1);
+  --input: rgb(250 247 242 / 0.14);
 }
 
 @layer components {
