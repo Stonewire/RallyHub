@@ -174,6 +174,14 @@ export function JoinEventPage() {
         })
       }
 
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'team',
+        p_actor_name: trimmed,
+        p_action: 'team_joined',
+        p_actor_id: claimSlot.id,
+      })
+
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       setTeamId(claimSlot.id)
       setJustJoined(true)

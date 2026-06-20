@@ -158,6 +158,19 @@ export function FacilitatorEventPage() {
     installAudioUnlock('operational')
   }, [])
 
+  // Log facilitator connection once on mount.
+  useEffect(() => {
+    if (!eventId || !name) return
+    void supabase.rpc('log_event_activity', {
+      p_event_id: eventId,
+      p_actor_type: 'facilitator',
+      p_actor_name: name,
+      p_action: 'facilitator_joined',
+      p_actor_id: user?.id ?? null,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId])
+
   const controlsLiveRef = useRef(false)
 
   const stages = useMemo(
@@ -219,6 +232,16 @@ export function FacilitatorEventPage() {
 
   function selectStage(index: number) {
     const next = stages[index]
+    if (eventId) {
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'facilitator',
+        p_actor_name: name,
+        p_action: 'stage_changed',
+        p_actor_id: user?.id ?? null,
+        p_details: { stage_index: index, stage_name: next?.name ?? null, stage_type: next?.type ?? null },
+      })
+    }
     const patch: Parameters<typeof updateState>[0] = {
       current_stage_index: index,
     }
@@ -439,6 +462,15 @@ export function FacilitatorEventPage() {
       setWinnerRoutingOpen(true)
       return
     }
+    if (liveState.winner_reveal_stage === 0 && eventId) {
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'facilitator',
+        p_actor_name: name,
+        p_action: 'winner_revealed',
+        p_actor_id: user?.id ?? null,
+      })
+    }
     void patchState({
       winner_reveal_stage: Math.min(2, liveState.winner_reveal_stage + 1),
     })
@@ -450,6 +482,15 @@ export function FacilitatorEventPage() {
     // First time (stage 0) this also starts the reveal; re-opening to change the
     // routing mid-reveal only updates the targets.
     const advance = liveState.winner_reveal_stage === 0
+    if (advance && eventId) {
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'facilitator',
+        p_actor_name: name,
+        p_action: 'winner_revealed',
+        p_actor_id: user?.id ?? null,
+      })
+    }
     void patchState({
       winner_sound_targets: winnerRoutingSel,
       ...(advance ? { winner_reveal_stage: 1 } : {}),
@@ -516,6 +557,17 @@ export function FacilitatorEventPage() {
     if (points > 0) {
       await incrementTeamScore(data.team_id, points, eventId)
     }
+    if (eventId) {
+      const team = bundle?.teams.find((t) => t.id === data.team_id)
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'facilitator',
+        p_actor_name: name,
+        p_action: 'submission_approved',
+        p_actor_id: user?.id ?? null,
+        p_details: { points, game_name: game.name, team_name: team?.name ?? null },
+      })
+    }
     notify(`Approved +${points} pts`)
   }
 
@@ -533,6 +585,16 @@ export function FacilitatorEventPage() {
     }
     if (data && eventId) {
       await publishSubmissionChange(eventId, 'UPDATE', data)
+      const game = games.find((g) => g.id === data.game_id)
+      const team = bundle?.teams.find((t) => t.id === data.team_id)
+      void supabase.rpc('log_event_activity', {
+        p_event_id: eventId,
+        p_actor_type: 'facilitator',
+        p_actor_name: name,
+        p_action: 'submission_rejected',
+        p_actor_id: user?.id ?? null,
+        p_details: { game_name: game?.name ?? null, team_name: team?.name ?? null },
+      })
     }
     notify('Submission rejected')
   }

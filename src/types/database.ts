@@ -409,6 +409,32 @@ export type Database = {
         }
         Relationships: []
       }
+      event_activity_log: {
+        Row: {
+          id: string
+          event_id: string
+          organization_id: string
+          actor_type: 'team' | 'facilitator' | 'admin' | 'system'
+          actor_name: string | null
+          actor_id: string | null
+          action: string
+          details: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          organization_id: string
+          actor_type: 'team' | 'facilitator' | 'admin' | 'system'
+          actor_name?: string | null
+          actor_id?: string | null
+          action: string
+          details?: Json | null
+          created_at?: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
       promo_code_redemptions: {
         Row: {
           id: string
@@ -720,6 +746,17 @@ export type Database = {
       }
     }
     Functions: {
+      log_event_activity: {
+        Args: {
+          p_event_id: string
+          p_actor_type: string
+          p_actor_name: string
+          p_action: string
+          p_actor_id?: string | null
+          p_details?: Json | null
+        }
+        Returns: undefined
+      }
       increment_team_score: {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined

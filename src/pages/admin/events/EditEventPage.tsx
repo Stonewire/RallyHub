@@ -7,6 +7,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { EventActivityLog } from '@/components/admin/EventActivityLog'
 import { EventForm } from '@/components/events/EventForm'
 import { EventLinksPanel } from '@/components/events/EventLinksPanel'
 import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDialog'
@@ -68,6 +69,7 @@ export function AdminEventEditPage() {
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'settings' | 'log'>('settings')
 
   useEffect(() => {
     if (eventQuery.data && gameIdsQuery.data !== undefined && !hydrated) {
@@ -220,107 +222,132 @@ export function AdminEventEditPage() {
         <QueryLoading rows={6} />
       ) : (
         <>
-          {error ? (
-            <p className="text-destructive mb-4 text-sm" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          {activated ? (
-            <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
-              <p className="text-foreground font-medium">This event has been activated</p>
-              <p className="text-muted-foreground mt-1">
-                Billed events can only be archived. To run the same setup again, duplicate
-                this event to create a fresh copy that can be activated separately.
-              </p>
-            </Card>
-          ) : null}
-
-          <EventForm
-            organizationId={organizationId}
-            values={values}
-            onChange={setValues}
-            games={gamesQuery.data ?? []}
-            groups={groupsQuery.data ?? []}
-            orgDefaults={orgQuery.data ?? null}
-            maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
-          />
-
-          {eventId && eventQuery.data ? (
-            <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-foreground text-lg font-semibold">Event links</h2>
-                  <p className="text-muted-foreground text-sm">
-                    QR codes and URLs for facilitator, display, and team join.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={downloading}
-                  onClick={() => {
-                    setDownloading(true)
-                    void downloadEventPackage(eventId).finally(() =>
-                      setDownloading(false),
-                    )
-                  }}
-                >
-                  {downloading ? 'Preparing…' : 'Download media & PDF'}
-                </Button>
-              </div>
-              <EventLinksPanel
-                eventId={eventId}
-                eventName={eventQuery.data.name}
-                organization={
-                  orgQuery.data
-                    ? {
-                        subdomain: orgQuery.data.subdomain,
-                        custom_domain: orgQuery.data.custom_domain,
-                      }
-                    : null
-                }
-                branding={{
-                  eventName: eventQuery.data.name,
-                  logoUrl: logoForEvent(eventQuery.data, orgQuery.data ?? null),
-                  primaryColor: brandColorsForEvent(
-                    eventQuery.data,
-                    orgQuery.data ?? null,
-                  )[0],
-                  accentColor: brandColorsForEvent(
-                    eventQuery.data,
-                    orgQuery.data ?? null,
-                  )[2],
-                }}
-              />
-            </Card>
-          ) : null}
-
-          {resetAllowed ? (
-            <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
-              <div>
-                <h2 className="text-foreground text-lg font-semibold">Reset event data</h2>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Clear all teams, submissions, scores, chat, and live progress so you can run a
-                  fresh rehearsal. Event games, stages, and branding are kept.
-                </p>
-              </div>
-              <NeoButton
+          <div className="mb-6 flex gap-1 border-b border-border/60">
+            {(['settings', 'log'] as const).map((tab) => (
+              <button
+                key={tab}
                 type="button"
-                variant="destructive"
-                disabled={resetEventDataMutation.isPending || loading}
-                onClick={() => setResetDialogOpen(true)}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                  activeTab === tab
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
               >
-                Reset event data
-              </NeoButton>
-            </Card>
-          ) : null}
+                {tab}
+              </button>
+            ))}
+          </div>
 
-          <FormSaveFooter
-            onSave={() => void handleSave()}
-            saving={saving}
-            label="Save Changes"
-          />
+          {activeTab === 'settings' && (
+            <>
+              {error ? (
+                <p className="text-destructive mb-4 text-sm" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              {activated ? (
+                <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
+                  <p className="text-foreground font-medium">This event has been activated</p>
+                  <p className="text-muted-foreground mt-1">
+                    Billed events can only be archived. To run the same setup again, duplicate
+                    this event to create a fresh copy that can be activated separately.
+                  </p>
+                </Card>
+              ) : null}
+
+              <EventForm
+                organizationId={organizationId}
+                values={values}
+                onChange={setValues}
+                games={gamesQuery.data ?? []}
+                groups={groupsQuery.data ?? []}
+                orgDefaults={orgQuery.data ?? null}
+                maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
+              />
+
+              {eventId && eventQuery.data ? (
+                <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-foreground text-lg font-semibold">Event links</h2>
+                      <p className="text-muted-foreground text-sm">
+                        QR codes and URLs for facilitator, display, and team join.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={downloading}
+                      onClick={() => {
+                        setDownloading(true)
+                        void downloadEventPackage(eventId).finally(() =>
+                          setDownloading(false),
+                        )
+                      }}
+                    >
+                      {downloading ? 'Preparing…' : 'Download media & PDF'}
+                    </Button>
+                  </div>
+                  <EventLinksPanel
+                    eventId={eventId}
+                    eventName={eventQuery.data.name}
+                    organization={
+                      orgQuery.data
+                        ? {
+                            subdomain: orgQuery.data.subdomain,
+                            custom_domain: orgQuery.data.custom_domain,
+                          }
+                        : null
+                    }
+                    branding={{
+                      eventName: eventQuery.data.name,
+                      logoUrl: logoForEvent(eventQuery.data, orgQuery.data ?? null),
+                      primaryColor: brandColorsForEvent(
+                        eventQuery.data,
+                        orgQuery.data ?? null,
+                      )[0],
+                      accentColor: brandColorsForEvent(
+                        eventQuery.data,
+                        orgQuery.data ?? null,
+                      )[2],
+                    }}
+                  />
+                </Card>
+              ) : null}
+
+              {resetAllowed ? (
+                <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
+                  <div>
+                    <h2 className="text-foreground text-lg font-semibold">Reset event data</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      Clear all teams, submissions, scores, chat, and live progress so you can run a
+                      fresh rehearsal. Event games, stages, and branding are kept.
+                    </p>
+                  </div>
+                  <NeoButton
+                    type="button"
+                    variant="destructive"
+                    disabled={resetEventDataMutation.isPending || loading}
+                    onClick={() => setResetDialogOpen(true)}
+                  >
+                    Reset event data
+                  </NeoButton>
+                </Card>
+              ) : null}
+
+              <FormSaveFooter
+                onSave={() => void handleSave()}
+                saving={saving}
+                label="Save Changes"
+              />
+            </>
+          )}
+
+          {activeTab === 'log' && (
+            <>{eventId ? <EventActivityLog eventId={eventId} /> : null}</>
+          )}
 
           <activation.ActivationDialog />
 

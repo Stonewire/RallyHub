@@ -21,4 +21,5 @@ export const queryKeys = {
   organizationFacilitators: (orgId: string | null) =>
     ['organization-facilitators', orgId] as const,
   organizationUsers: (orgId: string | null) => ['organization-users', orgId] as const,
+  eventActivityLog: (eventId: string | undefined) => ['event-activity-log', eventId] as const,
 }
