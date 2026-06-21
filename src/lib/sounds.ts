@@ -382,10 +382,6 @@ export function playVideoStopSound() {
   return playSound('video-stop')
 }
 
-export function playWinnerSound() {
-  return playSound('winner')
-}
-
 // ---- Removed sounds (files intentionally deleted) — safe no-ops ------------
 // Kept as no-ops so existing call sites compile and nothing 404s. The
 // corresponding mp3s were removed from public/sounds on purpose.
@@ -529,12 +525,4 @@ export function playEventWinnerSequence(revealKey?: string): () => void {
   }
   activeWinSequenceStop = stop
   return stop
-}
-
-/**
- * @deprecated Use playEventWinnerSequence for the winner reveal, or
- * playBingoWinJingle for bingo line wins.
- */
-export function playBingoWinSequence(_isDisplay?: boolean): () => void {
-  return playEventWinnerSequence()
 }

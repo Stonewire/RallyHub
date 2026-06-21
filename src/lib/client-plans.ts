@@ -21,12 +21,6 @@ export {
   type SubscriptionPlan,
 } from '@/lib/subscription-plans'
 
-import { getAdminAssignablePlans, type PlanId } from '@/lib/subscription-plans'
-
-/** Super-admin plan options (includes hidden Partner). */
-export const CLIENT_PLAN_OPTIONS = getAdminAssignablePlans().map((plan) => ({
-  value: plan.id,
-  label: plan.name,
-})) as { value: PlanId; label: string }[]
+import { type PlanId } from '@/lib/subscription-plans'
 
 export type ClientPlanValue = PlanId

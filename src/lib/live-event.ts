@@ -218,13 +218,6 @@ export function breakDurationSeconds(
   return (stage?.durationMinutes ?? 5) * 60
 }
 
-export function gamePointsLabel(game: Tables<'games'>): string {
-  if (game.points_type === 'range') {
-    return `MAX ${game.points_max ?? 0}`
-  }
-  return String(game.points_static ?? 0)
-}
-
 export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {
   const config = (game.config ?? {}) as GameConfig
   const questions = (config.questions ?? []).filter(
@@ -274,10 +267,6 @@ export function bingoBonusMediaType(challengeId: string): string {
   return `bingo-bonus:${challengeId}`
 }
 
-export function isBingoBonusSubmission(mediaType: string | null | undefined): boolean {
-  return Boolean(mediaType?.startsWith('bingo-bonus:'))
-}
-
 export type { BingoCell } from '@/lib/bingo-engine'
 export { bingoCellLabels, trackForPlayIndex } from '@/lib/bingo-engine'
 
@@ -303,7 +292,6 @@ export function bingoCardTitles(teamId: string, tracks: MusicTrack[]): string[] 
   return shuffleWithSeed(titles, seed).slice(0, 25)
 }
 
-export const FACILITATOR_NAME_KEY = 'rallyhub_facilitator_name'
 export const PARTICIPANT_TEAM_KEY = 'rallyhub_team_id'
 
 export function getMaxVideoDurationSeconds(config: GameConfig | null | undefined): number {
@@ -327,15 +315,6 @@ export function quizSubmissionMediaType(questionId: string): string {
 
 export function isQuizSubmission(mediaType: string | null | undefined): boolean {
   return mediaType === 'quiz' || Boolean(mediaType?.startsWith('quiz:'))
-}
-
-export function latestSubmissionForGame(
-  subs: Tables<'submissions'>[],
-  gameId: string,
-): Tables<'submissions'> | undefined {
-  return subs
-    .filter((s) => s.game_id === gameId)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 }
 
 /** Latest non-cancelled submission for open-game flow (pending / approved / rejected). */

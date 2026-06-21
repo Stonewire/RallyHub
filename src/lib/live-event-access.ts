@@ -30,10 +30,3 @@ export async function ensureLiveEventAccess(eventId: string): Promise<boolean> {
   setLiveJoinToken(data)
   return true
 }
-
-export function clearLiveEventAccess(eventId: string): void {
-  if (typeof window !== 'undefined') {
-    sessionStorage.removeItem(joinTokenStorageKey(eventId))
-  }
-  setLiveJoinToken(null)
-}

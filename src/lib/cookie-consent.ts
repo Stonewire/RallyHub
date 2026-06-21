@@ -61,7 +61,3 @@ export function writeStoredConsent(consent: CookieConsentState) {
 export function hasAnalyticsConsent(consent: CookieConsentState | null): boolean {
   return Boolean(consent?.analytics)
 }
-
-export function hasPreferencesConsent(consent: CookieConsentState | null): boolean {
-  return Boolean(consent?.preferences)
-}

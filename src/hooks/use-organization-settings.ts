@@ -110,25 +110,6 @@ export function useOrganization(organizationId: string | null) {
   })
 }
 
-export function useOrganizationMembers(organizationId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.organizationMembers(organizationId),
-    enabled: Boolean(organizationId),
-    queryFn: async (): Promise<OrganizationMemberRow[]> => {
-      if (!organizationId) return []
-
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('invited_at', { ascending: true })
-
-      if (error) throw error
-      return data ?? []
-    },
-  })
-}
-
 export function useSaveOrganization(organizationId: string | null) {
   const queryClient = useQueryClient()
 

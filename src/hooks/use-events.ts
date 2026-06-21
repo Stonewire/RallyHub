@@ -265,33 +265,6 @@ export function useResetEventData(organizationId: string | null) {
   })
 }
 
-export function useReorderEvents(organizationId: string | null) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({
-      eventId,
-      status,
-      listOrder,
-    }: {
-      eventId: string
-      status: EventStatus
-      listOrder: number
-    }) => {
-      const { error } = await supabase
-        .from('events')
-        .update({ status, list_order: listOrder })
-        .eq('id', eventId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.events(organizationId),
-      })
-    },
-  })
-}
-
 export function useUpdateEventStatus(organizationId: string | null) {
   const queryClient = useQueryClient()
 
@@ -394,9 +367,4 @@ export function useDuplicateEvent(organizationId: string | null) {
       })
     },
   })
-}
-
-export function nextEventStatus(current: EventStatus): EventStatus {
-  const idx = STATUS_ORDER.indexOf(current)
-  return STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] ?? 'draft'
 }

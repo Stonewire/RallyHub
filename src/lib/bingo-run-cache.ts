@@ -7,13 +7,6 @@ export function normalizeBingoPlayOrder(value: unknown): string[] {
   return value.filter((id): id is string => typeof id === 'string' && id.length > 0)
 }
 
-export function normalizeBingoRunRow(row: BingoRunRow): BingoRunRow {
-  return {
-    ...row,
-    playOrder: normalizeBingoPlayOrder(row.playOrder),
-  }
-}
-
 export function bingoRunRowFromActivation(
   eventId: string,
   gameId: string,

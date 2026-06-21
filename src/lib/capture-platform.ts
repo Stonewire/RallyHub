@@ -36,8 +36,3 @@ export function shouldUseNativeVideoCapture(): boolean {
   if (isIOSOrIPadOS()) return !canRecordVideoInBrowser()
   return false
 }
-
-/** @deprecated Use shouldUseNativePhotoCapture / shouldUseNativeVideoCapture */
-export function shouldUseNativeCamera(): boolean {
-  return shouldUseNativePhotoCapture()
-}

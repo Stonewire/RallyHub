@@ -1,6 +1,6 @@
 import type { AppRole } from '@/types/database'
 
-import { isPlatformHost, isTenantHost } from '@/lib/tenant'
+import { isTenantHost } from '@/lib/tenant'
 
 export type AssignableOrgUserRole = Extract<
   AppRole,
@@ -33,10 +33,6 @@ export function canManageOrgUsers(role: AppRole | null): boolean {
     role === 'super_admin' ||
     role === 'event_manager'
   )
-}
-
-export function isEventManagerRole(role: AppRole | null): boolean {
-  return role === 'event_manager'
 }
 
 export function assignableOrgUserRoles(
@@ -114,18 +110,6 @@ export function resolvePostLoginPath(
 
   if (from.startsWith('/')) return from
   return fallback
-}
-
-/**
- * When true, client users on the platform apex are sent to a separate tenant host.
- * Disabled while on Vercel Hobby (single domain). Re-enable when wildcard/custom domain is available.
- */
-export function shouldRedirectClientOffPlatform(_role: AppRole | null): boolean {
-  return false
-}
-
-export function usesRoleBasedPlatformAdmin(): boolean {
-  return isPlatformHost()
 }
 
 export function profileDisplayName(profile: {

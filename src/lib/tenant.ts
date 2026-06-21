@@ -38,11 +38,6 @@ export function tenantHost(): string | null {
   return host || null
 }
 
-/** True when separate tenant host redirect is enabled (future: custom domain + wildcard). */
-export function hasDedicatedTenantHost(): boolean {
-  return Boolean(tenantHost())
-}
-
 export function isLocalDev(): boolean {
   if (typeof window === 'undefined') return false
   const host = window.location.hostname
@@ -102,45 +97,6 @@ export function isPlatformHost(): boolean {
 
 export function isTenantHost(): boolean {
   return getTenantContext().kind === 'tenant'
-}
-
-/** Client app URL for a given org subdomain (shared tenant host or per-org subdomain). */
-export function getClientAppUrl(orgSubdomain: string, path = '/admin'): string {
-  const needsTenantQuery = orgSubdomain && orgSubdomain !== 'client'
-
-  if (typeof window === 'undefined') {
-    const shared = tenantHost()
-    if (shared) {
-      return needsTenantQuery
-        ? `https://${shared}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
-        : `https://${shared}${path}`
-    }
-    return `https://${orgSubdomain}.${platformHost()}${path}`
-  }
-
-  const { protocol } = window.location
-
-  if (isLocalDev()) {
-    const origin = `${protocol}//${window.location.host}`
-    return needsTenantQuery
-      ? `${origin}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
-      : `${origin}${path}`
-  }
-
-  // Single-domain production (e.g. Vercel Hobby): stay on platform host
-  if (isPlatformHost()) {
-    return `${protocol}//${window.location.host}${path}`
-  }
-
-  const shared = tenantHost()
-  if (shared) {
-    const base = `${protocol}//${shared}`
-    return needsTenantQuery
-      ? `${base}${path}?tenant=${encodeURIComponent(orgSubdomain)}`
-      : `${base}${path}`
-  }
-
-  return `${protocol}//${orgSubdomain}.${platformHost()}${path}`
 }
 
 export function getOrganizationOrigin(org: {

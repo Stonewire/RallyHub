@@ -134,11 +134,6 @@ export function getPaidPlans(): SubscriptionPlan[] {
   return getVisiblePlans().filter((p) => !p.freeSubscription)
 }
 
-/** The Free plan (no recurring subscription). */
-export function getFreePlan(): SubscriptionPlan {
-  return SUBSCRIPTION_PLANS.rookie
-}
-
 export function formatPlanLabel(plan: string | null | undefined): string {
   return getPlan(plan).name
 }

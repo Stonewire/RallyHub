@@ -25,10 +25,6 @@ export function lineKey(line: number[]): string {
   return line.join(',')
 }
 
-export function defaultWinningLines(): number[][] {
-  return [[0, 1, 2, 3, 4]]
-}
-
 export type BingoWinConfig = {
   mode: 'lines' | 'full_house'
   linesRequired: number
@@ -118,37 +114,6 @@ export function bingoWinningHighlightCells(
   const cells = new Set<number>()
   for (const line of complete) for (const i of line) cells.add(i)
   return cells
-}
-
-/** True when marked cells complete any allowed line. */
-export function hasConfiguredBingoLine(
-  markedIndices: Iterable<number>,
-  allowedLines: number[][],
-): boolean {
-  const marked = new Set(markedIndices)
-  if (marked.size < 5 || allowedLines.length === 0) return false
-  return allowedLines.some((line) => line.length === 5 && line.every((i) => marked.has(i)))
-}
-
-export function cellsOnConfiguredBingoLine(
-  markedIndices: Iterable<number>,
-  allowedLines: number[][],
-): Set<number> {
-  const marked = new Set(markedIndices)
-  for (const line of allowedLines) {
-    if (line.length === 5 && line.every((i) => marked.has(i))) return new Set(line)
-  }
-  return new Set()
-}
-
-/** @deprecated use hasConfiguredBingoLine */
-export function hasBingoLine(markedIndices: Iterable<number>): boolean {
-  return hasConfiguredBingoLine(markedIndices, ALL_BINGO_LINES)
-}
-
-/** @deprecated use cellsOnConfiguredBingoLine */
-export function cellsOnBingoLine(markedIndices: Iterable<number>): Set<number> {
-  return cellsOnConfiguredBingoLine(markedIndices, ALL_BINGO_LINES)
 }
 
 export function approvedBingoCellIndices(

@@ -323,34 +323,6 @@ export function useUpdateClientAdmin() {
   })
 }
 
-export function useUpdateClientNotes() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      orgId,
-      notes,
-      account_status,
-    }: {
-      orgId: string
-      notes: string
-      account_status?: string
-    }) => {
-      const { error } = await supabase
-        .from('organizations')
-        .update({
-          internal_notes: notes,
-          ...(account_status ? { account_status } : {}),
-        })
-        .eq('id', orgId)
-      if (error) throw error
-    },
-    onSuccess: (_, { orgId }) => {
-      void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', orgId] })
-      void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
-    },
-  })
-}
-
 export function useExpireOverdueTrials() {
   const qc = useQueryClient()
   return useMutation({
