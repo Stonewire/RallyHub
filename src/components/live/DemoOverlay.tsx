@@ -43,7 +43,7 @@ export function DemoOverlay({ enabled }: DemoOverlayProps) {
       className="pointer-events-none fixed inset-0 z-[10040] flex items-center justify-center bg-black/45"
       aria-hidden
     >
-      <p className="font-display select-none text-[min(28vw,14rem)] font-black tracking-[0.35em] text-white/95">
+      <p className="font-sans select-none text-[min(16vw,8rem)] font-extrabold tracking-[0.2em] text-white/95">
         DEMO
       </p>
     </div>,

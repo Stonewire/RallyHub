@@ -1,4 +1,4 @@
-import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, X } from 'lucide-react'
+import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
@@ -22,6 +22,7 @@ import {
   winnerSoundEnabled,
   type WinnerSoundSurface,
 } from '@/lib/winner-sound'
+import { EventActivityLog } from '@/components/admin/EventActivityLog'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
@@ -135,6 +136,7 @@ export function FacilitatorEventPage() {
   const [bingoRunOverride, setBingoRunOverride] = useState<BingoRunRow | null>(null)
   const [bingoRestartOpen, setBingoRestartOpen] = useState(false)
   const [bingoTracksLive, setBingoTracksLive] = useState<MusicTrack[]>([])
+  const [logOpen, setLogOpen] = useState(false)
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
   const bingoWinHaltRef = useRef(false)
@@ -419,18 +421,30 @@ export function FacilitatorEventPage() {
 
   // Play the winner celebration on the facilitator device when 'facilitator' is a
   // chosen sound target and the reveal reaches its final stage.
+  // NOTE: depend on PRIMITIVES only. winner_sound_targets is a jsonb array whose
+  // reference changes on every event_state update; depending on it re-ran this
+  // effect each tick and the cleanup stop() cut the announcement to ~1s.
   const facilitatorWinnerAudioRef = useRef(false)
+  const facilitatorWinnerStopRef = useRef<(() => void) | null>(null)
+  const winnerRevealStage = state?.winner_reveal_stage ?? 0
+  const facilitatorWinnerEnabled = winnerSoundEnabled(
+    state?.winner_sound_targets,
+    'facilitator',
+  )
   useEffect(() => {
-    const stageNum = state?.winner_reveal_stage ?? 0
-    if (stageNum < 2 || !winnerSoundEnabled(state?.winner_sound_targets, 'facilitator')) {
+    if (winnerRevealStage < 2 || !facilitatorWinnerEnabled) {
       facilitatorWinnerAudioRef.current = false
+      // Only stop when the reveal is actually reset/cleared, not on every tick.
+      facilitatorWinnerStopRef.current?.()
+      facilitatorWinnerStopRef.current = null
       return
     }
     if (facilitatorWinnerAudioRef.current) return
     facilitatorWinnerAudioRef.current = true
-    const stop = playEventWinnerSequence(`${eventId}:facilitator-winner:2`)
-    return () => stop()
-  }, [state?.winner_reveal_stage, state?.winner_sound_targets, eventId])
+    facilitatorWinnerStopRef.current = playEventWinnerSequence(
+      `${eventId}:facilitator-winner:2`,
+    )
+  }, [winnerRevealStage, facilitatorWinnerEnabled, eventId])
 
   if (loading || !bundle || !state) {
     return (
@@ -1175,11 +1189,17 @@ export function FacilitatorEventPage() {
         ) : undefined
       }
     >
-      <div className="mb-4 flex justify-center">
-        <StatusIndicator status={event.status as RallyStatusTone} />
-        <span className="text-muted-foreground ml-2 text-sm capitalize">
-          {event.status === 'demo' ? 'Demo' : event.status}
-        </span>
+      <div className="mb-4 flex items-center justify-center gap-3">
+        <div className="flex items-center">
+          <StatusIndicator status={event.status as RallyStatusTone} />
+          <span className="text-muted-foreground ml-2 text-sm capitalize">
+            {event.status === 'demo' ? 'Demo' : event.status}
+          </span>
+        </div>
+        <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
+          <ScrollText className="size-4" />
+          View Log
+        </FacilitatorButton>
       </div>
 
       {!controlsLive ? (
@@ -2092,6 +2112,26 @@ export function FacilitatorEventPage() {
                 {resettingTeam ? 'Resetting…' : 'Reset team'}
               </NeoButton>
             </div>
+          </NeoCard>
+        </div>
+      ) : null}
+
+      {logOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setLogOpen(false)}
+        >
+          <NeoCard
+            className="max-h-[85dvh] w-full max-w-2xl space-y-4 overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Event log</h3>
+              <NeoButton variant="surface" onClick={() => setLogOpen(false)}>
+                Close
+              </NeoButton>
+            </div>
+            {eventId ? <EventActivityLog eventId={eventId} /> : null}
           </NeoCard>
         </div>
       ) : null}

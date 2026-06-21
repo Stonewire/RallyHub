@@ -28,7 +28,7 @@ export function DisplayShell({
               className="mb-8 max-h-28 max-w-[min(100%,320px)] object-contain drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]"
             />
           ) : null}
-          <h1 className="font-display max-w-5xl text-4xl font-bold tracking-tight drop-shadow-md md:text-6xl lg:text-7xl">
+          <h1 className="font-sans max-w-5xl text-4xl font-extrabold tracking-tight drop-shadow-md md:text-6xl lg:text-7xl">
             {title}
           </h1>
         </div>

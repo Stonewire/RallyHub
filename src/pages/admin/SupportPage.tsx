@@ -115,6 +115,7 @@ export function AdminSupportPage() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={6}
+                className="w-full resize-y bg-background"
                 placeholder="What happened? Steps to reproduce, event name, etc."
                 required
               />

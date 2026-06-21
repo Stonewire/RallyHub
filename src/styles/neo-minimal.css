@@ -505,6 +505,14 @@
       transform var(--nm-transition);
   }
 
+  /* #19: textareas span the full field width (matching the subject input) and
+     only resize vertically — never narrower than their container. */
+  .neo-minimal-scope textarea.neo-field,
+  .neo-minimal-scope .neo-textarea {
+    width: 100%;
+    resize: vertical;
+  }
+
   .neo-minimal-scope [data-slot='input']:focus-visible,
   .neo-minimal-scope .neo-field:focus-visible,
   .neo-minimal-scope select:focus-visible,

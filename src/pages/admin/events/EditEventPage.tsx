@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
 import {
@@ -37,6 +37,7 @@ import {
   type EventFormValues,
 } from '@/lib/event-form-utils'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
+import { publishLiveBundleReload } from '@/lib/live-broadcast'
 import { downloadEventPackage } from '@/lib/event-export'
 import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
 import { isEventActivated, canResetEventData } from '@/lib/event-lifecycle'
@@ -72,14 +73,30 @@ export function AdminEventEditPage() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'settings' | 'log'>('settings')
 
+  // Baseline snapshot of the form as loaded, for unsaved-change detection (#15).
+  const baselineRef = useRef<string>('')
+  const bypassBlockRef = useRef(false)
+
   useEffect(() => {
     if (eventQuery.data && gameIdsQuery.data !== undefined && !hydrated) {
-      setValues(eventToFormValues(eventQuery.data, gameIdsQuery.data))
+      const initial = eventToFormValues(eventQuery.data, gameIdsQuery.data)
+      setValues(initial)
+      baselineRef.current = JSON.stringify(initial)
       setHydrated(true)
     }
   }, [eventQuery.data, gameIdsQuery.data, hydrated])
 
-  async function handleSave() {
+  const dirty = hydrated && JSON.stringify(values) !== baselineRef.current
+
+  // #15: warn before leaving the editor with unsaved changes.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty &&
+      !bypassBlockRef.current &&
+      currentLocation.pathname !== nextLocation.pathname,
+  )
+
+  async function handleSave(onSaved?: () => void) {
     if (!organizationId || !eventId || !values.name.trim()) {
       setError('Event name is required.')
       return
@@ -116,7 +133,13 @@ export function AdminEventEditPage() {
         },
         gameIds: collectEventGameIds(values.selectedGameIds, values.stages),
       })
-      navigate('/admin/events', { replace: true })
+      // Push a live reload so any player/display already on this event picks up
+      // new/removed games without a manual refresh.
+      void publishLiveBundleReload(eventId)
+      baselineRef.current = JSON.stringify(values)
+      bypassBlockRef.current = true
+      if (onSaved) onSaved()
+      else navigate('/admin/events', { replace: true })
     } catch (err) {
       const message = formatSupabaseError(err)
       logSupabaseFailure('AdminEventEditPage.handleSave', err)
@@ -362,6 +385,7 @@ export function AdminEventEditPage() {
                   onSave={() => void handleSave()}
                   saving={saving}
                   label="Save Changes"
+                  dirty={dirty}
                 />
               )}
             </>
@@ -380,6 +404,37 @@ export function AdminEventEditPage() {
               onCancel={() => setResetDialogOpen(false)}
               onConfirm={() => void handleResetEventData()}
             />
+          ) : null}
+
+          {blocker.state === 'blocked' ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+                <div className="space-y-1">
+                  <h3 className="text-foreground font-semibold">Unsaved changes</h3>
+                  <p className="text-muted-foreground text-sm">
+                    You have unsaved changes to this event. Save them before leaving?
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <NeoButton variant="surface" onClick={() => blocker.reset?.()}>
+                    Cancel
+                  </NeoButton>
+                  <NeoButton
+                    variant="surface"
+                    onClick={() => blocker.proceed?.()}
+                  >
+                    Don't save
+                  </NeoButton>
+                  <NeoButton
+                    variant="primary"
+                    disabled={saving}
+                    onClick={() => void handleSave(() => blocker.proceed?.())}
+                  >
+                    {saving ? 'Saving…' : 'Save & leave'}
+                  </NeoButton>
+                </div>
+              </Card>
+            </div>
           ) : null}
         </>
       )}

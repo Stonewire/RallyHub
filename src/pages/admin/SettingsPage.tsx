@@ -426,6 +426,11 @@ export function AdminSettingsPage() {
           onSave={() => void handleSave()}
           saving={saveOrg.isPending}
           label="Save settings"
+          dirty={
+            orgQuery.data
+              ? JSON.stringify(form) !== JSON.stringify(orgToForm(orgQuery.data))
+              : false
+          }
         />
       ) : null}
     </AdminPageShell>

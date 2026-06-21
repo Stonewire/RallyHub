@@ -4,7 +4,7 @@ import { requireAuthUser, requireOrgUserManagerOrSuperAdmin } from '../_shared/a
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-join-token',
 }
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,32}$/

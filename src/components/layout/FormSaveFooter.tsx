@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+
 import { NeoButton } from '@/components/neo-minimal'
 import { cn } from '@/lib/utils'
 
@@ -6,6 +8,12 @@ type FormSaveFooterProps = {
   saving?: boolean
   label?: string
   className?: string
+  /**
+   * Optional dirty flag. When provided, the button shows "Saved!" after a
+   * successful save and reverts to `label` as soon as the form is dirty again.
+   * When omitted, "Saved!" auto-reverts after a short delay.
+   */
+  dirty?: boolean
 }
 
 /** Sticky save bar visible at the bottom of long forms. */
@@ -14,7 +22,29 @@ export function FormSaveFooter({
   saving = false,
   label = 'Save',
   className,
+  dirty,
 }: FormSaveFooterProps) {
+  const [saved, setSaved] = useState(false)
+  const prevSaving = useRef(saving)
+
+  // Flip to "Saved!" when a save finishes (saving true -> false).
+  useEffect(() => {
+    if (prevSaving.current && !saving) setSaved(true)
+    prevSaving.current = saving
+  }, [saving])
+
+  // Revert when the form becomes dirty again (controlled mode).
+  useEffect(() => {
+    if (dirty) setSaved(false)
+  }, [dirty])
+
+  // Uncontrolled fallback: auto-revert after a short delay.
+  useEffect(() => {
+    if (!saved || dirty !== undefined) return
+    const t = setTimeout(() => setSaved(false), 2500)
+    return () => clearTimeout(t)
+  }, [saved, dirty])
+
   return (
     <div
       className={cn(
@@ -24,7 +54,7 @@ export function FormSaveFooter({
     >
       <div className="flex justify-end">
         <NeoButton type="button" variant="primary" disabled={saving} onClick={onSave}>
-          {saving ? 'Saving…' : label}
+          {saving ? 'Saving…' : saved ? 'Saved!' : label}
         </NeoButton>
       </div>
     </div>

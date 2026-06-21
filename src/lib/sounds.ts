@@ -390,8 +390,35 @@ export function playVideoStopSound() {
 export function playSubmitSound() {
   void ensureAudioReady(false).then(() => playSoundImmediate('new-submission'))
 }
-/** @deprecated quiz answer-select sound removed. */
-export function playQuizSelectSound() {}
+/**
+ * Quiz answer-select confirmation cue. No mp3 ships for this, so it's a short
+ * generated Web Audio blip (~120ms). ponytail: generated cue; swap to a pooled
+ * mp3 here if the user uploads a `quiz-select.mp3`.
+ */
+export function playQuizSelectSound() {
+  void ensureAudioReady(false)
+    .then(() => resumeSharedAudioContext())
+    .then(() => {
+      const ctx = getSharedAudioContext()
+      if (!ctx) return
+      const now = ctx.currentTime
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(660, now)
+      osc.frequency.exponentialRampToValueAtTime(990, now + 0.08)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(0.3, now + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(now)
+      osc.stop(now + 0.14)
+    })
+    .catch(() => {
+      // Autoplay policy — silent no-op
+    })
+}
 /** @deprecated quiz timer-warning sound removed. */
 export function playQuizTimerWarningSound() {}
 /** @deprecated separate loser sound removed. */

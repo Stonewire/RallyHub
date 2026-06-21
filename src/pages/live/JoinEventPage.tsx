@@ -235,10 +235,15 @@ export function JoinEventPage() {
       } as Tables<'teams'>)
 
     return (
-      <JoinGameView
-        bundle={bundle}
-        teamId={teamId}
-        team={teamForView}
+      <>
+        <PoweredByRallyHub
+          hidden={organization?.hide_platform_branding}
+          position="bottom-center"
+        />
+        <JoinGameView
+          bundle={bundle}
+          teamId={teamId}
+          team={teamForView}
         messages={messages}
         chatHistoryReady={chatHistoryReady}
         onSendMessage={(text) =>
@@ -259,7 +264,8 @@ export function JoinEventPage() {
                 )
             : undefined
         }
-      />
+        />
+      </>
     )
   }
 

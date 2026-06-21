@@ -12,6 +12,13 @@ const STATUS_STYLES: Record<TicketStatus, string> = {
     'border-green-300/80 bg-green-100 text-green-900 dark:border-green-700 dark:bg-green-950/60 dark:text-green-200',
 }
 
+// #20: status dot — "open" uses brand gold; the others keep their semantic hue.
+const STATUS_DOT: Record<TicketStatus, string> = {
+  open: '#FFC107',
+  in_progress: '#3b82f6',
+  resolved: '#22c55e',
+}
+
 type SupportTicketStatusBadgeProps = {
   status: TicketStatus
   className?: string
@@ -21,12 +28,17 @@ export function SupportTicketStatusBadge({ status, className }: SupportTicketSta
   return (
     <span
       className={cn(
-        'neo-status-badge inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        'neo-status-badge inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
         `neo-status-badge--${status}`,
         STATUS_STYLES[status],
         className,
       )}
     >
+      <span
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: STATUS_DOT[status] }}
+        aria-hidden
+      />
       {TICKET_STATUS_LABELS[status]}
     </span>
   )

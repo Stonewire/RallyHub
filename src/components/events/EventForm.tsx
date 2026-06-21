@@ -483,8 +483,11 @@ export function EventForm({
                             const nextGameIds = checked
                               ? ids.filter((id) => id !== g.id)
                               : [...ids, g.id]
+                            // Unchecking only removes the game from THIS stage; it
+                            // stays in the event library (selectedGameIds). Adding
+                            // ensures it's in the library too.
                             const nextSelected = checked
-                              ? prev.selectedGameIds.filter((id) => id !== g.id)
+                              ? prev.selectedGameIds
                               : [...new Set([...prev.selectedGameIds, g.id])]
                             return {
                               ...prev,

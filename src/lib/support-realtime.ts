@@ -64,6 +64,17 @@ export function subscribeSupportRealtime(
         if (row?.ticket_id) onSupportMessageInsert(qc, viewerRole, row)
       },
     )
+    .on(
+      // #21: ticket status/assignment changes (e.g. admin updates status) so the
+      // other side updates without a manual refresh.
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'support_tickets' },
+      () => {
+        void qc.invalidateQueries({ queryKey: ['support', 'tickets'] })
+        void qc.invalidateQueries({ queryKey: supportUnreadKey(viewerRole) })
+        void qc.invalidateQueries({ queryKey: supportTicketUnreadKey(viewerRole) })
+      },
+    )
     .subscribe()
 
   subscriptions.set(key, { channel, refs: 1 })

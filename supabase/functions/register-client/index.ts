@@ -9,7 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-join-token',
 }
 
 // Internal plan ids the form may submit (display names: Free/Starter/Pro/Max).
@@ -103,8 +103,7 @@ Deno.serve(async (req) => {
       return json({ error: orgErr.message }, 400)
     }
 
-    const { error: seedErr } = await supabaseAdmin.rpc('seed_organization_defaults', { p_org_id: org.id })
-    if (seedErr) console.error('[register-client] seed_organization_defaults:', seedErr.message)
+    // #12: new clients start bare-bones — no default/demo content is seeded.
 
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: emailTrimmed,

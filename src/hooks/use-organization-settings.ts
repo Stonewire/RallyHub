@@ -293,7 +293,10 @@ export async function uploadOrganizationLogo(
   file: File,
 ): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'png'
-  const path = `${organizationId}/logo.${ext}`
+  // Timestamp the filename so each re-upload yields a NEW public URL. A fixed
+  // path returned the same URL every time, so the browser kept showing the
+  // cached old logo ("upload didn't work").
+  const path = `${organizationId}/logo-${Date.now()}.${ext}`
   const { uploadAsset } = await import('@/lib/storage')
   return uploadAsset('organization-logos', path, file)
 }
