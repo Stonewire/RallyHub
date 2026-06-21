@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
 import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/event-activation-billing'
+import { isEducationalApproved } from '@/lib/educational'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
 import type { EventStatus } from '@/types/database'
@@ -14,12 +15,15 @@ type PendingActivation = {
 type UseEventActivationFlowOptions = {
   billingPlan: string | null | undefined
   organizationId?: string | null
+  /** Org's educational_status — approved unlocks the 50% per-event discount. */
+  educationalStatus?: string | null
   onValidationError?: (msg: string) => void
 }
 
 export function useEventActivationFlow({
   billingPlan,
   organizationId,
+  educationalStatus,
   onValidationError,
 }: UseEventActivationFlowOptions) {
   const [pending, setPending] = useState<PendingActivation | null>(null)
@@ -28,7 +32,11 @@ export function useEventActivationFlow({
   const bestEventDiscount = (redemptionsQuery.data ?? [])
     .filter((r) => r.purpose === 'event' && r.status === 'active')
     .reduce((max, r) => Math.max(max, r.discount_percent), 0)
-  const warning = getEventActivationWarning(billingPlan, bestEventDiscount)
+  const warning = getEventActivationWarning(
+    billingPlan,
+    bestEventDiscount,
+    isEducationalApproved(educationalStatus),
+  )
 
   const requestActivation = useCallback(
     (eventName: string, onConfirm: () => Promise<void>) => {

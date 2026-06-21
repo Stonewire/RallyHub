@@ -187,6 +187,7 @@ export type ClientAdminUpdateInput = {
   trial_ends_at?: string | null
   trial_review_needed?: boolean
   hide_platform_branding?: boolean
+  educational_status?: string
   billing_plan?: string
   billing_period?: string
   subdomain?: string
@@ -260,6 +261,7 @@ export function useUpdateClientAdmin() {
       trial_ends_at,
       trial_review_needed,
       hide_platform_branding,
+      educational_status,
       billing_plan,
       billing_period,
       subdomain,
@@ -282,8 +284,9 @@ export function useUpdateClientAdmin() {
         trial_ends_at: trial_ends_at ?? null,
         ...(trial_review_needed !== undefined ? { trial_review_needed } : {}),
         ...(hide_platform_branding !== undefined ? { hide_platform_branding } : {}),
+        ...(educational_status !== undefined ? { educational_status } : {}),
         billing_plan: billing_plan ?? 'rookie',
-        billing_period: billing_period ?? 'monthly',
+        billing_period: billing_period ?? 'yearly',
         email: trimmedEmail || null,
         contact_email: trimmedEmail || null,
         phone: trimmedPhone || null,

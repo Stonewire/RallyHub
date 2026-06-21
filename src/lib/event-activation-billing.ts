@@ -19,6 +19,8 @@ export function getEventActivationWarning(
   billingPlan: string | null | undefined,
   /** Best active event promo-code discount for this org (0–100). Applied server-side. */
   eventPromoDiscountPercent = 0,
+  /** Approved-educational orgs get 50% off, stacked after the promo (server-side). */
+  educationalApproved = false,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
@@ -39,8 +41,9 @@ export function getEventActivationWarning(
   }
 
   const discountPct = Math.min(100, Math.max(0, Math.round(eventPromoDiscountPercent)))
-  const discountAmount = Math.round((baseAmount * discountPct) / 100)
-  const billAmountEur = Math.max(baseAmount - discountAmount, 0)
+  const afterPromo = Math.max(baseAmount - Math.round((baseAmount * discountPct) / 100), 0)
+  // Educational 50% stacks on top of the promo discount (matches migration 059).
+  const billAmountEur = educationalApproved ? Math.round(afterPromo / 2) : afterPromo
 
   if (billAmountEur === 0) {
     return {

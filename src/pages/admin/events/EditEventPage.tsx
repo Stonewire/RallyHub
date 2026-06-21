@@ -60,6 +60,7 @@ export function AdminEventEditPage() {
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
     organizationId,
+    educationalStatus: orgQuery.data?.educational_status,
     onValidationError: notify,
   })
 

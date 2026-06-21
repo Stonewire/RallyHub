@@ -37,6 +37,7 @@ import {
   normalizeClientPlan,
 } from '@/lib/client-plans'
 import { countClientEvents } from '@/lib/client-events'
+import { normalizeEducationalStatus } from '@/lib/educational'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
@@ -107,6 +108,7 @@ export function RallyHubClientDetailPage() {
   const [trialEndsAt, setTrialEndsAt] = useState<string>('')
   const [trialReviewNeeded, setTrialReviewNeeded] = useState(false)
   const [hidePlatformBranding, setHidePlatformBranding] = useState(false)
+  const [educationalStatus, setEducationalStatus] = useState('none')
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
   const [addressCity, setAddressCity] = useState('')
@@ -139,6 +141,7 @@ export function RallyHubClientDetailPage() {
     setTrialEndsAt(org.trial_ends_at ? org.trial_ends_at.slice(0, 10) : '')
     setTrialReviewNeeded(org.trial_review_needed ?? false)
     setHidePlatformBranding(org.hide_platform_branding ?? false)
+    setEducationalStatus(normalizeEducationalStatus(org.educational_status))
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
     setAddressCity(org.address_city ?? '')
@@ -233,6 +236,7 @@ export function RallyHubClientDetailPage() {
       trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
       trial_review_needed: trialReviewNeeded,
       hide_platform_branding: hidePlatformBranding,
+      educational_status: educationalStatus,
       logo_url: logo !== undefined ? logo : logoUrl,
       vat_number: vatNumber,
       address_street: addressStreet,
@@ -552,6 +556,25 @@ export function RallyHubClientDetailPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="space-y-2">
+            <NeoLabel htmlFor="educational-status">Educational (school)</NeoLabel>
+            <select
+              id="educational-status"
+              value={educationalStatus}
+              onChange={(e) => setEducationalStatus(e.target.value)}
+              className="neo-field w-full px-3 py-2 text-sm"
+            >
+              <option value="none">Not educational</option>
+              <option value="pending">Pending review (requested)</option>
+              <option value="approved">Approved — 50% off subscriptions & events</option>
+            </select>
+            {educationalStatus === 'pending' ? (
+              <p className="text-muted-foreground text-xs">
+                This account requested educational pricing at signup. Set to “Approved”
+                once you’ve verified them to apply the 50% discount.
+              </p>
+            ) : null}
           </div>
           {accountStatus === 'trial' ? (
             <div className="space-y-2">
