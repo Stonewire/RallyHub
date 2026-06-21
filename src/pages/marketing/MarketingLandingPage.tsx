@@ -328,8 +328,7 @@ export function MarketingLandingPage() {
                     </ul>
                     <div className="flex flex-col gap-2">
                       <NeoButton variant="primary" className="w-full" asChild>
-                        {/* TODO: point to /register?plan once the signup flow ships */}
-                        <Link to="/login">Start for free</Link>
+                        <Link to={`/register?plan=${plan.id}`}>Start for free</Link>
                       </NeoButton>
                       <NeoButton variant="surface" className="w-full" asChild>
                         <Link to="/contact">Book a demo</Link>
@@ -342,7 +341,7 @@ export function MarketingLandingPage() {
             <p className="text-muted-foreground mt-8 text-center text-sm">
               No subscription? {' '}
               <Link
-                to="/login"
+                to="/register?plan=rookie"
                 className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-2"
               >
                 Or start with a Free plan

@@ -33,6 +33,7 @@ type OrgRow = {
   account_status: string
   trial_ends_at: string | null
   trial_review_needed: boolean
+  educational_status: string
   hide_platform_branding: boolean
   internal_notes: string | null
   created_at: string

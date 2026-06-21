@@ -30,6 +30,7 @@ import { JoinEventPage } from '@/pages/live/JoinEventPage'
 import { TabletPage } from '@/pages/live/TabletPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
 import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
+import { RegisterPage } from '@/pages/RegisterPage'
 import { CookiePolicyPage } from '@/pages/legal/CookiePolicyPage'
 import { ImprintPage } from '@/pages/legal/ImprintPage'
 import { PrivacyPolicyPage } from '@/pages/legal/PrivacyPolicyPage'
@@ -121,6 +122,14 @@ export const router = createBrowserRouter([
     element: (
       <TenantScope>
         <LoginPage />
+      </TenantScope>
+    ),
+  },
+  {
+    path: '/register',
+    element: (
+      <TenantScope>
+        <RegisterPage />
       </TenantScope>
     ),
   },

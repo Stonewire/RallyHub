@@ -125,6 +125,18 @@ export function LoginPage() {
             {pending ? 'Signing in…' : 'Sign in'}
           </NeoButton>
         </form>
+
+        {isPlatformHost() ? (
+          <p className="text-muted-foreground text-center text-sm">
+            New to RallyHub?{' '}
+            <Link
+              to="/register"
+              className="text-foreground font-medium underline underline-offset-2 hover:text-foreground/80"
+            >
+              Or create an account
+            </Link>
+          </p>
+        ) : null}
       </NeoCard>
     </AuthPageShell>
   )
