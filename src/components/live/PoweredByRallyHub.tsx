@@ -4,9 +4,10 @@ type Props = {
   hidden?: boolean
   position?: 'bottom-right' | 'bottom-center'
   className?: string
+  theme?: 'dark' | 'light'
 }
 
-export function PoweredByRallyHub({ hidden, position = 'bottom-right', className }: Props) {
+export function PoweredByRallyHub({ hidden, position = 'bottom-right', className, theme = 'dark' }: Props) {
   if (hidden) return null
 
   return (
@@ -17,9 +18,11 @@ export function PoweredByRallyHub({ hidden, position = 'bottom-right', className
         className,
       )}
     >
-      <span className="rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white/70 backdrop-blur-sm">
-        Powered by RallyHub
-      </span>
+      <img
+        src={theme === 'light' ? '/powered-by-rallyhub-light.svg' : '/powered-by-rallyhub-dark.svg'}
+        alt="Powered by RallyHub"
+        className="h-6 w-auto"
+      />
     </div>
   )
 }
