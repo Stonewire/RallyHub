@@ -37,10 +37,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? '',
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('[register-client] missing env vars — url:', !!supabaseUrl, 'srk:', !!serviceRoleKey)
+      return json({ error: 'Server misconfiguration' }, 500)
+    }
+
+    // Deno-safe client options: disable browser-only APIs (localStorage, setInterval)
+    // that supabase-js tries to use and which corrupt the GoTrue admin client in edge runtimes.
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+      global: { headers: { Authorization: `Bearer ${serviceRoleKey}` } },
+    })
 
     const { orgName, fullName, email, password, plan, isSchool } = await req.json()
 
@@ -90,10 +99,12 @@ Deno.serve(async (req) => {
       .single()
 
     if (orgErr) {
+      console.error('[register-client] org insert:', orgErr.message, orgErr.details)
       return json({ error: orgErr.message }, 400)
     }
 
-    await supabaseAdmin.rpc('seed_organization_defaults', { p_org_id: org.id })
+    const { error: seedErr } = await supabaseAdmin.rpc('seed_organization_defaults', { p_org_id: org.id })
+    if (seedErr) console.error('[register-client] seed_organization_defaults:', seedErr.message)
 
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: emailTrimmed,
@@ -108,6 +119,7 @@ Deno.serve(async (req) => {
     })
 
     if (authErr) {
+      console.error('[register-client] auth.admin.createUser:', JSON.stringify(authErr))
       // Roll back the org so a retry with a free email can succeed.
       await supabaseAdmin.from('organizations').delete().eq('id', org.id)
       const dup = /already (been )?registered|exists/i.test(authErr.message)
@@ -134,6 +146,7 @@ Deno.serve(async (req) => {
       userId: authUser.user?.id,
     })
   } catch (err) {
+    console.error('[register-client] unexpected error:', err)
     return json({ error: err instanceof Error ? err.message : 'Registration failed' }, 500)
   }
 })

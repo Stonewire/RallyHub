@@ -307,6 +307,7 @@ export type Database = {
           list_order: number
           invoice_paid: boolean
           invoiced_at: string | null
+          wiped_at: string | null
           join_token: string
           created_at: string
         }
@@ -773,6 +774,10 @@ export type Database = {
         Returns: undefined
       }
       reset_event_data: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      wipe_event_data: {
         Args: { p_event_id: string }
         Returns: undefined
       }

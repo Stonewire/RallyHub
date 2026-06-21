@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { capTeamCountForEventStatus } from '@/lib/event-demo'
-import { resetEventData } from '@/lib/reset-event-data'
+import { resetEventData, wipeEventData } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { syncEventGameLinks } from '@/lib/sync-event-game-links'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
@@ -42,6 +42,7 @@ export function useEvents(organizationId: string | null) {
         .from('events')
         .select('*')
         .eq('organization_id', organizationId)
+        .is('wiped_at', null)
         .order('list_order', { ascending: true })
         .order('event_date', { ascending: true, nullsFirst: false })
 
@@ -227,10 +228,7 @@ export function useDeleteEvent(organizationId: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from('events').delete().eq('id', eventId)
-      if (error) throw error
-    },
+    mutationFn: async (eventId: string) => wipeEventData(eventId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.events(organizationId),

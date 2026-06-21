@@ -45,7 +45,16 @@ export function RegisterPage() {
       const { data, error: fnError } = await supabase.functions.invoke('register-client', {
         body: { orgName, fullName, email, password, plan, isSchool },
       })
-      if (fnError) throw new Error(fnError.message)
+      if (fnError) {
+        // Extract the real error message from the response body when available
+        let msg = fnError.message
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const body = await (fnError as any).context?.json?.()
+          if (body?.error) msg = body.error
+        } catch { /* ignore */ }
+        throw new Error(msg)
+      }
       if (data?.error) throw new Error(data.error)
 
       // Auto-sign-in, then hand off to /login which forwards an authed user to
