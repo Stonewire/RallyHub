@@ -47,6 +47,24 @@ export function useInsertMusicCatalog(organizationId: string | null) {
   })
 }
 
+export function useUpdateMusicCatalog(organizationId: string | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, title, artist }: { id: string; title: string; artist: string }) => {
+      const { error } = await supabase
+        .from('music_catalog')
+        .update({ title: title.trim(), artist: artist.trim() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.musicCatalog(organizationId),
+      })
+    },
+  })
+}
+
 export function useDeleteMusicCatalog(organizationId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

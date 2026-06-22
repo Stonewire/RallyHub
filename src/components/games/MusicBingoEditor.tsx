@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom'
 
 import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
 import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
-import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -180,6 +179,8 @@ export function MusicBingoEditor({
         setConfig={setConfig}
       />
 
+      {/* #23: bingo games only PICK from the catalog. Uploading happens in
+          Games → Music Catalog (single source of truth). */}
       <MusicCatalogPicker
         organizationId={organizationId}
         existingTrackIds={existingTrackIds}
@@ -190,16 +191,10 @@ export function MusicBingoEditor({
           }))
         }
       />
-      <MusicCatalogUploader
-        organizationId={organizationId}
-        clipLengthSeconds={clipLen}
-        onTracksReady={(newTracks) =>
-          setConfig((c) => ({
-            ...c,
-            tracks: [...(c.tracks ?? []), ...newTracks],
-          }))
-        }
-      />
+      <p className="text-muted-foreground text-xs">
+        Need more songs? Upload them in <strong>Games → Music Catalog</strong>, then add
+        them here.
+      </p>
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-foreground font-semibold">Tracks ({tracks.length})</h3>

@@ -19,6 +19,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { MusicCatalogManager } from '@/components/games/MusicCatalogManager'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -158,6 +159,7 @@ export function AdminGamesPage() {
   const deleteGroup = useDeleteGameGroup(organizationId)
   const reorderGames = useReorderGames(organizationId)
 
+  const [view, setView] = useState<'games' | 'catalog'>('games')
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
@@ -335,6 +337,31 @@ export function AdminGamesPage() {
         </>
       }
     >
+      {!isPlatformLibrary ? (
+        <div className="mb-6 flex gap-2">
+          <NeoButton
+            type="button"
+            size="sm"
+            variant={view === 'games' ? 'primary' : 'surface'}
+            onClick={() => setView('games')}
+          >
+            Games
+          </NeoButton>
+          <NeoButton
+            type="button"
+            size="sm"
+            variant={view === 'catalog' ? 'primary' : 'surface'}
+            onClick={() => setView('catalog')}
+          >
+            Music Catalog
+          </NeoButton>
+        </div>
+      ) : null}
+
+      {view === 'catalog' && organizationId ? (
+        <MusicCatalogManager organizationId={organizationId} />
+      ) : (
+      <>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(({ value, label }) => (
@@ -624,6 +651,8 @@ export function AdminGamesPage() {
           </Card>
         </div>
       ) : null}
+      </>
+      )}
     </AdminPageShell>
   )
 }
