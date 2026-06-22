@@ -71,6 +71,13 @@ function RootPage() {
     return <Navigate to={target} replace />
   }
 
+  // On app.rallyhub.games, unauthenticated visitors go straight to login.
+  // rallyhub.games (apex/marketing) keeps showing the landing page.
+  const platformH = import.meta.env.VITE_PLATFORM_HOST
+  if (platformH && typeof window !== 'undefined' && window.location.hostname === platformH) {
+    return <Navigate to="/login" replace />
+  }
+
   return <MarketingLandingPage />
 }
 
