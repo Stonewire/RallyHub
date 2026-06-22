@@ -20,7 +20,13 @@ import {
   isEventDemoStatus,
 } from '@/lib/event-demo'
 import { unlockAudioFromUserGesture } from '@/lib/sounds'
-import { isEventLive, PARTICIPANT_TEAM_KEY, logoForEvent } from '@/lib/live-event'
+import {
+  displayTextColorForEvent,
+  isEventLive,
+  PARTICIPANT_TEAM_KEY,
+  logoForEvent,
+} from '@/lib/live-event'
+import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
@@ -125,7 +131,7 @@ export function JoinEventPage() {
     return <EventNotLiveScreen event={event} organization={organization} />
   }
 
-  const logo = logoForEvent(event, organization)
+  const logo = logoForEvent(event, organization, displayTextColorForEvent(event))
   const joinTeams = isEventDemoStatus(event.status)
     ? demoTeamSlots(bundle.teams)
     : bundle.teams
@@ -271,6 +277,7 @@ export function JoinEventPage() {
 
   return (
     <LivePanelShell title={event.name} titleCentered className="experience-scope">
+      <ClientBrandingStyle org={organization} />
       <PoweredByRallyHub hidden={organization?.hide_platform_branding} position="bottom-center" />
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (

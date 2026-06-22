@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
+import { useTenant } from '@/contexts/tenant-context'
 import { useTheme } from '@/contexts/theme-context'
 import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
@@ -67,7 +68,10 @@ export function AdminAppSidebar() {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { signOut, role } = useAuth()
+  const { tenantOrg } = useTenant()
   const { resolvedTheme, toggleTheme } = useTheme()
+  // Item 7: sidebar is always charcoal, so a client's *light* logo replaces ours.
+  const clientLogo = tenantOrg?.logo_light_url ?? null
   const { state: sidebarState } = useSidebar()
   const sidebarCollapsed = sidebarState === 'collapsed'
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
@@ -105,18 +109,34 @@ export function AdminAppSidebar() {
       style={{ color: 'var(--sidebar-foreground)' }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        {/* Sidebar is always charcoal → always the Ivory + Yellow logo. */}
+        {/* Sidebar is always charcoal → client light logo, else Ivory+Yellow. */}
         <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-          <RallyLogo
-            mark="full"
-            theme="dark"
-            className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
-          />
-          <RallyLogo
-            mark="profile"
-            theme="dark"
-            className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
-          />
+          {clientLogo ? (
+            <img
+              src={clientLogo}
+              alt=""
+              className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
+            />
+          ) : (
+            <RallyLogo
+              mark="full"
+              theme="dark"
+              className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
+            />
+          )}
+          {clientLogo ? (
+            <img
+              src={clientLogo}
+              alt=""
+              className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
+            />
+          ) : (
+            <RallyLogo
+              mark="profile"
+              theme="dark"
+              className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
+            />
+          )}
         </div>
       </SidebarHeader>
 

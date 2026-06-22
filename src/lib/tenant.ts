@@ -16,6 +16,12 @@ export type TenantPublicOrg = {
   accent_color: string
   tablet_slug: string
   hide_platform_branding: boolean
+  logo_light_url: string | null
+  logo_dark_url: string | null
+  brand_heading_font: string | null
+  brand_body_font: string | null
+  brand_heading_font_url: string | null
+  brand_body_font_url: string | null
 }
 
 export type TenantContext =

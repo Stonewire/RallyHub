@@ -11,6 +11,7 @@ import {
 } from '@/components/admin/QueryState'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
 import { ChangeOwnPasswordCard } from '@/components/admin/ChangeOwnPasswordCard'
+import { BrandingTab } from '@/components/admin/BrandingTab'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -34,13 +35,14 @@ import { copyToClipboard } from '@/lib/clipboard'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 
-type SettingsTab = 'profile' | 'billing'
+type SettingsTab = 'profile' | 'branding' | 'billing'
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
   const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
   const tab: SettingsTab =
-    searchParams.get('tab') === 'billing' ? 'billing' : 'profile'
+    tabParam === 'billing' ? 'billing' : tabParam === 'branding' ? 'branding' : 'profile'
 
   const { notify } = useNotification()
   const orgQuery = useOrganization(organizationId)
@@ -171,6 +173,16 @@ export function AdminSettingsPage() {
         </button>
         <button
           type="button"
+          onClick={() => setTab('branding')}
+          className={cn(
+            'neo-tab px-4 py-2 text-sm font-medium',
+            tab === 'branding' ? 'neo-tab-active' : '',
+          )}
+        >
+          Branding
+        </button>
+        <button
+          type="button"
           onClick={() => setTab('billing')}
           className={cn(
             'neo-tab px-4 py-2 text-sm font-medium',
@@ -192,6 +204,8 @@ export function AdminSettingsPage() {
           billingPeriod={orgQuery.data?.billing_period}
           showAvailablePlans
         />
+      ) : tab === 'branding' ? (
+        <BrandingTab organizationId={organizationId} />
       ) : (
         <div className="space-y-8">
           {!orgQuery.data ? (

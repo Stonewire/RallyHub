@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
+import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { getTenantContext, useTenantOrganization, type TenantContext } from '@/lib/tenant'
 
 type TenantContextValue = {
@@ -24,6 +25,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         tenantError: error as Error | null,
       }}
     >
+      <ClientBrandingStyle org={data ?? null} />
       {children}
     </Ctx.Provider>
   )

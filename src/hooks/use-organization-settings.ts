@@ -155,6 +155,41 @@ export function useSaveOrganization(organizationId: string | null) {
   })
 }
 
+/** Item 7: persist any subset of branding fields (logos, colors, fonts, flag). */
+export type OrganizationBrandingUpdate = Pick<
+  TablesUpdate<'organizations'>,
+  | 'logo_light_url'
+  | 'logo_dark_url'
+  | 'primary_color'
+  | 'secondary_color'
+  | 'accent_color'
+  | 'brand_heading_font'
+  | 'brand_body_font'
+  | 'brand_heading_font_url'
+  | 'brand_body_font_url'
+  | 'hide_platform_branding'
+>
+
+export function useSaveOrganizationBranding(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (update: OrganizationBrandingUpdate) => {
+      if (!organizationId) throw new Error('No organization')
+      const { error } = await supabase
+        .from('organizations')
+        .update(update)
+        .eq('id', organizationId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organization(organizationId),
+      })
+    },
+  })
+}
+
 export function useSaveOrganizationLogo(organizationId: string | null) {
   const queryClient = useQueryClient()
 

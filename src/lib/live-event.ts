@@ -166,8 +166,15 @@ export function brandColorsForEvent(
 export function logoForEvent(
   event: Tables<'events'>,
   org: TenantPublicOrg | Tables<'organizations'> | null,
+  tone?: DisplayTextColor,
 ): string | null {
   if (event.branding_enabled && event.logo_url) return event.logo_url
+  if (org) {
+    // Item 7: pick the client logo that contrasts with the surface. Black text
+    // = light background → dark logo; white text = dark background → light logo.
+    const themed = tone === 'black' ? org.logo_dark_url : tone === 'white' ? org.logo_light_url : null
+    if (themed) return themed
+  }
   return org?.logo_url ?? event.logo_url ?? null
 }
 

@@ -7,6 +7,7 @@ import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
+import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { DisplayPodium } from '@/components/live/DisplayPodium'
@@ -229,7 +230,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     winnerTeamId !== dismissedWinnerId &&
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
-  const logo = logoForEvent(event, organization)
+  const logo = logoForEvent(event, organization, displayTextColorForEvent(event))
   const textClass = displayTextClass(event)
   const showAnnouncement =
     Boolean(state.announcement) &&
@@ -507,6 +508,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       variant={variant}
       className={embedded ? 'h-screen overflow-hidden' : undefined}
     >
+      <ClientBrandingStyle org={organization} />
       <DisplayShell logo={logo} title={event.name} headerRight={headerTimer}>
         {body}
       </DisplayShell>
