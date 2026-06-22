@@ -298,29 +298,41 @@ export function useCreateOrganizationUser(organizationId: string | null) {
   })
 }
 
-/** Item 5: a client_admin/super_admin sets another member's password. */
-export function useSetOrganizationUserPassword(organizationId: string | null) {
+export type UpdateOrganizationUserPayload = {
+  userId: string
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  role: OrgUserRole
+  /** Optional — only changes the password when non-empty. */
+  password?: string
+  /** Force a password change on next login (only applied when password is set). */
+  require_password_change?: boolean
+}
+
+/** Item 5: edit a team member (or your own details). Authorization is enforced
+ *  server-side in the update-org-user edge function. */
+export function useUpdateOrganizationUser(organizationId: string | null) {
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: { userId: string; password: string }) => {
+    mutationFn: async (payload: UpdateOrganizationUserPayload) => {
       if (!organizationId) throw new Error('No organization')
-      const { data, error } = await supabase.functions.invoke('set-org-user-password', {
-        body: { organizationId, userId: payload.userId, password: payload.password },
+      const { data, error } = await supabase.functions.invoke('update-org-user', {
+        body: { organizationId, ...payload },
       })
       if (error) throw error
       if (data && typeof data === 'object' && 'error' in data && data.error) {
         throw new Error(String(data.error))
       }
     },
-  })
-}
-
-/** Item 5: the signed-in user changes their own password. */
-export function useChangeOwnPassword() {
-  return useMutation({
-    mutationFn: async (newPassword: string) => {
-      if (newPassword.length < 8) throw new Error('Password must be at least 8 characters')
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
-      if (error) throw error
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationUsers(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationMembers(organizationId),
+      })
     },
   })
 }

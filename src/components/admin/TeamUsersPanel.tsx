@@ -1,4 +1,4 @@
-import { Check, Copy, KeyRound, Plus, Trash2, X } from 'lucide-react'
+import { Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -11,7 +11,7 @@ import {
   useCreateOrganizationUser,
   useOrganizationUsers,
   useRemoveOrganizationUser,
-  useSetOrganizationUserPassword,
+  useUpdateOrganizationUser,
   type CreateOrganizationUserResult,
   type OrgUserRole,
   type OrganizationUser,
@@ -51,45 +51,23 @@ type TeamUsersPanelProps = {
 
 export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps) {
   const organizationId = useOrganizationId()
-  const { role: actorRole } = useAuth()
+  const { role: actorRole, user: authUser } = useAuth()
   const { notify } = useNotification()
   const usersQuery = useOrganizationUsers(organizationId)
   const createUser = useCreateOrganizationUser(organizationId)
   const removeUser = useRemoveOrganizationUser(organizationId)
-  const setPassword = useSetOrganizationUserPassword(organizationId)
+  const updateUser = useUpdateOrganizationUser(organizationId)
   const [userToRemove, setUserToRemove] = useState<OrganizationUser | null>(null)
-  const [pwTarget, setPwTarget] = useState<OrganizationUser | null>(null)
-  const [pwValue, setPwValue] = useState('')
-  const [pwError, setPwError] = useState<string | null>(null)
-  const [pwDone, setPwDone] = useState(false)
 
-  function openSetPassword(user: OrganizationUser) {
-    setPwTarget(user)
-    setPwValue(generateTempPassword())
-    setPwError(null)
-    setPwDone(false)
-  }
-
-  async function confirmSetPassword() {
-    if (!pwTarget) return
-    if (pwValue.trim().length < 8) {
-      setPwError('Password must be at least 8 characters.')
-      return
-    }
-    setPwError(null)
-    try {
-      await setPassword.mutateAsync({ userId: pwTarget.id, password: pwValue.trim() })
-      setPwDone(true)
-    } catch (err) {
-      setPwError(err instanceof Error ? err.message : 'Could not set password')
-    }
-  }
+  const currentUserId = authUser?.id ?? null
+  const isOrgAdmin = actorRole === 'client_admin' || actorRole === 'super_admin'
 
   const assignableRoles = assignableOrgUserRoles(actorRole)
   const defaultRole: AssignableOrgUserRole = facilitatorsOnly
     ? 'facilitator'
     : (assignableRoles[0] ?? 'facilitator')
 
+  // --- Add user modal ---
   const [userModalOpen, setUserModalOpen] = useState(false)
   const [createdUser, setCreatedUser] = useState<CreateOrganizationUserResult | null>(null)
   const [credentialsCopied, setCredentialsCopied] = useState(false)
@@ -100,6 +78,17 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
   const [newLastName, setNewLastName] = useState('')
   const [newRole, setNewRole] = useState<AssignableOrgUserRole>(defaultRole)
   const [newTempPassword, setNewTempPassword] = useState('')
+
+  // --- Edit user modal ---
+  const [editUser, setEditUser] = useState<OrganizationUser | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editUsername, setEditUsername] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editFirstName, setEditFirstName] = useState('')
+  const [editLastName, setEditLastName] = useState('')
+  const [editRole, setEditRole] = useState<OrgUserRole>('facilitator')
+  const [editPassword, setEditPassword] = useState('')
+  const [editRequireChange, setEditRequireChange] = useState(false)
 
   function resetUserForm() {
     setNewUsername('')
@@ -123,10 +112,31 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
     resetUserForm()
   }
 
+  function openEditModal(user: OrganizationUser) {
+    setEditUser(user)
+    setEditError(null)
+    setEditUsername(user.username)
+    setEditEmail(user.email)
+    setEditFirstName(user.first_name ?? '')
+    setEditLastName(user.last_name ?? '')
+    setEditRole(user.role)
+    setEditPassword('')
+    setEditRequireChange(false)
+  }
+
+  function canEditUser(user: OrganizationUser): boolean {
+    return isOrgAdmin || user.id === currentUserId
+  }
+
   function canRemoveUser(user: OrganizationUser): boolean {
+    if (user.id === currentUserId) return false
+    if (!isOrgAdmin) return false
     if (facilitatorsOnly) return user.role === 'facilitator'
     return true
   }
+
+  // Role is only editable by an org admin editing someone else.
+  const editRoleEditable = Boolean(editUser) && isOrgAdmin && editUser?.id !== currentUserId
 
   async function handleCreateUser() {
     const usernameErr = validateUsername(newUsername)
@@ -165,6 +175,39 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       setCreatedUser(result)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to create user.')
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!editUser) return
+    const usernameErr = validateUsername(editUsername)
+    if (usernameErr) {
+      setEditError(usernameErr)
+      return
+    }
+    if (!editEmail.trim() || !editFirstName.trim() || !editLastName.trim()) {
+      setEditError('Username, email, first and last name are required.')
+      return
+    }
+    if (editPassword.trim() && editPassword.trim().length < 8) {
+      setEditError('Password must be at least 8 characters.')
+      return
+    }
+    setEditError(null)
+    try {
+      await updateUser.mutateAsync({
+        userId: editUser.id,
+        username: normalizeUsername(editUsername),
+        email: editEmail.trim().toLowerCase(),
+        first_name: editFirstName.trim(),
+        last_name: editLastName.trim(),
+        role: editRoleEditable ? editRole : editUser.role,
+        password: editPassword.trim() || undefined,
+        require_password_change: editPassword.trim() ? editRequireChange : undefined,
+      })
+      setEditUser(null)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Could not save changes.')
     }
   }
 
@@ -223,29 +266,39 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 key={user.id}
                 className="flex items-center justify-between gap-3 py-3"
               >
-                <div>
-                  <p className="text-foreground font-medium">{displayUserName(user)}</p>
-                  <p className="text-muted-foreground text-sm">
+                <div className="min-w-0">
+                  <p className="text-foreground flex items-center gap-2 font-medium">
+                    {displayUserName(user)}
+                    {user.id === currentUserId ? (
+                      <span className="bg-primary/15 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
+                        You
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="text-muted-foreground truncate text-sm">
                     @{user.username} · {user.email} · {formatUserRole(user.role)}
                     {user.must_change_password ? ' · pending password change' : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    title="Set password"
-                    onClick={() => openSetPassword(user)}
-                  >
-                    <KeyRound className="size-4" />
-                  </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {canEditUser(user) ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Edit"
+                      onClick={() => openEditModal(user)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  ) : null}
                   {canRemoveUser(user) ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive"
+                      title="Delete"
                       disabled={removeUser.isPending}
                       onClick={() => setUserToRemove(user)}
                     >
@@ -420,76 +473,130 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
         </div>
       ) : null}
 
-      {pwTarget ? (
+      {editUser ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
-            <h3 className="text-foreground font-semibold">
-              {pwDone ? 'Password updated' : `Set password for ${displayUserName(pwTarget)}`}
-            </h3>
-            {pwDone ? (
-              <>
-                <p className="text-muted-foreground text-sm">
-                  Share this with{' '}
-                  <span className="text-foreground font-medium">{displayUserName(pwTarget)}</span>.
-                  They'll be asked to change it on next login.
+          <Card className="border-border/80 max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto bg-card p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="text-foreground font-semibold">
+                Edit {editUser.id === currentUserId ? 'your details' : displayUserName(editUser)}
+              </h3>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => setEditUser(null)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-username">Username</Label>
+              <Input
+                id="edit-username"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                autoComplete="off"
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-first">First name</Label>
+                <Input
+                  id="edit-first"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-last">Surname</Label>
+                <Input
+                  id="edit-last"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Role</Label>
+              {editRoleEditable ? (
+                <select
+                  id="edit-role"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as OrgUserRole)}
+                  className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
+                >
+                  {assignableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {formatUserRole(role)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-foreground text-sm capitalize">
+                  {formatUserRole(editRole)}
+                  <span className="text-muted-foreground">
+                    {editUser.id === currentUserId ? ' · you cannot change your own role' : ''}
+                  </span>
                 </p>
-                <p className="bg-muted/40 text-foreground rounded-lg p-3 font-mono text-sm">
-                  {pwValue}
-                </p>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void copyToClipboard(pwValue)}
-                  >
-                    <Copy className="size-4" />
-                    Copy
-                  </Button>
-                  <NeoButton type="button" variant="primary" onClick={() => setPwTarget(null)}>
-                    Done
-                  </NeoButton>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-muted-foreground text-sm">
-                  Set a new password for @{pwTarget.username}. They must change it on next login.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={pwValue}
-                    onChange={(e) => setPwValue(e.target.value)}
-                    autoComplete="new-password"
-                    className="bg-background flex-1 font-mono text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setPwValue(generateTempPassword())}
-                  >
-                    Generate
-                  </Button>
-                </div>
-                {pwError ? (
-                  <p className="text-destructive text-sm" role="alert">
-                    {pwError}
-                  </p>
-                ) : null}
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setPwTarget(null)}>
-                    Cancel
-                  </Button>
-                  <NeoButton
-                    type="button"
-                    variant="primary"
-                    disabled={setPassword.isPending}
-                    onClick={() => void confirmSetPassword()}
-                  >
-                    {setPassword.isPending ? 'Saving…' : 'Set password'}
-                  </NeoButton>
-                </div>
-              </>
-            )}
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">New password</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="edit-password"
+                  type="text"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Leave blank to keep current"
+                  className="bg-background flex-1 font-mono text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditPassword(generateTempPassword())}
+                >
+                  Generate
+                </Button>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editRequireChange}
+                  disabled={!editPassword.trim()}
+                  onChange={(e) => setEditRequireChange(e.target.checked)}
+                />
+                Require user to update password on next login
+              </label>
+            </div>
+            {editError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {editError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditUser(null)}>
+                Cancel
+              </Button>
+              <NeoButton
+                type="button"
+                variant="primary"
+                disabled={updateUser.isPending}
+                onClick={() => void handleSaveEdit()}
+              >
+                {updateUser.isPending ? 'Saving…' : 'Save changes'}
+              </NeoButton>
+            </div>
           </Card>
         </div>
       ) : null}
