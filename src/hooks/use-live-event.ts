@@ -187,6 +187,43 @@ export function useLiveEvent(eventId: string | undefined) {
     void reload()
   }, [reload])
 
+  // Safety-net poll for event_state. Anonymous players don't reliably receive
+  // Realtime (postgres_changes needs the join-token header it can't send, and
+  // broadcast depends on the facilitator being connected). Polling the single
+  // lightweight state row every few seconds guarantees quiz reveal, bingo state,
+  // announcements, etc. reach players even if Realtime is silent. Cheap: one row.
+  useEffect(() => {
+    if (!eventId) return
+    let cancelled = false
+    const tick = async () => {
+      const access = await ensureLiveEventAccess(eventId)
+      if (!access || cancelled) return
+      const { data: row } = await supabase
+        .from('event_state')
+        .select('*')
+        .eq('event_id', eventId)
+        .maybeSingle()
+      if (cancelled || !row) return
+      setBundle((b) => {
+        if (!b || b.state.id !== row.id) return b
+        // Don't clobber a newer optimistic/realtime update.
+        if (
+          b.state.updated_at &&
+          row.updated_at &&
+          row.updated_at <= b.state.updated_at
+        ) {
+          return b
+        }
+        return { ...b, state: row }
+      })
+    }
+    const interval = setInterval(() => void tick(), 4000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [eventId])
+
   useEffect(() => {
     if (!eventId) return
 

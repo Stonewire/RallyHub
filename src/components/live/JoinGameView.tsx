@@ -93,6 +93,7 @@ import {
   playQuizWrongSound,
   playSubmitSound,
   installAudioUnlock,
+  unlockAudioFromUserGesture,
   resetEventWinnerAudioGuard,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
@@ -604,6 +605,9 @@ export function JoinGameView({
 
   async function submitQuizAnswer(answerId: string, gameId: string, questionId: string) {
     if (quizLocked || state.quiz_state !== 'active') return
+    // Belt-and-suspenders audio unlock on a real user tap, so later realtime
+    // sounds (reveal correct/wrong, push) are not blocked by mobile autoplay.
+    unlockAudioFromUserGesture('full')
     // Fire instantly on tap (before any state update / network) so the sound
     // lines up exactly with the visual selection.
     playQuizSelectSound()
