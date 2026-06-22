@@ -4,6 +4,7 @@
 -- URL (.woff2/.ttf). When a *_font_url is set it wins over the name.
 
 alter table public.organizations
+  add column if not exists hide_platform_branding boolean not null default false,
   add column if not exists logo_light_url        text,
   add column if not exists logo_dark_url         text,
   add column if not exists brand_heading_font    text,
@@ -12,7 +13,12 @@ alter table public.organizations
   add column if not exists brand_body_font_url    text;
 
 -- Re-declare the three tenant-public RPCs so anon live surfaces (display/join)
--- receive the logos + fonts. Mirrors migration 057's column list, extended.
+-- receive the logos + fonts. Adding columns changes the return type, so the
+-- existing functions must be dropped first (create-or-replace can't widen it).
+
+drop function if exists public.get_organization_tenant_public(uuid);
+drop function if exists public.get_organization_tenant_by_subdomain(text);
+drop function if exists public.resolve_tenant_by_host(text);
 
 create or replace function public.get_organization_tenant_public(p_org_id uuid)
 returns table (
