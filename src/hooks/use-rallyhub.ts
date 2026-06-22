@@ -323,6 +323,22 @@ export function useUpdateClientAdmin() {
   })
 }
 
+export function useDeleteRallyHubClient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (orgId: string) => {
+      const { error } = await supabase.rpc('delete_organization_cascade', {
+        p_org_id: orgId,
+      })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'dashboard'] })
+    },
+  })
+}
+
 export function useExpireOverdueTrials() {
   const qc = useQueryClient()
   return useMutation({

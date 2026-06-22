@@ -22,10 +22,12 @@ import {
 } from '@/components/neo-minimal'
 import {
   useCreateRallyHubClient,
+  useDeleteRallyHubClient,
   useRallyHubClient,
   useUpdateClientAdmin,
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
+import { downloadClientPackage } from '@/lib/client-export'
 import { uploadOrganizationLogo, useOrganizationUsers } from '@/hooks/use-organization-settings'
 import {
   BILLING_PERIODS,
@@ -126,6 +128,34 @@ export function RallyHubClientDetailPage() {
   const [adminResetError, setAdminResetError] = useState<string | null>(null)
   const [adminResetSending, setAdminResetSending] = useState(false)
   const [adminResetConfirmEmail, setAdminResetConfirmEmail] = useState<string | null>(null)
+  const deleteClient = useDeleteRallyHubClient()
+  const [downloading, setDownloading] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [dangerError, setDangerError] = useState<string | null>(null)
+
+  async function handleDownloadData() {
+    if (!clientId) return
+    setDangerError(null)
+    setDownloading(true)
+    try {
+      await downloadClientPackage(clientId)
+    } catch (err) {
+      setDangerError(err instanceof Error ? err.message : 'Download failed')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  async function handleDeleteClient() {
+    if (!clientId) return
+    setDangerError(null)
+    try {
+      await deleteClient.mutateAsync(clientId)
+      navigate('/admin/clients', { replace: true })
+    } catch (err) {
+      setDangerError(err instanceof Error ? err.message : 'Delete failed')
+    }
+  }
 
   useEffect(() => {
     if (!data?.org) return
@@ -739,6 +769,36 @@ export function RallyHubClientDetailPage() {
           className="w-full px-3 py-2 text-sm"
         />
       </NeoCard>
+
+      {!isCreateMode && clientId ? (
+        <NeoCard className="space-y-4 border-red-300/60 bg-card p-6 shadow-sm dark:border-red-900/60">
+          <div className="space-y-1">
+            <h3 className="text-foreground font-semibold">Danger zone</h3>
+            <p className="text-muted-foreground text-sm">
+              Download a full data export before deleting. Deleting a client permanently
+              removes its organisation, events, teams, submissions, media, and user accounts
+              from Supabase. This cannot be undone.
+            </p>
+          </div>
+          {dangerError ? <QueryError message={dangerError} /> : null}
+          <div className="flex flex-wrap gap-2">
+            <NeoButton
+              variant="surface"
+              disabled={downloading}
+              onClick={() => void handleDownloadData()}
+            >
+              {downloading ? 'Preparing…' : 'Download data'}
+            </NeoButton>
+            <NeoButton
+              variant="destructive"
+              disabled={deleteClient.isPending}
+              onClick={() => setDeleteOpen(true)}
+            >
+              Delete client
+            </NeoButton>
+          </div>
+        </NeoCard>
+      ) : null}
     </div>
   )
 
@@ -802,6 +862,45 @@ export function RallyHubClientDetailPage() {
             <div className="flex justify-end gap-2">
               <NeoButton variant="surface" size="sm" onClick={() => setAdminResetConfirmEmail(null)}>Cancel</NeoButton>
               <NeoButton size="sm" onClick={() => void confirmAdminPasswordReset()}>Send</NeoButton>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+
+      {deleteOpen ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-client-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2 id="delete-client-title" className="text-foreground mb-2 font-semibold">
+              Delete this client?
+            </h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              This permanently removes <strong className="text-foreground">{displayName}</strong>{' '}
+              and all its events, teams, submissions, media, and user accounts from Supabase.
+              This cannot be undone. Make sure you have downloaded the data first.
+            </p>
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                variant="surface"
+                size="sm"
+                disabled={deleteClient.isPending}
+                onClick={() => setDeleteOpen(false)}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                variant="destructive"
+                size="sm"
+                disabled={deleteClient.isPending}
+                onClick={() => void handleDeleteClient()}
+              >
+                {deleteClient.isPending ? 'Deleting…' : 'Delete permanently'}
+              </NeoButton>
             </div>
           </div>
         </div>,

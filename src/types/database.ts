@@ -550,6 +550,7 @@ export type Database = {
           bingo_winner_team_id: string | null
           bingo_announced_winner_ids: unknown
           bingo_bonus_id: string | null
+          bingo_used_bonus_ids: unknown
           announcement: string | null
           announcement_target: string | null
           winner_reveal_stage: number
@@ -577,6 +578,7 @@ export type Database = {
           bingo_winner_team_id?: string | null
           bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
+          bingo_used_bonus_ids?: unknown
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
@@ -601,6 +603,7 @@ export type Database = {
           bingo_winner_team_id?: string | null
           bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
+          bingo_used_bonus_ids?: unknown
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
@@ -779,6 +782,10 @@ export type Database = {
       }
       wipe_event_data: {
         Args: { p_event_id: string }
+        Returns: undefined
+      }
+      delete_organization_cascade: {
+        Args: { p_org_id: string }
         Returns: undefined
       }
       verify_tablet_password: {

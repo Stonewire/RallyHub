@@ -400,6 +400,10 @@ export function FacilitatorEventPage() {
   )
 
   const pendingSubmissionCountRef = useRef<number>(0)
+  // #11: initialise the baseline ONCE. The old `=== 0` guard re-armed every time
+  // pending dropped to 0, so the next submission after clearing the queue was
+  // swallowed and played no sound (inconsistent cue).
+  const submissionSoundReadyRef = useRef(false)
 
   useEffect(() => {
     const pendingCount = liveSubmissions
@@ -409,7 +413,8 @@ export function FacilitatorEventPage() {
           isOpenStageSubmissionMediaType(s.media_type),
       )
       .length
-    if (pendingSubmissionCountRef.current === 0) {
+    if (!submissionSoundReadyRef.current) {
+      submissionSoundReadyRef.current = true
       pendingSubmissionCountRef.current = pendingCount
       return
     }
@@ -885,6 +890,10 @@ export function FacilitatorEventPage() {
     liveState.bingo_state !== 'bonus' &&
     liveState.bingo_state !== 'bonus_revealed'
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
+  // #24: bonus ids already played this run (one-time-per-run gate).
+  const usedBonusIds = Array.isArray(liveState.bingo_used_bonus_ids)
+    ? (liveState.bingo_used_bonus_ids as string[])
+    : []
   const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
   const bingoMarkedTeams = (() => {
     if (!bingoGameId) return [] as string[]
@@ -1640,34 +1649,67 @@ export function FacilitatorEventPage() {
             </div>
           ) : stage.type === 'bingo' ? (
             <div className="space-y-4">
+              <p className="text-muted-foreground text-xs">
+                {effectiveBingoRun
+                  ? `Run active · ${bingoPlayOrder.length} songs in script`
+                  : bingoRunQuery.isLoading
+                    ? 'Loading bingo run…'
+                    : 'No bingo run — switch to this stage to activate'}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium tabular-nums">
+                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
+              </p>
+              {track && liveState.bingo_state === 'playing' ? (
+                <p className="font-semibold">
+                  Now playing: {track.title} — {track.artist}
+                </p>
+              ) : null}
+              {showBingoPlayer ? (
+                <BingoClipPlayer
+                  ref={bingoAudioRef}
+                  src={trackPlaybackUrl}
+                  nextSrc={nextTrackForCrossfade}
+                  playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
+                  autoPlay={false}
+                  crossfadeSeconds={4}
+                  onLockAndReveal={() => void handleBingoLockAndReveal()}
+                  onAutoAdvance={() => void autoAdvanceBingoSong()}
+                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
+                />
+              ) : null}
+
+              {/* #24: bonus challenges as manual one-time buttons, under the player. */}
               {bingoGame && bingoBonusChallenges(bingoGame).length > 0 ? (
-                <div className="space-y-2">
+                <Card className="neo-card border-border/80 space-y-2 bg-card p-4 shadow-sm">
                   <p className="text-muted-foreground text-xs font-medium uppercase">
                     Bonus challenges
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {bingoBonusChallenges(bingoGame).map((ch) => (
-                      <Button
-                        key={ch.id}
-                        size="sm"
-                        variant={
-                          state.bingo_bonus_id === ch.id ? 'secondary' : 'outline'
-                        }
-                        disabled={
-                          state.bingo_state === 'bonus' ||
-                          state.bingo_state === 'bonus_revealed'
-                        }
-                        onClick={() =>
-                          void patchState({
-                            bingo_state: 'bonus',
-                            bingo_bonus_id: ch.id,
-                          })
-                        }
-                      >
-                        {ch.question.slice(0, 36)}
-                        {ch.question.length > 36 ? '…' : ''}
-                      </Button>
-                    ))}
+                    {bingoBonusChallenges(bingoGame).map((ch) => {
+                      const used = usedBonusIds.includes(ch.id)
+                      const inBonus =
+                        state.bingo_state === 'bonus' ||
+                        state.bingo_state === 'bonus_revealed'
+                      return (
+                        <Button
+                          key={ch.id}
+                          size="sm"
+                          variant={state.bingo_bonus_id === ch.id ? 'secondary' : 'outline'}
+                          disabled={used || inBonus}
+                          onClick={() =>
+                            void patchState({
+                              bingo_state: 'bonus',
+                              bingo_bonus_id: ch.id,
+                              bingo_used_bonus_ids: [...usedBonusIds, ch.id],
+                            })
+                          }
+                        >
+                          {ch.question.slice(0, 36)}
+                          {ch.question.length > 36 ? '…' : ''}
+                          {used ? ' ✓' : ''}
+                        </Button>
+                      )
+                    })}
                   </div>
                   {state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed' ? (
                     <div className="flex flex-wrap gap-2">
@@ -1709,36 +1751,12 @@ export function FacilitatorEventPage() {
                       </Button>
                     </div>
                   ) : null}
-                </div>
+                  <p className="text-muted-foreground text-[11px]">
+                    Each bonus can be played once per run. Restart the bingo game to re-arm them.
+                  </p>
+                </Card>
               ) : null}
-              <p className="text-muted-foreground text-xs">
-                {effectiveBingoRun
-                  ? `Run active · ${bingoPlayOrder.length} songs in script`
-                  : bingoRunQuery.isLoading
-                    ? 'Loading bingo run…'
-                    : 'No bingo run — switch to this stage to activate'}
-              </p>
-              <p className="text-muted-foreground text-sm font-medium tabular-nums">
-                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
-              </p>
-              {track && liveState.bingo_state === 'playing' ? (
-                <p className="font-semibold">
-                  Now playing: {track.title} — {track.artist}
-                </p>
-              ) : null}
-              {showBingoPlayer ? (
-                <BingoClipPlayer
-                  ref={bingoAudioRef}
-                  src={trackPlaybackUrl}
-                  nextSrc={nextTrackForCrossfade}
-                  playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
-                  autoPlay={false}
-                  crossfadeSeconds={4}
-                  onLockAndReveal={() => void handleBingoLockAndReveal()}
-                  onAutoAdvance={() => void autoAdvanceBingoSong()}
-                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
-                />
-              ) : null}
+
               {liveState.bingo_winner_team_id ? (
                 <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                   🏆 Bingo! <strong>{teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'}</strong> won — game paused. Press Continue to keep playing.

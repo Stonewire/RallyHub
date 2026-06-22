@@ -1,4 +1,5 @@
 import { canResetEventData } from '@/lib/event-lifecycle'
+import { publishLiveBundleReload } from '@/lib/live-broadcast'
 import { deleteStorageObjects, publicUrlStoragePath } from '@/lib/storage'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
@@ -59,6 +60,10 @@ export async function resetEventData(eventId: string): Promise<void> {
   if (rpcErr) throw rpcErr
 
   await syncTeamSlots(eventId, event.team_count)
+
+  // #8: push a live reload so any connected player/display drops the old teams
+  // and refetches the fresh slot list (anon clients don't get postgres_changes).
+  await publishLiveBundleReload(eventId)
 }
 
 /** Wipe all live data for an archived event (keeps the event row for payment history). */

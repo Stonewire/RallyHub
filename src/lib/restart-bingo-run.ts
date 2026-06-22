@@ -69,6 +69,12 @@ export async function restartBingoRun(
 
   await supabase.from('submissions').delete().eq('event_id', eventId).eq('game_id', gameId)
 
+  // #24: a restart re-arms every bonus challenge (one-time-per-run tracker).
+  await supabase
+    .from('event_state')
+    .update({ bingo_used_bonus_ids: [] })
+    .eq('event_id', eventId)
+
   const result = await activateBingoRun(eventId, gameId, stageIndex)
   await publishLiveBundleReload(eventId)
   return result
