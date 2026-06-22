@@ -321,7 +321,15 @@ export function useUpdateOrganizationUser(organizationId: string | null) {
       const { data, error } = await supabase.functions.invoke('update-org-user', {
         body: { organizationId, ...payload },
       })
-      if (error) throw error
+      if (error) {
+        // On a non-2xx the real message is in the response body, not error.message.
+        const ctx = (error as { context?: Response }).context
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json().catch(() => null)
+          if (body && typeof body.error === 'string') throw new Error(body.error)
+        }
+        throw error
+      }
       if (data && typeof data === 'object' && 'error' in data && data.error) {
         throw new Error(String(data.error))
       }

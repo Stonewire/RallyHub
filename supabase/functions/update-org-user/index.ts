@@ -53,12 +53,17 @@ Deno.serve(async (req) => {
 
     const { data: target } = await admin
       .from('profiles')
-      .select('id, role, organization_id, email')
+      .select('id, role, organization_id')
       .eq('id', targetUserId)
       .maybeSingle()
     if (!target || target.organization_id !== organizationId) {
       return json({ error: 'User is not a member of this organization' }, 404)
     }
+
+    // Email lives on auth.users (not profiles); fetch the current one so we can
+    // re-key the organization_members mirror if the email changes.
+    const { data: targetAuth } = await admin.auth.admin.getUserById(targetUserId)
+    const oldEmail = targetAuth.user?.email ?? null
 
     const isSelf = auth.user.id === targetUserId
     const callerIsOrgAdmin =
@@ -123,9 +128,9 @@ Deno.serve(async (req) => {
     if (authErr) return json({ error: authErr.message }, 400)
 
     // Profiles is the authoritative source for role + must_change_password.
+    // (Email is NOT stored on profiles — it lives on auth.users, updated above.)
     const profileUpdate: Record<string, unknown> = {}
     if (username) profileUpdate.username = username
-    if (email) profileUpdate.email = email
     if (firstName != null) profileUpdate.first_name = firstName
     if (lastName != null) profileUpdate.last_name = lastName
     if (fullName) profileUpdate.full_name = fullName
@@ -144,7 +149,7 @@ Deno.serve(async (req) => {
         ...(applyRole ? { role: applyRole } : {}),
       })
       .eq('organization_id', organizationId)
-      .eq('email', target.email)
+      .eq('email', oldEmail ?? '')
 
     return json({ ok: true })
   } catch (err) {
