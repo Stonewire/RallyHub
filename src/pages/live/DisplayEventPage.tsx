@@ -447,7 +447,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             {quizSubs.map((s) => {
               const team = teams.find((t) => t.id === s.team_id)
               if (!team?.name) return null
-              const ok = s.media_url === question.correctAnswerId
+              const ok = s.media_url === state.quiz_correct_answer_id
               return (
                 <li
                   key={s.id}

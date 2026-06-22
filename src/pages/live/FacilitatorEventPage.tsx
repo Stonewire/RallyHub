@@ -371,7 +371,11 @@ export function FacilitatorEventPage() {
       // Lock answers first (flip to revealed) before scoring so participants
       // with clock skew can't change their answer during the scoring window.
       try {
-        await updateState({ quiz_timer_running: false, quiz_state: 'revealed' })
+        await updateState({
+          quiz_timer_running: false,
+          quiz_state: 'revealed',
+          quiz_correct_answer_id: question.correctAnswerId,
+        })
       } catch {
         quizAutoRevealKey.current = ''
         return

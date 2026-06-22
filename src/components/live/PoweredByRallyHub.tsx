@@ -21,8 +21,8 @@ export function PoweredByRallyHub({ hidden, position = 'bottom-right', className
       <img
         src={
           theme === 'light'
-            ? '/powered-by-rallyhub-light.svg?v=3'
-            : '/powered-by-rallyhub-dark.svg?v=3'
+            ? '/powered-by-rallyhub-light.svg?v=4'
+            : '/powered-by-rallyhub-dark.svg?v=4'
         }
         alt="Powered by RallyHub"
         className="h-6 w-auto"
