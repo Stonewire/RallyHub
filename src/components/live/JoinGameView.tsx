@@ -514,6 +514,28 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
+  // F8: bonus reveal sound on the player (correct/wrong), mirroring the quiz.
+  const lastBonusRevealKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (state.bingo_state !== 'bonus_revealed') {
+      if (state.bingo_state !== 'bonus') lastBonusRevealKeyRef.current = null
+      return
+    }
+    const game =
+      stage?.type === 'bingo' && stage.gameId
+        ? games.find((g) => g.id === stage.gameId)
+        : null
+    const challenge = game ? bingoBonusChallenge(game, state.bingo_bonus_id) : null
+    if (!challenge?.correctAnswerId) return
+    const key = String(state.bingo_bonus_id)
+    if (lastBonusRevealKeyRef.current === key) return
+    lastBonusRevealKeyRef.current = key
+    const mine = mySubs.find((s) => s.media_type === bingoBonusMediaType(challenge.id))
+    const myAnswer = mine ? parseBingoBonusSubmission(mine.media_url).answerId : null
+    if (myAnswer === challenge.correctAnswerId) playQuizCorrectSound()
+    else playQuizWrongSound()
+  }, [state.bingo_state, state.bingo_bonus_id, stage?.type, stage?.gameId, games, mySubs])
+
   function beginOpenSubmit() {
     flushSync(() => {
       setSubmitting(true)

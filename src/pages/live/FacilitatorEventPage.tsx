@@ -63,6 +63,7 @@ import { profileDisplayName } from '@/lib/auth-routes'
 import {
   bingoBonusChallenges,
   bingoBonusChallenge,
+  bingoBonusMediaType,
   bingoTracks,
   currentStage,
   breakDurationSeconds,
@@ -1711,6 +1712,22 @@ export function FacilitatorEventPage() {
                       )
                     })}
                   </div>
+                  {(state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed') &&
+                  state.bingo_bonus_id ? (
+                    <p className="text-muted-foreground text-xs">
+                      {(() => {
+                        const mt = bingoBonusMediaType(state.bingo_bonus_id)
+                        const ids = new Set(
+                          submissions
+                            .filter((s) => s.media_type === mt && s.game_id === stage.gameId)
+                            .map((s) => s.team_id),
+                        )
+                        const named = ids.size
+                        const total = teams.filter((t) => t.name?.trim()).length
+                        return `${named} of ${total} teams answered`
+                      })()}
+                    </p>
+                  ) : null}
                   {state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed' ? (
                     <div className="flex flex-wrap gap-2">
                       <Button
