@@ -1,4 +1,4 @@
-import { Check, Copy, Plus, Trash2, X } from 'lucide-react'
+import { Check, Copy, KeyRound, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -11,6 +11,7 @@ import {
   useCreateOrganizationUser,
   useOrganizationUsers,
   useRemoveOrganizationUser,
+  useSetOrganizationUserPassword,
   type CreateOrganizationUserResult,
   type OrgUserRole,
   type OrganizationUser,
@@ -55,7 +56,34 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
   const usersQuery = useOrganizationUsers(organizationId)
   const createUser = useCreateOrganizationUser(organizationId)
   const removeUser = useRemoveOrganizationUser(organizationId)
+  const setPassword = useSetOrganizationUserPassword(organizationId)
   const [userToRemove, setUserToRemove] = useState<OrganizationUser | null>(null)
+  const [pwTarget, setPwTarget] = useState<OrganizationUser | null>(null)
+  const [pwValue, setPwValue] = useState('')
+  const [pwError, setPwError] = useState<string | null>(null)
+  const [pwDone, setPwDone] = useState(false)
+
+  function openSetPassword(user: OrganizationUser) {
+    setPwTarget(user)
+    setPwValue(generateTempPassword())
+    setPwError(null)
+    setPwDone(false)
+  }
+
+  async function confirmSetPassword() {
+    if (!pwTarget) return
+    if (pwValue.trim().length < 8) {
+      setPwError('Password must be at least 8 characters.')
+      return
+    }
+    setPwError(null)
+    try {
+      await setPassword.mutateAsync({ userId: pwTarget.id, password: pwValue.trim() })
+      setPwDone(true)
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : 'Could not set password')
+    }
+  }
 
   const assignableRoles = assignableOrgUserRoles(actorRole)
   const defaultRole: AssignableOrgUserRole = facilitatorsOnly
@@ -202,18 +230,29 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     {user.must_change_password ? ' · pending password change' : ''}
                   </p>
                 </div>
-                {canRemoveUser(user) ? (
+                <div className="flex items-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="text-destructive"
-                    disabled={removeUser.isPending}
-                    onClick={() => setUserToRemove(user)}
+                    title="Set password"
+                    onClick={() => openSetPassword(user)}
                   >
-                    <Trash2 className="size-4" />
+                    <KeyRound className="size-4" />
                   </Button>
-                ) : null}
+                  {canRemoveUser(user) ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-destructive"
+                      disabled={removeUser.isPending}
+                      onClick={() => setUserToRemove(user)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -373,6 +412,80 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     onClick={() => void handleCreateUser()}
                   >
                     {createUser.isPending ? 'Creating…' : 'Create user'}
+                  </NeoButton>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      ) : null}
+
+      {pwTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+            <h3 className="text-foreground font-semibold">
+              {pwDone ? 'Password updated' : `Set password for ${displayUserName(pwTarget)}`}
+            </h3>
+            {pwDone ? (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  Share this with{' '}
+                  <span className="text-foreground font-medium">{displayUserName(pwTarget)}</span>.
+                  They'll be asked to change it on next login.
+                </p>
+                <p className="bg-muted/40 text-foreground rounded-lg p-3 font-mono text-sm">
+                  {pwValue}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void copyToClipboard(pwValue)}
+                  >
+                    <Copy className="size-4" />
+                    Copy
+                  </Button>
+                  <NeoButton type="button" variant="primary" onClick={() => setPwTarget(null)}>
+                    Done
+                  </NeoButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  Set a new password for @{pwTarget.username}. They must change it on next login.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={pwValue}
+                    onChange={(e) => setPwValue(e.target.value)}
+                    autoComplete="new-password"
+                    className="bg-background flex-1 font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPwValue(generateTempPassword())}
+                  >
+                    Generate
+                  </Button>
+                </div>
+                {pwError ? (
+                  <p className="text-destructive text-sm" role="alert">
+                    {pwError}
+                  </p>
+                ) : null}
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setPwTarget(null)}>
+                    Cancel
+                  </Button>
+                  <NeoButton
+                    type="button"
+                    variant="primary"
+                    disabled={setPassword.isPending}
+                    onClick={() => void confirmSetPassword()}
+                  >
+                    {setPassword.isPending ? 'Saving…' : 'Set password'}
                   </NeoButton>
                 </div>
               </>

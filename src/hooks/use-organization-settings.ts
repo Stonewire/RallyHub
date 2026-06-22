@@ -263,6 +263,33 @@ export function useCreateOrganizationUser(organizationId: string | null) {
   })
 }
 
+/** Item 5: a client_admin/super_admin sets another member's password. */
+export function useSetOrganizationUserPassword(organizationId: string | null) {
+  return useMutation({
+    mutationFn: async (payload: { userId: string; password: string }) => {
+      if (!organizationId) throw new Error('No organization')
+      const { data, error } = await supabase.functions.invoke('set-org-user-password', {
+        body: { organizationId, userId: payload.userId, password: payload.password },
+      })
+      if (error) throw error
+      if (data && typeof data === 'object' && 'error' in data && data.error) {
+        throw new Error(String(data.error))
+      }
+    },
+  })
+}
+
+/** Item 5: the signed-in user changes their own password. */
+export function useChangeOwnPassword() {
+  return useMutation({
+    mutationFn: async (newPassword: string) => {
+      if (newPassword.length < 8) throw new Error('Password must be at least 8 characters')
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    },
+  })
+}
+
 export function useRemoveOrganizationUser(organizationId: string | null) {
   const queryClient = useQueryClient()
 

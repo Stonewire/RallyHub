@@ -10,6 +10,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
+import { ChangeOwnPasswordCard } from '@/components/admin/ChangeOwnPasswordCard'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -430,6 +431,12 @@ export function AdminSettingsPage() {
           </Card>
         </div>
       )}
+
+      {tab === 'profile' && !orgQuery.isError ? (
+        <div className="mt-8">
+          <ChangeOwnPasswordCard />
+        </div>
+      ) : null}
 
       {tab === 'profile' && profileReady && !orgQuery.isError ? (
         <FormSaveFooter
