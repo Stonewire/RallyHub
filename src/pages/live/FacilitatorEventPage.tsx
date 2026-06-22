@@ -76,6 +76,7 @@ import {
   quizSubmissionMediaType,
   isQuizSubmission,
   scoreCurrentQuizQuestion,
+  revealQuizAnswer,
   isEventLive,
 } from '@/lib/live-event'
 import { bingoRunRowFromActivation, normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
@@ -368,16 +369,14 @@ export function FacilitatorEventPage() {
     quizAutoRevealKey.current = key
 
     void (async () => {
-      // Lock answers first (flip to revealed) before scoring so participants
-      // with clock skew can't change their answer during the scoring window.
+      // Reveal server-side: question.correctAnswerId is redacted in the bundle,
+      // so the real id must come from the DB (reveal_quiz_answer RPC). This also
+      // locks answers (quiz_state='revealed') before scoring.
       try {
-        await updateState({
-          quiz_timer_running: false,
-          quiz_state: 'revealed',
-          quiz_correct_answer_id: question.correctAnswerId,
-        })
-      } catch {
+        await revealQuizAnswer(bundle.event.id, quizGame.id, question.id)
+      } catch (err) {
         quizAutoRevealKey.current = ''
+        console.error('[quiz] auto-reveal failed', err)
         return
       }
       try {
@@ -723,6 +722,15 @@ export function FacilitatorEventPage() {
 
   async function revealQuizAnswers() {
     if (!quizGame || !question || !eventId) return
+    // Reveal server-side (real correctAnswerId comes from the DB, not the
+    // redacted bundle), then score.
+    try {
+      await revealQuizAnswer(eventId, quizGame.id, question.id)
+    } catch (err) {
+      console.error('[quiz] reveal failed', err)
+      notify(err instanceof Error ? err.message : 'Quiz reveal failed')
+      return
+    }
     try {
       await scoreCurrentQuizQuestion(eventId, quizGame, question)
     } catch (err) {
@@ -733,11 +741,6 @@ export function FacilitatorEventPage() {
           : 'Quiz scoring failed — verify increment_team_score migration is applied',
       )
     }
-    await patchState({
-      quiz_timer_running: false,
-      quiz_state: 'revealed',
-      quiz_correct_answer_id: question.correctAnswerId,
-    })
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
   }
 

@@ -782,6 +782,10 @@ export type Database = {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
       }
+      reveal_quiz_answer: {
+        Args: { p_event_id: string; p_game_id: string; p_question_id: string }
+        Returns: string
+      }
       reset_event_data: {
         Args: { p_event_id: string }
         Returns: undefined

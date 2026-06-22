@@ -353,6 +353,26 @@ export async function scoreCurrentQuizQuestion(
   await publishLiveBundleReload(eventId)
 }
 
+/**
+ * Reveal the current quiz question server-side. The facilitator's bundle has
+ * correctAnswerId redacted (get_live_event_games redacts for everyone), so the
+ * id MUST come from the DB — this RPC reads the unredacted answer and writes
+ * quiz_state='revealed' + quiz_correct_answer_id atomically.
+ */
+export async function revealQuizAnswer(
+  eventId: string,
+  gameId: string,
+  questionId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('reveal_quiz_answer', {
+    p_event_id: eventId,
+    p_game_id: gameId,
+    p_question_id: questionId,
+  })
+  if (error) throw error
+  await publishLiveBundleReload(eventId)
+}
+
 export function quizLeaderboard(
   teams: Tables<'teams'>[],
   submissions: Tables<'submissions'>[],

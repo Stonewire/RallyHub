@@ -407,9 +407,9 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             let cls =
               'xp-quiz-option rounded-2xl px-6 py-5 font-sans text-lg font-semibold md:text-xl '
             if (revealed) {
-              const anySelected = quizSubs.some((s) => s.media_url === a.id)
+              // Only the correct answer is highlighted (green). What each team
+              // picked is shown by the team names below, not by colouring options.
               if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
-              else if (anySelected) cls += 'bg-red-600/90 text-white'
               else cls += 'bg-white/15 text-white/50 backdrop-blur-sm'
             } else {
               cls += 'bg-white/15 backdrop-blur-sm'
