@@ -245,6 +245,7 @@ export function JoinEventPage() {
         <PoweredByRallyHub
           hidden={organization?.hide_platform_branding}
           position="bottom-center"
+          theme={displayTextColorForEvent(event) === 'black' ? 'dark' : 'light'}
         />
         <JoinGameView
           bundle={bundle}
@@ -278,7 +279,11 @@ export function JoinEventPage() {
   return (
     <LivePanelShell title={event.name} titleCentered className="experience-scope">
       <ClientBrandingStyle org={organization} />
-      <PoweredByRallyHub hidden={organization?.hide_platform_branding} position="bottom-center" />
+      <PoweredByRallyHub
+        hidden={organization?.hide_platform_branding}
+        position="bottom-center"
+        theme={displayTextColorForEvent(event) === 'black' ? 'dark' : 'light'}
+      />
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (
         <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />
