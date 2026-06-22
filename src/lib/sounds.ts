@@ -42,13 +42,42 @@ const ALL_SOUNDS = [
   'video-start',
   'video-stop',
   'winner',
+  'bingo-winner',
 ] as const
 
 const DEFAULT_VOLUME = 1
 const MAX_POOL_PER_SOUND = 8
 
-/** Winner is the only "celebration"-scoped sound (unlocked on display/players). */
-const CELEBRATION_SOUND_NAMES = new Set<string>(['winner'])
+// ---- Device-level mute (facilitator "Mute" toggle) -------------------------
+// Per-device, persisted so it survives reload. Mutes every cue on THIS device
+// only (each surface runs its own module instance).
+const MUTED_STORAGE_KEY = 'rh-sound-muted'
+
+let soundsMuted = (() => {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage.getItem(MUTED_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+})()
+
+export function isSoundsMuted(): boolean {
+  return soundsMuted
+}
+
+export function setSoundsMuted(muted: boolean): void {
+  soundsMuted = muted
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(MUTED_STORAGE_KEY, muted ? '1' : '0')
+  } catch {
+    // ignore
+  }
+}
+
+/** "Celebration"-scoped sounds (unlocked on display/players, not facilitator). */
+const CELEBRATION_SOUND_NAMES = new Set<string>(['winner', 'bingo-winner'])
 const OPERATIONAL_SOUND_NAMES = ALL_SOUNDS.filter((s) => !CELEBRATION_SOUND_NAMES.has(s))
 
 function soundFileName(name: string): string {
@@ -318,6 +347,7 @@ function prepareSoundElement(name: string, volume?: number): HTMLAudioElement | 
 }
 
 async function playSoundImmediate(name: string, volume?: number): Promise<HTMLAudioElement | null> {
+  if (soundsMuted) return null
   const el = prepareSoundElement(name, volume)
   if (!el) return null
   try {
@@ -403,60 +433,11 @@ export function playLoserSound() {}
 // ---- Bingo win jingle (Web Audio, short generated cue) ---------------------
 
 /**
- * Short celebratory bingo jingle (~1.5s) for bingo-stage line wins on the
- * display and the winning team's phone. Generated via Web Audio — this is a
- * standalone cue, not layered on any uploaded file.
+ * Bingo line-win celebration cue for the display and the winning team's phone.
+ * Plays the user-mastered bingo-winner.mp3 clean (same pooled path as winner).
  */
 export function playBingoWinJingle(): void {
-  void ensureAudioReady(true)
-    .then(() => resumeSharedAudioContext())
-    .then(() => {
-      const ctx = getSharedAudioContext()
-      if (!ctx) return
-      const now = ctx.currentTime
-      const master = ctx.createGain()
-      master.gain.setValueAtTime(0.38, now)
-      master.connect(ctx.destination)
-
-      // Bright major arpeggio (bell-like sine partials).
-      const arpeggio: { f: number; t: number; d: number; vol: number }[] = [
-        { f: 523.25, t: 0, d: 0.18, vol: 0.7 },
-        { f: 659.25, t: 0.07, d: 0.18, vol: 0.65 },
-        { f: 783.99, t: 0.14, d: 0.2, vol: 0.7 },
-        { f: 1046.5, t: 0.22, d: 0.28, vol: 0.75 },
-        { f: 1318.51, t: 0.34, d: 0.35, vol: 0.55 },
-      ]
-
-      for (const note of arpeggio) {
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(note.f, now + note.t)
-        gain.gain.setValueAtTime(0.0001, now + note.t)
-        gain.gain.exponentialRampToValueAtTime(note.vol, now + note.t + 0.012)
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + note.t + note.d)
-        osc.connect(gain)
-        gain.connect(master)
-        osc.start(now + note.t)
-        osc.stop(now + note.t + note.d + 0.04)
-      }
-
-      // Cash-register "ding" finish.
-      const ding = ctx.createOscillator()
-      const dingGain = ctx.createGain()
-      ding.type = 'triangle'
-      ding.frequency.setValueAtTime(1760, now + 0.52)
-      dingGain.gain.setValueAtTime(0.0001, now + 0.52)
-      dingGain.gain.exponentialRampToValueAtTime(0.65, now + 0.53)
-      dingGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15)
-      ding.connect(dingGain)
-      dingGain.connect(master)
-      ding.start(now + 0.52)
-      ding.stop(now + 1.2)
-    })
-    .catch(() => {
-      // Autoplay policy — silent no-op
-    })
+  void ensureAudioReady(true).then(() => playSoundImmediate('bingo-winner'))
 }
 
 // ---- Event winner announcement ---------------------------------------------
@@ -472,6 +453,7 @@ export function resetEventWinnerAudioGuard(): void {
 }
 
 function playWinnerInner(): () => void {
+  if (soundsMuted) return () => {}
   const el = acquire('winner') ?? createEl('winner')
   if (!el) return () => {}
   ensureElementPrimed(el)

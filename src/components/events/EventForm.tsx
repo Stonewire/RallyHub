@@ -82,13 +82,10 @@ export function EventForm({
       let nextTeams = prev.teams
       if (prev.teams.length !== count) {
         if (prev.teams.length < count) {
-          nextTeams = [
-            ...prev.teams,
-            ...defaultTeams(count - prev.teams.length).map((t, i) => ({
-              ...t,
-              name: `Team ${prev.teams.length + i + 1}`,
-            })),
-          ]
+          // Generate the full set so appended teams keep the cycling color
+          // offset (slicing from prev length); calling defaultTeams() with just
+          // the delta restarted colors at index 0 — every added team came out red.
+          nextTeams = [...prev.teams, ...defaultTeams(count).slice(prev.teams.length)]
         } else {
           nextTeams = prev.teams.slice(0, count)
         }

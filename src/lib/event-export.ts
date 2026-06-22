@@ -1,8 +1,5 @@
 import JSZip from 'jszip'
-import { jsPDF } from 'jspdf'
 
-import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
-import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
@@ -29,8 +26,6 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
     .eq('id', eventId)
     .single()
   if (eErr || !event) throw new Error('Event not found')
-
-  const org = await fetchOrganizationTenantPublic(event.organization_id)
 
   const [teamsRes, subsRes, egRes] = await Promise.all([
     supabase.from('teams').select('*').eq('event_id', eventId).order('slot_number'),
@@ -83,109 +78,55 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
     mediaFolder.file(`${base.replace(/[^\w.-]+/g, '_')}.${ext}`, blob)
   }
 
-  const [primary, secondary, accent] = brandColorsForEvent(event, org)
-  const ranked = [...teams]
-    .filter((t) => t.name?.trim())
-    .sort((a, b) => b.score - a.score)
-
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
-  const margin = 48
-  let y = margin
-
-  pdf.setFillColor(primary)
-  pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 72, 'F')
-  pdf.setTextColor(255, 255, 255)
-  pdf.setFontSize(22)
-  pdf.text(event.name, margin, 48)
-
-  y = 96
-  pdf.setTextColor(40, 40, 40)
-  pdf.setFontSize(11)
-  pdf.text(`Event summary · ${new Date().toLocaleString()}`, margin, y)
-  y += 28
-
-  pdf.setFontSize(14)
-  pdf.setTextColor(accent === '#FFC107' ? 120 : 0, 80, 80)
-  pdf.text('Final ranking', margin, y)
-  y += 20
-  pdf.setFontSize(11)
-  pdf.setTextColor(50, 50, 50)
-
-  ranked.forEach((team, i) => {
-    if (y > pdf.internal.pageSize.getHeight() - 60) {
-      pdf.addPage()
-      y = margin
-    }
-    pdf.text(`${i + 1}. ${team.name} — ${team.score} points`, margin, y)
-    y += 16
-  })
-
-  y += 16
-  pdf.setFontSize(14)
-  pdf.setTextColor(60, 60, 60)
-  pdf.text('Team breakdown', margin, y)
-  y += 22
-
-  for (const team of ranked) {
-    if (y > pdf.internal.pageSize.getHeight() - 80) {
-      pdf.addPage()
-      y = margin
-    }
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(12)
-    pdf.text(`${team.name} (${team.score} pts)`, margin, y)
-    y += 16
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(10)
-
-    const teamSubs = submissions.filter(
-      (s) => s.team_id === team.id && s.status === 'approved',
-    )
-    if (teamSubs.length === 0) {
-      pdf.text('No approved challenge submissions.', margin + 8, y)
-      y += 14
-    } else {
-      for (const sub of teamSubs) {
-        const game = games.find((g) => g.id === sub.game_id)
-        const pts = sub.points_awarded ?? 0
-        pdf.text(
-          `• ${game?.name ?? 'Challenge'}: +${pts} pts (${sub.media_type ?? 'media'})`,
-          margin + 8,
-          y,
-        )
-        y += 14
-      }
-    }
-    y += 10
-  }
-
-  pdf.setFontSize(9)
-  pdf.setTextColor(120, 120, 120)
-  pdf.text(
-    `Branding: primary ${primary}, secondary ${secondary}, accent ${accent}`,
-    margin,
-    pdf.internal.pageSize.getHeight() - 32,
+  // The branded PDF report is deferred until we build the real one. For now the
+  // package is photos + videos, plus quiz/bingo log data (which has no
+  // downloadable media) so those results aren't lost.
+  const hasQuizOrBingo = games.some(
+    (g) => g.type === 'quiz' || g.type === 'music_bingo',
   )
+  if (hasQuizOrBingo) {
+    const { data: log } = await supabase
+      .from('event_activity_log')
+      .select('created_at, actor_type, actor_name, action, details')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: true })
 
-  const logo = logoForEvent(event, org)
-  if (logo) {
-    try {
-      const logoBlob = await fetchBlob(logo)
-      if (logoBlob) {
-        const reader = new FileReader()
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(String(reader.result))
-          reader.onerror = reject
-          reader.readAsDataURL(logoBlob)
-        })
-        pdf.addImage(dataUrl, 'PNG', pdf.internal.pageSize.getWidth() - 100, 16, 56, 40)
-      }
-    } catch {
-      /* optional logo */
-    }
+    const ranking = [...teams]
+      .filter((t) => t.name?.trim())
+      .sort((a, b) => b.score - a.score)
+      .map((t, i) => ({ rank: i + 1, team: t.name, score: t.score }))
+
+    const results = submissions
+      .filter((s) => {
+        const g = games.find((gg) => gg.id === s.game_id)
+        return g?.type === 'quiz' || g?.type === 'music_bingo'
+      })
+      .map((s) => {
+        const g = games.find((gg) => gg.id === s.game_id)
+        return {
+          team: teams.find((t) => t.id === s.team_id)?.name ?? s.team_id,
+          game: g?.name ?? s.game_id,
+          type: g?.type,
+          status: s.status,
+          points: s.points_awarded ?? 0,
+        }
+      })
+
+    zip.file(
+      'quiz-bingo-log.json',
+      JSON.stringify(
+        {
+          event: event.name,
+          exported_at: new Date().toISOString(),
+          ranking,
+          quiz_bingo_results: results,
+          activity_log: log ?? [],
+        },
+        null,
+        2,
+      ),
+    )
   }
-
-  zip.file('event-summary.pdf', pdf.output('blob'))
 
   const out = await zip.generateAsync({ type: 'blob' })
   const url = URL.createObjectURL(out)

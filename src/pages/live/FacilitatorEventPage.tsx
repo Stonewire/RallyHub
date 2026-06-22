@@ -1,4 +1,4 @@
-import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, X } from 'lucide-react'
+import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, Volume2, VolumeX, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
@@ -83,6 +83,7 @@ import { bingoRunRowFromActivation, normalizeBingoPlayOrder } from '@/lib/bingo-
 import { getEventLinks } from '@/lib/event-links'
 import { queryKeys } from '@/lib/query-keys'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
+import { logEventActivity } from '@/lib/event-log'
 import {
   playAnnouncementSound,
   playNewMessageSound,
@@ -90,6 +91,8 @@ import {
   playEventWinnerSequence,
   installAudioUnlock,
   unlockAudioFromUserGesture,
+  isSoundsMuted,
+  setSoundsMuted,
 } from '@/lib/sounds'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
@@ -119,6 +122,7 @@ export function FacilitatorEventPage() {
   const [resetConfirmTeam, setResetConfirmTeam] = useState<Tables<'teams'> | null>(null)
   const [resettingTeam, setResettingTeam] = useState(false)
   const [progressTeam, setProgressTeam] = useState<Tables<'teams'> | null>(null)
+  const [muted, setMuted] = useState(() => isSoundsMuted())
   const [winnerRoutingOpen, setWinnerRoutingOpen] = useState(false)
   const [winnerRoutingSel, setWinnerRoutingSel] = useState<WinnerSoundSurface[]>([
     'display',
@@ -165,7 +169,7 @@ export function FacilitatorEventPage() {
   // Log facilitator connection once on mount.
   useEffect(() => {
     if (!eventId || !name) return
-    void supabase.rpc('log_event_activity', {
+    void logEventActivity({
       p_event_id: eventId,
       p_actor_type: 'facilitator',
       p_actor_name: name,
@@ -237,7 +241,7 @@ export function FacilitatorEventPage() {
   function selectStage(index: number) {
     const next = stages[index]
     if (eventId) {
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'facilitator',
         p_actor_name: name,
@@ -487,7 +491,7 @@ export function FacilitatorEventPage() {
       return
     }
     if (liveState.winner_reveal_stage === 0 && eventId) {
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'facilitator',
         p_actor_name: name,
@@ -507,7 +511,7 @@ export function FacilitatorEventPage() {
     // routing mid-reveal only updates the targets.
     const advance = liveState.winner_reveal_stage === 0
     if (advance && eventId) {
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'facilitator',
         p_actor_name: name,
@@ -583,7 +587,7 @@ export function FacilitatorEventPage() {
     }
     if (eventId) {
       const team = bundle?.teams.find((t) => t.id === data.team_id)
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'facilitator',
         p_actor_name: name,
@@ -611,7 +615,7 @@ export function FacilitatorEventPage() {
       await publishSubmissionChange(eventId, 'UPDATE', data)
       const game = games.find((g) => g.id === data.game_id)
       const team = bundle?.teams.find((t) => t.id === data.team_id)
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'facilitator',
         p_actor_name: name,
@@ -1216,6 +1220,19 @@ export function FacilitatorEventPage() {
         <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
           <ScrollText className="size-4" />
           View Log
+        </FacilitatorButton>
+        <FacilitatorButton
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const next = !muted
+            setSoundsMuted(next)
+            setMuted(next)
+          }}
+          aria-pressed={muted}
+        >
+          {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          {muted ? 'Unmute' : 'Mute'}
         </FacilitatorButton>
       </div>
 

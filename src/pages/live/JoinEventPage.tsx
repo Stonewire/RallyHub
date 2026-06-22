@@ -27,6 +27,7 @@ import {
   logoForEvent,
 } from '@/lib/live-event'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
+import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
@@ -181,7 +182,7 @@ export function JoinEventPage() {
         })
       }
 
-      void supabase.rpc('log_event_activity', {
+      void logEventActivity({
         p_event_id: eventId,
         p_actor_type: 'team',
         p_actor_name: trimmed,

@@ -457,16 +457,10 @@ export function JoinGameView({
   }, [announcement])
 
   const eventWinnerAudioKeyRef = useRef<string | null>(null)
-  // Read teams + sound routing inside the effect without depending on them, so
-  // routine realtime patches don't re-run the effect and cut the song after ~1s.
-  const winnerAudioDataRef = useRef({
-    teams: bundle.teams,
-    soundTargets: state.winner_sound_targets,
-  })
-  winnerAudioDataRef.current = {
-    teams: bundle.teams,
-    soundTargets: state.winner_sound_targets,
-  }
+  // Read sound routing inside the effect without depending on it, so routine
+  // realtime patches don't re-run the effect and cut the song after ~1s.
+  const winnerSoundTargetsRef = useRef(state.winner_sound_targets)
+  winnerSoundTargetsRef.current = state.winner_sound_targets
   useEffect(() => {
     // Bingo wins use BingoWinCelebration audio — never the podium fanfare here.
     if (stage?.type === 'bingo') return
@@ -483,15 +477,12 @@ export function JoinGameView({
     if (eventWinnerAudioKeyRef.current === revealKey) return
     eventWinnerAudioKeyRef.current = revealKey
 
-    // Player-device winner audio is gated by the facilitator's sound routing.
-    const { teams, soundTargets } = winnerAudioDataRef.current
-    if (!winnerSoundEnabled(soundTargets, 'players')) return
-    const myRank = eventRankedTeams(teams).find((r) => r.team.id === teamId)?.rank ?? 0
-    if (myRank === 1) {
-      const stopAudio = playEventWinnerSequence(revealKey)
-      return () => stopAudio()
-    }
-  }, [state.winner_reveal_stage, stage?.type, event.id, teamId])
+    // Every player phone plays the fanfare when the facilitator routes the
+    // winner sound to "Players" — not just the winning team's device.
+    if (!winnerSoundEnabled(winnerSoundTargetsRef.current, 'players')) return
+    const stopAudio = playEventWinnerSequence(revealKey)
+    return () => stopAudio()
+  }, [state.winner_reveal_stage, stage?.type, event.id])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
@@ -937,7 +928,18 @@ export function JoinGameView({
 
   const eventRanked = eventRankedTeams(bundle.teams)
 
-  if (state.winner_reveal_stage >= 1) {
+  if (team.status === 'stopped') {
+    // Facilitator paused this team — block all gameplay with a friendly note.
+    body = (
+      <div className="mx-auto max-w-sm px-6 py-16 text-center">
+        <p className="text-2xl font-bold">Your game is paused</p>
+        <p className="mt-3 text-base opacity-90">
+          The event host has paused your team for a moment. Please check in with
+          your host to get back in the game.
+        </p>
+      </div>
+    )
+  } else if (state.winner_reveal_stage >= 1) {
     body = (
       <WinnerRevealPanel
         stage={state.winner_reveal_stage as 1 | 2}
