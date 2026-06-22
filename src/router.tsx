@@ -50,6 +50,12 @@ function RootPage() {
     return <Navigate to="/admin" replace />
   }
 
+  // admin.rallyhub.games is for super-admins — skip the marketing page.
+  const adminHost = import.meta.env.VITE_ADMIN_HOST
+  if (adminHost && typeof window !== 'undefined' && window.location.hostname === adminHost) {
+    return <Navigate to="/admin" replace />
+  }
+
   if (loading) {
     return <AuthLoadingScreen label="Loading" />
   }
