@@ -102,7 +102,7 @@ export function BingoWinCelebration({
           {LETTERS.map((letter, i) => (
             <motion.span
               key={letter}
-              className="font-display text-6xl font-black drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)] sm:text-8xl md:text-9xl"
+              className="font-sans text-6xl font-black drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)] sm:text-8xl md:text-9xl"
               style={{ color: accent }}
               initial={{ scale: 0, rotate: -45, opacity: 0 }}
               animate={{

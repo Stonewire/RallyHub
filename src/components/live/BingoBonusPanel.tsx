@@ -30,7 +30,7 @@ export function BingoBonusPanel({
     <div className={large ? 'w-full max-w-4xl text-center' : 'mx-auto max-w-lg px-4 pb-24'}>
       <p
         className={`mb-2 font-semibold uppercase tracking-wide opacity-80 ${
-          large ? 'font-display text-xl' : 'text-xs'
+          large ? 'font-sans text-xl' : 'text-xs'
         }`}
       >
         Bonus challenge
@@ -47,7 +47,7 @@ export function BingoBonusPanel({
       <h2
         className={`font-bold leading-snug ${
           large
-            ? 'font-display mb-8 text-3xl md:text-5xl'
+            ? 'font-sans mb-8 text-3xl md:text-5xl'
             : 'mb-6 text-center text-lg'
         }`}
       >
@@ -62,7 +62,7 @@ export function BingoBonusPanel({
           const isCorrect = a.id === challenge.correctAnswerId
           const isMine = a.id === answerId
           let cls = large
-            ? 'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
+            ? 'xp-quiz-option rounded-2xl px-6 py-5 font-sans text-lg font-semibold md:text-xl '
             : 'xp-quiz-option w-full rounded-xl px-4 py-4 text-left text-sm font-semibold transition-colors '
           let style: CSSProperties | undefined
           if (revealed) {

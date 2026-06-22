@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 
+import { deleteStorageObjects, publicUrlStoragePath } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
 
 async function fetchBlob(url: string): Promise<Blob | null> {
@@ -39,6 +40,63 @@ function toCsv(rows: Record<string, unknown>[]): string {
   const header = cols.join(',')
   const body = rows.map((r) => cols.map((c) => cell(r[c])).join(',')).join('\n')
   return `${header}\n${body}\n`
+}
+
+/**
+ * Delete all Storage objects belonging to a client org BEFORE its DB rows are
+ * cascade-deleted (the SQL cascade can't reach Storage). #2 — wipes submission
+ * media, team photos, and org logos so nothing is orphaned in the bucket.
+ */
+export async function deleteClientStorage(organizationId: string): Promise<void> {
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('logo_url')
+    .eq('id', organizationId)
+    .maybeSingle()
+
+  const { data: events } = await supabase
+    .from('events')
+    .select('id')
+    .eq('organization_id', organizationId)
+  const eventIds = (events ?? []).map((e) => e.id)
+
+  // game-assets: submission media + team photos across all the org's events.
+  const gamePaths: string[] = []
+  if (eventIds.length) {
+    const [subs, teams] = await Promise.all([
+      supabase.from('submissions').select('media_url').in('event_id', eventIds).not('media_url', 'is', null),
+      supabase.from('teams').select('photo_url').in('event_id', eventIds).not('photo_url', 'is', null),
+    ])
+    for (const s of subs.data ?? []) {
+      const p = s.media_url ? publicUrlStoragePath(s.media_url, 'game-assets') : null
+      if (p) gamePaths.push(p)
+    }
+    for (const t of teams.data ?? []) {
+      const p = t.photo_url ? publicUrlStoragePath(t.photo_url, 'game-assets') : null
+      if (p) gamePaths.push(p)
+    }
+  }
+  try {
+    await deleteStorageObjects('game-assets', [...new Set(gamePaths)])
+  } catch {
+    /* non-fatal — proceed with row deletion */
+  }
+
+  // organization-logos: remove the whole org folder (timestamped logos accumulate).
+  const logoPaths: string[] = []
+  const { data: logoList } = await supabase.storage
+    .from('organization-logos')
+    .list(organizationId)
+  for (const f of logoList ?? []) logoPaths.push(`${organizationId}/${f.name}`)
+  if (org?.logo_url) {
+    const p = publicUrlStoragePath(org.logo_url, 'organization-logos')
+    if (p) logoPaths.push(p)
+  }
+  try {
+    await deleteStorageObjects('organization-logos', [...new Set(logoPaths)])
+  } catch {
+    /* non-fatal */
+  }
 }
 
 /**

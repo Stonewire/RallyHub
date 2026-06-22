@@ -19,10 +19,10 @@ export function EventNotLiveScreen({ event, organization }: EventNotLiveScreenPr
         {logo ? (
           <img src={logo} alt="" className="mb-8 max-h-24 object-contain" />
         ) : null}
-        <h1 className={`font-display text-3xl font-bold md:text-4xl ${textClass}`}>
+        <h1 className={`font-sans text-3xl font-bold md:text-4xl ${textClass}`}>
           {event.name}
         </h1>
-        <p className={`mt-8 font-display text-2xl font-bold md:text-3xl ${textClass}`}>
+        <p className={`mt-8 font-sans text-2xl font-bold md:text-3xl ${textClass}`}>
           {ended ? 'This event has ended.' : 'This event is starting soon'}
         </p>
         <p className={`mt-4 max-w-md text-base opacity-90 md:text-lg ${textClass}`}>

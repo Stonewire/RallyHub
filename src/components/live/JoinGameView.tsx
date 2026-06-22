@@ -1088,7 +1088,7 @@ export function JoinGameView({
         : { title: 'NEXT ROUND', subtitle: '' }
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="font-display text-4xl font-bold md:text-5xl">{intro.title}</p>
+          <p className="font-sans text-4xl font-bold md:text-5xl">{intro.title}</p>
           {intro.subtitle ? (
             <p className="mt-4 text-2xl font-semibold opacity-90 md:text-3xl">{intro.subtitle}</p>
           ) : null}

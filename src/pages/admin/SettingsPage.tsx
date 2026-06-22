@@ -1,6 +1,6 @@
 import { Check, Copy, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -59,6 +59,15 @@ export function AdminSettingsPage() {
     }
   }, [orgQuery.data])
 
+  // F10: warn before leaving Settings with unsaved profile changes.
+  const dirty = orgQuery.data
+    ? JSON.stringify(form) !== JSON.stringify(orgToForm(orgQuery.data))
+    : false
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty && currentLocation.pathname !== nextLocation.pathname,
+  )
+
   if (!organizationId) {
     return (
       <AdminPageShell title="Org Settings" subtitle="Manage your organization.">
@@ -69,7 +78,7 @@ export function AdminSettingsPage() {
 
   const tabletLink = orgQuery.data ? getTabletLink(orgQuery.data) : ''
 
-  async function handleSave() {
+  async function handleSave(onSaved?: () => void) {
     setSaveMessage(null)
     const tabletErr = validateTabletCode(form.tablet_slug)
     if (tabletErr) {
@@ -79,6 +88,7 @@ export function AdminSettingsPage() {
     try {
       await saveOrg.mutateAsync(form)
       setSaveMessage('Settings saved.')
+      onSaved?.()
     } catch (err) {
       setSaveMessage(
         err instanceof Error ? err.message : 'Failed to save settings.',
@@ -426,12 +436,36 @@ export function AdminSettingsPage() {
           onSave={() => void handleSave()}
           saving={saveOrg.isPending}
           label="Save settings"
-          dirty={
-            orgQuery.data
-              ? JSON.stringify(form) !== JSON.stringify(orgToForm(orgQuery.data))
-              : false
-          }
+          dirty={dirty}
         />
+      ) : null}
+
+      {blocker.state === 'blocked' ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-1">
+              <h3 className="text-foreground font-semibold">Unsaved changes</h3>
+              <p className="text-muted-foreground text-sm">
+                You have unsaved changes to your settings. Save them before leaving?
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <NeoButton variant="surface" onClick={() => blocker.reset?.()}>
+                Cancel
+              </NeoButton>
+              <NeoButton variant="surface" onClick={() => blocker.proceed?.()}>
+                Don't save
+              </NeoButton>
+              <NeoButton
+                variant="primary"
+                disabled={saveOrg.isPending}
+                onClick={() => void handleSave(() => blocker.proceed?.())}
+              >
+                {saveOrg.isPending ? 'Saving…' : 'Save & leave'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
       ) : null}
     </AdminPageShell>
   )

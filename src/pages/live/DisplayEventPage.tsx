@@ -265,7 +265,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     body = (
       <div className="xp-break-panel px-6 py-8">
         <p
-          className={`animate-pulse text-center font-display text-4xl font-bold md:text-6xl ${textClass}`}
+          className={`animate-pulse text-center font-sans text-4xl font-bold md:text-6xl ${textClass}`}
         >
           It is time to announce the winners…
         </p>
@@ -285,7 +285,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   } else if (stage.type === 'quiz' && state.quiz_state === 'ended' && quizGame) {
     body = (
       <div className={`text-center ${textClass}`}>
-        <p className="font-display text-4xl font-bold md:text-6xl">Quiz has ended</p>
+        <p className="font-sans text-4xl font-bold md:text-6xl">Quiz has ended</p>
         <p className="mt-4 text-xl opacity-80">Thanks for playing!</p>
       </div>
     )
@@ -296,13 +296,13 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   ) {
     body = (
       <div className={`text-center ${textClass}`}>
-        <p className="font-display text-2xl font-bold opacity-80 md:text-4xl">
+        <p className="font-sans text-2xl font-bold opacity-80 md:text-4xl">
           Get ready for
         </p>
-        <p className="font-display mt-4 text-4xl font-bold md:text-6xl">
+        <p className="font-sans mt-4 text-4xl font-bold md:text-6xl">
           {quizGame.name}
         </p>
-        <p className="font-display mt-2 text-2xl font-bold opacity-90 md:text-4xl">
+        <p className="font-sans mt-2 text-2xl font-bold opacity-90 md:text-4xl">
           Quiz
         </p>
       </div>
@@ -329,9 +329,9 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       : { title: 'NEXT ROUND', subtitle: '' }
     body = (
       <div className={`text-center ${textClass}`}>
-        <p className="font-display text-5xl font-bold md:text-7xl lg:text-8xl">{intro.title}</p>
+        <p className="font-sans text-5xl font-bold md:text-7xl lg:text-8xl">{intro.title}</p>
         {intro.subtitle ? (
-          <p className="font-display mt-6 text-3xl font-bold opacity-90 md:text-5xl">
+          <p className="font-sans mt-6 text-3xl font-bold opacity-90 md:text-5xl">
             {intro.subtitle}
           </p>
         ) : null}
@@ -344,11 +344,11 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   ) {
     body = (
       <div className={`w-full max-w-4xl text-center ${textClass}`}>
-        <h2 className="font-display mb-6 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
+        <h2 className="font-sans mb-6 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
           {question.text}
         </h2>
         {state.quiz_state === 'active' && quizTimerRunning(state) ? (
-          <p className="font-display mb-8 text-6xl font-bold tabular-nums md:text-8xl">
+          <p className="font-sans mb-8 text-6xl font-bold tabular-nums md:text-8xl">
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null}
@@ -357,7 +357,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             const revealed = state.quiz_state === 'revealed'
             const correct = a.id === state.quiz_correct_answer_id
             let cls =
-              'xp-quiz-option rounded-2xl px-6 py-5 font-display text-lg font-semibold md:text-xl '
+              'xp-quiz-option rounded-2xl px-6 py-5 font-sans text-lg font-semibold md:text-xl '
             if (revealed) {
               const anySelected = quizSubs.some((s) => s.media_url === a.id)
               if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
@@ -419,10 +419,10 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   } else if (stage.type === 'break') {
     body = (
       <div className={`xp-break-panel flex flex-col items-center justify-center text-center ${textClass}`}>
-        <p className="font-display text-4xl font-bold md:text-6xl lg:text-7xl">
+        <p className="font-sans text-4xl font-bold md:text-6xl lg:text-7xl">
           {stage.message ?? 'Break time'}
         </p>
-        <p className="font-display mt-10 text-7xl font-bold tabular-nums md:text-9xl">
+        <p className="font-sans mt-10 text-7xl font-bold tabular-nums md:text-9xl">
           {formatBreakTimer(breakDisplay)}
         </p>
       </div>
@@ -445,7 +445,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
 
   const headerTimer = showHeaderTimer ? (
     <span
-      className={`font-display text-2xl font-bold tabular-nums md:text-3xl ${
+      className={`font-sans text-2xl font-bold tabular-nums md:text-3xl ${
         textClass === 'text-black' ? 'text-black/80' : 'text-white/90'
       }`}
     >
@@ -470,7 +470,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       />
       {showAnnouncement ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-8">
-          <p className="font-display max-w-4xl text-center text-3xl font-bold text-white md:text-5xl">
+          <p className="font-sans max-w-4xl text-center text-3xl font-bold text-white md:text-5xl">
             {state.announcement}
           </p>
         </div>
@@ -495,7 +495,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           aria-label="Tap to enable sound"
         >
           <Volume2 className="size-16 opacity-90" />
-          <span className="font-display text-3xl font-bold md:text-5xl">Tap to enable sound</span>
+          <span className="font-sans text-3xl font-bold md:text-5xl">Tap to enable sound</span>
           <span className="max-w-xl text-base text-white/70 md:text-lg">
             Enable audio so the display can play the bingo celebration, cheers, and music
             during the event.

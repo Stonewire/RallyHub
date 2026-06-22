@@ -27,7 +27,7 @@ import {
   useUpdateClientAdmin,
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
-import { downloadClientPackage } from '@/lib/client-export'
+import { deleteClientStorage, downloadClientPackage } from '@/lib/client-export'
 import { uploadOrganizationLogo, useOrganizationUsers } from '@/hooks/use-organization-settings'
 import {
   BILLING_PERIODS,
@@ -150,6 +150,8 @@ export function RallyHubClientDetailPage() {
     if (!clientId) return
     setDangerError(null)
     try {
+      // #2: wipe Storage files first (the SQL cascade can't reach Storage).
+      await deleteClientStorage(clientId)
       await deleteClient.mutateAsync(clientId)
       navigate('/admin/clients', { replace: true })
     } catch (err) {
@@ -873,7 +875,7 @@ export function RallyHubClientDetailPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-client-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          className="neo-minimal-scope fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
         >
           <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
             <h2 id="delete-client-title" className="text-foreground mb-2 font-semibold">
