@@ -279,10 +279,11 @@ export function JoinEventPage() {
   return (
     <LivePanelShell title={event.name} titleCentered className="experience-scope">
       <ClientBrandingStyle org={organization} />
+      {/* Team-slot picker (pre-login) is always light mode → always the dark logo. */}
       <PoweredByRallyHub
         hidden={organization?.hide_platform_branding}
         position="bottom-center"
-        theme={displayTextColorForEvent(event) === 'black' ? 'dark' : 'light'}
+        theme="dark"
       />
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
       {logo ? (
