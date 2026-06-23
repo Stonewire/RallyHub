@@ -6,6 +6,7 @@ import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useDeleteMusicCatalog, useMusicCatalog, type MusicCatalogRow } from '@/hooks/use-music-catalog'
+import { useMusicPlaylists, usePlaylistMemberships } from '@/hooks/use-music-playlists'
 import type { MusicTrack } from '@/types/game-config'
 
 type MusicCatalogPickerProps = {
@@ -33,6 +34,27 @@ export function MusicCatalogPicker({
 }: MusicCatalogPickerProps) {
   const catalogQuery = useMusicCatalog(organizationId)
   const deleteCatalog = useDeleteMusicCatalog(organizationId)
+  const playlistsQuery = useMusicPlaylists(organizationId)
+  const membershipsQuery = usePlaylistMemberships(organizationId)
+  const playlists = playlistsQuery.data ?? []
+
+  // playlist_id -> Set(track_id)
+  const tracksByPlaylist = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    for (const m of membershipsQuery.data ?? []) {
+      if (!map.has(m.playlist_id)) map.set(m.playlist_id, new Set())
+      map.get(m.playlist_id)!.add(m.track_id)
+    }
+    return map
+  }, [membershipsQuery.data])
+
+  function addPlaylist(playlistId: string) {
+    const ids = tracksByPlaylist.get(playlistId) ?? new Set<string>()
+    const toAdd = (catalogQuery.data ?? []).filter(
+      (r) => ids.has(r.id) && !existingTrackIds.has(r.id),
+    )
+    if (toAdd.length > 0) onAdd(toAdd.map(rowToTrack))
+  }
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<MusicCatalogRow | null>(null)
   // #22: multi-select for bulk add / delete.
@@ -118,6 +140,28 @@ export function MusicCatalogPicker({
           ).
         </p>
       </div>
+      {playlists.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs font-medium">Add a playlist:</span>
+          <select
+            className="border-input bg-background h-8 rounded-md border px-2 text-xs"
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) {
+                addPlaylist(e.target.value)
+                e.target.value = ''
+              }
+            }}
+          >
+            <option value="">Choose a playlist…</option>
+            {playlists.map((pl) => (
+              <option key={pl.id} value={pl.id}>
+                {pl.name} ({tracksByPlaylist.get(pl.id)?.size ?? 0})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs font-medium">
           <input
