@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
 import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
+import { InstallMusicLibraryModal } from '@/components/rallyhub/InstallMusicLibraryModal'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -166,6 +167,7 @@ export function AdminGamesPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
+  const [installMusicOpen, setInstallMusicOpen] = useState(false)
   const [installGroup, setInstallGroup] = useState<{
     name: string
     games: GameRow[]
@@ -337,26 +339,35 @@ export function AdminGamesPage() {
         </>
       }
     >
-      {!isPlatformLibrary ? (
-        <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <NeoButton
+          type="button"
+          size="sm"
+          variant={view === 'games' ? 'primary' : 'surface'}
+          onClick={() => setView('games')}
+        >
+          Games
+        </NeoButton>
+        <NeoButton
+          type="button"
+          size="sm"
+          variant={view === 'catalog' ? 'primary' : 'surface'}
+          onClick={() => setView('catalog')}
+        >
+          Music {isPlatformLibrary ? 'Library' : 'Catalog'}
+        </NeoButton>
+        {isPlatformLibrary && view === 'catalog' ? (
           <NeoButton
             type="button"
             size="sm"
-            variant={view === 'games' ? 'primary' : 'surface'}
-            onClick={() => setView('games')}
+            variant="accent"
+            className="ml-auto"
+            onClick={() => setInstallMusicOpen(true)}
           >
-            Games
+            Install to clients
           </NeoButton>
-          <NeoButton
-            type="button"
-            size="sm"
-            variant={view === 'catalog' ? 'primary' : 'surface'}
-            onClick={() => setView('catalog')}
-          >
-            Music Catalog
-          </NeoButton>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {view === 'catalog' && organizationId ? (
         <MusicCatalogManager organizationId={organizationId} />
@@ -483,6 +494,10 @@ export function AdminGamesPage() {
       )}
       {installGame ? (
         <InstallGameModal game={installGame} onClose={() => setInstallGame(null)} />
+      ) : null}
+
+      {installMusicOpen ? (
+        <InstallMusicLibraryModal onClose={() => setInstallMusicOpen(false)} />
       ) : null}
 
       {installGroup ? (

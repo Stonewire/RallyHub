@@ -633,6 +633,7 @@ export type Database = {
           clip_duration_seconds: number
           duration_seconds: number | null
           source_filename: string | null
+          genre: string | null
           parse_confidence: number | null
           license_confirmed_at: string | null
           license_confirmed_by: string | null
@@ -650,6 +651,7 @@ export type Database = {
           clip_duration_seconds?: number
           duration_seconds?: number | null
           source_filename?: string | null
+          genre?: string | null
           parse_confidence?: number | null
           license_confirmed_at?: string | null
           license_confirmed_by?: string | null
@@ -662,7 +664,41 @@ export type Database = {
           clip_start_seconds?: number
           clip_duration_seconds?: number
           duration_seconds?: number | null
+          genre?: string | null
           license_confirmed_at?: string | null
+        }
+        Relationships: []
+      }
+      music_playlists: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+        }
+        Update: {
+          name?: string
+        }
+        Relationships: []
+      }
+      music_playlist_tracks: {
+        Row: {
+          playlist_id: string
+          track_id: string
+          added_at: string
+        }
+        Insert: {
+          playlist_id: string
+          track_id: string
+        }
+        Update: {
+          playlist_id?: string
+          track_id?: string
         }
         Relationships: []
       }
@@ -781,6 +817,10 @@ export type Database = {
       increment_team_score: {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
+      }
+      install_music_library: {
+        Args: { p_target_org_id: string }
+        Returns: number
       }
       reveal_quiz_answer: {
         Args: { p_event_id: string; p_game_id: string; p_question_id: string }

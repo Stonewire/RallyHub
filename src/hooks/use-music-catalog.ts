@@ -50,10 +50,24 @@ export function useInsertMusicCatalog(organizationId: string | null) {
 export function useUpdateMusicCatalog(organizationId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, title, artist }: { id: string; title: string; artist: string }) => {
+    mutationFn: async ({
+      id,
+      title,
+      artist,
+      genre,
+    }: {
+      id: string
+      title: string
+      artist: string
+      genre?: string | null
+    }) => {
       const { error } = await supabase
         .from('music_catalog')
-        .update({ title: title.trim(), artist: artist.trim() })
+        .update({
+          title: title.trim(),
+          artist: artist.trim(),
+          ...(genre !== undefined ? { genre: genre?.trim() || null } : {}),
+        })
         .eq('id', id)
       if (error) throw error
     },
