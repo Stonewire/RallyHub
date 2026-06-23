@@ -1,7 +1,8 @@
-import { Users, Monitor, Shield, Cpu, RefreshCw } from 'lucide-react'
+import { Users, Monitor, Shield, Cpu, RefreshCw, Download } from 'lucide-react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Button } from '@/components/ui/button'
+import { downloadCsv, toCsv } from '@/lib/csv'
 import {
   activityActionLabel,
   useEventActivityLog,
@@ -30,22 +31,48 @@ function formatTime(iso: string) {
 
 export function EventActivityLog({ eventId }: { eventId: string }) {
   const query = useEventActivityLog(eventId)
+  const rows = query.data ?? []
+
+  function handleDownload() {
+    const csv = toCsv(
+      ['Time', 'Actor type', 'Actor', 'Action', 'Details'],
+      rows.map((r) => [
+        new Date(r.created_at).toISOString(),
+        r.actor_type,
+        r.actor_name ?? '',
+        activityActionLabel(r),
+        r.details ? JSON.stringify(r.details) : '',
+      ]),
+    )
+    downloadCsv(`event-log-${eventId}.csv`, csv)
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           Real-time log of who joined, stage changes, submissions, and key actions.
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={query.isFetching}
-          onClick={() => void query.refetch()}
-        >
-          <RefreshCw className={`mr-1.5 size-3.5 ${query.isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={rows.length === 0}
+            onClick={handleDownload}
+          >
+            <Download className="mr-1.5 size-3.5" />
+            Download CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={query.isFetching}
+            onClick={() => void query.refetch()}
+          >
+            <RefreshCw className={`mr-1.5 size-3.5 ${query.isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {query.isLoading ? (

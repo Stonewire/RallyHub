@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 
+import { toCsv } from '@/lib/csv'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
@@ -85,47 +86,24 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
     (g) => g.type === 'quiz' || g.type === 'music_bingo',
   )
   if (hasQuizOrBingo) {
-    const { data: log } = await supabase
-      .from('event_activity_log')
-      .select('created_at, actor_type, actor_name, action, details')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: true })
-
-    const ranking = [...teams]
-      .filter((t) => t.name?.trim())
-      .sort((a, b) => b.score - a.score)
-      .map((t, i) => ({ rank: i + 1, team: t.name, score: t.score }))
-
-    const results = submissions
+    const rows = submissions
       .filter((s) => {
         const g = games.find((gg) => gg.id === s.game_id)
         return g?.type === 'quiz' || g?.type === 'music_bingo'
       })
       .map((s) => {
         const g = games.find((gg) => gg.id === s.game_id)
-        return {
-          team: teams.find((t) => t.id === s.team_id)?.name ?? s.team_id,
-          game: g?.name ?? s.game_id,
-          type: g?.type,
-          status: s.status,
-          points: s.points_awarded ?? 0,
-        }
+        return [
+          teams.find((t) => t.id === s.team_id)?.name ?? s.team_id,
+          g?.name ?? s.game_id,
+          g?.type ?? '',
+          s.status ?? '',
+          s.points_awarded ?? 0,
+        ]
       })
 
-    zip.file(
-      'quiz-bingo-log.json',
-      JSON.stringify(
-        {
-          event: event.name,
-          exported_at: new Date().toISOString(),
-          ranking,
-          quiz_bingo_results: results,
-          activity_log: log ?? [],
-        },
-        null,
-        2,
-      ),
-    )
+    const csv = toCsv(['Team', 'Game', 'Type', 'Status', 'Points'], rows)
+    zip.file('quiz-bingo-results.csv', csv)
   }
 
   const out = await zip.generateAsync({ type: 'blob' })
