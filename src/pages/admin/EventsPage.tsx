@@ -255,6 +255,7 @@ export function AdminEventsPage() {
         <EventLinksModal
           eventId={linksModal.id}
           eventName={linksModal.name}
+          eventSlug={linksModal.slug}
           organization={
             orgQuery.data
               ? {

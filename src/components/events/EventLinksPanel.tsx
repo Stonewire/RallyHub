@@ -20,6 +20,7 @@ import type { TenantPublicOrg } from '@/lib/tenant'
 type EventLinksPanelProps = {
   eventId: string
   eventName: string
+  eventSlug?: string | null
   organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null
   branding?: EventLinksPdfBranding
   compact?: boolean
@@ -28,11 +29,15 @@ type EventLinksPanelProps = {
 export function EventLinksPanel({
   eventId,
   eventName,
+  eventSlug,
   organization,
   branding,
   compact,
 }: EventLinksPanelProps) {
-  const links = getEventLinks(eventId, organization)
+  const links = getEventLinks(eventId, {
+    clientSlug: organization?.subdomain,
+    eventSlug,
+  })
   const [copied, setCopied] = useState<EventLinkKey | null>(null)
   const [downloadingAll, setDownloadingAll] = useState(false)
 

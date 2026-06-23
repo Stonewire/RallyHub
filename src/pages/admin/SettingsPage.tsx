@@ -375,13 +375,7 @@ export function AdminSettingsPage() {
               Tablet Access
             </h2>
             {orgQuery.data ? (
-              <TabletLinkEditor
-                orgName={form.name || orgQuery.data.name}
-                tabletCode={form.tablet_slug}
-                onCodeChange={(tablet_slug) => setForm({ ...form, tablet_slug })}
-                subdomain={orgQuery.data.subdomain}
-                customDomain={orgQuery.data.custom_domain}
-              />
+              <TabletLinkEditor subdomain={orgQuery.data.subdomain} />
             ) : null}
             <div className="space-y-2">
               <Label htmlFor="tablet-password">Tablet Password</Label>

@@ -24,6 +24,7 @@ import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { FacilitatorEventRoute } from '@/components/routing/FacilitatorEventRoute'
+import { SlugEventRedirect, TabletSlugRedirect } from '@/components/routing/SlugRedirects'
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorLandingPage } from '@/pages/live/FacilitatorLandingPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
@@ -123,6 +124,24 @@ export const router = createBrowserRouter([
   },
   { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
   { path: '/tablet', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
+
+  // Pretty shareable slug links → resolve and forward to the real pages above.
+  {
+    path: '/:clientSlug/events/:eventSlug/facilitator',
+    element: <SlugEventRedirect surface="facilitator" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/:clientSlug/events/:eventSlug/display',
+    element: <SlugEventRedirect surface="display" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/:clientSlug/events/:eventSlug/teams',
+    element: <SlugEventRedirect surface="join" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  { path: '/:clientSlug/tablet', element: <TabletSlugRedirect />, errorElement: <RouteErrorBoundary /> },
 
   { path: '/', element: <RootPage /> },
   { path: '/contact', element: <ContactPage /> },

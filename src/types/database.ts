@@ -300,6 +300,7 @@ export type Database = {
           id: string
           organization_id: string
           name: string
+          slug: string | null
           event_date: string | null
           status: string
           team_count: number
@@ -821,6 +822,10 @@ export type Database = {
       install_music_library: {
         Args: { p_target_org_id: string }
         Returns: number
+      }
+      resolve_event_by_slugs: {
+        Args: { p_client_slug: string; p_event_slug: string }
+        Returns: string | null
       }
       reveal_quiz_answer: {
         Args: { p_event_id: string; p_game_id: string; p_question_id: string }

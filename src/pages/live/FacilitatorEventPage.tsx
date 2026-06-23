@@ -474,15 +474,14 @@ export function FacilitatorEventPage() {
     )
   }
 
-  const { event, organization, teams: eventTeams, games, submissions } = bundle
+  const { event, teams: eventTeams, games, submissions } = bundle
   controlsLiveRef.current = isEventLive(event)
   const teams = (
     isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
   ).filter((team): team is Tables<'teams'> => Boolean(team?.id))
   const liveState = state
-  const displayUrl = eventId
-    ? getEventLinks(eventId, organization).display
-    : ''
+  // Internal iframe preview — always the direct /display/:eventId URL.
+  const displayUrl = eventId ? getEventLinks(eventId).display : ''
 
   // Quest (open-stage) games drive the per-team progress fill + "View Quests" modal.
   const questGames = questGamesForEvent(stages, games)

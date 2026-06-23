@@ -336,6 +336,7 @@ export function AdminEventEditPage() {
                   <EventLinksPanel
                     eventId={eventId}
                     eventName={eventQuery.data.name}
+                    eventSlug={eventQuery.data.slug}
                     organization={
                       orgQuery.data
                         ? {

@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf'
 
-import type { TenantPublicOrg } from '@/lib/tenant'
-import { getOrganizationOrigin } from '@/lib/tenant'
+import { getPlatformOrigin } from '@/lib/tenant'
 
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
 
@@ -12,18 +11,30 @@ export type EventLinks = Record<EventLinkKey, string>
 export const EVENT_LINK_LABELS: Record<EventLinkKey, string> = {
   facilitator: 'Facilitator',
   display: 'Display',
-  join: 'Join',
+  join: 'Teams',
 }
 
+/**
+ * Shareable event links. When the client slug (org subdomain) and event slug are
+ * known, produce the pretty slug URLs (/client/events/event/{facilitator|display|
+ * teams}); otherwise fall back to the always-valid /surface/:eventId URLs so a
+ * missing slug never yields a broken link/QR.
+ */
 export function getEventLinks(
   eventId: string,
-  organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null,
+  opts?: { clientSlug?: string | null; eventSlug?: string | null },
 ): EventLinks {
-  const base = organization
-    ? getOrganizationOrigin(organization)
-    : typeof window !== 'undefined'
-      ? window.location.origin
-      : ''
+  const base = getPlatformOrigin()
+  const c = opts?.clientSlug?.trim()
+  const e = opts?.eventSlug?.trim()
+
+  if (c && e) {
+    return {
+      facilitator: `${base}/${c}/events/${e}/facilitator`,
+      display: `${base}/${c}/events/${e}/display`,
+      join: `${base}/${c}/events/${e}/teams`,
+    }
+  }
 
   return {
     facilitator: `${base}/facilitator/${eventId}`,

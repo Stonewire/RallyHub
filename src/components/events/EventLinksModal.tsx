@@ -9,6 +9,7 @@ import type { TenantPublicOrg } from '@/lib/tenant'
 type EventLinksModalProps = {
   eventId: string
   eventName: string
+  eventSlug?: string | null
   organization?: Pick<TenantPublicOrg, 'subdomain' | 'custom_domain'> | null
   branding?: EventLinksPdfBranding
   onClose: () => void
@@ -17,6 +18,7 @@ type EventLinksModalProps = {
 export function EventLinksModal({
   eventId,
   eventName,
+  eventSlug,
   organization,
   branding,
   onClose,
@@ -37,6 +39,7 @@ export function EventLinksModal({
         <EventLinksPanel
           eventId={eventId}
           eventName={eventName}
+          eventSlug={eventSlug}
           organization={organization}
           branding={branding ?? { eventName }}
         />
