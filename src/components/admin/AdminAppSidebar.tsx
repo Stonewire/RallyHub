@@ -4,6 +4,7 @@ import {
   ChevronDown,
   CreditCard,
   Gamepad2,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Moon,
@@ -44,6 +45,7 @@ import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 
 const mainNav = [
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false },
   { to: '/admin/events', label: 'Events', icon: Calendar, end: false },
 ] as const

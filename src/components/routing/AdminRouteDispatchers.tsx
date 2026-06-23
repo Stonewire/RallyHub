@@ -10,6 +10,7 @@ import { AdminEventsNewPage } from '@/pages/admin/events/NewEventPage'
 import { AdminGameEditPage } from '@/pages/admin/games/EditGamePage'
 import { AdminGamesNewPage } from '@/pages/admin/games/NewGamePage'
 import { AdminGamesPage } from '@/pages/admin/GamesPage'
+import { ClientDashboardPage } from '@/pages/admin/ClientDashboardPage'
 import { AdminSettingsPage } from '@/pages/admin/SettingsPage'
 import { AdminSupportPage } from '@/pages/admin/SupportPage'
 import { AdminTeamPage } from '@/pages/admin/TeamPage'
@@ -26,7 +27,7 @@ function useIsSuperAdminOnPlatform() {
 export function AdminHomePage() {
   const mode = useIsSuperAdminOnPlatform()
   if (mode === null) return <AuthLoadingScreen label="Loading profile" />
-  return mode ? <RallyHubOverviewPage /> : <Navigate to="/admin/events" replace />
+  return mode ? <RallyHubOverviewPage /> : <ClientDashboardPage />
 }
 
 export function AdminGamesRoute() {
