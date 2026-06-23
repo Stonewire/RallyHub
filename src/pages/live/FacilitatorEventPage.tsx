@@ -146,6 +146,11 @@ export function FacilitatorEventPage() {
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
   const bingoWinHaltRef = useRef(false)
+  // Synchronous lock: bingoAdvancing is React state (updates async), so rapid
+  // clicks slip past it and fire concurrent run activations/advances — which
+  // create duplicate runs and a stale runId ("Failed to advance bingo run").
+  // A ref flips synchronously, truly serialising presses.
+  const bingoBusyRef = useRef(false)
   const { notify } = useNotification()
   const queryClient = useQueryClient()
 
@@ -970,12 +975,14 @@ export function FacilitatorEventPage() {
   }
 
   function handleBingoStartClick() {
-    if (bingoAdvancing) return
+    if (bingoBusyRef.current) return
+    bingoBusyRef.current = true
     bingoWinHaltRef.current = false
 
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
       notify('Audio player is not mounted — switch to bingo stage and try again')
+      bingoBusyRef.current = false
       return
     }
 
@@ -991,7 +998,10 @@ export function FacilitatorEventPage() {
         } else {
           notify('Could not start playback — check console for details')
         }
-      }).finally(() => setBingoAdvancing(false))
+      }).finally(() => {
+        setBingoAdvancing(false)
+        bingoBusyRef.current = false
+      })
       return
     }
 
@@ -1024,6 +1034,7 @@ export function FacilitatorEventPage() {
         } else notify('Run loaded — press Start again to play')
       } finally {
         setBingoAdvancing(false)
+        bingoBusyRef.current = false
       }
     })()
   }
@@ -1109,7 +1120,9 @@ export function FacilitatorEventPage() {
   }
 
   async function handleBingoNextClick(opts?: { skipCrossfade?: boolean; skipScore?: boolean }) {
-    if (bingoAdvancing) return
+    if (bingoBusyRef.current) return
+    bingoBusyRef.current = true
+    try {
     if (!stage?.gameId || !eventId) return
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
@@ -1177,11 +1190,15 @@ export function FacilitatorEventPage() {
     } finally {
       setBingoAdvancing(false)
     }
+    } finally {
+      bingoBusyRef.current = false
+    }
   }
 
   async function handleBingoLockAndReveal() {
-    if (bingoAdvancing) return
+    if (bingoBusyRef.current) return
     if (liveState.bingo_state !== 'playing') return
+    bingoBusyRef.current = true
     setBingoAdvancing(true)
     try {
       await lockAndRevealBingoRound()
@@ -1189,11 +1206,12 @@ export function FacilitatorEventPage() {
       notify(err instanceof Error ? err.message : 'Could not score or reveal the bingo round')
     } finally {
       setBingoAdvancing(false)
+      bingoBusyRef.current = false
     }
   }
 
   async function autoAdvanceBingoSong() {
-    if (bingoAdvancing) return
+    if (bingoBusyRef.current) return
     if (bingoWinHaltRef.current) return
     if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
     await handleBingoNextClick({ skipCrossfade: true, skipScore: true })

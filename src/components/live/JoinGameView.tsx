@@ -462,8 +462,9 @@ export function JoinGameView({
   const winnerSoundTargetsRef = useRef(state.winner_sound_targets)
   winnerSoundTargetsRef.current = state.winner_sound_targets
   useEffect(() => {
-    // Bingo wins use BingoWinCelebration audio — never the podium fanfare here.
-    if (stage?.type === 'bingo') return
+    // The event winner reveal (winner_reveal_stage===2) is the facilitator's
+    // final podium — it must play regardless of the current stage type. (Bingo
+    // LINE wins are separate: they use BingoWinCelebration, not this reveal.)
     const stageNum = state.winner_reveal_stage ?? 0
     if (stageNum === 0) {
       eventWinnerAudioKeyRef.current = null
@@ -482,7 +483,7 @@ export function JoinGameView({
     if (!winnerSoundEnabled(winnerSoundTargetsRef.current, 'players')) return
     const stopAudio = playEventWinnerSequence(revealKey)
     return () => stopAudio()
-  }, [state.winner_reveal_stage, stage?.type, event.id])
+  }, [state.winner_reveal_stage, event.id])
 
   const lastQuizRevealKeyRef = useRef<string | null>(null)
   useEffect(() => {
