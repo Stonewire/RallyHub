@@ -93,6 +93,8 @@ Deno.serve(async (req) => {
         billing_plan: planId,
         billing_period: 'yearly',
         trial_ends_at: trialEndsAt,
+        // Mark paid plans as on-trial so it's reflected on the super-admin page.
+        account_status: isPaid ? 'trial' : 'active',
         educational_status: isSchool ? 'pending' : 'none',
       })
       .select()

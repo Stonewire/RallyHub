@@ -21,10 +21,29 @@ export function getEventActivationWarning(
   eventPromoDiscountPercent = 0,
   /** Approved-educational orgs get 50% off, stacked after the promo (server-side). */
   educationalApproved = false,
+  /** True when the org has never activated an event before (server-verified). */
+  isFirstEvent = false,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
   const baseAmount = plan.perEventPriceEur
+
+  // First event is free on PAID plans only (Starter/Pro/Max). The Free plan
+  // gets no free event; Partner is already comped below.
+  const paidPlanIds: PlanId[] = ['arena', 'pro', 'max']
+  if (isFirstEvent && paidPlanIds.includes(planId)) {
+    return {
+      planId,
+      billAmountEur: 0,
+      isComped: true,
+      title: 'Activate event',
+      message:
+        `Your first event on the ${formatPlanLabel(planId)} plan is free. ` +
+        'Activating records a €0 invoice. If you have not started the event yet, ' +
+        'keep it at Ready status until you are ready to go live.',
+      confirmLabel: 'Activate at no cost',
+    }
+  }
 
   if (planId === 'partner') {
     return {

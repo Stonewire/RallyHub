@@ -18,6 +18,7 @@ export type ClientCardData = {
   billing_plan: string | null
   billing_period?: string | null
   account_status?: string | null
+  trial_ends_at?: string | null
   trial_review_needed?: boolean | null
   completedEvents: number
   upcomingEvents: number
@@ -33,9 +34,20 @@ function clientEmail(client: ClientCardData) {
   return client.email?.trim() || client.contact_email?.trim() || null
 }
 
+/** Trial label for the super-admin card, e.g. "Trial · 12d left" or "Trial ended". */
+function trialLabel(client: ClientCardData): string | null {
+  if (client.account_status !== 'trial') return null
+  if (!client.trial_ends_at) return 'Trial'
+  const days = Math.ceil(
+    (new Date(client.trial_ends_at).getTime() - Date.now()) / 86_400_000,
+  )
+  return days > 0 ? `Trial · ${days}d left` : 'Trial ended'
+}
+
 export function ClientCard({ client, className }: ClientCardProps) {
   const email = clientEmail(client)
   const initials = organizationInitials(client.name)
+  const trial = trialLabel(client)
 
   return (
     <NeoCard
@@ -67,6 +79,11 @@ export function ClientCard({ client, className }: ClientCardProps) {
             {(client.unpaidInvoiceCount ?? 0) > 0 ? (
               <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
                 {client.unpaidInvoiceCount} unpaid
+              </span>
+            ) : null}
+            {trial ? (
+              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                {trial}
               </span>
             ) : null}
             {client.trial_review_needed ? (
