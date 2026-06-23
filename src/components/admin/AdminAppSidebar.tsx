@@ -43,6 +43,7 @@ import { useTenant } from '@/contexts/tenant-context'
 import { useTheme } from '@/contexts/theme-context'
 import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
+import { APP_BUILD_LABEL } from '@/lib/version'
 
 const mainNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -302,6 +303,9 @@ export function AdminAppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <p className="text-sidebar-foreground/40 px-2 pt-1 text-[10px] tracking-wide">
+          {APP_BUILD_LABEL}
+        </p>
       </SidebarFooter>
     </Sidebar>
   )
