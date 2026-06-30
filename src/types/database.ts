@@ -819,6 +819,10 @@ export type Database = {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
       }
+      award_bingo_line_bonus: {
+        Args: { p_run_id: string; p_team_id: string; p_points: number }
+        Returns: boolean
+      }
       install_music_library: {
         Args: { p_target_org_id: string }
         Returns: number
