@@ -707,7 +707,9 @@ export function JoinGameView({
       if (proofFile) {
         proofUrl = await uploadAsset(
           'game-assets',
-          `${event.organization_id}/bingo-bonus/${crypto.randomUUID()}-${proofFile.name}`,
+          // Match the working open-game path: timestamp + fixed extension. The
+          // old crypto.randomUUID() + raw iPhone filename could fail on iOS.
+          `${event.organization_id}/bingo-bonus/${teamId}-${Date.now()}${challenge.mediaType === 'video' ? '.mp4' : '.jpg'}`,
           proofFile,
           { mediaKind: challenge.mediaType === 'video' ? 'video' : 'photo' },
         )
