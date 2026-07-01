@@ -214,7 +214,10 @@ export function AdminSettingsPage() {
             </p>
           ) : null}
 
-          <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
+          <Card
+            className="border-border/80 space-y-5 bg-card p-6 shadow-sm"
+            data-tour="org-profile-form"
+          >
             <div className="space-y-2">
               <Label htmlFor="org-name">Organization Name</Label>
               <Input

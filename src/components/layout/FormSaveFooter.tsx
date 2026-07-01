@@ -53,7 +53,13 @@ export function FormSaveFooter({
       )}
     >
       <div className="flex justify-end">
-        <NeoButton type="button" variant="primary" disabled={saving} onClick={onSave}>
+        <NeoButton
+          type="button"
+          variant="primary"
+          disabled={saving}
+          onClick={onSave}
+          data-tour="form-save-button"
+        >
           {saving ? 'Saving…' : saved ? 'Saved!' : label}
         </NeoButton>
       </div>

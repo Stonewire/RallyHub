@@ -14,7 +14,8 @@ function useTargetRect(selector: string) {
         scrolledIntoView = true
         const r = el.getBoundingClientRect()
         if (r.top < 80 || r.bottom > window.innerHeight - 80) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // ponytail: instant jump — smooth scrolls get cancelled by the rAF re-render churn
+          el.scrollIntoView({ block: 'center' })
         }
       }
       const next = el ? el.getBoundingClientRect() : null

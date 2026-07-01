@@ -55,7 +55,7 @@ export function BillingOverview({
         </Card>
       ) : null}
 
-      <section className="space-y-3">
+      <section className="space-y-3" data-tour="billing-plan">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Current plan</h2>
           <p className="text-muted-foreground text-sm">
@@ -77,7 +77,7 @@ export function BillingOverview({
         ) : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3" data-tour="billing-unpaid">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Unpaid events</h2>
           <p className="text-muted-foreground text-sm">
@@ -97,7 +97,7 @@ export function BillingOverview({
         )}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3" data-tour="billing-history">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Payment history</h2>
           <p className="text-muted-foreground text-sm">
@@ -114,7 +114,7 @@ export function BillingOverview({
         )}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3" data-tour="billing-subscription">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Subscription</h2>
           <p className="text-muted-foreground text-sm">
