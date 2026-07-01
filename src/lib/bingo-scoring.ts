@@ -26,7 +26,10 @@ export async function scoreBingoRound(params: {
 }): Promise<ScoreBingoRoundResult> {
   const { eventId, gameId, runId, trackId, gameConfig } = params
   const pointsPerCorrect = gameConfig.bingo_points_per_correct ?? 10
-  const linePoints = gameConfig.bingo_line_points ?? 0
+  // Default must match the editor's displayed default (BingoWinningComboEditor
+  // shows `?? 100`). Games saved without touching the field have no
+  // bingo_line_points key, so a `?? 0` here silently paid nothing.
+  const linePoints = gameConfig.bingo_line_points ?? 100
   const winConfig = resolveBingoWinConfig(gameConfig)
 
   const [{ data: cards }, { data: subs }] = await Promise.all([

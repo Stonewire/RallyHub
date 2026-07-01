@@ -40,7 +40,9 @@ export async function restartBingoRun(
     }
   }
 
-  const linePoints = ((game?.config ?? {}) as GameConfig).bingo_line_points ?? 0
+  // Match the award default (editor shows `?? 100`); restart must reverse the
+  // same amount that was paid.
+  const linePoints = ((game?.config ?? {}) as GameConfig).bingo_line_points ?? 100
   if (run && linePoints > 0) {
     const paidIds = Array.isArray(run.paid_line_bonus_team_ids)
       ? (run.paid_line_bonus_team_ids as string[])
