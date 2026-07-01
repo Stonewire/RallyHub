@@ -6,9 +6,10 @@ import {
   bingoWinAchieved,
   resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
-import { publishLiveBundleReload } from '@/lib/live-broadcast'
+import { publishLiveBundlePatch, publishLiveBundleReload } from '@/lib/live-broadcast'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig } from '@/types/game-config'
+import type { Tables } from '@/types/helpers'
 
 export type ScoreBingoRoundResult = {
   correctIndex: number
@@ -26,7 +27,10 @@ export async function scoreBingoRound(params: {
 }): Promise<ScoreBingoRoundResult> {
   const { eventId, gameId, runId, trackId, gameConfig } = params
   const pointsPerCorrect = gameConfig.bingo_points_per_correct ?? 10
-  const linePoints = gameConfig.bingo_line_points ?? 0
+  // Default must match the editor's displayed default (BingoWinningComboEditor
+  // shows `?? 100`). Games saved without touching the field have no
+  // bingo_line_points key, so a `?? 0` here silently paid nothing.
+  const linePoints = gameConfig.bingo_line_points ?? 100
   const winConfig = resolveBingoWinConfig(gameConfig)
 
   const [{ data: cards }, { data: subs }, { data: runRow }] = await Promise.all([
@@ -89,12 +93,18 @@ export async function scoreBingoRound(params: {
         .from('submissions')
         .update({ status: 'approved', points_awarded: points })
         .eq('id', id)
+        .select()
+        .single()
         .then((r) => ({ ...r, teamId, points })),
     ),
   )
   const rejectResult =
     rejectIds.length > 0
-      ? await supabase.from('submissions').update({ status: 'rejected' }).in('id', rejectIds)
+      ? await supabase
+          .from('submissions')
+          .update({ status: 'rejected' })
+          .in('id', rejectIds)
+          .select()
       : null
 
   const approveErrors = approveResults.filter((r) => r.error)
@@ -152,6 +162,22 @@ export async function scoreBingoRound(params: {
       console.error('Failed to persist paid line bonus team ids', paidErr)
     }
   }
+
+  // Push approved/rejected marks to players as targeted patches so cells turn
+  // green/red instantly, in step with the winner reveal, instead of waiting for
+  // the full-bundle reload below. Team scores already broadcast via
+  // incrementTeamScore; the full reload stays as a consistency safety net.
+  const markPatches: Tables<'submissions'>[] = [
+    ...approveResults
+      .filter((r) => !r.error && r.data)
+      .map((r) => r.data as Tables<'submissions'>),
+    ...((rejectResult?.data as Tables<'submissions'>[] | null | undefined) ?? []),
+  ]
+  await Promise.all(
+    markPatches.map((row) =>
+      publishLiveBundlePatch(eventId, { kind: 'submission', op: 'UPDATE', row }),
+    ),
+  )
 
   await publishLiveBundleReload(eventId)
 
