@@ -258,6 +258,23 @@ export function useLiveEvent(eventId: string | undefined) {
         }
         setBundle((b) => {
           if (!b) return b
+          if (patch.kind === 'event_state') {
+            // Drop a stale event_state snapshot that would clobber newer local
+            // state. Without this, a late bingo-activation broadcast (carrying
+            // 'waiting') can overwrite the facilitator's optimistic 'playing',
+            // making Start need multiple presses. Mirrors the poll (updated_at
+            // check) and the postgres_changes handler (lastWrittenAtRef check).
+            const incoming = patch.row.updated_at
+            const localWrite = lastWrittenAtRef.current
+            const localState = b.state.updated_at
+            if (
+              incoming &&
+              ((localWrite && incoming < localWrite) ||
+                (localState && incoming < localState))
+            ) {
+              return b
+            }
+          }
           return applyLiveBundlePatch(b, patch)
         })
       })

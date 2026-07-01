@@ -250,6 +250,7 @@ export function JoinEventPage() {
         />
         <JoinGameView
           bundle={bundle}
+          setBundle={setBundle}
           teamId={teamId}
           team={teamForView}
         messages={messages}

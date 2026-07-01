@@ -1,5 +1,5 @@
 import { LogOut, MessageCircle, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -73,7 +73,7 @@ import {
 } from '@/lib/live-event'
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage, explainFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
-import { publishSubmissionChange } from '@/lib/live-broadcast'
+import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -108,6 +108,7 @@ import type { Tables } from '@/types/helpers'
 
 type JoinGameViewProps = {
   bundle: LiveEventBundle
+  setBundle: Dispatch<SetStateAction<LiveEventBundle | null>>
   teamId: string
   team: Tables<'teams'>
   messages: Tables<'chat_messages'>[]
@@ -123,6 +124,7 @@ type JoinGameViewProps = {
 
 export function JoinGameView({
   bundle,
+  setBundle,
   teamId,
   team,
   messages,
@@ -210,6 +212,19 @@ export function JoinGameView({
   )
 
   const mySubs = submissions.filter((s) => s.team_id === teamId)
+  // Merge the player's own submission write into the local bundle immediately so a
+  // bingo mark reads as settled without waiting for the broadcast echo (which anon
+  // phones don't reliably receive). Reconciled by id when the echo / full reload lands.
+  const mergeOwnSubmission = useCallback(
+    (
+      op: 'INSERT' | 'UPDATE' | 'DELETE',
+      row?: Tables<'submissions'>,
+      old?: { id: string },
+    ) => {
+      setBundle((b) => (b ? applyLiveBundlePatch(b, { kind: 'submission', op, row, old }) : b))
+    },
+    [setBundle],
+  )
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
 
@@ -807,7 +822,8 @@ export function JoinGameView({
         setBingoPick(idx >= 0 ? idx : null)
         notify("Couldn't update selection — tap to retry")
       } else {
-        await publishSubmissionChange(event.id, 'DELETE', undefined, {
+        mergeOwnSubmission('DELETE', undefined, { id: existingPending!.id })
+        void publishSubmissionChange(event.id, 'DELETE', undefined, {
           id: existingPending!.id,
         })
       }
@@ -839,7 +855,10 @@ export function JoinGameView({
           notify("Couldn't mark cell — tap to retry")
           return
         }
-        if (data) await publishSubmissionChange(event.id, 'UPDATE', data)
+        if (data) {
+          mergeOwnSubmission('UPDATE', data)
+          void publishSubmissionChange(event.id, 'UPDATE', data)
+        }
         return
       }
 
@@ -861,7 +880,8 @@ export function JoinGameView({
           revertBingoPick()
           notify("Couldn't update selection — tap to retry")
         } else {
-          await publishSubmissionChange(event.id, 'DELETE', undefined, {
+          mergeOwnSubmission('DELETE', undefined, { id: existingSameCell.id })
+          void publishSubmissionChange(event.id, 'DELETE', undefined, {
             id: existingSameCell.id,
           })
         }
@@ -884,7 +904,8 @@ export function JoinGameView({
         revertBingoPick()
         notify("Couldn't mark cell — tap to retry")
       } else if (bingoRow) {
-        await publishSubmissionChange(event.id, 'INSERT', bingoRow)
+        mergeOwnSubmission('INSERT', bingoRow)
+        void publishSubmissionChange(event.id, 'INSERT', bingoRow)
       }
     } finally {
       bingoPickOptimisticRef.current = undefined

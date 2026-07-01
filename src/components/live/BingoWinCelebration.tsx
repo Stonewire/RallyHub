@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 
 import { textOnAccent } from '@/lib/live-event'
-import { playBingoWinJingle, playLoserSound } from '@/lib/sounds'
 
 const DEFAULT_ACCENT = '#FFC107'
 
@@ -12,8 +11,6 @@ type BingoWinCelebrationProps = {
   teamColor?: string | null
   /** When true, show the personal "You got BINGO!" version on the winner's own device. */
   mine?: boolean
-  /** When true, this is the display panel (plays the bingo jingle). */
-  display?: boolean
   /** Auto-dismiss after this many ms (default 8000). */
   durationMs?: number
   onDismiss: () => void
@@ -25,7 +22,6 @@ export function BingoWinCelebration({
   teamName,
   teamColor,
   mine = false,
-  display = false,
   durationMs = 8000,
   onDismiss,
 }: BingoWinCelebrationProps) {
@@ -33,22 +29,10 @@ export function BingoWinCelebration({
   const onColor = textOnAccent(accent)
   const onDismissRef = useRef(onDismiss)
   onDismissRef.current = onDismiss
-  // Ensure the celebration sound sequence fires exactly once per win, never on
-  // re-render.
-  const soundFiredRef = useRef(false)
 
   useEffect(() => {
-    if (!soundFiredRef.current) {
-      soundFiredRef.current = true
-      // Bingo win: short generated jingle on display + winning phone; loser sound
-      // on every other team. (Event-winner mp3 sequence is display-only elsewhere.)
-      if (display || mine) {
-        playBingoWinJingle()
-      } else {
-        playLoserSound()
-      }
-    }
-
+    // Winner jingle is fired on the facilitator tab only (see FacilitatorEventPage);
+    // this overlay is now purely visual on players and the display.
     // Continuous confetti for the whole celebration: streaming side-cannons every
     // frame plus a big center burst on a steady interval, until the overlay
     // dismisses.

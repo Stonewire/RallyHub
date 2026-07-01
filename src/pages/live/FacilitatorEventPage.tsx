@@ -89,6 +89,7 @@ import {
   playNewMessageSound,
   playNewSubmissionSound,
   playEventWinnerSequence,
+  playBingoWinJingle,
   installAudioUnlock,
   unlockAudioFromUserGesture,
   isSoundsMuted,
@@ -463,6 +464,22 @@ export function FacilitatorEventPage() {
       `${eventId}:facilitator-winner:2`,
     )
   }, [winnerRevealStage, facilitatorWinnerEnabled, eventId])
+
+  // Bingo line-win jingle plays on the facilitator tab only (removed from player
+  // phones + display in BingoWinCelebration). Key off the PRIMITIVE winner id, not
+  // bingo_state (which flips to 'revealed' every round). Fires once per distinct
+  // winner and re-arms when the winner field resets to null.
+  const lastBingoWinnerRef = useRef<string | null>(null)
+  const bingoWinnerId = state?.bingo_winner_team_id ?? null
+  useEffect(() => {
+    if (!bingoWinnerId) {
+      lastBingoWinnerRef.current = null
+      return
+    }
+    if (lastBingoWinnerRef.current === bingoWinnerId) return
+    lastBingoWinnerRef.current = bingoWinnerId
+    playBingoWinJingle()
+  }, [bingoWinnerId])
 
   if (loading || !bundle || !state) {
     return (
@@ -977,6 +994,10 @@ export function FacilitatorEventPage() {
     if (bingoBusyRef.current) return
     bingoBusyRef.current = true
     bingoWinHaltRef.current = false
+    // Prime celebration audio within this gesture so the facilitator-only bingo
+    // win jingle can play later this round (incl. on iOS Safari and on auto-advance
+    // wins, which have no gesture of their own).
+    unlockAudioFromUserGesture('full')
 
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
@@ -1195,6 +1216,7 @@ export function FacilitatorEventPage() {
   }
 
   async function handleBingoLockAndReveal() {
+    unlockAudioFromUserGesture('full')
     if (bingoBusyRef.current) return
     if (liveState.bingo_state !== 'playing') return
     bingoBusyRef.current = true
@@ -1213,7 +1235,11 @@ export function FacilitatorEventPage() {
     if (bingoBusyRef.current) return
     if (bingoWinHaltRef.current) return
     if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
-    await handleBingoNextClick({ skipCrossfade: true, skipScore: true })
+    // Score the finishing song so a completed card is detected and celebrated the
+    // moment the song ends, without waiting for a manual Continue press. Scoring
+    // only runs when not already 'revealed' (see handleBingoNextClick), and
+    // bingoBusyRef guards against overlap with a manual reveal/advance.
+    await handleBingoNextClick({ skipCrossfade: true })
   }
 
   return (

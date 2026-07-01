@@ -529,7 +529,6 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           key={winnerTeamId}
           teamName={winnerTeam.name ?? 'Team'}
           teamColor={winnerTeam.color}
-          display
           onDismiss={() => setDismissedWinnerId(winnerTeamId)}
         />
       ) : null}
