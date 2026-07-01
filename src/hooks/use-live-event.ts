@@ -149,6 +149,8 @@ export function useLiveEvent(eventId: string | undefined) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
+  // Last time we heard any live broadcast; drives the P1-1 silence-triggered reload.
+  const lastBroadcastAtRef = useRef(Date.now())
   const bundleRef = useRef(bundle)
   const lastWrittenAtRef = useRef<string | null>(null)
   bundleRef.current = bundle
@@ -237,13 +239,20 @@ export function useLiveEvent(eventId: string | undefined) {
     }
   }, [eventId])
 
-  // P1-1 safety net: the 4s poll above only refreshes event_state. Teams,
-  // submissions and bingo cards reach players via the facilitator's broadcast,
-  // so if the facilitator tab closes mid-event those freeze. A slower full-bundle
-  // reload self-heals scores and marks within ~20s regardless of the facilitator.
+  // P1-1 safety net: teams, submissions and bingo cards reach players via the
+  // facilitator's broadcast, so if the facilitator tab closes those freeze.
+  // Rather than poll on a timer (which would re-pull the whole bundle for every
+  // player every interval), we only pay for a full reload once the broadcast has
+  // gone silent for 15s. During normal play broadcasts arrive constantly, so this
+  // never fires and adds no load; it only kicks in when the facilitator is gone.
   useEffect(() => {
     if (!eventId) return
-    const interval = setInterval(() => void reload(), 20000)
+    const interval = setInterval(() => {
+      if (Date.now() - lastBroadcastAtRef.current > 15000) {
+        lastBroadcastAtRef.current = Date.now()
+        void reload()
+      }
+    }, 5000)
     return () => clearInterval(interval)
   }, [eventId, reload])
 
@@ -260,6 +269,7 @@ export function useLiveEvent(eventId: string | undefined) {
       if (!joinToken || cancelled) return
 
       unsubscribeBroadcast = onLiveBundlePatch(eventId, joinToken, (patch) => {
+        lastBroadcastAtRef.current = Date.now()
         if (patch.kind === 'full_reload') {
           scheduleReloadRef.current()
           return
