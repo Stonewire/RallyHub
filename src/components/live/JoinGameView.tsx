@@ -682,7 +682,19 @@ export function JoinGameView({
     challenge: { mediaType: 'photo' | 'video' },
     proofFile?: File | null,
   ) {
-    if (state.bingo_state !== 'bonus') return
+    if (state.bingo_state !== 'bonus') {
+      // Anon devices (especially mobile) can hold stale realtime state, which
+      // silently blocked the submit. Confirm against the server before bailing.
+      const { data: fresh } = await supabase
+        .from('event_state')
+        .select('bingo_state')
+        .eq('event_id', event.id)
+        .maybeSingle()
+      if (fresh?.bingo_state !== 'bonus') {
+        notify('The bonus round has closed')
+        return
+      }
+    }
     if (challenge.mediaType === 'photo' || challenge.mediaType === 'video') {
       if (!proofFile) {
         notify('Add a photo or video first')
