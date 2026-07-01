@@ -49,7 +49,6 @@ import {
   isLastQuestionInRound,
   quizRoundForQuestionIndex,
 } from '@/lib/quiz-rounds'
-import { scoreBingoBonusRound } from '@/lib/bingo-bonus-scoring'
 import {
   bingoSongProgress,
   parseBingoGameConfig,
@@ -61,9 +60,6 @@ import { scoreBingoRound } from '@/lib/bingo-scoring'
 import { isOpenStageSubmissionMediaType, textSubmissionDisplayLabel } from '@/lib/text-game'
 import { profileDisplayName } from '@/lib/auth-routes'
 import {
-  bingoBonusChallenges,
-  bingoBonusChallenge,
-  bingoBonusMediaType,
   bingoTracks,
   currentStage,
   breakDurationSeconds,
@@ -906,10 +902,6 @@ export function FacilitatorEventPage() {
     liveState.bingo_state !== 'bonus' &&
     liveState.bingo_state !== 'bonus_revealed'
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
-  // #24: bonus ids already played this run (one-time-per-run gate).
-  const usedBonusIds = Array.isArray(liveState.bingo_used_bonus_ids)
-    ? (liveState.bingo_used_bonus_ids as string[])
-    : []
   const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
   const bingoMarkedTeams = (() => {
     if (!bingoGameId) return [] as string[]
@@ -1720,100 +1712,7 @@ export function FacilitatorEventPage() {
                 />
               ) : null}
 
-              {/* #24: bonus challenges as manual one-time buttons, under the player. */}
-              {bingoGame && bingoBonusChallenges(bingoGame).length > 0 ? (
-                <Card className="neo-card border-border/80 space-y-2 bg-card p-4 shadow-sm">
-                  <p className="text-muted-foreground text-xs font-medium uppercase">
-                    Bonus challenges
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {bingoBonusChallenges(bingoGame).map((ch) => {
-                      const used = usedBonusIds.includes(ch.id)
-                      const inBonus =
-                        state.bingo_state === 'bonus' ||
-                        state.bingo_state === 'bonus_revealed'
-                      return (
-                        <Button
-                          key={ch.id}
-                          size="sm"
-                          variant={state.bingo_bonus_id === ch.id ? 'secondary' : 'outline'}
-                          disabled={used || inBonus}
-                          onClick={() =>
-                            void patchState({
-                              bingo_state: 'bonus',
-                              bingo_bonus_id: ch.id,
-                              bingo_used_bonus_ids: [...usedBonusIds, ch.id],
-                            })
-                          }
-                        >
-                          {ch.question.slice(0, 36)}
-                          {ch.question.length > 36 ? '…' : ''}
-                          {used ? ' ✓' : ''}
-                        </Button>
-                      )
-                    })}
-                  </div>
-                  {(state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed') &&
-                  state.bingo_bonus_id ? (
-                    <p className="text-muted-foreground text-xs">
-                      {(() => {
-                        const mt = bingoBonusMediaType(state.bingo_bonus_id)
-                        const ids = new Set(
-                          submissions
-                            .filter((s) => s.media_type === mt && s.game_id === stage.gameId)
-                            .map((s) => s.team_id),
-                        )
-                        const named = ids.size
-                        const total = teams.filter((t) => t.name?.trim()).length
-                        return `${named} of ${total} teams answered`
-                      })()}
-                    </p>
-                  ) : null}
-                  {state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed' ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={state.bingo_state === 'bonus_revealed'}
-                        onClick={() => {
-                          const ch = bingoBonusChallenge(bingoGame, state.bingo_bonus_id)
-                          if (!ch || !stage.gameId || !eventId) return
-                          void scoreBingoBonusRound({
-                            eventId,
-                            gameId: stage.gameId,
-                            challengeId: ch.id,
-                            correctAnswerId: ch.correctAnswerId,
-                          })
-                            .then(() => void patchState({ bingo_state: 'bonus_revealed' }))
-                            .catch((err) =>
-                              notify(
-                                err instanceof Error
-                                  ? err.message
-                                  : 'Could not score the bonus round',
-                              ),
-                            )
-                        }}
-                      >
-                        Reveal bonus answers
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          void patchState({
-                            bingo_state: 'waiting',
-                            bingo_bonus_id: null,
-                          })
-                        }
-                      >
-                        End bonus — back to bingo
-                      </Button>
-                    </div>
-                  ) : null}
-                  <p className="text-muted-foreground text-[11px]">
-                    Each bonus can be played once per run. Restart the bingo game to re-arm them.
-                  </p>
-                </Card>
-              ) : null}
+              {/* Bonus challenges removed from music bingo (may be rebuilt later). */}
 
               {liveState.bingo_winner_team_id ? (
                 <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">

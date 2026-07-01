@@ -3,7 +3,6 @@ import { Volume2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
-import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
@@ -23,12 +22,9 @@ import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import {
   currentStage,
-  bingoBonusChallenge,
-  bingoBonusMediaType,
   breakDurationSeconds,
   displayTextClass,
   displayTextColorForEvent,
-  STANDBY_ACCENT,
   formatBreakTimer,
   formatTimer,
   isEventLive,
@@ -250,21 +246,6 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     ? games.find((g) => g.id === stage.gameId)
     : null
 
-  // F8: bonus challenge shown on the display while a bingo bonus round is active.
-  const bingoGame = stage?.type === 'bingo' && stage.gameId
-    ? games.find((g) => g.id === stage.gameId)
-    : null
-  const bonusActive =
-    stage?.type === 'bingo' &&
-    (state.bingo_state === 'bonus' || state.bingo_state === 'bonus_revealed')
-  const bonusRevealed = state.bingo_state === 'bonus_revealed'
-  const bonusChallenge =
-    bonusActive && bingoGame ? bingoBonusChallenge(bingoGame, state.bingo_bonus_id) : null
-  const bonusMediaType = bonusChallenge ? bingoBonusMediaType(bonusChallenge.id) : null
-  const bonusSubs = bonusMediaType
-    ? submissions.filter((s) => s.media_type === bonusMediaType && s.game_id === stage?.gameId)
-    : []
-  const bonusAnsweredTeamIds = new Set(bonusSubs.map((s) => s.team_id))
   const questions = quizGame ? quizQuestions(quizGame) : []
   const question = questions[state.current_question_index]
   const quizSubs = submissions.filter(
@@ -294,33 +275,6 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (state.winner_reveal_stage === 2) {
     body = <DisplayPodium event={event} teams={teams} />
-  } else if (bonusActive && bonusChallenge) {
-    body = (
-      <div className={`w-full ${textClass}`}>
-        {bonusChallenge.mediaType === 'video' && bonusChallenge.mediaUrl ? (
-          <video
-            src={bonusChallenge.mediaUrl}
-            className="mx-auto mb-6 max-h-[40vh] rounded-2xl"
-            autoPlay
-            playsInline
-            controls
-          />
-        ) : null}
-        <BingoBonusPanel
-          challenge={bonusChallenge}
-          accentColor={STANDBY_ACCENT}
-          revealed={bonusRevealed}
-          selectedAnswerId={null}
-          locked
-          existingAnswerId={null}
-          onSelect={() => {}}
-          large
-        />
-        <p className="mt-6 text-center text-lg font-semibold opacity-90 md:text-xl">
-          {bonusAnsweredTeamIds.size} of {namedTeams.length} teams answered
-        </p>
-      </div>
-    )
   } else if (!stage || stage.type === 'open' || stage.type === 'bingo') {
     body = (
       <Leaderboard
