@@ -237,6 +237,16 @@ export function useLiveEvent(eventId: string | undefined) {
     }
   }, [eventId])
 
+  // P1-1 safety net: the 4s poll above only refreshes event_state. Teams,
+  // submissions and bingo cards reach players via the facilitator's broadcast,
+  // so if the facilitator tab closes mid-event those freeze. A slower full-bundle
+  // reload self-heals scores and marks within ~20s regardless of the facilitator.
+  useEffect(() => {
+    if (!eventId) return
+    const interval = setInterval(() => void reload(), 20000)
+    return () => clearInterval(interval)
+  }, [eventId, reload])
+
   useEffect(() => {
     if (!eventId) return
 
