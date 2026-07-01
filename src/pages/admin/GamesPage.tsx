@@ -334,7 +334,7 @@ export function AdminGamesPage() {
             New Group
           </NeoButton>
           <NeoButton variant="accent" asChild>
-            <Link to="/admin/games/new">Create New Game</Link>
+            <Link to="/admin/games/new" data-tour="new-game-button">Create New Game</Link>
           </NeoButton>
         </>
       }

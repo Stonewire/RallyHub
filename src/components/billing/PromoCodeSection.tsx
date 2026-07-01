@@ -63,7 +63,7 @@ export function PromoCodeSection({ organizationId, allowAdd = false }: PromoCode
 
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
         {allowAdd ? (
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2" data-tour="promo-code-input">
             <div className="min-w-[12rem] flex-1 space-y-1">
               <label htmlFor="promo-code-input" className="text-sm font-medium">
                 Add a promo code

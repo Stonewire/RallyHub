@@ -46,9 +46,9 @@ import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
 const mainNav = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false },
-  { to: '/admin/events', label: 'Events', icon: Calendar, end: false },
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true, tourId: 'nav-dashboard' },
+  { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false, tourId: 'nav-games' },
+  { to: '/admin/events', label: 'Events', icon: Calendar, end: false, tourId: 'nav-events' },
 ] as const
 
 const orgRoutes = [
@@ -147,7 +147,7 @@ export function AdminAppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
-              {mainNav.map(({ to, label, icon: Icon, end }) => (
+              {mainNav.map(({ to, label, icon: Icon, end, tourId }) => (
                 <SidebarMenuItem key={to}>
                   <SidebarMenuButton
                     asChild
@@ -155,7 +155,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, to, end)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to={to} end={end}>
+                    <NavLink to={to} end={end} data-tour={tourId}>
                       <Icon className="shrink-0" strokeWidth={1.75} />
                       <span className="font-medium">{label}</span>
                     </NavLink>
@@ -187,7 +187,7 @@ export function AdminAppSidebar() {
                     isActive={orgChildActive}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to="/admin/settings">
+                    <NavLink to="/admin/settings" data-tour="nav-org-settings">
                       <Building2 className="shrink-0" strokeWidth={1.75} />
                       <span className="font-medium">Org Settings</span>
                     </NavLink>
@@ -205,6 +205,7 @@ export function AdminAppSidebar() {
                         tooltip="Org Settings"
                         isActive={false}
                         type="button"
+                        data-tour="nav-org-settings"
                         className={[
                           'group admin-org-trigger font-medium text-sidebar-foreground',
                           orgChildActive ? 'admin-org-trigger-active' : '',
@@ -280,7 +281,7 @@ export function AdminAppSidebar() {
               isActive={isAdminNavActive(pathname, '/admin/support', true)}
               className="text-sidebar-foreground"
             >
-              <NavLink to="/admin/support">
+              <NavLink to="/admin/support" data-tour="nav-support">
                 <LifeBuoy className="shrink-0" strokeWidth={1.75} />
                 <span className="font-medium">Support</span>
               </NavLink>

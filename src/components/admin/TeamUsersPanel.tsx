@@ -246,7 +246,13 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             <h2 className="text-foreground text-lg font-semibold">{title}</h2>
             <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={openUserModal}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openUserModal}
+            data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
+          >
             <Plus className="size-4" />
             {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
           </Button>

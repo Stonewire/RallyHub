@@ -51,6 +51,7 @@ export function EventStatusMenu({
           variant="outline"
           size={size}
           disabled={menuDisabled}
+          data-tour="event-status-menu"
           className={cn('gap-1.5', size === 'sm' && 'h-8 px-2')}
         >
           <StatusIndicator status={status} />

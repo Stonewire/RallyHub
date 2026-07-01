@@ -201,7 +201,7 @@ export function AdminGamesNewPage() {
         backTo="/admin/games"
         backLabel="Back to games"
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2" data-tour="game-type-picker">
           {TYPES.map(({ type, label, icon: Icon, description }) => (
             <button
               key={type}

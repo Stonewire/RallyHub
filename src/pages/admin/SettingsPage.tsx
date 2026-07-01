@@ -171,6 +171,7 @@ export function AdminSettingsPage() {
         <button
           type="button"
           onClick={() => setTab('billing')}
+          data-tour="settings-tab-billing"
           className={cn(
             'neo-tab px-4 py-2 text-sm font-medium',
             tab === 'billing' ? 'neo-tab-active' : '',

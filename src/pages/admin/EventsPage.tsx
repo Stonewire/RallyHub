@@ -180,7 +180,7 @@ export function AdminEventsPage() {
           </NeoButton>
         ) : (
           <NeoButton variant="accent" asChild>
-            <Link to="/admin/events/new">Create New Event</Link>
+            <Link to="/admin/events/new" data-tour="new-event-button">Create New Event</Link>
           </NeoButton>
         )
       }
