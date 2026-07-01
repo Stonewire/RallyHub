@@ -682,6 +682,12 @@ export function JoinGameView({
     challenge: { mediaType: 'photo' | 'video' },
     proofFile?: File | null,
   ) {
+    console.log('[bonus] submit called', {
+      bingo_state: state.bingo_state,
+      hasFile: !!proofFile,
+      answerId,
+      submitting,
+    })
     if (state.bingo_state !== 'bonus') {
       // Anon devices (especially mobile) can hold stale realtime state, which
       // silently blocked the submit. Confirm against the server before bailing.
@@ -1330,7 +1336,13 @@ export function JoinGameView({
               accentColor={accent}
               className="mt-6 w-full"
               disabled={submitting || (needsMedia && !bonusCaptureFile)}
-              onClick={() =>
+              onClick={() => {
+                console.log('[bonus] button tapped', {
+                  disabled: submitting || (needsMedia && !bonusCaptureFile),
+                  needsMedia,
+                  hasFile: !!bonusCaptureFile,
+                  bingo_state: state.bingo_state,
+                })
                 void submitBingoBonusAnswer(
                   bonusAnswerId,
                   stage.gameId!,
@@ -1338,7 +1350,7 @@ export function JoinGameView({
                   bonusChallenge,
                   bonusCaptureFile,
                 )
-              }
+              }}
             >
               Submit bonus answer
             </LiveAccentButton>
