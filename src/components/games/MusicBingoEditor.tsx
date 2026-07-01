@@ -19,7 +19,7 @@ import {
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
 import { audioStorageFilename } from '@/lib/storage-path'
-import type { GameConfig, MusicTrack } from '@/types/game-config'
+import type { BonusChallenge, GameConfig, MusicTrack } from '@/types/game-config'
 
 type MusicBingoEditorProps = {
   config: GameConfig
@@ -37,6 +37,7 @@ export function MusicBingoEditor({
   setCoverUrl,
 }: MusicBingoEditorProps) {
   const tracks = config.tracks ?? []
+  const bonuses = config.bonus_challenges ?? []
   const [clipBusy, setClipBusy] = useState(false)
   const [clipError, setClipError] = useState<string | null>(null)
   const [clipLengthIntent, setClipLengthIntent] = useState<string | null>(null)
@@ -340,6 +341,170 @@ export function MusicBingoEditor({
                 }}
               />
             </div>
+          </Card>
+        ))}
+      </div>
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-foreground font-semibold">Bonus challenges</h3>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const answers = [1, 2, 3, 4].map((n) => ({
+                id: newGameId(),
+                text: `Answer ${n}`,
+              }))
+              const ch: BonusChallenge = {
+                id: newGameId(),
+                mediaType: 'photo',
+                question: '',
+                answers,
+                correctAnswerId: answers[0].id,
+              }
+              setConfig((c) => ({
+                ...c,
+                bonus_challenges: [...(c.bonus_challenges ?? []), ch],
+              }))
+            }}
+          >
+            <Plus className="size-4" />
+            Add challenge
+          </Button>
+        </div>
+        {bonuses.map((b) => (
+          <Card key={b.id} className="border-border/80 mb-3 space-y-2 p-4">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={b.mediaType === 'photo' ? 'secondary' : 'outline'}
+                onClick={() =>
+                  setConfig((c) => ({
+                    ...c,
+                    bonus_challenges: bonuses.map((x) =>
+                      x.id === b.id ? { ...x, mediaType: 'photo' } : x,
+                    ),
+                  }))
+                }
+              >
+                Photo
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={b.mediaType === 'video' ? 'secondary' : 'outline'}
+                onClick={() =>
+                  setConfig((c) => ({
+                    ...c,
+                    bonus_challenges: bonuses.map((x) =>
+                      x.id === b.id ? { ...x, mediaType: 'video' } : x,
+                    ),
+                  }))
+                }
+              >
+                Video
+              </Button>
+            </div>
+            <Input
+              placeholder="Question"
+              value={b.question}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  bonus_challenges: bonuses.map((x) =>
+                    x.id === b.id ? { ...x, question: e.target.value } : x,
+                  ),
+                }))
+              }
+              className="bg-background"
+            />
+            {b.mediaType === 'photo' ? (
+              <div className="space-y-2">
+                <Label className="text-xs">Question photo</Label>
+                {b.questionImageUrl ? (
+                  <img
+                    src={b.questionImageUrl}
+                    alt=""
+                    className="size-24 rounded-lg object-cover"
+                  />
+                ) : null}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    void uploadGameFile(organizationId, `bingo/bonus-${b.id}-q`, file)
+                      .then((url) =>
+                        setConfig((c) => ({
+                          ...c,
+                          bonus_challenges: bonuses.map((x) =>
+                            x.id === b.id ? { ...x, questionImageUrl: url } : x,
+                          ),
+                        })),
+                      )
+                      .catch(() => {})
+                  }}
+                />
+              </div>
+            ) : null}
+            {b.mediaType === 'video' ? (
+              <Input
+                type="file"
+                accept="video/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  void uploadGameFile(organizationId, `bingo/bonus-${b.id}-v`, file)
+                    .then((url) =>
+                      setConfig((c) => ({
+                        ...c,
+                        bonus_challenges: bonuses.map((x) =>
+                          x.id === b.id ? { ...x, mediaUrl: url } : x,
+                        ),
+                      })),
+                    )
+                    .catch(() => {})
+                }}
+              />
+            ) : null}
+            {b.answers.map((a) => (
+              <div key={a.id} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={b.correctAnswerId === a.id}
+                  onChange={() =>
+                    setConfig((c) => ({
+                      ...c,
+                      bonus_challenges: bonuses.map((x) =>
+                        x.id === b.id ? { ...x, correctAnswerId: a.id } : x,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  value={a.text}
+                  onChange={(e) =>
+                    setConfig((c) => ({
+                      ...c,
+                      bonus_challenges: bonuses.map((x) =>
+                        x.id === b.id
+                          ? {
+                              ...x,
+                              answers: x.answers.map((ans) =>
+                                ans.id === a.id ? { ...ans, text: e.target.value } : ans,
+                              ),
+                            }
+                          : x,
+                      ),
+                    }))
+                  }
+                  className="bg-background flex-1"
+                />
+              </div>
+            ))}
           </Card>
         ))}
       </div>

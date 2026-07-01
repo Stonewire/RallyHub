@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom'
 import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 import { MarketingHeader } from '@/components/marketing/MarketingHeader'
 import { PageHead } from '@/components/marketing/PageHead'
-import { MarketingImage } from '@/components/marketing/MarketingImage'
+import { PlaceholderImage } from '@/components/marketing/PlaceholderImage'
 import { NeoButton, NeoCard, NeoIconContainer } from '@/components/neo-minimal'
 import {
   formatEventLimit,
@@ -27,49 +27,43 @@ const FEATURES = [
     icon: Sparkles,
     title: 'Four games, endless rounds',
     body: 'Photo challenges, video challenges, live quizzes, and music bingo. Mix them into one event and switch stages on the fly.',
-    image: '/marketing/feature-photo.png',
     imageLabel: 'Photo game screenshot',
-    imageAlt: 'RallyHub photo challenge game on participant phones',
+    imageAlt: 'Placeholder for RallyHub photo challenge game on participant phones',
   },
   {
     icon: Trophy,
     title: 'Real-time scoring',
     body: "Points land the moment they're earned. Leaderboards update live across every screen — no spreadsheets, no waiting.",
-    image: '/marketing/feature-leaderboard.png',
     imageLabel: 'Leaderboard screenshot',
-    imageAlt: 'RallyHub real-time team leaderboard',
+    imageAlt: 'Placeholder for RallyHub real-time team leaderboard',
   },
   {
     icon: Monitor,
     title: 'Built for the big screen',
     body: 'A dedicated display view with live leaderboards, reveals, and celebrations designed to look great on a projector or TV.',
-    image: '/marketing/feature-display.png',
     imageLabel: 'Event display screenshot',
-    imageAlt: 'RallyHub big-screen event display',
+    imageAlt: 'Placeholder for RallyHub big-screen event display',
   },
   {
     icon: Smartphone,
     title: 'Players use their phones',
     body: 'Teams join with a link or QR code — no app to install. They submit, answer, and play from their own devices.',
-    image: '/marketing/feature-phone.png',
     imageLabel: 'Participant phone UI',
-    imageAlt: 'RallyHub participant experience on mobile',
+    imageAlt: 'Placeholder for RallyHub participant experience on mobile',
   },
   {
     icon: Palette,
     title: 'Your brand, every event',
     body: 'Drop in your logo and colors per event. The whole experience matches you or your client.',
-    image: '/marketing/feature-branding.png',
     imageLabel: 'Branded event screens',
-    imageAlt: 'RallyHub custom event branding on display and phones',
+    imageAlt: 'Placeholder for RallyHub custom event branding on display and phones',
   },
   {
     icon: PanelTop,
     title: 'Run it yourself',
     body: 'Set up an event in minutes and host it live with a clean facilitator panel. No production crew required.',
-    image: '/marketing/feature-facilitator.png',
     imageLabel: 'Live facilitator panel',
-    imageAlt: 'RallyHub facilitator panel during a live event',
+    imageAlt: 'Placeholder for RallyHub facilitator panel during a live event',
   },
 ] as const
 
@@ -78,33 +72,29 @@ const STEPS = [
     step: '1',
     title: 'Build your event',
     body: "Pick your games, set the stages, add your branding. Save it and you're ready.",
-    image: '/marketing/step-setup.png',
     imageLabel: 'Admin event setup',
-    imageAlt: 'RallyHub event creation in the admin console',
+    imageAlt: 'Placeholder for RallyHub event creation in the admin console',
   },
   {
     step: '2',
     title: 'Invite your teams',
     body: 'Share a link or QR code. Players join on their phones in seconds.',
-    image: '/marketing/step-join.png',
     imageLabel: 'Team join lobby',
-    imageAlt: 'RallyHub team join and lobby screen',
+    imageAlt: 'Placeholder for RallyHub team join and lobby screen',
   },
   {
     step: '3',
     title: 'Run it live',
     body: 'Control everything from the facilitator panel — start games, review submissions, advance rounds.',
-    image: '/marketing/step-live.png',
     imageLabel: 'Live facilitator panel',
-    imageAlt: 'RallyHub facilitator panel during a live event',
+    imageAlt: 'Placeholder for RallyHub facilitator panel during a live event',
   },
   {
     step: '4',
     title: 'Crown the winners',
     body: 'Reveal the leaderboard and celebrate on the big screen with confetti and a winner moment.',
-    image: '/marketing/step-winner.png',
     imageLabel: 'Winner reveal moment',
-    imageAlt: 'RallyHub winner reveal on the event display',
+    imageAlt: 'Placeholder for RallyHub winner reveal on the event display',
   },
 ] as const
 
@@ -155,10 +145,9 @@ export function MarketingLandingPage() {
                 </NeoButton>
               </div>
             </div>
-            <MarketingImage
-              src="/marketing/hero.png"
+            <PlaceholderImage
               label="Hero — live event / app overview"
-              alt="RallyHub live event with the big-screen display and participant phones"
+              alt="Placeholder for a hero image showing RallyHub live event with display and participant phones"
               aspect="video"
               className="shadow-[var(--nm-shadow-raised)]"
             />
@@ -204,8 +193,7 @@ export function MarketingLandingPage() {
                         </p>
                       </div>
                     </div>
-                    <MarketingImage
-                      src={f.image}
+                    <PlaceholderImage
                       label={f.imageLabel}
                       alt={f.imageAlt}
                       aspect="video"
@@ -240,8 +228,7 @@ export function MarketingLandingPage() {
                     <p className="text-muted-foreground flex-1 text-sm leading-relaxed">
                       {s.body}
                     </p>
-                    <MarketingImage
-                      src={s.image}
+                    <PlaceholderImage
                       label={s.imageLabel}
                       alt={s.imageAlt}
                       aspect="square"

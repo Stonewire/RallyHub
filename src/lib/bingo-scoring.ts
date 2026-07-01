@@ -26,13 +26,10 @@ export async function scoreBingoRound(params: {
 }): Promise<ScoreBingoRoundResult> {
   const { eventId, gameId, runId, trackId, gameConfig } = params
   const pointsPerCorrect = gameConfig.bingo_points_per_correct ?? 10
-  // Default must match the editor's displayed default (BingoWinningComboEditor
-  // shows `?? 100`). Games saved without touching the field have no
-  // bingo_line_points key, so a `?? 0` here silently paid nothing.
-  const linePoints = gameConfig.bingo_line_points ?? 100
+  const linePoints = gameConfig.bingo_line_points ?? 0
   const winConfig = resolveBingoWinConfig(gameConfig)
 
-  const [{ data: cards }, { data: subs }] = await Promise.all([
+  const [{ data: cards }, { data: subs }, { data: runRow }] = await Promise.all([
     supabase.from('bingo_team_cards').select('team_id, cells').eq('run_id', runId),
     supabase
       .from('submissions')
@@ -41,7 +38,14 @@ export async function scoreBingoRound(params: {
       .eq('game_id', gameId)
       .eq('media_type', 'bingo')
       .eq('status', 'pending'),
+    supabase.from('bingo_runs').select('paid_line_bonus_team_ids').eq('id', runId).single(),
   ])
+
+  const paidLineBonusTeamIds = new Set<string>(
+    Array.isArray(runRow?.paid_line_bonus_team_ids)
+      ? (runRow.paid_line_bonus_team_ids as string[])
+      : [],
+  )
 
   if (!cards?.length) {
     return { correctIndex: -1, trackId, winningTeamIds: [] }
@@ -56,6 +60,7 @@ export async function scoreBingoRound(params: {
   const approveUpdates: { id: string; teamId: string; points: number }[] = []
   const rejectIds: string[] = []
   const teamScoreDeltas = new Map<string, number>()
+  const newlyPaidLineBonusTeamIds: string[] = []
 
   for (const row of cards) {
     const cells = row.cells as BingoCell[]
@@ -123,7 +128,6 @@ export async function scoreBingoRound(params: {
     .eq('game_id', gameId)
     .eq('media_type', 'bingo')
 
-  const lineBonusErrors: string[] = []
   for (const row of cards) {
     const teamSubs = (allSubs ?? []).filter((s) => s.team_id === row.team_id)
     const teamCells = row.cells as BingoCell[]
@@ -131,23 +135,25 @@ export async function scoreBingoRound(params: {
     const achieved = bingoWinAchieved(approved, winConfig)
     if (!achieved) continue
     winningTeamIds.push(row.team_id)
-    if (linePoints > 0) {
-      // Atomic claim+pay: the RPC awards the bonus once per (run, team) under a
-      // row lock, so concurrent score calls can no longer double-pay it.
-      const { error: bonusErr } = await supabase.rpc('award_bingo_line_bonus', {
-        p_run_id: runId,
-        p_team_id: row.team_id,
-        p_points: linePoints,
-      })
-      if (bonusErr) lineBonusErrors.push(bonusErr.message)
+    const lineBonusAlreadyPaid = paidLineBonusTeamIds.has(row.team_id)
+    if (linePoints > 0 && !lineBonusAlreadyPaid) {
+      await applySubmissionPoints(row.team_id, linePoints, eventId)
+      paidLineBonusTeamIds.add(row.team_id)
+      newlyPaidLineBonusTeamIds.push(row.team_id)
+    }
+  }
+
+  if (newlyPaidLineBonusTeamIds.length > 0) {
+    const { error: paidErr } = await supabase
+      .from('bingo_runs')
+      .update({ paid_line_bonus_team_ids: [...paidLineBonusTeamIds] })
+      .eq('id', runId)
+    if (paidErr) {
+      console.error('Failed to persist paid line bonus team ids', paidErr)
     }
   }
 
   await publishLiveBundleReload(eventId)
-
-  if (lineBonusErrors.length > 0) {
-    throw new Error(`Bingo line bonus DB errors: ${lineBonusErrors.join('; ')}`)
-  }
 
   return { correctIndex, trackId, winningTeamIds }
 }

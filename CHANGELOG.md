@@ -3,13 +3,6 @@
 Version shown small under "Sign out" in the admin sidebar (`src/lib/version.ts`).
 Bump `APP_VERSION` and add an entry here on each meaningful update merged to `main`.
 
-## V2.1 (2026-07-01) live stability fix
-Reverted the P1-1 safety-net reload that reloaded the whole event every 15-20s
-and froze interaction: bingo picks and photo submits stuck on loading until a
-refresh. Restored the prior behaviour (light 4s event-state poll plus the live
-broadcast). Bumped the visible version so the deployed build can be confirmed at
-a glance under "Sign out".
-
 ## V2.0 — 2026-06-23 (first client-ready stable)
 First version stable enough for clients to use in production. Highlights:
 - Live event: winner sound on all player phones, bingo-winner.mp3, facilitator
