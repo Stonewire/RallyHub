@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 
 import { AdminAppSidebar } from '@/components/admin/AdminAppSidebar'
+import { OnboardingChecklist } from '@/components/admin/OnboardingChecklist'
 import { AppLegalFooter } from '@/components/legal/AppLegalFooter'
 import {
   SidebarInset,
@@ -28,6 +29,7 @@ export function AdminLayout() {
           <AppLegalFooter />
         </div>
       </SidebarInset>
+      <OnboardingChecklist />
     </SidebarProvider>
   )
 }
