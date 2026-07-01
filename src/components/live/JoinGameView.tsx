@@ -1569,7 +1569,7 @@ export function JoinGameView({
             document.body,
           )
         : null}
-      {!selectedGame && !chatOpen
+      {!selectedGame && !chatOpen && state.bingo_state !== 'bonus'
         ? createPortal(
             <Button
               type="button"
@@ -1586,7 +1586,7 @@ export function JoinGameView({
         : null}
       {header}
       <div className="w-full">{body}</div>
-      {typeof document !== 'undefined' && !chatOpen && !captureActive
+      {typeof document !== 'undefined' && !chatOpen && !captureActive && state.bingo_state !== 'bonus'
         ? createPortal(
             <div
               className="fixed left-4 z-[9999]"
