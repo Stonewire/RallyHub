@@ -93,4 +93,4 @@ Path alias: `@/` → `src/`
 
 ## Known issues
 
-`AUDIT.md` contains 42 audited findings (open/fixed/deferred). Before touching scoring, realtime, or RLS-sensitive code, check it — several scoring paths have known race conditions and the live bundle has known stale-data gaps. Critical open items as of the last audit: game-assets bucket allows anon uploads (C4), realtime reload storms (C8), teams joining mid-bingo (H6), bingo scoring swallowing DB errors (H8).
+`TRACKER.md` at the repo root is the live checklist of open bugs, re-lands, and planned work — check it before touching scoring, realtime, or RLS-sensitive code, and follow its "How we avoid breaking things" rules. `docs/AUDIT-2026-06.md` holds the detailed June 2026 audit findings (historical; its Fixed statuses predate the V2.0 rollback). Several scoring paths have known race conditions and the live bundle has known stale-data gaps; teams joining mid-bingo (H6) remains a live risk.
