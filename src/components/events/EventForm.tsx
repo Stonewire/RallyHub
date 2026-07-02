@@ -462,7 +462,12 @@ export function EventForm({
             ) : stage.type === 'open' ? (
               <QuestStageGames
                 stage={stage}
-                compatible={compatibleGames('open')}
+                // Whole org library, not just event-selected games — adding to the
+                // stage unions into the event automatically, so the modal step is
+                // no longer a prerequisite.
+                compatible={games.filter(
+                  (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
+                )}
                 onChange={onChange}
               />
             ) : (
