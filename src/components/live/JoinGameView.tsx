@@ -970,7 +970,10 @@ export function JoinGameView({
     )
   } else if (stage?.type === 'open') {
     const openGameIds = stage.gameIds ?? []
-    const openGames = games.filter((g) => openGameIds.includes(g.id))
+    // Stage order = the organiser's drag-to-reorder order in the event editor.
+    const openGames = openGameIds
+      .map((id) => games.find((g) => g.id === id))
+      .filter((g): g is (typeof games)[number] => g != null)
     const activeOpenGame = resolveGameFromList(games, selectedGame)
 
     if (openGameIds.length > 0 && openGames.length === 0 && !selectedGame) {
