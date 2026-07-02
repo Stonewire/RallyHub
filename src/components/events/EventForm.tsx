@@ -1,4 +1,4 @@
-import { Check, Plus, Trash2, X } from 'lucide-react'
+import { Check, GripVertical, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -460,49 +460,11 @@ export function EventForm({
                 />
               </>
             ) : stage.type === 'open' ? (
-              <div className="space-y-2">
-                <p className="text-muted-foreground text-xs">
-                  Select photo, video, or text games (multiple allowed)
-                </p>
-                {compatibleGames('open').map((g) => {
-                  const ids = stage.gameIds ?? []
-                  const checked = ids.includes(g.id)
-                  return (
-                    <label
-                      key={g.id}
-                      className="border-border/80 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() =>
-                          onChange((prev) => {
-                            const nextGameIds = checked
-                              ? ids.filter((id) => id !== g.id)
-                              : [...ids, g.id]
-                            // Unchecking only removes the game from THIS stage; it
-                            // stays in the event library (selectedGameIds). Adding
-                            // ensures it's in the library too.
-                            const nextSelected = checked
-                              ? prev.selectedGameIds
-                              : [...new Set([...prev.selectedGameIds, g.id])]
-                            return {
-                              ...prev,
-                              selectedGameIds: nextSelected,
-                              stages: prev.stages.map((x) =>
-                                x.id === stage.id
-                                  ? { ...x, gameIds: nextGameIds }
-                                  : x,
-                              ),
-                            }
-                          })
-                        }
-                      />
-                      {g.name}
-                    </label>
-                  )
-                })}
-              </div>
+              <QuestStageGames
+                stage={stage}
+                compatible={compatibleGames('open')}
+                onChange={onChange}
+              />
             ) : (
               <select
                 value={stage.gameId ?? ''}
@@ -657,6 +619,158 @@ export function EventForm({
               </NeoButton>
             </div>
           </Card>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+const QUEST_QUICK_FILTERS = [
+  { label: 'All', type: null },
+  { label: 'All photo', type: 'photo' },
+  { label: 'All video', type: 'video' },
+  { label: 'All text', type: 'text' },
+] as const
+
+type QuestStageGamesProps = {
+  stage: EventStage
+  /** Photo/video/text games already in the event library. */
+  compatible: GameRow[]
+  onChange: EventFormProps['onChange']
+}
+
+/** Quest stage games: ordered draggable list (= players' display order) + quick add. */
+function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+
+  const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
+  const inStage = useMemo(
+    () =>
+      ids
+        .map((id) => compatible.find((g) => g.id === id))
+        .filter((g): g is GameRow => g != null),
+    [ids, compatible],
+  )
+  const available = useMemo(
+    () => compatible.filter((g) => !ids.includes(g.id)),
+    [compatible, ids],
+  )
+
+  // Adding always unions into the event library too (same rule as before).
+  function setStageIds(nextIds: string[], addedIds: string[] = []) {
+    onChange((prev) => ({
+      ...prev,
+      selectedGameIds: [...new Set([...prev.selectedGameIds, ...addedIds])],
+      stages: prev.stages.map((x) =>
+        x.id === stage.id ? { ...x, gameIds: nextIds } : x,
+      ),
+    }))
+  }
+
+  function quickAdd(type: (typeof QUEST_QUICK_FILTERS)[number]['type']) {
+    const toAdd = available.filter((g) => type == null || g.type === type).map((g) => g.id)
+    if (toAdd.length === 0) return
+    setStageIds([...ids, ...toAdd], toAdd)
+  }
+
+  function moveTo(from: number, to: number) {
+    if (from === to) return
+    const next = [...ids]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setStageIds(next)
+  }
+
+  return (
+    <div className="space-y-3">
+      {inStage.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs">
+            Drag to reorder — this is the order players see the challenges in.
+          </p>
+          <ul className="space-y-1.5">
+            {inStage.map((g, index) => (
+              <li
+                key={g.id}
+                draggable
+                onDragStart={(e) => {
+                  setDragIndex(index)
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', g.id)
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragIndex != null) moveTo(dragIndex, index)
+                  setDragIndex(null)
+                }}
+                className={cn(
+                  'border-border/80 bg-background flex cursor-grab items-center gap-2 rounded-lg border px-3 py-2 text-sm active:cursor-grabbing',
+                  dragIndex === index ? 'opacity-50' : '',
+                )}
+              >
+                <GripVertical className="text-muted-foreground size-4 shrink-0" />
+                <span className="text-muted-foreground w-5 shrink-0 text-xs tabular-nums">
+                  {index + 1}.
+                </span>
+                <span className="min-w-0 flex-1 truncate">{g.name}</span>
+                <span className="text-muted-foreground shrink-0 text-xs capitalize">
+                  {g.type}
+                </span>
+                <button
+                  type="button"
+                  title="Remove from stage"
+                  onClick={() => setStageIds(ids.filter((id) => id !== g.id))}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-xs">
+          No games in this stage yet — add photo, video, or text games below.
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {QUEST_QUICK_FILTERS.map(({ label, type }) => {
+          const count = available.filter((g) => type == null || g.type === type).length
+          return (
+            <Button
+              key={label}
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={count === 0}
+              onClick={() => quickAdd(type)}
+            >
+              {label}
+              {count > 0 ? ` (${count})` : ''}
+            </Button>
+          )
+        })}
+      </div>
+
+      {available.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {available.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+              onClick={() => setStageIds([...ids, g.id], [g.id])}
+            >
+              <Plus className="size-3" />
+              {g.name}
+              <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
+            </button>
+          ))}
         </div>
       ) : null}
     </div>
