@@ -24,7 +24,7 @@ npm run catalog:repair-urls
 npm run catalog:repair-urls:apply
 ```
 
-There is no test runner configured. Type-checking runs as part of `npm run build`.
+Tests run with vitest: `npm test` (or `npm run test:watch`). Colocated as `src/**/*.test.ts`; the bingo scoring core (win detection, cell matching, card generation) is covered — run the suite before touching any bingo or scoring code. Type-checking runs as part of `npm run build`.
 
 ## Environment
 
