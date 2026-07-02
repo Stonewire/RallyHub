@@ -821,6 +821,15 @@ export type Database = {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
       }
+      restart_bingo_run_scores: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_stage_index: number
+          p_line_points: number
+        }
+        Returns: undefined
+      }
       install_music_library: {
         Args: { p_target_org_id: string }
         Returns: number
