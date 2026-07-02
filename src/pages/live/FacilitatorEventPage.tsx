@@ -1295,123 +1295,6 @@ export function FacilitatorEventPage() {
             disabled={!controlsLive}
             className="min-w-0 space-y-4 border-0 p-0"
           >
-          <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-xs">Event countdown on display</p>
-              <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
-              <div className="flex flex-wrap gap-2">
-                <FacilitatorButton
-                  size="sm"
-                  onClick={() =>
-                    void patchState({ timer_running: !state.timer_running })
-                  }
-                >
-                  {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
-                  {state.timer_running ? 'Pause' : 'Start'}
-                </FacilitatorButton>
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    void patchState({ timer_seconds: state.timer_seconds + 900 })
-                  }
-                >
-                  <Plus className="size-4" /> 15m
-                </FacilitatorButton>
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    void patchState({
-                      timer_seconds: Math.max(0, state.timer_seconds - 900),
-                    })
-                  }
-                >
-                  <Minus className="size-4" /> 15m
-                </FacilitatorButton>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 pt-1">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={state.show_timer_on_display}
-                    onChange={(e) =>
-                      void patchState({ show_timer_on_display: e.target.checked })
-                    }
-                  />
-                  Show timer on display
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={state.show_scores}
-                    onChange={(e) => void patchState({ show_scores: e.target.checked })}
-                  />
-                  Show scores on display
-                </label>
-              </div>
-            </div>
-            <div className="flex flex-col justify-center gap-2">
-              <p className="text-muted-foreground text-xs">
-                Run the winner ceremony on display and team phones
-              </p>
-              <FacilitatorButtonLarge className="w-full" onClick={handleRevealWinnerClick}>
-                Reveal Winner ({state.winner_reveal_stage}/2)
-              </FacilitatorButtonLarge>
-              {winnerTargetsChosen && state.winner_reveal_stage > 0 ? (
-                <button
-                  type="button"
-                  className="text-muted-foreground text-xs underline-offset-2 hover:underline"
-                  onClick={() => {
-                    setWinnerRoutingSel(
-                      parseWinnerSoundTargets(liveState.winner_sound_targets) ?? ['display', 'players'],
-                    )
-                    setWinnerRoutingOpen(true)
-                  }}
-                >
-                  Sound:{' '}
-                  {(parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).length === 0
-                    ? 'muted'
-                    : (parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).join(', ')}{' '}
-                  · change
-                </button>
-              ) : null}
-              {state.winner_reveal_stage > 0 ? (
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => void patchState({ winner_reveal_stage: 0 })}
-                >
-                  <RotateCcw className="size-4" />
-                  Reset winner
-                </FacilitatorButton>
-              ) : null}
-            </div>
-          </Card>
-
-          {stateError ? (
-            <p className="text-destructive px-1 text-sm">{stateError}</p>
-          ) : null}
-
-          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-            <p className="mb-2 text-sm font-medium">Stages</p>
-            <div className="flex flex-wrap gap-2">
-              {stages.map((s, i) =>
-                s?.id ? (
-                  <NeoButton
-                    key={s.id}
-                    size="sm"
-                    variant={state.current_stage_index === i ? 'primary' : 'surface'}
-                    onClick={() => selectStage(i)}
-                  >
-                    Stage {i + 1}
-                  </NeoButton>
-                ) : null,
-              )}
-            </div>
-          </Card>
-
           <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <NeoLabel>Announcement</NeoLabel>
             <p className="text-muted-foreground text-xs">
@@ -1452,190 +1335,11 @@ export function FacilitatorEventPage() {
             ) : null}
           </Card>
 
-          <Card className="neo-card border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
-            <p className="font-medium">Teams</p>
-            <p className="text-muted-foreground text-xs">
-              Tap a slot to set name/photo. Scores update when you approve submissions.
-            </p>
-            <ul className="space-y-2">
-              {teams.map((team) => {
-                const claimed = Boolean(team.name?.trim())
-                const prog =
-                  questGames.length > 0 && claimed
-                    ? teamQuestProgress(team.id, questGames, submissions)
-                    : null
-                return (
-                <li
-                  key={team.id}
-                  className="border-border/80 relative flex flex-wrap items-center gap-3 overflow-hidden rounded-lg border p-2"
-                  style={
-                    prog
-                      ? {
-                          background: `linear-gradient(to right, rgba(34,197,94,0.22) ${prog.percent}%, transparent ${prog.percent}%)`,
-                        }
-                      : undefined
-                  }
-                >
-                  <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
-                  <div
-                    className="size-6 shrink-0 rounded-full"
-                    style={{ background: team.color ?? '#888' }}
-                  />
-                  {team.photo_url ? (
-                    <img src={team.photo_url} alt="" className="size-8 rounded-full object-cover" />
-                  ) : null}
-                  <button
-                    type="button"
-                    className="min-w-0 flex-1 text-left text-sm font-medium"
-                    onClick={() => {
-                      setClaimSlot(team)
-                      setClaimName(team.name ?? '')
-                    }}
-                  >
-                    {team.name?.trim() || 'Available'}
-                  </button>
-                  <span className="text-sm tabular-nums">{team.score}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    title={`Reset slot ${team.slot_number}`}
-                    disabled={!controlsLive || !team.name?.trim()}
-                    onClick={() => setResetConfirmTeam(team)}
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
-                    onClick={() => {
-                      setChatTeamId(team.id)
-                      setChatOpen(true)
-                    }}
-                  >
-                    <MessageCircle className="size-4" />
-                  </Button>
-                  <select
-                    className="border-input bg-background rounded border px-1 text-xs"
-                    value={team.status}
-                    onChange={(e) =>
-                      void updateTeam(team.id, { status: e.target.value })
-                    }
-                  >
-                    <option value="idle">idle</option>
-                    <option value="active">active</option>
-                    <option value="stopped">stopped</option>
-                  </select>
-                  {prog ? (
-                    <div className="flex w-full items-center gap-2 pl-6">
-                      <span className="text-muted-foreground text-xs font-medium tabular-nums">
-                        {prog.doneCount}/{prog.total} Quests done
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="ml-auto h-7 px-2 text-xs"
-                        onClick={() => setProgressTeam(team)}
-                      >
-                        View Quests
-                      </Button>
-                    </div>
-                  ) : null}
-                </li>
-                )
-              })}
-            </ul>
-          </Card>
-          </fieldset>
-
-        </div>
-
-        <fieldset disabled={!controlsLive} className="min-w-0 border-0 p-0">
-        <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-          {!stage || stage.type === 'open' ? (
-            <>
-              <div className="mb-3 flex gap-2">
-                {(['all', 'pending', 'approved', 'rejected'] as const).map((t) => (
-                  <Button
-                    key={t}
-                    size="sm"
-                    variant={subTab === t ? 'secondary' : 'outline'}
-                    onClick={() => setSubTab(t)}
-                  >
-                    {t}
-                  </Button>
-                ))}
-              </div>
-              <ul className="max-h-[70vh] space-y-3 overflow-auto">
-                {filteredSubs
-                  .filter(
-                    (s) =>
-                      isOpenStageSubmissionMediaType(s.media_type) &&
-                      s.status !== 'cancelled',
-                  )
-                  .map((sub) => {
-                    const team = teams.find((t) => t.id === sub.team_id)
-                    const game = games.find((g) => g.id === sub.game_id)
-                    const statusBadgeClass =
-                      sub.status === 'approved'
-                        ? 'bg-green-100 text-green-800 border-green-300'
-                        : sub.status === 'rejected'
-                          ? 'bg-red-100 text-red-800 border-red-300'
-                          : 'bg-yellow-100 text-yellow-900 border-yellow-300'
-                    return (
-                      <li key={sub.id}>
-                        <button
-                          type="button"
-                          className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
-                          onClick={() => setSelectedSub(sub)}
-                        >
-                          {sub.media_type === 'text' ? (
-                            <div
-                              className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
-                            >
-                              <span className="line-clamp-4 break-all text-center">
-                                {game
-                                  ? textSubmissionDisplayLabel(game, sub.media_url)
-                                  : sub.media_url}
-                              </span>
-                            </div>
-                          ) : sub.media_url ? (
-                            sub.media_type === 'video' ? (
-                              <video
-                                src={sub.media_url}
-                                className="size-16 rounded object-cover"
-                              />
-                            ) : (
-                              <img
-                                src={sub.media_url}
-                                alt=""
-                                className="size-16 rounded object-cover"
-                              />
-                            )
-                          ) : (
-                            <div className="bg-muted size-16 shrink-0 rounded" />
-                          )}
-                          <div className="min-w-0 flex-1 text-sm">
-                            <p className="font-medium">{team?.name ?? 'Team'}</p>
-                            <p className="text-muted-foreground truncate">{game?.name}</p>
-                            <p
-                              className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClass}`}
-                            >
-                              {sub.status}
-                            </p>
-                          </div>
-                        </button>
-                      </li>
-                    )
-                  })}
-              </ul>
-            </>
-          ) : stage.type === 'quiz' && question ? (
+          {/* UI-7: stage controls live here, left under Announcements, only when a
+              quiz / bingo / break stage is active. Quest review stays on the right. */}
+          {stage && stage.type !== 'open' ? (
+            <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+              {stage.type === 'quiz' && question ? (
             <div className="space-y-4">
               <p className="text-muted-foreground text-sm">
                 Q {state.current_question_index + 1} / {questions.length} · {questionSeconds}s
@@ -1710,7 +1414,7 @@ export function FacilitatorEventPage() {
                 </Card>
               ) : null}
             </div>
-          ) : stage.type === 'bingo' ? (
+              ) : stage.type === 'bingo' ? (
             <div className="space-y-4">
               <p className="text-muted-foreground text-xs">
                 {effectiveBingoRun
@@ -1959,7 +1663,7 @@ export function FacilitatorEventPage() {
                 </div>
               ) : null}
             </div>
-          ) : stage.type === 'break' ? (
+              ) : stage.type === 'break' ? (
             <div className="space-y-4">
               <p className="text-lg">{stage.message}</p>
               <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
@@ -2013,8 +1717,311 @@ export function FacilitatorEventPage() {
                 </FacilitatorButton>
               </div>
             </div>
+              ) : null}
+            </Card>
           ) : null}
-        </Card>
+
+          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+            <p className="mb-2 text-sm font-medium">Stages</p>
+            <div className="flex flex-wrap gap-2">
+              {stages.map((s, i) =>
+                s?.id ? (
+                  <NeoButton
+                    key={s.id}
+                    size="sm"
+                    variant={state.current_stage_index === i ? 'primary' : 'surface'}
+                    onClick={() => selectStage(i)}
+                  >
+                    Stage {i + 1}
+                  </NeoButton>
+                ) : null,
+              )}
+            </div>
+          </Card>
+
+          <Card className="neo-card border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
+            <p className="font-medium">Teams</p>
+            <p className="text-muted-foreground text-xs">
+              Tap a slot to set name/photo. Scores update when you approve submissions.
+            </p>
+            <ul className="space-y-2">
+              {teams.map((team) => {
+                const claimed = Boolean(team.name?.trim())
+                const prog =
+                  questGames.length > 0 && claimed
+                    ? teamQuestProgress(team.id, questGames, submissions)
+                    : null
+                return (
+                <li
+                  key={team.id}
+                  className="border-border/80 relative flex flex-wrap items-center gap-3 overflow-hidden rounded-lg border p-2"
+                  style={
+                    prog
+                      ? {
+                          background: `linear-gradient(to right, rgba(34,197,94,0.22) ${prog.percent}%, transparent ${prog.percent}%)`,
+                        }
+                      : undefined
+                  }
+                >
+                  <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
+                  <div
+                    className="size-6 shrink-0 rounded-full"
+                    style={{ background: team.color ?? '#888' }}
+                  />
+                  {team.photo_url ? (
+                    <img src={team.photo_url} alt="" className="size-8 rounded-full object-cover" />
+                  ) : null}
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 text-left text-sm font-medium"
+                    onClick={() => {
+                      setClaimSlot(team)
+                      setClaimName(team.name ?? '')
+                    }}
+                  >
+                    {team.name?.trim() || 'Available'}
+                  </button>
+                  <span className="text-sm tabular-nums">{team.score}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    title={`Reset slot ${team.slot_number}`}
+                    disabled={!controlsLive || !team.name?.trim()}
+                    onClick={() => setResetConfirmTeam(team)}
+                  >
+                    <RotateCcw className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
+                    onClick={() => {
+                      setChatTeamId(team.id)
+                      setChatOpen(true)
+                    }}
+                  >
+                    <MessageCircle className="size-4" />
+                  </Button>
+                  <select
+                    className="border-input bg-background rounded border px-1 text-xs"
+                    value={team.status}
+                    onChange={(e) =>
+                      void updateTeam(team.id, { status: e.target.value })
+                    }
+                  >
+                    <option value="idle">idle</option>
+                    <option value="active">active</option>
+                    <option value="stopped">stopped</option>
+                  </select>
+                  {prog ? (
+                    <div className="flex w-full items-center gap-2 pl-6">
+                      <span className="text-muted-foreground text-xs font-medium tabular-nums">
+                        {prog.doneCount}/{prog.total} Quests done
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto h-7 px-2 text-xs"
+                        onClick={() => setProgressTeam(team)}
+                      >
+                        View Quests
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+                )
+              })}
+            </ul>
+          </Card>
+          </fieldset>
+        </div>
+
+        <fieldset disabled={!controlsLive} className="min-w-0 space-y-4 border-0 p-0">
+          <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-xs">Event countdown on display</p>
+              <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
+              <div className="flex flex-wrap gap-2">
+                <FacilitatorButton
+                  size="sm"
+                  onClick={() =>
+                    void patchState({ timer_running: !state.timer_running })
+                  }
+                >
+                  {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
+                  {state.timer_running ? 'Pause' : 'Start'}
+                </FacilitatorButton>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void patchState({ timer_seconds: state.timer_seconds + 900 })
+                  }
+                >
+                  <Plus className="size-4" /> 15m
+                </FacilitatorButton>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void patchState({
+                      timer_seconds: Math.max(0, state.timer_seconds - 900),
+                    })
+                  }
+                >
+                  <Minus className="size-4" /> 15m
+                </FacilitatorButton>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={state.show_timer_on_display}
+                    onChange={(e) =>
+                      void patchState({ show_timer_on_display: e.target.checked })
+                    }
+                  />
+                  Show timer on display
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={state.show_scores}
+                    onChange={(e) => void patchState({ show_scores: e.target.checked })}
+                  />
+                  Show scores on display
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-col justify-center gap-2">
+              <p className="text-muted-foreground text-xs">
+                Run the winner ceremony on display and team phones
+              </p>
+              <FacilitatorButtonLarge className="w-full" onClick={handleRevealWinnerClick}>
+                Reveal Winner ({state.winner_reveal_stage}/2)
+              </FacilitatorButtonLarge>
+              {winnerTargetsChosen && state.winner_reveal_stage > 0 ? (
+                <button
+                  type="button"
+                  className="text-muted-foreground text-xs underline-offset-2 hover:underline"
+                  onClick={() => {
+                    setWinnerRoutingSel(
+                      parseWinnerSoundTargets(liveState.winner_sound_targets) ?? ['display', 'players'],
+                    )
+                    setWinnerRoutingOpen(true)
+                  }}
+                >
+                  Sound:{' '}
+                  {(parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).length === 0
+                    ? 'muted'
+                    : (parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).join(', ')}{' '}
+                  · change
+                </button>
+              ) : null}
+              {state.winner_reveal_stage > 0 ? (
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => void patchState({ winner_reveal_stage: 0 })}
+                >
+                  <RotateCcw className="size-4" />
+                  Reset winner
+                </FacilitatorButton>
+              ) : null}
+            </div>
+          </Card>
+
+          {stateError ? (
+            <p className="text-destructive px-1 text-sm">{stateError}</p>
+          ) : null}
+
+          {!stage || stage.type === 'open' ? (
+            <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+            <>
+              <div className="mb-3 flex gap-2">
+                {(['all', 'pending', 'approved', 'rejected'] as const).map((t) => (
+                  <Button
+                    key={t}
+                    size="sm"
+                    variant={subTab === t ? 'secondary' : 'outline'}
+                    onClick={() => setSubTab(t)}
+                  >
+                    {t}
+                  </Button>
+                ))}
+              </div>
+              <ul className="max-h-[70vh] space-y-3 overflow-auto">
+                {filteredSubs
+                  .filter(
+                    (s) =>
+                      isOpenStageSubmissionMediaType(s.media_type) &&
+                      s.status !== 'cancelled',
+                  )
+                  .map((sub) => {
+                    const team = teams.find((t) => t.id === sub.team_id)
+                    const game = games.find((g) => g.id === sub.game_id)
+                    const statusBadgeClass =
+                      sub.status === 'approved'
+                        ? 'bg-green-100 text-green-800 border-green-300'
+                        : sub.status === 'rejected'
+                          ? 'bg-red-100 text-red-800 border-red-300'
+                          : 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                    return (
+                      <li key={sub.id}>
+                        <button
+                          type="button"
+                          className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
+                          onClick={() => setSelectedSub(sub)}
+                        >
+                          {sub.media_type === 'text' ? (
+                            <div
+                              className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
+                            >
+                              <span className="line-clamp-4 break-all text-center">
+                                {game
+                                  ? textSubmissionDisplayLabel(game, sub.media_url)
+                                  : sub.media_url}
+                              </span>
+                            </div>
+                          ) : sub.media_url ? (
+                            sub.media_type === 'video' ? (
+                              <video
+                                src={sub.media_url}
+                                className="size-16 rounded object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={sub.media_url}
+                                alt=""
+                                className="size-16 rounded object-cover"
+                              />
+                            )
+                          ) : (
+                            <div className="bg-muted size-16 shrink-0 rounded" />
+                          )}
+                          <div className="min-w-0 flex-1 text-sm">
+                            <p className="font-medium">{team?.name ?? 'Team'}</p>
+                            <p className="text-muted-foreground truncate">{game?.name}</p>
+                            <p
+                              className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClass}`}
+                            >
+                              {sub.status}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    )
+                  })}
+              </ul>
+            </>
+            </Card>
+          ) : null}
         </fieldset>
       </div>
 
