@@ -84,13 +84,13 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 
 ## UI redesign — facilitator console
 
-- [ ] **UI-1** Inline timer control + editing (#16): [-15] [15 min] [+15] next to Start; click countdown to set directly while paused, with Save
-- [ ] **UI-2** Show Timer + Show Score side by side, centred at card bottom (#17)
-- [ ] **UI-3** Display fills card + inline copy icon with "Link copied" feedback; remove Copy Link button (#18)
-- [ ] **UI-4** Countdown + Reveal card to top of right column (#19)
-- [ ] **UI-6** Announcements below Display, about a third of current height (#21)
-- [ ] **UI-7** Bingo/Quiz/Break controls left under Announcements, shown only when active (#22)
-- [ ] **ENG1** Refactor FacilitatorEventPage (do together with the UI redesign, same file)
+- [x] **UI-1** Inline timer control + editing (#16) — [-15] [N min] [+15] next to Start; click paused countdown to type minutes or mm:ss, Save/Cancel (on `fixes`)
+- [x] **UI-2** Show Timer + Show Score side by side, centred card footer (#17) (on `fixes`)
+- [x] **UI-3** Display fills card, hover copy icon with "Link copied" pill, Copy Link button removed (#18) (on `fixes`)
+- [x] **UI-4** Countdown + Reveal card at top of right column (#19) (on `fixes`)
+- [x] **UI-6** Announcements compact single row below Display (#21) (on `fixes`)
+- [x] **UI-7** Quiz/Bingo/Break controls left under Announcements, only when that stage is active; quest review stays right (#22) (on `fixes`)
+- [ ] **ENG1** Refactor FacilitatorEventPage (still 2300 lines; extract components in a later pass now the layout is settled)
 
 ## Quest stage editor
 
