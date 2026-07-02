@@ -654,13 +654,20 @@ export function JoinGameView({
   async function cancelPendingSubmission(subId: string) {
     setCancelling(true)
     try {
-      const { error } = await supabase
+      const { data: cancelledRow, error } = await supabase
         .from('submissions')
         .update({ status: 'cancelled' })
         .eq('id', subId)
+        .select()
+        .single()
       if (error) {
         notify("Couldn't cancel submission — try again")
         return
+      }
+      // Broadcast the change like submit does, so this device (and others on
+      // broadcast-only realtime) clears the pending tile without a refresh.
+      if (cancelledRow) {
+        await publishSubmissionChange(event.id, 'UPDATE', cancelledRow)
       }
       notify('Submission cancelled')
       setSelectedGame(null)
