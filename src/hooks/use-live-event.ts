@@ -540,12 +540,6 @@ export function useChatMessages(eventId: string | undefined) {
         .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
           const row = payload as Tables<'chat_messages'>
           if (!row?.id || row.event_id !== eventId) return
-          console.log('[msg-sound] chat_messages INSERT (broadcast)', {
-            id: row.id,
-            team_id: row.team_id,
-            sender: row.sender,
-            event_id: row.event_id,
-          })
           appendMessage(row)
         })
         .on(
@@ -559,12 +553,6 @@ export function useChatMessages(eventId: string | undefined) {
           (payload) => {
             const row = payload.new as Tables<'chat_messages'>
             if (!row?.id) return
-            console.log('[msg-sound] chat_messages INSERT (realtime)', {
-              id: row.id,
-              team_id: row.team_id,
-              sender: row.sender,
-              event_id: row.event_id,
-            })
             appendMessage(row)
           },
         )
