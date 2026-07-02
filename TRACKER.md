@@ -68,7 +68,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **P1-1** Players recover if facilitator tab closes (PARKED: full-bundle poll froze bingo; needs non-disruptive server push)
 - [ ] **P1-3b** Atomic quiz restart (same RPC treatment as bingo)
 - [ ] **P2-1** Multi-facilitator last-write-wins (version/etag on event_state, or document single-writer)
-- [ ] **P2-3** Tablet PIN: force non-default on first setup
+- [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
 - [ ] **P2-5** register-client signup rate limiting + captcha before public launch
 - [ ] **P2-UP** Photo compression before upload + upload error handling
 - [ ] **P2-LOG** Full activity log with filters (#12): every action per team/facilitator, filter by team/facilitator/action
@@ -94,9 +94,9 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 
 ## Quest stage editor
 
-- [ ] **Q-1** Multi-select when adding Quest games (#13): select all / all photo / all video / all text
-- [ ] **Q-2** Game-time label on selected games inside the stage (#14)
-- [ ] **Q-3** Drag-to-reorder Quest games; order = players' display order (#15)
+- [x] **Q-1** Multi-select when adding Quest games (#13): All / All photo / All video / All text quick-add with counts, drawing from the whole org library (on `fixes`)
+- [ ] **Q-2** Game-time label on selected games inside the stage (#14) — SKIPPED for now per Rumen (games have no single time field; revisit if wanted)
+- [x] **Q-3** Drag-to-reorder Quest games; order = players' display order (#15) — draggable list in the stage editor + JoinGameView follows gameIds order (on `fixes`; player side needs Rumen's live test)
 
 ## Engineering health
 
