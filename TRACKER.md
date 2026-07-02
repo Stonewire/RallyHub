@@ -101,7 +101,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 ## Engineering health
 
 - [ ] **ENG2** Refactor JoinGameView (second God-component)
-- [ ] **ENG4** Lazy-load jspdf + ffmpeg (eagerly imported today)
+- [x] **ENG4** Lazy-load jspdf + ffmpeg — main bundle 1881 kB → 1481 kB, gzip 550 → 419 kB (on `fixes`)
 - [x] **ENG5** Test suite around scoring — vitest, 30 tests on the bingo core (win detection, cell matching, card generation); `npm test`
 - [ ] **ENG6** Clear lint backlog (~85 errors, mostly React 19 rules)
 - [x] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md; all four stale branches deleted (neo-minimalism, security-hardening, bingo-live-fixes, new-features — fully merged, approved by Rumen)
