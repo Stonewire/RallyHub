@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow (since 2 Jul 2026)
+
+- Work happens on the `fixes` branch. Push only to `fixes`; merge to `main` only when Rumen says so.
+- `TRACKER.md` at the repo root is the living checklist of bugs, re-lands, and planned features. Update it as items land.
+- Every push to `main` bumps `APP_VERSION` (`src/lib/version.ts`) using three-number versioning: patch for small fixes (2.0.1), minor for bigger updates (2.1.0), major for big new features (3.0.0). Add a CHANGELOG.md entry each time.
+
 ## Commands
 
 ```bash
