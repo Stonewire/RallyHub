@@ -830,6 +830,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      restart_quiz_scores: {
+        Args: { p_event_id: string; p_game_id: string }
+        Returns: undefined
+      }
       install_music_library: {
         Args: { p_target_org_id: string }
         Returns: number

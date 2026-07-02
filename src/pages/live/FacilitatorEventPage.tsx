@@ -74,7 +74,6 @@ import {
   quizTimerSeconds,
   quizQuestions,
   quizSubmissionMediaType,
-  isQuizSubmission,
   scoreCurrentQuizQuestion,
   revealQuizAnswer,
   isEventLive,
@@ -818,24 +817,20 @@ export function FacilitatorEventPage() {
   }
 
   async function restartQuiz() {
-    if (!stage?.gameId) return
-    const quizSubs = submissions.filter(
-      (s) => s.game_id === stage.gameId && isQuizSubmission(s.media_type),
-    )
-    const totalsByTeam = new Map<string, number>()
-    for (const sub of quizSubs) {
-      const pts = sub.points_awarded ?? 0
-      if (pts > 0 && sub.status === 'approved') {
-        totalsByTeam.set(sub.team_id, (totalsByTeam.get(sub.team_id) ?? 0) + pts)
-      }
+    if (!stage?.gameId || !eventId) return
+    // Reverse approved points + delete the game's submissions in one
+    // transaction (P1-3b, quiz twin of the bingo restart RPC) — replaces the
+    // client-memory sum + row-by-row delete that could go stale if an answer
+    // landed mid-restart.
+    const { error } = await supabase.rpc('restart_quiz_scores', {
+      p_event_id: eventId,
+      p_game_id: stage.gameId,
+    })
+    if (error) {
+      notify(error.message)
+      return
     }
-    for (const [teamId, total] of totalsByTeam) {
-      await incrementTeamScore(teamId, -total, eventId)
-    }
-    for (const sub of quizSubs) {
-      await supabase.from('submissions').delete().eq('id', sub.id)
-    }
-    if (eventId) await publishLiveBundleReload(eventId)
+    await publishLiveBundleReload(eventId)
     await patchState({
       current_question_index: 0,
       quiz_state: 'idle',
