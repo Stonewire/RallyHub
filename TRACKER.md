@@ -66,7 +66,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **P1-B1** Bingo Start still needs 2-3 presses (REOPENED: the ae62a28 staleness guard helped but did not cure it; re-diagnose with live pairing - session 3)
 - [ ] **P0-2b** Anon storage overwrite hardening (needs signed-URL or edge-function approach; join token invisible to storage RLS)
 - [ ] **P1-1** Players recover if facilitator tab closes (PARKED: full-bundle poll froze bingo; needs non-disruptive server push)
-- [ ] **P1-3b** Atomic quiz restart (same RPC treatment as bingo)
+- [x] **P1-3b** Atomic quiz restart — restart_quiz_scores RPC (migration 082, live on prod) + client swap (on `fixes`; needs live test)
 - [ ] **P2-1** Multi-facilitator last-write-wins (version/etag on event_state, or document single-writer)
 - [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
 - [ ] **P2-5** register-client signup rate limiting + captcha before public launch
@@ -76,9 +76,9 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 ## Re-land — was done pre-rollback, lost when main reverted to V2.0
 
 - [ ] **BONUS-RM** Remove bonus games from music bingo (rollback restored the broken bonus code: editor, facilitator, player, display, BingoBonusPanel; rebuild properly later)
-- [ ] **P1-3** Point the client bingo restart at the atomic `restart_bingo_run_scores` RPC (migration 077 is live but unused; client still does the old loop)
-- [ ] **P1-B4** Cancelled challenge broadcasts so the player's pending tile clears without refresh
-- [ ] **P2-2** Cap realtime reconnect backoff at 10s (SAFETY NOTE: unlike the P1-1 reload that broke bingo, this only changes the retry timing AFTER a connection has already dropped; it adds nothing during healthy play. Still ships alone + live-tested.)
+- [x] **P1-3** Client bingo restart now calls the atomic `restart_bingo_run_scores` RPC — exact re-apply of 401ec01 (on `fixes`; needs live test)
+- [x] **P1-B4** Cancel broadcast re-landed — exact re-apply of 3656e4c (on `fixes`; needs live test)
+- [x] **P2-2** Backoff cap re-landed — exact re-apply of bb34912's backoff half; error-path only, resets on successful subscribe (on `fixes`; needs live test)
 - [x] **P2-4** Strip PII debug logs (names / team ids in console) — re-landed on `fixes`, log statements only
 - [x] **ENG3** Re-delete dead components (scroll-area, BrandingTab, CompactListRow) — re-landed on `fixes`
 
