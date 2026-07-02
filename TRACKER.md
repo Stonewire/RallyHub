@@ -79,8 +79,8 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **P1-3** Point the client bingo restart at the atomic `restart_bingo_run_scores` RPC (migration 077 is live but unused; client still does the old loop)
 - [ ] **P1-B4** Cancelled challenge broadcasts so the player's pending tile clears without refresh
 - [ ] **P2-2** Cap realtime reconnect backoff at 10s (SAFETY NOTE: unlike the P1-1 reload that broke bingo, this only changes the retry timing AFTER a connection has already dropped; it adds nothing during healthy play. Still ships alone + live-tested.)
-- [ ] **P2-4** Strip PII debug logs (names / team ids in console)
-- [ ] **ENG3** Re-delete dead components (scroll-area, BrandingTab, CompactListRow)
+- [x] **P2-4** Strip PII debug logs (names / team ids in console) — re-landed on `fixes`, log statements only
+- [x] **ENG3** Re-delete dead components (scroll-area, BrandingTab, CompactListRow) — re-landed on `fixes`
 
 ## UI redesign — facilitator console
 
@@ -102,9 +102,9 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 
 - [ ] **ENG2** Refactor JoinGameView (second God-component)
 - [ ] **ENG4** Lazy-load jspdf + ffmpeg (eagerly imported today)
-- [ ] **ENG5** Test suite around scoring (scheduled first - session 1)
+- [x] **ENG5** Test suite around scoring — vitest, 30 tests on the bingo core (win detection, cell matching, card generation); `npm test`
 - [ ] **ENG6** Clear lint backlog (~85 errors, mostly React 19 rules)
-- [ ] **ENG7** Branch cleanup (delete neo-minimalism, security-hardening, bingo-live-fixes) + retire stale AUDIT.md
+- [ ] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md (done); remote branch deletion (neo-minimalism, security-hardening, bingo-live-fixes, new-features — all fully merged) awaiting Rumen's go-ahead
 
 ## Later / ideas
 
