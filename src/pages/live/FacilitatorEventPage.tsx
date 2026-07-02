@@ -1307,17 +1307,16 @@ export function FacilitatorEventPage() {
             disabled={!controlsLive}
             className="min-w-0 space-y-4 border-0 p-0"
           >
-          <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
-            <NeoLabel>Announcement</NeoLabel>
-            <p className="text-muted-foreground text-xs">
-              Send a message to the display, participants, or both. Clears after 1 minute.
-            </p>
-            <NeoInput
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-              className="bg-background"
-            />
-            <div className="flex flex-wrap gap-2">
+          {/* UI-6 (#21): compact — one row, sits right under the display preview. */}
+          <Card className="neo-card border-border/80 space-y-2 bg-card p-3 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <NeoLabel className="shrink-0">Announcement</NeoLabel>
+              <NeoInput
+                value={announcement}
+                onChange={(e) => setAnnouncement(e.target.value)}
+                placeholder="Message… clears after 1 minute"
+                className="bg-background min-w-[10rem] flex-1"
+              />
               {(['display', 'participants', 'both'] as const).map((t) => (
                 <FacilitatorButton
                   key={t}

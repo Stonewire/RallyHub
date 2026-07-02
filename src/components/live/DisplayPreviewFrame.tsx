@@ -41,39 +41,40 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
   const scaledH = PREVIEW_H * scale
 
   return (
-    <div className="flex items-center gap-2 p-2">
+    // UI-3 (#18): the preview fills the card edge to edge; the copy control is
+    // an overlay icon on the display itself, faint until hovered.
+    <div
+      ref={containerRef}
+      className="group relative w-full overflow-hidden bg-black"
+      style={{ aspectRatio: '16 / 9' }}
+    >
       <div
-        ref={containerRef}
-        className="relative min-w-0 flex-1 overflow-hidden rounded-md bg-black"
-        style={{ aspectRatio: '16 / 9' }}
+        className="absolute top-1/2 left-1/2 overflow-hidden"
+        style={{
+          width: scaledW,
+          height: scaledH,
+          marginLeft: -scaledW / 2,
+          marginTop: -scaledH / 2,
+        }}
       >
-        <div
-          className="absolute top-1/2 left-1/2 overflow-hidden"
+        <iframe
+          title="Display preview"
+          src={src}
+          className="pointer-events-none border-0"
           style={{
-            width: scaledW,
-            height: scaledH,
-            marginLeft: -scaledW / 2,
-            marginTop: -scaledH / 2,
+            width: PREVIEW_W,
+            height: PREVIEW_H,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
           }}
-        >
-          <iframe
-            title="Display preview"
-            src={src}
-            className="pointer-events-none border-0"
-            style={{
-              width: PREVIEW_W,
-              height: PREVIEW_H,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-            }}
-          />
-        </div>
+        />
       </div>
       <Button
         type="button"
         variant="outline"
-        size="sm"
-        className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+        size="icon-sm"
+        title="Copy display link"
+        className="absolute top-2 right-2 border-white/30 bg-black/40 text-white opacity-40 backdrop-blur-sm transition-opacity hover:bg-black/60 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-80"
         onClick={() => {
           void copyToClipboard(displayUrl)
           setCopied(true)
@@ -81,8 +82,12 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         }}
       >
         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        Copy Link
       </Button>
+      {copied ? (
+        <span className="absolute top-2 right-11 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+          Link copied
+        </span>
+      ) : null}
     </div>
   )
 }
