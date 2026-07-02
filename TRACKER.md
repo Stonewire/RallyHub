@@ -104,7 +104,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **ENG4** Lazy-load jspdf + ffmpeg (eagerly imported today)
 - [x] **ENG5** Test suite around scoring — vitest, 30 tests on the bingo core (win detection, cell matching, card generation); `npm test`
 - [ ] **ENG6** Clear lint backlog (~85 errors, mostly React 19 rules)
-- [ ] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md (done); remote branch deletion (neo-minimalism, security-hardening, bingo-live-fixes, new-features — all fully merged) awaiting Rumen's go-ahead
+- [x] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md; all four stale branches deleted (neo-minimalism, security-hardening, bingo-live-fixes, new-features — fully merged, approved by Rumen)
 
 ## Later / ideas
 
