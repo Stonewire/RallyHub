@@ -148,6 +148,7 @@ export function useLiveEvent(eventId: string | undefined) {
   const [channelCycle, setChannelCycle] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectAttemptsRef = useRef(0)
   const bundleRef = useRef(bundle)
   const lastWrittenAtRef = useRef<string | null>(null)
   bundleRef.current = bundle
@@ -372,15 +373,21 @@ export function useLiveEvent(eventId: string | undefined) {
             clearTimeout(reconnectRef.current)
             reconnectRef.current = null
           }
+          reconnectAttemptsRef.current = 0
           void reloadRef.current()
           return
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           scheduleReloadRef.current()
           if (reconnectRef.current) clearTimeout(reconnectRef.current)
+          // Exponential backoff, capped at 10s, so a flaky venue network can't
+          // trigger a reconnect storm.
+          const attempt = reconnectAttemptsRef.current
+          reconnectAttemptsRef.current = attempt + 1
+          const delay = Math.min(600 * 2 ** attempt, 10000)
           reconnectRef.current = setTimeout(() => {
             setChannelCycle((n) => n + 1)
-          }, 600)
+          }, delay)
         }
       })
 
@@ -523,6 +530,7 @@ export function useChatMessages(eventId: string | undefined) {
 
     let cancelled = false
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+    let reconnectAttempts = 0
     let subscribedOnce = false
     let channel: ReturnType<typeof supabase.channel> | null = null
 
@@ -560,6 +568,7 @@ export function useChatMessages(eventId: string | undefined) {
           if (cancelled) return
           if (status === 'SUBSCRIBED') {
             broadcastChannelRef.current = channel
+            reconnectAttempts = 0
             if (subscribedOnce) void reload()
             subscribedOnce = true
             return
@@ -567,7 +576,10 @@ export function useChatMessages(eventId: string | undefined) {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             broadcastChannelRef.current = null
             if (reconnectTimer) clearTimeout(reconnectTimer)
-            reconnectTimer = setTimeout(() => void reload(), 600)
+            // Exponential backoff, capped at 10s.
+            const delay = Math.min(600 * 2 ** reconnectAttempts, 10000)
+            reconnectAttempts += 1
+            reconnectTimer = setTimeout(() => void reload(), delay)
           }
         })
     })()
