@@ -101,6 +101,16 @@ import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
 
+// UI-1: parse a typed countdown — plain number = minutes, otherwise mm:ss / hh:mm:ss.
+function parseTimerInput(raw: string): number | null {
+  const t = raw.trim()
+  if (!t) return null
+  if (/^\d+$/.test(t)) return Number(t) * 60
+  const parts = t.split(':').map((p) => p.trim())
+  if (parts.length > 3 || parts.some((p) => !/^\d+$/.test(p))) return null
+  return parts.map(Number).reduce((acc, n) => acc * 60 + n, 0)
+}
+
 export function FacilitatorEventPage() {
   // The facilitator acts via their authenticated session. Clear any participant
   // anon override left over from in-tab navigation off a join/display route.
@@ -118,6 +128,8 @@ export function FacilitatorEventPage() {
   const annClearRef = useRef<number | undefined>(undefined)
 
   const [announcement, setAnnouncement] = useState('')
+  // UI-1: click the paused countdown to type a new duration, saved on demand.
+  const [timerEdit, setTimerEdit] = useState<string | null>(null)
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [resetConfirmTeam, setResetConfirmTeam] = useState<Tables<'teams'> | null>(null)
   const [resettingTeam, setResettingTeam] = useState(false)
@@ -1845,8 +1857,63 @@ export function FacilitatorEventPage() {
           <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-muted-foreground text-xs">Event countdown on display</p>
-              <p className="font-mono text-3xl tabular-nums">{formatTimer(timerDisplay)}</p>
-              <div className="flex flex-wrap gap-2">
+              {timerEdit != null ? (
+                // UI-1: type minutes ("45") or mm:ss, then Save.
+                <div className="flex flex-wrap items-center gap-2">
+                  <NeoInput
+                    value={timerEdit}
+                    onChange={(e) => setTimerEdit(e.target.value)}
+                    autoFocus
+                    placeholder="minutes or mm:ss"
+                    className="bg-background max-w-[9rem] font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setTimerEdit(null)
+                      if (e.key === 'Enter') {
+                        const secs = parseTimerInput(timerEdit)
+                        if (secs == null) {
+                          notify('Enter minutes (e.g. 45) or mm:ss')
+                          return
+                        }
+                        void patchState({ timer_seconds: secs })
+                        setTimerEdit(null)
+                      }
+                    }}
+                  />
+                  <FacilitatorButton
+                    size="sm"
+                    onClick={() => {
+                      const secs = parseTimerInput(timerEdit)
+                      if (secs == null) {
+                        notify('Enter minutes (e.g. 45) or mm:ss')
+                        return
+                      }
+                      void patchState({ timer_seconds: secs })
+                      setTimerEdit(null)
+                    }}
+                  >
+                    Save
+                  </FacilitatorButton>
+                  <FacilitatorButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTimerEdit(null)}
+                  >
+                    Cancel
+                  </FacilitatorButton>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={state.timer_running}
+                  title={state.timer_running ? 'Pause to edit' : 'Click to set the countdown'}
+                  className="block font-mono text-3xl tabular-nums disabled:cursor-default"
+                  onClick={() => setTimerEdit(String(Math.round(state.timer_seconds / 60)))}
+                >
+                  {formatTimer(timerDisplay)}
+                </button>
+              )}
+              {/* UI-1: stepper next to Start — [-15] [current] [+15]. */}
+              <div className="flex flex-wrap items-center gap-2">
                 <FacilitatorButton
                   size="sm"
                   onClick={() =>
@@ -1860,42 +1927,25 @@ export function FacilitatorEventPage() {
                   size="sm"
                   variant="outline"
                   onClick={() =>
-                    void patchState({ timer_seconds: state.timer_seconds + 900 })
-                  }
-                >
-                  <Plus className="size-4" /> 15m
-                </FacilitatorButton>
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
                     void patchState({
                       timer_seconds: Math.max(0, state.timer_seconds - 900),
                     })
                   }
                 >
-                  <Minus className="size-4" /> 15m
+                  <Minus className="size-4" /> 15
                 </FacilitatorButton>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 pt-1">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={state.show_timer_on_display}
-                    onChange={(e) =>
-                      void patchState({ show_timer_on_display: e.target.checked })
-                    }
-                  />
-                  Show timer on display
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={state.show_scores}
-                    onChange={(e) => void patchState({ show_scores: e.target.checked })}
-                  />
-                  Show scores on display
-                </label>
+                <span className="text-muted-foreground min-w-14 text-center text-sm font-medium tabular-nums">
+                  {Math.round(state.timer_seconds / 60)} min
+                </span>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void patchState({ timer_seconds: state.timer_seconds + 900 })
+                  }
+                >
+                  <Plus className="size-4" /> 15
+                </FacilitatorButton>
               </div>
             </div>
             <div className="flex flex-col justify-center gap-2">
@@ -1934,6 +1984,27 @@ export function FacilitatorEventPage() {
                   Reset winner
                 </FacilitatorButton>
               ) : null}
+            </div>
+            {/* UI-2: display toggles side by side, centred at the card bottom. */}
+            <div className="border-border/60 flex flex-wrap items-center justify-center gap-6 border-t pt-3 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={state.show_timer_on_display}
+                  onChange={(e) =>
+                    void patchState({ show_timer_on_display: e.target.checked })
+                  }
+                />
+                Show timer on display
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={state.show_scores}
+                  onChange={(e) => void patchState({ show_scores: e.target.checked })}
+                />
+                Show scores on display
+              </label>
             </div>
           </Card>
 
