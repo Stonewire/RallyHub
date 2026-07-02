@@ -77,6 +77,8 @@ export function AdminSettingsPage() {
   }
 
   const tabletLink = orgQuery.data ? getTabletLink(orgQuery.data) : ''
+  // P2-3: 1234 is the shipped default — block handing out the kiosk link until changed.
+  const tabletPinIsDefault = (form.tablet_password.trim() || '1234') === '1234'
 
   async function handleSave(onSaved?: () => void) {
     setSaveMessage(null)
@@ -411,18 +413,35 @@ export function AdminSettingsPage() {
               <p className="text-muted-foreground text-xs">
                 Shared venue code for the tablet kiosk. Defaults to 1234 if unchanged.
               </p>
+              {tabletPinIsDefault ? (
+                <p className="text-destructive text-xs font-medium" role="alert">
+                  1234 is the well-known default — set your own password (and save)
+                  before using the tablet kiosk.
+                </p>
+              ) : null}
             </div>
             {tabletLink ? (
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={() => void handleCopyLink()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={tabletPinIsDefault}
+                  onClick={() => void handleCopyLink()}
+                >
                   {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                   Copy link
                 </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link to={tabletLink} target="_blank">
+                {tabletPinIsDefault ? (
+                  <Button type="button" variant="outline" disabled>
                     Open tablet page
-                  </Link>
-                </Button>
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" asChild>
+                    <Link to={tabletLink} target="_blank">
+                      Open tablet page
+                    </Link>
+                  </Button>
+                )}
               </div>
             ) : null}
           </Card>
