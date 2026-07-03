@@ -10,6 +10,14 @@ export type OnboardingStep = {
   advanceOn: 'click' | 'manual'
   /** If already on this path when the step activates, complete it without waiting for a click. */
   skipIfPath?: string
+  /** Settings/billing/team steps: hidden from event_manager tours (no access). */
+  clientAdminOnly?: boolean
+}
+
+/** The tour a given role actually sees (event managers skip settings/billing). */
+export function onboardingStepsForRole(role: string | null): OnboardingStep[] {
+  if (role === 'client_admin') return ONBOARDING_STEPS
+  return ONBOARDING_STEPS.filter((s) => !s.clientAdminOnly)
 }
 
 /**
@@ -33,6 +41,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'org-settings-nav',
+    clientAdminOnly: true,
     title: 'Open Org Settings',
     route: '/admin/settings',
     target: 'nav-org-settings',
@@ -42,6 +51,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'org-profile',
+    clientAdminOnly: true,
     title: 'Your organisation profile',
     route: '/admin/settings',
     target: 'org-profile-form',
@@ -54,6 +64,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'team-users',
+    clientAdminOnly: true,
     title: 'Team and users',
     route: '/admin/settings',
     target: 'add-user-button',
@@ -67,6 +78,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'billing-tab',
+    clientAdminOnly: true,
     title: 'Open Billing',
     route: '/admin/settings',
     target: 'settings-tab-billing',
@@ -75,6 +87,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'billing-plan',
+    clientAdminOnly: true,
     title: 'Your current plan',
     route: '/admin/settings?tab=billing',
     target: 'billing-plan',
@@ -86,6 +99,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'billing-unpaid',
+    clientAdminOnly: true,
     title: 'Unpaid events',
     route: '/admin/settings?tab=billing',
     target: 'billing-unpaid',
@@ -97,6 +111,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'billing-history',
+    clientAdminOnly: true,
     title: 'Payment history',
     route: '/admin/settings?tab=billing',
     target: 'billing-history',
@@ -105,6 +120,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'billing-subscription',
+    clientAdminOnly: true,
     title: 'Subscription',
     route: '/admin/settings?tab=billing',
     target: 'billing-subscription',
@@ -115,6 +131,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'promo-codes',
+    clientAdminOnly: true,
     title: 'Promo codes',
     route: '/admin/settings?tab=billing',
     target: 'promo-code-input',

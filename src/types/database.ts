@@ -61,6 +61,8 @@ export type Database = {
           role: AppRole
           organization_id: string | null
           must_change_password: boolean
+          onboarding_completed_tasks: string[]
+          onboarding_dismissed: boolean
           created_at: string
           updated_at: string
         }
@@ -828,6 +830,10 @@ export type Database = {
           p_stage_index: number
           p_line_points: number
         }
+        Returns: undefined
+      }
+      set_my_onboarding: {
+        Args: { p_completed?: string[] | null; p_dismissed?: boolean | null }
         Returns: undefined
       }
       restart_quiz_scores: {
