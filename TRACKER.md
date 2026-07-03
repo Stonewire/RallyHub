@@ -60,6 +60,8 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [x] Bingo win: instant green cells + line bonus pays once (67e4d30, tracked via `paid_line_bonus_team_ids`)
 - [x] DB migrations 074-079 live: atomic line-bonus + restart RPCs, join token only for active events (P1-4), storage upload ownership (P0-2), attach-game refresh trigger (P1-2)
 - [x] Client onboarding: 19-step interactive in-app tutorial (replaces the old L-1 "onboarding PDF" idea, dropped)
+- [x] Onboarding v2 (on `fixes`): per-user progress (migration 083; every existing account resets, each new user gets their own tour, event_manager sees a trimmed 10-step run), panel auto-minimises to a corner pill while the spotlight points at the page, completed steps clickable to revisit, Mark complete on every step
+- [ ] After `fixes` merges to main: drop the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns (production main still reads them until then)
 
 ## Open bugs / security
 
