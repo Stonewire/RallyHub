@@ -24,7 +24,7 @@ export function isFacilitatorToTeamChatMessage(
   return explainFacilitatorToTeamChatMessage(message, teamId, teamSenderName).isIncoming
 }
 
-/** Diagnostic breakdown for [msg-sound] logging on the team device. */
+/** Classification with the reason attached; isFacilitatorToTeamChatMessage wraps this. */
 export function explainFacilitatorToTeamChatMessage(
   message: Tables<'chat_messages'>,
   teamId: string,

@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow (since 2 Jul 2026)
+
+- Work happens on the `fixes` branch. Push only to `fixes`; merge to `main` only when Rumen says so.
+- `TRACKER.md` at the repo root is the living checklist of bugs, re-lands, and planned features. Update it as items land.
+- Every push to `main` bumps `APP_VERSION` (`src/lib/version.ts`) using three-number versioning: patch for small fixes (2.0.1), minor for bigger updates (2.1.0), major for big new features (3.0.0). Add a CHANGELOG.md entry each time.
+
 ## Commands
 
 ```bash
@@ -18,7 +24,7 @@ npm run catalog:repair-urls
 npm run catalog:repair-urls:apply
 ```
 
-There is no test runner configured. Type-checking runs as part of `npm run build`.
+Tests run with vitest: `npm test` (or `npm run test:watch`). Colocated as `src/**/*.test.ts`; the bingo scoring core (win detection, cell matching, card generation) is covered — run the suite before touching any bingo or scoring code. Type-checking runs as part of `npm run build`.
 
 ## Environment
 
@@ -87,4 +93,4 @@ Path alias: `@/` → `src/`
 
 ## Known issues
 
-`AUDIT.md` contains 42 audited findings (open/fixed/deferred). Before touching scoring, realtime, or RLS-sensitive code, check it — several scoring paths have known race conditions and the live bundle has known stale-data gaps. Critical open items as of the last audit: game-assets bucket allows anon uploads (C4), realtime reload storms (C8), teams joining mid-bingo (H6), bingo scoring swallowing DB errors (H8).
+`TRACKER.md` at the repo root is the live checklist of open bugs, re-lands, and planned work — check it before touching scoring, realtime, or RLS-sensitive code, and follow its "How we avoid breaking things" rules. `docs/AUDIT-2026-06.md` holds the detailed June 2026 audit findings (historical; its Fixed statuses predate the V2.0 rollback). Several scoring paths have known race conditions and the live bundle has known stale-data gaps; teams joining mid-bingo (H6) remains a live risk.

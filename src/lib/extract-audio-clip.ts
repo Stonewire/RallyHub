@@ -1,5 +1,4 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import type { FFmpeg } from '@ffmpeg/ffmpeg'
 
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { encodeWav } from '@/lib/extract-audio-wav-fallback'
@@ -11,6 +10,12 @@ async function getFfmpeg(): Promise<FFmpeg> {
   if (ffmpeg?.loaded) return ffmpeg
   if (!loadPromise) {
     loadPromise = (async () => {
+      // ENG4: loaded on demand so ffmpeg stays out of the main bundle (it is
+      // only used when an admin extracts music clips).
+      const [{ FFmpeg }, { toBlobURL }] = await Promise.all([
+        import('@ffmpeg/ffmpeg'),
+        import('@ffmpeg/util'),
+      ])
       const instance = new FFmpeg()
       const base = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm'
       await instance.load({
@@ -43,6 +48,7 @@ export async function extractAudioClip(
 
   try {
     const ff = await getFfmpeg()
+    const { fetchFile } = await import('@ffmpeg/util')
     const inputName = `in-${crypto.randomUUID()}.${file.name.split('.').pop() ?? 'mp3'}`
     const outputName = 'out.mp3'
     await ff.writeFile(inputName, await fetchFile(file))

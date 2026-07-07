@@ -22,15 +22,9 @@ export function useIncomingChatAlerts(
   }, [chatOpen])
 
   useEffect(() => {
-    if (!chatHistoryReady) {
-      console.log('[msg-sound] alert handler skipped — chatHistoryReady=false')
-      return
-    }
+    if (!chatHistoryReady) return
 
     if (!seededRef.current) {
-      console.log('[msg-sound] alert handler seeding seen ids (no sound)', {
-        incomingCount: incoming.length,
-      })
       for (const m of incoming) seenIdsRef.current.add(m.id)
       seededRef.current = true
       return
@@ -41,11 +35,6 @@ export function useIncomingChatAlerts(
       if (seenIdsRef.current.has(m.id)) continue
       seenIdsRef.current.add(m.id)
       newCount++
-      console.log('[msg-sound] alert handler decided to play sound', {
-        messageId: m.id,
-        chatOpen,
-      })
-      console.log('[msg-sound] attempting play')
       onNew?.()
     }
 

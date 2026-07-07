@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf'
 
 import { getPlatformOrigin } from '@/lib/tenant'
 
@@ -146,6 +145,8 @@ export async function downloadAllEventQrsPdf(
   ctx.strokeRect(24, 24, w - 48, h - 48)
 
   const dataUrl = canvas.toDataURL('image/png')
+  // ENG4: loaded on demand so jspdf stays out of the main bundle.
+  const { jsPDF } = await import('jspdf')
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'px',

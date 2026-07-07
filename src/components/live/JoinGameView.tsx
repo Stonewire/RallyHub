@@ -72,7 +72,7 @@ import {
   activeSubmissionForGame,
 } from '@/lib/live-event'
 import { winnerSoundEnabled } from '@/lib/winner-sound'
-import { isFacilitatorToTeamChatMessage, explainFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
+import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
@@ -252,38 +252,6 @@ export function JoinGameView({
       ),
     [visibleMessages, teamId, teamSenderName],
   )
-
-  const classifiedMessageIdsRef = useRef<Set<string>>(new Set())
-  useEffect(() => {
-    for (const m of messages) {
-      if (classifiedMessageIdsRef.current.has(m.id)) continue
-      classifiedMessageIdsRef.current.add(m.id)
-      const visibleToTeam = m.team_id == null || m.team_id === teamId
-      if (!visibleToTeam) {
-        console.log('[msg-sound] team device message classified', {
-          id: m.id,
-          team_id: m.team_id,
-          sender: m.sender,
-          isIncomingFacilitator: false,
-          reason: `not visible to this team (myTeamId=${teamId})`,
-        })
-        continue
-      }
-      const { isIncoming, reason } = explainFacilitatorToTeamChatMessage(
-        m,
-        teamId,
-        teamSenderName,
-      )
-      console.log('[msg-sound] team device message classified', {
-        id: m.id,
-        team_id: m.team_id,
-        sender: m.sender,
-        teamSenderName,
-        isIncomingFacilitator: isIncoming,
-        reason,
-      })
-    }
-  }, [messages, teamId, teamSenderName])
 
   const playIncomingChatSound = useCallback(() => {
     playNewMessageSound()
@@ -686,13 +654,20 @@ export function JoinGameView({
   async function cancelPendingSubmission(subId: string) {
     setCancelling(true)
     try {
-      const { error } = await supabase
+      const { data: cancelledRow, error } = await supabase
         .from('submissions')
         .update({ status: 'cancelled' })
         .eq('id', subId)
+        .select()
+        .single()
       if (error) {
         notify("Couldn't cancel submission — try again")
         return
+      }
+      // Broadcast the change like submit does, so this device (and others on
+      // broadcast-only realtime) clears the pending tile without a refresh.
+      if (cancelledRow) {
+        await publishSubmissionChange(event.id, 'UPDATE', cancelledRow)
       }
       notify('Submission cancelled')
       setSelectedGame(null)
@@ -1002,7 +977,10 @@ export function JoinGameView({
     )
   } else if (stage?.type === 'open') {
     const openGameIds = stage.gameIds ?? []
-    const openGames = games.filter((g) => openGameIds.includes(g.id))
+    // Stage order = the organiser's drag-to-reorder order in the event editor.
+    const openGames = openGameIds
+      .map((id) => games.find((g) => g.id === id))
+      .filter((g): g is (typeof games)[number] => g != null)
     const activeOpenGame = resolveGameFromList(games, selectedGame)
 
     if (openGameIds.length > 0 && openGames.length === 0 && !selectedGame) {
