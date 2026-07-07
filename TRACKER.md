@@ -1,9 +1,9 @@
 # RallyHub Fixes Tracker
 
-Working branch: `fixes`. Nothing merges to `main` without Rumen's say-so.
-Update the checkboxes here as work lands. Statuses verified against the actual
-code on 2 Jul 2026 (the V2.0 rollback un-shipped several items the old Cowork
-tracker showed as done; this file reflects what is really in `main` today).
+Workflow since 7 Jul 2026: small fixes, redesigns and features push straight
+to `main` (production). The `fixes` branch is reserved for risky live-event
+work (currently: the quest submit delay and the bingo smoothness
+investigation). Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint.
 
 **Versioning on main** (three numbers, MAJOR.MINOR.PATCH):
 - Patch (small fixes): 2.0.1, 2.0.2, ...
@@ -65,7 +65,9 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 
 ## Open bugs / security
 
-- [ ] **P1-B1** Bingo Start still needs 2-3 presses (REOPENED: the ae62a28 staleness guard helped but did not cure it; re-diagnose with live pairing - session 3)
+- [ ] **P1-SUBMIT** (NEXT, most urgent, on `fixes`) Quest submit/cancel leaves the player stuck ~15s on the "Submitting" screen even after the facilitator already sees the submission; same delay on cancel
+- [ ] **P1-BINGO** (own dedicated session, on `fixes`) Bingo smoothness: marks sometimes cannot be selected right away, correct cells stay yellow before turning green, phone win animation delayed. Includes the old Start double-press (P1-B1). Rumen accepts this will take a big investigation
+- [ ] **P1-B1** Bingo Start still needs 2-3 presses (folded into P1-BINGO)
 - [ ] **P0-2b** Anon storage overwrite hardening (needs signed-URL or edge-function approach; join token invisible to storage RLS)
 - [ ] **P1-1** Players recover if facilitator tab closes (PARKED: full-bundle poll froze bingo; needs non-disruptive server push)
 - [x] **P1-3b** Atomic quiz restart — restart_quiz_scores RPC (migration 082, live on prod) + client swap (on `fixes`; needs live test)
