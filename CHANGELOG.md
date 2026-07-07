@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.1.1 — 2026-07-07 (facilitator console polish)
+Rumen's review pass on the redesign: announcement buttons on their own row,
+display copy icon top-left, one-row [-15][play][+15] stepper without the
+minute chip, green glow on the live stage-controls card, and a yellow border
+on selected Stage / filter buttons so selection is obvious in both themes.
+
 ## V2.1.0 — 2026-07-07 (the fixes-branch batch)
 Everything from the fixes branch, merged via PR #1. Pre-merge state saved as
 branch `stable-2.0`.
