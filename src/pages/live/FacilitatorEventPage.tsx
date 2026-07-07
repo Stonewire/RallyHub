@@ -1307,16 +1307,18 @@ export function FacilitatorEventPage() {
             disabled={!controlsLive}
             className="min-w-0 space-y-4 border-0 p-0"
           >
-          {/* UI-6 (#21): compact — one row, sits right under the display preview. */}
+          {/* Compact announcements: label + message row, send buttons on their own row. */}
           <Card className="neo-card border-border/80 space-y-2 bg-card p-3 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
               <NeoLabel className="shrink-0">Announcement</NeoLabel>
               <NeoInput
                 value={announcement}
                 onChange={(e) => setAnnouncement(e.target.value)}
                 placeholder="Message… clears after 1 minute"
-                className="bg-background min-w-[10rem] flex-1"
+                className="bg-background flex-1"
               />
+            </div>
+            <div className="flex flex-wrap gap-2">
               {(['display', 'participants', 'both'] as const).map((t) => (
                 <FacilitatorButton
                   key={t}
@@ -1349,7 +1351,8 @@ export function FacilitatorEventPage() {
           {/* UI-7: stage controls live here, left under Announcements, only when a
               quiz / bingo / break stage is active. Quest review stays on the right. */}
           {stage && stage.type !== 'open' ? (
-            <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+            // Green glow marks the live stage controls so the eye lands here.
+            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
               {stage.type === 'quiz' && question ? (
             <div className="space-y-4">
               <p className="text-muted-foreground text-sm">
@@ -1741,6 +1744,12 @@ export function FacilitatorEventPage() {
                     key={s.id}
                     size="sm"
                     variant={state.current_stage_index === i ? 'primary' : 'surface'}
+                    // Yellow border marks the selected stage clearly in both themes.
+                    className={
+                      state.current_stage_index === i
+                        ? 'border-2 border-[#FFC107]'
+                        : 'border-2 border-transparent'
+                    }
                     onClick={() => selectStage(i)}
                   >
                     Stage {i + 1}
@@ -1911,17 +1920,8 @@ export function FacilitatorEventPage() {
                   {formatTimer(timerDisplay)}
                 </button>
               )}
-              {/* UI-1: stepper next to Start — [-15] [current] [+15]. */}
-              <div className="flex flex-wrap items-center gap-2">
-                <FacilitatorButton
-                  size="sm"
-                  onClick={() =>
-                    void patchState({ timer_running: !state.timer_running })
-                  }
-                >
-                  {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
-                  {state.timer_running ? 'Pause' : 'Start'}
-                </FacilitatorButton>
+              {/* One row: [-15] [play/pause icon] [+15]. */}
+              <div className="flex items-center gap-2">
                 <FacilitatorButton
                   size="sm"
                   variant="outline"
@@ -1933,9 +1933,16 @@ export function FacilitatorEventPage() {
                 >
                   <Minus className="size-4" /> 15
                 </FacilitatorButton>
-                <span className="text-muted-foreground min-w-14 text-center text-sm font-medium tabular-nums">
-                  {Math.round(state.timer_seconds / 60)} min
-                </span>
+                <FacilitatorButton
+                  size="sm"
+                  title={state.timer_running ? 'Pause' : 'Start'}
+                  aria-label={state.timer_running ? 'Pause the countdown' : 'Start the countdown'}
+                  onClick={() =>
+                    void patchState({ timer_running: !state.timer_running })
+                  }
+                >
+                  {state.timer_running ? <Pause className="size-4" /> : <Play className="size-4" />}
+                </FacilitatorButton>
                 <FacilitatorButton
                   size="sm"
                   variant="outline"
@@ -2019,7 +2026,8 @@ export function FacilitatorEventPage() {
                   <Button
                     key={t}
                     size="sm"
-                    variant={subTab === t ? 'secondary' : 'outline'}
+                    variant={subTab === t ? 'default' : 'outline'}
+                    className={subTab === t ? 'border-2 border-[#FFC107]' : 'border-2 border-transparent'}
                     onClick={() => setSubTab(t)}
                   >
                     {t}

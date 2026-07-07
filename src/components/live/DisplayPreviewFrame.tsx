@@ -74,7 +74,7 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         variant="outline"
         size="icon-sm"
         title="Copy display link"
-        className="absolute top-2 right-2 border-white/30 bg-black/40 text-white opacity-40 backdrop-blur-sm transition-opacity hover:bg-black/60 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-80"
+        className="absolute top-2 left-2 border-white/30 bg-black/40 text-white opacity-40 backdrop-blur-sm transition-opacity hover:bg-black/60 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-80"
         onClick={() => {
           void copyToClipboard(displayUrl)
           setCopied(true)
@@ -84,7 +84,7 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
       </Button>
       {copied ? (
-        <span className="absolute top-2 right-11 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+        <span className="absolute top-2 left-11 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
           Link copied
         </span>
       ) : null}
