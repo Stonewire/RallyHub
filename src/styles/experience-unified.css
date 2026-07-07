@@ -43,14 +43,15 @@
   }
 
   .experience-scope .xp-challenge-description {
-    font-size: 0.875rem;
+    font-size: 1rem;
+    font-weight: 600;
     line-height: 1.5;
-    color: rgb(255 255 255 / 0.9);
+    color: rgb(255 255 255 / 0.95);
   }
 
   @media (min-width: 640px) {
     .experience-scope .xp-challenge-description {
-      font-size: 1rem;
+      font-size: 1.125rem;
     }
   }
 

@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.3.1 — 2026-07-07 (description formatting on player screens)
+- The photo/video "take a photo/video" briefing screen was showing the
+  description's HTML tags as literal text (e.g. `<b><u>`) instead of
+  formatting them - it was missing the rich text renderer added in V2.3.0.
+  Fixed, and reordered that screen (and the two other challenge screens) to
+  Title → Points → Photo → Description → Button, so there's no empty gap
+  when a game has no cover image.
+- Description text on player-facing challenge screens is bigger and
+  semibold by default, for readability.
+
 ## V2.3.0 — 2026-07-07 (recycle bin + description formatting + events fix)
 - **Fixed a live bug**: creating an event and attaching games could fail with
   `column "updated_at" of relation "events" does not exist`, leaving the

@@ -51,17 +51,17 @@ export function OpenGameChallengeReview({
       >
         {gamePointsDisplay(game)}
       </span>
-      {game.description ? (
-        <RichText
-          html={game.description}
-          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
-        />
-      ) : null}
       {game.cover_url ? (
         <img
           src={game.cover_url}
           alt=""
           className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+        />
+      ) : null}
+      {game.description ? (
+        <RichText
+          html={game.description}
+          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
         />
       ) : null}
 

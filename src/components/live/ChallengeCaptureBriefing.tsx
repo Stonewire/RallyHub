@@ -1,6 +1,7 @@
 import { Camera, Video } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
+import { RichText } from '@/components/ui/rich-text'
 import { textOnAccent } from '@/lib/live-event'
 
 type ChallengeCaptureBriefingProps = {
@@ -39,10 +40,18 @@ export function ChallengeCaptureBriefing({
       >
         {pointsLabel}
       </span>
+      {coverUrl ? (
+        <img
+          src={coverUrl}
+          alt=""
+          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+        />
+      ) : null}
       {description ? (
-        <p className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4">
-          {description}
-        </p>
+        <RichText
+          html={description}
+          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
+        />
       ) : null}
       <LiveAccentButton
         type="button"
@@ -54,13 +63,6 @@ export function ChallengeCaptureBriefing({
         <Icon className="size-5 shrink-0" />
         {cta}
       </LiveAccentButton>
-      {coverUrl ? (
-        <img
-          src={coverUrl}
-          alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
-        />
-      ) : null}
     </div>
   )
 }
