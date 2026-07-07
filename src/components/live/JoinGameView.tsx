@@ -553,7 +553,15 @@ export function JoinGameView({
         .select()
         .single()
       if (error) throw error
-      if (data) await publishSubmissionChange(event.id, 'INSERT', data)
+      if (data) {
+        // Update our own view immediately so the screen never waits on the
+        // broadcast fan-out (which can silently fall back to a slow REST call
+        // when the channel isn't in a joined state — see markBingoCell for the
+        // same pattern). The DB write above is what actually matters; the
+        // broadcast is best-effort for other devices only.
+        mergeOwnSubmission('INSERT', data)
+        void publishSubmissionChange(event.id, 'INSERT', data)
+      }
       finishOpenSubmitSuccess()
     } catch {
       notify("Couldn't submit — tap to retry")
@@ -588,7 +596,10 @@ export function JoinGameView({
         .select()
         .single()
       if (error) throw error
-      if (data) await publishSubmissionChange(event.id, 'INSERT', data)
+      if (data) {
+        mergeOwnSubmission('INSERT', data)
+        void publishSubmissionChange(event.id, 'INSERT', data)
+      }
       finishOpenSubmitSuccess()
     } catch (err) {
       const msg =
@@ -643,11 +654,8 @@ export function JoinGameView({
       return
     }
     if (quizRow) {
-      await publishSubmissionChange(
-        event.id,
-        existing ? 'UPDATE' : 'INSERT',
-        quizRow,
-      )
+      mergeOwnSubmission(existing ? 'UPDATE' : 'INSERT', quizRow)
+      void publishSubmissionChange(event.id, existing ? 'UPDATE' : 'INSERT', quizRow)
     }
   }
 
@@ -664,10 +672,12 @@ export function JoinGameView({
         notify("Couldn't cancel submission — try again")
         return
       }
-      // Broadcast the change like submit does, so this device (and others on
-      // broadcast-only realtime) clears the pending tile without a refresh.
+      // Update our own view immediately (see submitTextGame) instead of waiting
+      // on the broadcast; still fire it for other devices on broadcast-only
+      // realtime, just not blocking this device's own UI on it.
       if (cancelledRow) {
-        await publishSubmissionChange(event.id, 'UPDATE', cancelledRow)
+        mergeOwnSubmission('UPDATE', cancelledRow)
+        void publishSubmissionChange(event.id, 'UPDATE', cancelledRow)
       }
       notify('Submission cancelled')
       setSelectedGame(null)
@@ -728,7 +738,8 @@ export function JoinGameView({
             .single()
       if (error) throw error
       if (bonusRow) {
-        await publishSubmissionChange(
+        mergeOwnSubmission(existing ? 'UPDATE' : 'INSERT', bonusRow)
+        void publishSubmissionChange(
           event.id,
           existing ? 'UPDATE' : 'INSERT',
           bonusRow,
