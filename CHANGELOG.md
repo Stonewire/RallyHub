@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.3.2 — 2026-07-07 (description editor: text colour fix)
+- Picking a text colour in the description editor didn't stick - the native
+  colour picker steals keyboard focus from the editor, so the colour command
+  was running against nothing. It now refocuses the editor before applying
+  the colour, so it saves and reloads correctly.
+
 ## V2.3.1 — 2026-07-07 (description formatting on player screens)
 - The photo/video "take a photo/video" briefing screen was showing the
   description's HTML tags as literal text (e.g. `<b><u>`) instead of

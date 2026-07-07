@@ -75,6 +75,10 @@ export function RichTextEditor({
   }
 
   function restoreSelectionAnd(fn: () => void) {
+    // The color input steals focus to open its native picker, so execCommand
+    // would otherwise run against no active editable region. Refocus the
+    // contenteditable div first, then reapply the saved range.
+    ref.current?.focus()
     const sel = window.getSelection()
     if (sel && savedRange.current) {
       sel.removeAllRanges()
