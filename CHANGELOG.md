@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.2.0 — 2026-07-07 (batch game import)
+Import button on the Games page: download a CSV template, fill in one row per
+game (quiz games: one row per question), upload, review the per-row validation,
+and create the whole batch in one go. Supports photo / video / text / quiz,
+static or 100-500 range points, time limits, typed and multiple-choice answers,
+and a Group column that files games into groups (created automatically). The
+original hand-made sheets (Name, Type, Description, Point type, Points) import
+unchanged. Music bingo is excluded on purpose - it needs audio uploads.
+
 ## V2.1.1 — 2026-07-07 (facilitator console polish)
 Rumen's review pass on the redesign: announcement buttons on their own row,
 display copy icon top-left, one-row [-15][play][+15] stepper without the

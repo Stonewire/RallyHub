@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
+import { GameImportModal } from '@/components/games/GameImportModal'
 import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { InstallMusicLibraryModal } from '@/components/rallyhub/InstallMusicLibraryModal'
@@ -168,6 +169,7 @@ export function AdminGamesPage() {
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
   const [installMusicOpen, setInstallMusicOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [installGroup, setInstallGroup] = useState<{
     name: string
     games: GameRow[]
@@ -330,6 +332,9 @@ export function AdminGamesPage() {
       }
       actions={
         <>
+          <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
+            Import
+          </NeoButton>
           <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
             New Group
           </NeoButton>
@@ -498,6 +503,15 @@ export function AdminGamesPage() {
 
       {installMusicOpen ? (
         <InstallMusicLibraryModal onClose={() => setInstallMusicOpen(false)} />
+      ) : null}
+
+      {importOpen && organizationId ? (
+        <GameImportModal
+          organizationId={organizationId}
+          isPlatformLibrary={isPlatformLibrary}
+          groups={groups}
+          onClose={() => setImportOpen(false)}
+        />
       ) : null}
 
       {installGroup ? (
