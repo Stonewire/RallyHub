@@ -3,8 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
-import { StatusIndicator } from '@/components/ui/status-indicator'
-import { GAME_TYPE_LABELS, gameStatusTone, type GameRow } from '@/hooks/use-games'
+import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
 
 type DraggableGamesGridProps = {
   games: GameRow[]
@@ -94,7 +93,6 @@ export function DraggableGamesGrid({
               </p>
               <p className="text-muted-foreground text-xs">{GAME_TYPE_LABELS[game.type]}</p>
             </div>
-            <StatusIndicator status={gameStatusTone(game.status)} className="shrink-0" />
           </div>
           <div className="mt-auto flex flex-wrap gap-1.5">
             {groups.length > 0 ? (

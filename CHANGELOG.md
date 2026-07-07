@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.2.1 — 2026-07-07 (game editor + card cleanup)
+- Editing a photo or video game (including ones brought in via batch import)
+  now has the full editor: points (static/range), solution description and
+  image, and for video the max duration + example video clip. Previously
+  these were create-only and Edit showed a placeholder message.
+- Removed the Draft/Active status dot from game cards on the Games page -
+  it was never actionable (games have no status workflow like events do)
+  and just added visual noise.
+
 ## V2.2.0 — 2026-07-07 (batch game import)
 Import button on the Games page: download a CSV template, fill in one row per
 game (quiz games: one row per question), upload, review the per-row validation,

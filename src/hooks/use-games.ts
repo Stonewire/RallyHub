@@ -144,15 +144,6 @@ export const GAME_TYPE_LABELS: Record<GameType, string> = {
   music_bingo: 'Music Bingo',
 }
 
-export function gameStatusTone(
-  status: string,
-): 'active' | 'draft' | 'ready' | 'archived' {
-  if (status === 'active') return 'active'
-  if (status === 'ready') return 'ready'
-  if (status === 'archived') return 'archived'
-  return 'draft'
-}
-
 export function useGame(gameId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.game(gameId),
