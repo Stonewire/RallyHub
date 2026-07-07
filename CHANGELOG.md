@@ -2,6 +2,27 @@
 
 Version shown small under "Sign out" in the admin sidebar (`src/lib/version.ts`).
 Bump `APP_VERSION` and add an entry here on each meaningful update merged to `main`.
+Numbering: first = major updates, second = bigger batches of features/redesigns,
+third = small fixes (e.g. 2.1.1).
+
+## V2.1.0 — 2026-07-07 (the fixes-branch batch)
+Everything from the fixes branch, merged via PR #1. Pre-merge state saved as
+branch `stable-2.0`.
+- Onboarding v2: per-user tours (every account reset; event managers get a
+  trimmed run), auto-minimising panel, revisitable completed steps, Mark
+  complete on every step. Interactive 19-step spotlight tour underneath.
+- Facilitator console redesign: countdown + Reveal Winner top right, inline
+  countdown editing, stepper next to Start, display preview fills its card
+  with a hover copy icon, compact announcements, stage controls left and
+  only when active.
+- Quest editor: quick-add (All / photo / video / text), drag-to-reorder;
+  player phones follow the stage order.
+- Re-landed post-rollback fixes: cancel clears the player tile instantly,
+  atomic bingo + quiz restart score reversal (RPCs), reconnect backoff cap,
+  PII debug logs stripped, dead components deleted.
+- Tablet kiosk link blocked until the default 1234 PIN is changed.
+- vitest suite over the bingo scoring core (30 tests); jspdf + ffmpeg now
+  lazy-load out of the main bundle.
 
 ## V2.0 — 2026-06-23 (first client-ready stable)
 First version stable enough for clients to use in production. Highlights:
