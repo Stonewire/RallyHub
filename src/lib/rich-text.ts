@@ -39,6 +39,11 @@ function clean(node: Node) {
         else el.removeAttribute('style')
       } else if (el.tagName === 'FONT' && attr.name === 'size') {
         if (!/^[1-7]$/.test(attr.value)) el.removeAttribute('size')
+      } else if (el.tagName === 'FONT' && attr.name === 'color') {
+        // execCommand('foreColor', ...) writes a `color` attribute, not a
+        // style prop -- keep it (hex only, matching what our color input
+        // always produces) instead of silently dropping it on save.
+        if (!/^#[0-9a-fA-F]{3,8}$/.test(attr.value)) el.removeAttribute('color')
       } else {
         el.removeAttribute(attr.name)
       }

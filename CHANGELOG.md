@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.3.3 — 2026-07-07 (description editor: text colour actually fixed)
+- The real bug: the colour picker writes a `<font color="...">` attribute,
+  not a CSS style, and the sanitizer only ever kept colour via `style` -
+  so it was silently stripped every time you hit Save. Confirmed fixed by
+  colouring text, saving, and reloading against the live database.
+
 ## V2.3.2 — 2026-07-07 (description editor: text colour fix)
 - Picking a text colour in the description editor didn't stick - the native
   colour picker steals keyboard focus from the editor, so the colour command
