@@ -17,8 +17,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { GAME_TYPE_LABELS, useGame, useUpdateGame } from '@/hooks/use-games'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
+import { sanitizeRichText } from '@/lib/rich-text'
 import {
   useAdminOrganizationId,
   useAdminOrganizationLoading,
@@ -71,7 +73,7 @@ export function AdminGameEditPage() {
     setSolutionDescription(g.solution_description ?? '')
     setSolutionImageUrl(g.solution_image_url)
     setExampleVideoUrl(c.example_video_url ?? null)
-    const totalSeconds = c.max_video_duration_seconds ?? 120
+    const totalSeconds = c.max_video_duration_seconds ?? 30
     setVideoMaxMinutes(Math.floor(totalSeconds / 60))
     setVideoMaxSeconds(totalSeconds % 60)
     setHydrated(true)
@@ -146,7 +148,7 @@ export function AdminGameEditPage() {
         gameId,
         patch: {
           name: name.trim(),
-          description: description || null,
+          description: description ? sanitizeRichText(description) : null,
           cover_url: coverUrl,
           ...(isPhotoVideo
             ? {
@@ -219,11 +221,7 @@ export function AdminGameEditPage() {
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="bg-background"
-            />
+            <RichTextEditor value={description} onChange={setDescription} />
           </div>
         </Card>
 

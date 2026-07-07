@@ -32,7 +32,7 @@ export function useAdminGames(
       : queryKeys.games(organizationId),
     enabled: isPlatformLibrary ? true : Boolean(organizationId),
     queryFn: async (): Promise<GameRow[]> => {
-      let query = supabase.from('games').select('*')
+      let query = supabase.from('games').select('*').is('deleted_at', null)
 
       if (isPlatformLibrary) {
         query = query.eq('is_platform_template', true)
@@ -62,9 +62,31 @@ export function useGames(organizationId: string | null) {
         .from('games')
         .select('*')
         .eq('organization_id', organizationId)
+        .is('deleted_at', null)
         .order('list_order', { ascending: true })
         .order('created_at', { ascending: false })
 
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
+export function useTrashedGames(organizationId: string | null, isPlatformLibrary: boolean) {
+  return useQuery({
+    queryKey: queryKeys.trashedGames(organizationId),
+    enabled: isPlatformLibrary ? true : Boolean(organizationId),
+    queryFn: async (): Promise<GameRow[]> => {
+      let query = supabase.from('games').select('*').not('deleted_at', 'is', null)
+
+      if (isPlatformLibrary) {
+        query = query.eq('is_platform_template', true)
+      } else {
+        if (!organizationId) return []
+        query = query.eq('organization_id', organizationId)
+      }
+
+      const { data, error } = await query.order('deleted_at', { ascending: false })
       if (error) throw error
       return data ?? []
     },
@@ -99,11 +121,36 @@ export function useDeleteGame(organizationId: string | null) {
 
   return useMutation({
     mutationFn: async (gameId: string) => {
-      const { error } = await supabase.from('games').delete().eq('id', gameId)
+      const { error } = await supabase
+        .from('games')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', gameId)
       if (error) throw error
     },
     onSuccess: () => {
       invalidateGameListQueries(queryClient, organizationId)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.trashedGames(organizationId) })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+    },
+  })
+}
+
+export function useRestoreGame(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (gameId: string) => {
+      const { error } = await supabase
+        .from('games')
+        .update({ deleted_at: null })
+        .eq('id', gameId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      invalidateGameListQueries(queryClient, organizationId)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.trashedGames(organizationId) })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),
       })

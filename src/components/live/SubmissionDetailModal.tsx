@@ -9,6 +9,7 @@ import {
 } from '@/lib/challenge-camera'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RichText } from '@/components/ui/rich-text'
 import { parseTextGameConfig, textSubmissionDisplayLabel, isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -118,9 +119,10 @@ export function SubmissionDetailModal({
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
                 Challenge description
               </p>
-              <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {game.description}
-              </p>
+              <RichText
+                html={game.description}
+                className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words"
+              />
             </div>
           ) : null}
           {game?.solution_description?.trim() ? (

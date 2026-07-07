@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { useCreateGame } from '@/hooks/use-games'
 import {
   useAdminOrganizationId,
@@ -26,6 +27,7 @@ import {
 } from '@/hooks/use-organization-id'
 import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
+import { sanitizeRichText } from '@/lib/rich-text'
 import type { GameType, PointsType } from '@/types/database'
 import type { GameConfig, QuizQuestion } from '@/types/game-config'
 const TYPES: {
@@ -77,13 +79,13 @@ export function AdminGamesNewPage() {
   const [solutionDescription, setSolutionDescription] = useState('')
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null)
   const [exampleVideoUrl, setExampleVideoUrl] = useState<string | null>(null)
-  const [videoMaxMinutes, setVideoMaxMinutes] = useState(2)
-  const [videoMaxSeconds, setVideoMaxSeconds] = useState(0)
+  const [videoMaxMinutes, setVideoMaxMinutes] = useState(0)
+  const [videoMaxSeconds, setVideoMaxSeconds] = useState(30)
 
   // Quiz / music bingo config
   const [config, setConfig] = useState<GameConfig>({
     timer_seconds: 20,
-    max_video_duration_seconds: 120,
+    max_video_duration_seconds: 30,
     questions: [emptyQuestion()],
     rounds_enabled: false,
     rounds: [],
@@ -157,7 +159,7 @@ export function AdminGamesNewPage() {
         organization_id: organizationId,
         name: name.trim(),
         type: gameType,
-        description: description || null,
+        description: description ? sanitizeRichText(description) : null,
         cover_url: coverUrl ?? null,
         points_type: gameType === 'quiz' || gameType === 'music_bingo' ? 'static' : pointsType,
         points_static: pointsType === 'static' ? pointsStatic : null,
@@ -263,12 +265,7 @@ export function AdminGamesNewPage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              />
+              <RichTextEditor value={description} onChange={setDescription} />
             </div>
             <FileField
               label="Cover image"

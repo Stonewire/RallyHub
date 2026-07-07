@@ -41,21 +41,25 @@ export function useDashboardStats(organizationId: string | null) {
         supabase
           .from('games')
           .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId),
-        supabase
-          .from('events')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId),
+          .eq('organization_id', organizationId)
+          .is('deleted_at', null),
         supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId)
-          .eq('status', 'active'),
+          .is('deleted_at', null),
         supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId)
-          .eq('status', 'ready'),
+          .eq('status', 'active')
+          .is('deleted_at', null),
+        supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+          .eq('status', 'ready')
+          .is('deleted_at', null),
       ])
 
       if (gamesRes.error) throw gamesRes.error
@@ -84,6 +88,7 @@ export function useRecentEvents(organizationId: string | null) {
         .from('events')
         .select('id, name, event_date, status, created_at')
         .eq('organization_id', organizationId)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(5)
 

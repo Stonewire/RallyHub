@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
 import {
   NoOrganizationMessage,
@@ -21,6 +22,8 @@ import {
   useDeleteEvent,
   useDuplicateEvent,
   useEvents,
+  useRestoreEvent,
+  useTrashedEvents,
   useUpdateEventStatus,
   type EventRow,
 } from '@/hooks/use-events'
@@ -44,6 +47,8 @@ export function AdminEventsPage() {
   const deleteEvent = useDeleteEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
   const duplicateEvent = useDuplicateEvent(organizationId)
+  const trashedEventsQuery = useTrashedEvents(organizationId)
+  const restoreEvent = useRestoreEvent(organizationId)
   const navigate = useNavigate()
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
@@ -55,6 +60,7 @@ export function AdminEventsPage() {
 
   const [linksModal, setLinksModal] = useState<EventRow | null>(null)
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<EventRow | null>(null)
+  const [view, setView] = useState<'events' | 'bin'>('events')
 
   const applyReorder = useCallback(
     async (eventId: string, newStatus: EventStatus, indexInGroup: number) => {
@@ -186,7 +192,39 @@ export function AdminEventsPage() {
       }
     >
       <OrgSuspendedBanner accountStatus={orgQuery.data?.account_status} />
-      {eventsQuery.isLoading ? (
+
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <NeoButton
+          type="button"
+          size="sm"
+          variant={view === 'events' ? 'primary' : 'surface'}
+          onClick={() => setView('events')}
+        >
+          Events
+        </NeoButton>
+        <NeoButton
+          type="button"
+          size="sm"
+          variant={view === 'bin' ? 'primary' : 'surface'}
+          onClick={() => setView('bin')}
+        >
+          Bin {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
+        </NeoButton>
+      </div>
+
+      {view === 'bin' ? (
+        <BinPanel
+          items={(trashedEventsQuery.data ?? []).map((e) => ({
+            id: e.id,
+            name: e.name,
+            deletedAt: e.deleted_at!,
+          }))}
+          emptyLabel="No deleted events."
+          restoringId={restoreEvent.isPending ? restoreEvent.variables : undefined}
+          onRestore={(id) => void restoreEvent.mutateAsync(id)}
+          onOpen={(id) => navigate(`/admin/events/${id}`)}
+        />
+      ) : eventsQuery.isLoading ? (
         <QueryLoading rows={5} />
       ) : eventsQuery.isError ? (
         <QueryError message={eventsQuery.error.message} />
@@ -233,7 +271,7 @@ export function AdminEventsPage() {
           <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
             <h2 id="delete-event-title" className="text-foreground mb-2 font-semibold">Delete event</h2>
             <p className="text-muted-foreground mb-5 text-sm">
-              Delete <strong className="text-foreground">{deleteConfirmEvent.name}</strong>? This cannot be undone.
+              Delete <strong className="text-foreground">{deleteConfirmEvent.name}</strong>? It'll move to the Bin and be permanently deleted in 30 days.
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setDeleteConfirmEvent(null)}>Cancel</Button>

@@ -8,8 +8,9 @@ import {
   X,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
+import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
 import { GameImportModal } from '@/components/games/GameImportModal'
 import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
@@ -38,6 +39,8 @@ import {
   useCreateGameGroup,
   useDeleteGame,
   useReorderGames,
+  useRestoreGame,
+  useTrashedGames,
   type GameRow,
 } from '@/hooks/use-games'
 import {
@@ -160,8 +163,11 @@ export function AdminGamesPage() {
   const renameGroup = useRenameGameGroup(organizationId)
   const deleteGroup = useDeleteGameGroup(organizationId)
   const reorderGames = useReorderGames(organizationId)
+  const trashedGamesQuery = useTrashedGames(organizationId, isPlatformLibrary)
+  const restoreGame = useRestoreGame(organizationId)
+  const navigate = useNavigate()
 
-  const [view, setView] = useState<'games' | 'catalog'>('games')
+  const [view, setView] = useState<'games' | 'catalog' | 'bin'>('games')
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
@@ -361,6 +367,14 @@ export function AdminGamesPage() {
         >
           Music {isPlatformLibrary ? 'Library' : 'Catalog'}
         </NeoButton>
+        <NeoButton
+          type="button"
+          size="sm"
+          variant={view === 'bin' ? 'primary' : 'surface'}
+          onClick={() => setView('bin')}
+        >
+          Bin {trashedGamesQuery.data?.length ? `(${trashedGamesQuery.data.length})` : ''}
+        </NeoButton>
         {isPlatformLibrary && view === 'catalog' ? (
           <NeoButton
             type="button"
@@ -376,6 +390,18 @@ export function AdminGamesPage() {
 
       {view === 'catalog' && organizationId ? (
         <MusicCatalogManager organizationId={organizationId} />
+      ) : view === 'bin' ? (
+        <BinPanel
+          items={(trashedGamesQuery.data ?? []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            deletedAt: g.deleted_at!,
+          }))}
+          emptyLabel="No deleted games."
+          restoringId={restoreGame.isPending ? restoreGame.variables : undefined}
+          onRestore={(id) => void restoreGame.mutateAsync(id)}
+          onOpen={(id) => navigate(`/admin/games/${id}`)}
+        />
       ) : (
       <>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -598,8 +624,8 @@ export function AdminGamesPage() {
               </h3>
               <p id="delete-game-message" className="text-muted-foreground text-sm leading-relaxed">
                 Delete{' '}
-                <span className="text-foreground font-medium">{pendingDeleteGame.name}</span>? This
-                cannot be undone.
+                <span className="text-foreground font-medium">{pendingDeleteGame.name}</span>?
+                It'll move to the Bin and be permanently deleted in 30 days.
               </p>
             </div>
             {dialogError ? (

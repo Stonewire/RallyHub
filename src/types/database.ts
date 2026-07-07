@@ -172,6 +172,7 @@ export type Database = {
           is_platform_template: boolean
           source_template_id: string | null
           list_order: number
+          deleted_at: string | null
           created_at: string
         }
         Insert: {
@@ -193,6 +194,7 @@ export type Database = {
           is_platform_template?: boolean
           source_template_id?: string | null
           list_order?: number
+          deleted_at?: string | null
         }
         Update: {
           name?: string
@@ -210,6 +212,7 @@ export type Database = {
           is_default_for_new_clients?: boolean
           is_platform_template?: boolean
           list_order?: number
+          deleted_at?: string | null
         }
         Relationships: []
       }
@@ -319,8 +322,10 @@ export type Database = {
           invoice_paid: boolean
           invoiced_at: string | null
           wiped_at: string | null
+          deleted_at: string | null
           join_token: string
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
@@ -339,6 +344,7 @@ export type Database = {
           list_order?: number
           invoice_paid?: boolean
           invoiced_at?: string | null
+          deleted_at?: string | null
         }
         Update: {
           name?: string
@@ -355,6 +361,7 @@ export type Database = {
           list_order?: number
           invoice_paid?: boolean
           invoiced_at?: string | null
+          deleted_at?: string | null
         }
         Relationships: []
       }

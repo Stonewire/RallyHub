@@ -257,3 +257,8 @@
 .font-display {
   font-family: var(--font-display);
 }
+
+.rich-text-editable[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+}

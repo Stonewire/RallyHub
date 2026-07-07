@@ -65,12 +65,3 @@ export async function resetEventData(eventId: string): Promise<void> {
   // and refetches the fresh slot list (anon clients don't get postgres_changes).
   await publishLiveBundleReload(eventId)
 }
-
-/** Wipe all live data for an archived event (keeps the event row for payment history). */
-export async function wipeEventData(eventId: string): Promise<void> {
-  // Delete Storage files before wiping DB rows so we have the URLs
-  await deleteEventStorageFiles(eventId)
-
-  const { error } = await supabase.rpc('wipe_event_data', { p_event_id: eventId })
-  if (error) throw error
-}

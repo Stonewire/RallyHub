@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { capTeamCountForEventStatus } from '@/lib/event-demo'
-import { resetEventData, wipeEventData } from '@/lib/reset-event-data'
+import { resetEventData } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { syncEventGameLinks } from '@/lib/sync-event-game-links'
 import { syncTeamSlots } from '@/lib/sync-team-slots'
@@ -43,8 +43,29 @@ export function useEvents(organizationId: string | null) {
         .select('*')
         .eq('organization_id', organizationId)
         .is('wiped_at', null)
+        .is('deleted_at', null)
         .order('list_order', { ascending: true })
         .order('event_date', { ascending: true, nullsFirst: false })
+
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
+export function useTrashedEvents(organizationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.trashedEvents(organizationId),
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<EventRow[]> => {
+      if (!organizationId) return []
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
 
       if (error) throw error
       return data ?? []
@@ -228,10 +249,47 @@ export function useDeleteEvent(organizationId: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (eventId: string) => wipeEventData(eventId),
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', eventId)
+      if (error) throw error
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.events(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.trashedEvents(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.recentEvents(organizationId),
+      })
+    },
+  })
+}
+
+export function useRestoreEvent(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ deleted_at: null })
+        .eq('id', eventId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.events(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.trashedEvents(organizationId),
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.dashboardStats(organizationId),

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { RichText } from '@/components/ui/rich-text'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
   CHALLENGE_VIDEO_MEDIA_CLASS,
@@ -51,9 +52,10 @@ export function OpenGameChallengeReview({
         {gamePointsDisplay(game)}
       </span>
       {game.description ? (
-        <p className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4">
-          {game.description}
-        </p>
+        <RichText
+          html={game.description}
+          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
+        />
       ) : null}
       {game.cover_url ? (
         <img

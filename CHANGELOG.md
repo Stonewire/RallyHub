@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.3.0 — 2026-07-07 (recycle bin + description formatting + events fix)
+- **Fixed a live bug**: creating an event and attaching games could fail with
+  `column "updated_at" of relation "events" does not exist`, leaving the
+  event saved but with no games attached (so it showed "This game is
+  unavailable" in Play mode). The `events` table was missing a column a
+  trigger added in a previous migration depended on.
+- **Recycle bin**: deleting a game or event now moves it to a Bin tab
+  (Games and Events pages) instead of destroying it - restore it or open it
+  directly from there. Shows days left before it's gone for good (30 days),
+  then it's auto-deleted. Invoiced events keep their record for payment
+  history even after the bin empties.
+- **Game description**: the box is now a proper multi-line editor with
+  basic formatting - bold, italic, underline, bigger/smaller text, and text
+  colour. Formatting only applies to the description field.
+- Video games now default to a 30 second max duration instead of 2 minutes
+  (still fully editable per game).
+
 ## V2.2.1 — 2026-07-07 (game editor + card cleanup)
 - Editing a photo or video game (including ones brought in via batch import)
   now has the full editor: points (static/range), solution description and
