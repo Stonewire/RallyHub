@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.2 — 2026-07-08 (admin reload bug fix + small cleanups)
+- **Hard reload on any /admin/* sub-route bounced to the dashboard**: for one
+  render after a signed-in session resolved, the app could read `role: null`
+  before the profile had actually finished loading, and a role-gated
+  redirect treated that as "no access," bouncing to /login and then to the
+  default dashboard once the real role loaded a moment later. Fixed by
+  tracking which user id the loaded profile actually belongs to, so the
+  loading flag stays true until it truly matches — reload now stays on the
+  page you were on.
+- **P2-1 documented**: multi-facilitator last-write-wins is a known,
+  accepted limitation for now (single-facilitator workflow assumed); noted
+  directly in code (`use-live-event.ts`) rather than built around.
+- Dropped the Q-2 (game-time label) and bonus-games-rebuild items from the
+  backlog — not wanted. Added Paddle payment integration and the branded
+  PDF event-recap report as tracked future work.
+
 ## V2.4.1 — 2026-07-08 (remove music bingo bonus challenges)
 Removed the bonus round feature completely: editor creation UI, facilitator
 trigger/reveal/end controls, player answer UI, display rendering, plus the

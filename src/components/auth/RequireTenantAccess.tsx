@@ -11,7 +11,7 @@ import { getPlatformOrigin } from '@/lib/tenant'
 export function RequireTenantAccess({ children }: { children: ReactNode }) {
   const { user, role, loading, profileLoading, profile } = useAuth()
   const { tenantOrg, tenantLoading, tenantError } = useTenant()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
 
   if (isPublicLivePath(pathname)) {
     return <>{children}</>
@@ -32,7 +32,9 @@ export function RequireTenantAccess({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return (
+      <Navigate to="/login" replace state={{ from: `${pathname}${search}` }} />
+    )
   }
 
   if (isFacilitatorOnlyRole(role)) {

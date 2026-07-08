@@ -388,6 +388,12 @@ export function useLiveEvent(eventId: string | undefined) {
     }
   }, [eventId, channelCycle, eventGameIdsKey])
 
+  // P2-1: assumes a single facilitator per event. This does a read-merge-write
+  // against the locally cached state, not a DB-level compare-and-swap — two
+  // facilitators editing the same event concurrently can silently overwrite
+  // each other's changes (last write wins, no conflict error). Fine for the
+  // documented single-facilitator workflow; would need a version/etag column
+  // on event_state to detect and reject stale writes if that changes.
   const updateState = useCallback(
     async (patch: TablesUpdate<'event_state'>) => {
       if (!bundleRef.current?.state.id) return

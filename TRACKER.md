@@ -48,8 +48,8 @@ round smoke test.
 FacilitatorEventPage refactor (ENG1). Staged over multiple sessions; each
 stage live-tested before the next.
 
-**Parked / needs a design chat first:** P0-2b, P1-1, P2-1, P2-UP, P2-LOG,
-ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
+**Parked / needs a design chat first:** P0-2b, P1-1, P2-UP, P2-LOG,
+ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ---
 
@@ -63,7 +63,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [x] Recycle bin for games + events: soft-delete with a Bin tab, 30-day restore window, auto-purge via pg_cron (migration 085); invoiced events keep their row after purge for payment history. Description field got basic rich text (bold/italic/underline/size/colour) + a bigger box; video default duration now 30s (V2.3.0)
 - [x] Client onboarding: 19-step interactive in-app tutorial (replaces the old L-1 "onboarding PDF" idea, dropped)
 - [x] Onboarding v2 (on `fixes`): per-user progress (migration 083; every existing account resets, each new user gets their own tour, event_manager sees a trimmed 10-step run), panel auto-minimises to a corner pill while the spotlight points at the page, completed steps clickable to revisit, Mark complete on every step
-- [ ] After `fixes` merges to main: drop the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns (production main still reads them until then)
+- [ ] Drop the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns — per-user version is live on `main`, no app code reads the org-level columns anymore (confirmed via grep). Migration written (`supabase/migrations/086_drop_org_onboarding_columns.sql`) but NOT applied — dropping columns is irreversible, needs Rumen to confirm before running it.
 
 ## Open bugs / security
 
@@ -76,7 +76,7 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **P0-2b** Anon storage overwrite hardening (needs signed-URL or edge-function approach; join token invisible to storage RLS)
 - [ ] **P1-1** Players recover if facilitator tab closes (PARKED: full-bundle poll froze bingo; needs non-disruptive server push)
 - [x] **P1-3b** Atomic quiz restart — restart_quiz_scores RPC (migration 082, live on prod) + client swap (on `fixes`; needs live test)
-- [ ] **P2-1** Multi-facilitator last-write-wins (version/etag on event_state, or document single-writer)
+- [x] **P2-1** Multi-facilitator last-write-wins — documented rather than fixed: `updateState` in `src/hooks/use-live-event.ts` now has a comment spelling out the single-facilitator assumption and what a real fix (version/etag on event_state) would need (on `main` as of V2.4.2)
 - [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
 - [ ] **P2-5** register-client signup rate limiting + captcha before public launch
 - [ ] **P2-UP** Photo compression before upload + upload error handling
@@ -104,7 +104,6 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 ## Quest stage editor
 
 - [x] **Q-1** Multi-select when adding Quest games (#13): All / All photo / All video / All text quick-add with counts, drawing from the whole org library (on `fixes`)
-- [ ] **Q-2** Game-time label on selected games inside the stage (#14) — SKIPPED for now per Rumen (games have no single time field; revisit if wanted)
 - [x] **Q-3** Drag-to-reorder Quest games; order = players' display order (#15) — draggable list in the stage editor + JoinGameView follows gameIds order (on `fixes`; player side needs Rumen's live test)
 
 ## Engineering health
@@ -115,8 +114,12 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 - [ ] **ENG6** Clear lint backlog (~85 errors, mostly React 19 rules)
 - [x] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md; all four stale branches deleted (neo-minimalism, security-hardening, bingo-live-fixes, new-features — fully merged, approved by Rumen)
 
+## Fixed — admin reload bug
+
+- [x] Hard reload on any /admin/* sub-route bounced to the dashboard — root cause: `profileLoading` in `src/contexts/auth-context.tsx` could read `false` for one render after a signed-in session resolved but before the profile (and role) had actually loaded for that user, so role-gated redirects (`RequireAuth`'s platform-access check) briefly saw `role: null`, treated it as "no access," and sent the user to `/login` without preserving where they'd been — landing them on the default dashboard once the real role loaded a moment later. Fixed by tracking which user id the loaded profile actually belongs to, so `profileLoading` stays true until it genuinely matches. Verified live across `/admin/games`, `/admin/settings`, `/admin/team` — reload now stays put (on `main` as of V2.4.2).
+
 ## Later / ideas
 
 - [ ] **L-2** AI features for clients (#24): bulk game creation, AI descriptions
-- [ ] Rebuild bonus games for music bingo properly (after BONUS-RM)
-- [ ] Fix: hard reload on any /admin/* sub-route bounces to dashboard (pre-existing, noticed during onboarding work)
+- [ ] **PAY-1** Paddle integration for the payment system (subscriptions/billing — currently no payment processor wired up)
+- [ ] **PDF-1** Branded PDF event-recap report — `src/lib/event-export.ts` currently ships a ZIP of media + CSV logs as a stand-in; the real branded PDF report was deferred and never built

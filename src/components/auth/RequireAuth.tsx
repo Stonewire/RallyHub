@@ -44,10 +44,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (
     isPlatformHost() &&
     location.pathname.startsWith('/admin') &&
+    role !== null &&
     !canAccessRallyHub(role) &&
     !isClientRole(role)
   ) {
-    return <Navigate to="/login" replace />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
   }
 
   if (location.pathname.startsWith('/rallyhub')) {

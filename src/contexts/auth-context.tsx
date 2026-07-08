@@ -35,7 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
+  // Which user id `profile` actually reflects (or has finished trying to fetch
+  // for). Plain `profileLoading` alone isn't enough: it settles back to false
+  // between the session resolving and the profile-fetch effect for the NEW
+  // user id re-arming it, so role-gated redirects (RequireAuth and friends)
+  // could briefly read `role: null` for a signed-in user and bounce to a
+  // default route instead of the page that was actually reloaded.
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -62,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setProfile(null)
       setProfileLoading(false)
+      setProfileUserId(null)
       return
     }
 
@@ -82,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(data ?? null)
         }
         setProfileLoading(false)
+        setProfileUserId(userId)
       })
 
     return () => {
@@ -137,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
     setProfile(null)
     setProfileLoading(false)
+    setProfileUserId(null)
 
     const { error } = await supabase.auth.signOut()
     if (error) {
@@ -161,7 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile: resolvedProfile,
       role: resolvedProfile?.role ?? null,
       loading,
-      profileLoading: Boolean(session?.user?.id) && profileLoading,
+      profileLoading:
+        Boolean(session?.user?.id) &&
+        (profileLoading || profileUserId !== session?.user?.id),
       signInWithPassword,
       signInWithIdentifier,
       signOut,
@@ -172,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resolvedProfile,
       loading,
       profileLoading,
+      profileUserId,
       signInWithPassword,
       signInWithIdentifier,
       signOut,
