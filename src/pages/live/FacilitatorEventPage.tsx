@@ -211,6 +211,30 @@ export function FacilitatorEventPage() {
     ? bundle?.games.find((g) => g.id === bingoStageGameId)
     : null
 
+  // P1-B1: pre-warm the bingo run as soon as the stage is selected, well before
+  // Start is pressed. Without this, a brand-new bingo stage has no run row yet,
+  // so the FIRST Start press has to await activateBingoRun() (a network round
+  // trip) before it can call play() — by then the click is no longer
+  // synchronous with the user gesture, so mobile browsers silently block
+  // autoplay (see handleBingoStartClick's "press Start again" notify, which
+  // was papering over exactly this). Activation is idempotent (returns the
+  // existing run if there is one) and is pure network/DB work with no audio
+  // involved, so doing it early is free. Placed above the loading/error early
+  // return below so this hook always runs, keeping hook order stable.
+  const bingoPrewarmedKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    const eventLive = Boolean(bundle && isEventLive(bundle.event))
+    if (!eventLive || !bingoStageGameId || !eventId || !state) return
+    const key = `${eventId}:${state.current_stage_index}:${bingoStageGameId}`
+    if (bingoPrewarmedKeyRef.current === key) return
+    bingoPrewarmedKeyRef.current = key
+    void ensureBingoRunReady().catch(() => {
+      // Transient failure (e.g. a network blip) — allow a retry on the next
+      // render; the Start button still falls back to activating lazily either way.
+      if (bingoPrewarmedKeyRef.current === key) bingoPrewarmedKeyRef.current = null
+    })
+  }, [bundle, bingoStageGameId, eventId, state])
+
   useEffect(() => {
     if (!bingoStageGameId || !bingoGameForTracks) {
       setBingoTracksLive([])
