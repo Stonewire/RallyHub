@@ -67,8 +67,8 @@ ENG2, ENG4, ENG6, admin reload bug, AI features (L-2).
 
 ## Open bugs / security
 
-- [ ] **P1-SUBMIT** (NEXT, most urgent, on `fixes`) Quest submit/cancel leaves the player stuck ~15s on the "Submitting" screen even after the facilitator already sees the submission; same delay on cancel
-- [ ] **P1-BINGO** (own dedicated session, on `fixes`) Bingo smoothness: marks sometimes cannot be selected right away, correct cells stay yellow before turning green, phone win animation delayed. Includes the old Start double-press (P1-B1). Rumen accepts this will take a big investigation
+- [x] **P1-SUBMIT** Fixed (on `fixes`, needs live phone test before main) — 5 call sites in JoinGameView awaited the best-effort broadcast before clearing their own loading state; a stale/not-joined channel silently falls back to a REST call with a 10s timeout, while the facilitator's view updates independently and instantly (Postgres `postgres_changes`). Applied the same `mergeOwnSubmission` (local, synchronous) + fire-and-forget broadcast pattern already used by the 4 bingo call sites in the same file. Verified live: submit/cancel now resolve in ~150ms (was ~15s), DB row correctly written each time. New test: `src/lib/live-broadcast.test.ts`.
+- [ ] **P1-BINGO** (own dedicated session, on `fixes`) Bingo smoothness: marks sometimes cannot be selected right away, correct cells stay yellow before turning green, phone win animation delayed. Includes the old Start double-press (P1-B1). Rumen accepts this will take a big investigation — IN PROGRESS
 - [ ] **P1-B1** Bingo Start still needs 2-3 presses (folded into P1-BINGO)
 - [ ] **P0-2b** Anon storage overwrite hardening (needs signed-URL or edge-function approach; join token invisible to storage RLS)
 - [ ] **P1-1** Players recover if facilitator tab closes (PARKED: full-bundle poll froze bingo; needs non-disruptive server push)
