@@ -63,7 +63,7 @@ ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [x] Recycle bin for games + events: soft-delete with a Bin tab, 30-day restore window, auto-purge via pg_cron (migration 085); invoiced events keep their row after purge for payment history. Description field got basic rich text (bold/italic/underline/size/colour) + a bigger box; video default duration now 30s (V2.3.0)
 - [x] Client onboarding: 19-step interactive in-app tutorial (replaces the old L-1 "onboarding PDF" idea, dropped)
 - [x] Onboarding v2 (on `fixes`): per-user progress (migration 083; every existing account resets, each new user gets their own tour, event_manager sees a trimmed 10-step run), panel auto-minimises to a corner pill while the spotlight points at the page, completed steps clickable to revisit, Mark complete on every step
-- [ ] Drop the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns — per-user version is live on `main`, no app code reads the org-level columns anymore (confirmed via grep). Migration written (`supabase/migrations/086_drop_org_onboarding_columns.sql`) but NOT applied — dropping columns is irreversible, needs Rumen to confirm before running it.
+- [x] Dropped the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns — per-user version already live on `main`; applied via migration 086 with Rumen's explicit confirmation (2026-07-08), TS types cleaned up in `src/types/database.ts`
 
 ## Open bugs / security
 

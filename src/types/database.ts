@@ -42,8 +42,6 @@ type OrgRow = {
   brand_heading_font_url: string | null
   brand_body_font_url: string | null
   internal_notes: string | null
-  onboarding_completed_tasks: string[]
-  onboarding_dismissed: boolean
   created_at: string
   updated_at: string
 }
