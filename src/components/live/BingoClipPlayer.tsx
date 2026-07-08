@@ -1,5 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
+import { shouldTriggerBingoLockAndReveal } from '@/lib/bingo-playback'
+
 type BingoClipPlayerProps = {
   src: string
   nextSrc?: string
@@ -215,8 +217,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         if (
           onLockAndRevealRef.current &&
           !lockRevealTriggeredRef.current &&
-          remaining <= revealLeadSeconds &&
-          remaining > crossfadeSeconds
+          shouldTriggerBingoLockAndReveal(remaining, revealLeadSeconds)
         ) {
           lockRevealTriggeredRef.current = true
           onLockAndRevealRef.current()

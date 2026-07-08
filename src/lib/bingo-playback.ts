@@ -81,3 +81,24 @@ export function bingoTrackPlaybackUrl(track: MusicTrack): string {
   const audio = normalized.audioUrl?.trim() ?? ''
   return clip || audio
 }
+
+/**
+ * True once a song is within its reveal-lead window (locks marks, scores the
+ * round, reveals green/red) before the crossfade to the next song starts.
+ *
+ * Deliberately has NO lower bound. `timeupdate` firing isn't guaranteed at any
+ * particular rate (MDN: "the exact frequency... is left up to the user
+ * agent"), and a busy/throttled tab can skip a tick straight over a narrow
+ * window. The previous version required `remaining > crossfadeSeconds`,
+ * which meant a skipped tick silently deferred scoring+reveal until AFTER
+ * the entire crossfade finished — the new song already audible while the
+ * previous one's cells were still stuck pending ("stays yellow for a
+ * while"). Callers must still de-dupe with their own per-song "already
+ * triggered" flag; this only answers "should it fire on THIS tick."
+ */
+export function shouldTriggerBingoLockAndReveal(
+  remainingSeconds: number,
+  revealLeadSeconds: number,
+): boolean {
+  return remainingSeconds >= 0 && remainingSeconds <= revealLeadSeconds
+}
