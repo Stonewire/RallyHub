@@ -1443,6 +1443,14 @@ export function JoinGameView({
             ) : null}
             <p className="truncate text-sm font-semibold">{event.name}</p>
           </div>
+          {state.bingo_state === 'revealed' ? (
+            // Marking is locked for a few seconds while the previous song is
+            // scored and revealed — without this, a tap here just silently
+            // does nothing, which reads as "the app didn't register my tap."
+            <p className="xp-glass-panel shrink-0 animate-pulse rounded-full bg-black/30 px-3 py-1 text-xs font-medium">
+              Locking answers…
+            </p>
+          ) : null}
           <p className="xp-glass-panel shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
             {team.score} pts
           </p>
