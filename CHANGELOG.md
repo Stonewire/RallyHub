@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.1 — 2026-07-08 (remove music bingo bonus challenges)
+Removed the bonus round feature completely: editor creation UI, facilitator
+trigger/reveal/end controls, player answer UI, display rendering, plus the
+now-orphaned `BingoBonusPanel`, `bingo-bonus-scoring`, and
+`bingo-submission-url`. Regular bingo (start, marking, scoring, reveal, win
+celebration) untouched — verified end-to-end with a throwaway event via
+browser automation, not yet a live phone test.
+
 ## V2.4.0 — 2026-07-08 (live-event reliability: submit delay + bingo)
 Shipped ahead of a live phone test, at Rumen's call — worth watching closely
 on the next real event.
