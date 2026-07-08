@@ -5,6 +5,34 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.0 — 2026-07-08 (live-event reliability: submit delay + bingo)
+Shipped ahead of a live phone test, at Rumen's call — worth watching closely
+on the next real event.
+- **Quest submit/cancel stuck ~15s on "Submitting…"**: five spots (photo/video/
+  text submit, quiz answers, cancel) waited on a best-effort broadcast to
+  other devices before clearing their own loading state. A channel that
+  isn't in a joined state (e.g. a backgrounded tab during a video capture)
+  silently falls back to a slow REST call with a 10s timeout - meanwhile the
+  facilitator's own view updates independently and instantly, which is why
+  it looked like the facilitator saw it first. Now updates the player's own
+  view immediately (matching the pattern already used for bingo marks) and
+  sends the broadcast in the background instead of blocking on it.
+- **Bingo Start needing 2-3 presses**: a brand-new bingo stage had no run
+  row yet, so the first press had to wait on a network call before playing
+  audio - by then it's no longer inside the tap that triggered it, so mobile
+  browsers silently blocked the sound. The run now loads as soon as the
+  stage is selected, before Start is ever pressed.
+- **Bingo cells staying yellow long after the correct answer should show**:
+  the "reveal this song's answers" trigger only fired in a narrow one-second
+  window of the song's playback; a skipped update (any tab hiccup) pushed it
+  to fire only after the whole song-change transition finished, so the next
+  song was already playing while the last one's answers hadn't updated yet.
+  Now it can't get skipped.
+- **Tapping a bingo cell sometimes doing nothing**: the grid is briefly
+  locked every round while the previous song is being scored - correct
+  behaviour, but a tap during that window looked like the app just ignored
+  it. Now shows a short "Locking answers…" note so it reads as expected.
+
 ## V2.3.3 — 2026-07-07 (description editor: text colour actually fixed)
 - The real bug: the colour picker writes a `<font color="...">` attribute,
   not a CSS style, and the sanitizer only ever kept colour via `style` -
