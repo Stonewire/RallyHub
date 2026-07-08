@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.6 — 2026-07-08 (photo compression + anon storage hardening)
+Merged from `fixes` after live verification:
+- **P2-UP**: photos now get compressed before upload on all three paths that
+  were missing it — the native-camera-app fallback (iOS), and both team
+  claim-photo pickers (participant + facilitator). A 1.2MB test photo
+  landed at 253KB (~79% smaller).
+- **P0-2b**: anon storage uploads are hardened. Storage RLS can't see the
+  participant join token (confirmed by the 076→079 history — an earlier
+  attempt to check it there broke live uploads). New approach: a
+  `mint-storage-upload-url` edge function verifies the join token against
+  the specific event over a normal request (where headers ARE visible),
+  then mints a signed upload URL scoped to exactly one path. Both
+  participant upload paths now use it. The old anon upload/update RLS
+  policies on `game-assets` are removed entirely — verified live that a
+  direct bypass attempt is now rejected while real uploads still work.
+
 ## V2.4.5 — 2026-07-08 (lint backlog cleared)
 Cleared the full lint backlog: 96 problems down to 0. Mostly mechanical
 fixes and documented `eslint-disable` comments for legitimate patterns the
