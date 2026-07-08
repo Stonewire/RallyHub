@@ -2,10 +2,15 @@
 // user. Unlike create-client (super-admin only), this is unauthenticated — it is
 // the endpoint behind the marketing "Start for free" / registration form.
 //
-// Hardening TODO before public launch: add a captcha/Turnstile token check and
-// rate limiting, and consider real email verification (email_confirm: false +
-// SMTP) instead of the auto-confirm used here.
+// Hardening TODO before public launch: add a captcha/Turnstile token check,
+// and consider real email verification (email_confirm: false + SMTP) instead
+// of the auto-confirm used here.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// P2-5: per-IP rate limit (no captcha yet). Generous enough for a real user
+// retrying a typo'd field a few times, tight enough to stop a scripted loop.
+const RATE_LIMIT_MAX_ATTEMPTS = 5
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,6 +55,17 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
       global: { headers: { Authorization: `Bearer ${serviceRoleKey}` } },
     })
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { count: recentAttempts } = await supabaseAdmin
+      .from('signup_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('ip_address', ip)
+      .gt('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString())
+    if ((recentAttempts ?? 0) >= RATE_LIMIT_MAX_ATTEMPTS) {
+      return json({ error: 'Too many signup attempts. Please try again in a while.' }, 429)
+    }
+    await supabaseAdmin.from('signup_attempts').insert({ ip_address: ip })
 
     const { orgName, fullName, email, password, plan, isSchool } = await req.json()
 

@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.4 — 2026-07-08 (signup rate limiting + register page crash fix)
+- **P2-5**: the public signup endpoint now rejects more than 5 signup
+  attempts per IP per hour (server-side, before any org/user is created).
+  Captcha (Turnstile) is deferred until the site/secret keys are set up.
+- **Fixed**: the register page could crash outright ("Rendered fewer hooks
+  than expected") if a signed-in check changed value between renders (e.g.
+  a stale/expired session in the browser) — two early returns sat before a
+  block of `useState` calls, violating React's hooks rules. Found while
+  testing the rate limit above; registration was silently broken for
+  anyone who hit that edge case.
+
 ## V2.4.3 — 2026-07-08 (event activity log filters)
 Added actor (team/facilitator/admin, by name) and action filters to the
 per-event activity log (admin event page + facilitator panel), so you can

@@ -21,11 +21,6 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  // Self-serve signup is a platform-host concept (it creates a brand-new org).
-  // On a tenant host, registration doesn't apply — send people to sign in.
-  if (!isPlatformHost()) return <Navigate to="/login" replace />
-  if (user) return <Navigate to="/login" replace />
-
   const requestedPlan = normalizePlanId(searchParams.get('plan'))
 
   const [orgName, setOrgName] = useState('')
@@ -36,6 +31,14 @@ export function RegisterPage() {
   const [isSchool, setIsSchool] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+
+  // Self-serve signup is a platform-host concept (it creates a brand-new org).
+  // On a tenant host, registration doesn't apply — send people to sign in.
+  // Checked after all hooks above so the hook-call order never changes
+  // across renders (an early return before them crashed React the moment
+  // `user` or the host check changed value mid-mount — e.g. a stale/expired
+  // session resolving after first paint).
+  if (!isPlatformHost() || user) return <Navigate to="/login" replace />
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()

@@ -78,7 +78,8 @@ ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [x] **P1-3b** Atomic quiz restart — restart_quiz_scores RPC (migration 082, live on prod) + client swap (on `fixes`; needs live test)
 - [x] **P2-1** Multi-facilitator last-write-wins — documented rather than fixed: `updateState` in `src/hooks/use-live-event.ts` now has a comment spelling out the single-facilitator assumption and what a real fix (version/etag on event_state) would need (on `main` as of V2.4.2)
 - [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
-- [ ] **P2-5** register-client signup rate limiting + captcha before public launch
+- [x] **P2-5** register-client signup rate limiting — per-IP limit (5/hour, `signup_attempts` table, migration 087), enforced server-side in the edge function before any org/user is created; verified live (5 succeed, 6th returns 429). Captcha (Turnstile) deferred — Rumen to provide site/secret keys, wired in separately. **Bonus fix**: found and fixed a real hooks-order bug in `RegisterPage.tsx` while testing — two early `return`s sat before 8 `useState` calls, crashing the whole page ("Rendered fewer hooks than expected") whenever `user`/host status changed value between renders (e.g. a stale session). Registration was silently broken for anyone hitting that edge case (on `main` as of V2.4.4)
+- [ ] **P2-5b** Wire in Cloudflare Turnstile on the register form once Rumen provides the site/secret key pair (rate limiting alone ships first)
 - [ ] **P2-UP** Photo compression before upload + upload error handling
 - [x] **P2-LOG** Full activity log with filters (#12) — client-side filter by actor (team/facilitator/admin, by name) and by action, on top of the existing per-event log; CSV download respects the active filters (on `main` as of V2.4.3)
 
