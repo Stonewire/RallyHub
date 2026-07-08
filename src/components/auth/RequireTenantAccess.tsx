@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
@@ -12,6 +12,13 @@ export function RequireTenantAccess({ children }: { children: ReactNode }) {
   const { user, role, loading, profileLoading, profile } = useAuth()
   const { tenantOrg, tenantLoading, tenantError } = useTenant()
   const { pathname, search } = useLocation()
+
+  // Navigating away is a side effect, not something to do during render.
+  useEffect(() => {
+    if (canAccessRallyHub(role)) {
+      window.location.href = `${getPlatformOrigin()}/admin`
+    }
+  }, [role])
 
   if (isPublicLivePath(pathname)) {
     return <>{children}</>
@@ -42,7 +49,6 @@ export function RequireTenantAccess({ children }: { children: ReactNode }) {
   }
 
   if (canAccessRallyHub(role)) {
-    window.location.href = `${getPlatformOrigin()}/admin`
     return <AuthLoadingScreen label="Redirecting" />
   }
 

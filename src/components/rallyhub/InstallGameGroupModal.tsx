@@ -35,7 +35,7 @@ export function InstallGameGroupModal({
   const [actionError, setActionError] = useState<string | null>(null)
 
   const installStatus = installStatusQuery.data ?? new Map()
-  const clients = clientsQuery.data ?? []
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
 
   const organizationNames = useMemo(() => {
     const map: Record<string, string> = {}
@@ -48,6 +48,7 @@ export function InstallGameGroupModal({
   const gamesKey = useMemo(() => groupInstallStatusKey(games.map((g) => g.id)), [games])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets modal state when the target group/games identity changes
     setSelected(new Set())
     setPhase('select')
     setSummary(null)

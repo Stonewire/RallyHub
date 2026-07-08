@@ -31,6 +31,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- companion hook for TenantProvider
 export function useTenant() {
   const v = useContext(Ctx)
   if (!v) throw new Error('useTenant must be used within TenantProvider')

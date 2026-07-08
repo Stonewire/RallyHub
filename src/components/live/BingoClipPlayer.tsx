@@ -234,6 +234,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       }
       cur.addEventListener('timeupdate', handleTime)
       return () => cur.removeEventListener('timeupdate', handleTime)
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- crossfadeTo isn't memoized (recreated every render); adding it would re-attach the timeupdate listener every render instead of only when the track/deck actually changes. Verified live this session.
     }, [nextSrc, crossfadeSeconds, playKey, activeDeck])
 
     return (

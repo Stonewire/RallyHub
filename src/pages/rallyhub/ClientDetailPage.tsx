@@ -162,6 +162,7 @@ export function RallyHubClientDetailPage() {
   useEffect(() => {
     if (!data?.org) return
     const org = data.org
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrates the local editable form from fetched data
     setOrgName(org.name)
     setNotes(org.internal_notes ?? '')
     setSubdomain(org.subdomain ?? '')
@@ -187,6 +188,7 @@ export function RallyHubClientDetailPage() {
 
   useEffect(() => {
     if (!logoFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the preview when the file is removed
       setLogoPreview(null)
       return
     }

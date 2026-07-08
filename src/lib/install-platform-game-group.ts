@@ -167,7 +167,7 @@ export async function installPlatformGameGroupToClient({
   let installedCount = 0
   let skippedCount = 0
   const gameErrors: GroupInstallGameError[] = []
-  let groupRecreated = false
+  let groupRecreated: boolean
 
   let clientGroupId: string
   try {

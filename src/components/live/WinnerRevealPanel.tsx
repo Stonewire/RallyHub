@@ -83,6 +83,7 @@ export function WinnerRevealPanel({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- ranking helper shared with WinnerRevealPanel's callers
 export function eventRankedTeams(
   teams: { id: string; name: string | null; score: number; color: string | null; photo_url: string | null }[],
 ) {

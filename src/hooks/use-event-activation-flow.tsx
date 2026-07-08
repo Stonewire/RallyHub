@@ -102,7 +102,7 @@ export function useEventActivationFlow({
       }
       void applyChange()
     },
-    [requestActivation],
+    [requestActivation, onValidationError],
   )
 
   function ActivationDialog() {

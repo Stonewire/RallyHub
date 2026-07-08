@@ -59,6 +59,7 @@ export function PhotoChallengeCapture({
       stopStream()
       revokeSnapshotUrl()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only bootstrap using the initial facingMode; flipCamera() explicitly restarts the stream on change, so re-running this effect too would restart it twice
   }, [])
 
   useEffect(() => {

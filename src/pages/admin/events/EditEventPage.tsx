@@ -80,12 +80,14 @@ export function AdminEventEditPage() {
   useEffect(() => {
     if (eventQuery.data && gameIdsQuery.data !== undefined && !hydrated) {
       const initial = eventToFormValues(eventQuery.data, gameIdsQuery.data)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrates the local editable form from fetched data, once
       setValues(initial)
       baselineRef.current = JSON.stringify(initial)
       setHydrated(true)
     }
   }, [eventQuery.data, gameIdsQuery.data, hydrated])
 
+  // eslint-disable-next-line react-hooks/refs -- baselineRef is only ever set inside the hydrate effect above; comparing it during render is the intended unsaved-changes check
   const dirty = hydrated && JSON.stringify(values) !== baselineRef.current
 
   // #15: warn before leaving the editor with unsaved changes.

@@ -269,6 +269,7 @@ export function JoinGameView({
     // instant the facilitator revealed, causing a wrong-answer flash. Locking on
     // reveal/results is handled by the dedicated effect below.
     quizChangeDeadlineRef.current = null
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local quiz answer state when the question/game identity changes, see comment above
     setQuizAnswer(null)
     setQuizLocked(false)
     setQuizChangeLeft(null)
@@ -282,8 +283,10 @@ export function JoinGameView({
       (s) => s.media_type === mediaType && s.game_id === stage.gameId,
     )
     if (existing?.media_url) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local answer from the server's saved submission, a real external system
       setQuizAnswer(existing.media_url)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately depends on the stable currentQuizQ.id, not the object reference, so this doesn't re-fire on incidental re-renders of the same question
   }, [stage?.type, stage?.gameId, mySubs, state.quiz_state, currentQuizQ?.id])
 
   useEffect(() => {
@@ -306,6 +309,7 @@ export function JoinGameView({
 
   useEffect(() => {
     if (state.quiz_state === 'revealed' || state.quiz_state === 'results') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- locking the answer when the facilitator's realtime state reveals/finishes the quiz
       setQuizLocked(true)
       setQuizChangeLeft(null)
     }
@@ -331,6 +335,7 @@ export function JoinGameView({
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
     if (!pending?.media_url) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local bingo pick from the server's pending submission, a real external system
       setBingoPick(null)
       return
     }
@@ -347,6 +352,7 @@ export function JoinGameView({
   useEffect(() => {
     if (stage?.type !== 'bingo') return
     bingoPickOptimisticRef.current = undefined
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local bingo pick when the round/stage identity changes
     setBingoPick(null)
   }, [stage?.type, stage?.gameId, state.current_question_index, state.bingo_state])
 
@@ -430,6 +436,7 @@ export function JoinGameView({
   // Read sound routing inside the effect without depending on it, so routine
   // realtime patches don't re-run the effect and cut the song after ~1s.
   const winnerSoundTargetsRef = useRef(state.winner_sound_targets)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom, see comment above
   winnerSoundTargetsRef.current = state.winner_sound_targets
   useEffect(() => {
     // The event winner reveal (winner_reveal_stage===2) is the facilitator's
@@ -586,6 +593,7 @@ export function JoinGameView({
     playQuizSelectSound()
     if (quizChangeDeadlineRef.current == null) {
       const windowSec = Math.min(5, Math.max(0, quizTimerDisplay))
+      // eslint-disable-next-line react-hooks/purity -- this runs inside a tap handler, not render
       quizChangeDeadlineRef.current = Date.now() + windowSec * 1000
     }
     const mediaType = quizSubmissionMediaType(questionId)

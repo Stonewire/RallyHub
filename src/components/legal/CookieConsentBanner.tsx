@@ -11,6 +11,7 @@ export function CookieConsentBanner() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberately delays the banner one tick past mount to avoid a flash before consent context settles
     setMounted(true)
   }, [])
 

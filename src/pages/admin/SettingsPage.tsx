@@ -55,6 +55,7 @@ export function AdminSettingsPage() {
 
   useEffect(() => {
     if (orgQuery.data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrates the local editable form from fetched data
       setForm(orgToForm(orgQuery.data))
     }
   }, [orgQuery.data])

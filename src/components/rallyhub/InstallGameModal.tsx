@@ -30,7 +30,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
   const [actionError, setActionError] = useState<string | null>(null)
 
   const installedOrgIds = installedQuery.data ?? new Set<string>()
-  const clients = clientsQuery.data ?? []
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
 
   const organizationNames = useMemo(() => {
     const map: Record<string, string> = {}
@@ -41,6 +41,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
   }, [clients])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets modal state when the target game identity changes
     setSelected(new Set())
     setPhase('select')
     setInstallResults([])

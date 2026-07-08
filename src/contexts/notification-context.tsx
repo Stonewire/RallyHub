@@ -102,6 +102,7 @@ export function NotificationAccentSync({ color }: { color: string }) {
   return null
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- companion hook for NotificationProvider
 export function useNotification() {
   const ctx = useContext(NotificationContext)
   if (!ctx) {
@@ -110,6 +111,7 @@ export function useNotification() {
   return ctx
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- companion hook for NotificationProvider
 export function useOptionalNotification() {
   return useContext(NotificationContext)
 }

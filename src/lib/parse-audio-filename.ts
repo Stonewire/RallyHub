@@ -8,7 +8,7 @@ const JUNK_PATTERNS = [
   /\b(official\s*(music\s*)?video|lyrics?|audio|hd|4k|8k|1080p|720p)\b/gi,
   /\b(limited\s*edition|deluxe|remaster(ed)?|bonus\s*track)\b/gi,
   /\b\d{4}\b/g,
-  /[\[\(][^\]\)]*[\]\)]/g,
+  /[[(][^\])]*[\])]/g,
 ]
 
 function cleanPart(s: string): string {

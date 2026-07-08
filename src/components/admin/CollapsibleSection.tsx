@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 export const EVENTS_COLLAPSED_STORAGE_KEY = 'rallyhub-events-collapsed-v1'
 export const SUPPORT_COLLAPSED_STORAGE_KEY = 'rallyhub-support-collapsed-v1'
 
+// eslint-disable-next-line react-refresh/only-export-components -- companion helper for CollapsibleSection's persisted collapsed state
 export function loadCollapsedState(
   storageKey = EVENTS_COLLAPSED_STORAGE_KEY,
 ): Record<string, boolean> {
@@ -18,6 +19,7 @@ export function loadCollapsedState(
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- companion helper for CollapsibleSection's persisted collapsed state
 export function saveCollapsedState(
   state: Record<string, boolean>,
   storageKey = EVENTS_COLLAPSED_STORAGE_KEY,

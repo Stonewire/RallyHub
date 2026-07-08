@@ -202,6 +202,7 @@ export function TextGameEditor({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- validation helper for TextGameEditor's config shape
 export function validateTextGameConfig(config: GameConfig): string | null {
   const mode = config.text_answer_mode ?? 'type_text'
   if (mode === 'type_text') {

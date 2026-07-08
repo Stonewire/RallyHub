@@ -48,6 +48,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   const [preferencesOpen, setPreferencesOpen] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage, a real external system, on mount
     setConsent(readStoredConsent())
     setHydrated(true)
   }, [])

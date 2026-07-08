@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the auth session (an external system) changing to logged-out; re-verified live 2026-07-08 (V2.4.2 reload-bug fix)
       setProfile(null)
       setProfileLoading(false)
       setProfileUserId(null)

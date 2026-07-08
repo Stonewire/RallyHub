@@ -151,6 +151,7 @@ export function useLiveEvent(eventId: string | undefined) {
   const reconnectAttemptsRef = useRef(0)
   const bundleRef = useRef(bundle)
   const lastWrittenAtRef = useRef<string | null>(null)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom for effects/callbacks below that read the latest bundle without depending on it
   bundleRef.current = bundle
 
   const reload = useCallback(async () => {
@@ -175,8 +176,10 @@ export function useLiveEvent(eventId: string | undefined) {
   }, [reload])
 
   const reloadRef = useRef(reload)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   reloadRef.current = reload
   const scheduleReloadRef = useRef(scheduleReload)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   scheduleReloadRef.current = scheduleReload
 
   const eventGameIdsKey = (bundle?.games ?? [])
@@ -185,6 +188,7 @@ export function useLiveEvent(eventId: string | undefined) {
     .join('|')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/dependency-change pattern; reload's setState calls happen after an await, not synchronously
     void reload()
   }, [reload])
 
@@ -516,6 +520,7 @@ export function useChatMessages(eventId: string | undefined) {
   }, [eventId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/dependency-change pattern; reload's setState calls happen after an await, not synchronously
     void reload()
   }, [reload])
 

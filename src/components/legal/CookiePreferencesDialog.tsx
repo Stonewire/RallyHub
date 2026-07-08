@@ -34,6 +34,7 @@ export function CookiePreferencesDialog() {
   const [preferences, setPreferences] = useState(consent?.preferences ?? false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- re-syncs the local editable draft toggles whenever consent changes externally (e.g. re-opening after saving elsewhere)
     setAnalytics(consent?.analytics ?? false)
     setPreferences(consent?.preferences ?? false)
   }, [consent])

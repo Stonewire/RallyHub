@@ -16,6 +16,7 @@ export function DemoOverlay({ enabled }: DemoOverlayProps) {
 
   useEffect(() => {
     if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the timer-driven blink cycle when demo mode turns off
       setVisible(false)
       return
     }

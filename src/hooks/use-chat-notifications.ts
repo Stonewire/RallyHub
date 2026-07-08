@@ -18,6 +18,7 @@ export function useIncomingChatAlerts(
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the chatOpen prop transitioning true
     if (chatOpen) setUnread(0)
   }, [chatOpen])
 
@@ -39,6 +40,7 @@ export function useIncomingChatAlerts(
     }
 
     if (newCount > 0 && !chatOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to new incoming realtime chat messages, an external system
       setUnread((n) => n + newCount)
     }
   }, [incoming, chatOpen, chatHistoryReady, onNew])

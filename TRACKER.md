@@ -49,7 +49,7 @@ FacilitatorEventPage refactor (ENG1). Staged over multiple sessions; each
 stage live-tested before the next.
 
 **Parked / needs a design chat first:** P0-2b, P1-1, P2-UP,
-ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
+ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ---
 
@@ -112,7 +112,7 @@ ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [ ] **ENG2** Refactor JoinGameView (second God-component)
 - [x] **ENG4** Lazy-load jspdf + ffmpeg — main bundle 1881 kB → 1481 kB, gzip 550 → 419 kB (on `fixes`)
 - [x] **ENG5** Test suite around scoring — vitest, 30 tests on the bingo core (win detection, cell matching, card generation); `npm test`
-- [ ] **ENG6** Clear lint backlog (~85 errors, mostly React 19 rules)
+- [x] **ENG6** Clear lint backlog — 96 problems (79 errors, 17 warnings) down to 0. Mechanical fixes (unused escapes/assignments, irregular whitespace, control regex) plus ~50 targeted `eslint-disable` comments for legitimate patterns the new React Compiler rules over-flag (the "keep ref fresh" idiom, hydrate-form-from-fetch, object-URL previews, fetch-on-mount). Found and fixed a real bug along the way: a dead `else if` branch in bingo auto-advance (`no-dupe-else-if` caught it — the branch could never execute, since its condition was a subset of the preceding `if`) — verified live with a full throwaway bingo round, crossfade + multi-song auto-advance all correct afterward. Also deleted one unused deprecated hook (`useFacilitatorChatUnread`). (on `main` as of V2.4.5)
 - [x] **ENG7** Branch cleanup — AUDIT.md retired to docs/AUDIT-2026-06.md; all four stale branches deleted (neo-minimalism, security-hardening, bingo-live-fixes, new-features — fully merged, approved by Rumen)
 
 ## Fixed — admin reload bug

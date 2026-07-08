@@ -19,6 +19,7 @@ function usePanelSide(targetSelector: string | undefined, panelRef: React.RefObj
 
   useEffect(() => {
     if (!targetSelector) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs from real DOM layout below, not derivable during render
       setSide('right')
       return
     }
@@ -93,9 +94,9 @@ export function OnboardingChecklist() {
 
   // A new step resets the manual toggle so the auto behaviour takes over again.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset of local UI state when the active step identity changes
     setManualExpand(null)
     setRevisitId(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStep?.id])
 
   // Nav steps complete themselves once you're already on the page they point to.

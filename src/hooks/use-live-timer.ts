@@ -14,6 +14,7 @@ export function useLiveTimer(
   const syncThreshold = options?.syncThreshold ?? 2
   const [displaySeconds, setDisplaySeconds] = useState(serverSeconds)
   const onTickRef = useRef(onTick)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   onTickRef.current = onTick
   const deadlineRef = useRef<number | null>(null)
   const displayRef = useRef(serverSeconds)
@@ -27,6 +28,7 @@ export function useLiveTimer(
     if (!serverRunning) {
       deadlineRef.current = null
       wasRunningRef.current = false
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local display state to the server's authoritative timer state (a real-time external system)
       setDisplaySeconds(serverSeconds)
       displayRef.current = serverSeconds
       return

@@ -44,6 +44,7 @@ import { RallyHubPromoCodesPage } from '@/pages/rallyhub/PromoCodesPage'
 import { resolvePostLoginPath, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
+// eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
 function RootPage() {
   const { user, role, loading, profileLoading } = useAuth()
 
@@ -82,6 +83,7 @@ function RootPage() {
   return <MarketingLandingPage />
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
 function NotFoundPage() {
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 text-center">

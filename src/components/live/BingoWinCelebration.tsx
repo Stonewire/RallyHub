@@ -28,6 +28,7 @@ export function BingoWinCelebration({
   const accent = teamColor?.trim() || DEFAULT_ACCENT
   const onColor = textOnAccent(accent)
   const onDismissRef = useRef(onDismiss)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom so the effect below can read the latest callback without re-subscribing
   onDismissRef.current = onDismiss
 
   useEffect(() => {

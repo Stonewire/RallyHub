@@ -200,7 +200,7 @@ export function FacilitatorEventPage() {
   )
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const state = bundle?.state
-  const liveSubmissions = bundle?.submissions ?? []
+  const liveSubmissions = useMemo(() => bundle?.submissions ?? [], [bundle?.submissions])
   const bingoStageGameId =
     stage?.type === 'bingo' && stage.gameId ? stage.gameId : undefined
   const bingoGameForTracks = bingoStageGameId
@@ -224,15 +224,18 @@ export function FacilitatorEventPage() {
     const key = `${eventId}:${state.current_stage_index}:${bingoStageGameId}`
     if (bingoPrewarmedKeyRef.current === key) return
     bingoPrewarmedKeyRef.current = key
+    // eslint-disable-next-line react-hooks/immutability -- ensureBingoRunReady is defined below (hoisted function declaration), deliberately: this effect must sit above the loading/error early return for stable hook order, but the function's own dependencies (effectiveBingoRun, bingoPlayOrder) are only meaningful once bundle data has loaded, so it's declared after that check. Re-verified live 2026-07-08.
     void ensureBingoRunReady().catch(() => {
       // Transient failure (e.g. a network blip) — allow a retry on the next
       // render; the Start button still falls back to activating lazily either way.
       if (bingoPrewarmedKeyRef.current === key) bingoPrewarmedKeyRef.current = null
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ensureBingoRunReady isn't memoized; adding it here would re-run this effect on every render instead of once per stage key (the ref guard above is the real gate)
   }, [bundle, bingoStageGameId, eventId, state])
 
   useEffect(() => {
     if (!bingoStageGameId || !bingoGameForTracks) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the track cache when leaving the bingo stage
       setBingoTracksLive([])
       return
     }
@@ -262,6 +265,7 @@ export function FacilitatorEventPage() {
   useEffect(() => {
     if (!bingoRunOverride) return
     const dbRun = bingoRunQuery.data
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing to another facilitator's bingo restart, a real external (multi-client) event
     if (dbRun && dbRun.id !== bingoRunOverride.id) setBingoRunOverride(null)
   }, [bingoRunQuery.data, bingoRunOverride])
 
@@ -323,18 +327,21 @@ export function FacilitatorEventPage() {
   }
 
   const timerSyncRef = useRef(
+    // eslint-disable-next-line react-hooks/refs -- createThrottledTimerSync is a pure factory (no side effects at construction); useRef only keeps the first render's instance, later calls are thrown away harmlessly
     createThrottledTimerSync((next, stillRunning) => {
       void patchState({ timer_seconds: next, timer_running: stillRunning })
     }),
   )
 
   const quizTimerSyncRef = useRef(
+    // eslint-disable-next-line react-hooks/refs -- see timerSyncRef above
     createThrottledTimerSync((next, stillRunning) => {
       void patchState({ quiz_timer_seconds: next, quiz_timer_running: stillRunning })
     }),
   )
 
   const breakSyncRef = useRef(
+    // eslint-disable-next-line react-hooks/refs -- see timerSyncRef above
     createThrottledTimerSync((next, stillRunning) => {
       void patchState({
         break_timer_seconds: next,
@@ -368,7 +375,9 @@ export function FacilitatorEventPage() {
     if (!mainEventTimerRanRef.current) return
     if (state.timer_running || state.timer_seconds > 0) return
     if (state.submissions_open === false) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- auto-closing submissions when the main timer runs out, patchState's setState happens after an await
     void patchState({ submissions_open: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- patchState isn't memoized; the state-based guards above already make repeat firing a no-op, so adding it would only cause needless re-runs
   }, [state?.timer_seconds, state?.timer_running, isQuizStage, state])
 
   const quizAutoRevealKey = useRef('')
@@ -523,6 +532,7 @@ export function FacilitatorEventPage() {
   }
 
   const { event, teams: eventTeams, games, submissions } = bundle
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   controlsLiveRef.current = isEventLive(event)
   const teams = (
     isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
@@ -878,6 +888,7 @@ export function FacilitatorEventPage() {
     notify('Quiz finished for all screens')
   }
 
+  /* eslint-disable react-hooks/refs -- action closures here are deferred to a later onClick, not invoked during this render; the functions they call (startQuizQuestion/patchState/goToNextQuestion) happen to read refs, but only once actually clicked */
   function quizPrimaryButton(): { label: string; action: () => void } | null {
     if (liveState.quiz_state === 'results') return null
     if (liveState.quiz_state === 'round_intro') {
@@ -924,6 +935,7 @@ export function FacilitatorEventPage() {
     }
     return null
   }
+  /* eslint-enable react-hooks/refs */
 
   const quizPrimary = quizPrimaryButton()
 
@@ -1206,7 +1218,13 @@ export function FacilitatorEventPage() {
 
       if (!opts?.skipCrossfade && nextUrl) {
         await player.crossfadeTo(nextUrl, 4000)
-      } else if (!opts?.skipCrossfade && nextUrl && liveState.bingo_state !== 'playing') {
+      } else if (nextUrl && liveState.bingo_state !== 'playing') {
+        // Reached when skipCrossfade is true (auto-advance after the player's
+        // own crossfade already finished) or there's otherwise no crossfade
+        // in flight. Previously required `!opts?.skipCrossfade` too, which
+        // made this branch impossible to reach in the one case it exists
+        // for (no-dupe-else-if caught it) — the track could end up not
+        // actually playing after an auto-advance.
         await player.playFromUserGesture(nextUrl)
       }
 
@@ -1386,6 +1404,7 @@ export function FacilitatorEventPage() {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
+                {/* eslint-disable-next-line react-hooks/refs -- quizPrimary.action is a deferred onClick closure, not invoked here; see quizPrimaryButton above */}
                 {quizPrimary ? (
                   <FacilitatorButton size="sm" onClick={quizPrimary.action}>
                     {quizPrimary.label}

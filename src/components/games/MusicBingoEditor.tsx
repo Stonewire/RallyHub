@@ -36,7 +36,7 @@ export function MusicBingoEditor({
   coverUrl,
   setCoverUrl,
 }: MusicBingoEditorProps) {
-  const tracks = config.tracks ?? []
+  const tracks = useMemo(() => config.tracks ?? [], [config.tracks])
   const [clipBusy, setClipBusy] = useState(false)
   const [clipError, setClipError] = useState<string | null>(null)
   const [clipLengthIntent, setClipLengthIntent] = useState<string | null>(null)

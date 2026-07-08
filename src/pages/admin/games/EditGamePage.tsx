@@ -62,6 +62,7 @@ export function AdminGameEditPage() {
     if (!gameQuery.data || hydrated) return
     const g = gameQuery.data
     const c = (g.config as GameConfig) ?? {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrates the local editable form from fetched data, once
     setName(g.name)
     setDescription(g.description ?? '')
     setCoverUrl(g.cover_url)

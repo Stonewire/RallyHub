@@ -9,6 +9,7 @@ import { isTeamToFacilitatorChatMessage } from '@/lib/chat-notifications'
 import type { Tables } from '@/types/helpers'
 
 /** Per-team unread + sound for the facilitator inbox. */
+// eslint-disable-next-line react-refresh/only-export-components -- companion hook for FacilitatorChatDrawer
 export function useFacilitatorChatInbox(
   messages: Tables<'chat_messages'>[],
   facilitatorName: string,
@@ -27,6 +28,7 @@ export function useFacilitatorChatInbox(
 
   // Viewing a thread marks that team read; new messages while in-thread stay read.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to chatOpen/activeTeamId/new-message changes, real external triggers
     if (chatOpen && activeTeamId) markTeamRead(activeTeamId)
   }, [chatOpen, activeTeamId, messages.length, markTeamRead])
 
@@ -38,12 +40,14 @@ export function useFacilitatorChatInbox(
     for (const m of messages) {
       if (!m.team_id) continue
       if (!isTeamToFacilitatorChatMessage(m, trimmedName)) continue
+      // eslint-disable-next-line react-hooks/refs -- intentional: readEpoch above forces this memo to recompute whenever the ref is mutated
       const lastRead = lastReadAtByTeamRef.current.get(m.team_id) ?? 0
       if (new Date(m.created_at).getTime() > lastRead) {
         map.set(m.team_id, (map.get(m.team_id) ?? 0) + 1)
       }
     }
     return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- readEpoch isn't read in the body, it's a deliberate invalidation trigger: lastReadAtByTeamRef is a ref, so mutating it (in markTeamRead) doesn't itself force a recompute
   }, [messages, trimmedName, readEpoch])
 
   const totalUnread = useMemo(() => {
@@ -65,22 +69,6 @@ export function useFacilitatorChatInbox(
   useIncomingChatSound(incomingForSound, chatHistoryReady, onNewMessageSound)
 
   return { totalUnread, unreadByTeamId, markTeamRead }
-}
-
-/** @deprecated Use useFacilitatorChatInbox */
-export function useFacilitatorChatUnread(
-  messages: Tables<'chat_messages'>[],
-  chatOpen: boolean,
-  facilitatorName: string,
-) {
-  const { totalUnread } = useFacilitatorChatInbox(
-    messages,
-    facilitatorName,
-    chatOpen,
-    null,
-    true,
-  )
-  return totalUnread
 }
 
 function lastThreadMessage(

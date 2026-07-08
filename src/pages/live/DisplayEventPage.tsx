@@ -137,6 +137,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   // Latest bundle, read inside the winner effect without making it a dependency
   // (so routine realtime patches don't re-run the effect and cut the song).
   const bundleRef = useRef(bundle)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom, see comment above
   bundleRef.current = bundle
 
   // Primitives that should actually (re)trigger the winner celebration.

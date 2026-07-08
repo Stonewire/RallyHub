@@ -122,7 +122,7 @@ export async function downloadAllEventQrsPdf(
   const qrSize = 280
   const cols = 3
   const gap = (w - cols * qrSize) / (cols + 1)
-  let yBase = branding.logoUrl ? 280 : 220
+  const yBase = branding.logoUrl ? 280 : 220
 
   for (let i = 0; i < EVENT_LINK_ORDER.length; i++) {
     const key = EVENT_LINK_ORDER[i]

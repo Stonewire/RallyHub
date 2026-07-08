@@ -27,7 +27,7 @@ export function ForgotPasswordPage() {
     }
 
     setPending(true)
-    let emailForReset: string | null = null
+    let emailForReset: string | null
     try {
       emailForReset = await resolveLoginEmail(trimmed)
     } catch {

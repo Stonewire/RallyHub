@@ -14,6 +14,7 @@ type ClientDetailTabsProps = {
   showBillingAndEvents: boolean
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- URL-param helper shared with ClientDetailTabs' callers
 export function normalizeClientDetailTab(
   value: string | null,
   showBillingAndEvents: boolean,

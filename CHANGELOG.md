@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.5 — 2026-07-08 (lint backlog cleared)
+Cleared the full lint backlog: 96 problems down to 0. Mostly mechanical
+fixes and documented `eslint-disable` comments for legitimate patterns the
+newer React rules flag too aggressively (keeping a ref in sync with the
+latest prop, hydrating a form from fetched data, object-URL previews,
+fetch-on-mount). One real bug found and fixed along the way: a dead branch
+in the bingo auto-advance logic that could never run (caught by
+`no-dupe-else-if`) — verified live with a full throwaway bingo round
+afterward, crossfade and multi-song auto-advance both correct.
+
 ## V2.4.4 — 2026-07-08 (signup rate limiting + register page crash fix)
 - **P2-5**: the public signup endpoint now rejects more than 5 signup
   attempts per IP per hour (server-side, before any org/user is created).

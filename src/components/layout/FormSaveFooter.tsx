@@ -35,6 +35,7 @@ export function FormSaveFooter({
 
   // Revert when the form becomes dirty again (controlled mode).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the dirty prop transitioning true, not derivable from render alone (depends on the saved/dirty history)
     if (dirty) setSaved(false)
   }, [dirty])
 

@@ -21,7 +21,7 @@ export function InstallMusicLibraryModal({ onClose }: Props) {
   const [results, setResults] = useState<MusicInstallResult[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const clients = clientsQuery.data ?? []
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data])
   const organizationNames = useMemo(() => {
     const map: Record<string, string> = {}
     for (const c of clients) map[c.id] = c.name

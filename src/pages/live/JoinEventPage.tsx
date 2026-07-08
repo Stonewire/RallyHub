@@ -81,6 +81,7 @@ export function JoinEventPage() {
     if (!saved) return
     const team = bundle.teams.find((t) => t.id === saved)
     if (team?.name?.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage, a real external system, to restore the returning device's team
       setTeamId(saved)
       setJustJoined(false)
     } else {
@@ -92,6 +93,7 @@ export function JoinEventPage() {
 
   useEffect(() => {
     if (!claimPhoto) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the preview when the file is removed
       setPhotoPreview(null)
       return
     }
@@ -102,6 +104,7 @@ export function JoinEventPage() {
 
   useEffect(() => {
     if (!bundle?.state.announcement) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local announcement display from realtime state, a real external system
       setAnnouncement(null)
       return
     }

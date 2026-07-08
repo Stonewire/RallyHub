@@ -53,9 +53,9 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [addMenuOpen, setAddMenuOpen] = useState(false)
 
-  const allRows = catalogQuery.data ?? []
+  const allRows = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data])
   const playlists = playlistsQuery.data ?? []
-  const memberships = membershipsQuery.data ?? []
+  const memberships = useMemo(() => membershipsQuery.data ?? [], [membershipsQuery.data])
 
   // playlist_id -> Set(track_id)
   const tracksByPlaylist = useMemo(() => {

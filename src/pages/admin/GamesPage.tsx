@@ -190,7 +190,7 @@ export function AdminGamesPage() {
   const [newGroupName, setNewGroupName] = useState('')
   const [dialogError, setDialogError] = useState<string | null>(null)
 
-  const groups = groupsQuery.data ?? []
+  const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data])
   const allGames = gamesQuery.data ?? []
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
 

@@ -60,6 +60,7 @@ export function VideoChallengeCapture({
 
   useEffect(() => {
     if (!recordedFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the preview when the recording is removed
       setReviewUrl(null)
       return
     }
@@ -82,6 +83,7 @@ export function VideoChallengeCapture({
     return () => {
       stopStream()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- flipCamera() explicitly restarts the stream on facingMode change, so re-running this effect too would restart it twice
   }, [recordedFile])
 
   useEffect(() => {

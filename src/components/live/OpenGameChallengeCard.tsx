@@ -92,6 +92,7 @@ export function OpenGameChallengeCard({
     >
       <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full">{game.name}</span>
 
+      {/* eslint-disable-next-line react-hooks/static-components -- TypeIcon picks among 3 stable, pre-existing icon components, doesn't create one */}
       <TypeIcon
         className="size-5 shrink-0 opacity-90"
         strokeWidth={1.75}

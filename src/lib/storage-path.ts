@@ -15,6 +15,7 @@ export function audioStorageFilename(baseName: string, extension: string): strin
 /** Sanitize one storage path segment (not URL-encoded). */
 export function sanitizeStorageSegment(segment: string): string {
   return segment
+    // eslint-disable-next-line no-control-regex -- deliberately stripping control chars from untrusted filenames
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .replace(/[/\\]/g, '-')
     .trim()

@@ -97,6 +97,7 @@ export function TabletPage() {
   }, [orgSlug, tabletCode, legacyOrgParam])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/dependency-change pattern; loadData's setState calls happen after an await, not synchronously
     void loadData()
   }, [loadData])
 
