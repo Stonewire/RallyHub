@@ -32,7 +32,7 @@ import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
-import { uploadAsset } from '@/lib/storage'
+import { uploadParticipantAsset } from '@/lib/storage'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
@@ -156,8 +156,8 @@ export function JoinEventPage() {
     try {
       let photoUrl: string | null = claimSlot.photo_url
       if (claimPhoto) {
-        photoUrl = await uploadAsset(
-          'game-assets',
+        photoUrl = await uploadParticipantAsset(
+          eventId,
           `${eventId}/teams/${claimSlot.id}/${Date.now()}.jpg`,
           claimPhoto,
           { mediaKind: 'photo' },

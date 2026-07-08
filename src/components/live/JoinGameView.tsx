@@ -91,7 +91,7 @@ import {
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import { uploadAsset } from '@/lib/storage'
+import { uploadParticipantAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -549,8 +549,8 @@ export function JoinGameView({
     }
     beginOpenSubmit()
     try {
-      const url = await uploadAsset(
-        'game-assets',
+      const url = await uploadParticipantAsset(
+        event.id,
         `${event.id}/submissions/${teamId}/${Date.now()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
         file,
         { mediaKind: game.type === 'video' ? 'video' : 'photo' },
