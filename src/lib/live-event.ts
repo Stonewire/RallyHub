@@ -1,12 +1,7 @@
 import type { Json } from '@/types/json'
 import type { EventStage } from '@/types/game-config'
 import { musicTracksFromGameConfig } from '@/lib/bingo-playback'
-import type {
-  BonusChallenge,
-  GameConfig,
-  MusicTrack,
-  QuizQuestion,
-} from '@/types/game-config'
+import type { GameConfig, MusicTrack, QuizQuestion } from '@/types/game-config'
 import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
@@ -252,26 +247,6 @@ export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {
 
 export function bingoTracks(game: Tables<'games'>): MusicTrack[] {
   return musicTracksFromGameConfig(game.config)
-}
-
-export function bingoBonusChallenges(game: Tables<'games'>): BonusChallenge[] {
-  const config = (game.config ?? {}) as GameConfig
-  return (config.bonus_challenges ?? []).filter(
-    (ch): ch is BonusChallenge =>
-      Boolean(ch?.id && typeof ch.question === 'string'),
-  )
-}
-
-export function bingoBonusChallenge(
-  game: Tables<'games'>,
-  challengeId: string | null | undefined,
-): BonusChallenge | null {
-  if (!challengeId) return null
-  return bingoBonusChallenges(game).find((c) => c.id === challengeId) ?? null
-}
-
-export function bingoBonusMediaType(challengeId: string): string {
-  return `bingo-bonus:${challengeId}`
 }
 
 export type { BingoCell } from '@/lib/bingo-engine'

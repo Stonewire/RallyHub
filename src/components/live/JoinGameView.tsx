@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, 
 import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { BingoBonusPanel } from '@/components/live/BingoBonusPanel'
 import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
@@ -42,14 +41,8 @@ import {
   resolveBingoWinConfig,
 } from '@/lib/bingo-lines'
 import { parseBingoGameConfig } from '@/lib/bingo-facilitator'
-import {
-  encodeBingoBonusSubmission,
-  parseBingoBonusSubmission,
-} from '@/lib/bingo-submission-url'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
-  bingoBonusChallenge,
-  bingoBonusMediaType,
   bingoCardTitles,
   bingoTracks,
   brandColorsForEvent,
@@ -98,10 +91,6 @@ import {
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import {
-  CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CLASS,
-} from '@/lib/challenge-camera'
 import { uploadAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
@@ -183,8 +172,6 @@ export function JoinGameView({
   const quizChangeDeadlineRef = useRef<number | null>(null)
   const [bingoPick, setBingoPick] = useState<number | null>(null)
   const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
-  const [bonusAnswerId, setBonusAnswerId] = useState<string | null>(null)
-  const [bonusCaptureFile, setBonusCaptureFile] = useState<File | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
@@ -489,28 +476,6 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
-  // F8: bonus reveal sound on the player (correct/wrong), mirroring the quiz.
-  const lastBonusRevealKeyRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (state.bingo_state !== 'bonus_revealed') {
-      if (state.bingo_state !== 'bonus') lastBonusRevealKeyRef.current = null
-      return
-    }
-    const game =
-      stage?.type === 'bingo' && stage.gameId
-        ? games.find((g) => g.id === stage.gameId)
-        : null
-    const challenge = game ? bingoBonusChallenge(game, state.bingo_bonus_id) : null
-    if (!challenge?.correctAnswerId) return
-    const key = String(state.bingo_bonus_id)
-    if (lastBonusRevealKeyRef.current === key) return
-    lastBonusRevealKeyRef.current = key
-    const mine = mySubs.find((s) => s.media_type === bingoBonusMediaType(challenge.id))
-    const myAnswer = mine ? parseBingoBonusSubmission(mine.media_url).answerId : null
-    if (myAnswer === challenge.correctAnswerId) playQuizCorrectSound()
-    else playQuizWrongSound()
-  }, [state.bingo_state, state.bingo_bonus_id, stage?.type, stage?.gameId, games, mySubs])
-
   function beginOpenSubmit() {
     flushSync(() => {
       setSubmitting(true)
@@ -684,78 +649,6 @@ export function JoinGameView({
       setCaptureActive(false)
     } finally {
       setCancelling(false)
-    }
-  }
-
-  async function submitBingoBonusAnswer(
-    answerId: string,
-    gameId: string,
-    challengeId: string,
-    challenge: { mediaType: 'photo' | 'video' },
-    proofFile?: File | null,
-  ) {
-    if (state.bingo_state !== 'bonus') return
-    if (challenge.mediaType === 'photo' || challenge.mediaType === 'video') {
-      if (!proofFile) {
-        notify('Add a photo or video first')
-        return
-      }
-    }
-    setSubmitting(true)
-    try {
-      let proofUrl: string | null = null
-      if (proofFile) {
-        proofUrl = await uploadAsset(
-          'game-assets',
-          `${event.organization_id}/bingo-bonus/${crypto.randomUUID()}-${proofFile.name}`,
-          proofFile,
-          { mediaKind: challenge.mediaType === 'video' ? 'video' : 'photo' },
-        )
-      }
-      const mediaUrl = encodeBingoBonusSubmission(answerId, proofUrl)
-      const mediaType = bingoBonusMediaType(challengeId)
-      const existing = mySubs.find(
-        (s) => s.media_type === mediaType && s.game_id === gameId,
-      )
-      const { data: bonusRow, error } = existing
-        ? await supabase
-            .from('submissions')
-            .update({ media_url: mediaUrl })
-            .eq('id', existing.id)
-            .select()
-            .single()
-        : await supabase
-            .from('submissions')
-            .insert({
-              event_id: event.id,
-              team_id: teamId,
-              game_id: gameId,
-              media_url: mediaUrl,
-              media_type: mediaType,
-              status: 'pending',
-            })
-            .select()
-            .single()
-      if (error) throw error
-      if (bonusRow) {
-        mergeOwnSubmission(existing ? 'UPDATE' : 'INSERT', bonusRow)
-        void publishSubmissionChange(
-          event.id,
-          existing ? 'UPDATE' : 'INSERT',
-          bonusRow,
-        )
-      }
-      setBonusCaptureFile(null)
-      playSubmitSound()
-      notify('Bonus answer submitted')
-    } catch (err) {
-      const msg =
-        err instanceof Error && err.message.includes('must be')
-          ? err.message
-          : "Couldn't submit bonus answer — tap to retry"
-      notify(msg)
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -1270,90 +1163,7 @@ export function JoinGameView({
     if (!game) {
       body = <GameUnavailableFallback />
     } else {
-    const bonusChallenge = game
-      ? bingoBonusChallenge(game, state.bingo_bonus_id)
-      : null
-    const bonusRevealed = state.bingo_state === 'bonus_revealed'
-    const bonusActive = state.bingo_state === 'bonus' || bonusRevealed
-
-    if (bonusChallenge && bonusActive) {
-      const mediaType = bingoBonusMediaType(bonusChallenge.id)
-      const existing = mySubs.find(
-        (s) => s.media_type === mediaType && s.game_id === stage.gameId,
-      )
-      const parsed = parseBingoBonusSubmission(existing?.media_url ?? null)
-      const locked = bonusRevealed || Boolean(existing)
-      const needsMedia =
-        bonusChallenge.mediaType === 'photo' || bonusChallenge.mediaType === 'video'
-      body = (
-        <div className="mx-auto max-w-lg px-4">
-          <BingoBonusPanel
-            challenge={bonusChallenge}
-            accentColor={accent}
-            revealed={bonusRevealed}
-            selectedAnswerId={bonusAnswerId}
-            locked={locked}
-            existingAnswerId={parsed.answerId || null}
-            onSelect={(answerId) => setBonusAnswerId(answerId)}
-          />
-          {parsed.mediaProofUrl && bonusRevealed ? (
-            bonusChallenge.mediaType === 'video' ? (
-              <div className={`mt-4 ${CHALLENGE_VIDEO_FRAME_CLASS}`}>
-                <video
-                  src={parsed.mediaProofUrl}
-                  controls
-                  className={CHALLENGE_VIDEO_MEDIA_CLASS}
-                />
-              </div>
-            ) : (
-              <img
-                src={parsed.mediaProofUrl}
-                alt=""
-                className="mt-4 w-full rounded-lg"
-              />
-            )
-          ) : null}
-          {!locked && needsMedia ? (
-            <div className="mt-4">
-              <ChallengeMediaCaptureFlow
-                title={game?.name ?? 'Bonus challenge'}
-                description={
-                  bonusChallenge.mediaType === 'video'
-                    ? 'Record a short video as proof for your bonus answer.'
-                    : 'Take a photo as proof for your bonus answer.'
-                }
-                pointsLabel={game ? gamePointsDisplay(game) : 'Bonus'}
-                coverUrl={game?.cover_url}
-                accentColor={accent}
-                mediaType={bonusChallenge.mediaType === 'video' ? 'video' : 'photo'}
-                config={(game?.config as GameConfig) ?? {}}
-                disabled={submitting}
-                onCaptureActiveChange={setCaptureActive}
-                onFileReady={setBonusCaptureFile}
-              />
-            </div>
-          ) : null}
-          {!locked && bonusAnswerId ? (
-            <LiveAccentButton
-              accentColor={accent}
-              className="mt-6 w-full"
-              disabled={submitting || (needsMedia && !bonusCaptureFile)}
-              onClick={() =>
-                void submitBingoBonusAnswer(
-                  bonusAnswerId,
-                  stage.gameId!,
-                  bonusChallenge.id,
-                  bonusChallenge,
-                  bonusCaptureFile,
-                )
-              }
-            >
-              Submit bonus answer
-            </LiveAccentButton>
-          ) : null}
-        </div>
-      )
-    } else if (!bingoRunQuery.data && !bingoCardQuery.data) {
+    if (!bingoRunQuery.data && !bingoCardQuery.data) {
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
           <p className="text-lg font-bold text-white">{game?.name ?? 'Music Bingo'}</p>

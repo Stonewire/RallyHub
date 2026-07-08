@@ -40,7 +40,7 @@ const TYPES: {
   { type: 'video', label: 'Video', icon: Clapperboard, description: 'Video challenge with example clip' },
   { type: 'text', label: 'Text', icon: FileText, description: 'Typed or multiple-choice text answers' },
   { type: 'quiz', label: 'Quiz', icon: HelpCircle, description: 'Timed questions and optional rounds' },
-  { type: 'music_bingo', label: 'Music Bingo', icon: Music2, description: 'Tracks and bonus challenges' },
+  { type: 'music_bingo', label: 'Music Bingo', icon: Music2, description: 'Songs and a live bingo card' },
 ]
 
 function emptyQuestion(): QuizQuestion {
@@ -90,7 +90,6 @@ export function AdminGamesNewPage() {
     rounds_enabled: false,
     rounds: [],
     tracks: [],
-    bonus_challenges: [],
   })
 
   if (orgLoading) {

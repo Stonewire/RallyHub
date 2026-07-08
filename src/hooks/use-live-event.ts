@@ -188,18 +188,6 @@ export function useLiveEvent(eventId: string | undefined) {
     void reload()
   }, [reload])
 
-  // Bonus answers are redacted from the live games config until bingo_state hits
-  // 'bonus_revealed'. The bundle's games aren't refetched on a plain state patch,
-  // so refetch once on that transition to pull the now-visible correct answer.
-  const bingoState = bundle?.state.bingo_state
-  const prevBingoStateRef = useRef<string | undefined>(undefined)
-  useEffect(() => {
-    if (bingoState === 'bonus_revealed' && prevBingoStateRef.current !== 'bonus_revealed') {
-      void reload()
-    }
-    prevBingoStateRef.current = bingoState
-  }, [bingoState, reload])
-
   // Safety-net poll for event_state. Anonymous players don't reliably receive
   // Realtime (postgres_changes needs the join-token header it can't send, and
   // broadcast depends on the facilitator being connected). Polling the single
