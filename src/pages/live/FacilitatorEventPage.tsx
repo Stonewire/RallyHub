@@ -93,6 +93,7 @@ import {
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
+import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
@@ -2174,7 +2175,16 @@ export function FacilitatorEventPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setClaimPhoto(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (!f) {
+                  setClaimPhoto(null)
+                  return
+                }
+                void downscalePhoto(f).then((blob) =>
+                  setClaimPhoto(new File([blob], f.name, { type: blob.type || f.type })),
+                )
+              }}
             />
             <input
               type="color"

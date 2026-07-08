@@ -9,6 +9,7 @@ import {
   shouldUseNativePhotoCapture,
   shouldUseNativeVideoCapture,
 } from '@/lib/capture-platform'
+import { downscalePhoto } from '@/lib/challenge-camera'
 import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
@@ -118,10 +119,20 @@ export function ChallengeMediaCaptureFlow({
       if (!ok) return
     }
 
+    // The OS camera app (native capture) hands back full-resolution photos,
+    // often several MB on modern phones — downscale before it ever reaches
+    // the preview/upload path, same as the in-app capture flow already does.
+    const readyFile =
+      mediaType === 'photo'
+        ? await downscalePhoto(file).then(
+            (blob) => new File([blob], file.name, { type: blob.type || file.type }),
+          )
+        : file
+
     revokeNativePreviewUrl()
-    const url = URL.createObjectURL(file)
+    const url = URL.createObjectURL(readyFile)
     nativePreviewUrlRef.current = url
-    setNativePreviewFile(file)
+    setNativePreviewFile(readyFile)
     setNativePreviewUrl(url)
   }
 

@@ -34,6 +34,7 @@ import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
 import { validateUploadFileSize } from '@/lib/upload-limits'
+import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
 
 function teamKey(eventId: string) {
@@ -359,7 +360,9 @@ export function JoinEventPage() {
                     return
                   }
                   setClaimError(null)
-                  setClaimPhoto(f)
+                  void downscalePhoto(f).then((blob) =>
+                    setClaimPhoto(new File([blob], f.name, { type: blob.type || f.type })),
+                  )
                 }}
               />
               <Button

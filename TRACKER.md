@@ -48,7 +48,7 @@ round smoke test.
 FacilitatorEventPage refactor (ENG1). Staged over multiple sessions; each
 stage live-tested before the next.
 
-**Parked / needs a design chat first:** P0-2b, P1-1, P2-UP,
+**Parked / needs a design chat first:** P0-2b, P1-1,
 ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ---
@@ -80,7 +80,7 @@ ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
 - [x] **P2-5** register-client signup rate limiting — per-IP limit (5/hour, `signup_attempts` table, migration 087), enforced server-side in the edge function before any org/user is created; verified live (5 succeed, 6th returns 429). Captcha (Turnstile) deferred — Rumen to provide site/secret keys, wired in separately. **Bonus fix**: found and fixed a real hooks-order bug in `RegisterPage.tsx` while testing — two early `return`s sat before 8 `useState` calls, crashing the whole page ("Rendered fewer hooks than expected") whenever `user`/host status changed value between renders (e.g. a stale session). Registration was silently broken for anyone hitting that edge case (on `main` as of V2.4.4)
 - [ ] **P2-5b** Wire in Cloudflare Turnstile on the register form once Rumen provides the site/secret key pair (rate limiting alone ships first)
-- [ ] **P2-UP** Photo compression before upload + upload error handling
+- [x] **P2-UP** Photo compression before upload — found the real gap: the in-app WebRTC camera capture already downscaled via `downscalePhoto`, but the native-camera-app fallback (`ChallengeMediaCaptureFlow.tsx`, used on iOS) and both team-claim-photo pickers (participant `JoinEventPage.tsx`, facilitator `FacilitatorEventPage.tsx`) uploaded the raw, full-resolution file straight from the camera. Wired `downscalePhoto` into all three. Verified live: a 1.2MB test photo uploaded through the team-claim path landed in storage at 253KB (~79% smaller), correct filename/mimetype preserved. Upload error handling already existed (`validateUploadFileSize` + try/catch on all paths), so scoped to just the compression gap (on `fixes`, needs merge to main)
 - [x] **P2-LOG** Full activity log with filters (#12) — client-side filter by actor (team/facilitator/admin, by name) and by action, on top of the existing per-event log; CSV download respects the active filters (on `main` as of V2.4.3)
 
 ## Re-land — was done pre-rollback, lost when main reverted to V2.0
