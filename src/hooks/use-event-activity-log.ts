@@ -6,7 +6,7 @@ import type { Tables } from '@/types/helpers'
 
 export type ActivityLogRow = Tables<'event_activity_log'>
 
-const ACTION_LABELS: Record<string, string> = {
+export const ACTION_LABELS: Record<string, string> = {
   team_joined: 'Joined the event',
   facilitator_joined: 'Connected as facilitator',
   stage_changed: 'Advanced to stage',

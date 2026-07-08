@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.3 — 2026-07-08 (event activity log filters)
+Added actor (team/facilitator/admin, by name) and action filters to the
+per-event activity log (admin event page + facilitator panel), so you can
+narrow a busy event log down to e.g. "just this team" or "just submission
+rejections." Download CSV respects the active filters.
+
 ## V2.4.2 — 2026-07-08 (admin reload bug fix + small cleanups)
 - **Hard reload on any /admin/* sub-route bounced to the dashboard**: for one
   render after a signed-in session resolved, the app could read `role: null`

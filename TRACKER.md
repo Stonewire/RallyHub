@@ -48,7 +48,7 @@ round smoke test.
 FacilitatorEventPage refactor (ENG1). Staged over multiple sessions; each
 stage live-tested before the next.
 
-**Parked / needs a design chat first:** P0-2b, P1-1, P2-UP, P2-LOG,
+**Parked / needs a design chat first:** P0-2b, P1-1, P2-UP,
 ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ---
@@ -80,7 +80,7 @@ ENG2, ENG6, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [x] **P2-3** Tablet PIN: Settings warns + blocks the kiosk link until a non-default password is saved (on `fixes`)
 - [ ] **P2-5** register-client signup rate limiting + captcha before public launch
 - [ ] **P2-UP** Photo compression before upload + upload error handling
-- [ ] **P2-LOG** Full activity log with filters (#12): every action per team/facilitator, filter by team/facilitator/action
+- [x] **P2-LOG** Full activity log with filters (#12) — client-side filter by actor (team/facilitator/admin, by name) and by action, on top of the existing per-event log; CSV download respects the active filters (on `main` as of V2.4.3)
 
 ## Re-land — was done pre-rollback, lost when main reverted to V2.0
 
