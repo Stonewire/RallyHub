@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
+import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -31,6 +32,7 @@ export function RegisterPage() {
   const [isSchool, setIsSchool] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   // Self-serve signup is a platform-host concept (it creates a brand-new org).
   // On a tenant host, registration doesn't apply — send people to sign in.
@@ -43,10 +45,14 @@ export function RegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!turnstileToken) {
+      setError('Please complete the verification below.')
+      return
+    }
     setPending(true)
     try {
       const { data, error: fnError } = await supabase.functions.invoke('register-client', {
-        body: { orgName, fullName, email, password, plan, isSchool },
+        body: { orgName, fullName, email, password, plan, isSchool, turnstileToken },
       })
       if (fnError) {
         // Extract the real error message from the response body when available
@@ -161,6 +167,13 @@ export function RegisterPage() {
               plans and events once we verify your account.
             </span>
           </label>
+
+          <div className="flex justify-center">
+            <TurnstileWidget
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken(null)}
+            />
+          </div>
 
           {error ? (
             <p className="text-destructive text-center text-sm" role="alert">
