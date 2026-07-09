@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.7 - 2026-07-09 (Turnstile signup verification)
+- **P2-5b**: the public registration form now includes Cloudflare Turnstile.
+  The `register-client` Edge Function accepts the Turnstile token and verifies
+  it server-side when `TURNSTILE_SECRET_KEY` is configured, on top of the
+  existing per-IP signup rate limit.
+- Added `VITE_TURNSTILE_SITE_KEY` to the frontend environment typing/example;
+  the site key remains public, while the secret key belongs in Supabase Edge
+  Function secrets.
+
 ## V2.4.6 — 2026-07-08 (photo compression + anon storage hardening)
 Merged from `fixes` after live verification:
 - **P2-UP**: photos now get compressed before upload on all three paths that
