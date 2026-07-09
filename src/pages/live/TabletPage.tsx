@@ -19,6 +19,18 @@ const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
 const TABLET_NOT_FOUND_MESSAGE =
   'Organization not found. Check your tablet link from Settings — the URL may be outdated.'
 
+async function fetchTabletEvents(
+  organizationId: string,
+  token: string,
+): Promise<Tables<'events'>[]> {
+  const { data, error } = await supabase.rpc('get_tablet_events_for_org', {
+    p_org_id: organizationId,
+    p_token: token,
+  })
+  if (error) throw error
+  return (data ?? []) as Tables<'events'>[]
+}
+
 export function TabletPage() {
   const { orgSlug, tabletCode } = useParams<{
     orgSlug?: string
@@ -73,21 +85,24 @@ export function TabletPage() {
     setOrg(organization as TenantPublicOrg)
     // Validate stored token server-side; fall back to unauthed on any failure
     const storedToken = sessionStorage.getItem(tabletSessionKey(organization.id))
+    let validToken: string | null = null
     if (storedToken) {
       const valid = await validateTabletSession(organization.id, storedToken).catch(() => false)
       if (!valid) sessionStorage.removeItem(tabletSessionKey(organization.id))
-      setAuthed(valid)
+      validToken = valid ? storedToken : null
+      setAuthed(Boolean(validToken))
     } else {
       setAuthed(false)
     }
 
-    try {
-      const { data: ev, error: evError } = await supabase.rpc('get_tablet_events_for_org', {
-        p_org_id: organization.id,
-      })
+    if (!validToken) {
+      setEvents([])
+      setLoading(false)
+      return
+    }
 
-      if (evError) throw evError
-      setEvents((ev ?? []) as Tables<'events'>[])
+    try {
+      setEvents(await fetchTabletEvents(organization.id, validToken))
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Failed to load events')
       setEvents([])
@@ -112,13 +127,15 @@ export function TabletPage() {
         setAuthError('Incorrect password')
         return
       }
+      const nextEvents = await fetchTabletEvents(org.id, token)
       sessionStorage.setItem(tabletSessionKey(org.id), token)
+      setEvents(nextEvents)
       setAuthed(true)
       setPassword('')
       if (orgSlug && tabletCode) return
       navigate(getTabletLink(org), { replace: true })
     } catch {
-      setAuthError('Could not verify password')
+      setAuthError('Could not verify password or load events')
     } finally {
       setCheckingIn(false)
     }

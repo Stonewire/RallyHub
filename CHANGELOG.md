@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.8 - 2026-07-09 (security hardening phase 1)
+- Tablet kiosk event lists now require a valid server-issued tablet session
+  token before the `get_tablet_events_for_org` RPC returns active/ready/demo
+  event metadata.
+- The Auth user creation trigger no longer trusts user-editable metadata for
+  `role`, `organization_id`, or `must_change_password`; trusted Edge Functions
+  remain responsible for assigning profile authorization fields, and no longer
+  write those authorization fields into Auth `user_metadata`.
+- Organization logo storage writes are scoped to the caller's org path (or super
+  admin), and broad public storage listing policies were removed from the public
+  `organization-logos` / `game-assets` buckets.
+- Removed implicit `PUBLIC` execute access from the first batch of admin,
+  scoring, lifecycle, and trigger `SECURITY DEFINER` functions.
+
 ## V2.4.7 - 2026-07-09 (Turnstile signup verification)
 - **P2-5b**: the public registration form now includes Cloudflare Turnstile.
   The `register-client` Edge Function accepts the Turnstile token and verifies

@@ -111,8 +111,8 @@ Deno.serve(async (req) => {
 
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
 
-    // Auth admin update: email / password / metadata. must_change_password is
-    // only touched when a new password is set (the "require update" tick).
+    // Auth admin update: email / password / display metadata only. Role and
+    // must_change_password live on profiles, never user_metadata.
     const authUpdate: Record<string, unknown> = {}
     if (email) authUpdate.email = email
     if (hasPassword) authUpdate.password = String(password)
@@ -121,8 +121,6 @@ Deno.serve(async (req) => {
       ...(firstName != null ? { first_name: firstName } : {}),
       ...(lastName != null ? { last_name: lastName } : {}),
       ...(fullName ? { full_name: fullName } : {}),
-      ...(applyRole ? { role: applyRole } : {}),
-      ...(hasPassword ? { must_change_password: requirePwChange } : {}),
     }
     const { error: authErr } = await admin.auth.admin.updateUserById(targetUserId, authUpdate)
     if (authErr) return json({ error: authErr.message }, 400)
@@ -137,7 +135,13 @@ Deno.serve(async (req) => {
     if (applyRole) profileUpdate.role = applyRole
     if (hasPassword) profileUpdate.must_change_password = requirePwChange
     if (Object.keys(profileUpdate).length > 0) {
-      await admin.from('profiles').update(profileUpdate).eq('id', targetUserId)
+      const { error: profileErr } = await admin
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', targetUserId)
+        .select('id')
+        .single()
+      if (profileErr) return json({ error: profileErr.message }, 400)
     }
 
     // Keep the organization_members mirror roughly in sync (best effort).

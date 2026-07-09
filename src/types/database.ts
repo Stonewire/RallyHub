@@ -957,7 +957,7 @@ export type Database = {
         Returns: undefined
       }
       get_tablet_events_for_org: {
-        Args: { p_org_id: string }
+        Args: { p_org_id: string; p_token: string }
         Returns: Database['public']['Tables']['events']['Row'][]
       }
       support_unread_ticket_count: {

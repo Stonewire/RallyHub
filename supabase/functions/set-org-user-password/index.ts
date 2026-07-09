@@ -70,14 +70,16 @@ Deno.serve(async (req) => {
 
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
       password: String(newPassword),
-      user_metadata: { must_change_password: true },
     })
     if (updateErr) return json({ error: updateErr.message }, 400)
 
-    await supabaseAdmin
+    const { error: profileErr } = await supabaseAdmin
       .from('profiles')
       .update({ must_change_password: true })
       .eq('id', targetUserId)
+      .select('id')
+      .single()
+    if (profileErr) return json({ error: profileErr.message }, 400)
 
     return json({ ok: true })
   } catch (err) {
