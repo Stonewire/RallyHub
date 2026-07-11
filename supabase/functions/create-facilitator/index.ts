@@ -98,8 +98,6 @@ Deno.serve(async (req) => {
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`.trim(),
-        role: 'facilitator',
-        organization_id: organizationId,
       },
     })
 
@@ -111,7 +109,7 @@ Deno.serve(async (req) => {
     }
 
     if (authUser.user) {
-      await supabaseAdmin
+      const { error: profileErr } = await supabaseAdmin
         .from('profiles')
         .update({
           username,
@@ -122,6 +120,16 @@ Deno.serve(async (req) => {
           organization_id: organizationId,
         })
         .eq('id', authUser.user.id)
+        .select('id')
+        .single()
+
+      if (profileErr) {
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        return new Response(JSON.stringify({ error: profileErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     return new Response(JSON.stringify({ userId: authUser.user?.id, username }), {

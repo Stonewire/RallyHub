@@ -127,9 +127,6 @@ Deno.serve(async (req) => {
         first_name: firstName,
         last_name: lastName,
         full_name: fullName,
-        role,
-        organization_id: organizationId,
-        must_change_password: true,
       },
     })
 
@@ -141,7 +138,7 @@ Deno.serve(async (req) => {
     }
 
     if (authUser.user) {
-      await supabaseAdmin
+      const { error: profileErr } = await supabaseAdmin
         .from('profiles')
         .update({
           username,
@@ -153,14 +150,32 @@ Deno.serve(async (req) => {
           must_change_password: true,
         })
         .eq('id', authUser.user.id)
+        .select('id')
+        .single()
 
-      await supabaseAdmin.from('organization_members').insert({
+      if (profileErr) {
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        return new Response(JSON.stringify({ error: profileErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const { error: memberErr } = await supabaseAdmin.from('organization_members').insert({
         organization_id: organizationId,
         name: fullName,
         email,
         role,
         accepted_at: new Date().toISOString(),
       })
+
+      if (memberErr) {
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        return new Response(JSON.stringify({ error: memberErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     return new Response(

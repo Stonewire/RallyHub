@@ -154,8 +154,6 @@ Deno.serve(async (req) => {
       user_metadata: {
         username: usernameBase,
         full_name: (fullName ?? orgName).trim(),
-        role: 'client_admin',
-        organization_id: org.id,
       },
     })
 
@@ -171,7 +169,7 @@ Deno.serve(async (req) => {
     }
 
     if (authUser.user) {
-      await supabaseAdmin
+      const { error: profileErr } = await supabaseAdmin
         .from('profiles')
         .update({
           organization_id: org.id,
@@ -180,6 +178,15 @@ Deno.serve(async (req) => {
           full_name: (fullName ?? orgName).trim(),
         })
         .eq('id', authUser.user.id)
+        .select('id')
+        .single()
+
+      if (profileErr) {
+        console.error('[register-client] profile update:', profileErr.message, profileErr.details)
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        await supabaseAdmin.from('organizations').delete().eq('id', org.id)
+        return json({ error: 'Could not finish account setup. Please try again.' }, 500)
+      }
     }
 
     return json({
