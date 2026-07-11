@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.12 - 2026-07-11 (P1-1 bingo playback recovery)
+- Players now recover the current bingo song if the facilitator's tab closes
+  mid-round. The play index is already written to `bingo_runs` on every advance;
+  `useBingoRun` now polls that row (every 3s) and moves players forward when the
+  facilitator's broadcast has been silent for 6s+. Guarded by
+  `pickRecoveredBingoRun` so a stale read can never rewind an active run, and a
+  no-op while broadcasts flow, so normal facilitator-present play is unchanged.
+  Needs a real-phone smoke test (facilitator closes tab mid-bingo) before the
+  next event. New unit test: `src/hooks/use-bingo-run.test.ts`.
+
 ## V2.4.11 - 2026-07-11 (SEC-2 RLS performance cleanup)
 - Wrapped `auth.uid()`/`is_super_admin()`/`user_organization_id()` in `(select
   ...)` across RLS policies so they evaluate once per query, not per row, and
