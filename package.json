@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "preview": "vite preview",
     "seed:test-event": "node scripts/seed-test-event.mjs",
+    "load:test": "node scripts/load-test-live-event.mjs",
     "seed:all-orgs": "node scripts/seed-all-organizations.mjs",
     "seed:defaults:build": "node scripts/generate-seed-data.mjs && node scripts/build-org-defaults-migration.mjs",
     "catalog:list-storage": "node scripts/list-catalog-storage.mjs",
