@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.10 - 2026-07-11 (SEC-4 anon SECURITY DEFINER lockdown, round 2)
+- Removed `anon` execute from 11 SECURITY DEFINER functions that no anonymous
+  surface uses: the five RLS helpers (`is_super_admin`, `user_organization_id`,
+  `is_facilitator_for_event`, `is_org_member_for_event`, `is_org_staff_for_event`,
+  all referenced only in `authenticated` policies), three admin RPCs
+  (`expire_overdue_trials`, `get_organization_users`, `install_music_library`),
+  and three internal workers (`award_bingo_line_bonus`, `archive_stale_active_events`,
+  `seed_organization_defaults`). Each keeps exactly the role it needs
+  (`authenticated`/`service_role`). Anon-executable SECURITY DEFINER functions:
+  28 → 17 (46 → 17 since the review began). Verified the anon participant path
+  still works via the 15-phone load test (0 errors, 100% broadcast delivery).
+
 ## V2.4.9 - 2026-07-11 (SEC-3 indexes + SEC-5 advisor cleanup)
 - Added the 19 missing foreign-key indexes flagged by the performance advisor
   and a composite `submissions(event_id, created_at desc)` index for the hot
