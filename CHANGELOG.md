@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.9 - 2026-07-11 (SEC-3 indexes + SEC-5 advisor cleanup)
+- Added the 19 missing foreign-key indexes flagged by the performance advisor
+  and a composite `submissions(event_id, created_at desc)` index for the hot
+  live-event read. The plain `submissions(event_id)` index is kept for now.
+- Organization creation is now super-admin / service-role only: the old
+  `organizations` INSERT policy allowed any authenticated user (`WITH CHECK
+  (true)`); it now checks `is_super_admin()`. Signup Edge Functions use the
+  service role and are unaffected.
+- Pinned `search_path = public` on the 14 functions flagged with a mutable
+  search path (behaviour unchanged; all cross-schema references were already
+  qualified).
+- Retired dead Edge Functions: deleted local `create-facilitator` and
+  `invite-member` sources (uncalled). The deployed `smooth-api`, `invite-member`,
+  and `reveal-bingo-winner` still need removing from the Supabase dashboard.
+- Leaked-password protection enabled in Auth settings.
+
 ## V2.4.8 - 2026-07-09 (security hardening phase 1)
 - Tablet kiosk event lists now require a valid server-issued tablet session
   token before the `get_tablet_events_for_org` RPC returns active/ready/demo
