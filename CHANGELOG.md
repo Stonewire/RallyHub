@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.11 - 2026-07-11 (SEC-2 RLS performance cleanup)
+- Wrapped `auth.uid()`/`is_super_admin()`/`user_organization_id()` in `(select
+  ...)` across RLS policies so they evaluate once per query, not per row, and
+  merged the own-org + super-admin permissive policy pairs into single policies.
+  `auth_rls_initplan` 21 → 0; `multiple_permissive_policies` 29 → 1 (only the
+  invoices SELECT pair left, an awkward all+select merge deliberately skipped).
+- Behaviour-preserving: verified RLS-visible row counts are byte-identical for
+  super_admin, client_admin, and event_manager across all 18 affected tables
+  (before/after simulation), and the anon participant path via load test.
+
 ## V2.4.10 - 2026-07-11 (SEC-4 anon SECURITY DEFINER lockdown, round 2)
 - Removed `anon` execute from 11 SECURITY DEFINER functions that no anonymous
   surface uses: the five RLS helpers (`is_super_admin`, `user_organization_id`,
