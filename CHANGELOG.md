@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.14 - 2026-07-12 (ENG2 stage 1: extract participant overlays)
+- Same safe slice on JoinGameView: the three leaf overlays (facilitator chat,
+  announcement, exit-password dialog) moved verbatim into presentational
+  components in `src/components/live/participant/JoinGameOverlays.tsx`. Page owns
+  all state/handlers; props TypeScript-checked. No behaviour change; file
+  1555 → 1484 lines. The header/body render blocks and state machine are left
+  for later staged passes (each needs a participant smoke test).
+
 ## V2.4.13 - 2026-07-12 (ENG1 stage 1: extract facilitator modals)
 - First safe slice of the FacilitatorEventPage decomposition: the four leaf
   modals (winner-sound routing, team claim, reset-team confirm, event log) moved

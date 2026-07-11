@@ -115,7 +115,7 @@ ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ## Engineering health
 
-- [ ] **ENG2** Refactor JoinGameView (second God-component)
+- [~] **ENG2** Refactor JoinGameView (second God-component) — **stage 1 on `main` as of V2.4.14** (needs participant smoke test). Extracted the 3 leaf overlays (facilitator chat, announcement, exit-password dialog) to `src/components/live/participant/JoinGameOverlays.tsx` as presentational components; page still owns state/handlers, props TypeScript-checked, no behaviour change, 1555 → 1484 lines. STILL OPEN: the header/body render blocks + state machine are the bulk; decompose in further staged passes, each live-tested. Purely internal — lower priority than the Paddle feature.
 - [x] **ENG4** Lazy-load jspdf + ffmpeg — main bundle 1881 kB → 1481 kB, gzip 550 → 419 kB (on `fixes`)
 - [x] **ENG5** Test suite around scoring — vitest, 30 tests on the bingo core (win detection, cell matching, card generation); `npm test`
 - [x] **ENG6** Clear lint backlog — 96 problems (79 errors, 17 warnings) down to 0. Mechanical fixes (unused escapes/assignments, irregular whitespace, control regex) plus ~50 targeted `eslint-disable` comments for legitimate patterns the new React Compiler rules over-flag (the "keep ref fresh" idiom, hydrate-form-from-fetch, object-URL previews, fetch-on-mount). Found and fixed a real bug along the way: a dead `else if` branch in bingo auto-advance (`no-dupe-else-if` caught it — the branch could never execute, since its condition was a subset of the preceding `if`) — verified live with a full throwaway bingo round, crossfade + multi-song auto-advance all correct afterward. Also deleted one unused deprecated hook (`useFacilitatorChatUnread`). (on `main` as of V2.4.5)
