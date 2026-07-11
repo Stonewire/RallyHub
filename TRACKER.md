@@ -127,6 +127,7 @@ ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 
 ## Later / ideas
 
+- [ ] **EMAIL-1** Transactional email via Resend (client auth emails: signup confirm, password reset, invites). Decision: use Resend as Supabase Auth **Custom SMTP** (not a replacement for Supabase) — Supabase's built-in sender is test-only (rate-limited, sends from a Supabase address, lands in spam), so a real provider is required regardless. This gets send-from-own-domain + fully editable templates (edited in the Supabase dashboard). Prereqs (Rumen): verify sending domain in Resend (SPF/DKIM DNS records), get SMTP creds. Then: wire Custom SMTP in Supabase Auth, restyle the auth templates. Later, reuse the Resend account/domain for non-auth emails (invoices once PAY-1 lands, event confirmations) via its API from an edge function. Any SMTP provider works (Postmark/SES/SendGrid); Resend chosen for DX + free tier.
 - [ ] **L-2** AI features for clients (#24): bulk game creation, AI descriptions
 - [ ] **PAY-1** Paddle integration for the payment system (subscriptions/billing — currently no payment processor wired up)
 - [ ] **PDF-1** Branded PDF event-recap report — `src/lib/event-export.ts` currently ships a ZIP of media + CSV logs as a stand-in; the real branded PDF report was deferred and never built
