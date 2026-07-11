@@ -15,21 +15,24 @@ import {
 } from '@/components/live/FacilitatorChatDrawer'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { TeamQuestProgressModal } from '@/components/live/TeamQuestProgressModal'
+import {
+  EventLogModal,
+  ResetTeamModal,
+  TeamClaimModal,
+  WinnerRoutingModal,
+} from '@/components/live/facilitator/FacilitatorModals'
 import { questGamesForEvent, teamQuestProgress } from '@/lib/quest-progress'
 import {
-  WINNER_SOUND_SURFACES,
   parseWinnerSoundTargets,
   winnerSoundEnabled,
   type WinnerSoundSurface,
 } from '@/lib/winner-sound'
-import { EventActivityLog } from '@/components/admin/EventActivityLog'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
-import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
+import { NeoButton, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
@@ -93,7 +96,6 @@ import {
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadAsset } from '@/lib/storage'
-import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
@@ -2105,162 +2107,38 @@ export function FacilitatorEventPage() {
           })()
         : null}
 
-      {winnerRoutingOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="winner-routing-title"
-        >
-          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
-            <div>
-              <h3 id="winner-routing-title" className="text-foreground font-semibold">
-                Where should the winner sound play?
-              </h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Choose before revealing the winner. The celebration audio plays only on the
-                selected surfaces.
-              </p>
-            </div>
-            <div className="space-y-2">
-              {WINNER_SOUND_SURFACES.map((s) => {
-                const checked = winnerRoutingSel.includes(s.id)
-                return (
-                  <label
-                    key={s.id}
-                    className="border-border/80 flex cursor-pointer gap-3 rounded-lg border p-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      className="mt-1"
-                      onChange={(e) =>
-                        setWinnerRoutingSel((prev) =>
-                          e.target.checked
-                            ? [...prev, s.id]
-                            : prev.filter((x) => x !== s.id),
-                        )
-                      }
-                    />
-                    <span className="min-w-0">
-                      <span className="text-foreground block text-sm font-medium">{s.label}</span>
-                      <span className="text-muted-foreground block text-xs">{s.description}</span>
-                    </span>
-                  </label>
-                )
-              })}
-            </div>
-            <div className="flex justify-end gap-2">
-              <NeoButton variant="surface" onClick={() => setWinnerRoutingOpen(false)}>
-                Cancel
-              </NeoButton>
-              <NeoButton variant="primary" onClick={saveWinnerRoutingAndReveal}>
-                {liveState.winner_reveal_stage === 0 ? 'Save & reveal' : 'Save'}
-              </NeoButton>
-            </div>
-          </NeoCard>
-        </div>
-      ) : null}
+      <WinnerRoutingModal
+        open={winnerRoutingOpen}
+        selected={winnerRoutingSel}
+        onChange={setWinnerRoutingSel}
+        onCancel={() => setWinnerRoutingOpen(false)}
+        onSave={saveWinnerRoutingAndReveal}
+        saveLabel={liveState.winner_reveal_stage === 0 ? 'Save & reveal' : 'Save'}
+      />
 
-      {claimSlot ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <NeoCard className="max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-6 shadow-lg">
-            <h3 className="font-semibold">Team slot {claimSlot.slot_number}</h3>
-            <Input
-              value={claimName}
-              onChange={(e) => setClaimName(e.target.value)}
-              placeholder="Team name"
-              className="bg-background"
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (!f) {
-                  setClaimPhoto(null)
-                  return
-                }
-                void downscalePhoto(f).then((blob) =>
-                  setClaimPhoto(new File([blob], f.name, { type: blob.type || f.type })),
-                )
-              }}
-            />
-            <input
-              type="color"
-              value={claimSlot.color ?? '#888888'}
-              onChange={(e) => void updateTeam(claimSlot.id, { color: e.target.value })}
-            />
-            <div className="flex justify-end gap-2">
-              <NeoButton variant="surface" onClick={() => setClaimSlot(null)}>
-                Cancel
-              </NeoButton>
-              <NeoButton variant="primary" disabled={uploading} onClick={() => void saveClaim()}>
-                Save
-              </NeoButton>
-            </div>
-          </NeoCard>
-        </div>
-      ) : null}
+      <TeamClaimModal
+        slot={claimSlot}
+        name={claimName}
+        onNameChange={setClaimName}
+        onPhotoChange={setClaimPhoto}
+        onColorChange={(color) => {
+          if (claimSlot) void updateTeam(claimSlot.id, { color })
+        }}
+        uploading={uploading}
+        onCancel={() => setClaimSlot(null)}
+        onSave={() => void saveClaim()}
+      />
 
-      {resetConfirmTeam ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="reset-team-title"
-        >
-          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
-            <h3 id="reset-team-title" className="font-semibold">
-              Reset team slot {resetConfirmTeam.slot_number}?
-            </h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Clears{' '}
-              <span className="text-foreground font-medium">
-                {resetConfirmTeam.name?.trim() || 'this team'}
-              </span>
-              , removes their photo, and sets score to 0. The slot becomes available for someone
-              new to join.
-            </p>
-            <div className="flex justify-end gap-2">
-              <NeoButton
-                variant="surface"
-                disabled={resettingTeam}
-                onClick={() => setResetConfirmTeam(null)}
-              >
-                Cancel
-              </NeoButton>
-              <NeoButton
-                variant="destructive"
-                disabled={resettingTeam}
-                onClick={() => void resetTeamSlot(resetConfirmTeam)}
-              >
-                {resettingTeam ? 'Resetting…' : 'Reset team'}
-              </NeoButton>
-            </div>
-          </NeoCard>
-        </div>
-      ) : null}
+      <ResetTeamModal
+        team={resetConfirmTeam}
+        resetting={resettingTeam}
+        onCancel={() => setResetConfirmTeam(null)}
+        onConfirm={() => {
+          if (resetConfirmTeam) void resetTeamSlot(resetConfirmTeam)
+        }}
+      />
 
-      {logOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setLogOpen(false)}
-        >
-          <NeoCard
-            className="max-h-[85dvh] w-full max-w-2xl space-y-4 overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Event log</h3>
-              <NeoButton variant="surface" onClick={() => setLogOpen(false)}>
-                Close
-              </NeoButton>
-            </div>
-            {eventId ? <EventActivityLog eventId={eventId} /> : null}
-          </NeoCard>
-        </div>
-      ) : null}
+      <EventLogModal open={logOpen} eventId={eventId} onClose={() => setLogOpen(false)} />
     </FacilitatorPanelShell>
       <DemoOverlay enabled={event.status === 'demo'} />
     </>

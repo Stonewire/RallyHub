@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.4.13 - 2026-07-12 (ENG1 stage 1: extract facilitator modals)
+- First safe slice of the FacilitatorEventPage decomposition: the four leaf
+  modals (winner-sound routing, team claim, reset-team confirm, event log) moved
+  verbatim into presentational components in
+  `src/components/live/facilitator/FacilitatorModals.tsx`. Page owns all state
+  and handlers still; props are TypeScript-checked. No behaviour change; file
+  2268 → 2146 lines. Deeper decomposition of the render/state machine is left
+  for later staged passes (each needs a facilitator smoke test).
+
 ## V2.4.12 - 2026-07-11 (P1-1 bingo playback recovery)
 - Players now recover the current bingo song if the facilitator's tab closes
   mid-round. The play index is already written to `bingo_runs` on every advance;

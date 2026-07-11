@@ -106,7 +106,7 @@ ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [x] **UI-4** Countdown + Reveal card at top of right column (#19) (on `fixes`)
 - [x] **UI-6** Announcements compact single row below Display (#21) (on `fixes`)
 - [x] **UI-7** Quiz/Bingo/Break controls left under Announcements, only when that stage is active; quest review stays right (#22) (on `fixes`)
-- [ ] **ENG1** Refactor FacilitatorEventPage (still 2300 lines; extract components in a later pass now the layout is settled)
+- [~] **ENG1** Refactor FacilitatorEventPage — **stage 1 on `main` as of V2.4.13** (needs facilitator smoke test). Extracted the 4 leaf modals (winner routing, team claim, reset-team, event log) to `src/components/live/facilitator/FacilitatorModals.tsx` as presentational components; page still owns state/handlers, props TypeScript-checked, no behaviour change, 2268 → 2146 lines. STILL OPEN: the 980-line render body + 36 state vars are the bulk; decompose in further staged passes, each live-tested. Purely internal (no user benefit) — lower priority than the Paddle feature.
 
 ## Quest stage editor
 
