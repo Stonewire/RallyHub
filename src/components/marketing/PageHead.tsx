@@ -8,7 +8,7 @@ type PageHeadProps = {
 }
 
 const SITE_NAME = 'RallyHub'
-const DEFAULT_OG_IMAGE = '/og-image.png'
+const DEFAULT_OG_IMAGE = '/og-image.jpg'
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   const selector = `meta[${attr}="${key}"]`

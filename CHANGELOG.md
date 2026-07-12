@@ -5,6 +5,34 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.0 - 2026-07-12 (marketing homepage redesign)
+- Rebuilt the public homepage (`rallyhub.games`) from the approved design
+  handoff into maintainable React components under
+  `src/components/marketing/home/` (hero, proof strip, mixed-event run, event
+  builder, facilitator, live views, interactive branding preview, how-it-works,
+  audience, on-page demo form, header with mobile menu, footer). Bespoke visuals
+  live in `src/styles/marketing-home.css`; all colours derive from the
+  neo-minimal tokens. Abril Fatface display + Manrope body, warm ivory/charcoal
+  with the gold accent, alternating light and dark sections.
+- New optimised media in `public/marketing/` (responsive hero JPEGs 1600/800w,
+  live display screenshot) plus a real Open Graph image at `/og-image.jpg`
+  (the previously referenced `/og-image.png` was missing). `PageHead` default OG
+  updated. Below-the-fold images lazy-load; the hero uses `srcset` + explicit
+  dimensions to prevent layout shift.
+- Conversion routes use the app's own router: `Start building` → `/register`,
+  `Log in` → `/login`, `Book a demo` scrolls to the on-page `#contact` form.
+  Reveal-on-scroll and a scroll-progress bar respect `prefers-reduced-motion`,
+  with a safety fallback so content can never stay hidden.
+- Contact form: full validation, accessible labels/errors, focus management, and
+  a honeypot. It composes a pre-filled email via the visitor's own mail client
+  (no data sent to any third party). A real server-side destination is still an
+  open product decision (see TRACKER CONTACT-1).
+- Accuracy: photo/video/text scoring described as host-reviewed (not "instant"),
+  no "manage all your clients", no free-event/trial/pricing claims on the
+  homepage, no invented testimonials or metrics. Removed the old page's pricing
+  block and the "your first event is on us" line.
+- Removed the now-unused `PlaceholderImage` component.
+
 ## V2.4.14 - 2026-07-12 (ENG2 stage 1: extract participant overlays)
 - Same safe slice on JoinGameView: the three leaf overlays (facilitator chat,
   announcement, exit-password dialog) moved verbatim into presentational

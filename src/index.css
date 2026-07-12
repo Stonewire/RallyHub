@@ -4,6 +4,7 @@
 @import "./styles/fonts.css";
 @import "./styles/neo-minimal.css";
 @import "./styles/experience-unified.css";
+@import "./styles/marketing-home.css";
 
 @custom-variant dark (&:is(.dark *));
 
