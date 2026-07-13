@@ -3,7 +3,7 @@
 
   Paste each block into Supabase Dashboard → Authentication → Emails, into the
   matching template (Confirm signup, Reset password, Magic link, Invite user,
-  Change email). Set the Subject line shown above each block.
+  Change email, Reauthentication). Set the Subject line shown above each block.
 
   Supabase fills these variables for you:
     {{ .ConfirmationURL }}  action link (confirm / reset / magic / invite / change)
@@ -129,6 +129,33 @@
       </td></tr>
       <tr><td style="padding:24px 32px 28px;border-top:1px solid rgba(51,51,51,0.08);">
         <p style="margin:16px 0 0;font-size:12px;color:#857f77;">If you did not request this change, contact us right away.</p>
+        <p style="margin:8px 0 0;font-size:12px;color:#857f77;">RallyHub · Stronger Teams, one game at a time.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+
+
+<!-- ===================== REAUTHENTICATION ======================== -->
+<!-- Subject: Your RallyHub confirmation code -->
+<!-- Code-based, not link-based: Supabase asks for this when confirming a
+     sensitive action (e.g. changing your password) while already signed in. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf7f2;margin:0;padding:32px 0;font-family:Arial,Helvetica,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#fffdf9;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(62,61,62,0.08);">
+      <tr><td style="padding:28px 32px 8px;">
+        <img src="https://rallyhub.games/brand/logo-wordmark-charcoal.png" alt="RallyHub" height="26" style="height:26px;width:auto;display:block;" />
+      </td></tr>
+      <tr><td style="padding:12px 32px 0;">
+        <h1 style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:normal;color:#333333;line-height:1.2;">Confirm it's you</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#66625c;">Enter this code to confirm the action you just requested on your RallyHub account.</p>
+        <div style="margin:0 0 24px;padding:18px 24px;background:#faf7f2;border:1px solid rgba(51,51,51,0.1);border-radius:12px;text-align:center;">
+          <span style="font-family:Arial,Helvetica,sans-serif;font-size:32px;font-weight:bold;letter-spacing:6px;color:#333333;">{{ .Token }}</span>
+        </div>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#857f77;">This code expires shortly. Do not share it with anyone.</p>
+      </td></tr>
+      <tr><td style="padding:24px 32px 28px;border-top:1px solid rgba(51,51,51,0.08);">
+        <p style="margin:16px 0 0;font-size:12px;color:#857f77;">If you did not request this, you can safely ignore this email.</p>
         <p style="margin:8px 0 0;font-size:12px;color:#857f77;">RallyHub · Stronger Teams, one game at a time.</p>
       </td></tr>
     </table>
