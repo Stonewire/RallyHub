@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.6 - 2026-07-13 (event-manager bingo activation)
+- Completed event-manager facilitator access across the database RLS helper and
+  Edge Function source. Event managers can now activate bingo runs, generate
+  team cards, control live stages, and score/restart games for events in their
+  own organisation. This fixes the false `0 / 0 songs` state where the panel
+  played its first configured clip without a persisted bingo run. The database
+  repair is live; the existing client fallback makes activation work while the
+  Edge Function deployment awaits dashboard access.
+
 ## V2.5.5 - 2026-07-13 (event-manager facilitator access)
 - Event managers can again open facilitator event links. The facilitator route's
   role check accidentally omitted `event_manager`, sending a valid signed-in

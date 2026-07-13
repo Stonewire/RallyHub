@@ -104,7 +104,7 @@ export async function requireEventOrgAdminOrSuperAdmin(
   return { ok: true, organizationId: event.organization_id }
 }
 
-/** facilitator / client_admin of the event org, or super_admin. */
+/** facilitator, event_manager, or client_admin of the event org, or super_admin. */
 export async function requireEventFacilitatorOrSuperAdmin(
   supabaseAdmin: SupabaseClient,
   userId: string,
@@ -136,7 +136,11 @@ export async function requireEventFacilitatorOrSuperAdmin(
 
   if (
     profile.organization_id === event.organization_id &&
-    (profile.role === 'facilitator' || profile.role === 'client_admin')
+    (
+      profile.role === 'facilitator' ||
+      profile.role === 'event_manager' ||
+      profile.role === 'client_admin'
+    )
   ) {
     return { ok: true, organizationId: event.organization_id }
   }
