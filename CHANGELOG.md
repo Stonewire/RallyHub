@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.5 - 2026-07-13 (event-manager facilitator access)
+- Event managers can again open facilitator event links. The facilitator route's
+  role check accidentally omitted `event_manager`, sending a valid signed-in
+  event manager through a login redirect loop that presented as a black screen.
+  Friendly event links still resolve to their normal internal UUID route.
+
 ## V2.5.4 - 2026-07-13 (fix /facilitator landing crash)
 - The bare `/facilitator` landing page crashed with "useTenant must be used
   within TenantProvider" because that route is not wrapped in TenantScope and

@@ -78,6 +78,7 @@ export function isFacilitatorOnlyRole(role: AppRole | null): boolean {
 export function isAtLeastFacilitator(role: AppRole | null): boolean {
   return (
     role === 'facilitator' ||
+    role === 'event_manager' ||
     role === 'client_admin' ||
     role === 'super_admin'
   )
