@@ -2,11 +2,13 @@ import type { ReactNode } from 'react'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import { LegalFooterLinks } from '@/components/legal/LegalFooterLinks'
-import { useTenant } from '@/contexts/tenant-context'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 import { isTenantHost } from '@/lib/tenant'
 
 export function AuthPageShell({ children }: { children: ReactNode }) {
-  const { tenantOrg, tenantLoading } = useTenant()
+  const tenant = useOptionalTenant()
+  const tenantOrg = tenant?.tenantOrg ?? null
+  const tenantLoading = tenant?.tenantLoading ?? false
 
   return (
     <div className="neo-minimal-scope neo-minimal-inset flex min-h-svh flex-col items-center justify-center px-6 py-12">

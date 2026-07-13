@@ -37,3 +37,13 @@ export function useTenant() {
   if (!v) throw new Error('useTenant must be used within TenantProvider')
   return v
 }
+
+/**
+ * Like useTenant, but returns null instead of throwing when there is no
+ * TenantProvider above (e.g. the public /facilitator route, which is not wrapped
+ * in TenantScope). For components that can render with or without a tenant.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- companion hook for TenantProvider
+export function useOptionalTenant() {
+  return useContext(Ctx)
+}

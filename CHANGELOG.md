@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.4 - 2026-07-13 (fix /facilitator landing crash)
+- The bare `/facilitator` landing page crashed with "useTenant must be used
+  within TenantProvider" because that route is not wrapped in TenantScope and
+  `AuthPageShell` required the tenant context. Added a non-throwing
+  `useOptionalTenant()` and switched the shell to it (it only needs the tenant on
+  tenant hosts). The page now renders the sign-in / instructions card correctly.
+  Verified in-browser (renders, no error boundary).
+
 ## V2.5.3 - 2026-07-13 (per-surface browser tab titles)
 - Each surface now sets a distinct tab title so multiple open tabs are
   tellable apart: "RallyHub: Admin", "RallyHub: Facilitator", "RallyHub: Display",
