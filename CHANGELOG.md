@@ -5,6 +5,43 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.6.0 - 2026-07-13 (pricing plan revamp: Free/Starter/Pro/Business/Enterprise)
+- Full pricing model update per Rumen's new plan table. New prices (all excl.
+  VAT, disclaimer now shown wherever a plan/price is displayed):
+  - **Free** (`rookie`): €0 · €199/event · 1 event/month · 10 teams/players per event
+  - **Starter** (`arena`): €15/mo billed yearly (€180/yr) or €20/mo billed
+    monthly · €149/event · 10 events/month · 20 teams/players per event
+  - **Pro** (`pro`): €25/mo billed yearly (€300/yr) or €30/mo billed monthly ·
+    €99/event · 20 events/month · 30 teams/players per event
+  - **Business** (`max`, renamed from "Max"): €25/mo billed yearly (€300/yr) or
+    €30/mo billed monthly · €49/event · 40 events/month · 50 teams/players per
+    event · partially removes RallyHub branding
+  - **Enterprise** (new plan, id `enterprise`): price on request, unlimited
+    events, unlimited teams/players, fully removes RallyHub branding. Contact-
+    sales only — excluded from self-serve registration (`getSelfServePlans()`);
+    only a super admin can assign it. The DB's
+    `create_event_activation_invoice()` already treated `enterprise` as comped
+    like Partner, so its billing continues to be arranged directly rather than
+    through per-event invoicing.
+  - Monthly billing is genuinely available again for paid plans (was fully
+    retired since an earlier release) — `monthlyPriceEur` now holds real values
+    and `formatSubscriptionPrice` honours whichever period is selected.
+- `SubscriptionPlan` gained `teamLimit` (teams/players per event) and
+  `brandingRemoval` ('none' | 'partial' | 'full'), replacing the unused
+  `customBranding` flag. New `formatTeamLimit()` / `formatBrandingNote()`
+  helpers surface both on `PlanDetailsCard`, which previously only showed
+  per-event price and event limit.
+- Updated the server-side `plan_per_event_price_eur()` Postgres function to the
+  same new per-event prices — this is what `create_event_activation_invoice()`
+  actually bills against, so invoices now match the UI instead of silently
+  using the old €150/€100/€50 figures.
+- Note for Rumen: the Business tier's monthly/yearly subscription price is
+  identical to Pro's (€25 or €30/month) in the table provided — implemented
+  exactly as given, but flagging it in case that was meant to be higher.
+- VAT: added a shared `VAT_DISCLAIMER` constant ("All prices exclude VAT.")
+  shown on the billing overview, the compare-plans grid, and the register page's
+  plan selector. Not added retroactively to historical invoice line items.
+
 ## V2.5.6 - 2026-07-13 (event-manager bingo activation)
 - Completed event-manager facilitator access across the database RLS helper and
   Edge Function source. Event managers can now activate bingo runs, generate

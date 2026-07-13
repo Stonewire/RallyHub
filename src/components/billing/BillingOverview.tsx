@@ -16,6 +16,7 @@ import {
   getVisiblePlans,
   normalizeBillingPeriod,
   normalizePlanId,
+  VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
 import { sumUnpaidDue } from '@/lib/billing-display'
 
@@ -69,6 +70,7 @@ export function BillingOverview({
           highlighted
           className="max-w-md"
         />
+        <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
         {plan.hidden ? (
           <p className="text-muted-foreground text-sm">
             Your Partner account is fully comped. Event activations are recorded at no
@@ -150,6 +152,7 @@ export function BillingOverview({
             <p className="text-muted-foreground text-sm">
               Plan changes will be available when billing is fully enabled.
             </p>
+            <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {getVisiblePlans().map((visiblePlan) => (

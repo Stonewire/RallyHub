@@ -10,12 +10,15 @@ import { supabase } from '@/lib/supabase'
 import {
   formatPerEventPrice,
   formatYearlyPrice,
-  getVisiblePlans,
+  getSelfServePlans,
   normalizePlanId,
+  VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
 import { isPlatformHost } from '@/lib/tenant'
 
-const PLANS = getVisiblePlans()
+// Enterprise is contact-sales only — getSelfServePlans() excludes it here so a
+// visitor can never pick a plan that then silently falls back to Free server-side.
+const PLANS = getSelfServePlans()
 
 export function RegisterPage() {
   const { user, signInWithIdentifier } = useAuth()
@@ -153,6 +156,7 @@ export function RegisterPage() {
                 </option>
               ))}
             </select>
+            <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
 
           <label className="flex items-start gap-2.5 text-sm">

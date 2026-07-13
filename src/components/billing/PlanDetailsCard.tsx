@@ -1,9 +1,11 @@
 import { Card } from '@/components/ui/card'
 import {
   formatBillingPeriodLabel,
+  formatBrandingNote,
   formatEventLimit,
   formatPerEventPrice,
   formatSubscriptionPrice,
+  formatTeamLimit,
   getPlan,
   normalizeBillingPeriod,
   type BillingPeriod,
@@ -28,6 +30,7 @@ export function PlanDetailsCard({
 }: PlanDetailsCardProps) {
   const plan = getPlan(planId)
   const period = normalizeBillingPeriod(billingPeriod)
+  const brandingNote = formatBrandingNote(plan)
 
   return (
     <Card
@@ -52,6 +55,8 @@ export function PlanDetailsCard({
       <ul className="text-muted-foreground space-y-1 text-sm">
         <li>{formatPerEventPrice(plan)}</li>
         <li>{formatEventLimit(plan)}</li>
+        <li>{formatTeamLimit(plan)}</li>
+        {brandingNote ? <li>{brandingNote}</li> : null}
       </ul>
     </Card>
   )

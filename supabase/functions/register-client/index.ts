@@ -34,7 +34,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-join-token',
 }
 
-// Internal plan ids the form may submit (display names: Free/Starter/Pro/Max).
+// Internal plan ids the form may submit (display names: Free/Starter/Pro/Business).
+// Enterprise (contact-sales only, price on request) is deliberately excluded —
+// it is only ever assigned by a super admin, never chosen at self-serve signup.
 const ALLOWED_PLANS = new Set(['rookie', 'arena', 'pro', 'max'])
 
 function slugify(name: string): string {

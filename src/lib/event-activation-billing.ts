@@ -59,6 +59,22 @@ export function getEventActivationWarning(
     }
   }
 
+  // Enterprise is billed directly (price on request), not per-event through this
+  // flow. The DB invoice function already comps these the same as Partner.
+  if (planId === 'enterprise') {
+    return {
+      planId,
+      billAmountEur: 0,
+      isComped: true,
+      title: 'Activate event',
+      message:
+        'Activating this event will record it in your billing history on the Enterprise plan. ' +
+        'Your Enterprise billing is arranged directly, so this does not generate a per-event charge here. ' +
+        'If you have not started the event yet, keep it at Ready status until you are ready to go live.',
+      confirmLabel: 'Activate event',
+    }
+  }
+
   const discountPct = Math.min(100, Math.max(0, Math.round(eventPromoDiscountPercent)))
   const afterPromo = Math.max(baseAmount - Math.round((baseAmount * discountPct) / 100), 0)
   // Educational 50% stacks on top of the promo discount (matches migration 059).
