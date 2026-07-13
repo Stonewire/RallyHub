@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.1 - 2026-07-13 (contact form backend + auth email templates)
+- **CONTACT-1**: the marketing demo form now submits to a real `submit-contact`
+  Edge Function (deployed, `verify_jwt` on). It validates input, drops honeypot
+  hits, rate-limits per IP (10/hour), stores every lead in a new
+  `contact_submissions` table (RLS: super-admin read only), and emails the lead
+  via Resend when `RESEND_API_KEY` is set. Email failure never fails the request,
+  the lead is saved first, so no lead is lost even before Resend is configured.
+  The form has loading/success/error states with a mailto fallback on error.
+  Verified end to end (store + validation + success state).
+- **EMAIL-1** (config deliverables): branded RallyHub Supabase Auth email
+  templates in `docs/email/rallyhub-auth-templates.html` (confirm signup, reset
+  password, magic link, invite, change email) plus a full setup guide in
+  `docs/RESEND-SETUP.md` covering Resend domain verification, the contact-form
+  secrets, and wiring Resend as Auth Custom SMTP. The dashboard steps need
+  Rumen's Resend credentials.
+
 ## V2.5.0 - 2026-07-12 (marketing homepage redesign)
 - Rebuilt the public homepage (`rallyhub.games`) from the approved design
   handoff into maintainable React components under

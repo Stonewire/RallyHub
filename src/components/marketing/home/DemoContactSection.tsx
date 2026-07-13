@@ -3,16 +3,12 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { NeoButton, NeoInput, NeoLabel, NeoSelect, NeoTextarea } from '@/components/neo-minimal'
+import { supabase } from '@/lib/supabase'
 
 import { Reveal } from './Reveal'
 
-/**
- * Contact/demo destination. There is no approved server-side contact workflow
- * yet, so the form composes a prefilled email through the visitor's own mail
- * client (no data leaves the browser to any third party). Swap this for a real
- * edge-function endpoint once a destination is approved (see TRACKER CONTACT-1).
- */
-const CONTACT_EMAIL = 'hello@rallyhubapp.com'
+/** Fallback contact address shown if the submission endpoint errors. */
+const CONTACT_EMAIL = 'hello@rallyhub.games'
 
 const EVENT_TYPES = [
   'Team building event',
@@ -50,6 +46,8 @@ export function DemoContactSection() {
   })
   const [errors, setErrors] = useState<Errors>({})
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [company2, setCompany2] = useState('') // honeypot
 
   function update(field: keyof typeof values, value: string) {
@@ -57,30 +55,48 @@ export function DemoContactSection() {
     if (errors[field as keyof Errors]) setErrors((e) => ({ ...e, [field]: undefined }))
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting) return
     if (company2) return // silent drop for bots
     const found = validate(values)
     setErrors(found)
     if (Object.keys(found).length > 0) {
-      const first = document.getElementById(`demo-${Object.keys(found)[0]}`)
-      first?.focus()
+      document.getElementById(`demo-${Object.keys(found)[0]}`)?.focus()
       return
     }
 
-    const subject = `RallyHub demo request — ${values.company.trim()}`
-    const body = [
-      `Name: ${values.name.trim()}`,
-      `Email: ${values.email.trim()}`,
-      `Organisation: ${values.company.trim()}`,
-      `Planning: ${values.eventType}`,
-      '',
-      values.message.trim() || '(no extra details)',
-    ].join('\n')
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`
-    setSubmitted(true)
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const { error } = await supabase.functions.invoke('submit-contact', {
+        body: {
+          name: values.name.trim(),
+          email: values.email.trim(),
+          company: values.company.trim(),
+          eventType: values.eventType,
+          message: values.message.trim(),
+          company2,
+        },
+      })
+      if (error) {
+        let msg = 'Something went wrong. Please try again.'
+        try {
+          const b = await (error as { context?: { json?: () => Promise<{ error?: string }> } })
+            .context?.json?.()
+          if (b?.error) msg = b.error
+        } catch {
+          /* ignore */
+        }
+        setSubmitError(msg)
+        return
+      }
+      setSubmitted(true)
+    } catch {
+      setSubmitError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const firstName = values.name.trim().split(' ')[0]
@@ -125,11 +141,10 @@ export function DemoContactSection() {
                   <Check className="size-6 text-[var(--nm-charcoal)]" aria-hidden />
                 </span>
                 <p className="text-foreground font-semibold">
-                  Thanks{firstName ? `, ${firstName}` : ''}. Your email is ready to send.
+                  Thanks{firstName ? `, ${firstName}` : ''}. Your request is in.
                 </p>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  We opened a pre-filled message to {CONTACT_EMAIL} in your mail app. If it did not
-                  open, email us there directly and we will set up your walkthrough.
+                  We have got your details and will be in touch shortly to set up your walkthrough.
                 </p>
               </div>
             ) : (
@@ -236,13 +251,26 @@ export function DemoContactSection() {
                   />
                 </div>
 
+                {submitError ? (
+                  <p role="alert" className="text-sm font-medium text-[#c0574f]">
+                    {submitError} You can also email us at{' '}
+                    <a
+                      href={`mailto:${CONTACT_EMAIL}`}
+                      className="underline underline-offset-2"
+                    >
+                      {CONTACT_EMAIL}
+                    </a>
+                    .
+                  </p>
+                ) : null}
+
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-muted-foreground text-xs">
-                    Opens a pre-filled email in your mail app. No data is sent anywhere else.
+                    We will only use your details to arrange your demo.
                   </p>
-                  <NeoButton variant="primary" type="submit">
-                    Book my demo
-                    <ArrowRight className="size-4" aria-hidden />
+                  <NeoButton variant="primary" type="submit" disabled={submitting}>
+                    {submitting ? 'Sending…' : 'Book my demo'}
+                    {submitting ? null : <ArrowRight className="size-4" aria-hidden />}
                   </NeoButton>
                 </div>
               </form>
