@@ -22,10 +22,14 @@ Both share one Resend account and one verified sending domain, so do Step 1 once
 4. Create an API key under **API Keys → Create** (give it send access). Copy it,
    you will paste it in the next steps. Treat it like a password.
 
-Sender addresses used below (`noreply@rallyhub.games`, `hello@rallyhub.games`)
-must be on this verified domain. You do not need real inboxes for the *from*
-address, but `hello@rallyhub.games` (where leads are sent) should be a mailbox
-you actually read, or an alias that forwards to one.
+Addresses used below, all on this verified domain:
+
+- **`noreply@rallyhub.games`** — system sender for auth emails and the contact
+  form's "from" address. Send-only, no mailbox needed.
+- **`sales@rallyhub.games`** — where demo-form leads land internally
+  (`CONTACT_TO_EMAIL`). Needs a real mailbox you check.
+- **`hello@rallyhub.games`** — the human-facing fallback address shown to
+  visitors on the page if a submission ever errors. Needs a real mailbox too.
 
 ---
 
@@ -41,8 +45,8 @@ Dashboard → **Project Settings → Edge Functions → Add new secret**
 | Secret | Value | Required |
 | --- | --- | --- |
 | `RESEND_API_KEY` | the key from Step 1 | yes |
-| `CONTACT_TO_EMAIL` | where leads go, e.g. `hello@rallyhub.games` | optional (defaults to `hello@rallyhub.games`) |
-| `CONTACT_FROM_EMAIL` | verified sender, e.g. `RallyHub <noreply@rallyhub.games>` | optional (has that default) |
+| `CONTACT_TO_EMAIL` | `sales@rallyhub.games` | yes — set this, the code default is `hello@rallyhub.games`, which is reserved for the visible fallback shown to visitors, not the internal lead inbox |
+| `CONTACT_FROM_EMAIL` | `RallyHub <noreply@rallyhub.games>` | optional (already the default) |
 
 Save. No redeploy needed. Test by submitting the form on rallyhub.games, you
 should receive the email, and the row's `emailed` column flips to `true`. The
@@ -87,10 +91,12 @@ subject and paste the matching HTML block from
 | Magic link | Your RallyHub sign-in link | MAGIC LINK |
 | Invite user | You have been invited to RallyHub | INVITE USER |
 | Change email | Confirm your new RallyHub email | CHANGE EMAIL |
+| Reauthentication | Your RallyHub confirmation code | REAUTHENTICATION |
 
-The templates use Supabase's own `{{ .ConfirmationURL }}` variable, so the links
-work as-is. Send yourself a password reset from the app to confirm delivery and
-branding.
+Most templates use Supabase's own `{{ .ConfirmationURL }}` variable, so the links
+work as-is. Reauthentication is code-based and uses `{{ .Token }}` instead — that's
+correct, not a mistake. Send yourself a password reset from the app to confirm
+delivery and branding.
 
 > Note: current signup auto-confirms email (the `register-client` function sets
 > `email_confirm: true`), so the "Confirm signup" template only sends if you later
