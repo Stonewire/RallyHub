@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { profileDisplayName } from '@/lib/auth-routes'
 
 export function FacilitatorLandingPage() {
   const { user, profile, role } = useAuth()
   const name = profileDisplayName(profile)
+  useDocumentTitle('Facilitator')
 
   return (
     <AuthPageShell>

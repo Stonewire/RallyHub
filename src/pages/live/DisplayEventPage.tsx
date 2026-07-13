@@ -14,6 +14,7 @@ import { DisplayShell } from '@/components/live/DisplayShell'
 import { Leaderboard } from '@/components/live/Leaderboards'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useLiveEvent } from '@/hooks/use-live-event'
 import { setLiveParticipantMode } from '@/lib/supabase'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
@@ -67,6 +68,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   }, [embedded])
 
   const { bundle, loading, error } = useLiveEvent(eventId)
+  useDocumentTitle('Display', bundle?.event?.name)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
   // The display panel is a passive screen that may never be tapped again during

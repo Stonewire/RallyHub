@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.3 - 2026-07-13 (per-surface browser tab titles)
+- Each surface now sets a distinct tab title so multiple open tabs are
+  tellable apart: "RallyHub: Admin", "RallyHub: Facilitator", "RallyHub: Display",
+  "RallyHub: Teams", "RallyHub: Tablet". Live surfaces also append the event name,
+  e.g. "RallyHub: Display · Summer Summit". New `useDocumentTitle` hook; wired into
+  the admin layouts and the facilitator / display / join / tablet pages.
+
 ## V2.5.2 - 2026-07-13 (facilitator admin access)
 - **FACIL-1**: facilitator accounts can now log into the app + admin panel
   instead of being locked out. Previously every guard (`RootPage`, `RequireAuth`,

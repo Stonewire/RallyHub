@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import { resolveTabletOrganization } from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
@@ -48,6 +49,8 @@ export function TabletPage() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
+
+  useDocumentTitle('Tablet', org?.name)
 
   const tabletPath =
     org != null

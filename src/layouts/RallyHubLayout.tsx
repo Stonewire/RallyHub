@@ -7,9 +7,11 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { cn } from '@/lib/utils'
 
 export function RallyHubLayout() {
+  useDocumentTitle('Admin')
   return (
     <SidebarProvider className="neo-minimal-scope">
       <RallyHubAppSidebar />

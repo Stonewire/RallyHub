@@ -37,6 +37,7 @@ import { StatusIndicator } from '@/components/ui/status-indicator'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import {
@@ -122,6 +123,7 @@ export function FacilitatorEventPage() {
     user?.email?.split('@')[0] ||
     'Facilitator'
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
+  useDocumentTitle('Facilitator', bundle?.event?.name)
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)

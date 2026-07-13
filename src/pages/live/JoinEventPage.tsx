@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import {
   countClaimedTeams,
@@ -57,6 +58,7 @@ export function JoinEventPage() {
   const tabletSlug = searchParams.get('slug')?.trim() ?? ''
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
+  useDocumentTitle('Teams', bundle?.event?.name)
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
