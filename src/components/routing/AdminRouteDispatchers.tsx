@@ -2,9 +2,16 @@ import { Navigate } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
-import { canAccessOrgSettings, canAccessRallyHub, canManageOrgUsers } from '@/lib/auth-routes'
+import {
+  canAccessOrgSettings,
+  canAccessRallyHub,
+  canManageOrgUsers,
+  isFacilitatorOnlyRole,
+} from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 import { AdminEventsPage } from '@/pages/admin/EventsPage'
+import { FacilitatorEventsPage } from '@/pages/admin/FacilitatorEventsPage'
+import { FacilitatorSettingsPage } from '@/pages/admin/FacilitatorSettingsPage'
 import { AdminEventEditPage } from '@/pages/admin/events/EditEventPage'
 import { AdminEventsNewPage } from '@/pages/admin/events/NewEventPage'
 import { AdminGameEditPage } from '@/pages/admin/games/EditGamePage'
@@ -25,8 +32,11 @@ function useIsSuperAdminOnPlatform() {
 }
 
 export function AdminHomePage() {
+  const { role, profileLoading } = useAuth()
   const mode = useIsSuperAdminOnPlatform()
-  if (mode === null) return <AuthLoadingScreen label="Loading profile" />
+  if (profileLoading || mode === null) return <AuthLoadingScreen label="Loading profile" />
+  // Facilitators have no dashboard — their home is the events list.
+  if (isFacilitatorOnlyRole(role)) return <Navigate to="/admin/events" replace />
   return mode ? <RallyHubOverviewPage /> : <ClientDashboardPage />
 }
 
@@ -65,6 +75,9 @@ export function ClientGameDetailRoute() {
 }
 
 export function ClientEventsRoute() {
+  const { role, profileLoading } = useAuth()
+  if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
+  if (isFacilitatorOnlyRole(role)) return <FacilitatorEventsPage />
   return (
     <ClientAdminOnly>
       <AdminEventsPage />
@@ -91,6 +104,7 @@ export function ClientEventEditRoute() {
 export function ClientSettingsRoute() {
   const { role, profileLoading } = useAuth()
   if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
+  if (isFacilitatorOnlyRole(role)) return <FacilitatorSettingsPage />
   if (!canAccessOrgSettings(role)) {
     return <Navigate to="/admin/events" replace />
   }

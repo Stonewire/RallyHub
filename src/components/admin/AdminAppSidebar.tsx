@@ -41,7 +41,7 @@ import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
 import { useTheme } from '@/contexts/theme-context'
-import { canAccessOrgSettings, canManageOrgUsers } from '@/lib/auth-routes'
+import { canAccessOrgSettings, canManageOrgUsers, isFacilitatorOnlyRole } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
@@ -79,8 +79,13 @@ export function AdminAppSidebar() {
   const sidebarCollapsed = sidebarState === 'collapsed'
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
+  const isFacilitator = isFacilitatorOnlyRole(role)
   const showOrgSettings = canAccessOrgSettings(role)
   const showTeamNav = canManageOrgUsers(role) && !showOrgSettings
+  // Facilitators get a stripped nav: their events list + their own profile.
+  const visibleMainNav = isFacilitator
+    ? mainNav.filter((item) => item.to === '/admin/events')
+    : mainNav
 
   const orgChildActive =
     pathname.startsWith('/admin/settings/') ||
@@ -147,7 +152,7 @@ export function AdminAppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
-              {mainNav.map(({ to, label, icon: Icon, end, tourId }) => (
+              {visibleMainNav.map(({ to, label, icon: Icon, end, tourId }) => (
                 <SidebarMenuItem key={to}>
                   <SidebarMenuButton
                     asChild
@@ -162,6 +167,22 @@ export function AdminAppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {isFacilitator ? (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Profile"
+                    isActive={isAdminNavActive(pathname, '/admin/settings', true)}
+                    className="text-sidebar-foreground"
+                  >
+                    <NavLink to="/admin/settings">
+                      <UserCircle className="shrink-0" strokeWidth={1.75} />
+                      <span className="font-medium">Profile</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ) : null}
 
               {showTeamNav ? (
                 <SidebarMenuItem>
@@ -274,24 +295,26 @@ export function AdminAppSidebar() {
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Support"
-              isActive={isAdminNavActive(pathname, '/admin/support', true)}
-              className="text-sidebar-foreground"
-            >
-              <NavLink to="/admin/support" data-tour="nav-support">
-                <LifeBuoy className="shrink-0" strokeWidth={1.75} />
-                <span className="font-medium">Support</span>
-              </NavLink>
-            </SidebarMenuButton>
-            {supportUnread > 0 ? (
-              <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
-                {supportUnread > 9 ? '9+' : supportUnread}
-              </SidebarMenuBadge>
-            ) : null}
-          </SidebarMenuItem>
+          {!isFacilitator ? (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Support"
+                isActive={isAdminNavActive(pathname, '/admin/support', true)}
+                className="text-sidebar-foreground"
+              >
+                <NavLink to="/admin/support" data-tour="nav-support">
+                  <LifeBuoy className="shrink-0" strokeWidth={1.75} />
+                  <span className="font-medium">Support</span>
+                </NavLink>
+              </SidebarMenuButton>
+              {supportUnread > 0 ? (
+                <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
+                  {supportUnread > 9 ? '9+' : supportUnread}
+                </SidebarMenuBadge>
+              ) : null}
+            </SidebarMenuItem>
+          ) : null}
           <SidebarMenuItem>
             <SidebarMenuButton
               type="button"

@@ -7,9 +7,12 @@ export type AssignableOrgUserRole = Extract<
   'facilitator' | 'event_manager' | 'client_admin'
 >
 
+/** Landing page for a facilitator: the restricted admin events list. */
+export const FACILITATOR_HOME = '/admin/events'
+
 export function defaultPathForRole(role: AppRole | null): string {
   if (!role) return '/login'
-  if (role === 'facilitator') return '/facilitator'
+  if (role === 'facilitator') return FACILITATOR_HOME
   return '/admin'
 }
 
@@ -80,11 +83,21 @@ export function isAtLeastFacilitator(role: AppRole | null): boolean {
   )
 }
 
+/**
+ * Admin paths a facilitator may visit: a read-only events list (to open event
+ * links / QR codes) and their own profile settings. Nothing else in /admin.
+ */
+export function facilitatorAllowedAdminPath(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '') || '/'
+  return path === '/admin' || path === '/admin/events' || path === '/admin/settings'
+}
+
 /** Paths a facilitator-only account may visit. */
 export function facilitatorAllowedPath(pathname: string): boolean {
   const path = pathname.replace(/\/$/, '') || '/'
   if (path === '/facilitator' || /^\/facilitator\/[^/]+$/.test(path)) return true
   if (path === '/login' || path.startsWith('/login/')) return true
+  if (facilitatorAllowedAdminPath(path)) return true
   return false
 }
 
@@ -97,7 +110,7 @@ export function resolvePostLoginPath(
   if (!from || from === '/login') return fallback
 
   if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(from)) {
-    return '/facilitator'
+    return FACILITATOR_HOME
   }
 
   if (from.startsWith('/rallyhub')) {

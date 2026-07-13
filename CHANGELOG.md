@@ -5,6 +5,24 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.5.2 - 2026-07-13 (facilitator admin access)
+- **FACIL-1**: facilitator accounts can now log into the app + admin panel
+  instead of being locked out. Previously every guard (`RootPage`, `RequireAuth`,
+  `HostAdminLayout`, `RequireTenantAccess`) bounced facilitators, and on the
+  platform host they were redirected to `/login` (the "cannot log in" loop).
+- Facilitators now land on a restricted admin surface: a read-only **Events**
+  page (`FacilitatorEventsPage`) where they can open the facilitator link, copy
+  the display/teams links, and show the teams join QR for each event; and a
+  **Profile** page (`FacilitatorSettingsPage`) to edit their own first/last name
+  (via the self-edit path in `update-org-user`), with their organisation shown
+  read-only. Sidebar is stripped to Events + Profile (no dashboard, games, team,
+  org settings, or support). They can sign in and out normally.
+- Access is enforced at every layer: `facilitatorAllowedPath` limits them to
+  `/admin`, `/admin/events`, `/admin/settings` (plus `/facilitator/*` to run
+  events); the route dispatchers render the facilitator pages; RLS already scopes
+  their event/org reads. All other roles are unchanged (every change is gated on
+  `isFacilitatorOnlyRole`).
+
 ## V2.5.1 - 2026-07-13 (contact form backend + auth email templates)
 - **CONTACT-1**: the marketing demo form now submits to a real `submit-contact`
   Edge Function (deployed, `verify_jwt` on). It validates input, drops honeypot

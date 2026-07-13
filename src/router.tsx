@@ -41,7 +41,7 @@ import { RallyHubClientDetailPage } from '@/pages/rallyhub/ClientDetailPage'
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
 import { RallyHubPaymentsPage } from '@/pages/rallyhub/PaymentsPage'
 import { RallyHubPromoCodesPage } from '@/pages/rallyhub/PromoCodesPage'
-import { resolvePostLoginPath, isFacilitatorOnlyRole } from '@/lib/auth-routes'
+import { resolvePostLoginPath } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 // eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
@@ -67,10 +67,7 @@ function RootPage() {
   }
 
   if (user && !profileLoading) {
-    const target = isFacilitatorOnlyRole(role)
-      ? '/facilitator'
-      : resolvePostLoginPath(undefined, role)
-    return <Navigate to={target} replace />
+    return <Navigate to={resolvePostLoginPath(undefined, role)} replace />
   }
 
   // On app.rallyhub.games, unauthenticated visitors go straight to login.
