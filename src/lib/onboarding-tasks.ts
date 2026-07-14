@@ -106,7 +106,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     advanceOn: 'manual',
     body: [
       'Every event you activate creates an invoice that lands here until paid.',
-      'Online payment arrives with the Stripe integration.',
+      'Pay online any time with the "Pay now" button.',
     ],
   },
   {

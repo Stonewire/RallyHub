@@ -835,6 +835,7 @@ export function RallyHubClientDetailPage() {
           organizationId={clientId}
           billingPlan={billingPlan}
           billingPeriod={billingPeriod}
+          paddleSubscriptionId={data.org.paddle_subscription_id}
           showAdminSummary
         />
       ) : null}

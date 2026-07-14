@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { payWithPaddle } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
@@ -94,6 +95,44 @@ export function useMarkInvoiceStatus() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: allInvoicesKey })
       void qc.invalidateQueries({ queryKey: ['organization-invoices'] })
+    },
+  })
+}
+
+/**
+ * Pays an unpaid per-event invoice via Paddle: creates a transaction for its
+ * exact amount_due, opens the overlay checkout, and (on completion) refetches
+ * this org's invoices. The webhook remains the authoritative source that
+ * actually marks the invoice paid; this refetch is just for prompt UI feedback.
+ */
+export function usePayEventInvoiceWithPaddle(organizationId: string | null | undefined) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      if (!organizationId) throw new Error('No organization selected.')
+      const { data, error } = await supabase.functions.invoke('paddle-checkout', {
+        body: { organizationId, kind: 'event', invoiceId },
+      })
+      if (error) {
+        let msg = 'Could not start payment. Please try again.'
+        try {
+          const errBody = await (
+            error as { context?: { json?: () => Promise<{ error?: string }> } }
+          ).context?.json?.()
+          if (errBody?.error) msg = errBody.error
+        } catch {
+          /* ignore — fall back to the generic message */
+        }
+        throw new Error(msg)
+      }
+      const transactionId = (data as { transactionId?: string } | null)?.transactionId
+      if (!transactionId) throw new Error('Payment could not be started.')
+      return payWithPaddle(transactionId)
+    },
+    onSuccess: (result) => {
+      if (result === 'completed') {
+        void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId ?? null) })
+      }
     },
   })
 }

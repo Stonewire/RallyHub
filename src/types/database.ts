@@ -27,6 +27,8 @@ type OrgRow = {
   custom_domain: string | null
   billing_plan: string
   billing_period: string
+  paddle_customer_id: string | null
+  paddle_subscription_id: string | null
   contact_email: string | null
   email: string | null
   phone: string | null
@@ -374,6 +376,7 @@ export type Database = {
           amount_due: number
           status: 'unpaid' | 'paid' | 'comped'
           promo_code_id: string | null
+          paddle_transaction_id: string | null
           created_at: string
         }
         Insert: {
@@ -386,10 +389,47 @@ export type Database = {
           amount_due: number
           status: 'unpaid' | 'paid' | 'comped'
           promo_code_id?: string | null
+          paddle_transaction_id?: string | null
           created_at?: string
         }
         Update: {
           status?: 'unpaid' | 'paid' | 'comped'
+          paddle_transaction_id?: string | null
+        }
+        Relationships: []
+      }
+      subscription_transactions: {
+        Row: {
+          id: string
+          organization_id: string
+          paddle_transaction_id: string
+          paddle_subscription_id: string | null
+          plan_key: string
+          billing_period: string
+          amount: number
+          amount_due: number
+          currency: string
+          status: 'pending' | 'paid' | 'failed' | 'canceled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          paddle_transaction_id: string
+          paddle_subscription_id?: string | null
+          plan_key: string
+          billing_period: string
+          amount: number
+          amount_due: number
+          currency?: string
+          status?: 'pending' | 'paid' | 'failed' | 'canceled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: 'pending' | 'paid' | 'failed' | 'canceled'
+          paddle_subscription_id?: string | null
         }
         Relationships: []
       }

@@ -1,5 +1,6 @@
 import { CreditCard } from 'lucide-react'
 
+import { NeoButton } from '@/components/neo-minimal'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import { Card } from '@/components/ui/card'
 import type { EventInvoiceWithEvent } from '@/hooks/use-billing-invoices'
@@ -16,9 +17,17 @@ import { cn } from '@/lib/utils'
 type EventInvoiceRowProps = {
   invoice: EventInvoiceWithEvent
   showPayIndicator?: boolean
+  /** When provided, unpaid invoices get a "Pay now" button instead of a static badge. */
+  onPay?: (invoiceId: string) => void
+  payingInvoiceId?: string | null
 }
 
-export function EventInvoiceRow({ invoice, showPayIndicator = false }: EventInvoiceRowProps) {
+export function EventInvoiceRow({
+  invoice,
+  showPayIndicator = false,
+  onPay,
+  payingInvoiceId = null,
+}: EventInvoiceRowProps) {
   const eventName = invoice.event?.name ?? 'Unknown event'
   const eventDate = invoice.event?.event_date ?? null
   const teamCount = invoice.event?.team_count ?? 0
@@ -57,15 +66,27 @@ export function EventInvoiceRow({ invoice, showPayIndicator = false }: EventInvo
           Invoiced {formatInvoiceDate(invoice.created_at)}
         </p>
         {showPayIndicator && invoice.status === 'unpaid' ? (
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-              'border border-primary text-primary bg-transparent',
-            )}
-          >
-            <CreditCard className="size-3" aria-hidden />
-            Payment required
-          </span>
+          onPay ? (
+            <NeoButton
+              variant="accent"
+              size="sm"
+              onClick={() => onPay(invoice.id)}
+              disabled={payingInvoiceId === invoice.id}
+            >
+              <CreditCard className="size-3.5" aria-hidden />
+              {payingInvoiceId === invoice.id ? 'Opening checkout…' : 'Pay now'}
+            </NeoButton>
+          ) : (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                'border border-primary text-primary bg-transparent',
+              )}
+            >
+              <CreditCard className="size-3" aria-hidden />
+              Payment required
+            </span>
+          )
         ) : null}
       </div>
     </article>
@@ -77,12 +98,16 @@ type EventInvoiceListProps = {
   invoices: EventInvoiceWithEvent[]
   emptyMessage: string
   showPayIndicator?: boolean
+  onPay?: (invoiceId: string) => void
+  payingInvoiceId?: string | null
 }
 
 export function EventInvoiceList({
   invoices,
   emptyMessage,
   showPayIndicator = false,
+  onPay,
+  payingInvoiceId = null,
 }: EventInvoiceListProps) {
   if (invoices.length === 0) {
     return (
@@ -99,6 +124,8 @@ export function EventInvoiceList({
           key={invoice.id}
           invoice={invoice}
           showPayIndicator={showPayIndicator}
+          onPay={onPay}
+          payingInvoiceId={payingInvoiceId}
         />
       ))}
     </div>

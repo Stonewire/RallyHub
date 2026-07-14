@@ -5,6 +5,31 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.7.0 - 2026-07-14 (PAY-1: Paddle billing integration)
+- Real online payment, replacing the old "invoices pile up unpaid" state.
+  Paddle Billing (sandbox for now), inline overlay checkout via Paddle.js —
+  no redirect off-site.
+- Two payment flows, both non-blocking: activating an event is still instant
+  and never gated on payment status. Paddle only ever settles invoices/
+  subscriptions that already exist.
+  - **Per-event invoices**: "Pay now" button on any unpaid event invoice in
+    Billing, for its exact already-discounted `amount_due`.
+  - **Subscriptions**: "Start subscription" button pays the current plan's
+    price (yearly or monthly, educational discount applied). Only for orgs
+    without an existing Paddle subscription yet — changing an active
+    subscription's plan isn't built yet, contact support instead.
+- New `organizations.paddle_customer_id` / `paddle_subscription_id` columns,
+  `invoices.paddle_transaction_id`, and a new `subscription_transactions`
+  table tracking subscription payment attempts.
+- Two new Edge Functions: `paddle-checkout` (creates a Paddle transaction with
+  an inline/non-catalog price — RallyHub's own pricing stays the source of
+  truth, Paddle's dashboard never holds a duplicate price list) and
+  `paddle-webhook` (public, HMAC-signature verified, marks invoices/
+  subscription_transactions paid and writes `paddle_subscription_id` back to
+  the org on `subscription.created`).
+- Known gap: sandbox end-to-end test (real payment → webhook → DB) still
+  pending on Rumen's side once `PADDLE_WEBHOOK_SECRET` is registered.
+
 ## V2.6.0 - 2026-07-13 (pricing plan revamp: Free/Starter/Pro/Business/Enterprise)
 - Full pricing model update per Rumen's new plan table. New prices (all excl.
   VAT, disclaimer now shown wherever a plan/price is displayed):

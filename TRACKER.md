@@ -49,7 +49,7 @@ FacilitatorEventPage refactor (ENG1). Staged over multiple sessions; each
 stage live-tested before the next.
 
 **Parked / needs a design chat first:** P1-1,
-ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
+ENG2, AI features (L-2), PDF report (PDF-1).
 
 ---
 
@@ -136,5 +136,5 @@ ENG2, AI features (L-2), Paddle (PAY-1), PDF report (PDF-1).
 - [ ] **REDESIGN-1** Full app redesign — every page, admin panels included. Far future; Rumen is starting the design file (2026-07-13). Parked until designs are ready. When it lands, fold ENG1/ENG2 (God-component refactors) into it.
 - [x] **PRICING-1** Plan revamp: Free/Starter/Pro/Business/Enterprise — **live in V2.6.0**. New prices + limits in `src/lib/subscription-plans.ts` (source of truth) and the DB's `plan_per_event_price_eur()` (what actually bills invoices — was still on the old €150/€100/€50 figures until this update). Added `enterprise` as a real, visible, contact-sales-only plan (`priceOnRequest`, unlimited events/teams, full branding removal); self-serve registration excludes it via `getSelfServePlans()`. Added `teamLimit` + `brandingRemoval` fields, both now shown on `PlanDetailsCard`. Monthly billing is real again for paid plans (was zeroed out since an earlier "yearly only" release). VAT disclaimer shown wherever pricing displays (not yet charged). **Flagged for Rumen:** Business and Pro currently share the exact same subscription price (€25/€30) in the source table — implemented as given, double-check that was intentional.
 - [ ] **L-2** AI features for clients (#24): bulk game creation, AI descriptions
-- [ ] **PAY-1** Paddle integration for the payment system — pricing is now finalized (PRICING-1), this is the next real blocker before Paddle: pick a payment provider/flow, wire subscriptions + per-event invoicing to it. Currently no payment processor wired up.
+- [~] **PAY-1** Paddle integration for the payment system — **code/deployment done in V2.7.0**. Paddle.js inline overlay checkout, non-blocking (event activation never gated on payment). `paddle-checkout` and `paddle-webhook` Edge Functions deployed to Supabase. DB migration applied (`organizations.paddle_customer_id`/`paddle_subscription_id`, `invoices.paddle_transaction_id`, new `subscription_transactions` table). "Pay now" wired on unpaid event invoices; "Start subscription" wired for orgs without an existing subscription. **Remaining (Rumen, one-time):** confirm `PADDLE_API_KEY` is set as a Supabase Edge Function secret; register the `paddle-webhook` URL in Paddle's dashboard to get `PADDLE_WEBHOOK_SECRET` and add it as a Supabase secret (do this directly in the Supabase dashboard, never paste the key in chat); add `VITE_PADDLE_CLIENT_TOKEN` + `VITE_PADDLE_ENVIRONMENT` to Vercel's env vars; run one real sandbox payment end-to-end (event invoice or subscription) to confirm the webhook marks it paid. Known v1 gap: no in-app way to change plan on an active subscription — contact support.
 - [ ] **PDF-1** Branded PDF event-recap report — `src/lib/event-export.ts` currently ships a ZIP of media + CSV logs as a stand-in; the real branded PDF report was deferred and never built

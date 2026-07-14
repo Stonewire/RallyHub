@@ -193,6 +193,7 @@ export function AdminSettingsPage() {
           organizationId={organizationId}
           billingPlan={orgQuery.data?.billing_plan}
           billingPeriod={orgQuery.data?.billing_period}
+          paddleSubscriptionId={orgQuery.data?.paddle_subscription_id}
           showAvailablePlans
         />
       ) : (

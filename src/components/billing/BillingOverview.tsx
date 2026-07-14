@@ -2,11 +2,15 @@ import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
 import { PromoCodeSection } from '@/components/billing/PromoCodeSection'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
+import { useNotification } from '@/contexts/notification-context'
 import {
   partitionInvoices,
+  usePayEventInvoiceWithPaddle,
   useOrganizationInvoices,
 } from '@/hooks/use-billing-invoices'
+import { usePaddleSubscriptionCheckout } from '@/hooks/use-paddle-subscription'
 import {
   formatBillingPeriodLabel,
   formatEur,
@@ -24,6 +28,8 @@ type BillingOverviewProps = {
   organizationId: string | null | undefined
   billingPlan: string | null | undefined
   billingPeriod: string | null | undefined
+  /** Set once an org's subscription is active via Paddle. */
+  paddleSubscriptionId?: string | null
   /** Client settings: show upgrade plan comparison. Admin view: hide. */
   showAvailablePlans?: boolean
   /** Admin client detail: show outstanding total summary. */
@@ -34,16 +40,45 @@ export function BillingOverview({
   organizationId,
   billingPlan,
   billingPeriod,
+  paddleSubscriptionId = null,
   showAvailablePlans = false,
   showAdminSummary = false,
 }: BillingOverviewProps) {
+  const { notify } = useNotification()
   const invoicesQuery = useOrganizationInvoices(organizationId)
+  const payInvoice = usePayEventInvoiceWithPaddle(organizationId)
+  const startSubscription = usePaddleSubscriptionCheckout(organizationId)
   const planId = normalizePlanId(billingPlan)
   const period = normalizeBillingPeriod(billingPeriod)
   const plan = getPlan(planId)
 
   const { unpaid, settled } = partitionInvoices(invoicesQuery.data ?? [])
   const unpaidTotal = sumUnpaidDue(invoicesQuery.data ?? [])
+
+  async function handlePayInvoice(invoiceId: string) {
+    try {
+      const result = await payInvoice.mutateAsync(invoiceId)
+      if (result === 'completed') notify('Payment received — thank you!')
+      else if (result === 'closed') notify('Checkout closed — the invoice is still unpaid.')
+      else if (result === 'error') notify('Something went wrong with the payment. Please try again.')
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not start payment.')
+    }
+  }
+
+  async function handleStartSubscription() {
+    try {
+      const result = await startSubscription.mutateAsync({ planId, billingPeriod: period })
+      if (result === 'completed') notify('Subscription started — thank you!')
+      else if (result === 'closed') notify('Checkout closed — no subscription was started.')
+      else if (result === 'error') notify('Something went wrong starting checkout. Please try again.')
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not start checkout.')
+    }
+  }
+
+  // Only paid, self-serve plans can start a Paddle subscription from here.
+  const canStartSubscription = !plan.hidden && !plan.freeSubscription && !plan.priceOnRequest
 
   return (
     <div className="space-y-8">
@@ -83,7 +118,8 @@ export function BillingOverview({
         <div>
           <h2 className="text-foreground text-lg font-semibold">Unpaid events</h2>
           <p className="text-muted-foreground text-sm">
-            Activated events awaiting payment. Pay online once Stripe is connected.
+            Activated events awaiting payment.
+            {showAvailablePlans ? ' Pay online below.' : ' Payable online from the client’s own settings.'}
           </p>
         </div>
         {invoicesQuery.isLoading ? (
@@ -95,6 +131,8 @@ export function BillingOverview({
             invoices={unpaid}
             emptyMessage="No unpaid event invoices."
             showPayIndicator
+            onPay={showAvailablePlans ? handlePayInvoice : undefined}
+            payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}
           />
         )}
       </section>
@@ -120,11 +158,11 @@ export function BillingOverview({
         <div>
           <h2 className="text-foreground text-lg font-semibold">Subscription</h2>
           <p className="text-muted-foreground text-sm">
-            Recurring plan billing will appear here when Stripe is connected.
+            Your recurring plan fee, billed via Paddle. Separate from the per-event charges above.
           </p>
         </div>
         <Card className="border-border/80 space-y-3 bg-card p-5 shadow-sm">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-foreground font-medium">{formatPlanLabel(planId)}</p>
               <p className="text-muted-foreground text-sm">
@@ -132,14 +170,26 @@ export function BillingOverview({
                 {formatSubscriptionPrice(plan, period)}
               </p>
             </div>
-            <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-              Not yet billed via Stripe
-            </span>
+            {paddleSubscriptionId ? (
+              <span className="rounded-full border border-[#1f9d55]/40 bg-[#1f9d55]/10 px-2 py-0.5 text-xs font-medium text-[#1f9d55]">
+                Active — billed via Paddle
+              </span>
+            ) : showAvailablePlans && canStartSubscription ? (
+              <NeoButton
+                variant="accent"
+                size="sm"
+                onClick={() => void handleStartSubscription()}
+                disabled={startSubscription.isPending}
+              >
+                {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
+              </NeoButton>
+            ) : (
+              <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
+                Not yet started
+              </span>
+            )}
           </div>
-          <p className="text-muted-foreground text-sm">
-            Subscription payment history will be listed here after Stripe integration.
-            Per-event charges above are separate from your monthly or yearly plan fee.
-          </p>
+          <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
         </Card>
       </section>
 
@@ -150,7 +200,9 @@ export function BillingOverview({
           <div>
             <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
             <p className="text-muted-foreground text-sm">
-              Plan changes will be available when billing is fully enabled.
+              {paddleSubscriptionId
+                ? 'Contact us to switch plans on an active subscription.'
+                : 'Start your subscription on the current plan above, or contact us to pick a different one.'}
             </p>
             <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
