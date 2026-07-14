@@ -859,11 +859,6 @@ export type Database = {
         Args: Record<string, never>
         Returns: undefined
       }
-      /** Creates (or returns) an event's invoice WITHOUT activating it — Free-plan prepay. */
-      prepare_event_invoice: {
-        Args: { p_event_id: string }
-        Returns: string
-      }
       log_event_activity: {
         Args: {
           p_event_id: string

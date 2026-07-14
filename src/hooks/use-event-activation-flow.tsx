@@ -10,9 +10,8 @@ import {
 import { isEducationalApproved } from '@/lib/educational'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
-import { autoChargeEventInvoice, prepayEventInvoice } from '@/lib/paddle'
+import { autoChargeEventInvoice } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
-import { normalizePlanId } from '@/lib/subscription-plans'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 
@@ -82,36 +81,12 @@ export function useEventActivationFlow({
     if (!pending) return
     setConfirming(true)
     try {
-      const planId = normalizePlanId(billingPlan)
-      const isFreePlan = planId === 'rookie'
-
-      // Free plan has no subscription and no saved card, so the fee is collected
-      // BEFORE going live — the DB gate refuses to activate an unpaid Free event.
-      // A 100%-off promo comes back settled with no checkout shown.
-      if (isFreePlan && organizationId) {
-        const result = await prepayEventInvoice(organizationId, pending.eventId)
-        if (!result.ok) {
-          setPending(null)
-          // 'closed' = they dismissed the checkout themselves; not an error.
-          if (result.reason !== 'closed') {
-            // prepare_event_invoice runs the other gates too, so this can be a
-            // limit/suspension error rather than a payment one.
-            onValidationError?.(
-              result.message
-                ? friendlyActivationError(result.message)
-                : 'Payment was not completed, so the event was not activated.',
-            )
-          }
-          return
-        }
-      }
-
       try {
         await pending.onConfirm()
       } catch (err) {
         // The DB gate refused this activation (no subscription, plan limit hit,
-        // unpaid, suspended). Without this catch the dialog would just sit there
-        // with no explanation.
+        // an unsettled invoice, suspended). Without this catch the dialog would
+        // just sit there with no explanation.
         setPending(null)
         onValidationError?.(
           friendlyActivationError(err instanceof Error ? err.message : String(err)),
@@ -120,21 +95,22 @@ export function useEventActivationFlow({
       }
       setPending(null)
 
-      // Paid plans: settle the per-event fee against the card saved with their
-      // subscription. Strictly fire-and-forget — the event is already live, and
-      // an unpaid invoice is recoverable where a disrupted event is not.
-      if (!isFreePlan && organizationId) {
+      // The event is live. Settle its invoice against a saved card if the org has
+      // one; if not (Free plan, or nobody has subscribed yet) this quietly does
+      // nothing and the invoice is paid manually with "Pay now".
+      //
+      // Strictly fire-and-forget: an unpaid invoice is recoverable, a disrupted
+      // live event is not.
+      if (organizationId) {
         void autoChargeEventInvoice(organizationId, pending.eventId).then(() => {
           void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
         })
-      }
-      if (organizationId) {
         void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
       }
     } finally {
       setConfirming(false)
     }
-  }, [pending, organizationId, billingPlan, qc, onValidationError])
+  }, [pending, organizationId, qc, onValidationError])
 
   const requestStatusChange = useCallback(
     (

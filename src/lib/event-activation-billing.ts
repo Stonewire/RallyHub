@@ -99,21 +99,13 @@ export function getEventActivationWarning(
       ? ` A promo code applies ${discountPct}% off (was ${formatEur(baseAmount)}).`
       : ''
 
-  // The Free plan has no subscription and no card on file, so the fee is taken
-  // up front — the event only goes live once payment clears.
-  if (planId === 'rookie') {
-    return {
-      planId,
-      billAmountEur,
-      isComped: false,
-      title: 'Pay to activate',
-      message:
-        `The ${formatPlanLabel(planId)} plan is pay-per-event, so this event costs ${priceLabel}.${promoNote} ` +
-        'You will be asked to pay now, and the event goes live as soon as the payment clears. ' +
-        'Once activated, an event cannot be run again — duplicate it to schedule another session.',
-      confirmLabel: `Pay ${priceLabel} and activate`,
-    }
-  }
+  // The Free plan has no subscription, so it usually has no card on file — it
+  // pays the invoice afterwards. If a card IS saved, the charge happens
+  // automatically, same as the paid plans.
+  const paymentNote =
+    planId === 'rookie'
+      ? 'You can pay it from Settings → Billing, or it is charged automatically if you have a card saved. Your next event needs this one settled first.'
+      : 'We will charge the card saved with your subscription.'
 
   return {
     planId,
@@ -122,7 +114,7 @@ export function getEventActivationWarning(
     title: 'Activate event — billing confirmation',
     message:
       `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan.${promoNote} ` +
-      'We will charge the card saved with your subscription. ' +
+      `${paymentNote} ` +
       'If you have not started the event yet, keep it at Ready status to avoid being billed. ' +
       'Once activated, an event cannot be run again — duplicate it to schedule another session.',
     confirmLabel: `Activate and bill ${priceLabel}`,
@@ -159,8 +151,8 @@ export function friendlyActivationError(raw: string | null | undefined): string 
   if (message.includes('SUBSCRIPTION_REQUIRED')) {
     return 'Your subscription is not active. Start (or renew) your plan in Settings → Billing, then activate this event.'
   }
-  if (message.includes('PREPAY_REQUIRED')) {
-    return 'This event has not been paid for yet. On the Free plan each event is paid before it goes live.'
+  if (message.includes('UNPAID_INVOICE')) {
+    return 'You have an unpaid event invoice. Settle it in Settings → Billing before activating another event.'
   }
   if (message.includes('EVENT_LIMIT_REACHED')) {
     // The DB message already carries the plan's actual number.

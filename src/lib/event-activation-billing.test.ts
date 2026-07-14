@@ -24,10 +24,12 @@ describe('friendlyActivationError', () => {
     expect(out).not.toContain('SUBSCRIPTION_REQUIRED')
   })
 
-  it('explains an unpaid Free-plan event', () => {
-    const out = friendlyActivationError('PREPAY_REQUIRED: Pay for this event before activating it.')
-    expect(out).toContain('not been paid for')
-    expect(out).not.toContain('PREPAY_REQUIRED')
+  it('explains an outstanding invoice blocking the next Free-plan event', () => {
+    const out = friendlyActivationError(
+      'UNPAID_INVOICE: Settle your outstanding event invoice before activating another event.',
+    )
+    expect(out).toContain('unpaid event invoice')
+    expect(out).not.toContain('UNPAID_INVOICE')
   })
 
   it('pulls the real limit out of the monthly-event error and says when it resets', () => {

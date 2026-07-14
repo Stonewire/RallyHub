@@ -5,6 +5,29 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.9.0 - 2026-07-14 (Free plan switches from prepay to postpaid)
+- **Free plan now activates like every other plan.** The event goes live
+  immediately, an invoice is raised, and it is auto-charged to a saved card if
+  the org has one, otherwise settled manually with "Pay now". This reverses the
+  prepay flow from V2.8.0 (Rumen's call after live-testing it).
+- Free orgs have no subscription and therefore usually no saved card, so in
+  practice they will pay manually. The auto-charge simply no-ops when there is no
+  card, and starts working by itself the moment they subscribe.
+- **One guard kept.** Free has no subscription holding it honest, so a Free org
+  cannot activate a NEW event while an earlier one is still unpaid
+  (`UNPAID_INVOICE`). The first activation is always instant; this only bites on
+  the second. Without it a Free org could keep activating events and never pay for
+  any of them.
+- Removed the now-dead prepay path: `prepayEventInvoice()`, the
+  `prepare_event_invoice()` RPC (dropped rather than left as a reachable
+  security-definer function), and the `PREPAY_REQUIRED` gate.
+- Activation dialog copy updated: Free now reads "generate a bill … pay it from
+  Billing, or it is charged automatically if you have a card saved."
+- Note: `assert_event_activation_allowed` had to be DROPped and recreated (only
+  a parameter rename), keeping the exact same (uuid, uuid, boolean) signature —
+  changing the arity would create an overload and make the trigger's two-arg call
+  ambiguous, which has broken every activation once already.
+
 ## V2.8.3 - 2026-07-14 (fix: paid Free-plan event could not be activated)
 - **A Free-plan event that had just been paid for was locked to "Archived" and
   could not be activated.** The payment worked and the invoice showed as paid,
