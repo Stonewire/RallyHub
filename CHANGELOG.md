@@ -5,6 +5,25 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.9.3 - 2026-07-14 (stop leaking upstream errors to the browser)
+
+- **Raw Paddle errors are no longer returned to the client.** Two leaks, both now
+  closed:
+  - The temporary `detail` field on 502 responses (added to debug the sandbox
+    rollout) echoed Paddle's raw error body to the browser.
+  - Worse, the catch-all handler returned `err.message` verbatim, which is how a
+    Paddle 409 ended up showing the customer Paddle's internal error body,
+    **including another customer's id**.
+- Error policy is now explicit and enforced: upstream/internal failures are
+  LOGGED, never returned. Every message that reaches the browser is a fixed string
+  written for the customer. The single exception is the "add a billing email"
+  prompt, which is deliberately user-facing and contains nothing internal.
+- Diagnose failures in Supabase → Edge Functions → Logs instead; the raw upstream
+  body is still captured there, just not handed to the client.
+- Only an authenticated org admin could ever reach these endpoints, so this was
+  never publicly exposed, but leaking internal plumbing (error codes, request ids,
+  other customers' ids) to any customer is not acceptable regardless.
+
 ## V2.9.2 - 2026-07-14 (downloadable invoices)
 
 - **Paid events now have a "Invoice" button** in Billing → Payment history that

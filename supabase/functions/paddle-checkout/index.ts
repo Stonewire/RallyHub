@@ -329,9 +329,11 @@ Deno.serve(async (req) => {
         }),
       })
       if (!txRes.ok) {
-        const detail = await txRes.text()
-        console.error('[paddle-checkout] event transaction create failed:', txRes.status, detail)
-        return json({ error: 'Could not start payment. Please try again.', detail }, 502)
+        // Paddle's raw error is logged for us, never returned to the browser — it
+        // leaks internal plumbing (error codes, request ids, config hints) to a
+        // customer who has no use for it. Read it in Supabase → Edge Functions → Logs.
+        console.error('[paddle-checkout] event transaction create failed:', txRes.status, await txRes.text())
+        return json({ error: 'Could not start payment. Please try again.' }, 502)
       }
       const txBody = await txRes.json()
       const transactionId = txBody.data.id as string
@@ -583,9 +585,9 @@ Deno.serve(async (req) => {
       }),
     })
     if (!txRes.ok) {
-      const detail = await txRes.text()
-      console.error('[paddle-checkout] subscription transaction create failed:', txRes.status, detail)
-      return json({ error: 'Could not start checkout. Please try again.', detail }, 502)
+      // Logged, not returned — see the note on the event branch above.
+      console.error('[paddle-checkout] subscription transaction create failed:', txRes.status, await txRes.text())
+      return json({ error: 'Could not start checkout. Please try again.' }, 502)
     }
     const txBody = await txRes.json()
     const transactionId = txBody.data.id as string
@@ -612,11 +614,17 @@ Deno.serve(async (req) => {
 
     return json({ transactionId })
   } catch (err) {
-    // A missing billing email is a user-fixable setup problem, not a server fault.
+    // A missing billing email is a user-fixable setup problem, not a server fault,
+    // and its message is written for the customer. It is the ONLY error whose text
+    // we hand back.
     if (err instanceof MissingBillingEmail) {
       return json({ error: err.message }, 400)
     }
+    // Everything else is logged and answered generically. Returning err.message
+    // here would echo raw upstream failures to the browser — that is how a Paddle
+    // 409 ended up showing the customer Paddle's internal error body, complete with
+    // another customer's id. Read the real cause in Supabase → Edge Functions → Logs.
     console.error('[paddle-checkout] unexpected:', err)
-    return json({ error: err instanceof Error ? err.message : 'Checkout failed' }, 500)
+    return json({ error: 'Something went wrong. Please try again.' }, 500)
   }
 })
