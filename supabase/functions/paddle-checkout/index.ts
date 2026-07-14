@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     const organizationId = body.organizationId?.trim()
     const kind = body.kind
 
-    if (!organizationId || (kind !== 'event' && kind !== 'subscription')) {
+    if (!organizationId || (kind !== 'event' && kind !== 'subscription' && kind !== 'event_auto')) {
       return json({ error: 'organizationId and a valid kind are required' }, 400)
     }
 
@@ -188,6 +188,83 @@ Deno.serve(async (req) => {
       return json({ transactionId })
     }
 
+    if (kind === 'event_auto') {
+      // Fire-and-forget auto-charge of a per-event invoice to the payment method
+      // already saved against the org's subscription. Called right after an event
+      // activates. This must NEVER fail hard: the event is already live, and the
+      // invoice stays payable via "Pay now" if this doesn't land. Any problem
+      // returns 200 + charged:false rather than an error.
+      const invoiceId = body.invoiceId?.trim()
+      if (!invoiceId) return json({ charged: false, reason: 'no_invoice' })
+
+      const { data: invoice } = await admin
+        .from('invoices')
+        .select('id, organization_id, plan_key, amount_due, status')
+        .eq('id', invoiceId)
+        .single()
+
+      if (!invoice || invoice.organization_id !== organizationId) {
+        return json({ charged: false, reason: 'not_found' })
+      }
+      if (invoice.status !== 'unpaid' || Number(invoice.amount_due) <= 0) {
+        return json({ charged: false, reason: 'nothing_due' })
+      }
+      if (!org.paddle_subscription_id) {
+        // Free plan, or a paid plan that has not subscribed — nothing to charge
+        // against. They settle the invoice manually.
+        return json({ charged: false, reason: 'no_subscription' })
+      }
+
+      const planName = PLAN_NAMES[invoice.plan_key] ?? invoice.plan_key
+      const chargeRes = await fetch(
+        `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}/charge`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${paddleApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            effective_from: 'immediately',
+            items: [
+              {
+                quantity: 1,
+                price: {
+                  description: `Event activation — ${planName} plan`,
+                  name: 'Event activation',
+                  unit_price: {
+                    amount: toMinorUnits(Number(invoice.amount_due)),
+                    currency_code: 'EUR',
+                  },
+                  tax_mode: 'account_setting',
+                  product: { name: 'RallyHub event activation', tax_category: 'standard' },
+                  // A one-time subscription charge cannot carry transaction-level
+                  // custom_data, so stamp it on the price — the webhook reads it
+                  // back from items[].price.custom_data to settle this invoice.
+                  custom_data: {
+                    kind: 'event',
+                    invoice_id: invoice.id,
+                    organization_id: organizationId,
+                  },
+                },
+              },
+            ],
+          }),
+        },
+      )
+
+      if (!chargeRes.ok) {
+        console.error(
+          '[paddle-checkout] event auto-charge failed:',
+          chargeRes.status,
+          await chargeRes.text(),
+        )
+        return json({ charged: false, reason: 'charge_failed' })
+      }
+      // transaction.completed will mark the invoice paid.
+      return json({ charged: true })
+    }
+
     // kind === 'subscription'
     const planId = body.planId
     const billingPeriod = body.billingPeriod === 'monthly' ? 'monthly' : 'yearly'
@@ -201,11 +278,75 @@ Deno.serve(async (req) => {
       )
     }
 
+    const planName = PLAN_NAMES[planId] ?? planId
+
+    // The educational 50% is permanent for as long as the org stays approved, so
+    // it is baked straight into the recurring price.
     let amountEur = billingPeriod === 'monthly' ? prices.monthly : prices.yearly
     if (org.educational_status === 'approved') amountEur = Math.round(amountEur / 2)
 
+    // A subscription promo code can be time-limited (duration_months), so it can
+    // NOT be baked into the recurring price — that would discount every renewal
+    // forever. Paddle's Discount object handles the recurrence properly.
+    const { data: redemption } = await admin
+      .from('promo_code_redemptions')
+      .select('id, promo_code_id, discount_percent, duration_months')
+      .eq('organization_id', organizationId)
+      .eq('purpose', 'subscription')
+      .eq('status', 'active')
+      .order('discount_percent', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const discountPercent = Number(redemption?.discount_percent ?? 0)
+    let discountId: string | null = null
+
+    if (redemption && discountPercent > 0) {
+      // duration_months is in months; Paddle counts BILLING PERIODS. On a yearly
+      // plan a sub-year duration cannot be expressed, so it rounds to whole years
+      // (minimum one). Omitting the field means "discount every renewal".
+      const durationMonths = redemption.duration_months as number | null
+      let maxIntervals: number | null = null
+      if (durationMonths && durationMonths > 0) {
+        maxIntervals =
+          billingPeriod === 'monthly'
+            ? durationMonths
+            : Math.max(1, Math.round(durationMonths / 12))
+      }
+
+      const discRes = await fetch(`${paddleBaseUrl}/discounts`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${paddleApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: `RallyHub promo — ${discountPercent}% off ${planName} (${billingPeriod})`,
+          type: 'percentage',
+          amount: String(discountPercent),
+          // Redeemed inside RallyHub, never typed into Paddle's checkout.
+          enabled_for_checkout: false,
+          recur: true,
+          ...(maxIntervals ? { maximum_recurring_intervals: maxIntervals } : {}),
+        }),
+      })
+
+      if (discRes.ok) {
+        const discBody = await discRes.json()
+        discountId = discBody.data.id as string
+      } else {
+        // Do not fail the checkout over a discount we could not create — log it
+        // and let them subscribe at full price rather than blocking the sale.
+        // The redemption stays 'active', so it can still be applied later.
+        console.error(
+          '[paddle-checkout] discount create failed:',
+          discRes.status,
+          await discRes.text(),
+        )
+      }
+    }
+
     const customerId = await ensurePaddleCustomer(admin, paddleApiKey, paddleBaseUrl, org)
-    const planName = PLAN_NAMES[planId]
 
     const txRes = await fetch(`${paddleBaseUrl}/transactions`, {
       method: 'POST',
@@ -216,6 +357,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         customer_id: customerId,
         currency_code: 'EUR',
+        ...(discountId ? { discount_id: discountId } : {}),
         items: [
           {
             quantity: 1,
@@ -234,6 +376,9 @@ Deno.serve(async (req) => {
           organization_id: organizationId,
           plan_key: planId,
           billing_period: billingPeriod,
+          // Consumed by the webhook once payment actually completes — marking it
+          // used here would burn the code on an abandoned checkout.
+          promo_redemption_id: discountId ? redemption?.id ?? null : null,
         },
       }),
     })
@@ -245,13 +390,19 @@ Deno.serve(async (req) => {
     const txBody = await txRes.json()
     const transactionId = txBody.data.id as string
 
+    // amount = list price after the permanent educational discount; amount_due =
+    // what Paddle will actually collect once the promo discount is applied.
+    const amountDue = discountId
+      ? Math.round(amountEur * (1 - discountPercent / 100) * 100) / 100
+      : amountEur
+
     const { error: subTxErr } = await admin.from('subscription_transactions').insert({
       organization_id: organizationId,
       paddle_transaction_id: transactionId,
       plan_key: planId,
       billing_period: billingPeriod,
       amount: amountEur,
-      amount_due: amountEur,
+      amount_due: amountDue,
       currency: 'EUR',
       status: 'pending',
     })

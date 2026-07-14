@@ -118,6 +118,7 @@ export function AdminEventsNewPage() {
       activation.requestActivation(statusPrompt.eventName, async () => {
         await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
         navigate('/admin/events', { replace: true })
+        return statusPrompt.eventId
       })
       return
     }

@@ -1,17 +1,24 @@
 import { useCallback, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
 import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/event-activation-billing'
 import { isEducationalApproved } from '@/lib/educational'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
+import { autoChargeEventInvoice } from '@/lib/paddle'
+import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 
 type PendingActivation = {
   eventName: string
-  onConfirm: () => Promise<void>
+  /**
+   * Applies the activation. Return the activated event's id to have its invoice
+   * auto-charged to the org's saved card (see autoChargeEventInvoice). Returning
+   * nothing simply skips the auto-charge; the invoice stays payable either way.
+   */
+  onConfirm: () => Promise<string | void>
 }
 
 type UseEventActivationFlowOptions = {
@@ -30,6 +37,7 @@ export function useEventActivationFlow({
 }: UseEventActivationFlowOptions) {
   const [pending, setPending] = useState<PendingActivation | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const qc = useQueryClient()
   const redemptionsQuery = useOrgPromoRedemptions(organizationId)
   const bestEventDiscount = (redemptionsQuery.data ?? [])
     .filter((r) => r.purpose === 'event' && r.status === 'active')
@@ -58,7 +66,7 @@ export function useEventActivationFlow({
   )
 
   const requestActivation = useCallback(
-    (eventName: string, onConfirm: () => Promise<void>) => {
+    (eventName: string, onConfirm: () => Promise<string | void>) => {
       setPending({ eventName, onConfirm })
     },
     [],
@@ -73,12 +81,20 @@ export function useEventActivationFlow({
     if (!pending) return
     setConfirming(true)
     try {
-      await pending.onConfirm()
+      const eventId = await pending.onConfirm()
       setPending(null)
+      // The event is live now. Try to settle its invoice against the saved card,
+      // but never block or fail on it — an unpaid invoice is recoverable, a
+      // disrupted live event is not.
+      if (typeof eventId === 'string' && organizationId) {
+        void autoChargeEventInvoice(organizationId, eventId).then(() => {
+          void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
+        })
+      }
     } finally {
       setConfirming(false)
     }
-  }, [pending])
+  }, [pending, organizationId, qc])
 
   const requestStatusChange = useCallback(
     (
@@ -86,7 +102,7 @@ export function useEventActivationFlow({
       nextStatus: EventStatus,
       eventName: string,
       invoicedAt: string | null | undefined,
-      applyChange: () => Promise<void>,
+      applyChange: () => Promise<string | void>,
     ) => {
       const transitionError = eventStatusTransitionError(
         { status: currentStatus, invoiced_at: invoicedAt ?? null },

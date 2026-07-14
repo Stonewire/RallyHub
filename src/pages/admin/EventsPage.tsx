@@ -116,7 +116,7 @@ export function AdminEventsPage() {
       status,
       event.name,
       event.invoiced_at,
-      () => updateStatus.mutateAsync({ eventId, status }),
+      () => updateStatus.mutateAsync({ eventId, status }).then(() => eventId),
     )
   }
 
@@ -135,7 +135,7 @@ export function AdminEventsPage() {
       newStatus,
       event.name,
       event.invoiced_at,
-      () => applyReorder(eventId, newStatus, indexInGroup),
+      () => applyReorder(eventId, newStatus, indexInGroup).then(() => eventId),
     )
   }
 

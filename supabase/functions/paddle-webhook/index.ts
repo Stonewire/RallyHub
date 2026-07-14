@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       subscription_id?: string | null
       status?: string
       current_billing_period?: { starts_at?: string; ends_at?: string } | null
+      items?: Array<{ price?: { custom_data?: Record<string, unknown> | null } | null }> | null
       custom_data?: Record<string, unknown> | null
     }
   }
@@ -116,7 +117,11 @@ Deno.serve(async (req) => {
 
   try {
     const data = event.data ?? {}
-    const custom = data.custom_data ?? {}
+    // A one-time subscription charge (the per-event auto-charge) cannot carry
+    // transaction-level custom_data, so paddle-checkout stamps it on the inline
+    // price instead. Transaction-level wins where both exist.
+    const priceCustom = data.items?.[0]?.price?.custom_data ?? {}
+    const custom = { ...priceCustom, ...(data.custom_data ?? {}) }
 
     switch (event.event_type) {
       case 'transaction.completed': {
@@ -131,6 +136,15 @@ Deno.serve(async (req) => {
             .from('subscription_transactions')
             .update({ status: 'paid' })
             .eq('paddle_transaction_id', data.id)
+
+          // The promo code is only consumed once the customer has actually paid.
+          if (typeof custom.promo_redemption_id === 'string') {
+            await admin
+              .from('promo_code_redemptions')
+              .update({ status: 'used', applied_at: new Date().toISOString() })
+              .eq('id', custom.promo_redemption_id)
+              .eq('status', 'active')
+          }
         }
         break
       }

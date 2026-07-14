@@ -8,7 +8,40 @@
  * ever opens the overlay for an existing transactionId.
  */
 
+import { supabase } from '@/lib/supabase'
+
 type PaddleCheckoutEvent = { name: string; data?: unknown }
+
+/**
+ * Fire-and-forget: charges a freshly-activated event's invoice to the payment
+ * method already saved against the org's subscription.
+ *
+ * Deliberately swallows every failure. The event is already live at this point,
+ * and billing must never disrupt a live event — if the card declines, the org
+ * has no subscription, or the network drops, the invoice simply stays unpaid and
+ * is settled later with "Pay now". Never await this in a way that blocks the UI.
+ */
+export async function autoChargeEventInvoice(
+  organizationId: string | null | undefined,
+  eventId: string,
+): Promise<void> {
+  if (!organizationId) return
+  try {
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('id, status, amount_due')
+      .eq('event_id', eventId)
+      .maybeSingle()
+
+    if (!invoice || invoice.status !== 'unpaid' || Number(invoice.amount_due) <= 0) return
+
+    await supabase.functions.invoke('paddle-checkout', {
+      body: { organizationId, kind: 'event_auto', invoiceId: invoice.id },
+    })
+  } catch {
+    // Intentionally ignored — see the note above.
+  }
+}
 
 declare global {
   interface Window {

@@ -5,6 +5,27 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.7.3 - 2026-07-14 (PAY-1 Stage 2a: subscription discounts + per-event auto-charge)
+- **Subscription promo codes now reach Paddle.** A subscription-purpose promo
+  code is applied as a real Paddle Discount object rather than being baked into
+  the recurring price, because codes can be time-limited (`duration_months`) and
+  a baked-in price would discount every renewal forever. Months are converted to
+  Paddle's billing-interval count (on a yearly plan a sub-year duration rounds up
+  to one year). The educational 50% stays baked into the price, since it is
+  permanent while the org is approved.
+- The code is only **consumed once payment actually completes** (via the webhook),
+  so an abandoned checkout no longer burns it.
+- **Per-event auto-charge.** Activating an event now charges its invoice straight
+  to the card saved against the org's subscription (Paddle one-time subscription
+  charge), so organisers do not have to press "Pay now" for every event.
+  Deliberately fire-and-forget: a decline, a missing subscription or a network
+  failure leaves the invoice unpaid and payable later, and can never disrupt a
+  live event.
+- A one-time subscription charge cannot carry transaction-level `custom_data`, so
+  the invoice id is stamped on the inline price; the webhook reads it back from
+  `items[].price.custom_data` to settle the invoice (no polling, no race).
+- `subscription_transactions.amount_due` now records the post-discount amount.
+
 ## V2.7.2 - 2026-07-14 (PAY-1 Stage 1: server-enforced activation gate + plan limits)
 - Event activation is now gated server-side, inside the same DB trigger that
   invoices it (migration 20260714120000). Raising there rolls back the

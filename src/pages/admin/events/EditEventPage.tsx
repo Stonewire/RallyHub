@@ -225,7 +225,7 @@ export function AdminEventEditPage() {
                   status,
                   eventQuery.data.name,
                   eventQuery.data.invoiced_at,
-                  () => updateStatus.mutateAsync({ eventId, status }),
+                  () => updateStatus.mutateAsync({ eventId, status }).then(() => eventId),
                 )
               }}
             />
