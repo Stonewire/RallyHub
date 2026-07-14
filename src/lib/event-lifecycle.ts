@@ -8,16 +8,25 @@ export function canResetEventData(status: string | null | undefined): boolean {
   return status === 'draft' || status === 'ready' || status === 'demo'
 }
 
-/** True once the event has been activated and billed (invoiced_at set). */
+/**
+ * True once the event has actually gone live.
+ *
+ * This keys off activated_at, NOT invoiced_at. They used to mean the same thing
+ * (an invoice was only ever created at activation), but Free-plan prepay now
+ * creates the invoice BEFORE the event goes live, so it can be paid for first.
+ * Keying off invoiced_at made a paid-but-not-yet-activated event look like it had
+ * already run, which locked it to "Archived" and made it impossible to activate
+ * the very event the customer had just paid for.
+ */
 export function isEventActivated(
-  event: Pick<EventRow, 'invoiced_at'>,
+  event: Pick<EventRow, 'activated_at'>,
 ): boolean {
-  return event.invoiced_at != null
+  return event.activated_at != null
 }
 
 /** Status options allowed for this event given one-way activation rules. */
 export function getAllowedEventStatuses(
-  event: Pick<EventRow, 'status' | 'invoiced_at'>,
+  event: Pick<EventRow, 'status' | 'activated_at'>,
 ): EventStatus[] {
   const current = event.status as EventStatus
 
@@ -33,14 +42,14 @@ export function getAllowedEventStatuses(
 }
 
 export function canTransitionEventStatus(
-  event: Pick<EventRow, 'status' | 'invoiced_at'>,
+  event: Pick<EventRow, 'status' | 'activated_at'>,
   nextStatus: EventStatus,
 ): boolean {
   return getAllowedEventStatuses(event).includes(nextStatus)
 }
 
 export function eventStatusTransitionError(
-  event: Pick<EventRow, 'status' | 'invoiced_at'>,
+  event: Pick<EventRow, 'status' | 'activated_at'>,
   nextStatus: EventStatus,
 ): string | null {
   if (canTransitionEventStatus(event, nextStatus)) return null

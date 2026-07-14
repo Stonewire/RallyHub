@@ -348,6 +348,7 @@ export type Database = {
           list_order?: number
           invoice_paid?: boolean
           invoiced_at?: string | null
+          activated_at?: string | null
           deleted_at?: string | null
         }
         Update: {
@@ -365,6 +366,7 @@ export type Database = {
           list_order?: number
           invoice_paid?: boolean
           invoiced_at?: string | null
+          activated_at?: string | null
           deleted_at?: string | null
         }
         Relationships: []

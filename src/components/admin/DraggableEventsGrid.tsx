@@ -142,7 +142,7 @@ export function DraggableEventsGrid({
                       </p>
                       <EventStatusMenu
                         status={event.status as EventStatus}
-                        invoicedAt={event.invoiced_at}
+                        activatedAt={event.activated_at}
                         disabled={statusPending}
                         onSelect={(status) => onStatusChange(event.id, status)}
                       />

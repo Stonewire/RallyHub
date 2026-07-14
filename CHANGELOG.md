@@ -5,6 +5,28 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.8.3 - 2026-07-14 (fix: paid Free-plan event could not be activated)
+- **A Free-plan event that had just been paid for was locked to "Archived" and
+  could not be activated.** The payment worked and the invoice showed as paid,
+  but the event stayed at Ready with no way to go live.
+- Cause: the event lifecycle treated `invoiced_at` as "this event has already
+  run" — which was true when an invoice was only ever created AT activation. But
+  Free-plan prepay (V2.8.0) deliberately creates the invoice BEFORE the event
+  goes live, so there is something to pay for. So the moment a Free organiser
+  paid, their event looked like it had already been run.
+- Fix: `isEventActivated()` / `getAllowedEventStatuses()` /
+  `canTransitionEventStatus()` / `isActivationBillingRequired()` now key off
+  `events.activated_at` (added in V2.8.0 and only ever set when the event
+  actually goes live) instead of `invoiced_at`.
+- `isActivationBillingRequired` mattered just as much: keyed off `invoiced_at`, a
+  Free organiser who opened the checkout and closed it would never be shown the
+  payment again — the confirm dialog was skipped, so the prepay step never ran,
+  and the gate rejected the activation with no way forward.
+- Duplicating an event now clears `activated_at` too, or the copy would be born
+  locked to "Archived".
+- Added regression tests for the whole lifecycle, since this is precisely the
+  case that slipped through.
+
 ## V2.8.2 - 2026-07-14 (PAY-1 fixes from Rumen's live test)
 - **Payment was completely broken for any org without an email set.** A
   freshly-registered org has neither `contact_email` nor `email`, and

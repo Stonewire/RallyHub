@@ -39,6 +39,9 @@ export function buildDuplicateEventPayload(
       display_text_color: source.display_text_color,
       invoice_paid: false,
       invoiced_at: null,
+      // A copy has not run yet. Without clearing this it would inherit the
+      // original's activation and be born locked to "Archived".
+      activated_at: null,
       list_order: 0,
     },
     gameIds: resolvedGameIds,

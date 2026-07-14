@@ -213,7 +213,7 @@ export function AdminEventEditPage() {
           {!isArchived && (
             <EventStatusMenu
               status={eventStatus}
-              invoicedAt={eventQuery.data?.invoiced_at}
+              activatedAt={eventQuery.data?.activated_at}
               size="default"
               disabled={
                 updateStatus.isPending || activation.confirmingActivation || loading
@@ -225,7 +225,7 @@ export function AdminEventEditPage() {
                   eventStatus,
                   status,
                   eventQuery.data.name,
-                  eventQuery.data.invoiced_at,
+                  eventQuery.data.activated_at,
                   () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
                 )
               }}

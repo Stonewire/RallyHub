@@ -18,7 +18,8 @@ const ALL_STATUSES: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archiv
 
 type EventStatusMenuProps = {
   status: EventStatus
-  invoicedAt?: string | null
+  /** Set once the event has actually gone live — after which it can only be archived. */
+  activatedAt?: string | null
   onSelect: (status: EventStatus) => void
   disabled?: boolean
   size?: 'sm' | 'default'
@@ -26,7 +27,7 @@ type EventStatusMenuProps = {
 
 export function EventStatusMenu({
   status,
-  invoicedAt = null,
+  activatedAt = null,
   onSelect,
   disabled,
   size = 'sm',
@@ -35,10 +36,10 @@ export function EventStatusMenu({
 
   const allowedStatuses = useMemo(
     () =>
-      getAllowedEventStatuses({ status, invoiced_at: invoicedAt }).filter(
+      getAllowedEventStatuses({ status, activated_at: activatedAt }).filter(
         (s) => s !== status,
       ),
-    [status, invoicedAt],
+    [status, activatedAt],
   )
 
   const menuDisabled = disabled || allowedStatuses.length === 0

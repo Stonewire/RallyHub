@@ -184,11 +184,22 @@ export function friendlyActivationError(raw: string | null | undefined): string 
   return message || 'Could not activate this event.'
 }
 
+/**
+ * Whether going to `active` should run the billing confirmation (and, on the Free
+ * plan, collect payment) rather than flipping the status straight away.
+ *
+ * Keys off activated_at, not invoiced_at. Free-plan prepay creates the invoice
+ * before the event goes live, so an invoice existing does NOT mean the event has
+ * run. Using invoiced_at here would mean anyone who opened the checkout and then
+ * closed it could never be shown the payment again — the dialog would be skipped,
+ * the prepay step never runs, and the DB gate would just reject the activation
+ * with no way forward.
+ */
 export function isActivationBillingRequired(
   currentStatus: string,
   nextStatus: string,
-  invoicedAt?: string | null,
+  activatedAt?: string | null,
 ): boolean {
-  if (invoicedAt) return false
+  if (activatedAt) return false
   return nextStatus === 'active' && currentStatus !== 'active'
 }

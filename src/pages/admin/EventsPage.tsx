@@ -116,7 +116,7 @@ export function AdminEventsPage() {
       event.status as EventStatus,
       status,
       event.name,
-      event.invoiced_at,
+      event.activated_at,
       () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
     )
   }
@@ -136,7 +136,7 @@ export function AdminEventsPage() {
       event.status as EventStatus,
       newStatus,
       event.name,
-      event.invoiced_at,
+      event.activated_at,
       () => applyReorder(eventId, newStatus, indexInGroup),
     )
   }

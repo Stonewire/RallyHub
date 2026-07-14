@@ -142,18 +142,18 @@ export function useEventActivationFlow({
       currentStatus: EventStatus,
       nextStatus: EventStatus,
       eventName: string,
-      invoicedAt: string | null | undefined,
+      activatedAt: string | null | undefined,
       applyChange: () => Promise<void>,
     ) => {
       const transitionError = eventStatusTransitionError(
-        { status: currentStatus, invoiced_at: invoicedAt ?? null },
+        { status: currentStatus, activated_at: activatedAt ?? null },
         nextStatus,
       )
       if (transitionError) {
         onValidationError?.(transitionError)
         return
       }
-      if (isActivationBillingRequired(currentStatus, nextStatus, invoicedAt)) {
+      if (isActivationBillingRequired(currentStatus, nextStatus, activatedAt)) {
         requestActivation(eventId, eventName, applyChange)
         return
       }
