@@ -1,17 +1,18 @@
-// PAY-1: creates a Paddle transaction and returns its id so the frontend can
-// open the Paddle.js overlay checkout for it. Two kinds:
-//   - kind: 'event'        pay an existing unpaid per-event invoice, for its
-//                          exact amount_due (already computed server-side by
-//                          create_event_activation_invoice, including any
-//                          promo/educational discount).
-//   - kind: 'subscription' start paying for a plan (org must not already have
-//                          an active Paddle subscription — changing an
-//                          existing subscription's plan is not built yet).
+// PAY-1: Paddle transactions for RallyHub billing. Four kinds:
+//   - kind: 'event'         pay an unpaid per-event invoice via the overlay, for
+//                           its exact amount_due (already computed server-side,
+//                           including any promo/educational discount).
+//   - kind: 'event_verify'  after that overlay completes, confirm payment with
+//                           Paddle directly and settle the invoice synchronously
+//                           (Free-plan prepay must not race the async webhook).
+//   - kind: 'event_auto'    charge an unpaid per-event invoice straight to the
+//                           card saved against the org's subscription. Fired
+//                           after activation; never fails hard.
+//   - kind: 'subscription'  start a plan, applying any active subscription promo
+//                           code as a real Paddle Discount.
 //
-// The Paddle transaction always carries a custom, non-catalog price (an
-// inline amount, not a pre-created Paddle Price ID) so RallyHub's own pricing
-// stays the single source of truth; Paddle's dashboard only needs a customer
-// and a product for reporting, never a duplicated price list.
+// Prices are always inline/non-catalog so RallyHub's own pricing stays the single
+// source of truth; Paddle never holds a duplicated price list.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { requireAuthUser, requireOrgAdminOrSuperAdmin } from '../_shared/auth.ts'
@@ -59,13 +60,28 @@ type PaddleOrg = {
   paddle_subscription_id: string | null
 }
 
+/** Raised when we cannot give Paddle an email — surfaced to the user, not logged as a crash. */
+class MissingBillingEmail extends Error {}
+
 async function ensurePaddleCustomer(
   admin: ReturnType<typeof createClient>,
   paddleApiKey: string,
   paddleBaseUrl: string,
   org: PaddleOrg,
+  /** Logged-in user's email — the fallback when the org has none of its own. */
+  fallbackEmail: string | null,
 ): Promise<string> {
   if (org.paddle_customer_id) return org.paddle_customer_id
+
+  // A freshly-registered org has neither contact_email nor email set, and Paddle
+  // rejects a null email outright ("Expected: string, given: null"). Fall back to
+  // the admin who is actually standing at the checkout.
+  const email = org.contact_email || org.email || fallbackEmail
+  if (!email) {
+    throw new MissingBillingEmail(
+      'Add a billing email in Settings → Organisation before paying.',
+    )
+  }
 
   const res = await fetch(`${paddleBaseUrl}/customers`, {
     method: 'POST',
@@ -73,10 +89,7 @@ async function ensurePaddleCustomer(
       Authorization: `Bearer ${paddleApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      email: org.contact_email ?? org.email,
-      name: org.name,
-    }),
+    body: JSON.stringify({ email, name: org.name }),
   })
   if (!res.ok) {
     throw new Error(`Paddle customer creation failed: ${res.status} ${await res.text()}`)
@@ -150,7 +163,7 @@ Deno.serve(async (req) => {
         return json({ error: 'This invoice is already settled.' }, 400)
       }
 
-      const customerId = await ensurePaddleCustomer(admin, paddleApiKey, paddleBaseUrl, org)
+      const customerId = await ensurePaddleCustomer(admin, paddleApiKey, paddleBaseUrl, org, auth.user.email ?? null)
       const planName = PLAN_NAMES[invoice.plan_key] ?? invoice.plan_key
 
       const txRes = await fetch(`${paddleBaseUrl}/transactions`, {
@@ -395,7 +408,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const customerId = await ensurePaddleCustomer(admin, paddleApiKey, paddleBaseUrl, org)
+    const customerId = await ensurePaddleCustomer(admin, paddleApiKey, paddleBaseUrl, org, auth.user.email ?? null)
 
     const txRes = await fetch(`${paddleBaseUrl}/transactions`, {
       method: 'POST',
@@ -461,6 +474,10 @@ Deno.serve(async (req) => {
 
     return json({ transactionId })
   } catch (err) {
+    // A missing billing email is a user-fixable setup problem, not a server fault.
+    if (err instanceof MissingBillingEmail) {
+      return json({ error: err.message }, 400)
+    }
     console.error('[paddle-checkout] unexpected:', err)
     return json({ error: err instanceof Error ? err.message : 'Checkout failed' }, 500)
   }

@@ -130,6 +130,21 @@ export function getEventActivationWarning(
 }
 
 /**
+ * When the monthly event allowance resets: midnight on the 1st of next month.
+ * Matches the gate's `date_trunc('month', now())` window, which Postgres
+ * evaluates in UTC — so this is computed in UTC too, not local time.
+ */
+export function formatLimitResetDate(now: Date = new Date()): string {
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  return next.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+/**
  * The activation gate (assert_event_activation_allowed) raises tagged Postgres
  * exceptions. They reach the client as raw messages like
  * "SUBSCRIPTION_REQUIRED: Start a subscription ...", which is not something an
@@ -150,9 +165,11 @@ export function friendlyActivationError(raw: string | null | undefined): string 
   if (message.includes('EVENT_LIMIT_REACHED')) {
     // The DB message already carries the plan's actual number.
     const limit = message.match(/allows (\d+) event/)?.[1]
-    return limit
-      ? `You have used all ${limit} of your events this month. Upgrade your plan to run more.`
-      : 'You have used all your events for this month. Upgrade your plan to run more.'
+    const resets = formatLimitResetDate()
+    const used = limit
+      ? `You have used all ${limit} of your events this month.`
+      : 'You have used all your events for this month.'
+    return `${used} Your next event can be activated from ${resets}. Upgrade your plan to run more now.`
   }
   if (message.includes('TEAM_LIMIT_EXCEEDED')) {
     const limit = message.match(/allows (\d+) teams/)?.[1]

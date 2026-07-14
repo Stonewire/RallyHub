@@ -5,6 +5,25 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.8.2 - 2026-07-14 (PAY-1 fixes from Rumen's live test)
+- **Payment was completely broken for any org without an email set.** A
+  freshly-registered org has neither `contact_email` nor `email`, and
+  `ensurePaddleCustomer` sent `email: null` straight to Paddle, which rejects it
+  ("Expected: string, given: null"). The checkout 500'd, so no overlay ever
+  opened and activation appeared to silently do nothing. Now falls back to the
+  logged-in admin's own email, and if there is genuinely no email anywhere it
+  returns a clear "Add a billing email in Settings" instead of a 500.
+- **The real error was being hidden.** A failed checkout only ever reported
+  "Could not start payment", swallowing the server's actual message. The prepay
+  path now surfaces the server's `{ error }` text, so a misconfiguration says what
+  it is instead of failing mutely.
+- **Hitting the monthly limit now says when it lifts.** "You have used all 1 of
+  your events this month. Your next event can be activated from 1 August 2026."
+  Computed in UTC to match the gate's `date_trunc('month', now())` window.
+- Known gap (not fixed here): registration never populates the org's email, which
+  is what exposed this. The fallback covers billing, but the org profile should
+  probably capture it at signup.
+
 ## V2.8.1 - 2026-07-14 (PAY-1 Stage 3: readable gate errors + plan usage)
 - **Blocked activations were silently swallowed.** `confirmActivation` never
   caught the error the DB gate raises, so a refused activation left the dialog

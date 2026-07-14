@@ -17,6 +17,23 @@ export type PrepayResult =
   | { ok: false; reason: 'closed' | 'failed'; message?: string }
 
 /**
+ * Pulls the server's actual `{ error }` message out of a failed functions.invoke.
+ * Without this the caller only ever sees "Edge Function returned a non-2xx status
+ * code", which tells the organiser nothing about what to fix.
+ */
+async function edgeFunctionError(error: unknown, fallback: string): Promise<string> {
+  try {
+    const body = await (
+      error as { context?: { json?: () => Promise<{ error?: string }> } }
+    ).context?.json?.()
+    if (body?.error) return body.error
+  } catch {
+    /* fall through to the generic message */
+  }
+  return fallback
+}
+
+/**
  * Free-plan prepay: the org has no subscription and no saved card, so the
  * per-event fee must be settled BEFORE the event can go live (the DB gate
  * enforces this — it will not activate an unpaid Free event).
@@ -55,7 +72,13 @@ export async function prepayEventInvoice(
   const { data, error } = await supabase.functions.invoke('paddle-checkout', {
     body: { organizationId, kind: 'event', invoiceId },
   })
-  if (error) return { ok: false, reason: 'failed', message: 'Could not start payment.' }
+  if (error) {
+    return {
+      ok: false,
+      reason: 'failed',
+      message: await edgeFunctionError(error, 'Could not start payment.'),
+    }
+  }
 
   const transactionId = (data as { transactionId?: string } | null)?.transactionId
   if (!transactionId) return { ok: false, reason: 'failed', message: 'Could not start payment.' }
