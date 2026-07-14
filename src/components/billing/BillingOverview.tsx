@@ -15,7 +15,7 @@ import {
 } from '@/hooks/use-billing-invoices'
 import { usePaddleSubscriptionCheckout } from '@/hooks/use-paddle-subscription'
 import { useMonthlyEventUsage } from '@/hooks/use-plan-usage'
-import { openBillingPortal } from '@/lib/paddle'
+import { openBillingPortal, openInvoicePdf } from '@/lib/paddle'
 import {
   formatBillingPeriodLabel,
   formatEur,
@@ -51,6 +51,7 @@ export function BillingOverview({
 }: BillingOverviewProps) {
   const { notify } = useNotification()
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
   const invoicesQuery = useOrganizationInvoices(organizationId)
   const eventsUsed = useMonthlyEventUsage(organizationId).data ?? 0
   const payInvoice = usePayEventInvoiceWithPaddle(organizationId)
@@ -70,6 +71,18 @@ export function BillingOverview({
       else if (result === 'error') notify('Something went wrong with the payment. Please try again.')
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not start payment.')
+    }
+  }
+
+  async function handleDownloadInvoice(invoiceId: string) {
+    if (!organizationId) return
+    setDownloadingInvoiceId(invoiceId)
+    try {
+      await openInvoicePdf(organizationId, invoiceId)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not fetch the invoice.')
+    } finally {
+      setDownloadingInvoiceId(null)
     }
   }
 
@@ -171,7 +184,8 @@ export function BillingOverview({
         <div>
           <h2 className="text-foreground text-lg font-semibold">Payment history</h2>
           <p className="text-muted-foreground text-sm">
-            Paid and comped event invoices, most recent first.
+            Paid and comped event invoices, most recent first. Download the invoice
+            for anything you have paid.
           </p>
         </div>
         {invoicesQuery.isLoading ? (
@@ -180,6 +194,8 @@ export function BillingOverview({
           <EventInvoiceList
             invoices={settled}
             emptyMessage="No paid or comped event invoices yet."
+            onDownload={handleDownloadInvoice}
+            downloadingInvoiceId={downloadingInvoiceId}
           />
         )}
       </section>

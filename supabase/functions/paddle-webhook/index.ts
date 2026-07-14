@@ -126,9 +126,13 @@ Deno.serve(async (req) => {
     switch (event.event_type) {
       case 'transaction.completed': {
         if (custom.kind === 'event' && typeof custom.invoice_id === 'string') {
+          // Store the transaction id as well as marking it paid. An auto-charged
+          // invoice never went through the overlay, so this is the only place its
+          // transaction gets recorded — and without it there is nothing to fetch
+          // the invoice PDF from later.
           await admin
             .from('invoices')
-            .update({ status: 'paid' })
+            .update({ status: 'paid', ...(data.id ? { paddle_transaction_id: data.id } : {}) })
             .eq('id', custom.invoice_id)
             .eq('status', 'unpaid')
         } else if (custom.kind === 'subscription' && data.id) {

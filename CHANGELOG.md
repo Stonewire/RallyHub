@@ -5,6 +5,25 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.9.2 - 2026-07-14 (downloadable invoices)
+
+- **Paid events now have a "Invoice" button** in Billing → Payment history that
+  opens the official Paddle invoice PDF.
+- Paddle is the Merchant of Record, so the legally-valid invoice is Paddle's, not
+  one we generate — we link to theirs rather than inventing our own document. The
+  link Paddle returns expires after an hour, so it is fetched fresh on each click
+  and never cached or stored.
+- Ownership is re-checked server-side on top of verify_jwt + org-admin auth, so
+  one org can never pull another's invoice by guessing an id.
+- Comped/€0 events get no button: Paddle issues no PDF for a zero-value
+  transaction, so there is genuinely nothing to download.
+- **Closed a gap this exposed:** an auto-charged invoice never went through the
+  overlay, so its Paddle transaction id was never recorded — leaving nothing to
+  fetch a PDF from. The webhook now stores the transaction id when it settles an
+  event invoice, not just the paid status.
+- Organisers can also see and download everything from the Paddle customer portal
+  ("Manage billing details"); this is the shortcut.
+
 ## V2.9.1 - 2026-07-14 (fix Paddle customer conflict; billing details + saved cards)
 - **Fixed: "Pay now" failed with `customer_already_exists` (409).** An org with no
   billing email of its own falls back to the admin's login email — and if that

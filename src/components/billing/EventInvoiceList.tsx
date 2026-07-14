@@ -1,4 +1,4 @@
-import { CreditCard } from 'lucide-react'
+import { CreditCard, Download } from 'lucide-react'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { StatusIndicator } from '@/components/ui/status-indicator'
@@ -20,6 +20,9 @@ type EventInvoiceRowProps = {
   /** When provided, unpaid invoices get a "Pay now" button instead of a static badge. */
   onPay?: (invoiceId: string) => void
   payingInvoiceId?: string | null
+  /** When provided, paid invoices get an "Invoice" button to open Paddle's PDF. */
+  onDownload?: (invoiceId: string) => void
+  downloadingInvoiceId?: string | null
 }
 
 export function EventInvoiceRow({
@@ -27,7 +30,13 @@ export function EventInvoiceRow({
   showPayIndicator = false,
   onPay,
   payingInvoiceId = null,
+  onDownload,
+  downloadingInvoiceId = null,
 }: EventInvoiceRowProps) {
+  // Paddle only issues a PDF for a real transaction. Comped/€0 events never had
+  // one, so there is nothing to download for them.
+  const canDownload =
+    Boolean(onDownload) && invoice.status === 'paid' && Boolean(invoice.paddle_transaction_id)
   const eventName = invoice.event?.name ?? 'Unknown event'
   const eventDate = invoice.event?.event_date ?? null
   const teamCount = invoice.event?.team_count ?? 0
@@ -65,6 +74,17 @@ export function EventInvoiceRow({
         <p className="text-muted-foreground text-xs">
           Invoiced {formatInvoiceDate(invoice.created_at)}
         </p>
+        {canDownload ? (
+          <NeoButton
+            variant="surface"
+            size="sm"
+            onClick={() => onDownload?.(invoice.id)}
+            disabled={downloadingInvoiceId === invoice.id}
+          >
+            <Download className="size-3.5" aria-hidden />
+            {downloadingInvoiceId === invoice.id ? 'Opening…' : 'Invoice'}
+          </NeoButton>
+        ) : null}
         {showPayIndicator && invoice.status === 'unpaid' ? (
           onPay ? (
             <NeoButton
@@ -100,6 +120,8 @@ type EventInvoiceListProps = {
   showPayIndicator?: boolean
   onPay?: (invoiceId: string) => void
   payingInvoiceId?: string | null
+  onDownload?: (invoiceId: string) => void
+  downloadingInvoiceId?: string | null
 }
 
 export function EventInvoiceList({
@@ -108,6 +130,8 @@ export function EventInvoiceList({
   showPayIndicator = false,
   onPay,
   payingInvoiceId = null,
+  onDownload,
+  downloadingInvoiceId = null,
 }: EventInvoiceListProps) {
   if (invoices.length === 0) {
     return (
@@ -126,6 +150,8 @@ export function EventInvoiceList({
           showPayIndicator={showPayIndicator}
           onPay={onPay}
           payingInvoiceId={payingInvoiceId}
+          onDownload={onDownload}
+          downloadingInvoiceId={downloadingInvoiceId}
         />
       ))}
     </div>

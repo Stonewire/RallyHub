@@ -30,6 +30,30 @@ async function edgeFunctionError(error: unknown, fallback: string): Promise<stri
 }
 
 /**
+ * Opens the official Paddle invoice PDF for a paid event.
+ *
+ * Paddle is the Merchant of Record, so the legally-valid invoice is theirs, not
+ * one we generate. The link Paddle returns expires after an hour, so it is
+ * fetched fresh on every click and never cached or stored.
+ */
+export async function openInvoicePdf(
+  organizationId: string,
+  invoiceId: string,
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('paddle-checkout', {
+    body: { organizationId, kind: 'invoice_pdf', invoiceId },
+  })
+  if (error) {
+    throw new Error(await edgeFunctionError(error, 'Could not fetch the invoice.'))
+  }
+
+  const url = (data as { url?: string } | null)?.url
+  if (!url) throw new Error('Could not fetch the invoice.')
+
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+/**
  * Opens Paddle's hosted customer portal, where the organiser manages their saved
  * cards and billing details.
  *

@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     const organizationId = body.organizationId?.trim()
     const kind = body.kind
 
-    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription', 'portal']
+    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription', 'portal', 'invoice_pdf']
     if (!organizationId || !VALID_KINDS.includes(kind)) {
       return json({ error: 'organizationId and a valid kind are required' }, 400)
     }
@@ -192,6 +192,48 @@ Deno.serve(async (req) => {
       .eq('id', organizationId)
       .single()
     if (orgErr || !org) return json({ error: 'Organization not found' }, 404)
+
+    if (kind === 'invoice_pdf') {
+      // Paddle is the Merchant of Record, so the legally-valid invoice is Paddle's,
+      // not one we generate. Hand back a link to their official PDF.
+      //
+      // The link is temporary (Paddle expires it after an hour), so it is fetched
+      // fresh on each click and never stored. Ownership is checked here as well as
+      // by verify_jwt + requireOrgAdminOrSuperAdmin above, so one org can never
+      // pull another's invoice by guessing an id.
+      const invoiceId = body.invoiceId?.trim()
+      if (!invoiceId) return json({ error: 'invoiceId is required' }, 400)
+
+      const { data: invoice } = await admin
+        .from('invoices')
+        .select('id, organization_id, status, paddle_transaction_id')
+        .eq('id', invoiceId)
+        .single()
+
+      if (!invoice || invoice.organization_id !== organizationId) {
+        return json({ error: 'Invoice not found' }, 404)
+      }
+      if (!invoice.paddle_transaction_id) {
+        // Comped/€0 events, or anything settled outside Paddle, have no Paddle
+        // transaction — and Paddle issues no PDF for zero-value transactions.
+        return json({ error: 'No downloadable invoice for this event.' }, 404)
+      }
+
+      const pdfRes = await fetch(
+        `${paddleBaseUrl}/transactions/${invoice.paddle_transaction_id}/invoice`,
+        { headers: { Authorization: `Bearer ${paddleApiKey}` } },
+      )
+      if (!pdfRes.ok) {
+        console.error('[paddle-checkout] invoice pdf failed:', pdfRes.status)
+        return json({ error: 'Could not fetch the invoice. Please try again.' }, 502)
+      }
+
+      const url = (await pdfRes.json())?.data?.url
+      if (typeof url !== 'string' || !url) {
+        return json({ error: 'Could not fetch the invoice. Please try again.' }, 502)
+      }
+      return json({ url })
+    }
 
     if (kind === 'portal') {
       // Saved cards / billing details are managed ONLY in Paddle's hosted customer
