@@ -177,8 +177,9 @@ Deno.serve(async (req) => {
         }),
       })
       if (!txRes.ok) {
-        console.error('[paddle-checkout] event transaction create failed:', txRes.status, await txRes.text())
-        return json({ error: 'Could not start payment. Please try again.' }, 502)
+        const detail = await txRes.text()
+        console.error('[paddle-checkout] event transaction create failed:', txRes.status, detail)
+        return json({ error: 'Could not start payment. Please try again.', detail }, 502)
       }
       const txBody = await txRes.json()
       const transactionId = txBody.data.id as string
@@ -237,8 +238,9 @@ Deno.serve(async (req) => {
       }),
     })
     if (!txRes.ok) {
-      console.error('[paddle-checkout] subscription transaction create failed:', txRes.status, await txRes.text())
-      return json({ error: 'Could not start checkout. Please try again.' }, 502)
+      const detail = await txRes.text()
+      console.error('[paddle-checkout] subscription transaction create failed:', txRes.status, detail)
+      return json({ error: 'Could not start checkout. Please try again.', detail }, 502)
     }
     const txBody = await txRes.json()
     const transactionId = txBody.data.id as string

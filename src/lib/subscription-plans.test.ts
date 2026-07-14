@@ -6,6 +6,27 @@ import {
   planPriceDisplay,
 } from './subscription-plans'
 
+// These limits are enforced server-side by plan_monthly_event_limit() /
+// plan_team_limit() in migration 20260714120000_pay1_entitlement_gate.sql.
+// If these values change here, change the SQL functions too, or the gate and
+// the pricing display will disagree.
+describe('plan limits (mirror of the SQL entitlement gate)', () => {
+  it.each([
+    ['rookie', 1, 10],
+    ['arena', 10, 20],
+    ['pro', 20, 30],
+    ['max', 40, 50],
+  ])('%s allows %i events/month and %i teams/event', (plan, events, teams) => {
+    expect(getPlan(plan).monthlyEventLimit).toBe(events)
+    expect(getPlan(plan).teamLimit).toBe(teams)
+  })
+
+  it.each(['enterprise', 'partner'])('%s is unlimited', (plan) => {
+    expect(getPlan(plan).monthlyEventLimit).toBeNull()
+    expect(getPlan(plan).teamLimit).toBeNull()
+  })
+})
+
 describe('planPriceDisplay', () => {
   it('frames a paid plan per month: yearly-equivalent headline, one charge/year, monthly option', () => {
     // Starter: €180/yr (=€15/mo) or €20/mo monthly.

@@ -7,11 +7,16 @@
 //                             row paid (does not touch invoices already
 //                             comped/paid, and only ones actually created here).
 //   transaction.payment_failed → marks the matching subscription_transactions row failed.
-//   subscription.created    → the authoritative point where the org's
-//                             billing_plan/billing_period/paddle_subscription_id/
-//                             paddle_customer_id are set — everything we need
-//                             was set as custom_data when the transaction was
-//                             created (paddle-checkout Edge Function).
+//   subscription.created /
+//   subscription.updated    → sync the org's billing_plan/billing_period/
+//                             paddle_subscription_id/paddle_customer_id plus
+//                             subscription_status and subscription_current_period_end
+//                             (the paid-through date the activation gate checks).
+//                             custom_data (organization_id, plan_key, billing_period)
+//                             is inherited from the transaction that created it.
+//   subscription.canceled /
+//   subscription.paused     → record the new status so the gate blocks activation
+//                             once the paid period ends.
 //
 // Always returns 200 once the signature is verified, even for event types we
 // don't act on — Paddle retries non-2xx responses, and we don't want retries
@@ -93,6 +98,8 @@ Deno.serve(async (req) => {
       id?: string
       customer_id?: string
       subscription_id?: string | null
+      status?: string
+      current_billing_period?: { starts_at?: string; ends_at?: string } | null
       custom_data?: Record<string, unknown> | null
     }
   }
@@ -138,17 +145,31 @@ Deno.serve(async (req) => {
         break
       }
 
-      case 'subscription.created': {
-        if (typeof custom.organization_id === 'string' && data.id) {
-          const updates: Record<string, unknown> = {
-            paddle_subscription_id: data.id,
-            account_status: 'active',
-          }
-          if (data.customer_id) updates.paddle_customer_id = data.customer_id
-          if (typeof custom.plan_key === 'string') updates.billing_plan = custom.plan_key
-          if (typeof custom.billing_period === 'string') updates.billing_period = custom.billing_period
+      case 'subscription.created':
+      case 'subscription.updated':
+      case 'subscription.activated':
+      case 'subscription.canceled':
+      case 'subscription.paused':
+      case 'subscription.past_due':
+      case 'subscription.resumed': {
+        if (!data.id) break
 
+        const updates: Record<string, unknown> = { paddle_subscription_id: data.id }
+        if (typeof data.status === 'string') updates.subscription_status = data.status
+        const periodEnd = data.current_billing_period?.ends_at
+        if (typeof periodEnd === 'string') updates.subscription_current_period_end = periodEnd
+        if (data.customer_id) updates.paddle_customer_id = data.customer_id
+        if (typeof custom.plan_key === 'string') updates.billing_plan = custom.plan_key
+        if (typeof custom.billing_period === 'string') updates.billing_period = custom.billing_period
+        // Keep the org marked active while the subscription is usable.
+        if (data.status === 'active' || data.status === 'trialing') updates.account_status = 'active'
+
+        // Prefer the organization_id we stamped on the transaction; fall back to
+        // matching the subscription id already stored on the org.
+        if (typeof custom.organization_id === 'string') {
           await admin.from('organizations').update(updates).eq('id', custom.organization_id)
+        } else {
+          await admin.from('organizations').update(updates).eq('paddle_subscription_id', data.id)
         }
         break
       }

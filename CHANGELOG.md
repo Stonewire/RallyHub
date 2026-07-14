@@ -5,6 +5,31 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.7.2 - 2026-07-14 (PAY-1 Stage 1: server-enforced activation gate + plan limits)
+- Event activation is now gated server-side, inside the same DB trigger that
+  invoices it (migration 20260714120000). Raising there rolls back the
+  activation, so it cannot be bypassed from the client. Rules:
+  - Paid plans (Starter/Pro/Business) must have an active, paid-through
+    subscription (`subscription_status` active/trialing AND
+    `subscription_current_period_end >= now()`). No subscription or a lapsed
+    period blocks activation.
+  - Suspended orgs cannot activate.
+  - Monthly event limit per plan (Free 1, Starter 10, Pro 20, Business 40).
+  - Teams/players-per-event limit per plan (Free 10, Starter 20, Pro 30,
+    Business 50). Enforced at activation on the event's team count.
+  - Partner/Enterprise are exempt (billed directly, unlimited).
+- New `organizations.subscription_status` / `subscription_current_period_end`,
+  populated by the paddle-webhook function, which now handles subscription
+  created/updated/activated/canceled/paused/past_due/resumed and records the
+  status + current period end (the paid-through date the gate checks).
+- New SQL `plan_monthly_event_limit()` / `plan_team_limit()` mirroring
+  subscription-plans.ts (unit-tested to catch drift).
+- Sandbox note: the first real Paddle subscription payment (RallyHub Gaming,
+  Starter yearly) completed end to end - checkout, payment, webhook, DB.
+- Still to come (Stage 2/3): subscription promo-code discounts wired to
+  checkout, per-event auto-charge to the saved card at activation, Free-plan
+  prepay, and in-app messaging for blocked/limit-reached states.
+
 ## V2.7.1 - 2026-07-14 (per-month pricing display + homepage pricing section)
 - Plan prices now always shown per month, in three places: a new pricing
   section on the marketing homepage, the signup plan dropdown, and the in-app

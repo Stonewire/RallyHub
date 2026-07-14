@@ -29,6 +29,8 @@ type OrgRow = {
   billing_period: string
   paddle_customer_id: string | null
   paddle_subscription_id: string | null
+  subscription_status: string | null
+  subscription_current_period_end: string | null
   contact_email: string | null
   email: string | null
   phone: string | null
