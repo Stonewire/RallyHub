@@ -11,6 +11,7 @@ import {
   useOrganizationInvoices,
 } from '@/hooks/use-billing-invoices'
 import { usePaddleSubscriptionCheckout } from '@/hooks/use-paddle-subscription'
+import { useMonthlyEventUsage } from '@/hooks/use-plan-usage'
 import {
   formatBillingPeriodLabel,
   formatEur,
@@ -46,6 +47,7 @@ export function BillingOverview({
 }: BillingOverviewProps) {
   const { notify } = useNotification()
   const invoicesQuery = useOrganizationInvoices(organizationId)
+  const eventsUsed = useMonthlyEventUsage(organizationId).data ?? 0
   const payInvoice = usePayEventInvoiceWithPaddle(organizationId)
   const startSubscription = usePaddleSubscriptionCheckout(organizationId)
   const planId = normalizePlanId(billingPlan)
@@ -105,6 +107,17 @@ export function BillingOverview({
           highlighted
           className="max-w-md"
         />
+        {plan.monthlyEventLimit !== null ? (
+          <p className="text-muted-foreground text-sm">
+            <span className="text-foreground font-medium tabular-nums">
+              {eventsUsed} of {plan.monthlyEventLimit}
+            </span>{' '}
+            event{plan.monthlyEventLimit === 1 ? '' : 's'} activated this month
+            {eventsUsed >= plan.monthlyEventLimit
+              ? ' — you have reached your plan limit. Upgrade to run more.'
+              : '.'}
+          </p>
+        ) : null}
         <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
         {plan.hidden ? (
           <p className="text-muted-foreground text-sm">

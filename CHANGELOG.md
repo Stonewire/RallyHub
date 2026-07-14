@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.8.1 - 2026-07-14 (PAY-1 Stage 3: readable gate errors + plan usage)
+- **Blocked activations were silently swallowed.** `confirmActivation` never
+  caught the error the DB gate raises, so a refused activation left the dialog
+  sitting open with no explanation at all. Now caught and surfaced.
+- New `friendlyActivationError()` maps the gate's tagged exceptions
+  (SUBSCRIPTION_REQUIRED / PREPAY_REQUIRED / EVENT_LIMIT_REACHED /
+  TEAM_LIMIT_EXCEEDED / ORG_SUSPENDED) to plain language, pulling the real plan
+  numbers out of the DB message ("You have used all 10 of your events this
+  month"). Unrecognised errors pass through rather than being hidden. Unit-tested
+  against the exact strings the SQL raises.
+- Billing → Current plan now shows usage: "3 of 10 events activated this month",
+  and calls out when the limit is reached.
+- Activation dialog copy now matches what actually happens: Free plans read
+  "Pay €199 and activate", paid plans say the card saved with the subscription
+  will be charged.
+
 ## V2.8.0 - 2026-07-14 (PAY-1 Stage 2b: Free-plan prepay — billing loop complete)
 - **Free plan now prepays.** It has no subscription to gate on and no saved card
   to auto-charge, so a Free org could previously activate an event and simply

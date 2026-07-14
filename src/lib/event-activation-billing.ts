@@ -129,6 +129,44 @@ export function getEventActivationWarning(
   }
 }
 
+/**
+ * The activation gate (assert_event_activation_allowed) raises tagged Postgres
+ * exceptions. They reach the client as raw messages like
+ * "SUBSCRIPTION_REQUIRED: Start a subscription ...", which is not something an
+ * organiser should ever read. Map the tag to plain language.
+ *
+ * Falls back to the original message so a genuinely unexpected DB error is still
+ * visible rather than silently swallowed.
+ */
+export function friendlyActivationError(raw: string | null | undefined): string {
+  const message = raw ?? ''
+
+  if (message.includes('SUBSCRIPTION_REQUIRED')) {
+    return 'Your subscription is not active. Start (or renew) your plan in Settings → Billing, then activate this event.'
+  }
+  if (message.includes('PREPAY_REQUIRED')) {
+    return 'This event has not been paid for yet. On the Free plan each event is paid before it goes live.'
+  }
+  if (message.includes('EVENT_LIMIT_REACHED')) {
+    // The DB message already carries the plan's actual number.
+    const limit = message.match(/allows (\d+) event/)?.[1]
+    return limit
+      ? `You have used all ${limit} of your events this month. Upgrade your plan to run more.`
+      : 'You have used all your events for this month. Upgrade your plan to run more.'
+  }
+  if (message.includes('TEAM_LIMIT_EXCEEDED')) {
+    const limit = message.match(/allows (\d+) teams/)?.[1]
+    return limit
+      ? `This event has more teams than your plan allows (${limit} per event). Remove some teams or upgrade your plan.`
+      : 'This event has more teams than your plan allows. Remove some teams or upgrade your plan.'
+  }
+  if (message.includes('ORG_SUSPENDED')) {
+    return 'This organisation is suspended, so events cannot be activated. Contact support.'
+  }
+
+  return message || 'Could not activate this event.'
+}
+
 export function isActivationBillingRequired(
   currentStatus: string,
   nextStatus: string,

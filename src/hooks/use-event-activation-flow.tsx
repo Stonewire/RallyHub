@@ -2,7 +2,11 @@ import { useCallback, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
-import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/event-activation-billing'
+import {
+  friendlyActivationError,
+  getEventActivationWarning,
+  isActivationBillingRequired,
+} from '@/lib/event-activation-billing'
 import { isEducationalApproved } from '@/lib/educational'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
@@ -90,15 +94,30 @@ export function useEventActivationFlow({
           setPending(null)
           // 'closed' = they dismissed the checkout themselves; not an error.
           if (result.reason !== 'closed') {
+            // prepare_event_invoice runs the other gates too, so this can be a
+            // limit/suspension error rather than a payment one.
             onValidationError?.(
-              result.message ?? 'Payment was not completed, so the event was not activated.',
+              result.message
+                ? friendlyActivationError(result.message)
+                : 'Payment was not completed, so the event was not activated.',
             )
           }
           return
         }
       }
 
-      await pending.onConfirm()
+      try {
+        await pending.onConfirm()
+      } catch (err) {
+        // The DB gate refused this activation (no subscription, plan limit hit,
+        // unpaid, suspended). Without this catch the dialog would just sit there
+        // with no explanation.
+        setPending(null)
+        onValidationError?.(
+          friendlyActivationError(err instanceof Error ? err.message : String(err)),
+        )
+        return
+      }
       setPending(null)
 
       // Paid plans: settle the per-event fee against the card saved with their

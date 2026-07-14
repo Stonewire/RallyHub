@@ -323,6 +323,8 @@ export type Database = {
           list_order: number
           invoice_paid: boolean
           invoiced_at: string | null
+          /** Set when the event goes live. What the plan's monthly limit counts. */
+          activated_at: string | null
           wiped_at: string | null
           deleted_at: string | null
           join_token: string
