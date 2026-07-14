@@ -4,10 +4,10 @@ import {
   formatBrandingNote,
   formatEventLimit,
   formatPerEventPrice,
-  formatSubscriptionPrice,
   formatTeamLimit,
   getPlan,
   normalizeBillingPeriod,
+  planPriceDisplay,
   type BillingPeriod,
   type PlanId,
 } from '@/lib/subscription-plans'
@@ -31,6 +31,7 @@ export function PlanDetailsCard({
   const plan = getPlan(planId)
   const period = normalizeBillingPeriod(billingPeriod)
   const brandingNote = formatBrandingNote(plan)
+  const price = planPriceDisplay(plan)
 
   return (
     <Card
@@ -49,9 +50,15 @@ export function PlanDetailsCard({
           </p>
         ) : null}
       </div>
-      <p className="text-foreground text-2xl font-bold tabular-nums">
-        {formatSubscriptionPrice(plan, period)}
-      </p>
+      <div>
+        <p className="text-foreground text-2xl font-bold tabular-nums">{price.headline}</p>
+        {price.yearlyNote ? (
+          <p className="text-muted-foreground text-xs">{price.yearlyNote}</p>
+        ) : null}
+        {price.monthlyNote ? (
+          <p className="text-muted-foreground text-xs">{price.monthlyNote}</p>
+        ) : null}
+      </div>
       <ul className="text-muted-foreground space-y-1 text-sm">
         <li>{formatPerEventPrice(plan)}</li>
         <li>{formatEventLimit(plan)}</li>

@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.7.1 - 2026-07-14 (per-month pricing display + homepage pricing section)
+- Plan prices now always shown per month, in three places: a new pricing
+  section on the marketing homepage, the signup plan dropdown, and the in-app
+  plan cards (Billing + Compare plans).
+- Each paid plan reads e.g. "€15/mo · billed yearly · €180 once a year · or
+  €20/mo billed monthly" — the cheaper number is the yearly-prepaid per-month
+  figure (one charge a year), the higher is monthly billing. Free → "€0",
+  Enterprise → "Custom / Price on request". All still marked excl. VAT.
+- New `planPriceDisplay()` / `formatDualMonthlyPriceLine()` helpers in
+  subscription-plans.ts (unit-tested) so all surfaces stay consistent. No
+  change to what Paddle actually charges — display only.
+- Homepage gets a "Pricing" nav link + `#pricing` section (Free/Starter/Pro/
+  Business/Enterprise cards with per-event fee, event and team limits).
+
 ## V2.7.0 - 2026-07-14 (PAY-1: Paddle billing integration)
 - Real online payment, replacing the old "invoices pile up unpaid" state.
   Paddle Billing (sandbox for now), inline overlay checkout via Paddle.js —

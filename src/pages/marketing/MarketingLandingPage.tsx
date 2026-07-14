@@ -10,6 +10,7 @@ import { MarketingHero } from '@/components/marketing/home/MarketingHero'
 import { MarketingHomeFooter } from '@/components/marketing/home/MarketingHomeFooter'
 import { MarketingHomeHeader } from '@/components/marketing/home/MarketingHomeHeader'
 import { MixedEventRun } from '@/components/marketing/home/MixedEventRun'
+import { PricingSection } from '@/components/marketing/home/PricingSection'
 import { ProofStrip } from '@/components/marketing/home/ProofStrip'
 import { ScrollProgress } from '@/components/marketing/home/Reveal'
 
@@ -35,6 +36,7 @@ export function MarketingLandingPage() {
         <BrandingPreview />
         <HowItWorks />
         <AudienceCards />
+        <PricingSection />
         <DemoContactSection />
       </main>
 

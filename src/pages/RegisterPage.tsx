@@ -8,8 +8,8 @@ import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import {
+  formatDualMonthlyPriceLine,
   formatPerEventPrice,
-  formatYearlyPrice,
   getSelfServePlans,
   normalizePlanId,
   VAT_DISCLAIMER,
@@ -152,7 +152,7 @@ export function RegisterPage() {
             >
               {PLANS.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {formatYearlyPrice(p)} · {formatPerEventPrice(p)}
+                  {p.name} — {formatDualMonthlyPriceLine(p)} · {formatPerEventPrice(p)}
                 </option>
               ))}
             </select>

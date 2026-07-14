@@ -11,6 +11,7 @@ const NAV = [
   { label: 'Product', href: '#product' },
   { label: 'Branding', href: '#branding' },
   { label: 'How it works', href: '#how' },
+  { label: 'Pricing', href: '#pricing' },
 ] as const
 
 export function MarketingHomeHeader() {

@@ -249,3 +249,42 @@ export function formatYearlyPrice(plan: SubscriptionPlan): string {
   if (plan.yearlyPriceEur === 0) return 'Free'
   return `${formatEur(plan.yearlyPriceEur)}/year`
 }
+
+/**
+ * Plan pricing framed always per month, for plan cards and the pricing section.
+ * `headline` is the cheaper yearly-prepaid per-month figure; `yearlyNote` spells
+ * out that it is one charge a year; `monthlyNote` is the pricier monthly-billed
+ * option (null when the plan has no monthly billing). Free → "€0"; Enterprise →
+ * "Custom" / "Price on request".
+ */
+export function planPriceDisplay(plan: SubscriptionPlan): {
+  headline: string
+  yearlyNote: string | null
+  monthlyNote: string | null
+} {
+  if (plan.priceOnRequest) {
+    return { headline: 'Custom', yearlyNote: 'Price on request', monthlyNote: null }
+  }
+  if (plan.yearlyPriceEur === 0 && plan.monthlyPriceEur === 0) {
+    return { headline: '€0', yearlyNote: 'Free forever', monthlyNote: null }
+  }
+  const hasMonthly = plan.billingPeriods.includes('monthly') && plan.monthlyPriceEur > 0
+  return {
+    headline: formatMonthlyEquivalentPrice(plan),
+    yearlyNote: `billed yearly · ${formatEur(plan.yearlyPriceEur)} once a year`,
+    monthlyNote: hasMonthly ? `or ${formatEur(plan.monthlyPriceEur)}/mo billed monthly` : null,
+  }
+}
+
+/**
+ * One-line per-month price for compact contexts (e.g. the signup dropdown),
+ * e.g. "€15/mo yearly or €20/mo monthly". Free → "Free"; Enterprise →
+ * "Price on request".
+ */
+export function formatDualMonthlyPriceLine(plan: SubscriptionPlan): string {
+  if (plan.priceOnRequest) return 'Price on request'
+  if (plan.yearlyPriceEur === 0 && plan.monthlyPriceEur === 0) return 'Free'
+  const yearly = `${formatMonthlyEquivalentPrice(plan)} yearly`
+  const hasMonthly = plan.billingPeriods.includes('monthly') && plan.monthlyPriceEur > 0
+  return hasMonthly ? `${yearly} or ${formatEur(plan.monthlyPriceEur)}/mo monthly` : yearly
+}
