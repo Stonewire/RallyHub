@@ -14,6 +14,7 @@ import {
   normalizePlanId,
   VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
+import { recordLegalAcceptanceForCurrentUser } from '@/hooks/use-legal-acceptance'
 import { isPlatformHost } from '@/lib/tenant'
 
 // Enterprise is contact-sales only — getSelfServePlans() excludes it here so a
@@ -36,6 +37,7 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [acceptedLegal, setAcceptedLegal] = useState(false)
 
   // Self-serve signup is a platform-host concept (it creates a brand-new org).
   // On a tenant host, registration doesn't apply — send people to sign in.
@@ -48,6 +50,10 @@ export function RegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!acceptedLegal) {
+      setError('Please accept the Terms of Service, Privacy Policy and Data Processing Agreement.')
+      return
+    }
     if (!turnstileToken) {
       setError('Please complete the verification below.')
       return
@@ -73,6 +79,10 @@ export function RegisterPage() {
       // their admin panel. Falls back to a manual sign-in prompt if needed.
       try {
         await signInWithIdentifier(email, password)
+        // They ticked the box on this form, so record it now that they have a
+        // session. Best-effort: if it fails, LegalAcceptanceGate asks them again
+        // on first login rather than letting them through unaccepted.
+        await recordLegalAcceptanceForCurrentUser().catch(() => {})
         navigate('/login', { replace: true })
       } catch {
         navigate('/login', {
@@ -169,6 +179,31 @@ export function RegisterPage() {
             <span className="text-muted-foreground">
               We are a school. <span className="text-foreground">Schools get 50% off</span> all
               plans and events once we verify your account.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              required
+              checked={acceptedLegal}
+              onChange={(e) => setAcceptedLegal(e.target.checked)}
+              className="accent-primary mt-0.5 size-4 shrink-0"
+            />
+            <span className="text-muted-foreground">
+              I have read and accept the{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-foreground underline">
+                Terms of Service
+              </Link>
+              ,{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-foreground underline">
+                Privacy Policy
+              </Link>{' '}
+              and{' '}
+              <Link to="/dpa" target="_blank" rel="noopener noreferrer" className="text-foreground underline">
+                Data Processing Agreement
+              </Link>
+              . I am authorised to accept these on behalf of my organisation.
             </span>
           </label>
 

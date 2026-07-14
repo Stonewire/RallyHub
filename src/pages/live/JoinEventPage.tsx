@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
+import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyNotice'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
@@ -34,6 +35,7 @@ import { requestTeamMediaPermissions } from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadParticipantAsset } from '@/lib/storage'
+import { hasAcknowledgedParticipantNotice } from '@/lib/legal-acceptance'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
@@ -64,6 +66,10 @@ export function JoinEventPage() {
 
   const [teamId, setTeamId] = useState<string | null>(() =>
     eventId ? localStorage.getItem(teamKey(eventId)) : null,
+  )
+  // Acknowledged per device per event. A returning player is not nagged again.
+  const [noticeAccepted, setNoticeAccepted] = useState(() =>
+    eventId ? hasAcknowledgedParticipantNotice(eventId) : false,
   )
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
@@ -136,6 +142,19 @@ export function JoinEventPage() {
 
   if (!isEventLive(event)) {
     return <EventNotLiveScreen event={event} organization={organization} />
+  }
+
+  // Participants must see what is collected — above all, that they may be
+  // photographed or filmed — and get a genuine chance to decline, BEFORE they can
+  // enter a name or submit anything.
+  if (eventId && !noticeAccepted) {
+    return (
+      <ParticipantPrivacyNotice
+        eventId={eventId}
+        organizationName={organization?.name}
+        onAccept={() => setNoticeAccepted(true)}
+      />
+    )
   }
 
   const logo = logoForEvent(event, organization, displayTextColorForEvent(event))

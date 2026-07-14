@@ -32,7 +32,9 @@ import { TabletPage } from '@/pages/live/TabletPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
 import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { LegalAcceptanceGate } from '@/components/legal/LegalAcceptanceGate'
 import { CookiePolicyPage } from '@/pages/legal/CookiePolicyPage'
+import { DataProcessingAgreementPage } from '@/pages/legal/DataProcessingAgreementPage'
 import { ImprintPage } from '@/pages/legal/ImprintPage'
 import { PrivacyPolicyPage } from '@/pages/legal/PrivacyPolicyPage'
 import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage'
@@ -146,6 +148,7 @@ export const router = createBrowserRouter([
   { path: '/contact', element: <ContactPage /> },
   { path: '/privacy', element: <PrivacyPolicyPage /> },
   { path: '/terms', element: <TermsOfServicePage /> },
+  { path: '/dpa', element: <DataProcessingAgreementPage /> },
   { path: '/cookies', element: <CookiePolicyPage /> },
   { path: '/imprint', element: <ImprintPage /> },
   {
@@ -192,7 +195,12 @@ export const router = createBrowserRouter([
     path: '/admin',
     element: (
       <TenantScope>
-        <HostAdminLayout />
+        {/* Nobody reaches the admin panel without having accepted the current
+            terms, privacy policy and DPA. Catches super-admin-created accounts,
+            who never saw the registration form. */}
+        <LegalAcceptanceGate>
+          <HostAdminLayout />
+        </LegalAcceptanceGate>
       </TenantScope>
     ),
     children: [

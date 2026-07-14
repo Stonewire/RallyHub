@@ -5,6 +5,37 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.10.0 - 2026-07-15 (legal: DPA, acceptance tracking, participant privacy notice)
+
+- **New Data Processing Agreement** at `/dpa` (DRAFT, for legal review). This was
+  the missing one, and it is not optional: GDPR Article 28 REQUIRES a written
+  processor agreement before a customer may lawfully put their participants' data
+  into RallyHub. Covers roles, sub-processors (Supabase, Vercel, Paddle, Resend),
+  security measures, retention, audit, breach notification, and the children/Art. 8
+  point that matters for the schools segment.
+- **Acceptance is now recorded, not just clicked.** New append-only
+  `legal_acceptances` table storing user + document + VERSION + timestamp. There is
+  deliberately NO update or delete policy, for anyone, including super admins - a
+  consent record you can edit is worth nothing if it is ever challenged.
+- Storing the *version* (rather than a boolean) means that when the lawyer revises
+  a document we bump it in `legal-acceptance.ts` and everyone is asked again on
+  their next login.
+- **Registration** now requires accepting Terms + Privacy + DPA, each readable in a
+  new tab before ticking.
+- **First login** for accounts a super admin created: a non-dismissible
+  `LegalAcceptanceGate` blocks the admin panel until they accept. Those users never
+  saw the registration form, so they had never accepted anything. No close button
+  and no escape route - a consent dialog you can click past is not consent.
+- **Join screen**: participants now see a privacy notice before they can enter a
+  name or submit anything. It is deliberately blunt that they may be photographed
+  or filmed, names the organiser as the party who decides, and tells them they can
+  decline. Acknowledged per device (participants are anonymous, so there is no user
+  id to store it against).
+- Legal pages were previously unreachable from the app; `/dpa` added to the shared
+  footer links alongside Privacy, Terms, Cookies and Imprint.
+- Still outstanding: children/parental consent (Art. 8) is NOT implemented - parked
+  by Rumen until the schools segment is live, and to be discussed with a lawyer.
+
 ## V2.9.3 - 2026-07-14 (stop leaking upstream errors to the browser)
 
 - **Raw Paddle errors are no longer returned to the client.** Two leaks, both now

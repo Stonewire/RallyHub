@@ -404,6 +404,27 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_acceptances: {
+        Row: {
+          id: string
+          user_id: string
+          organization_id: string | null
+          document: 'terms' | 'privacy' | 'dpa'
+          version: number
+          accepted_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          organization_id?: string | null
+          document: 'terms' | 'privacy' | 'dpa'
+          version: number
+          accepted_at?: string
+        }
+        /** Append-only: there is no UPDATE policy, by design. */
+        Update: never
+        Relationships: []
+      }
       subscription_transactions: {
         Row: {
           id: string

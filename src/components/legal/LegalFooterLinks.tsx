@@ -5,6 +5,7 @@ import { useCookieConsent } from '@/contexts/cookie-consent-context'
 const LEGAL_LINKS = [
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
+  { label: 'DPA', href: '/dpa' },
   { label: 'Cookies', href: '/cookies' },
   { label: 'Imprint', href: '/imprint' },
 ] as const
