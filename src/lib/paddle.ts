@@ -13,6 +13,50 @@ import { supabase } from '@/lib/supabase'
 type PaddleCheckoutEvent = { name: string; data?: unknown }
 
 /**
+ * Pulls the server's actual `{ error }` message out of a failed functions.invoke.
+ * Without this the caller only ever sees "Edge Function returned a non-2xx status
+ * code", which tells the organiser nothing about what to fix.
+ */
+async function edgeFunctionError(error: unknown, fallback: string): Promise<string> {
+  try {
+    const body = await (
+      error as { context?: { json?: () => Promise<{ error?: string }> } }
+    ).context?.json?.()
+    if (body?.error) return body.error
+  } catch {
+    /* fall through to the generic message */
+  }
+  return fallback
+}
+
+/**
+ * Opens Paddle's hosted customer portal, where the organiser manages their saved
+ * cards and billing details.
+ *
+ * Card data never touches RallyHub. It is entered and stored only inside Paddle
+ * (PCI-DSS compliant); we hold nothing but Paddle's opaque customer id. The link
+ * is minted server-side with the secret API key, scoped to that one customer, and
+ * short-lived — so it is never cached or persisted here either.
+ *
+ * Opened in a new tab, never an iframe: Paddle explicitly requires this, and
+ * embedding a payment surface in an iframe invites clickjacking.
+ */
+export async function openBillingPortal(organizationId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('paddle-checkout', {
+    body: { organizationId, kind: 'portal' },
+  })
+  if (error) {
+    throw new Error(await edgeFunctionError(error, 'Could not open billing details.'))
+  }
+
+  const url = (data as { url?: string } | null)?.url
+  if (!url) throw new Error('Could not open billing details.')
+
+  // noopener/noreferrer: the new tab must not get a handle back to this one.
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+/**
  * Fire-and-forget: charges a freshly-activated event's invoice to the payment
  * method already saved against the org's subscription.
  *

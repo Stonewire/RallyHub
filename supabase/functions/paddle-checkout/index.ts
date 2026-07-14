@@ -91,13 +91,60 @@ async function ensurePaddleCustomer(
     },
     body: JSON.stringify({ email, name: org.name }),
   })
-  if (!res.ok) {
-    throw new Error(`Paddle customer creation failed: ${res.status} ${await res.text()}`)
+
+  let customerId: string
+
+  if (res.ok) {
+    customerId = (await res.json()).data.id as string
+  } else {
+    const detail = await res.text()
+    // Paddle enforces one customer per email. We can legitimately hit this: an org
+    // with no billing email of its own falls back to the admin's login email, and
+    // that admin may already own another org. Adopt the existing customer instead
+    // of failing the payment.
+    const existingId = res.status === 409 ? await findPaddleCustomerByEmail(
+      paddleApiKey,
+      paddleBaseUrl,
+      email,
+      detail,
+    ) : null
+
+    if (!existingId) {
+      throw new Error(`Paddle customer creation failed: ${res.status} ${detail}`)
+    }
+    customerId = existingId
   }
-  const body = await res.json()
-  const customerId = body.data.id as string
+
   await admin.from('organizations').update({ paddle_customer_id: customerId }).eq('id', org.id)
   return customerId
+}
+
+/**
+ * Resolves the Paddle customer that already owns `email`, after a 409. Asks Paddle
+ * properly first; falls back to reading the id out of the conflict message, which
+ * spells it out ("...conflicts with customer of id ctm_..."), so a lookup outage
+ * still cannot strand someone mid-payment.
+ */
+async function findPaddleCustomerByEmail(
+  paddleApiKey: string,
+  paddleBaseUrl: string,
+  email: string,
+  conflictDetail: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${paddleBaseUrl}/customers?email=${encodeURIComponent(email)}`,
+      { headers: { Authorization: `Bearer ${paddleApiKey}` } },
+    )
+    if (res.ok) {
+      const found = (await res.json())?.data?.[0]?.id
+      if (typeof found === 'string' && found) return found
+    }
+  } catch (err) {
+    console.error('[paddle-checkout] customer lookup by email failed:', err)
+  }
+
+  return conflictDetail.match(/ctm_[a-zA-Z0-9]+/)?.[0] ?? null
 }
 
 Deno.serve(async (req) => {
@@ -131,7 +178,7 @@ Deno.serve(async (req) => {
     const organizationId = body.organizationId?.trim()
     const kind = body.kind
 
-    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription']
+    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription', 'portal']
     if (!organizationId || !VALID_KINDS.includes(kind)) {
       return json({ error: 'organizationId and a valid kind are required' }, 400)
     }
@@ -145,6 +192,55 @@ Deno.serve(async (req) => {
       .eq('id', organizationId)
       .single()
     if (orgErr || !org) return json({ error: 'Organization not found' }, 404)
+
+    if (kind === 'portal') {
+      // Saved cards / billing details are managed ONLY in Paddle's hosted customer
+      // portal. RallyHub never sees, stores or transmits card data — we hold
+      // nothing but Paddle's opaque customer id, so there is no card data here to
+      // steal. The portal link is minted server-side with the secret API key,
+      // is scoped to this one customer, and is short-lived.
+      //
+      // Access is already restricted above: verify_jwt plus
+      // requireOrgAdminOrSuperAdmin, so only an admin of THIS org can mint a link
+      // for THIS org's customer. The URL is returned once and never logged,
+      // cached or stored.
+      const customerId = await ensurePaddleCustomer(
+        admin,
+        paddleApiKey,
+        paddleBaseUrl,
+        org,
+        auth.user.email ?? null,
+      )
+
+      const portalRes = await fetch(
+        `${paddleBaseUrl}/customers/${customerId}/portal-sessions`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${paddleApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          // Passing the subscription gives them the "update payment method" and
+          // "cancel" links for it as well as the general overview.
+          body: JSON.stringify(
+            org.paddle_subscription_id
+              ? { subscription_ids: [org.paddle_subscription_id] }
+              : {},
+          ),
+        },
+      )
+
+      if (!portalRes.ok) {
+        console.error('[paddle-checkout] portal session failed:', portalRes.status)
+        return json({ error: 'Could not open billing details. Please try again.' }, 502)
+      }
+
+      const url = (await portalRes.json())?.data?.urls?.general?.overview
+      if (typeof url !== 'string' || !url) {
+        return json({ error: 'Could not open billing details. Please try again.' }, 502)
+      }
+      return json({ url })
+    }
 
     if (kind === 'event') {
       const invoiceId = body.invoiceId?.trim()

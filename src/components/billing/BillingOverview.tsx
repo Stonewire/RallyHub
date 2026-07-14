@@ -1,3 +1,6 @@
+import { CreditCard } from 'lucide-react'
+import { useState } from 'react'
+
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
 import { PromoCodeSection } from '@/components/billing/PromoCodeSection'
@@ -12,6 +15,7 @@ import {
 } from '@/hooks/use-billing-invoices'
 import { usePaddleSubscriptionCheckout } from '@/hooks/use-paddle-subscription'
 import { useMonthlyEventUsage } from '@/hooks/use-plan-usage'
+import { openBillingPortal } from '@/lib/paddle'
 import {
   formatBillingPeriodLabel,
   formatEur,
@@ -46,6 +50,7 @@ export function BillingOverview({
   showAdminSummary = false,
 }: BillingOverviewProps) {
   const { notify } = useNotification()
+  const [openingPortal, setOpeningPortal] = useState(false)
   const invoicesQuery = useOrganizationInvoices(organizationId)
   const eventsUsed = useMonthlyEventUsage(organizationId).data ?? 0
   const payInvoice = usePayEventInvoiceWithPaddle(organizationId)
@@ -65,6 +70,18 @@ export function BillingOverview({
       else if (result === 'error') notify('Something went wrong with the payment. Please try again.')
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not start payment.')
+    }
+  }
+
+  async function handleOpenPortal() {
+    if (!organizationId) return
+    setOpeningPortal(true)
+    try {
+      await openBillingPortal(organizationId)
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not open billing details.')
+    } finally {
+      setOpeningPortal(false)
     }
   }
 
@@ -205,6 +222,34 @@ export function BillingOverview({
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
         </Card>
       </section>
+
+      {showAvailablePlans ? (
+        <section className="space-y-3" data-tour="billing-payment-methods">
+          <div>
+            <h2 className="text-foreground text-lg font-semibold">Billing details</h2>
+            <p className="text-muted-foreground text-sm">
+              Manage your saved cards, billing address and invoices. Save a card to
+              pay in one click, and to have event fees charged automatically once you
+              are on a subscription.
+            </p>
+          </div>
+          <Card className="border-border/80 space-y-3 bg-card p-5 shadow-sm">
+            <p className="text-muted-foreground text-sm">
+              Card details are handled entirely by Paddle, our payment provider.
+              RallyHub never sees or stores your card.
+            </p>
+            <NeoButton
+              variant="surface"
+              size="sm"
+              onClick={() => void handleOpenPortal()}
+              disabled={openingPortal}
+            >
+              <CreditCard className="size-4" aria-hidden />
+              {openingPortal ? 'Opening…' : 'Manage billing details'}
+            </NeoButton>
+          </Card>
+        </section>
+      ) : null}
 
       <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
 

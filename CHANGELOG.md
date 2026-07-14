@@ -5,6 +5,31 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.9.1 - 2026-07-14 (fix Paddle customer conflict; billing details + saved cards)
+- **Fixed: "Pay now" failed with `customer_already_exists` (409).** An org with no
+  billing email of its own falls back to the admin's login email — and if that
+  admin already owns another org, Paddle (which enforces one customer per email)
+  rejected the second one. We now adopt the existing customer instead of failing
+  the payment: look it up by email, falling back to reading the id out of
+  Paddle's own conflict message so a lookup outage still cannot strand someone
+  mid-payment.
+- **New "Billing details" section in Billing** — opens Paddle's hosted customer
+  portal, where organisers manage saved cards, billing address and invoices.
+  - **Security:** card data never touches RallyHub. It is entered and stored only
+    inside Paddle (PCI-DSS compliant); we hold nothing but Paddle's opaque
+    customer id, so there is no card data here to steal. The portal link is minted
+    server-side with the secret API key, is scoped to a single customer, and is
+    short-lived. The endpoint is behind verify_jwt + org-admin authorisation, so
+    an admin can only ever mint a link for their OWN org. The URL is never logged,
+    cached or persisted, and opens in a new tab with `noopener,noreferrer` —
+    never an iframe (Paddle requires this, and embedding a payment surface invites
+    clickjacking).
+- **Honest limitation, documented in code:** Paddle only supports charging a
+  stored card off-session through a SUBSCRIPTION. Saved payment methods otherwise
+  exist purely to pre-fill the checkout. So an org with no subscription (i.e. the
+  Free plan) can NOT be silently auto-charged, saved card or not — a saved card
+  makes "Pay now" a one-click confirm, and that is as far as Paddle allows.
+
 ## V2.9.0 - 2026-07-14 (Free plan switches from prepay to postpaid)
 - **Free plan now activates like every other plan.** The event goes live
   immediately, an invoice is raised, and it is auto-charged to a saved card if
