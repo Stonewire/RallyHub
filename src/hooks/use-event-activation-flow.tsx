@@ -6,19 +6,16 @@ import { getEventActivationWarning, isActivationBillingRequired } from '@/lib/ev
 import { isEducationalApproved } from '@/lib/educational'
 import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
-import { autoChargeEventInvoice } from '@/lib/paddle'
+import { autoChargeEventInvoice, prepayEventInvoice } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
+import { normalizePlanId } from '@/lib/subscription-plans'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 
 type PendingActivation = {
+  eventId: string
   eventName: string
-  /**
-   * Applies the activation. Return the activated event's id to have its invoice
-   * auto-charged to the org's saved card (see autoChargeEventInvoice). Returning
-   * nothing simply skips the auto-charge; the invoice stays payable either way.
-   */
-  onConfirm: () => Promise<string | void>
+  onConfirm: () => Promise<void>
 }
 
 type UseEventActivationFlowOptions = {
@@ -66,8 +63,8 @@ export function useEventActivationFlow({
   )
 
   const requestActivation = useCallback(
-    (eventName: string, onConfirm: () => Promise<string | void>) => {
-      setPending({ eventName, onConfirm })
+    (eventId: string, eventName: string, onConfirm: () => Promise<void>) => {
+      setPending({ eventId, eventName, onConfirm })
     },
     [],
   )
@@ -81,28 +78,53 @@ export function useEventActivationFlow({
     if (!pending) return
     setConfirming(true)
     try {
-      const eventId = await pending.onConfirm()
+      const planId = normalizePlanId(billingPlan)
+      const isFreePlan = planId === 'rookie'
+
+      // Free plan has no subscription and no saved card, so the fee is collected
+      // BEFORE going live — the DB gate refuses to activate an unpaid Free event.
+      // A 100%-off promo comes back settled with no checkout shown.
+      if (isFreePlan && organizationId) {
+        const result = await prepayEventInvoice(organizationId, pending.eventId)
+        if (!result.ok) {
+          setPending(null)
+          // 'closed' = they dismissed the checkout themselves; not an error.
+          if (result.reason !== 'closed') {
+            onValidationError?.(
+              result.message ?? 'Payment was not completed, so the event was not activated.',
+            )
+          }
+          return
+        }
+      }
+
+      await pending.onConfirm()
       setPending(null)
-      // The event is live now. Try to settle its invoice against the saved card,
-      // but never block or fail on it — an unpaid invoice is recoverable, a
-      // disrupted live event is not.
-      if (typeof eventId === 'string' && organizationId) {
-        void autoChargeEventInvoice(organizationId, eventId).then(() => {
+
+      // Paid plans: settle the per-event fee against the card saved with their
+      // subscription. Strictly fire-and-forget — the event is already live, and
+      // an unpaid invoice is recoverable where a disrupted event is not.
+      if (!isFreePlan && organizationId) {
+        void autoChargeEventInvoice(organizationId, pending.eventId).then(() => {
           void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
         })
+      }
+      if (organizationId) {
+        void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
       }
     } finally {
       setConfirming(false)
     }
-  }, [pending, organizationId, qc])
+  }, [pending, organizationId, billingPlan, qc, onValidationError])
 
   const requestStatusChange = useCallback(
     (
+      eventId: string,
       currentStatus: EventStatus,
       nextStatus: EventStatus,
       eventName: string,
       invoicedAt: string | null | undefined,
-      applyChange: () => Promise<string | void>,
+      applyChange: () => Promise<void>,
     ) => {
       const transitionError = eventStatusTransitionError(
         { status: currentStatus, invoiced_at: invoicedAt ?? null },
@@ -113,7 +135,7 @@ export function useEventActivationFlow({
         return
       }
       if (isActivationBillingRequired(currentStatus, nextStatus, invoicedAt)) {
-        requestActivation(eventName, applyChange)
+        requestActivation(eventId, eventName, applyChange)
         return
       }
       void applyChange()

@@ -221,11 +221,12 @@ export function AdminEventEditPage() {
               onSelect={(status) => {
                 if (!eventId || !eventQuery.data) return
                 activation.requestStatusChange(
+                  eventId,
                   eventStatus,
                   status,
                   eventQuery.data.name,
                   eventQuery.data.invoiced_at,
-                  () => updateStatus.mutateAsync({ eventId, status }).then(() => eventId),
+                  () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
                 )
               }}
             />

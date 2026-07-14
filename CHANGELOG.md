@@ -5,6 +5,33 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.8.0 - 2026-07-14 (PAY-1 Stage 2b: Free-plan prepay — billing loop complete)
+- **Free plan now prepays.** It has no subscription to gate on and no saved card
+  to auto-charge, so a Free org could previously activate an event and simply
+  never pay. Now the per-event fee is collected BEFORE the event goes live, and
+  the DB gate refuses to activate an unpaid Free event.
+- New `prepare_event_invoice()` RPC creates an event's invoice without activating
+  it, so there is something to pay for. It runs every other activation check
+  (suspension, monthly limit, team limit) first, so we never take money for an
+  event the org could not have activated anyway.
+- New `events.activated_at`. The monthly-event limit used to count `invoiced_at`,
+  which was only ever set at activation — but prepay creates invoices ahead of
+  time, which would have let never-activated events eat the monthly quota. The
+  limit now counts activations. Backfilled from `invoiced_at`.
+- The activation trigger now creates the invoice BEFORE checking entitlement.
+  Otherwise a Free org with a 100%-off promo (which produces a `comped` invoice,
+  nothing to pay) could never activate: the gate would look for an invoice the
+  next statement was about to create. Safe because both run in the same
+  transaction as the status change — a failed gate rolls the invoice back.
+- New `event_verify` checkout kind confirms payment with Paddle directly after
+  the overlay closes, rather than waiting on the async webhook (which would race
+  the activation). Idempotent with the webhook.
+- **Fixed a latent break:** adding a defaulted third argument to
+  `assert_event_activation_allowed` created an overload rather than replacing the
+  Stage 1 function, so the trigger's two-arg call matched both candidates
+  ("function is not unique") and would have failed EVERY activation. Stale
+  signature dropped; verified both gates again after.
+
 ## V2.7.3 - 2026-07-14 (PAY-1 Stage 2a: subscription discounts + per-event auto-charge)
 - **Subscription promo codes now reach Paddle.** A subscription-purpose promo
   code is applied as a real Paddle Discount object rather than being baked into

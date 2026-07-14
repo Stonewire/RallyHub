@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
     const organizationId = body.organizationId?.trim()
     const kind = body.kind
 
-    if (!organizationId || (kind !== 'event' && kind !== 'subscription' && kind !== 'event_auto')) {
+    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription']
+    if (!organizationId || !VALID_KINDS.includes(kind)) {
       return json({ error: 'organizationId and a valid kind are required' }, 400)
     }
 
@@ -186,6 +187,54 @@ Deno.serve(async (req) => {
 
       await admin.from('invoices').update({ paddle_transaction_id: transactionId }).eq('id', invoice.id)
       return json({ transactionId })
+    }
+
+    if (kind === 'event_verify') {
+      // Free-plan prepay: the customer has just completed the overlay checkout and
+      // we are about to activate their event, but the activation gate requires the
+      // invoice to be PAID. The webhook that marks it paid is asynchronous, so
+      // waiting on it would be a race. Ask Paddle directly instead and settle the
+      // invoice synchronously. Idempotent: the webhook doing the same thing later
+      // is a no-op (the .eq('status','unpaid') guard).
+      const invoiceId = body.invoiceId?.trim()
+      if (!invoiceId) return json({ error: 'invoiceId is required' }, 400)
+
+      const { data: invoice } = await admin
+        .from('invoices')
+        .select('id, organization_id, status, paddle_transaction_id')
+        .eq('id', invoiceId)
+        .single()
+
+      if (!invoice || invoice.organization_id !== organizationId) {
+        return json({ error: 'Invoice not found' }, 404)
+      }
+      // Already settled (webhook beat us, or a 100% promo comped it).
+      if (invoice.status === 'paid' || invoice.status === 'comped') {
+        return json({ paid: true })
+      }
+      if (!invoice.paddle_transaction_id) return json({ paid: false })
+
+      const txRes = await fetch(
+        `${paddleBaseUrl}/transactions/${invoice.paddle_transaction_id}`,
+        { headers: { Authorization: `Bearer ${paddleApiKey}` } },
+      )
+      if (!txRes.ok) {
+        console.error('[paddle-checkout] verify fetch failed:', txRes.status, await txRes.text())
+        return json({ paid: false })
+      }
+
+      const status = (await txRes.json())?.data?.status as string | undefined
+      // Paddle marks a settled transaction 'completed' (or 'paid'). Anything else
+      // (draft/ready/billed/past_due/canceled) is not money in the bank.
+      const paid = status === 'completed' || status === 'paid'
+      if (paid) {
+        await admin
+          .from('invoices')
+          .update({ status: 'paid' })
+          .eq('id', invoice.id)
+          .eq('status', 'unpaid')
+      }
+      return json({ paid })
     }
 
     if (kind === 'event_auto') {

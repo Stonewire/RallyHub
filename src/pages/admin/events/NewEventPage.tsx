@@ -115,10 +115,9 @@ export function AdminEventsNewPage() {
   async function confirmStatus(status: EventStatus) {
     if (!statusPrompt || !organizationId) return
     if (status === 'active') {
-      activation.requestActivation(statusPrompt.eventName, async () => {
+      activation.requestActivation(statusPrompt.eventId, statusPrompt.eventName, async () => {
         await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
         navigate('/admin/events', { replace: true })
-        return statusPrompt.eventId
       })
       return
     }

@@ -99,6 +99,22 @@ export function getEventActivationWarning(
       ? ` A promo code applies ${discountPct}% off (was ${formatEur(baseAmount)}).`
       : ''
 
+  // The Free plan has no subscription and no card on file, so the fee is taken
+  // up front — the event only goes live once payment clears.
+  if (planId === 'rookie') {
+    return {
+      planId,
+      billAmountEur,
+      isComped: false,
+      title: 'Pay to activate',
+      message:
+        `The ${formatPlanLabel(planId)} plan is pay-per-event, so this event costs ${priceLabel}.${promoNote} ` +
+        'You will be asked to pay now, and the event goes live as soon as the payment clears. ' +
+        'Once activated, an event cannot be run again — duplicate it to schedule another session.',
+      confirmLabel: `Pay ${priceLabel} and activate`,
+    }
+  }
+
   return {
     planId,
     billAmountEur,
@@ -106,6 +122,7 @@ export function getEventActivationWarning(
     title: 'Activate event — billing confirmation',
     message:
       `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan.${promoNote} ` +
+      'We will charge the card saved with your subscription. ' +
       'If you have not started the event yet, keep it at Ready status to avoid being billed. ' +
       'Once activated, an event cannot be run again — duplicate it to schedule another session.',
     confirmLabel: `Activate and bill ${priceLabel}`,
