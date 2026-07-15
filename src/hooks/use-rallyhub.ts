@@ -10,6 +10,7 @@ import {
   installPlatformGameGroup,
 } from '@/lib/install-platform-game-group'
 import { isListedClientOrganization } from '@/lib/platform-library'
+import { permanentlyDeleteOrganization } from '@/lib/data-lifecycle'
 import { supabase } from '@/lib/supabase'
 import type { TablesUpdate } from '@/types/helpers'
 
@@ -326,12 +327,7 @@ export function useUpdateClientAdmin() {
 export function useDeleteRallyHubClient() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (orgId: string) => {
-      const { error } = await supabase.rpc('delete_organization_cascade', {
-        p_org_id: orgId,
-      })
-      if (error) throw new Error(error.message)
-    },
+    mutationFn: permanentlyDeleteOrganization,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'clients'] })
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'dashboard'] })

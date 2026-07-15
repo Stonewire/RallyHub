@@ -1,6 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatLimitResetDate, friendlyActivationError } from './event-activation-billing'
+import {
+  formatLimitResetDate,
+  friendlyActivationError,
+  getEventActivationWarning,
+} from './event-activation-billing'
+
+describe('getEventActivationWarning', () => {
+  it('charges the normal per-event price even when no previous invoice exists', () => {
+    const warning = getEventActivationWarning('arena')
+    expect(warning.billAmountEur).toBe(149)
+    expect(warning.isComped).toBe(false)
+    expect(warning.message).not.toContain('first event')
+  })
+
+  it('still allows a selected client to receive a free event through a 100% promo', () => {
+    const warning = getEventActivationWarning('pro', 100)
+    expect(warning.billAmountEur).toBe(0)
+    expect(warning.isComped).toBe(true)
+    expect(warning.message).toContain('promo code makes this event free')
+  })
+})
 
 describe('formatLimitResetDate', () => {
   it('returns the 1st of next month', () => {
@@ -12,9 +32,8 @@ describe('formatLimitResetDate', () => {
   })
 })
 
-// The raw strings below are exactly what assert_event_activation_allowed raises
-// (migration 20260714150000_pay1_free_plan_prepay.sql). If the SQL messages
-// change, these break — which is the point.
+// The raw strings below are exactly what assert_event_activation_allowed raises.
+// If the SQL messages change, these break — which is the point.
 describe('friendlyActivationError', () => {
   it('explains a missing/lapsed subscription', () => {
     const out = friendlyActivationError(

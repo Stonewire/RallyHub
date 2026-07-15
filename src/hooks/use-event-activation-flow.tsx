@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { EventActivationConfirmDialog } from '@/components/events/EventActivationConfirmDialog'
 import {
@@ -12,7 +12,6 @@ import { eventStatusTransitionError } from '@/lib/event-lifecycle'
 import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
 import { autoChargeEventInvoice } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
-import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 
 type PendingActivation = {
@@ -42,27 +41,10 @@ export function useEventActivationFlow({
   const bestEventDiscount = (redemptionsQuery.data ?? [])
     .filter((r) => r.purpose === 'event' && r.status === 'active')
     .reduce((max, r) => Math.max(max, r.discount_percent), 0)
-  // First event = the org has never been invoiced for one. Mirrors the
-  // create_event_activation_invoice DB check (the current event isn't invoiced
-  // until activation, so an invoice count of 0 means this is the first).
-  const invoiceCountQuery = useQuery({
-    queryKey: ['org-invoice-count', organizationId],
-    enabled: Boolean(organizationId),
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('invoices')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', organizationId!)
-      if (error) throw error
-      return count ?? 0
-    },
-  })
-  const isFirstEvent = invoiceCountQuery.data === 0
   const warning = getEventActivationWarning(
     billingPlan,
     bestEventDiscount,
     isEducationalApproved(educationalStatus),
-    isFirstEvent,
   )
 
   const requestActivation = useCallback(

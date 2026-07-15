@@ -21,29 +21,10 @@ export function getEventActivationWarning(
   eventPromoDiscountPercent = 0,
   /** Approved-educational orgs get 50% off, stacked after the promo (server-side). */
   educationalApproved = false,
-  /** True when the org has never activated an event before (server-verified). */
-  isFirstEvent = false,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
   const baseAmount = plan.perEventPriceEur
-
-  // First event is free on PAID plans only (Starter/Pro/Max). The Free plan
-  // gets no free event; Partner is already comped below.
-  const paidPlanIds: PlanId[] = ['arena', 'pro', 'max']
-  if (isFirstEvent && paidPlanIds.includes(planId)) {
-    return {
-      planId,
-      billAmountEur: 0,
-      isComped: true,
-      title: 'Activate event',
-      message:
-        `Your first event on the ${formatPlanLabel(planId)} plan is free. ` +
-        'Activating records a €0 invoice. If you have not started the event yet, ' +
-        'keep it at Ready status until you are ready to go live.',
-      confirmLabel: 'Activate at no cost',
-    }
-  }
 
   if (planId === 'partner') {
     return {
@@ -177,15 +158,9 @@ export function friendlyActivationError(raw: string | null | undefined): string 
 }
 
 /**
- * Whether going to `active` should run the billing confirmation (and, on the Free
- * plan, collect payment) rather than flipping the status straight away.
- *
- * Keys off activated_at, not invoiced_at. Free-plan prepay creates the invoice
- * before the event goes live, so an invoice existing does NOT mean the event has
- * run. Using invoiced_at here would mean anyone who opened the checkout and then
- * closed it could never be shown the payment again — the dialog would be skipped,
- * the prepay step never runs, and the DB gate would just reject the activation
- * with no way forward.
+ * Whether going to `active` should run the billing confirmation rather than
+ * flipping the status straight away. `activated_at` is the one-way lifecycle
+ * marker; invoice creation and payment status are separate concerns.
  */
 export function isActivationBillingRequired(
   currentStatus: string,

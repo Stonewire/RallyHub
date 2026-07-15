@@ -304,6 +304,7 @@ export function AdminEventEditPage() {
               <fieldset disabled={isArchived} className="contents">
                 <EventForm
                   organizationId={organizationId}
+                  storageKey={eventId}
                   values={values}
                   onChange={setValues}
                   games={gamesQuery.data ?? []}

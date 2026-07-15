@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
 import { PromoCodeSection } from '@/components/billing/PromoCodeSection'
+import { SubscriptionChangeForm } from '@/components/billing/SubscriptionChangeForm'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -40,6 +41,8 @@ type BillingOverviewProps = {
   /** Admin client detail: show outstanding total summary. */
   showAdminSummary?: boolean
 }
+
+const PLAN_CHANGES_ENABLED = import.meta.env.VITE_ENABLE_PLAN_CHANGES === 'true'
 
 export function BillingOverview({
   organizationId,
@@ -236,6 +239,14 @@ export function BillingOverview({
             )}
           </div>
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
+          {PLAN_CHANGES_ENABLED && showAvailablePlans && organizationId && paddleSubscriptionId && !plan.freeSubscription && !plan.priceOnRequest ? (
+            <SubscriptionChangeForm
+              key={`${planId}-${period}`}
+              organizationId={organizationId}
+              currentPlanId={planId}
+              currentBillingPeriod={period}
+            />
+          ) : null}
         </Card>
       </section>
 
@@ -275,7 +286,9 @@ export function BillingOverview({
             <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
             <p className="text-muted-foreground text-sm">
               {paddleSubscriptionId
-                ? 'Contact us to switch plans on an active subscription.'
+                ? PLAN_CHANGES_ENABLED
+                  ? 'Use Change subscription above to switch between Starter, Pro and Business.'
+                  : 'Plan changes will be enabled after the final pricing structure is confirmed.'
                 : 'Start your subscription on the current plan above, or contact us to pick a different one.'}
             </p>
             <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>

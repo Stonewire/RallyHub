@@ -10,10 +10,8 @@ import {
 } from './event-lifecycle'
 
 /**
- * Regression cover for the Free-plan prepay bug: prepay creates the invoice
- * (setting invoiced_at) BEFORE the event goes live. The lifecycle used to treat
- * invoiced_at as "already run", so a customer who had just paid found their event
- * locked to "Archived" and could never activate it. Activation is activated_at.
+ * Regression cover for keeping event lifecycle independent from invoice state.
+ * Activation is represented only by activated_at.
  */
 function event(partial: Partial<EventRow>): Pick<EventRow, 'status' | 'activated_at'> {
   return { status: 'ready', activated_at: null, ...partial } as Pick<
@@ -23,7 +21,7 @@ function event(partial: Partial<EventRow>): Pick<EventRow, 'status' | 'activated
 }
 
 describe('event lifecycle keys off activated_at, not invoiced_at', () => {
-  it('a paid-but-not-yet-live event can still be activated', () => {
+  it('an invoiced-but-not-yet-live event can still be activated', () => {
     const paidNotLive = event({ status: 'ready', activated_at: null })
 
     expect(isEventActivated(paidNotLive)).toBe(false)
@@ -47,8 +45,7 @@ describe('event lifecycle keys off activated_at, not invoiced_at', () => {
 
 describe('isActivationBillingRequired', () => {
   it('still prompts (and collects payment) for an event that has not gone live', () => {
-    // Free-plan retry after abandoning checkout: an invoice already exists, but
-    // the event never ran. They must still be offered the payment.
+    // An invoice may exist, but the event has not run yet.
     expect(isActivationBillingRequired('ready', 'active', null)).toBe(true)
   })
 

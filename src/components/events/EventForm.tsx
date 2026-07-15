@@ -30,6 +30,7 @@ const BRAND_COLOR_HELP: Record<(typeof BRAND_LABELS)[number], string> = {
 
 type EventFormProps = {
   organizationId: string
+  storageKey?: string
   values: EventFormValues
   onChange: (next: EventFormValues | ((prev: EventFormValues) => EventFormValues)) => void
   games: GameRow[]
@@ -40,6 +41,7 @@ type EventFormProps = {
 
 export function EventForm({
   organizationId,
+  storageKey,
   values,
   onChange,
   games,
@@ -50,6 +52,11 @@ export function EventForm({
   const { notify } = useNotification()
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [modalSelection, setModalSelection] = useState<string[]>([])
+  // New-event forms do not have a database id yet. Keep one stable upload
+  // folder for the lifetime of the form so superseded logo uploads can still
+  // be removed together when that event is permanently deleted.
+  const [newEventStorageKey] = useState(() => crypto.randomUUID())
+  const brandingStorageKey = storageKey ?? newEventStorageKey
 
   const {
     name,
@@ -186,7 +193,7 @@ export function EventForm({
                     if (!file) return
                     void uploadAsset(
                       'organization-logos',
-                      `${organizationId}/events/${crypto.randomUUID()}`,
+                      `${organizationId}/events/${brandingStorageKey}/${crypto.randomUUID()}`,
                       file,
                       { mediaKind: 'logo' },
                     )

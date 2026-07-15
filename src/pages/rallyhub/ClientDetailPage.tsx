@@ -27,8 +27,9 @@ import {
   useUpdateClientAdmin,
   type ClientAdminUpdateInput,
 } from '@/hooks/use-rallyhub'
-import { deleteClientStorage, downloadClientPackage } from '@/lib/client-export'
+import { downloadClientPackage } from '@/lib/client-export'
 import { uploadOrganizationLogo, useOrganizationUsers } from '@/hooks/use-organization-settings'
+import { useOrganizationDeletionRequest } from '@/hooks/use-data-lifecycle'
 import {
   BILLING_PERIODS,
   formatBillingPeriodLabel,
@@ -129,6 +130,9 @@ export function RallyHubClientDetailPage() {
   const [adminResetSending, setAdminResetSending] = useState(false)
   const [adminResetConfirmEmail, setAdminResetConfirmEmail] = useState<string | null>(null)
   const deleteClient = useDeleteRallyHubClient()
+  const deletionRequestQuery = useOrganizationDeletionRequest(
+    isCreateMode ? null : (clientId ?? null),
+  )
   const [downloading, setDownloading] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [dangerError, setDangerError] = useState<string | null>(null)
@@ -150,8 +154,6 @@ export function RallyHubClientDetailPage() {
     if (!clientId) return
     setDangerError(null)
     try {
-      // #2: wipe Storage files first (the SQL cascade can't reach Storage).
-      await deleteClientStorage(clientId)
       await deleteClient.mutateAsync(clientId)
       navigate('/admin/clients', { replace: true })
     } catch (err) {
@@ -783,6 +785,16 @@ export function RallyHubClientDetailPage() {
               removes its organisation, events, teams, submissions, media, and user accounts
               from Supabase. This cannot be undone.
             </p>
+            {deletionRequestQuery.data ? (
+              <p className="text-destructive text-sm font-medium">
+                The client requested account deletion. Automatic cleanup is scheduled for{' '}
+                {new Intl.DateTimeFormat('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                }).format(new Date(deletionRequestQuery.data.scheduled_for))}.
+              </p>
+            ) : null}
           </div>
           {dangerError ? <QueryError message={dangerError} /> : null}
           <div className="flex flex-wrap gap-2">

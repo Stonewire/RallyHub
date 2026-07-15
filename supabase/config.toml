@@ -1,2 +1,5 @@
 [functions.activate-bingo-run]
 verify_jwt = false
+
+[functions.data-lifecycle]
+verify_jwt = false

@@ -11,12 +11,8 @@ export function canResetEventData(status: string | null | undefined): boolean {
 /**
  * True once the event has actually gone live.
  *
- * This keys off activated_at, NOT invoiced_at. They used to mean the same thing
- * (an invoice was only ever created at activation), but Free-plan prepay now
- * creates the invoice BEFORE the event goes live, so it can be paid for first.
- * Keying off invoiced_at made a paid-but-not-yet-activated event look like it had
- * already run, which locked it to "Archived" and made it impossible to activate
- * the very event the customer had just paid for.
+ * This keys off activated_at, not invoice creation or payment state. Billing may
+ * be retried independently; only an actual activation locks the event lifecycle.
  */
 export function isEventActivated(
   event: Pick<EventRow, 'activated_at'>,

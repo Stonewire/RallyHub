@@ -1,6 +1,8 @@
 export const queryKeys = {
   profile: ['profile'] as const,
   organization: (id: string | null) => ['organization', id] as const,
+  organizationDeletionRequest: (id: string | null) =>
+    ['organization-deletion-request', id] as const,
   organizationMembers: (id: string | null) =>
     ['organization-members', id] as const,
   dashboardStats: (orgId: string | null) => ['dashboard-stats', orgId] as const,

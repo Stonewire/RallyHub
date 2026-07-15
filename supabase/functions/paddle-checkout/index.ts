@@ -1,15 +1,13 @@
-// PAY-1: Paddle transactions for RallyHub billing. Four kinds:
+// PAY-1: Paddle transactions for RallyHub billing:
 //   - kind: 'event'         pay an unpaid per-event invoice via the overlay, for
 //                           its exact amount_due (already computed server-side,
 //                           including any promo/educational discount).
-//   - kind: 'event_verify'  after that overlay completes, confirm payment with
-//                           Paddle directly and settle the invoice synchronously
-//                           (Free-plan prepay must not race the async webhook).
 //   - kind: 'event_auto'    charge an unpaid per-event invoice straight to the
 //                           card saved against the org's subscription. Fired
 //                           after activation; never fails hard.
 //   - kind: 'subscription'  start a plan, applying any active subscription promo
 //                           code as a real Paddle Discount.
+//   - subscription_change_* preview and apply a prorated paid-plan change.
 //
 // Prices are always inline/non-catalog so RallyHub's own pricing stays the single
 // source of truth; Paddle never holds a duplicated price list.
@@ -28,8 +26,8 @@ const corsHeaders = {
 // Partner is comped.
 const SUBSCRIPTION_PRICES_EUR: Record<string, { monthly: number; yearly: number }> = {
   arena: { monthly: 20, yearly: 180 },
-  pro: { monthly: 30, yearly: 300 },
-  max: { monthly: 30, yearly: 300 },
+  pro: { monthly: 70, yearly: 660 },
+  max: { monthly: 150, yearly: 1440 },
 }
 
 const PLAN_NAMES: Record<string, string> = {
@@ -58,6 +56,25 @@ type PaddleOrg = {
   educational_status: string | null
   paddle_customer_id: string | null
   paddle_subscription_id: string | null
+  billing_plan: string | null
+  billing_period: string | null
+}
+
+type PaddleSubscription = {
+  id: string
+  status?: string
+  next_billed_at?: string | null
+  current_billing_period?: { ends_at?: string | null } | null
+  custom_data?: Record<string, unknown> | null
+  items?: Array<{
+    recurring?: boolean
+    price?: { product_id?: string | null } | null
+  }> | null
+}
+
+function minorUnitsToNumber(value: unknown): number {
+  const amount = typeof value === 'string' || typeof value === 'number' ? Number(value) : 0
+  return Number.isFinite(amount) ? amount / 100 : 0
 }
 
 /** Raised when we cannot give Paddle an email — surfaced to the user, not logged as a crash. */
@@ -154,6 +171,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? ''
     const paddleApiKey = Deno.env.get('PADDLE_API_KEY')
+    const planChangesEnabled = Deno.env.get('ENABLE_PLAN_CHANGES') === 'true'
     const paddleEnvironment = Deno.env.get('PADDLE_ENVIRONMENT') === 'production' ? 'production' : 'sandbox'
     const paddleBaseUrl =
       paddleEnvironment === 'production' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com'
@@ -178,7 +196,15 @@ Deno.serve(async (req) => {
     const organizationId = body.organizationId?.trim()
     const kind = body.kind
 
-    const VALID_KINDS = ['event', 'event_auto', 'event_verify', 'subscription', 'portal', 'invoice_pdf']
+    const VALID_KINDS = [
+      'event',
+      'event_auto',
+      'subscription',
+      'subscription_change_preview',
+      'subscription_change',
+      'portal',
+      'invoice_pdf',
+    ]
     if (!organizationId || !VALID_KINDS.includes(kind)) {
       return json({ error: 'organizationId and a valid kind are required' }, 400)
     }
@@ -188,7 +214,7 @@ Deno.serve(async (req) => {
 
     const { data: org, error: orgErr } = await admin
       .from('organizations')
-      .select('id, name, email, contact_email, educational_status, paddle_customer_id, paddle_subscription_id')
+      .select('id, name, email, contact_email, educational_status, paddle_customer_id, paddle_subscription_id, billing_plan, billing_period')
       .eq('id', organizationId)
       .single()
     if (orgErr || !org) return json({ error: 'Organization not found' }, 404)
@@ -342,54 +368,6 @@ Deno.serve(async (req) => {
       return json({ transactionId })
     }
 
-    if (kind === 'event_verify') {
-      // Free-plan prepay: the customer has just completed the overlay checkout and
-      // we are about to activate their event, but the activation gate requires the
-      // invoice to be PAID. The webhook that marks it paid is asynchronous, so
-      // waiting on it would be a race. Ask Paddle directly instead and settle the
-      // invoice synchronously. Idempotent: the webhook doing the same thing later
-      // is a no-op (the .eq('status','unpaid') guard).
-      const invoiceId = body.invoiceId?.trim()
-      if (!invoiceId) return json({ error: 'invoiceId is required' }, 400)
-
-      const { data: invoice } = await admin
-        .from('invoices')
-        .select('id, organization_id, status, paddle_transaction_id')
-        .eq('id', invoiceId)
-        .single()
-
-      if (!invoice || invoice.organization_id !== organizationId) {
-        return json({ error: 'Invoice not found' }, 404)
-      }
-      // Already settled (webhook beat us, or a 100% promo comped it).
-      if (invoice.status === 'paid' || invoice.status === 'comped') {
-        return json({ paid: true })
-      }
-      if (!invoice.paddle_transaction_id) return json({ paid: false })
-
-      const txRes = await fetch(
-        `${paddleBaseUrl}/transactions/${invoice.paddle_transaction_id}`,
-        { headers: { Authorization: `Bearer ${paddleApiKey}` } },
-      )
-      if (!txRes.ok) {
-        console.error('[paddle-checkout] verify fetch failed:', txRes.status, await txRes.text())
-        return json({ paid: false })
-      }
-
-      const status = (await txRes.json())?.data?.status as string | undefined
-      // Paddle marks a settled transaction 'completed' (or 'paid'). Anything else
-      // (draft/ready/billed/past_due/canceled) is not money in the bank.
-      const paid = status === 'completed' || status === 'paid'
-      if (paid) {
-        await admin
-          .from('invoices')
-          .update({ status: 'paid' })
-          .eq('id', invoice.id)
-          .eq('status', 'unpaid')
-      }
-      return json({ paid })
-    }
-
     if (kind === 'event_auto') {
       // Fire-and-forget auto-charge of a per-event invoice to the payment method
       // already saved against the org's subscription. Called right after an event
@@ -465,6 +443,155 @@ Deno.serve(async (req) => {
       }
       // transaction.completed will mark the invoice paid.
       return json({ charged: true })
+    }
+
+    if (kind === 'subscription_change_preview' || kind === 'subscription_change') {
+      if (!planChangesEnabled) {
+        return json({ error: 'Plan changes are not available yet.' }, 403)
+      }
+      if (!org.paddle_subscription_id) {
+        return json({ error: 'Start a subscription before changing plans.' }, 400)
+      }
+
+      const planId = body.planId
+      const billingPeriod = body.billingPeriod
+      if (billingPeriod !== 'monthly' && billingPeriod !== 'yearly') {
+        return json({ error: 'Invalid billing period.' }, 400)
+      }
+      const prices = SUBSCRIPTION_PRICES_EUR[planId]
+      if (!prices) return json({ error: 'Invalid plan.' }, 400)
+      if (org.billing_plan === planId && org.billing_period === billingPeriod) {
+        return json({ error: 'That is already your current subscription.' }, 400)
+      }
+
+      // Read Paddle's current item so a custom-price subscription can keep using
+      // its existing product. RallyHub subscriptions have exactly one recurring
+      // base item; refusing an unexpected multi-item subscription prevents us
+      // from accidentally removing a manually-added addon.
+      const subscriptionRes = await fetch(
+        `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}`,
+        { headers: { Authorization: `Bearer ${paddleApiKey}` } },
+      )
+      if (!subscriptionRes.ok) {
+        console.error(
+          '[paddle-checkout] subscription fetch for change failed:',
+          subscriptionRes.status,
+          await subscriptionRes.text(),
+        )
+        return json({ error: 'Could not load your subscription. Please try again.' }, 502)
+      }
+
+      const subscription = (await subscriptionRes.json()).data as PaddleSubscription
+      if (subscription.status === 'past_due') {
+        return json(
+          { error: 'Your subscription has an overdue payment. Settle it before changing plans.' },
+          400,
+        )
+      }
+      if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        return json({ error: 'Only an active subscription can change plans.' }, 400)
+      }
+
+      const recurringItems = (subscription.items ?? []).filter((item) => item.recurring !== false)
+      const productId = recurringItems[0]?.price?.product_id
+      if (recurringItems.length !== 1 || !productId) {
+        console.error(
+          '[paddle-checkout] subscription change expected one recurring item:',
+          org.paddle_subscription_id,
+          recurringItems.length,
+        )
+        return json(
+          { error: 'This subscription needs a manual plan change. Please contact support.' },
+          400,
+        )
+      }
+
+      const planName = PLAN_NAMES[planId] ?? planId
+      let amountEur = billingPeriod === 'monthly' ? prices.monthly : prices.yearly
+      if (org.educational_status === 'approved') amountEur = Math.round(amountEur / 2)
+
+      const changeBody = {
+        items: [
+          {
+            quantity: 1,
+            price: {
+              product_id: productId,
+              description: `RallyHub ${planName} subscription (${billingPeriod})`,
+              name: `${planName} — ${billingPeriod}`,
+              billing_cycle: {
+                interval: billingPeriod === 'monthly' ? 'month' : 'year',
+                frequency: 1,
+              },
+              unit_price: { amount: toMinorUnits(amountEur), currency_code: 'EUR' },
+              tax_mode: 'account_setting',
+            },
+          },
+        ],
+        // Paddle credits unused time on the old plan and charges only the net
+        // difference. The change does not apply if that payment fails.
+        proration_billing_mode: 'prorated_immediately',
+        on_payment_failure: 'prevent_change',
+        custom_data: {
+          ...(subscription.custom_data ?? {}),
+          kind: 'subscription',
+          organization_id: organizationId,
+          plan_key: planId,
+          billing_period: billingPeriod,
+        },
+      }
+
+      const endpoint = kind === 'subscription_change_preview'
+        ? `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}/preview`
+        : `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}`
+      const changeRes = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${paddleApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(changeBody),
+      })
+
+      if (!changeRes.ok) {
+        console.error(
+          `[paddle-checkout] subscription ${kind === 'subscription_change_preview' ? 'preview' : 'change'} failed:`,
+          changeRes.status,
+          await changeRes.text(),
+        )
+        return json(
+          { error: 'Paddle could not change this subscription right now. Please try again later.' },
+          502,
+        )
+      }
+
+      const changed = (await changeRes.json()).data
+      if (kind === 'subscription_change_preview') {
+        const immediateTotals = changed.immediate_transaction?.details?.totals
+        const recurringTotals = changed.recurring_transaction_details?.totals
+        return json({
+          planId,
+          billingPeriod,
+          dueNow: minorUnitsToNumber(immediateTotals?.grand_total),
+          creditToBalance: minorUnitsToNumber(immediateTotals?.credit_to_balance),
+          recurringTotal: minorUnitsToNumber(recurringTotals?.grand_total),
+          currency: recurringTotals?.currency_code ?? immediateTotals?.currency_code ?? 'EUR',
+          nextBilledAt: changed.next_billed_at ?? subscription.next_billed_at ?? null,
+        })
+      }
+
+      // The signed Paddle webhook remains authoritative, but writing the same
+      // successful result now makes the limits and UI update immediately rather
+      // than waiting for webhook delivery.
+      await admin.from('organizations').update({
+        billing_plan: planId,
+        billing_period: billingPeriod,
+        ...(typeof changed.status === 'string' ? { subscription_status: changed.status } : {}),
+        ...(changed.current_billing_period?.ends_at
+          ? { subscription_current_period_end: changed.current_billing_period.ends_at }
+          : {}),
+      }).eq('id', organizationId)
+
+      return json({ changed: true, planId, billingPeriod })
     }
 
     // kind === 'subscription'

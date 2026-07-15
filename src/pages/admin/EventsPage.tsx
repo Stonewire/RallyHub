@@ -28,6 +28,7 @@ import {
   type EventRow,
 } from '@/hooks/use-events'
 import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
+import { usePermanentlyDeleteEvent } from '@/hooks/use-data-lifecycle'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import {
@@ -49,6 +50,7 @@ export function AdminEventsPage() {
   const duplicateEvent = useDuplicateEvent(organizationId)
   const trashedEventsQuery = useTrashedEvents(organizationId)
   const restoreEvent = useRestoreEvent(organizationId)
+  const permanentlyDeleteEvent = usePermanentlyDeleteEvent(organizationId)
   const navigate = useNavigate()
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
@@ -60,6 +62,8 @@ export function AdminEventsPage() {
 
   const [linksModal, setLinksModal] = useState<EventRow | null>(null)
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<EventRow | null>(null)
+  const [permanentDeleteConfirmEvent, setPermanentDeleteConfirmEvent] =
+    useState<EventRow | null>(null)
   const [view, setView] = useState<'events' | 'bin'>('events')
 
   const applyReorder = useCallback(
@@ -151,6 +155,17 @@ export function AdminEventsPage() {
     setDeleteConfirmEvent(null)
   }
 
+  async function confirmPermanentDelete() {
+    if (!permanentDeleteConfirmEvent) return
+    try {
+      await permanentlyDeleteEvent.mutateAsync(permanentDeleteConfirmEvent.id)
+      setPermanentDeleteConfirmEvent(null)
+      notify('Event and its uploaded media were permanently deleted.')
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not permanently delete event')
+    }
+  }
+
   async function handleDuplicate(event: EventRow) {
     try {
       const { data: links, error } = await supabase
@@ -223,8 +238,17 @@ export function AdminEventsPage() {
           }))}
           emptyLabel="No deleted events."
           restoringId={restoreEvent.isPending ? restoreEvent.variables : undefined}
+          deletingId={
+            permanentlyDeleteEvent.isPending
+              ? permanentlyDeleteEvent.variables
+              : undefined
+          }
           onRestore={(id) => void restoreEvent.mutateAsync(id)}
           onOpen={(id) => navigate(`/admin/events/${id}`)}
+          onDeletePermanently={(id) => {
+            const event = trashedEventsQuery.data?.find((item) => item.id === id)
+            if (event) setPermanentDeleteConfirmEvent(event)
+          }}
         />
       ) : eventsQuery.isLoading ? (
         <QueryLoading rows={5} />
@@ -284,6 +308,50 @@ export function AdminEventsPage() {
                 onClick={() => void confirmDelete()}
               >
                 {deleteEvent.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+
+      {permanentDeleteConfirmEvent ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="permanent-delete-event-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h2
+              id="permanent-delete-event-title"
+              className="text-foreground mb-2 font-semibold"
+            >
+              Permanently delete this event?
+            </h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              <strong className="text-foreground">
+                {permanentDeleteConfirmEvent.name}
+              </strong>{' '}
+              and all of its submissions, team photos, videos, and other event data will be
+              removed from Supabase. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={permanentlyDeleteEvent.isPending}
+                onClick={() => setPermanentDeleteConfirmEvent(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={permanentlyDeleteEvent.isPending}
+                onClick={() => void confirmPermanentDelete()}
+              >
+                {permanentlyDeleteEvent.isPending ? 'Deleting…' : 'Delete permanently'}
               </Button>
             </div>
           </div>

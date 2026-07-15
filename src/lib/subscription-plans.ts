@@ -67,8 +67,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    monthlyPriceEur: 30,
-    yearlyPriceEur: 300,
+    monthlyPriceEur: 70,
+    yearlyPriceEur: 660,
     perEventPriceEur: 99,
     monthlyEventLimit: 20,
     teamLimit: 30,
@@ -81,9 +81,9 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, SubscriptionPlan> = {
   max: {
     id: 'max',
     name: 'Business',
-    monthlyPriceEur: 30,
-    yearlyPriceEur: 300,
-    perEventPriceEur: 49,
+    monthlyPriceEur: 150,
+    yearlyPriceEur: 1440,
+    perEventPriceEur: 95,
     monthlyEventLimit: 40,
     teamLimit: 50,
     billingPeriods: ['monthly', 'yearly'],

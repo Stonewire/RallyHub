@@ -16,6 +16,11 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import {
+  useCancelOrganizationDeletion,
+  useOrganizationDeletionRequest,
+  useRequestOrganizationDeletion,
+} from '@/hooks/use-data-lifecycle'
 import { TabletLinkEditor } from '@/components/admin/TabletLinkEditor'
 import {
   EMPTY_ORG_FORM,
@@ -45,6 +50,9 @@ export function AdminSettingsPage() {
   const orgQuery = useOrganization(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
   const saveLogo = useSaveOrganizationLogo(organizationId)
+  const deletionRequestQuery = useOrganizationDeletionRequest(organizationId)
+  const requestDeletion = useRequestOrganizationDeletion(organizationId)
+  const cancelDeletion = useCancelOrganizationDeletion(organizationId)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
@@ -52,6 +60,8 @@ export function AdminSettingsPage() {
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletionMessage, setDeletionMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (orgQuery.data) {
@@ -134,6 +144,45 @@ export function AdminSettingsPage() {
     }
     setPasswordCopied(true)
     window.setTimeout(() => setPasswordCopied(false), 2000)
+  }
+
+  async function handleRequestDeletion() {
+    setDeletionMessage(null)
+    try {
+      const result = await requestDeletion.mutateAsync()
+      setDeleteConfirmOpen(false)
+      setDeletionMessage(
+        result.warning
+          ? `Deletion is scheduled, but subscription cancellation needs attention: ${result.warning}`
+          : 'Account deletion is scheduled. You can restore the account during the next 30 days.',
+      )
+    } catch (err) {
+      setDeletionMessage(
+        err instanceof Error ? err.message : 'Could not request account deletion.',
+      )
+    }
+  }
+
+  async function handleCancelDeletion() {
+    setDeletionMessage(null)
+    try {
+      const result = await cancelDeletion.mutateAsync()
+      if (result.restartSubscriptionRequired) {
+        setDeletionMessage(
+          'Account restored. The Paddle subscription had already ended, so start a new subscription from Billing before activating more events.',
+        )
+      } else if (result.warning) {
+        setDeletionMessage(
+          `Account restored. Check Billing because automatic renewal could not be restored: ${result.warning}`,
+        )
+      } else {
+        setDeletionMessage('Account restored and automatic deletion canceled.')
+      }
+    } catch (err) {
+      setDeletionMessage(
+        err instanceof Error ? err.message : 'Could not restore the account.',
+      )
+    }
   }
 
   function setTab(next: SettingsTab) {
@@ -447,6 +496,63 @@ export function AdminSettingsPage() {
               </div>
             ) : null}
           </Card>
+
+          <Card className="space-y-4 border-red-300/60 bg-card p-6 shadow-sm dark:border-red-900/60">
+            <div className="space-y-1">
+              <h2 className="text-foreground text-lg font-semibold">Account deletion</h2>
+              {deletionRequestQuery.data ? (
+                <p className="text-muted-foreground text-sm">
+                  This organization is scheduled for permanent deletion on{' '}
+                  <strong className="text-foreground">
+                    {new Intl.DateTimeFormat('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }).format(new Date(deletionRequestQuery.data.scheduled_for))}
+                  </strong>
+                  . Until then, all data remains available and you can restore the account.
+                </p>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  Request permanent account deletion. Your organization remains restorable for
+                  30 days; afterward its events, games, submissions, uploaded media, and user
+                  accounts are permanently removed from Supabase.
+                </p>
+              )}
+            </div>
+
+            {deletionRequestQuery.data?.paddle_cancellation_error ? (
+              <p className="text-destructive text-sm" role="alert">
+                Subscription cancellation will be retried automatically. You can also check it
+                now from Billing: {deletionRequestQuery.data.paddle_cancellation_error}
+              </p>
+            ) : null}
+            {deletionMessage ? (
+              <p className="text-muted-foreground text-sm" role="status">
+                {deletionMessage}
+              </p>
+            ) : null}
+
+            {deletionRequestQuery.data ? (
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={cancelDeletion.isPending}
+                onClick={() => void handleCancelDeletion()}
+              >
+                {cancelDeletion.isPending ? 'Restoring…' : 'Restore account'}
+              </NeoButton>
+            ) : (
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={requestDeletion.isPending || deletionRequestQuery.isLoading}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                Request account deletion
+              </NeoButton>
+            )}
+          </Card>
         </div>
       )}
 
@@ -481,6 +587,46 @@ export function AdminSettingsPage() {
                 onClick={() => void handleSave(() => blocker.proceed?.())}
               >
                 {saveOrg.isPending ? 'Saving…' : 'Save & leave'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {deleteConfirmOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="request-account-deletion-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+            <div className="space-y-2">
+              <h2 id="request-account-deletion-title" className="text-foreground font-semibold">
+                Request permanent account deletion?
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Automatic subscription renewal will be canceled. You then have 30 days to
+                restore the organization. After that, its Supabase data, uploaded media, and
+                organization user accounts are permanently deleted.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={requestDeletion.isPending}
+                onClick={() => setDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={requestDeletion.isPending}
+                onClick={() => void handleRequestDeletion()}
+              >
+                {requestDeletion.isPending ? 'Scheduling…' : 'Schedule deletion'}
               </NeoButton>
             </div>
           </Card>

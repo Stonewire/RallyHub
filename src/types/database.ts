@@ -98,6 +98,30 @@ export type Database = {
         Update: Partial<Omit<OrgRow, 'id' | 'created_at'>>
         Relationships: []
       }
+      organization_deletion_requests: {
+        Row: {
+          organization_id: string
+          requested_by: string | null
+          requested_at: string
+          scheduled_for: string
+          paddle_cancellation_scheduled: boolean
+          paddle_cancellation_error: string | null
+        }
+        Insert: {
+          organization_id: string
+          requested_by?: string | null
+          requested_at?: string
+          scheduled_for: string
+          paddle_cancellation_scheduled?: boolean
+          paddle_cancellation_error?: string | null
+        }
+        Update: {
+          scheduled_for?: string
+          paddle_cancellation_scheduled?: boolean
+          paddle_cancellation_error?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           id: string
@@ -930,10 +954,6 @@ export type Database = {
       }
       wipe_event_data: {
         Args: { p_event_id: string }
-        Returns: undefined
-      }
-      delete_organization_cascade: {
-        Args: { p_org_id: string }
         Returns: undefined
       }
       verify_tablet_password: {

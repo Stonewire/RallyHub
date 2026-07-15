@@ -5,6 +5,37 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.11.0 - 2026-07-15 (billing, data lifecycle, and bingo responsiveness)
+
+- Working pricing updated everywhere to Pro €70/month or €660/year + €99/event,
+  and Business €150/month or €1,440/year + €95/event. Free and Starter, event
+  limits and team limits remain unchanged.
+- Removed the automatic first-event-free rule. Selected clients can still receive
+  a complimentary event through an explicit 100% event promo code.
+- Added a feature-flagged in-app paid-plan change flow with Paddle proration
+  preview and payment-failure protection. The flags remain off for the initial
+  live-payment cutover.
+- Permanent event/client deletion is now server-owned and Storage-first. Event
+  Bin expiry and six-month retention queue retryable cleanup; database rows are
+  finalized only after the event's Storage objects are removed successfully.
+- Event Bin now offers an explicit permanent-delete action. Regular Delete keeps
+  its complete 30-day restore window, including uploaded media. Event branding
+  uploads are grouped so superseded logos are removed with the event as well.
+- Client admins can request permanent organization deletion from Settings and
+  restore it for 30 days. The workflow schedules Paddle renewal cancellation,
+  retries failures, removes all organization Storage/database/Auth data after the
+  deadline, and attempts to undo the Paddle change when restored.
+- Bingo advances the next playable round without waiting for the local audio fade,
+  batches scoring work, and removes participant-side winner animation. The first
+  confirmed winning phone now shows an immediate static `BINGO!` notice, while the
+  facilitator/display celebration remains unchanged.
+- Preserved the next content-production batch in `docs/GAME-CONTENT-PLAN.md`:
+  five 25-quest groups and six themed quizzes, each using three 20-question rounds
+  progressing from easy to medium to hard.
+- Added the exact sandbox-to-live Paddle cutover sequence in
+  `docs/PADDLE-LIVE-CHECKLIST.md`, including live webhook events and sandbox-ID
+  cleanup.
+
 ## V2.10.3 - 2026-07-15 (instant quest submission feedback)
 
 - Quest submissions now switch the participant phone from “Submitting…” to a

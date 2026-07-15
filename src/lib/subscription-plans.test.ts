@@ -36,6 +36,18 @@ describe('planPriceDisplay', () => {
     expect(d.monthlyNote).toBe('or €20/mo billed monthly')
   })
 
+  it('prices Pro as the best-value standard tier and Business above it', () => {
+    const pro = getPlan('pro')
+    const business = getPlan('max')
+    expect(pro.monthlyPriceEur).toBe(70)
+    expect(pro.yearlyPriceEur).toBe(660)
+    expect(pro.perEventPriceEur).toBe(99)
+    expect(business.monthlyPriceEur).toBe(150)
+    expect(business.yearlyPriceEur).toBe(1440)
+    expect(business.perEventPriceEur).toBe(95)
+    expect(planPriceDisplay(business).headline).toBe('€120/mo')
+  })
+
   it('shows Free plan as €0 with no monthly note', () => {
     const d = planPriceDisplay(getPlan('rookie'))
     expect(d.headline).toBe('€0')
@@ -47,6 +59,25 @@ describe('planPriceDisplay', () => {
     expect(d.headline).toBe('Custom')
     expect(d.yearlyNote).toBe('Price on request')
     expect(d.monthlyNote).toBeNull()
+  })
+})
+
+describe('approved plan ladder', () => {
+  const monthlyTotal = (planId: 'arena' | 'pro' | 'max', events: number) => {
+    const plan = getPlan(planId)
+    return plan.monthlyPriceEur + plan.perEventPriceEur * events
+  }
+
+  it('makes Starter and Pro equal for one event, then Pro the better standard deal', () => {
+    expect(monthlyTotal('arena', 1)).toBe(169)
+    expect(monthlyTotal('pro', 1)).toBe(169)
+    expect(monthlyTotal('pro', 2)).toBeLessThan(monthlyTotal('arena', 2))
+  })
+
+  it('keeps Pro best through its 20-event capacity and crosses Business there', () => {
+    expect(monthlyTotal('pro', 10)).toBeLessThan(monthlyTotal('max', 10))
+    expect(monthlyTotal('pro', 20)).toBe(2050)
+    expect(monthlyTotal('max', 20)).toBe(2050)
   })
 })
 

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { payWithPaddle } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
-import type { BillingPeriod } from '@/lib/subscription-plans'
+import type { BillingPeriod, PlanId } from '@/lib/subscription-plans'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -46,6 +46,74 @@ export function usePaddleSubscriptionCheckout(organizationId: string | null | un
         // Also covers the super-admin client-detail view, which uses its own key.
         void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', organizationId ?? undefined] })
       }
+    },
+  })
+}
+
+export type SubscriptionChangePreview = {
+  planId: PlanId
+  billingPeriod: BillingPeriod
+  dueNow: number
+  creditToBalance: number
+  recurringTotal: number
+  currency: string
+  nextBilledAt: string | null
+}
+
+async function subscriptionChangeRequest<T>(
+  organizationId: string | null | undefined,
+  kind: 'subscription_change_preview' | 'subscription_change',
+  planId: PlanId,
+  billingPeriod: BillingPeriod,
+): Promise<T> {
+  if (!organizationId) throw new Error('No organization selected.')
+  const { data, error } = await supabase.functions.invoke('paddle-checkout', {
+    body: { organizationId, kind, planId, billingPeriod },
+  })
+  if (error) {
+    let message = 'Could not change the subscription. Please try again.'
+    try {
+      const errBody = await (
+        error as { context?: { json?: () => Promise<{ error?: string }> } }
+      ).context?.json?.()
+      if (errBody?.error) message = errBody.error
+    } catch {
+      /* keep the customer-safe fallback */
+    }
+    throw new Error(message)
+  }
+  return data as T
+}
+
+export function usePaddleSubscriptionChangePreview(
+  organizationId: string | null | undefined,
+) {
+  return useMutation({
+    mutationFn: ({ planId, billingPeriod }: { planId: PlanId; billingPeriod: BillingPeriod }) =>
+      subscriptionChangeRequest<SubscriptionChangePreview>(
+        organizationId,
+        'subscription_change_preview',
+        planId,
+        billingPeriod,
+      ),
+  })
+}
+
+export function usePaddleSubscriptionChange(
+  organizationId: string | null | undefined,
+) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ planId, billingPeriod }: { planId: PlanId; billingPeriod: BillingPeriod }) =>
+      subscriptionChangeRequest<{ changed: true; planId: PlanId; billingPeriod: BillingPeriod }>(
+        organizationId,
+        'subscription_change',
+        planId,
+        billingPeriod,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.organization(organizationId ?? null) })
+      void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', organizationId ?? undefined] })
     },
   })
 }

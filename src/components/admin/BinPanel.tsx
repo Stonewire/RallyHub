@@ -15,13 +15,17 @@ export function BinPanel({
   emptyLabel,
   onRestore,
   onOpen,
+  onDeletePermanently,
   restoringId,
+  deletingId,
 }: {
   items: BinItem[]
   emptyLabel: string
   onRestore: (id: string) => void
   onOpen: (id: string) => void
+  onDeletePermanently?: (id: string) => void
   restoringId?: string
+  deletingId?: string
 }) {
   if (items.length === 0) {
     return (
@@ -63,12 +67,24 @@ export function BinPanel({
                 type="button"
                 variant="surface"
                 size="sm"
-                disabled={restoringId === item.id}
+                disabled={restoringId === item.id || remaining <= 0}
                 onClick={() => onRestore(item.id)}
               >
                 <RotateCcw className="mr-1.5 size-3.5" />
                 Restore
               </NeoButton>
+              {onDeletePermanently ? (
+                <NeoButton
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={deletingId === item.id}
+                  onClick={() => onDeletePermanently(item.id)}
+                >
+                  <Trash2 className="mr-1.5 size-3.5" />
+                  {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
+                </NeoButton>
+              ) : null}
             </div>
           </Card>
         )
