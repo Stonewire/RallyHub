@@ -106,4 +106,40 @@ describe('applyLiveBundlePatch — submission INSERT/UPDATE/DELETE', () => {
     expect(bundle.submissions).toHaveLength(1)
     expect((bundle.submissions[0] as { status: string }).status).toBe('cancelled')
   })
+
+  it('reconciles an optimistic open-game submission with its confirmed server row', () => {
+    let bundle = bundleWithSubs([])
+    bundle = applyLiveBundlePatch(bundle, {
+      kind: 'submission',
+      op: 'INSERT',
+      row: submissionRow('client-generated-id', 'pending'),
+    })
+    bundle = applyLiveBundlePatch(bundle, {
+      kind: 'submission',
+      op: 'UPDATE',
+      row: {
+        ...submissionRow('client-generated-id', 'pending'),
+        created_at: 'server-timestamp',
+      },
+    })
+
+    expect(bundle.submissions).toHaveLength(1)
+    expect(bundle.submissions[0]?.created_at).toBe('server-timestamp')
+  })
+
+  it('rolls back an optimistic open-game submission when the server rejects it', () => {
+    let bundle = bundleWithSubs([])
+    bundle = applyLiveBundlePatch(bundle, {
+      kind: 'submission',
+      op: 'INSERT',
+      row: submissionRow('rejected-write', 'pending'),
+    })
+    bundle = applyLiveBundlePatch(bundle, {
+      kind: 'submission',
+      op: 'DELETE',
+      old: { id: 'rejected-write' },
+    })
+
+    expect(bundle.submissions).toEqual([])
+  })
 })

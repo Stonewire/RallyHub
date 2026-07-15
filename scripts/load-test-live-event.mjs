@@ -183,6 +183,7 @@ async function main() {
           const { data, error } = await phone.client
             .from('submissions')
             .insert({
+              id: crypto.randomUUID(),
               event_id: eventId,
               team_id: phone.teamId,
               game_id: gameId,

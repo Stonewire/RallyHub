@@ -191,6 +191,13 @@ export function JoinGameView({
     gameId: string
     promise: Promise<MintedParticipantUpload | null>
   } | null>(null)
+  // Client-generated IDs let open-game submissions appear as pending as soon as
+  // the database request is dispatched. The server remains authoritative: a
+  // rejected write removes the optimistic row again. Track the short in-flight
+  // window so Cancel cannot race an INSERT that has not acknowledged yet.
+  const [openSubmissionWrites, setOpenSubmissionWrites] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [exitPasswordValue, setExitPasswordValue] = useState('')
   const [exitPasswordError, setExitPasswordError] = useState<string | null>(null)
@@ -525,13 +532,43 @@ export function JoinGameView({
     })
   }
 
-  function finishOpenSubmitSuccess() {
-    playSubmitSound()
-    notify('Submitted — waiting for approval')
+  function finishOpenSubmitOptimistically() {
+    // Leave the loading screen before doing confirmation UI/audio work. On
+    // mobile Safari this makes the local transition independent of delivery of
+    // the Supabase INSERT response.
     flushSync(() => {
       setSelectedGame(null)
       setCaptureActive(false)
       setSubmitting(false)
+    })
+    playSubmitSound()
+    notify('Submitted — waiting for approval')
+  }
+
+  function optimisticOpenSubmission(
+    game: Tables<'games'>,
+    mediaUrl: string,
+    mediaType: 'text' | 'photo' | 'video',
+  ): Tables<'submissions'> {
+    return {
+      id: crypto.randomUUID(),
+      event_id: event.id,
+      team_id: teamId,
+      game_id: game.id,
+      media_url: mediaUrl,
+      media_type: mediaType,
+      status: 'pending',
+      points_awarded: null,
+      created_at: new Date().toISOString(),
+    }
+  }
+
+  function setOpenSubmissionWrite(id: string, saving: boolean) {
+    setOpenSubmissionWrites((current) => {
+      const next = new Set(current)
+      if (saving) next.add(id)
+      else next.delete(id)
+      return next
     })
   }
 
@@ -546,10 +583,16 @@ export function JoinGameView({
       return
     }
     beginOpenSubmit()
+    let optimistic: Tables<'submissions'> | null = null
     try {
-      const { data, error } = await supabase
+      optimistic = optimisticOpenSubmission(game, mediaUrl, 'text')
+      // Calling .then() starts the request now; the UI below does not await its
+      // response. RLS and the participant-write trigger still validate the real
+      // insert before the facilitator can ever receive it.
+      const write = supabase
         .from('submissions')
         .insert({
+          id: optimistic.id,
           event_id: event.id,
           team_id: teamId,
           game_id: game.id,
@@ -559,18 +602,27 @@ export function JoinGameView({
         })
         .select()
         .single()
+        .then((result) => result)
+
+      setOpenSubmissionWrite(optimistic.id, true)
+      mergeOwnSubmission('INSERT', optimistic)
+      finishOpenSubmitOptimistically()
+
+      const { data, error } = await write
+      setOpenSubmissionWrite(optimistic.id, false)
       if (error) throw error
       if (data) {
-        // Update our own view immediately so the screen never waits on the
-        // broadcast fan-out (which can silently fall back to a slow REST call
-        // when the channel isn't in a joined state — see markBingoCell for the
-        // same pattern). The DB write above is what actually matters; the
-        // broadcast is best-effort for other devices only.
-        mergeOwnSubmission('INSERT', data)
+        // Reconcile the client timestamp/defaults with the authoritative row;
+        // matching by the client-generated id prevents any duplicate.
+        mergeOwnSubmission('UPDATE', data)
         void publishSubmissionChange(event.id, 'INSERT', data)
       }
-      finishOpenSubmitSuccess()
     } catch {
+      if (optimistic) {
+        setOpenSubmissionWrite(optimistic.id, false)
+        mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
+        setSelectedGame(game)
+      }
       notify("Couldn't submit — tap to retry")
       setSubmitting(false)
     }
@@ -583,6 +635,7 @@ export function JoinGameView({
       return
     }
     beginOpenSubmit()
+    let optimistic: Tables<'submissions'> | null = null
     try {
       const kind = game.type === 'video' ? 'video' : 'photo'
       // Consume the URL prefetched when this challenge opened. Null it out so a
@@ -595,29 +648,44 @@ export function JoinGameView({
         ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
         : await uploadParticipantAsset(
             event.id,
-            `${event.id}/submissions/${teamId}/${Date.now()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
+            `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
             file,
             { mediaKind: kind },
           )
-      const { data, error } = await supabase
+      const mediaType = game.type === 'video' ? 'video' : 'photo'
+      optimistic = optimisticOpenSubmission(game, url, mediaType)
+      const write = supabase
         .from('submissions')
         .insert({
+          id: optimistic.id,
           event_id: event.id,
           team_id: teamId,
           game_id: game.id,
           media_url: url,
-          media_type: game.type === 'video' ? 'video' : 'photo',
+          media_type: mediaType,
           status: 'pending',
         })
         .select()
         .single()
+        .then((result) => result)
+
+      setOpenSubmissionWrite(optimistic.id, true)
+      mergeOwnSubmission('INSERT', optimistic)
+      finishOpenSubmitOptimistically()
+
+      const { data, error } = await write
+      setOpenSubmissionWrite(optimistic.id, false)
       if (error) throw error
       if (data) {
-        mergeOwnSubmission('INSERT', data)
+        mergeOwnSubmission('UPDATE', data)
         void publishSubmissionChange(event.id, 'INSERT', data)
       }
-      finishOpenSubmitSuccess()
     } catch (err) {
+      if (optimistic) {
+        setOpenSubmissionWrite(optimistic.id, false)
+        mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
+        setSelectedGame(game)
+      }
       const msg =
         err instanceof Error && err.message.includes('must be')
           ? err.message
@@ -944,6 +1012,9 @@ export function JoinGameView({
     } else if (activeOpenGame) {
       const latestSub = activeSubmissionForGame(mySubs, activeOpenGame.id)
       const pending = latestSub?.status === 'pending'
+      const insertStillSaving = Boolean(
+        latestSub && openSubmissionWrites.has(latestSub.id),
+      )
       const locked =
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
@@ -977,8 +1048,12 @@ export function JoinGameView({
               game={activeOpenGame}
               submission={latestSub}
               accentColor={accent}
-              cancelling={cancelling}
-              onCancel={() => void cancelPendingSubmission(latestSub.id)}
+              cancelling={cancelling || insertStillSaving}
+              onCancel={
+                insertStillSaving
+                  ? undefined
+                  : () => void cancelPendingSubmission(latestSub.id)
+              }
             />
           ) : locked && latestSub ? (
             <OpenGameChallengeReview

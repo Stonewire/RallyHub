@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.10.3 - 2026-07-15 (instant quest submission feedback)
+
+- Quest submissions now switch the participant phone from “Submitting…” to a
+  local Pending state as soon as the database request is dispatched. The phone
+  no longer waits for Supabase's returned row after the facilitator has already
+  received the committed submission.
+- The server remains authoritative: submissions use a collision-safe
+  client-generated UUID with the unchanged anonymous RLS and database guards.
+  A confirmed row reconciles over the optimistic copy; a rejected write removes
+  it and reopens the challenge with a retry message.
+- Cancel is unavailable during the brief acknowledgement window, preventing a
+  cancel request from racing an INSERT that has not finished yet.
+- Added optimistic-confirm and optimistic-rollback regression coverage. The
+  production anonymous/RLS smoke test accepted the client-generated UUID in
+  133 ms with no errors; all temporary data was cleaned up.
+
 ## V2.10.2 - 2026-07-15 (quiz auto-reveal reliability)
 
 - Fixed the next quiz question failing to auto-reveal after the previous question
