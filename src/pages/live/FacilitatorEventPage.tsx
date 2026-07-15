@@ -53,6 +53,7 @@ import {
   isLastQuestionInRound,
   quizRoundForQuestionIndex,
 } from '@/lib/quiz-rounds'
+import { shouldAutoRevealQuizQuestion } from '@/lib/quiz-auto-reveal'
 import {
   bingoSongProgress,
   parseBingoGameConfig,
@@ -416,8 +417,16 @@ export function FacilitatorEventPage() {
             (s.media_type === mediaType || s.media_type === 'quiz'),
         ),
       )
-    const timerExpired = quizTimerDisplay <= 0
-    if (!timerExpired && !allAnswered) return
+    if (
+      !shouldAutoRevealQuizQuestion({
+        quizState: state.quiz_state,
+        timerSeconds: quizTimerSeconds(state),
+        timerRunning: quizTimerRunning(state),
+        allAnswered,
+      })
+    ) {
+      return
+    }
 
     const key = `${state.current_stage_index}-${state.current_question_index}-reveal`
     if (quizAutoRevealKey.current === key) return

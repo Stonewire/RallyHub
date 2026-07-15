@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.10.2 - 2026-07-15 (quiz auto-reveal reliability)
+
+- Fixed the next quiz question failing to auto-reveal after the previous question
+  timed out. Auto-reveal now uses the authoritative stored timer state rather than
+  a one-render-old animated display value, so a new running question cannot consume
+  its reveal guard before anyone answers.
+- `reveal_quiz_answer` now advances `event_state.updated_at`. Participant/display
+  fallback polling therefore recognizes a reveal even if its Realtime message was
+  missed.
+- Added focused regression tests covering a newly started timer, all-teams-answered,
+  genuine timeout, and already-revealed states.
+
 ## V2.10.1 - 2026-07-15 (faster photo/video quest submission)
 
 - Photo/video quest challenges now authorize their signed Storage upload when the
