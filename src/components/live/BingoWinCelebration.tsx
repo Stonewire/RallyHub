@@ -34,27 +34,34 @@ export function BingoWinCelebration({
   useEffect(() => {
     // Winner jingle is fired on the facilitator tab only (see FacilitatorEventPage);
     // this overlay is now purely visual on players and the display.
-    // Continuous confetti for the whole celebration: streaming side-cannons every
-    // frame plus a big center burst on a steady interval, until the overlay
-    // dismisses.
-    const confettiEnd = Date.now() + durationMs
-    let rafId = 0
-    const frame = () => {
-      confetti({ particleCount: 5, angle: 60, spread: 60, origin: { x: 0 } })
-      confetti({ particleCount: 5, angle: 120, spread: 60, origin: { x: 1 } })
-      if (Date.now() < confettiEnd) rafId = requestAnimationFrame(frame)
-    }
-    frame()
-    confetti({ particleCount: 140, spread: 100, startVelocity: 45, origin: { y: 0.5 } })
-    const burst = window.setInterval(() => {
-      confetti({ particleCount: 90, spread: 110, startVelocity: 42, origin: { y: 0.6 } })
-    }, 1200)
+    // Keep the celebration bounded on phones. The old requestAnimationFrame
+    // stream created roughly 600 particles every second for eight seconds,
+    // alongside interval bursts and infinitely repeating letter animations.
+    // A few deliberate bursts look celebratory without monopolising the main
+    // thread just as the winner state is arriving.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    confetti({
+      particleCount: reducedMotion ? 30 : 80,
+      spread: 100,
+      startVelocity: 42,
+      origin: { y: 0.55 },
+      disableForReducedMotion: true,
+    })
+    const sideBurst = window.setTimeout(() => {
+      if (reducedMotion) return
+      confetti({ particleCount: 22, angle: 60, spread: 58, origin: { x: 0, y: 0.7 } })
+      confetti({ particleCount: 22, angle: 120, spread: 58, origin: { x: 1, y: 0.7 } })
+    }, 280)
+    const finalBurst = window.setTimeout(() => {
+      if (reducedMotion) return
+      confetti({ particleCount: 45, spread: 105, startVelocity: 36, origin: { y: 0.62 } })
+    }, 900)
 
     const timer = window.setTimeout(() => onDismissRef.current(), durationMs)
     return () => {
       window.clearTimeout(timer)
-      window.clearInterval(burst)
-      if (rafId) cancelAnimationFrame(rafId)
+      window.clearTimeout(sideBurst)
+      window.clearTimeout(finalBurst)
     }
     // Run once when the celebration appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,9 +107,6 @@ export function BingoWinCelebration({
                 delay: 0.15 + i * 0.12,
                 duration: 0.6,
                 times: [0, 0.6, 1],
-                repeat: Infinity,
-                repeatType: 'reverse',
-                repeatDelay: 1.4,
               }}
             >
               {letter}
