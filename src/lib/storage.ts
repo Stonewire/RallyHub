@@ -29,24 +29,29 @@ export async function uploadAsset(
   return data.publicUrl
 }
 
+/** A participant upload authorized before the file is sent to Storage. */
+export type MintedParticipantUpload = {
+  token: string
+  /** Storage object path Supabase expects for uploadToSignedUrl. */
+  path: string
+  /** Public URL the object will have once uploaded. */
+  publicUrl: string
+}
+
 /**
- * P0-2b: anon storage RLS can't see the join token (storage-api doesn't
- * forward it), so a plain anon upload can't be scoped to "this participant's
- * own event." Used for participant-facing uploads (quest submissions, team
- * claim photo) instead of uploadAsset: mints a signed upload URL server-side
- * (where the join token IS verifiable) scoped to exactly this path, then
- * uploads to that URL directly.
+ * P0-2b: anon storage RLS can't see the join token (storage-api doesn't forward
+ * it), so a plain anon upload can't be scoped to "this participant's own event."
+ * This mints a signed upload URL server-side (where the join token IS verifiable),
+ * scoped to exactly one path.
+ *
+ * Split out from the upload itself so callers can authorize early, while a
+ * participant is framing a photo/video, instead of adding that network round trip
+ * to the submit path.
  */
-export async function uploadParticipantAsset(
+export async function mintParticipantUpload(
   eventId: string,
   path: string,
-  file: File,
-  options?: { mediaKind?: UploadMediaKind },
-): Promise<string> {
-  const kind = options?.mediaKind ?? inferUploadMediaKind(file)
-  const sizeError = validateUploadFileSize(file, kind)
-  if (sizeError) throw new Error(sizeError)
-
+): Promise<MintedParticipantUpload> {
   const objectPath = sanitizeStoragePath(path)
 
   const { data: mint, error: mintError } = await supabase.functions.invoke<{
@@ -68,15 +73,45 @@ export async function uploadParticipantAsset(
   }
   if (!mint) throw new Error('Could not authorize upload')
 
-  const { error: uploadError } = await supabase.storage
+  const { data } = supabase.storage.from('game-assets').getPublicUrl(objectPath)
+  return { token: mint.token, path: mint.path, publicUrl: data.publicUrl }
+}
+
+/** Upload a file to a previously-minted signed URL. Fast: no edge function call. */
+export async function uploadToMintedParticipantUrl(
+  minted: MintedParticipantUpload,
+  file: File,
+  options?: { mediaKind?: UploadMediaKind },
+): Promise<string> {
+  const kind = options?.mediaKind ?? inferUploadMediaKind(file)
+  const sizeError = validateUploadFileSize(file, kind)
+  if (sizeError) throw new Error(sizeError)
+
+  const { error } = await supabase.storage
     .from('game-assets')
-    .uploadToSignedUrl(mint.path, mint.token, file, {
+    .uploadToSignedUrl(minted.path, minted.token, file, {
       contentType: file.type || undefined,
     })
-  if (uploadError) throw uploadError
+  if (error) throw error
+  return minted.publicUrl
+}
 
-  const { data } = supabase.storage.from('game-assets').getPublicUrl(objectPath)
-  return data.publicUrl
+/**
+ * Mint + upload in one call. Used where there is nothing to prefetch against (the
+ * team claim photo, which is captured and submitted in a single step).
+ */
+export async function uploadParticipantAsset(
+  eventId: string,
+  path: string,
+  file: File,
+  options?: { mediaKind?: UploadMediaKind },
+): Promise<string> {
+  const kind = options?.mediaKind ?? inferUploadMediaKind(file)
+  const sizeError = validateUploadFileSize(file, kind)
+  if (sizeError) throw new Error(sizeError)
+
+  const minted = await mintParticipantUpload(eventId, path)
+  return uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
 }
 
 /** Extract object path from a Supabase public storage URL. */

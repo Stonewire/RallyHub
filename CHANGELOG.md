@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.10.1 - 2026-07-15 (faster photo/video quest submission)
+
+- Photo/video quest challenges now authorize their signed Storage upload when the
+  participant opens the challenge. The Submit tap can reuse that authorization
+  instead of waiting for the Edge Function round trip before uploading the file.
+- If early authorization is unavailable, expired, or fails, submission safely
+  falls back to minting a fresh signed upload URL; upload errors remain visible
+  and no success state is shown before the database confirms the submission.
+- Production-path smoke test against the demo event: signed-URL mint 389 ms,
+  68-byte PNG upload 216 ms, anonymous submission insert + returned row 88 ms;
+  the temporary team, submission, and Storage object were deleted afterward.
+
 ## V2.10.0 - 2026-07-15 (legal: DPA, acceptance tracking, participant privacy notice)
 
 - **New Data Processing Agreement** at `/dpa` (DRAFT, for legal review). This was

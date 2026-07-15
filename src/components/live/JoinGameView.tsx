@@ -94,7 +94,12 @@ import {
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import { uploadParticipantAsset } from '@/lib/storage'
+import {
+  mintParticipantUpload,
+  uploadParticipantAsset,
+  uploadToMintedParticipantUrl,
+  type MintedParticipantUpload,
+} from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -177,6 +182,15 @@ export function JoinGameView({
   const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+
+  // Mint a signed upload URL when a photo/video challenge opens, moving the
+  // authorization round trip out of the submit path. Key it by game id so one
+  // challenge never consumes another challenge's URL. A null result falls back to
+  // minting a fresh URL on submit.
+  const openUploadPrefetchRef = useRef<{
+    gameId: string
+    promise: Promise<MintedParticipantUpload | null>
+  } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [exitPasswordValue, setExitPasswordValue] = useState('')
   const [exitPasswordError, setExitPasswordError] = useState<string | null>(null)
@@ -486,6 +500,24 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
+  // Authorize the participant upload as soon as a photo/video challenge opens,
+  // while the participant is reading the brief or framing the shot.
+  useEffect(() => {
+    const g = selectedGame
+    if (!event.id || !g || (g.type !== 'photo' && g.type !== 'video')) {
+      openUploadPrefetchRef.current = null
+      return
+    }
+    const path = `${event.id}/submissions/${teamId}/${Date.now()}${g.type === 'video' ? '.mp4' : '.jpg'}`
+    openUploadPrefetchRef.current = {
+      gameId: g.id,
+      // Swallow errors: a failed prefetch must never surface to the participant —
+      // submit falls back to a fresh mint.
+      promise: mintParticipantUpload(event.id, path).catch(() => null),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- key off the selected game id only; re-running on every realtime bundle/games update would re-mint needlessly
+  }, [selectedGame?.id, event.id, teamId])
+
   function beginOpenSubmit() {
     flushSync(() => {
       setSubmitting(true)
@@ -552,12 +584,21 @@ export function JoinGameView({
     }
     beginOpenSubmit()
     try {
-      const url = await uploadParticipantAsset(
-        event.id,
-        `${event.id}/submissions/${teamId}/${Date.now()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
-        file,
-        { mediaKind: game.type === 'video' ? 'video' : 'photo' },
-      )
+      const kind = game.type === 'video' ? 'video' : 'photo'
+      // Consume the URL prefetched when this challenge opened. Null it out so a
+      // retry mints fresh, and use the original mint+upload path if prefetch failed.
+      const prefetch = openUploadPrefetchRef.current
+      openUploadPrefetchRef.current = null
+      const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
+
+      const url = minted
+        ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
+        : await uploadParticipantAsset(
+            event.id,
+            `${event.id}/submissions/${teamId}/${Date.now()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
+            file,
+            { mediaKind: kind },
+          )
       const { data, error } = await supabase
         .from('submissions')
         .insert({
