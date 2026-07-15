@@ -6,6 +6,7 @@
  *   node scripts/bingo-smoke-fixture.mjs reset <event-id>
  *   node scripts/bingo-smoke-fixture.mjs inspect <event-id>
  *   node scripts/bingo-smoke-fixture.mjs prepare-winner <event-id> <team-id>
+ *   node scripts/bingo-smoke-fixture.mjs announce-winner <event-id> <team-id>
  *   node scripts/bingo-smoke-fixture.mjs cleanup
  *
  * Setup clones branding + the real bingo game from the dedicated "Test" demo,
@@ -358,10 +359,42 @@ async function prepareWinner(eventId, teamId) {
   console.log(JSON.stringify({ preparedWinnerTeamId: team.id }))
 }
 
+async function announceWinner(eventId, teamId) {
+  if (!eventId || !teamId) throw new Error('announce-winner requires event and team ids')
+  const { data: event, error: eventError } = await admin
+    .from('events')
+    .select('id,name')
+    .eq('id', eventId)
+    .single()
+  if (eventError) throw eventError
+  if (!event.name.startsWith(EVENT_PREFIX)) {
+    throw new Error('Refusing to alter a non-smoke event')
+  }
+  const { data: team, error: teamError } = await admin
+    .from('teams')
+    .select('id')
+    .eq('id', teamId)
+    .eq('event_id', eventId)
+    .single()
+  if (teamError) throw teamError
+
+  const { error: stateError } = await admin
+    .from('event_state')
+    .update({
+      bingo_state: 'revealed',
+      bingo_winner_team_id: team.id,
+      bingo_announced_winner_ids: [team.id],
+    })
+    .eq('event_id', eventId)
+  if (stateError) throw stateError
+  console.log(JSON.stringify({ announcedWinnerTeamId: team.id }))
+}
+
 const command = process.argv[2]
 if (command === 'setup') await setup()
 else if (command === 'reset') await reset(process.argv[3])
 else if (command === 'inspect') await inspect(process.argv[3])
 else if (command === 'prepare-winner') await prepareWinner(process.argv[3], process.argv[4])
+else if (command === 'announce-winner') await announceWinner(process.argv[3], process.argv[4])
 else if (command === 'cleanup') await cleanup()
-else throw new Error('Use setup, reset, inspect, prepare-winner, or cleanup')
+else throw new Error('Use setup, reset, inspect, prepare-winner, announce-winner, or cleanup')

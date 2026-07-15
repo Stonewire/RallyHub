@@ -4,7 +4,6 @@ import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
-import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import {
@@ -12,6 +11,7 @@ import {
   ParticipantChatOverlay,
   ParticipantExitDialog,
 } from '@/components/live/participant/JoinGameOverlays'
+import { ParticipantBingoNotice } from '@/components/live/participant/ParticipantBingoNotice'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
@@ -1457,15 +1457,12 @@ export function JoinGameView({
   }
 
   const winnerTeamId = state.bingo_winner_team_id ?? null
-  const winnerTeam = winnerTeamId
-    ? bundle.teams.find((t) => t.id === winnerTeamId)
-    : null
   const announcedWinnerIds = parseAnnouncedWinnerIds(state.bingo_announced_winner_ids)
-  // Only celebrate after a confirmed win announcement (revealed round + announced
-  // id), not from stale winner fields during play/start transitions.
+  // Only the server-confirmed winning team sees the phone notice. Keeping this
+  // authoritative avoids two close devices both declaring themselves the winner.
   const showWinner =
-    Boolean(winnerTeam) &&
     winnerTeamId != null &&
+    winnerTeamId === teamId &&
     winnerTeamId !== dismissedWinnerId &&
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
@@ -1510,13 +1507,10 @@ export function JoinGameView({
       }
     >
       <NotificationAccentSync color={accent} />
-      {showWinner && winnerTeam && typeof document !== 'undefined'
+      {showWinner && typeof document !== 'undefined'
         ? createPortal(
-            <BingoWinCelebration
+            <ParticipantBingoNotice
               key={winnerTeamId}
-              teamName={winnerTeam.name ?? 'Team'}
-              teamColor={winnerTeam.color}
-              mine={winnerTeamId === teamId}
               onDismiss={() => setDismissedWinnerId(winnerTeamId)}
             />,
             document.body,
