@@ -11,7 +11,7 @@ type BingoClipPlayerProps = {
   crossfadeSeconds?: number
   /** Fired once ~1s before crossfade out (selections lock + reveal). */
   onLockAndReveal?: () => void
-  /** Fired after crossfade completes; advance round only — do not crossfade again. */
+  /** Fired as soon as the next deck starts; advance round only — do not crossfade again. */
   onAutoAdvance?: () => void
   onPlaybackError?: (message: string) => void
 }
@@ -158,22 +158,30 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         return false
       }
 
-      const steps = Math.max(8, Math.floor(ms / 100))
-      const stepMs = ms / steps
-      for (let i = 1; i <= steps; i++) {
-        const t = i / steps
-        from.volume = Math.max(0, 1 - t)
-        to.volume = Math.min(1, t)
-        await sleep(stepMs)
-      }
-      from.pause()
-      from.volume = 1
-      from.currentTime = 0
-      activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
-      setActiveDeck(activeRef.current)
-      autoFadeTriggeredRef.current = false
-      lockRevealTriggeredRef.current = false
-      crossfadeInProgressRef.current = false
+      // The next song is already playing at this point. Finish the volume fade in
+      // the background so round advancement and participant unlocking do not wait
+      // for four seconds of purely local audio work.
+      void (async () => {
+        const steps = Math.max(8, Math.floor(ms / 100))
+        const stepMs = ms / steps
+        try {
+          for (let i = 1; i <= steps; i++) {
+            const t = i / steps
+            from.volume = Math.max(0, 1 - t)
+            to.volume = Math.min(1, t)
+            await sleep(stepMs)
+          }
+          from.pause()
+          from.volume = 1
+          from.currentTime = 0
+          activeRef.current = activeRef.current === 'a' ? 'b' : 'a'
+          setActiveDeck(activeRef.current)
+          autoFadeTriggeredRef.current = false
+          lockRevealTriggeredRef.current = false
+        } finally {
+          crossfadeInProgressRef.current = false
+        }
+      })()
       return true
     }
 
@@ -211,6 +219,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       const revealLeadSeconds = crossfadeSeconds + 1
 
       const handleTime = () => {
+        // Advancing event_state changes playKey while the old deck is still
+        // fading. Ignore those old-deck timeupdate events or they can lock the
+        // freshly opened round again.
+        if (crossfadeInProgressRef.current) return
         if (!cur.duration || Number.isNaN(cur.duration)) return
         const remaining = cur.duration - cur.currentTime
 
@@ -228,7 +240,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         if (remaining <= crossfadeSeconds && remaining > 0) {
           autoFadeTriggeredRef.current = true
           void crossfadeTo(nextSrc, Math.max(1200, Math.floor(remaining * 1000))).then((ok) => {
-            if (ok) window.setTimeout(() => onAutoAdvanceRef.current?.(), 200)
+            if (ok) onAutoAdvanceRef.current?.()
           })
         }
       }

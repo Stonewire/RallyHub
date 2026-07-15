@@ -61,7 +61,7 @@ export async function advanceBingoTrack(params: {
     if (advanceErr) throw new Error(`Failed to advance bingo run: ${advanceErr.message}`)
 
     if (runRow) {
-      await publishLiveBundlePatch(eventId, {
+      void publishLiveBundlePatch(eventId, {
         kind: 'bingo_run',
         eventId,
         stageIndex: runRow.stage_index,
@@ -74,11 +74,15 @@ export async function advanceBingoTrack(params: {
           current_play_index: runRow.current_play_index,
           status: runRow.status,
         },
+      }).catch(() => {
+        // Best-effort fan-out; event_state + fallback polling remain authoritative.
       })
     }
   }
 
-  await publishLiveBundleReload(eventId)
+  void publishLiveBundleReload(eventId).catch(() => {
+    // Best-effort consistency signal; never delay opening the next round.
+  })
 
   return nextIndex
 }

@@ -87,17 +87,18 @@ export async function scoreBingoRound(params: {
     }
   }
 
-  const approveResults = await Promise.all(
-    approveUpdates.map(({ id, teamId, points }) =>
-      supabase
-        .from('submissions')
-        .update({ status: 'approved', points_awarded: points })
-        .eq('id', id)
-        .select()
-        .single()
-        .then((r) => ({ ...r, teamId, points })),
-    ),
-  )
+  // Every correct mark in this round earns the same value, so one filtered
+  // UPDATE replaces a network request per team. `.select()` returns the rows
+  // that actually changed, which remains the source of truth for score deltas.
+  const approveIds = approveUpdates.map((row) => row.id)
+  const approveResult =
+    approveIds.length > 0
+      ? await supabase
+          .from('submissions')
+          .update({ status: 'approved', points_awarded: pointsPerCorrect })
+          .in('id', approveIds)
+          .select()
+      : null
   const rejectResult =
     rejectIds.length > 0
       ? await supabase
@@ -107,21 +108,26 @@ export async function scoreBingoRound(params: {
           .select()
       : null
 
-  const approveErrors = approveResults.filter((r) => r.error)
+  const approveById = new Map(approveUpdates.map((row) => [row.id, row]))
   const confirmedDeltas = new Map<string, number>()
-  for (const r of approveResults) {
-    if (!r.error) {
-      confirmedDeltas.set(r.teamId, (confirmedDeltas.get(r.teamId) ?? 0) + r.points)
-    }
+  for (const row of approveResult?.data ?? []) {
+    const approved = approveById.get(row.id)
+    if (!approved) continue
+    confirmedDeltas.set(
+      approved.teamId,
+      (confirmedDeltas.get(approved.teamId) ?? 0) + approved.points,
+    )
   }
 
-  for (const [teamId, delta] of confirmedDeltas) {
-    await applySubmissionPoints(teamId, delta, eventId)
-  }
+  await Promise.all(
+    [...confirmedDeltas].map(([teamId, delta]) =>
+      applySubmissionPoints(teamId, delta, eventId),
+    ),
+  )
 
-  if (approveErrors.length > 0 || rejectResult?.error) {
+  if (approveResult?.error || rejectResult?.error) {
     const msgs = [
-      ...approveErrors.map((r) => r.error?.message ?? 'approve failed'),
+      ...(approveResult?.error ? [approveResult.error.message] : []),
       ...(rejectResult?.error ? [rejectResult.error.message] : []),
     ]
     throw new Error(`Bingo scoring DB errors: ${msgs.join('; ')}`)
@@ -168,18 +174,19 @@ export async function scoreBingoRound(params: {
   // the full-bundle reload below. Team scores already broadcast via
   // incrementTeamScore; the full reload stays as a consistency safety net.
   const markPatches: Tables<'submissions'>[] = [
-    ...approveResults
-      .filter((r) => !r.error && r.data)
-      .map((r) => r.data as Tables<'submissions'>),
+    ...((approveResult?.data as Tables<'submissions'>[] | null | undefined) ?? []),
     ...((rejectResult?.data as Tables<'submissions'>[] | null | undefined) ?? []),
   ]
-  await Promise.all(
+  void Promise.all(
     markPatches.map((row) =>
       publishLiveBundlePatch(eventId, { kind: 'submission', op: 'UPDATE', row }),
     ),
   )
-
-  await publishLiveBundleReload(eventId)
+    .then(() => publishLiveBundleReload(eventId))
+    .catch(() => {
+      // Best-effort fan-out; the DB is authoritative and fallback polling/reload
+      // will reconcile clients after a transient Realtime failure.
+    })
 
   return { correctIndex, trackId, winningTeamIds }
 }

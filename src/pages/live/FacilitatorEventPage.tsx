@@ -160,6 +160,10 @@ export function FacilitatorEventPage() {
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
   const bingoWinHaltRef = useRef(false)
+  // The audio crossfade can begin before scoring has finished. Keep the reveal
+  // promise so auto-advance waits for its result instead of dropping the next
+  // track transition while bingoBusyRef is still true.
+  const bingoRevealPromiseRef = useRef<Promise<boolean> | null>(null)
   // Synchronous lock: bingoAdvancing is React state (updates async), so rapid
   // clicks slip past it and fire concurrent run activations/advances — which
   // create duplicate runs and a stale runId ("Failed to advance bingo run").
@@ -276,12 +280,14 @@ export function FacilitatorEventPage() {
   }, [bingoRunQuery.data, bingoRunOverride])
 
   async function patchState(patch: Parameters<typeof updateState>[0]) {
-    if (!controlsLiveRef.current) return
+    if (!controlsLiveRef.current) return false
     try {
       setStateError(null)
       await updateState(patch)
+      return true
     } catch (err) {
       setStateError(err instanceof Error ? err.message : 'Update failed')
+      return false
     }
   }
 
@@ -1139,21 +1145,23 @@ export function FacilitatorEventPage() {
     const currentTrackId = scoringPlayOrder[bingoPlayIndex]
     if (!currentTrackId) return false
 
+    // Close the selection window before reading pending marks. Previously the
+    // phone stayed selectable while scoring had already taken its snapshot, so
+    // a legitimate late tap could look accepted but miss the round.
+    const prev = parseRevealedTrackIds(liveState.bingo_revealed_track_ids)
+    const revealed = prev.includes(currentTrackId) ? prev : [...prev, currentTrackId]
+    const locked = await patchState({
+      bingo_state: 'revealed',
+      bingo_revealed_track_ids: revealed,
+    })
+    if (!locked) throw new Error('Could not lock bingo selections')
+
     const result = await scoreBingoRound({
       eventId,
       gameId: stage.gameId,
       runId: scoringRunId,
       trackId: currentTrackId,
       gameConfig: bingoConfig,
-    })
-
-    // Core reveal uses only existing columns and must always succeed so the
-    // round advances and the participant's green/red/grey states show.
-    const prev = parseRevealedTrackIds(liveState.bingo_revealed_track_ids)
-    const revealed = prev.includes(currentTrackId) ? prev : [...prev, currentTrackId]
-    await patchState({
-      bingo_state: 'revealed',
-      bingo_revealed_track_ids: revealed,
     })
 
     // Winner announcement reads the scoring result afterward, best-effort only.
@@ -1175,7 +1183,8 @@ export function FacilitatorEventPage() {
         bingo_announced_winner_ids: [...announced, newWinnerId],
       }
       try {
-        await patchState(writePatch)
+        const winnerWritten = await patchState(writePatch)
+        if (!winnerWritten) throw new Error('Winner announcement state update failed')
         if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
       } catch (err) {
         console.error('Failed to write bingo winner fields (non-fatal)', err)
@@ -1232,14 +1241,6 @@ export function FacilitatorEventPage() {
 
       if (!opts?.skipCrossfade && nextUrl) {
         await player.crossfadeTo(nextUrl, 4000)
-      } else if (nextUrl && liveState.bingo_state !== 'playing') {
-        // Reached when skipCrossfade is true (auto-advance after the player's
-        // own crossfade already finished) or there's otherwise no crossfade
-        // in flight. Previously required `!opts?.skipCrossfade` too, which
-        // made this branch impossible to reach in the one case it exists
-        // for (no-dupe-else-if caught it) — the track could end up not
-        // actually playing after an auto-advance.
-        await player.playFromUserGesture(nextUrl)
       }
 
       const runId = run.id
@@ -1269,29 +1270,38 @@ export function FacilitatorEventPage() {
 
   async function handleBingoLockAndReveal() {
     unlockAudioFromUserGesture('full')
+    if (bingoRevealPromiseRef.current) return
     if (bingoBusyRef.current) return
     if (liveState.bingo_state !== 'playing') return
     bingoBusyRef.current = true
     setBingoAdvancing(true)
-    try {
-      await lockAndRevealBingoRound()
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not score or reveal the bingo round')
-    } finally {
-      setBingoAdvancing(false)
-      bingoBusyRef.current = false
-    }
+    const revealPromise = lockAndRevealBingoRound()
+      .catch((err) => {
+        notify(err instanceof Error ? err.message : 'Could not score or reveal the bingo round')
+        return false
+      })
+      .finally(() => {
+        setBingoAdvancing(false)
+        bingoBusyRef.current = false
+        bingoRevealPromiseRef.current = null
+      })
+    bingoRevealPromiseRef.current = revealPromise
+    await revealPromise
   }
 
   async function autoAdvanceBingoSong() {
-    if (bingoBusyRef.current) return
+    // Lock/reveal starts one second before the crossfade. If it is still scoring
+    // when the next audio deck starts, wait for that exact job. The old guard
+    // returned here and permanently lost the only auto-advance callback.
+    const revealPromise = bingoRevealPromiseRef.current
+    if (revealPromise && !(await revealPromise)) return
     if (bingoWinHaltRef.current) return
     if (liveState.bingo_state !== 'revealed' && liveState.bingo_state !== 'playing') return
     // Score the finishing song so a completed card is detected and celebrated the
     // moment the song ends, without waiting for a manual Continue press. Scoring
     // only runs when not already 'revealed' (see handleBingoNextClick), and
     // bingoBusyRef guards against overlap with a manual reveal/advance.
-    await handleBingoNextClick({ skipCrossfade: true })
+    await handleBingoNextClick({ skipCrossfade: true, skipScore: true })
   }
 
   return (
