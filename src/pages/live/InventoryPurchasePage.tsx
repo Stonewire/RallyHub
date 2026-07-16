@@ -26,9 +26,28 @@ type PurchaseResult = {
   remaining_score: number
 }
 
+function purchaseErrorMessage(reason: unknown, fallback: string) {
+  if (reason instanceof Error && reason.message) return reason.message
+  if (
+    reason &&
+    typeof reason === 'object' &&
+    'message' in reason &&
+    typeof reason.message === 'string' &&
+    reason.message.trim()
+  ) {
+    return reason.message
+  }
+  return fallback
+}
+
 export function InventoryPurchasePage() {
-  setLiveParticipantMode(true)
-  useEffect(() => () => setLiveParticipantMode(false), [])
+  useEffect(() => {
+    // Route transitions run the previous live page's cleanup before this page's
+    // effects. Reassert participant mode here so a signed-in facilitator testing
+    // on the same device cannot accidentally make the purchase as their admin role.
+    setLiveParticipantMode(true)
+    return () => setLiveParticipantMode(false)
+  }, [])
 
   const { publicCode } = useParams<{ publicCode: string }>()
   const [item, setItem] = useState<ItemPreview | null>(null)
@@ -77,7 +96,7 @@ export function InventoryPurchasePage() {
           setTeam(teamResponse.data)
         }
       } catch (reason) {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not load this item.')
+        if (!cancelled) setError(purchaseErrorMessage(reason, 'Could not load this item.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -119,7 +138,7 @@ export function InventoryPurchasePage() {
           }
         })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not purchase this item.')
+      setError(purchaseErrorMessage(reason, 'Could not purchase this item.'))
     } finally {
       setPurchasing(false)
     }
