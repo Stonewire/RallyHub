@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
@@ -6,6 +7,57 @@ import { supabase } from '@/lib/supabase'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type InventoryItem = Tables<'inventory_items'>
+export type InventoryPurchase = Tables<'inventory_purchases'>
+
+export function useEventInventoryPurchases(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  const query = useQuery({
+    queryKey: queryKeys.inventoryPurchases(eventId),
+    enabled: Boolean(eventId),
+    queryFn: async (): Promise<InventoryPurchase[]> => {
+      if (!eventId) return []
+      const { data, error } = await supabase
+        .from('inventory_purchases')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  useEffect(() => {
+    if (!eventId) return
+    const channel = supabase
+      .channel(`inventory-purchases:${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'inventory_purchases',
+          filter: `event_id=eq.${eventId}`,
+        },
+        (payload) => {
+          const purchase = payload.new as InventoryPurchase
+          queryClient.setQueryData<InventoryPurchase[]>(
+            queryKeys.inventoryPurchases(eventId),
+            (current = []) =>
+              current.some((row) => row.id === purchase.id)
+                ? current
+                : [purchase, ...current],
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [eventId, queryClient])
+
+  return query
+}
 
 export function useInventoryItems(organizationId: string | null) {
   return useQuery({
