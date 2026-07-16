@@ -162,7 +162,9 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   A private per-device team token prevents one participant spending another team's
   points, and row locking prevents concurrent double-spends. Purchase RPCs also
   support signed-in test browsers but still require both the live-event token and
-  private team token. Awaiting Level 1 product testing before promotion to `dev`.
+  private team token. The participant team-field guard permits only the validated,
+  transaction-marked Inventory deduction; direct participant score edits remain
+  blocked. Awaiting Level 1 product testing before promotion to `dev`.
 
 - [x] **MKT-1** Marketing homepage redesign — **live in V2.5.0**. Rebuilt `rallyhub.games` from the design handoff (`Marketing Page Design/`) into maintainable components under `src/components/marketing/home/` + `src/styles/marketing-home.css`. Verified: build/lint/tests pass, no console errors, no horizontal overflow at 375px, mobile menu + palette preview + form validation all work, dark mode holds. Optimised hero/display images + real OG image added. Accuracy guardrails applied (no instant-scoring-for-all, no client-management or free-event claims).
 - [x] **CONTACT-1** Marketing demo form backend — **live in V2.5.1**. `submit-contact` Edge Function (deployed) validates + honeypot + per-IP rate limit, stores every lead in `contact_submissions` (RLS super-admin read), emails via Resend when `RESEND_API_KEY` is set (graceful degradation: lead saved even without the key). Frontend wired with loading/success/error + mailto fallback. Verified end to end. **Remaining (Rumen, dashboard):** set `RESEND_API_KEY` (+ optional `CONTACT_TO_EMAIL`/`CONTACT_FROM_EMAIL`) Edge Function secrets to turn on the email — see `docs/RESEND-SETUP.md`. Confirm the `hello@rallyhub.games` inbox exists/forwards.
