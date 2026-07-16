@@ -100,10 +100,11 @@ revoke all on public.inventory_purchases from anon, authenticated;
 grant select, insert, update, delete on public.inventory_items to authenticated;
 grant select on public.inventory_purchases to authenticated;
 
--- Team claiming now goes through the function below, which can mint the private
--- per-device purchase credential atomically. Direct anonymous team updates are
--- no longer needed.
-drop policy if exists "teams_anon_update_claim" on public.teams;
+-- Keep the existing anonymous team-claim policy during the Level 1 preview.
+-- Production main still uses that path until this feature is promoted, while
+-- the Inventory branch uses the token-minting function below. Removing the old
+-- path belongs in a later compatibility migration after every deployed client
+-- has moved to the new claim flow.
 
 create or replace function public.claim_team_with_inventory_access(
   p_event_id uuid,
