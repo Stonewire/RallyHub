@@ -2,10 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Workflow (since 7 Jul 2026)
+## Branch workflow (since 16 Jul 2026)
 
-- Small fixes, redesigns, and features push straight to `main` (production). The `fixes` branch is reserved for risky live-event work (submit-delay, bingo investigations); merge those to `main` only when Rumen says so.
-- Branch `stable-2.0` is the frozen pre-2.1.0 fallback.
+- **Level 1 — isolated work:** each major feature uses its own `feature/<short-name>` branch. All ordinary bug fixes share the long-lived `bug-fixes` branch. Build and test work here without changing production.
+- **Level 2 — integration:** merge confirmed Level 1 branches into `dev`, then test the combined changes together.
+- **Level 3 — release candidate:** before preparing a release, refresh `staging` from the latest `main`, then merge the confirmed `dev` candidate into `staging`. This is the final production-like test branch.
+- **Level 4 — production:** merge `staging` into `main` only after Rumen confirms staging. `main` is live production.
+- If only one isolated change is being released, Level 1 may merge directly into `staging`, skipping `dev`. It must still be confirmed on `staging` before `main`.
+- Do not push work directly to `main` unless Rumen explicitly requests an exception. After a production release, keep `staging` and `dev` aligned with the new `main` before starting the next release cycle.
+- Branch `stable-2.0` remains the frozen pre-2.1.0 fallback; the old `fixes` branch is historical and must not receive new work.
 - `TRACKER.md` at the repo root is the living checklist of bugs, re-lands, and planned features. Update it as items land.
 - Every push to `main` bumps `APP_VERSION` (`src/lib/version.ts`) using three-number versioning: third number for small fixes (2.1.1), second for bigger batches of features/redesigns (2.2.0), first for major updates (3.0.0). Add a CHANGELOG.md entry each time.
 

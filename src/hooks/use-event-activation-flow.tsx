@@ -78,7 +78,7 @@ export function useEventActivationFlow({
       setPending(null)
 
       // The event is live. Settle its invoice against a saved card if the org has
-      // one; if not (Free plan, or nobody has subscribed yet) this quietly does
+      // one; if not (Pay Per Event, or nobody has subscribed yet) this quietly does
       // nothing and the invoice is paid manually with "Pay now".
       //
       // Strictly fire-and-forget: an unpaid invoice is recoverable, a disrupted

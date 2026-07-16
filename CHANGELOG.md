@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.12.0 - 2026-07-16 (final pricing and release branches)
+
+- Replaced the previous five-tier pricing ladder with the final four offers:
+  Pay Per Event (€199/event), Starter (€20/month or €180/year + €149/event),
+  Pro (€200/month or €1,800/year + €99/event), and contact-sales Custom.
+- Starter now includes 2 events per month; Pay Per Event and Pro have no monthly
+  event cap. All three standard offers include up to 5 teams per event.
+- Pro now advertises optional per-event RallyHub branding removal. Additional
+  teams are presented as purchasable capacity; checkout remains unavailable
+  until the add-on price and Paddle product are configured.
+- Removed Business from registration, plan comparison, subscription changes,
+  and Paddle pricing. Any leftover test/demo Business records migrate to Pro.
+- Removed the unapproved automatic one-month signup trial from new paid accounts.
+- Added the four-level branch workflow to both `AGENTS.md` and `CLAUDE.md`:
+  feature/bug-fixes → dev → staging → main, with Level 1 → staging allowed for a
+  single release candidate.
+
 ## V2.11.0 - 2026-07-15 (billing, data lifecycle, and bingo responsiveness)
 
 - Working pricing updated everywhere to Pro €70/month or €660/year + €99/event,

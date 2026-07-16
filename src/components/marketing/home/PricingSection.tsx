@@ -22,7 +22,15 @@ function planCta(plan: SubscriptionPlan): { label: string; to: string } {
 }
 
 function planFeatures(plan: SubscriptionPlan): string[] {
-  const lines = [formatPerEventPrice(plan), formatEventLimit(plan), formatTeamLimit(plan)]
+  if (plan.priceOnRequest) {
+    return [
+      'For larger events or when standard plans do not fit',
+      'Contact us for a custom-made plan',
+    ]
+  }
+  const lines = plan.freeSubscription
+    ? [formatEventLimit(plan), formatTeamLimit(plan)]
+    : [formatPerEventPrice(plan), formatEventLimit(plan), formatTeamLimit(plan)]
   const branding = formatBrandingNote(plan)
   if (branding) lines.push(branding)
   return lines
@@ -44,7 +52,7 @@ export function PricingSection() {
           </h2>
         </Reveal>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan, i) => {
             const price = planPriceDisplay(plan)
             const cta = planCta(plan)

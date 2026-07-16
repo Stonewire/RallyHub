@@ -17,7 +17,7 @@ import {
 import { recordLegalAcceptanceForCurrentUser } from '@/hooks/use-legal-acceptance'
 import { isPlatformHost } from '@/lib/tenant'
 
-// Enterprise is contact-sales only — getSelfServePlans() excludes it here so a
+// Custom is contact-sales only — getSelfServePlans() excludes it here so a
 // visitor can never pick a plan that then silently falls back to Free server-side.
 const PLANS = getSelfServePlans()
 

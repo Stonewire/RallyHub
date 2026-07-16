@@ -133,8 +133,10 @@ Verify, in order:
    auto-charge completes without delaying the live event.
 5. `transaction.completed` marks the event invoice paid and its Paddle invoice
    PDF can be opened.
-6. A Free-plan event produces €199, Pro produces €99, and Business produces €95
-   in controlled checks; do not complete unnecessary charges.
+6. A Pay Per Event event produces €199 and Pro produces €99 in controlled
+   checks; do not complete unnecessary charges. Confirm Starter blocks a third
+   monthly activation and each standard plan blocks more than five teams until
+   add-on products are implemented.
 7. Account deletion schedules renewal cancellation and restore reverses that
    schedule before testing permanent deletion on a disposable organization.
 

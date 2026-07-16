@@ -130,7 +130,12 @@ export function BillingOverview({
         <div>
           <h2 className="text-foreground text-lg font-semibold">Current plan</h2>
           <p className="text-muted-foreground text-sm">
-            {formatPlanLabel(planId)} · {formatBillingPeriodLabel(period)} billing
+            {formatPlanLabel(planId)} ·{' '}
+            {plan.freeSubscription
+              ? 'No subscription'
+              : plan.priceOnRequest
+                ? 'Custom billing'
+                : `${formatBillingPeriodLabel(period)} billing`}
             {plan.hidden ? ' · Partner (comped)' : ''}
           </p>
         </div>
@@ -215,8 +220,9 @@ export function BillingOverview({
             <div>
               <p className="text-foreground font-medium">{formatPlanLabel(planId)}</p>
               <p className="text-muted-foreground text-sm">
-                {formatBillingPeriodLabel(period)} ·{' '}
-                {formatSubscriptionPrice(plan, period)}
+                {plan.freeSubscription || plan.priceOnRequest
+                  ? formatSubscriptionPrice(plan, period)
+                  : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
               </p>
             </div>
             {paddleSubscriptionId ? (
@@ -287,13 +293,13 @@ export function BillingOverview({
             <p className="text-muted-foreground text-sm">
               {paddleSubscriptionId
                 ? PLAN_CHANGES_ENABLED
-                  ? 'Use Change subscription above to switch between Starter, Pro and Business.'
+                  ? 'Use Change subscription above to switch between Starter and Pro.'
                   : 'Plan changes will be enabled after the final pricing structure is confirmed.'
                 : 'Start your subscription on the current plan above, or contact us to pick a different one.'}
             </p>
             <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {getVisiblePlans().map((visiblePlan) => (
               <PlanDetailsCard
                 key={visiblePlan.id}

@@ -40,7 +40,7 @@ export function getEventActivationWarning(
     }
   }
 
-  // Enterprise is billed directly (price on request), not per-event through this
+  // Custom is billed directly (price on request), not per-event through this
   // flow. The DB invoice function already comps these the same as Partner.
   if (planId === 'enterprise') {
     return {
@@ -49,8 +49,8 @@ export function getEventActivationWarning(
       isComped: true,
       title: 'Activate event',
       message:
-        'Activating this event will record it in your billing history on the Enterprise plan. ' +
-        'Your Enterprise billing is arranged directly, so this does not generate a per-event charge here. ' +
+        'Activating this event will record it in your billing history on the Custom plan. ' +
+        'Your Custom billing is arranged directly, so this does not generate a per-event charge here. ' +
         'If you have not started the event yet, keep it at Ready status until you are ready to go live.',
       confirmLabel: 'Activate event',
     }
@@ -80,7 +80,7 @@ export function getEventActivationWarning(
       ? ` A promo code applies ${discountPct}% off (was ${formatEur(baseAmount)}).`
       : ''
 
-  // The Free plan has no subscription, so it usually has no card on file — it
+  // Pay Per Event has no subscription, so it usually has no card on file — it
   // pays the invoice afterwards. If a card IS saved, the charge happens
   // automatically, same as the paid plans.
   const paymentNote =
@@ -147,8 +147,8 @@ export function friendlyActivationError(raw: string | null | undefined): string 
   if (message.includes('TEAM_LIMIT_EXCEEDED')) {
     const limit = message.match(/allows (\d+) teams/)?.[1]
     return limit
-      ? `This event has more teams than your plan allows (${limit} per event). Remove some teams or upgrade your plan.`
-      : 'This event has more teams than your plan allows. Remove some teams or upgrade your plan.'
+      ? `This event has more teams than your plan includes (${limit} per event). Remove some teams or purchase additional team capacity.`
+      : 'This event has more teams than your plan includes. Remove some teams or purchase additional team capacity.'
   }
   if (message.includes('ORG_SUSPENDED')) {
     return 'This organisation is suspended, so events cannot be activated. Contact support.'

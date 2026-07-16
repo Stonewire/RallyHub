@@ -34,10 +34,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-join-token',
 }
 
-// Internal plan ids the form may submit (display names: Free/Starter/Pro/Business).
-// Enterprise (contact-sales only, price on request) is deliberately excluded —
+// Internal plan ids the form may submit (Pay Per Event/Starter/Pro).
+// Custom (contact-sales only, price on request) is deliberately excluded —
 // it is only ever assigned by a super admin, never chosen at self-serve signup.
-const ALLOWED_PLANS = new Set(['rookie', 'arena', 'pro', 'max'])
+const ALLOWED_PLANS = new Set(['rookie', 'arena', 'pro'])
 
 function slugify(name: string): string {
   const base = name
@@ -118,13 +118,6 @@ Deno.serve(async (req) => {
       sub = `${sub}-${Date.now().toString(36).slice(-4)}`
     }
 
-    // Paid plans get a 1-month free trial (no subscription charge during it;
-    // per-event fees still apply). The Free plan has no subscription at all.
-    const isPaid = planId !== 'rookie'
-    const trialEndsAt = isPaid
-      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      : null
-
     const { data: org, error: orgErr } = await supabaseAdmin
       .from('organizations')
       .insert({
@@ -134,9 +127,8 @@ Deno.serve(async (req) => {
         subdomain: sub,
         billing_plan: planId,
         billing_period: 'yearly',
-        trial_ends_at: trialEndsAt,
-        // Mark paid plans as on-trial so it's reflected on the super-admin page.
-        account_status: isPaid ? 'trial' : 'active',
+        trial_ends_at: null,
+        account_status: 'active',
         educational_status: isSchool ? 'pending' : 'none',
       })
       .select()

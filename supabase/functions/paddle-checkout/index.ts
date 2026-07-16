@@ -22,18 +22,16 @@ const corsHeaders = {
 
 // Mirrors src/lib/subscription-plans.ts and the DB's plan_per_event_price_eur().
 // Keep all three in sync when prices change. Only self-serve paid plans need an
-// entry here — Free has no subscription, Enterprise is negotiated directly,
+// entry here — Pay Per Event has no subscription, Custom is negotiated directly,
 // Partner is comped.
 const SUBSCRIPTION_PRICES_EUR: Record<string, { monthly: number; yearly: number }> = {
   arena: { monthly: 20, yearly: 180 },
-  pro: { monthly: 70, yearly: 660 },
-  max: { monthly: 150, yearly: 1440 },
+  pro: { monthly: 200, yearly: 1800 },
 }
 
 const PLAN_NAMES: Record<string, string> = {
   arena: 'Starter',
   pro: 'Pro',
-  max: 'Business',
 }
 
 function json(body: unknown, status = 200) {
@@ -390,7 +388,7 @@ Deno.serve(async (req) => {
         return json({ charged: false, reason: 'nothing_due' })
       }
       if (!org.paddle_subscription_id) {
-        // Free plan, or a paid plan that has not subscribed — nothing to charge
+        // Pay Per Event, or a paid plan that has not subscribed — nothing to charge
         // against. They settle the invoice manually.
         return json({ charged: false, reason: 'no_subscription' })
       }

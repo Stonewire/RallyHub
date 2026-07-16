@@ -46,7 +46,11 @@ export function PlanDetailsCard({
         <p className="text-foreground font-semibold">{plan.name}</p>
         {!compact ? (
           <p className="text-muted-foreground mt-0.5 text-sm">
-            {formatBillingPeriodLabel(period)} billing
+            {plan.freeSubscription
+              ? 'No subscription'
+              : plan.priceOnRequest
+                ? 'Contact us for a custom plan'
+                : `${formatBillingPeriodLabel(period)} billing`}
           </p>
         ) : null}
       </div>
@@ -60,7 +64,7 @@ export function PlanDetailsCard({
         ) : null}
       </div>
       <ul className="text-muted-foreground space-y-1 text-sm">
-        <li>{formatPerEventPrice(plan)}</li>
+        {!plan.freeSubscription ? <li>{formatPerEventPrice(plan)}</li> : null}
         <li>{formatEventLimit(plan)}</li>
         <li>{formatTeamLimit(plan)}</li>
         {brandingNote ? <li>{brandingNote}</li> : null}

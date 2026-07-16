@@ -12,16 +12,15 @@ import {
 // the pricing display will disagree.
 describe('plan limits (mirror of the SQL entitlement gate)', () => {
   it.each([
-    ['rookie', 1, 10],
-    ['arena', 10, 20],
-    ['pro', 20, 30],
-    ['max', 40, 50],
-  ])('%s allows %i events/month and %i teams/event', (plan, events, teams) => {
+    ['rookie', null, 5],
+    ['arena', 2, 5],
+    ['pro', null, 5],
+  ])('%s has %s events/month and %i teams/event', (plan, events, teams) => {
     expect(getPlan(plan).monthlyEventLimit).toBe(events)
     expect(getPlan(plan).teamLimit).toBe(teams)
   })
 
-  it.each(['enterprise', 'partner'])('%s is unlimited', (plan) => {
+  it.each(['enterprise', 'partner'])('%s has custom/unlimited limits', (plan) => {
     expect(getPlan(plan).monthlyEventLimit).toBeNull()
     expect(getPlan(plan).teamLimit).toBeNull()
   })
@@ -36,25 +35,22 @@ describe('planPriceDisplay', () => {
     expect(d.monthlyNote).toBe('or €20/mo billed monthly')
   })
 
-  it('prices Pro as the best-value standard tier and Business above it', () => {
+  it('uses the final Pro subscription prices', () => {
     const pro = getPlan('pro')
-    const business = getPlan('max')
-    expect(pro.monthlyPriceEur).toBe(70)
-    expect(pro.yearlyPriceEur).toBe(660)
+    expect(pro.monthlyPriceEur).toBe(200)
+    expect(pro.yearlyPriceEur).toBe(1800)
     expect(pro.perEventPriceEur).toBe(99)
-    expect(business.monthlyPriceEur).toBe(150)
-    expect(business.yearlyPriceEur).toBe(1440)
-    expect(business.perEventPriceEur).toBe(95)
-    expect(planPriceDisplay(business).headline).toBe('€120/mo')
+    expect(planPriceDisplay(pro).headline).toBe('€150/mo')
   })
 
-  it('shows Free plan as €0 with no monthly note', () => {
+  it('shows Pay Per Event with no subscription', () => {
     const d = planPriceDisplay(getPlan('rookie'))
-    expect(d.headline).toBe('€0')
+    expect(d.headline).toBe('€199/event')
+    expect(d.yearlyNote).toBe('No subscription')
     expect(d.monthlyNote).toBeNull()
   })
 
-  it('shows Enterprise as price on request', () => {
+  it('shows Custom as price on request', () => {
     const d = planPriceDisplay(getPlan('enterprise'))
     expect(d.headline).toBe('Custom')
     expect(d.yearlyNote).toBe('Price on request')
@@ -63,21 +59,15 @@ describe('planPriceDisplay', () => {
 })
 
 describe('approved plan ladder', () => {
-  const monthlyTotal = (planId: 'arena' | 'pro' | 'max', events: number) => {
+  const monthlyTotal = (planId: 'arena' | 'pro', events: number) => {
     const plan = getPlan(planId)
     return plan.monthlyPriceEur + plan.perEventPriceEur * events
   }
 
-  it('makes Starter and Pro equal for one event, then Pro the better standard deal', () => {
+  it('keeps Starter cheaper within its two-event allowance', () => {
     expect(monthlyTotal('arena', 1)).toBe(169)
-    expect(monthlyTotal('pro', 1)).toBe(169)
-    expect(monthlyTotal('pro', 2)).toBeLessThan(monthlyTotal('arena', 2))
-  })
-
-  it('keeps Pro best through its 20-event capacity and crosses Business there', () => {
-    expect(monthlyTotal('pro', 10)).toBeLessThan(monthlyTotal('max', 10))
-    expect(monthlyTotal('pro', 20)).toBe(2050)
-    expect(monthlyTotal('max', 20)).toBe(2050)
+    expect(monthlyTotal('arena', 2)).toBe(318)
+    expect(monthlyTotal('pro', 2)).toBe(398)
   })
 })
 
@@ -86,8 +76,8 @@ describe('formatDualMonthlyPriceLine', () => {
     expect(formatDualMonthlyPriceLine(getPlan('arena'))).toBe('€15/mo yearly or €20/mo monthly')
   })
 
-  it('returns Free for the free plan and Price on request for enterprise', () => {
-    expect(formatDualMonthlyPriceLine(getPlan('rookie'))).toBe('Free')
+  it('returns no subscription for Pay Per Event and Price on request for Custom', () => {
+    expect(formatDualMonthlyPriceLine(getPlan('rookie'))).toBe('No subscription')
     expect(formatDualMonthlyPriceLine(getPlan('enterprise'))).toBe('Price on request')
   })
 })
