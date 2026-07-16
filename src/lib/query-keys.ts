@@ -20,6 +20,7 @@ export const queryKeys = {
   organizationInvoices: (orgId: string | null) =>
     ['organization-invoices', orgId] as const,
   musicCatalog: (orgId: string | null) => ['music-catalog', orgId] as const,
+  inventoryItems: (orgId: string | null) => ['inventory-items', orgId] as const,
   bingoRun: (eventId: string, stageIndex: number) =>
     ['bingo-run', eventId, stageIndex] as const,
   organizationFacilitators: (orgId: string | null) =>
