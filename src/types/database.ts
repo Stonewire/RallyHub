@@ -404,6 +404,9 @@ export type Database = {
           amount: number
           discount: number
           amount_due: number
+          included_team_count: number
+          extra_team_count: number
+          extra_team_fee: number
           status: 'unpaid' | 'paid' | 'comped'
           promo_code_id: string | null
           paddle_transaction_id: string | null
@@ -417,6 +420,9 @@ export type Database = {
           amount: number
           discount?: number
           amount_due: number
+          included_team_count?: number
+          extra_team_count?: number
+          extra_team_fee?: number
           status: 'unpaid' | 'paid' | 'comped'
           promo_code_id?: string | null
           paddle_transaction_id?: string | null
@@ -425,6 +431,9 @@ export type Database = {
         Update: {
           status?: 'unpaid' | 'paid' | 'comped'
           paddle_transaction_id?: string | null
+          included_team_count?: number
+          extra_team_count?: number
+          extra_team_fee?: number
         }
         Relationships: []
       }

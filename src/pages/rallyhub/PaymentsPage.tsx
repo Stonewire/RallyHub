@@ -36,8 +36,11 @@ function InvoiceRow({
     invoice.status === 'comped'
       ? `€0 (comped, was ${formatEur(Number(invoice.amount))})`
       : invoice.discount > 0
-        ? `${formatEur(Number(invoice.amount_due))} (${formatEur(Number(invoice.amount))} − ${invoice.discount}%)`
+        ? `${formatEur(Number(invoice.amount_due))} (${formatEur(Number(invoice.amount))} − ${formatEur(Number(invoice.discount))})`
         : formatEur(Number(invoice.amount_due))
+  const teamChargeLine = (invoice.extra_team_count ?? 0) > 0
+    ? `${invoice.extra_team_count} additional team${invoice.extra_team_count === 1 ? '' : 's'} · ${formatEur(Number(invoice.extra_team_fee ?? 0))}`
+    : null
 
   return (
     <li className="border-border/80 flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
@@ -60,6 +63,9 @@ function InvoiceRow({
         <p className="text-muted-foreground text-xs">
           Invoiced {formatInvoiceDate(invoice.created_at)}
         </p>
+        {teamChargeLine ? (
+          <p className="text-muted-foreground text-xs">{teamChargeLine}</p>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <p className="text-foreground text-sm font-semibold tabular-nums">{amountLine}</p>

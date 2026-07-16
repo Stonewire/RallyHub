@@ -1,16 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  additionalTeamCharge,
   formatDualMonthlyPriceLine,
   getPlan,
   planPriceDisplay,
 } from './subscription-plans'
 
-// These limits are enforced server-side by plan_monthly_event_limit() /
-// plan_team_limit() in migration 20260714120000_pay1_entitlement_gate.sql.
-// If these values change here, change the SQL functions too, or the gate and
-// the pricing display will disagree.
-describe('plan limits (mirror of the SQL entitlement gate)', () => {
+describe('additionalTeamCharge', () => {
+  it.each([
+    [5, 0, 0],
+    [6, 1, 10],
+    [8, 3, 30],
+    [20, 15, 150],
+  ])('%i teams produces %i additional teams and €%i', (teams, count, amount) => {
+    expect(additionalTeamCharge(teams)).toEqual({ count, amountEur: amount })
+  })
+})
+
+// Event allowances are enforced by plan_monthly_event_limit(). Team values are
+// the included billing threshold; Postgres charges above them at activation.
+describe('plan allowances (mirror of server billing rules)', () => {
   it.each([
     ['rookie', null, 5],
     ['arena', 2, 5],

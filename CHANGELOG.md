@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.12.1 - 2026-07-16 (additional-team billing)
+
+- New events now start with the five teams included in every standard plan.
+- Adding a sixth or later team immediately shows the €10-per-team charge and
+  the total add-on amount in the event editor.
+- Activation confirmation now itemises additional-team charges. The server
+  snapshots extra-team quantity and fee into the invoice and Paddle charges the
+  resulting authoritative total automatically.
+- Event and educational promo discounts continue to apply to the base event fee;
+  purchased team capacity remains €10 per additional team.
+- Invoice history now itemises the base event fee and additional-team charge.
+
 ## V2.12.0 - 2026-07-16 (final pricing and release branches)
 
 - Replaced the previous five-tier pricing ladder with the final four offers:
@@ -13,8 +25,7 @@ third = small fixes (e.g. 2.1.1).
 - Starter now includes 2 events per month; Pay Per Event and Pro have no monthly
   event cap. All three standard offers include up to 5 teams per event.
 - Pro now advertises optional per-event RallyHub branding removal. Additional
-  teams are presented as purchasable capacity; checkout remains unavailable
-  until the add-on price and Paddle product are configured.
+  teams are presented as purchasable capacity; their billing lands in V2.12.1.
 - Removed Business from registration, plan comparison, subscription changes,
   and Paddle pricing. Any leftover test/demo Business records migrate to Pro.
 - Removed the unapproved automatic one-month signup trial from new paid accounts.

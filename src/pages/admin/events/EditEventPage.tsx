@@ -225,6 +225,7 @@ export function AdminEventEditPage() {
                   eventStatus,
                   status,
                   eventQuery.data.name,
+                  eventQuery.data.team_count,
                   eventQuery.data.activated_at,
                   () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
                 )

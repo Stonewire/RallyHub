@@ -135,8 +135,8 @@ Verify, in order:
    PDF can be opened.
 6. A Pay Per Event event produces €199 and Pro produces €99 in controlled
    checks; do not complete unnecessary charges. Confirm Starter blocks a third
-   monthly activation and each standard plan blocks more than five teams until
-   add-on products are implemented.
+   monthly activation. Activate a six-team test event and confirm its invoice
+   and Paddle transaction include exactly one €10 additional-team charge.
 7. Account deletion schedules renewal cancellation and restore reverses that
    schedule before testing permanent deletion on a disposable organization.
 

@@ -1,7 +1,10 @@
 import {
+  ADDITIONAL_TEAM_PRICE_EUR,
+  additionalTeamCharge,
   formatEur,
   formatPlanLabel,
   getPlan,
+  INCLUDED_TEAMS_PER_EVENT,
   normalizePlanId,
   type PlanId,
 } from '@/lib/subscription-plans'
@@ -9,6 +12,8 @@ import {
 export type EventActivationWarning = {
   planId: PlanId
   billAmountEur: number
+  extraTeamCount: number
+  extraTeamChargeEur: number
   isComped: boolean
   title: string
   message: string
@@ -21,15 +26,22 @@ export function getEventActivationWarning(
   eventPromoDiscountPercent = 0,
   /** Approved-educational orgs get 50% off, stacked after the promo (server-side). */
   educationalApproved = false,
+  /** Saved team count for the event being activated. */
+  teamCount = INCLUDED_TEAMS_PER_EVENT,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
   const baseAmount = plan.perEventPriceEur
+  const teamCharge = additionalTeamCharge(teamCount)
+  const extraTeamCount = teamCharge.count
+  const extraTeamChargeEur = teamCharge.amountEur
 
   if (planId === 'partner') {
     return {
       planId,
       billAmountEur: 0,
+      extraTeamCount: 0,
+      extraTeamChargeEur: 0,
       isComped: true,
       title: 'Activate event',
       message:
@@ -46,6 +58,8 @@ export function getEventActivationWarning(
     return {
       planId,
       billAmountEur: 0,
+      extraTeamCount: 0,
+      extraTeamChargeEur: 0,
       isComped: true,
       title: 'Activate event',
       message:
@@ -57,14 +71,24 @@ export function getEventActivationWarning(
   }
 
   const discountPct = Math.min(100, Math.max(0, Math.round(eventPromoDiscountPercent)))
-  const afterPromo = Math.max(baseAmount - Math.round((baseAmount * discountPct) / 100), 0)
+  const afterPromo = Math.max(
+    Math.round(baseAmount * (1 - discountPct / 100) * 100) / 100,
+    0,
+  )
   // Educational 50% stacks on top of the promo discount (matches migration 059).
-  const billAmountEur = educationalApproved ? Math.round(afterPromo / 2) : afterPromo
+  const discountedBaseAmount = educationalApproved
+    ? Math.round((afterPromo / 2) * 100) / 100
+    : afterPromo
+  // Event discounts apply to the event itself. Purchased team capacity remains
+  // €10/team so a generic promo cannot silently grant unpaid add-ons.
+  const billAmountEur = discountedBaseAmount + extraTeamChargeEur
 
   if (billAmountEur === 0) {
     return {
       planId,
       billAmountEur: 0,
+      extraTeamCount,
+      extraTeamChargeEur,
       isComped: true,
       title: 'Activate event',
       message:
@@ -77,8 +101,14 @@ export function getEventActivationWarning(
   const priceLabel = formatEur(billAmountEur)
   const promoNote =
     discountPct > 0
-      ? ` A promo code applies ${discountPct}% off (was ${formatEur(baseAmount)}).`
+      ? ` A promo code applies ${discountPct}% off the ${formatEur(baseAmount)} event fee.`
       : ''
+  const educationalNote = educationalApproved
+    ? ' The approved educational discount applies to the remaining event fee.'
+    : ''
+  const teamChargeNote = extraTeamCount > 0
+    ? ` This includes ${formatEur(extraTeamChargeEur)} for ${extraTeamCount} additional team${extraTeamCount === 1 ? '' : 's'} at ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} each.`
+    : ' Five teams are included at no additional charge.'
 
   // Pay Per Event has no subscription, so it usually has no card on file — it
   // pays the invoice afterwards. If a card IS saved, the charge happens
@@ -91,10 +121,12 @@ export function getEventActivationWarning(
   return {
     planId,
     billAmountEur,
+    extraTeamCount,
+    extraTeamChargeEur,
     isComped: false,
     title: 'Activate event — billing confirmation',
     message:
-      `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan.${promoNote} ` +
+      `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan.${teamChargeNote}${promoNote}${educationalNote} ` +
       `${paymentNote} ` +
       'If you have not started the event yet, keep it at Ready status to avoid being billed. ' +
       'Once activated, an event cannot be run again — duplicate it to schedule another session.',

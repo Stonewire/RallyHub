@@ -18,6 +18,11 @@ import {
 } from '@/lib/event-form-utils'
 import type { EventStage } from '@/types/game-config'
 import { cn } from '@/lib/utils'
+import {
+  ADDITIONAL_TEAM_PRICE_EUR,
+  additionalTeamCharge,
+  formatEur,
+} from '@/lib/subscription-plans'
 
 const BRAND_LABELS = ['Primary', 'Secondary', 'Accent'] as const
 
@@ -57,6 +62,7 @@ export function EventForm({
   // be removed together when that event is permanently deleted.
   const [newEventStorageKey] = useState(() => crypto.randomUUID())
   const brandingStorageKey = storageKey ?? newEventStorageKey
+  const teamCharge = additionalTeamCharge(values.teamCount)
 
   const {
     name,
@@ -261,6 +267,25 @@ export function EventForm({
             </p>
           ) : null}
         </div>
+        {maxTeamCount > 2 ? (
+          teamCharge.count > 0 ? (
+            <div className="border-primary/40 bg-primary/5 rounded-lg border px-4 py-3 text-sm">
+              <p className="text-foreground font-medium">
+                Additional-team charge: {formatEur(teamCharge.amountEur)}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                Five teams are included. {teamCharge.count} additional team
+                {teamCharge.count === 1 ? '' : 's'} × {formatEur(ADDITIONAL_TEAM_PRICE_EUR)} will
+                be added automatically to this event's bill when it is activated.
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Five teams are included. Each additional team costs {formatEur(ADDITIONAL_TEAM_PRICE_EUR)}
+              {' '}and is added to the event bill on activation.
+            </p>
+          )
+        ) : null}
         <ul className="grid gap-3 sm:grid-cols-2">
           {teams.map((team) => (
             <li

@@ -49,8 +49,15 @@ export function formatInvoiceAmountLine(invoice: {
   return formatEur(invoice.amount_due)
 }
 
-export function formatInvoicePlanLine(planKey: string, amount: number): string {
-  return `${formatPlanLabel(planKey)} · ${formatEur(amount)} per event`
+export function formatInvoicePlanLine(
+  planKey: string,
+  amount: number,
+  extraTeamCount = 0,
+  extraTeamFee = 0,
+): string {
+  const base = `${formatPlanLabel(planKey)} · ${formatEur(amount - extraTeamFee)} event fee`
+  if (extraTeamCount <= 0) return base
+  return `${base} · ${extraTeamCount} extra team${extraTeamCount === 1 ? '' : 's'} (${formatEur(extraTeamFee)})`
 }
 
 export function sumUnpaidDue(

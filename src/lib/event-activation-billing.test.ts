@@ -20,6 +20,27 @@ describe('getEventActivationWarning', () => {
     expect(warning.isComped).toBe(true)
     expect(warning.message).toContain('promo code makes this event free')
   })
+
+  it('adds €10 for every team above the five included teams', () => {
+    const warning = getEventActivationWarning('arena', 0, false, 8)
+    expect(warning.extraTeamCount).toBe(3)
+    expect(warning.extraTeamChargeEur).toBe(30)
+    expect(warning.billAmountEur).toBe(179)
+    expect(warning.message).toContain('€30 for 3 additional teams at €10 each')
+  })
+
+  it('does not discount purchased team capacity with an event promo', () => {
+    const warning = getEventActivationWarning('pro', 100, false, 7)
+    expect(warning.billAmountEur).toBe(20)
+    expect(warning.isComped).toBe(false)
+    expect(warning.confirmLabel).toBe('Activate and bill €20')
+  })
+
+  it('shows exact cents for an educational discount', () => {
+    const warning = getEventActivationWarning('arena', 0, true, 5)
+    expect(warning.billAmountEur).toBe(74.5)
+    expect(warning.confirmLabel).toBe('Activate and bill €74.50')
+  })
 })
 
 describe('formatLimitResetDate', () => {

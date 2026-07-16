@@ -13,7 +13,7 @@ export type SubscriptionPlan = {
   perEventPriceEur: number
   /** Max events per calendar month, or null for unlimited. */
   monthlyEventLimit: number | null
-  /** Max teams/players per event, or null for unlimited. */
+  /** Teams included in the event price, or null for a custom/unlimited plan. */
   teamLimit: number | null
   billingPeriods: BillingPeriod[]
   /** Hidden plans are omitted from client-facing plan lists. */
@@ -23,7 +23,7 @@ export type SubscriptionPlan = {
   /** True when pricing is negotiated directly rather than shown/self-serve (Custom). */
   priceOnRequest: boolean
   brandingRemoval: BrandingRemoval
-  /** Extra team capacity can be bought separately once the add-on is configured. */
+  /** Extra team capacity can be bought separately. */
   additionalTeamsAvailable: boolean
 }
 
@@ -112,6 +112,17 @@ export const PLAN_IDS = Object.keys(SUBSCRIPTION_PLANS) as PlanId[]
 
 export const BILLING_PERIODS: BillingPeriod[] = ['monthly', 'yearly']
 
+export const INCLUDED_TEAMS_PER_EVENT = 5
+export const ADDITIONAL_TEAM_PRICE_EUR = 10
+
+export function additionalTeamCharge(teamCount: number): {
+  count: number
+  amountEur: number
+} {
+  const count = Math.max(0, Math.floor(teamCount) - INCLUDED_TEAMS_PER_EVENT)
+  return { count, amountEur: count * ADDITIONAL_TEAM_PRICE_EUR }
+}
+
 /** Shown near any customer-facing price/plan display. VAT is not charged yet. */
 export const VAT_DISCLAIMER = 'All prices exclude VAT.'
 
@@ -170,10 +181,12 @@ export function formatPlanLabel(plan: string | null | undefined): string {
 
 export function formatEur(amount: number): string {
   if (amount === 0) return '€0'
+  const hasCents = !Number.isInteger(amount)
   return new Intl.NumberFormat('en-IE', {
     style: 'currency',
     currency: 'EUR',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
   }).format(amount)
 }
 
@@ -206,9 +219,9 @@ export function formatPerEventPrice(plan: SubscriptionPlan): string {
 /** Teams/players allowed per event on this plan, or unlimited. */
 export function formatTeamLimit(plan: SubscriptionPlan): string {
   if (plan.teamLimit === null) return 'Unlimited teams / players per event'
-  const base = `Max ${plan.teamLimit} teams per event`
+  const base = `${plan.teamLimit} teams included per event`
   return plan.additionalTeamsAvailable
-    ? `${base} · additional teams available to purchase`
+    ? `${base} · additional teams ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} each`
     : base
 }
 

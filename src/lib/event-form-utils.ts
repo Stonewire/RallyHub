@@ -7,6 +7,7 @@ import {
 } from '@/lib/live-event'
 import type { EventStage, EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
+import { INCLUDED_TEAMS_PER_EVENT } from '@/lib/subscription-plans'
 
 export type EventFormValues = {
   name: string
@@ -132,8 +133,8 @@ export function emptyEventForm(): EventFormValues {
   return {
     name: '',
     eventDate: '',
-    teamCount: 4,
-    teams: defaultTeams(4),
+    teamCount: INCLUDED_TEAMS_PER_EVENT,
+    teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),
     brandingEnabled: true,
     logoUrl: null,
     brandColors: ['#3E3D3E', '#6f6f6f', '#FFC107'],

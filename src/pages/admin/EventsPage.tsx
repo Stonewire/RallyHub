@@ -120,6 +120,7 @@ export function AdminEventsPage() {
       event.status as EventStatus,
       status,
       event.name,
+      event.team_count,
       event.activated_at,
       () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
     )
@@ -140,6 +141,7 @@ export function AdminEventsPage() {
       event.status as EventStatus,
       newStatus,
       event.name,
+      event.team_count,
       event.activated_at,
       () => applyReorder(eventId, newStatus, indexInGroup),
     )

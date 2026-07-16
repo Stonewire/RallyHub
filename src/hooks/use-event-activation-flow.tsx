@@ -17,6 +17,7 @@ import type { EventStatus } from '@/types/database'
 type PendingActivation = {
   eventId: string
   eventName: string
+  teamCount: number
   onConfirm: () => Promise<void>
 }
 
@@ -41,15 +42,14 @@ export function useEventActivationFlow({
   const bestEventDiscount = (redemptionsQuery.data ?? [])
     .filter((r) => r.purpose === 'event' && r.status === 'active')
     .reduce((max, r) => Math.max(max, r.discount_percent), 0)
-  const warning = getEventActivationWarning(
-    billingPlan,
-    bestEventDiscount,
-    isEducationalApproved(educationalStatus),
-  )
-
   const requestActivation = useCallback(
-    (eventId: string, eventName: string, onConfirm: () => Promise<void>) => {
-      setPending({ eventId, eventName, onConfirm })
+    (
+      eventId: string,
+      eventName: string,
+      teamCount: number,
+      onConfirm: () => Promise<void>,
+    ) => {
+      setPending({ eventId, eventName, teamCount, onConfirm })
     },
     [],
   )
@@ -100,6 +100,7 @@ export function useEventActivationFlow({
       currentStatus: EventStatus,
       nextStatus: EventStatus,
       eventName: string,
+      teamCount: number,
       activatedAt: string | null | undefined,
       applyChange: () => Promise<void>,
     ) => {
@@ -112,7 +113,7 @@ export function useEventActivationFlow({
         return
       }
       if (isActivationBillingRequired(currentStatus, nextStatus, activatedAt)) {
-        requestActivation(eventId, eventName, applyChange)
+        requestActivation(eventId, eventName, teamCount, applyChange)
         return
       }
       void applyChange()
@@ -122,6 +123,12 @@ export function useEventActivationFlow({
 
   function ActivationDialog() {
     if (!pending) return null
+    const warning = getEventActivationWarning(
+      billingPlan,
+      bestEventDiscount,
+      isEducationalApproved(educationalStatus),
+      pending.teamCount,
+    )
     return (
       <EventActivationConfirmDialog
         eventName={pending.eventName}

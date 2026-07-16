@@ -58,7 +58,12 @@ export function EventInvoiceRow({
           {formatEventDate(eventDate)} · {teamCount} team{teamCount === 1 ? '' : 's'}
         </p>
         <p className="text-muted-foreground text-xs">
-          {formatInvoicePlanLine(invoice.plan_key, Number(invoice.amount))}
+          {formatInvoicePlanLine(
+            invoice.plan_key,
+            Number(invoice.amount),
+            invoice.extra_team_count ?? 0,
+            Number(invoice.extra_team_fee ?? 0),
+          )}
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">

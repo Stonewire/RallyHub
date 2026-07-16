@@ -46,6 +46,16 @@ function toMinorUnits(amountEur: number): string {
   return Math.round(amountEur * 100).toString()
 }
 
+function eventChargeDescription(
+  planName: string,
+  extraTeamCount: number | null | undefined,
+  extraTeamFee: number | string | null | undefined,
+): string {
+  const count = Number(extraTeamCount ?? 0)
+  if (count <= 0) return `Event activation — ${planName} plan`
+  return `Event activation — ${planName} plan + ${count} additional team${count === 1 ? '' : 's'} (€${Number(extraTeamFee ?? 0)})`
+}
+
 type PaddleOrg = {
   id: string
   name: string
@@ -314,7 +324,7 @@ Deno.serve(async (req) => {
 
       const { data: invoice, error: invErr } = await admin
         .from('invoices')
-        .select('id, organization_id, plan_key, amount_due, status')
+        .select('id, organization_id, plan_key, amount_due, status, extra_team_count, extra_team_fee')
         .eq('id', invoiceId)
         .single()
       if (invErr || !invoice) return json({ error: 'Invoice not found' }, 404)
@@ -341,7 +351,11 @@ Deno.serve(async (req) => {
             {
               quantity: 1,
               price: {
-                description: `Event activation — ${planName} plan`,
+                description: eventChargeDescription(
+                  planName,
+                  invoice.extra_team_count,
+                  invoice.extra_team_fee,
+                ),
                 name: 'Event activation',
                 unit_price: { amount: toMinorUnits(Number(invoice.amount_due)), currency_code: 'EUR' },
                 tax_mode: 'account_setting',
@@ -377,7 +391,7 @@ Deno.serve(async (req) => {
 
       const { data: invoice } = await admin
         .from('invoices')
-        .select('id, organization_id, plan_key, amount_due, status')
+        .select('id, organization_id, plan_key, amount_due, status, extra_team_count, extra_team_fee')
         .eq('id', invoiceId)
         .single()
 
@@ -408,7 +422,11 @@ Deno.serve(async (req) => {
               {
                 quantity: 1,
                 price: {
-                  description: `Event activation — ${planName} plan`,
+                  description: eventChargeDescription(
+                    planName,
+                    invoice.extra_team_count,
+                    invoice.extra_team_fee,
+                  ),
                   name: 'Event activation',
                   unit_price: {
                     amount: toMinorUnits(Number(invoice.amount_due)),

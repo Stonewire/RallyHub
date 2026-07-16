@@ -15,9 +15,10 @@ is modelled as a standard self-serve plan.
 | Pro | €200 | €1,800 | €99 | Unlimited | 5 |
 | Custom | Contact us | Contact us | Custom | Custom | Custom |
 
-- Additional teams are available as a per-event purchase on Pay Per Event,
-  Starter, and Pro. The add-on price and Paddle product still need to be decided;
-  until then, the activation gate enforces the included five teams.
+- Additional teams cost €10 each on Pay Per Event, Starter, and Pro. Their count
+  and fee are snapshotted into the event invoice at activation and included in
+  the exact amount charged by Paddle. Event and educational discounts apply to
+  the base event fee only, not purchased team capacity.
 - Pro can remove RallyHub branding per event for an additional cost. That add-on
   price and Paddle product also still need to be decided.
 - Business is retired. There are no active customers to grandfather.
@@ -33,8 +34,8 @@ is modelled as a standard self-serve plan.
   unpaid.
 - The event activates before its per-event charge runs in the background, so a
   payment delay or failure does not interrupt a live event.
-- Monthly event and included-team limits are enforced by the database activation
-  trigger, not only by the website.
+- Monthly event limits and additional-team charges are enforced by the database
+  activation flow, not calculated from browser-supplied prices.
 - Only the organisation's client admin or a RallyHub super admin may open Paddle
   checkout or manage billing.
 
