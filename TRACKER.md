@@ -152,6 +152,20 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
+- [~] **INVENTORY-1 Physical item library:** implemented on Level 1 branch
+  `feature/inventory`. Tenant admins can create reusable items with optional
+  photos/descriptions and point prices, copy stable purchase links, download a
+  single QR PNG, or export selected/all QR cards as a print-ready A4 PDF. Player
+  Quest screens include a Buy Items button that opens an in-app rear-camera QR
+  scanner; successful scans show the item, price, and team balance before any
+  points are deducted. Purchases atomically deduct points and keep an audit record.
+  A private per-device team token prevents one participant spending another team's
+  points, and row locking prevents concurrent double-spends. Purchase RPCs also
+  support signed-in test browsers but still require both the live-event token and
+  private team token. The participant team-field guard permits only the validated,
+  transaction-marked Inventory deduction; direct participant score edits remain
+  blocked. Awaiting Level 1 product testing before promotion to `dev`.
+
 - [x] **MKT-1** Marketing homepage redesign — **live in V2.5.0**. Rebuilt `rallyhub.games` from the design handoff (`Marketing Page Design/`) into maintainable components under `src/components/marketing/home/` + `src/styles/marketing-home.css`. Verified: build/lint/tests pass, no console errors, no horizontal overflow at 375px, mobile menu + palette preview + form validation all work, dark mode holds. Optimised hero/display images + real OG image added. Accuracy guardrails applied (no instant-scoring-for-all, no client-management or free-event claims).
 - [x] **CONTACT-1** Marketing demo form backend — **live in V2.5.1**. `submit-contact` Edge Function (deployed) validates + honeypot + per-IP rate limit, stores every lead in `contact_submissions` (RLS super-admin read), emails via Resend when `RESEND_API_KEY` is set (graceful degradation: lead saved even without the key). Frontend wired with loading/success/error + mailto fallback. Verified end to end. **Remaining (Rumen, dashboard):** set `RESEND_API_KEY` (+ optional `CONTACT_TO_EMAIL`/`CONTACT_FROM_EMAIL`) Edge Function secrets to turn on the email — see `docs/RESEND-SETUP.md`. Confirm the `hello@rallyhub.games` inbox exists/forwards.
 - [~] **EMAIL-1** Transactional email via Resend — **code/deliverables done in V2.5.1**, dashboard config remains. Branded auth templates in `docs/email/rallyhub-auth-templates.html`; full guide in `docs/RESEND-SETUP.md`. Decision stands: Resend as Supabase Auth **Custom SMTP** (built-in sender is test-only). **Remaining (Rumen, one-time):** create Resend account, verify rallyhub.games domain (SPF/DKIM DNS), then in Supabase → Auth → SMTP Settings enter Resend SMTP (`smtp.resend.com`, user `resend`, pass = API key) and paste the templates. Reuse the same Resend account for CONTACT-1 and later non-auth email (invoices once PAY-1 lands).

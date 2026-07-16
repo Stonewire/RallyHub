@@ -23,6 +23,7 @@ import {
 } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { MusicCatalogManager } from '@/components/games/MusicCatalogManager'
+import { InventoryLibraryManager } from '@/components/games/InventoryLibraryManager'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -167,7 +168,7 @@ export function AdminGamesPage() {
   const restoreGame = useRestoreGame(organizationId)
   const navigate = useNavigate()
 
-  const [view, setView] = useState<'games' | 'catalog' | 'bin'>('games')
+  const [view, setView] = useState<'games' | 'catalog' | 'inventory' | 'bin'>('games')
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
@@ -337,7 +338,7 @@ export function AdminGamesPage() {
           : 'List and manage game templates and configurations.'
       }
       actions={
-        <>
+        view === 'games' ? <>
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
             Import
           </NeoButton>
@@ -347,7 +348,7 @@ export function AdminGamesPage() {
           <NeoButton variant="accent" asChild>
             <Link to="/admin/games/new" data-tour="new-game-button">Create New Game</Link>
           </NeoButton>
-        </>
+        </> : undefined
       }
     >
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -367,6 +368,16 @@ export function AdminGamesPage() {
         >
           Music {isPlatformLibrary ? 'Library' : 'Catalog'}
         </NeoButton>
+        {!isPlatformLibrary ? (
+          <NeoButton
+            type="button"
+            size="sm"
+            variant={view === 'inventory' ? 'primary' : 'surface'}
+            onClick={() => setView('inventory')}
+          >
+            Inventory Library
+          </NeoButton>
+        ) : null}
         <NeoButton
           type="button"
           size="sm"
@@ -390,6 +401,8 @@ export function AdminGamesPage() {
 
       {view === 'catalog' && organizationId ? (
         <MusicCatalogManager organizationId={organizationId} />
+      ) : view === 'inventory' && organizationId && !isPlatformLibrary ? (
+        <InventoryLibraryManager organizationId={organizationId} />
       ) : view === 'bin' ? (
         <BinPanel
           items={(trashedGamesQuery.data ?? []).map((g) => ({

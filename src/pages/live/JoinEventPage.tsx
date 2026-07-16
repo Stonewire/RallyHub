@@ -36,6 +36,10 @@ import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadParticipantAsset } from '@/lib/storage'
 import { hasAcknowledgedParticipantNotice } from '@/lib/legal-acceptance'
+import {
+  clearCurrentParticipantSession,
+  saveCurrentParticipantSession,
+} from '@/lib/participant-session'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
@@ -93,6 +97,7 @@ export function JoinEventPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage, a real external system, to restore the returning device's team
       setTeamId(saved)
       setJustJoined(false)
+      saveCurrentParticipantSession(eventId, saved)
     } else {
       // Team was deleted or name cleared — purge stale ID so the join screen shows
       localStorage.removeItem(teamKey(eventId))
@@ -185,18 +190,28 @@ export function JoinEventPage() {
         )
       }
       const trimmed = claimName.trim()
-      const { data: updatedTeam, error: updateError } = await supabase
-        .from('teams')
-        .update({
-          name: trimmed,
-          photo_url: photoUrl,
-          status: 'active',
+      const { data: claimResult, error: updateError } = await supabase
+        .rpc('claim_team_with_inventory_access', {
+          p_event_id: eventId,
+          p_team_id: claimSlot.id,
+          p_name: trimmed,
+          p_photo_url: photoUrl,
         })
-        .eq('id', claimSlot.id)
-        .select()
-        .single()
 
       if (updateError) throw updateError
+      const claimed = claimResult?.[0]
+      if (!claimed) throw new Error('Could not claim this team.')
+      const updatedTeam: Tables<'teams'> = {
+        id: claimed.id,
+        event_id: claimed.event_id,
+        name: claimed.name,
+        color: claimed.color,
+        photo_url: claimed.photo_url,
+        score: claimed.score,
+        status: claimed.status,
+        slot_number: claimed.slot_number,
+        created_at: claimed.created_at,
+      }
 
       // Fan-out to facilitator/display — must not block the join UX.
       if (updatedTeam) {
@@ -216,6 +231,7 @@ export function JoinEventPage() {
       })
 
       localStorage.setItem(teamKey(eventId), claimSlot.id)
+      saveCurrentParticipantSession(eventId, claimSlot.id, claimed.inventory_purchase_token)
       setTeamId(claimSlot.id)
       setJustJoined(true)
       setClaimSlot(null)
@@ -247,6 +263,7 @@ export function JoinEventPage() {
   function clearTeamSession() {
     if (!eventId) return
     localStorage.removeItem(teamKey(eventId))
+    clearCurrentParticipantSession(eventId, teamId ?? undefined)
     setTeamId(null)
     setJustJoined(false)
   }
