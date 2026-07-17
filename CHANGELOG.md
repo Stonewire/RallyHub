@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.0 - 2026-07-17 (Inventory purchases)
+
+- Added an organization Inventory Library under Games. Admins can create reusable
+  physical items with a name, optional description/photo, and point price.
+- Inventory items provide stable purchase links plus individual, selected, and
+  all-item QR exports, including print-ready A4 QR cards.
+- Quest participants can open a phone QR scanner, review an item's details and
+  price, and confirm or cancel before spending team points.
+- Purchases are atomic and server-authorized: insufficient balances are rejected,
+  concurrent double-spends are prevented, and private participant tokens stop one
+  team from purchasing against another team's score.
+- Facilitators now receive live purchase notifications above Submissions showing
+  the team, item, point cost, time, and purchase count. Purchase history remains
+  visible after reload.
+- Added regression coverage for QR payloads and participant session persistence,
+  plus Realtime and RLS support for the protected purchase history.
+
 ## V2.12.1 - 2026-07-16 (additional-team billing)
 
 - New events now start with the five teams included in every standard plan.
