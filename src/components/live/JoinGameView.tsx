@@ -1,6 +1,7 @@
-import { LogOut, MessageCircle } from 'lucide-react'
+import { LogOut, MessageCircle, QrCode } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
@@ -12,6 +13,7 @@ import {
   ParticipantExitDialog,
 } from '@/components/live/participant/JoinGameOverlays'
 import { ParticipantBingoNotice } from '@/components/live/participant/ParticipantBingoNotice'
+import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
@@ -146,6 +148,7 @@ export function JoinGameView({
     teamId,
   )
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   // When the facilitator starts (or restarts) bingo, the run + team cards are
   // created server-side and event_state.bingo_state flips via realtime. The run
@@ -182,6 +185,12 @@ export function JoinGameView({
   const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
+
+  const handleInventoryItemScanned = useCallback((publicCode: string) => {
+    setInventoryScannerOpen(false)
+    navigate(`/inventory/item/${publicCode}`)
+  }, [navigate, setInventoryScannerOpen])
 
   // Mint a signed upload URL when a photo/video challenge opens, moving the
   // authorization round trip out of the submit path. Key it by game id so one
@@ -1021,17 +1030,24 @@ export function JoinGameView({
       body = (
         <div className="mx-auto w-full max-w-lg px-3 pt-1">
           {!submitting ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mb-3 w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
-              onClick={() => {
-                setSelectedGame(null)
-                setCaptureActive(false)
-              }}
-            >
-              ← Back
-            </Button>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+                onClick={() => {
+                  setSelectedGame(null)
+                  setCaptureActive(false)
+                }}
+              >
+                ← Back
+              </Button>
+              {!captureActive ? (
+                <Button type="button" size="sm" className="gap-2 font-semibold" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
+                  <QrCode className="size-4" /> Buy Items
+                </Button>
+              ) : null}
+            </div>
           ) : null}
           {!canSubmit ? (
             <p
@@ -1090,21 +1106,26 @@ export function JoinGameView({
       )
     } else {
       body = (
-        <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4">
-          {openGames.map((g) => {
-            const sub = activeSubmissionForGame(mySubs, g.id)
-            return (
-              <OpenGameChallengeCard
-                key={g.id}
-                game={g}
-                submissionStatus={sub?.status}
-                accentColor={accent}
-                onAccentColor={onAccent}
-                canSubmit={canSubmit}
-                onSelect={() => setSelectedGame(g)}
-              />
-            )
-          })}
+        <div className="mx-auto max-w-2xl px-4">
+          <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
+            <QrCode className="size-5" /> Buy Items
+          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            {openGames.map((g) => {
+              const sub = activeSubmissionForGame(mySubs, g.id)
+              return (
+                <OpenGameChallengeCard
+                  key={g.id}
+                  game={g}
+                  submissionStatus={sub?.status}
+                  accentColor={accent}
+                  onAccentColor={onAccent}
+                  canSubmit={canSubmit}
+                  onSelect={() => setSelectedGame(g)}
+                />
+              )
+            })}
+          </div>
         </div>
       )
     }
@@ -1467,7 +1488,7 @@ export function JoinGameView({
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
 
-  const showChatFab = !chatOpen && !captureActive && !selectedGame
+  const showChatFab = !chatOpen && !captureActive && !selectedGame && !inventoryScannerOpen
 
   // Keep document scroll anchored at top when switching challenge views.
   useEffect(() => {
@@ -1516,7 +1537,7 @@ export function JoinGameView({
             document.body,
           )
         : null}
-      {!selectedGame && !chatOpen
+      {!selectedGame && !chatOpen && !inventoryScannerOpen
         ? createPortal(
             <Button
               type="button"
@@ -1533,7 +1554,13 @@ export function JoinGameView({
         : null}
       {header}
       <div className="w-full">{body}</div>
-      {typeof document !== 'undefined' && !chatOpen && !captureActive
+      {inventoryScannerOpen ? (
+        <InventoryQrScanner
+          onClose={() => setInventoryScannerOpen(false)}
+          onItemScanned={handleInventoryItemScanned}
+        />
+      ) : null}
+      {typeof document !== 'undefined' && !chatOpen && !captureActive && !inventoryScannerOpen
         ? createPortal(
             <div
               className="fixed left-4 z-[9999]"

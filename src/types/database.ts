@@ -779,6 +779,54 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          id: string
+          organization_id: string
+          public_code: string
+          name: string
+          description: string | null
+          points_cost: number
+          image_url: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          public_code?: string
+          name: string
+          description?: string | null
+          points_cost: number
+          image_url?: string | null
+          is_active?: boolean
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          points_cost?: number
+          image_url?: string | null
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_purchases: {
+        Row: {
+          id: string
+          inventory_item_id: string | null
+          organization_id: string
+          event_id: string
+          team_id: string
+          item_name: string
+          points_cost: number
+          created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       music_playlists: {
         Row: {
           id: string
@@ -927,6 +975,47 @@ export type Database = {
       increment_team_score: {
         Args: { p_team_id: string; p_delta: number }
         Returns: undefined
+      }
+      get_inventory_item_for_purchase: {
+        Args: { p_public_code: string; p_event_id: string }
+        Returns: {
+          id: string
+          name: string
+          description: string | null
+          points_cost: number
+          image_url: string | null
+        }[]
+      }
+      claim_team_with_inventory_access: {
+        Args: {
+          p_event_id: string
+          p_team_id: string
+          p_name: string
+          p_photo_url?: string | null
+        }
+        Returns: {
+          id: string
+          event_id: string
+          name: string | null
+          color: string | null
+          photo_url: string | null
+          score: number
+          status: string
+          slot_number: number
+          created_at: string
+          inventory_purchase_token: string
+        }[]
+      }
+      purchase_inventory_item: {
+        Args: { p_public_code: string; p_event_id: string; p_purchase_token: string }
+        Returns: {
+          purchase_id: string
+          item_id: string
+          team_id: string
+          item_name: string
+          points_cost: number
+          remaining_score: number
+        }[]
       }
       restart_bingo_run_scores: {
         Args: {

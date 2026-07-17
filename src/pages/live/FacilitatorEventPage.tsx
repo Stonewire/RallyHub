@@ -1,4 +1,4 @@
-import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, ShoppingBag, Volume2, VolumeX, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
@@ -39,6 +39,7 @@ import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
+import { useEventInventoryPurchases } from '@/hooks/use-inventory'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import {
   countClaimedTeams,
@@ -124,6 +125,7 @@ export function FacilitatorEventPage() {
     user?.email?.split('@')[0] ||
     'Facilitator'
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
+  const purchasesQuery = useEventInventoryPurchases(eventId)
   useDocumentTitle('Facilitator', bundle?.event?.name)
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
@@ -211,6 +213,7 @@ export function FacilitatorEventPage() {
   const stage = bundle ? currentStage(stages, bundle.state.current_stage_index) : null
   const state = bundle?.state
   const liveSubmissions = useMemo(() => bundle?.submissions ?? [], [bundle?.submissions])
+  const livePurchases = useMemo(() => purchasesQuery.data ?? [], [purchasesQuery.data])
   const bingoStageGameId =
     stage?.type === 'bingo' && stage.gameId ? stage.gameId : undefined
   const bingoGameForTracks = bingoStageGameId
@@ -497,6 +500,21 @@ export function FacilitatorEventPage() {
     }
     pendingSubmissionCountRef.current = pendingCount
   }, [liveSubmissions])
+
+  const purchaseCountRef = useRef(0)
+  const purchaseSoundReadyRef = useRef(false)
+  useEffect(() => {
+    if (!purchasesQuery.isSuccess) return
+    if (!purchaseSoundReadyRef.current) {
+      purchaseSoundReadyRef.current = true
+      purchaseCountRef.current = livePurchases.length
+      return
+    }
+    if (livePurchases.length > purchaseCountRef.current) {
+      playNewSubmissionSound()
+    }
+    purchaseCountRef.current = livePurchases.length
+  }, [livePurchases, purchasesQuery.isSuccess])
 
   // Play the winner celebration on the facilitator device when 'facilitator' is a
   // chosen sound target and the reveal reaches its final stage.
@@ -1975,6 +1993,56 @@ export function FacilitatorEventPage() {
           {stateError ? (
             <p className="text-destructive px-1 text-sm">{stateError}</p>
           ) : null}
+
+          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="size-4 text-amber-500" />
+                <p className="font-medium">Purchases</p>
+              </div>
+              <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
+                {livePurchases.length}
+              </span>
+            </div>
+            {purchasesQuery.isLoading ? (
+              <p className="text-muted-foreground text-sm">Loading purchases…</p>
+            ) : purchasesQuery.isError ? (
+              <p className="text-destructive text-sm">Could not load purchases.</p>
+            ) : livePurchases.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No purchases yet.</p>
+            ) : (
+              <ul className="max-h-[32vh] space-y-2 overflow-auto">
+                {livePurchases.map((purchase) => {
+                  const team = teams.find((row) => row.id === purchase.team_id)
+                  return (
+                    <li
+                      key={purchase.id}
+                      className="border-border/80 flex items-center gap-3 rounded-lg border p-3"
+                    >
+                      <div className="bg-amber-100 text-amber-900 flex size-9 shrink-0 items-center justify-center rounded-full">
+                        <ShoppingBag className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="font-medium">{team?.name?.trim() || 'Team'}</p>
+                        <p className="text-muted-foreground truncate">
+                          {purchase.item_name}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-semibold tabular-nums">{purchase.points_cost} pts</p>
+                        <p className="text-muted-foreground text-xs">
+                          {new Intl.DateTimeFormat(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }).format(new Date(purchase.created_at))}
+                        </p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Card>
 
           {!stage || stage.type === 'open' ? (
             <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">

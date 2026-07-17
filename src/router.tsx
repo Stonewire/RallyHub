@@ -28,6 +28,7 @@ import { SlugEventRedirect, TabletSlugRedirect } from '@/components/routing/Slug
 import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorLandingPage } from '@/pages/live/FacilitatorLandingPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
+import { InventoryPurchasePage } from '@/pages/live/InventoryPurchasePage'
 import { TabletPage } from '@/pages/live/TabletPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
 import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
@@ -121,6 +122,11 @@ export const router = createBrowserRouter([
   {
     path: '/join/:eventId',
     element: <JoinEventPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/inventory/item/:publicCode',
+    element: <InventoryPurchasePage />,
     errorElement: <RouteErrorBoundary />,
   },
   { path: '/tablet/:orgSlug/:tabletCode', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
