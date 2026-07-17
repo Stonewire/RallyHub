@@ -1,5 +1,5 @@
 
-import { getPlatformOrigin } from '@/lib/tenant'
+import { getCurrentAppOrigin } from '@/lib/app-origin'
 
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
 
@@ -23,7 +23,7 @@ export function getEventLinks(
   eventId: string,
   opts?: { clientSlug?: string | null; eventSlug?: string | null },
 ): EventLinks {
-  const base = getPlatformOrigin()
+  const base = getCurrentAppOrigin()
   const c = opts?.clientSlug?.trim()
   const e = opts?.eventSlug?.trim()
 

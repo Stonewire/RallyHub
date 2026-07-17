@@ -1,5 +1,5 @@
 import { qrCodeUrl } from '@/lib/event-links'
-import { getPlatformOrigin } from '@/lib/tenant'
+import { getCurrentAppOrigin } from '@/lib/app-origin'
 
 export type InventoryQrItem = {
   public_code: string
@@ -9,7 +9,7 @@ export type InventoryQrItem = {
 }
 
 export function getInventoryItemLink(publicCode: string) {
-  return `${getPlatformOrigin()}/inventory/item/${publicCode}`
+  return `${getCurrentAppOrigin()}/inventory/item/${publicCode}`
 }
 
 function safeFilename(value: string) {

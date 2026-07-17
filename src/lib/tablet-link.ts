@@ -1,4 +1,4 @@
-import { getPlatformOrigin } from '@/lib/tenant'
+import { getCurrentAppOrigin } from '@/lib/app-origin'
 
 export function slugifyOrgName(name: string): string {
   return name
@@ -24,5 +24,5 @@ export function getTabletPathParts(org: { name: string; tablet_slug: string }) {
 /** Shareable tablet link: app.rallyhub.games/{client-slug}/tablet. The client
  *  slug (org subdomain) is the only editable part; changing it regenerates this. */
 export function getTabletLink(org: { subdomain: string }) {
-  return `${getPlatformOrigin()}/${org.subdomain}/tablet`
+  return `${getCurrentAppOrigin()}/${org.subdomain}/tablet`
 }
