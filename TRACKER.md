@@ -160,6 +160,13 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   flow, and limited non-AI 5×5 crossword generator are specified in
   `docs/PUZZLES-FEATURE-PLAN.md` and await scoring confirmation before build work.
 
+- [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
+  display, teams, pretty event,
+  Inventory purchase, and tablet links now use the domain of the page currently
+  open. Copied links, opened links, individual QR images, and PDF QR exports
+  therefore stay inside the active Vercel preview, local environment, staging, or
+  production deployment.
+
 - [x] **INVENTORY-1 Physical item library:** live in V2.13.0. Tenant admins can
   create reusable items with optional
   photos/descriptions and point prices, copy stable purchase links, download a
