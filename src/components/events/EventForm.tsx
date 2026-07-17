@@ -112,7 +112,7 @@ export function EventForm({
     return selectedGames.filter((g) => {
       if (stageType === 'quiz') return g.type === 'quiz'
       if (stageType === 'bingo') return g.type === 'music_bingo'
-      return g.type === 'photo' || g.type === 'video' || g.type === 'text'
+      return g.type === 'photo' || g.type === 'video' || g.type === 'text' || g.type === 'puzzle'
     })
   }
 
@@ -498,7 +498,11 @@ export function EventForm({
                 // stage unions into the event automatically, so the modal step is
                 // no longer a prerequisite.
                 compatible={games.filter(
-                  (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
+                  (g) =>
+                    g.type === 'photo' ||
+                    g.type === 'video' ||
+                    g.type === 'text' ||
+                    g.type === 'puzzle',
                 )}
                 onChange={onChange}
               />
@@ -667,11 +671,12 @@ const QUEST_QUICK_FILTERS = [
   { label: 'All photo', type: 'photo' },
   { label: 'All video', type: 'video' },
   { label: 'All text', type: 'text' },
+  { label: 'All puzzles', type: 'puzzle' },
 ] as const
 
 type QuestStageGamesProps = {
   stage: EventStage
-  /** Photo/video/text games already in the event library. */
+  /** Photo/video/text/puzzle games available to the Quest stage. */
   compatible: GameRow[]
   onChange: EventFormProps['onChange']
 }
@@ -771,7 +776,7 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
         </div>
       ) : (
         <p className="text-muted-foreground text-xs">
-          No games in this stage yet — add photo, video, or text games below.
+          No games in this stage yet — add photo, video, text, or puzzle games below.
         </p>
       )}
 

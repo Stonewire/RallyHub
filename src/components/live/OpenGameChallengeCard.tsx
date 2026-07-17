@@ -1,4 +1,4 @@
-import { Camera, FileText, Video, type LucideIcon } from 'lucide-react'
+import { Camera, FileText, Puzzle, Video, type LucideIcon } from 'lucide-react'
 
 import { gamePointsDisplay } from '@/lib/live-event'
 import { isTextGame } from '@/lib/text-game'
@@ -24,6 +24,7 @@ type OpenGameChallengeCardProps = {
 function challengeTypeIcon(game: Tables<'games'>): LucideIcon {
   if (isTextGame(game)) return FileText
   if (game.type === 'video') return Video
+  if (game.type === 'puzzle') return Puzzle
   return Camera
 }
 

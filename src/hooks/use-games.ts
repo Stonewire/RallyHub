@@ -189,6 +189,7 @@ export const GAME_TYPE_LABELS: Record<GameType, string> = {
   text: 'Text',
   quiz: 'Quiz',
   music_bingo: 'Music Bingo',
+  puzzle: 'Puzzle',
 }
 
 export function useGame(gameId: string | undefined) {

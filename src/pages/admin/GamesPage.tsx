@@ -58,6 +58,7 @@ const FILTERS: { value: 'all' | GameType; label: string }[] = [
   { value: 'text', label: 'Text' },
   { value: 'quiz', label: 'Quiz' },
   { value: 'music_bingo', label: 'Music Bingo' },
+  { value: 'puzzle', label: 'Puzzle' },
 ]
 
 function GroupHeader({

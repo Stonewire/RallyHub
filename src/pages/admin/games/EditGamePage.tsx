@@ -9,6 +9,7 @@ import {
 } from '@/components/admin/QueryState'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
+import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -141,24 +142,39 @@ export function AdminGameEditPage() {
         return
       }
     }
+    if (gameType === 'puzzle') {
+      const puzzleError = validatePuzzleConfig(config)
+      if (puzzleError) {
+        setError(puzzleError)
+        return
+      }
+    }
     setSaving(true)
     setError(null)
     try {
       const isPhotoVideo = gameType === 'photo' || gameType === 'video'
+      const isPointConfigured = isPhotoVideo || gameType === 'puzzle'
       await updateGame.mutateAsync({
         gameId,
         patch: {
           name: name.trim(),
           description: description ? sanitizeRichText(description) : null,
           cover_url: coverUrl,
-          ...(isPhotoVideo
+          ...(isPointConfigured
             ? {
-                points_type: pointsType,
-                points_static: pointsType === 'static' ? pointsStatic : null,
-                points_min: pointsType === 'range' ? pointsMin : null,
-                points_max: pointsType === 'range' ? pointsMax : null,
-                solution_description: solutionDescription || null,
-                solution_image_url: solutionImageUrl,
+                points_type: gameType === 'puzzle' ? 'static' : pointsType,
+                points_static:
+                  gameType === 'puzzle' || pointsType === 'static' ? pointsStatic : null,
+                points_min:
+                  gameType !== 'puzzle' && pointsType === 'range' ? pointsMin : null,
+                points_max:
+                  gameType !== 'puzzle' && pointsType === 'range' ? pointsMax : null,
+                ...(isPhotoVideo
+                  ? {
+                      solution_description: solutionDescription || null,
+                      solution_image_url: solutionImageUrl,
+                    }
+                  : {}),
               }
             : {}),
           config:
@@ -266,6 +282,36 @@ export function AdminGameEditPage() {
               />
             </Card>
             <TextGameEditor config={config} setConfig={setConfig} />
+          </>
+        ) : null}
+
+        {gameType === 'puzzle' ? (
+          <>
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <FileField
+                label="Cover image"
+                preview={coverUrl}
+                onFile={async (file) => {
+                  if (!file) return
+                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
+                  setCoverUrl(url)
+                }}
+              />
+              <div className="space-y-2">
+                <Label>Maximum points</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={pointsStatic}
+                  onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
+                  className="max-w-[8rem] bg-background"
+                />
+                <p className="text-muted-foreground text-xs">
+                  The puzzle scoring rule reduces this amount based on guesses or mistakes.
+                </p>
+              </div>
+            </Card>
+            <PuzzleEditor config={config} setConfig={setConfig} />
           </>
         ) : null}
 

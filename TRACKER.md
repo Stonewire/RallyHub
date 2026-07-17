@@ -152,13 +152,15 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
-- [ ] **PUZZLES-1 Puzzle game family:** planned on Level 1 branch
+- [~] **PUZZLES-1 Puzzle game family:** first playable release built on Level 1 branch
   `feature/puzzles`. One top-level Puzzle type will contain Wordle and Matching in
   the first release, with Crossword visible as a disabled Upcoming option. Both
   active subtypes are Quest-stage games with automatic, server-authoritative
   scoring and synchronized team progress. The recommended scoring, secure data
   flow, and limited non-AI 5×5 crossword generator are specified in
-  `docs/PUZZLES-FEATURE-PLAN.md` and await scoring confirmation before build work.
+  `docs/PUZZLES-FEATURE-PLAN.md`. Unit, build, lint, and isolated database checks
+  pass; preview testing still needs the migration applied to the shared Supabase
+  project and a signed-in organizer session.
 
 - [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
   display, teams, pretty event,

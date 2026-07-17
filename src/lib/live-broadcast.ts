@@ -41,6 +41,7 @@ export type LiveBundlePatch =
       row: BingoRunBroadcastRow | null
     }
   | { kind: 'bingo_team_card'; runId: string; teamId: string; cells: BingoCell[] }
+  | { kind: 'puzzle_progress'; eventId: string; teamId: string; gameId: string }
   | { kind: 'full_reload' }
 
 const BROADCAST_READY_TIMEOUT_MS = 3_000
@@ -223,6 +224,19 @@ export async function publishLiveBundlePatch(
 
 export async function publishLiveBundleReload(eventId: string): Promise<void> {
   await publishLiveBundlePatch(eventId, { kind: 'full_reload' })
+}
+
+export async function publishPuzzleProgressChange(
+  eventId: string,
+  teamId: string,
+  gameId: string,
+): Promise<void> {
+  await publishLiveBundlePatch(eventId, {
+    kind: 'puzzle_progress',
+    eventId,
+    teamId,
+    gameId,
+  })
 }
 
 export async function publishSubmissionChange(

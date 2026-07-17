@@ -2,6 +2,21 @@ export type QuizAnswer = { id: string; text: string }
 
 export type TextAnswerMode = 'type_text' | 'choose_answer'
 
+export type PuzzleType = 'wordle' | 'matching' | 'crossword'
+
+export type PuzzleMatchingPair = {
+  id: string
+  leftId: string
+  rightId: string
+  left: string
+  right: string
+}
+
+export type PuzzleMatchingItem = {
+  id: string
+  text: string
+}
+
 export type QuizQuestion = {
   id: string
   text: string
@@ -59,6 +74,16 @@ export type GameConfig = {
   /** choose_answer: 2–6 options shown to teams. */
   text_options?: QuizAnswer[]
   text_correct_answer_id?: string
+  /** Puzzle subtype. Crossword is reserved but cannot be saved in the first release. */
+  puzzle_type?: PuzzleType
+  /** Wordle solution; removed from every participant live payload. */
+  puzzle_wordle_answer?: string
+  /** Derived by the live redactor so players know the grid width without the answer. */
+  puzzle_wordle_length?: number
+  /** Full private pair map; replaced by independent item lists in live payloads. */
+  puzzle_matching_pairs?: PuzzleMatchingPair[]
+  puzzle_matching_left_items?: PuzzleMatchingItem[]
+  puzzle_matching_right_items?: PuzzleMatchingItem[]
 }
 
 export type EventTeam = {

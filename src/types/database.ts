@@ -2,7 +2,7 @@ import type { Json } from '@/types/json'
 
 export type AppRole = 'super_admin' | 'client_admin' | 'event_manager' | 'facilitator'
 
-export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text'
+export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text' | 'puzzle'
 export type PointsType = 'static' | 'range'
 export type GameStatus = 'active' | 'draft' | 'archived' | 'ready'
 export type EventStatus = 'active' | 'demo' | 'ready' | 'draft' | 'archived'
@@ -906,6 +906,44 @@ export type Database = {
         }
         Relationships: []
       }
+      event_puzzle_progress: {
+        Row: {
+          event_id: string
+          team_id: string
+          game_id: string
+          puzzle_type: 'wordle' | 'matching'
+          attempts: number
+          wrong_matches: number
+          wordle_guesses: Json
+          matched_pair_ids: string[]
+          completed_at: string | null
+          points_awarded: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          event_id: string
+          team_id: string
+          game_id: string
+          puzzle_type: 'wordle' | 'matching'
+          attempts?: number
+          wrong_matches?: number
+          wordle_guesses?: Json
+          matched_pair_ids?: string[]
+          completed_at?: string | null
+          points_awarded?: number | null
+        }
+        Update: {
+          attempts?: number
+          wrong_matches?: number
+          wordle_guesses?: Json
+          matched_pair_ids?: string[]
+          completed_at?: string | null
+          points_awarded?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           id: string
@@ -1016,6 +1054,29 @@ export type Database = {
           points_cost: number
           remaining_score: number
         }[]
+      }
+      get_team_puzzle_progress: {
+        Args: { p_event_id: string; p_game_id: string; p_team_token: string }
+        Returns: Json
+      }
+      submit_wordle_guess: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_guess: string
+        }
+        Returns: Json
+      }
+      submit_matching_pair: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_left_id: string
+          p_right_id: string
+        }
+        Returns: Json
       }
       restart_bingo_run_scores: {
         Args: {

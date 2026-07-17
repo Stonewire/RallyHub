@@ -18,6 +18,7 @@ import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
+import { PuzzleGamePlayer } from '@/components/live/PuzzleGamePlayer'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { ChallengeMediaCaptureFlow } from '@/components/live/ChallengeMediaCaptureFlow'
@@ -95,6 +96,7 @@ import {
   resetEventWinnerAudioGuard,
 } from '@/lib/sounds'
 import { verifyTabletPassword } from '@/lib/tenant'
+import { isPuzzleGame } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
 import {
   mintParticipantUpload,
@@ -1083,6 +1085,13 @@ export function JoinGameView({
               accentColor={accent}
               disabled={submitting}
               onSubmit={(answer) => void submitTextGame(answer, activeOpenGame)}
+            />
+          ) : isPuzzleGame(activeOpenGame) ? (
+            <PuzzleGamePlayer
+              eventId={event.id}
+              teamId={teamId}
+              game={activeOpenGame}
+              accentColor={accent}
             />
           ) : (
             <ChallengeMediaCaptureFlow

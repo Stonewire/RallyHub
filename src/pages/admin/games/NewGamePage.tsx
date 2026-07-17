@@ -4,6 +4,7 @@ import {
   FileText,
   HelpCircle,
   Music2,
+  Puzzle,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
+import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -41,6 +43,7 @@ const TYPES: {
   { type: 'text', label: 'Text', icon: FileText, description: 'Typed or multiple-choice text answers' },
   { type: 'quiz', label: 'Quiz', icon: HelpCircle, description: 'Timed questions and optional rounds' },
   { type: 'music_bingo', label: 'Music Bingo', icon: Music2, description: 'Songs and a live bingo card' },
+  { type: 'puzzle', label: 'Puzzle', icon: Puzzle, description: 'Wordle, matching, and upcoming puzzle formats' },
 ]
 
 function emptyQuestion(): QuizQuestion {
@@ -90,6 +93,8 @@ export function AdminGamesNewPage() {
     rounds_enabled: false,
     rounds: [],
     tracks: [],
+    puzzle_type: 'wordle',
+    puzzle_wordle_answer: 'TEAM',
   })
 
   if (orgLoading) {
@@ -126,6 +131,7 @@ export function AdminGamesNewPage() {
     if (type === 'quiz' && !name) setName('New Quiz')
     if (type === 'music_bingo' && !name) setName('Music Bingo')
     if (type === 'text' && !name) setName('New Text Challenge')
+    if (type === 'puzzle' && !name) setName('New Puzzle')
   }
 
   async function handleFile(
@@ -151,6 +157,13 @@ export function AdminGamesNewPage() {
         return
       }
     }
+    if (gameType === 'puzzle') {
+      const puzzleError = validatePuzzleConfig(config)
+      if (puzzleError) {
+        setError(puzzleError)
+        return
+      }
+    }
     setSaving(true)
     setError(null)
     try {
@@ -160,10 +173,13 @@ export function AdminGamesNewPage() {
         type: gameType,
         description: description ? sanitizeRichText(description) : null,
         cover_url: coverUrl ?? null,
-        points_type: gameType === 'quiz' || gameType === 'music_bingo' ? 'static' : pointsType,
-        points_static: pointsType === 'static' ? pointsStatic : null,
-        points_min: pointsType === 'range' ? pointsMin : null,
-        points_max: pointsType === 'range' ? pointsMax : null,
+        points_type:
+          gameType === 'quiz' || gameType === 'music_bingo' || gameType === 'puzzle'
+            ? 'static'
+            : pointsType,
+        points_static: gameType === 'puzzle' || pointsType === 'static' ? pointsStatic : null,
+        points_min: gameType !== 'puzzle' && pointsType === 'range' ? pointsMin : null,
+        points_max: gameType !== 'puzzle' && pointsType === 'range' ? pointsMax : null,
         solution_description:
           gameType === 'photo' || gameType === 'video' ? solutionDescription || null : null,
         solution_image_url:
@@ -222,6 +238,7 @@ export function AdminGamesNewPage() {
 
   const isPhotoVideo = gameType === 'photo' || gameType === 'video'
   const isText = gameType === 'text'
+  const isPuzzle = gameType === 'puzzle'
 
   return (
     <AdminPageShell
@@ -391,6 +408,40 @@ export function AdminGamesNewPage() {
               />
             </Card>
             <TextGameEditor config={config} setConfig={setConfig} />
+          </>
+        )}
+
+        {isPuzzle && (
+          <>
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <div className="space-y-2">
+                <Label>Game name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <RichTextEditor value={description} onChange={setDescription} />
+              </div>
+              <FileField
+                label="Cover image"
+                onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
+                preview={coverUrl}
+              />
+              <div className="space-y-2">
+                <Label>Maximum points</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={pointsStatic}
+                  onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
+                  className="max-w-[8rem] bg-background"
+                />
+                <p className="text-muted-foreground text-xs">
+                  The puzzle scoring rule reduces this amount based on guesses or mistakes.
+                </p>
+              </div>
+            </Card>
+            <PuzzleEditor config={config} setConfig={setConfig} />
           </>
         )}
 

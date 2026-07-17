@@ -1,7 +1,7 @@
 # Puzzle Games — Feature Plan
 
 Branch: `feature/puzzles`  
-Status: specification prepared; implementation waits for scoring confirmation.
+Status: scoring confirmed; first playable release implemented for branch testing.
 
 ## Product shape
 
@@ -154,4 +154,3 @@ can be saved or added to an event.
 5. Facilitator progress/completion visibility, exports, regression tests, and live
    branch testing.
 6. Separate later milestone: non-AI crossword placement engine and editor preview.
-
