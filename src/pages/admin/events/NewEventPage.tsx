@@ -19,16 +19,13 @@ import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import { brandColorsFromOrg } from '@/lib/live-event'
+import { getEventLinks, qrCodeUrl } from '@/lib/event-links'
 import {
   collectEventGameIds,
   emptyEventForm,
   type EventFormValues,
 } from '@/lib/event-form-utils'
 import type { EventStatus } from '@/types/database'
-
-function qrUrl(link: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(link)}`
-}
 
 export function AdminEventsNewPage() {
   const navigate = useNavigate()
@@ -57,13 +54,7 @@ export function AdminEventsNewPage() {
 
   const links = useMemo(() => {
     if (!statusPrompt) return null
-    const base = typeof window !== 'undefined' ? window.location.origin : ''
-    const id = statusPrompt.eventId
-    return {
-      facilitator: `${base}/facilitator/${id}`,
-      display: `${base}/display/${id}`,
-      join: `${base}/join/${id}`,
-    }
+    return getEventLinks(statusPrompt.eventId)
   }, [statusPrompt])
 
   async function handleSave() {
@@ -186,7 +177,7 @@ export function AdminEventsNewPage() {
                   {copied === key ? <Check className="size-4" /> : <Copy className="size-4" />}
                   Copy
                 </Button>
-                <img src={qrUrl(url)} alt="" width={96} height={96} className="rounded border" />
+                <img src={qrCodeUrl(url, 120)} alt="" width={96} height={96} className="rounded border" />
               </div>
             </div>
           ))}
