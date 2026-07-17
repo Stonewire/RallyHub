@@ -152,12 +152,12 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
-- [~] **LINKS-1 Branch-aware generated links:** implemented on Level 1 branch
-  `feature/branch-aware-event-links`. Facilitator, display, teams, pretty event,
+- [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
+  display, teams, pretty event,
   Inventory purchase, and tablet links now use the domain of the page currently
   open. Copied links, opened links, individual QR images, and PDF QR exports
   therefore stay inside the active Vercel preview, local environment, staging, or
-  production deployment. Awaiting Level 1 preview testing before promotion.
+  production deployment.
 
 - [x] **INVENTORY-1 Physical item library:** live in V2.13.0. Tenant admins can
   create reusable items with optional

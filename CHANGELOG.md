@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.1 - 2026-07-17 (branch-aware generated links)
+
+- Facilitator, display, teams, pretty event, Inventory purchase, and tablet links
+  now use the domain of the page currently open.
+- Copied links, opened links, individual QR images, and PDF QR exports therefore
+  remain inside the active Vercel preview, local environment, staging, or
+  production deployment instead of unexpectedly pointing to production.
+- New-event links now use the same shared generator as every other event-link
+  surface, with regression coverage for Vercel preview hosts.
+
 ## V2.13.0 - 2026-07-17 (Inventory purchases)
 
 - Added an organization Inventory Library under Games. Admins can create reusable
