@@ -152,6 +152,14 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
+- [ ] **PUZZLES-1 Puzzle game family:** planned on Level 1 branch
+  `feature/puzzles`. One top-level Puzzle type will contain Wordle and Matching in
+  the first release, with Crossword visible as a disabled Upcoming option. Both
+  active subtypes are Quest-stage games with automatic, server-authoritative
+  scoring and synchronized team progress. The recommended scoring, secure data
+  flow, and limited non-AI 5×5 crossword generator are specified in
+  `docs/PUZZLES-FEATURE-PLAN.md` and await scoring confirmation before build work.
+
 - [x] **INVENTORY-1 Physical item library:** live in V2.13.0. Tenant admins can
   create reusable items with optional
   photos/descriptions and point prices, copy stable purchase links, download a
