@@ -17,6 +17,32 @@ export type PuzzleMatchingItem = {
   text: string
 }
 
+export type CrosswordDirection = 'across' | 'down'
+
+export type PuzzleCrosswordWord = {
+  id: string
+  answer: string
+  clue: string
+  row: number
+  col: number
+  direction: CrosswordDirection
+}
+
+export type CrosswordClue = {
+  id: string
+  number: number
+  direction: CrosswordDirection
+  row: number
+  col: number
+  length: number
+  clue: string
+}
+
+export type CrosswordLayout = {
+  cells: { row: number; col: number }[]
+  clues: CrosswordClue[]
+}
+
 export type QuizQuestion = {
   id: string
   text: string
@@ -84,6 +110,10 @@ export type GameConfig = {
   puzzle_matching_pairs?: PuzzleMatchingPair[]
   puzzle_matching_left_items?: PuzzleMatchingItem[]
   puzzle_matching_right_items?: PuzzleMatchingItem[]
+  /** Private crossword words with answers; stripped from every live payload. */
+  puzzle_crossword_words?: PuzzleCrosswordWord[]
+  /** Public grid layout derived at edit time; safe for participants. */
+  puzzle_crossword_layout?: CrosswordLayout
 }
 
 export type EventTeam = {
