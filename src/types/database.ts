@@ -911,11 +911,13 @@ export type Database = {
           event_id: string
           team_id: string
           game_id: string
-          puzzle_type: 'wordle' | 'matching'
+          puzzle_type: 'wordle' | 'matching' | 'crossword'
           attempts: number
           wrong_matches: number
           wordle_guesses: Json
           matched_pair_ids: string[]
+          filled_cells: Json
+          failed_full_checks: number
           completed_at: string | null
           points_awarded: number | null
           created_at: string
@@ -925,11 +927,13 @@ export type Database = {
           event_id: string
           team_id: string
           game_id: string
-          puzzle_type: 'wordle' | 'matching'
+          puzzle_type: 'wordle' | 'matching' | 'crossword'
           attempts?: number
           wrong_matches?: number
           wordle_guesses?: Json
           matched_pair_ids?: string[]
+          filled_cells?: Json
+          failed_full_checks?: number
           completed_at?: string | null
           points_awarded?: number | null
         }
@@ -938,6 +942,8 @@ export type Database = {
           wrong_matches?: number
           wordle_guesses?: Json
           matched_pair_ids?: string[]
+          filled_cells?: Json
+          failed_full_checks?: number
           completed_at?: string | null
           points_awarded?: number | null
           updated_at?: string
@@ -1075,6 +1081,24 @@ export type Database = {
           p_team_token: string
           p_left_id: string
           p_right_id: string
+        }
+        Returns: Json
+      }
+      update_crossword_fill: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_cells: Json
+        }
+        Returns: Json
+      }
+      validate_crossword_grid: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_cells: Json
         }
         Returns: Json
       }
