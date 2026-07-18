@@ -152,15 +152,18 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
-- [~] **PUZZLES-1 Puzzle game family:** first playable release built on Level 1 branch
-  `feature/puzzles`. One top-level Puzzle type will contain Wordle and Matching in
-  the first release, with Crossword visible as a disabled Upcoming option. Both
-  active subtypes are Quest-stage games with automatic, server-authoritative
-  scoring and synchronized team progress. The recommended scoring, secure data
-  flow, and limited non-AI 5×5 crossword generator are specified in
-  `docs/PUZZLES-FEATURE-PLAN.md`. Unit, build, lint, and isolated database checks
-  pass; preview testing still needs the migration applied to the shared Supabase
-  project and a signed-in organizer session.
+- [~] **PUZZLES-1 Puzzle game family:** all three subtypes implemented on
+  `feature/puzzles` (2026-07-18). Wordle, Matching, and the manual 5x5 Crossword
+  are Quest-stage games with automatic, server-authoritative scoring and
+  synchronized team progress. Crossword: organizer places words on the grid with
+  clues, players auto-solve (silent full-grid validation), score decays with
+  solve time (full points under 2 minutes, then 10% of remaining per extra
+  minute, 25% floor). Both puzzle migrations (20260717005019 and
+  20260718120000) are applied to the shared Supabase project; note the base
+  migration had never been applied before 18 Jul, so puzzles were code-only
+  until then. Design: `docs/superpowers/specs/2026-07-18-puzzles-design.md`.
+  Build, lint, and 133 unit tests pass. Remaining before staging: Rumen's
+  real-phone live test (two phones, one team, all three puzzles).
 
 - [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
   display, teams, pretty event,

@@ -1,7 +1,10 @@
 # Puzzle Games — Feature Plan
 
 Branch: `feature/puzzles`  
-Status: scoring confirmed; first playable release implemented for branch testing.
+Status: all three subtypes implemented (18 Jul 2026), awaiting real-phone live
+test. Crossword shipped as a manual 5x5 grid editor rather than the generator
+sketched below; the authoritative design is
+`docs/superpowers/specs/2026-07-18-puzzles-design.md`.
 
 ## Product shape
 
