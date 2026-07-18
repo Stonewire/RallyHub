@@ -1,6 +1,7 @@
 import { Check, Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { RichText } from '@/components/ui/rich-text'
@@ -357,7 +358,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
           ) : null}
         </div>
       ) : (
-        <p className="py-8 text-white/70">This puzzle type is coming soon.</p>
+        <CrosswordPlayer eventId={eventId} teamId={teamId} game={game} accentColor={accentColor} />
       )}
 
       {error ? (
