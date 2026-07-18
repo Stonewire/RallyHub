@@ -10,7 +10,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RichText } from '@/components/ui/rich-text'
-import { parseTextGameConfig, textSubmissionDisplayLabel, isTextGame } from '@/lib/text-game'
+import {
+  parseTextGameConfig,
+  puzzleSubmissionStatLabel,
+  textSubmissionDisplayLabel,
+  isTextGame,
+} from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 type SubmissionDetailModalProps = {
@@ -135,7 +140,20 @@ export function SubmissionDetailModal({
               </p>
             </div>
           ) : null}
-          {isText && answerLabel ? (
+          {sub.media_type === 'puzzle' ? (
+            <div className="rounded-lg border bg-muted/30 px-4 py-3">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Puzzle result
+              </p>
+              <p className="mt-1 text-base font-semibold">
+                {puzzleSubmissionStatLabel(sub.media_url)}
+                {sub.points_awarded != null ? ` · +${sub.points_awarded} points` : ''}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Scored automatically. Nothing to approve.
+              </p>
+            </div>
+          ) : isText && answerLabel ? (
             <div className="rounded-lg border bg-muted/30 px-4 py-3">
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
                 Team answer

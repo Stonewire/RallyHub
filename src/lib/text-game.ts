@@ -64,5 +64,20 @@ export function textSubmissionDisplayLabel(
 }
 
 export function isOpenStageSubmissionMediaType(mediaType: string | null | undefined): boolean {
-  return mediaType === 'photo' || mediaType === 'video' || mediaType === 'text'
+  return (
+    mediaType === 'photo' || mediaType === 'video' || mediaType === 'text' || mediaType === 'puzzle'
+  )
+}
+
+export function puzzleSubmissionStatLabel(mediaUrl: string | null | undefined): string {
+  const [kind, rawValue] = (mediaUrl ?? '').split(':')
+  const value = Number.parseInt(rawValue ?? '', 10)
+  if (Number.isNaN(value)) return 'Puzzle complete'
+  if (kind === 'wordle') return `Solved in ${value} ${value === 1 ? 'guess' : 'guesses'}`
+  if (kind === 'matching') return `Matched in ${value} ${value === 1 ? 'attempt' : 'attempts'}`
+  if (kind === 'crossword') {
+    const minutes = Math.floor(value / 60)
+    return `Solved in ${minutes}:${String(value % 60).padStart(2, '0')}`
+  }
+  return 'Puzzle complete'
 }

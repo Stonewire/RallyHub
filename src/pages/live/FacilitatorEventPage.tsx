@@ -63,7 +63,11 @@ import { advanceBingoTrack } from '@/lib/bingo-round-advance'
 import { parseAnnouncedWinnerIds, parseRevealedTrackIds } from '@/lib/bingo-cell-match'
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
-import { isOpenStageSubmissionMediaType, textSubmissionDisplayLabel } from '@/lib/text-game'
+import {
+  isOpenStageSubmissionMediaType,
+  puzzleSubmissionStatLabel,
+  textSubmissionDisplayLabel,
+} from '@/lib/text-game'
 import { profileDisplayName } from '@/lib/auth-routes'
 import {
   bingoTracks,
@@ -2083,7 +2087,14 @@ export function FacilitatorEventPage() {
                           className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
                           onClick={() => setSelectedSub(sub)}
                         >
-                          {sub.media_type === 'text' ? (
+                          {sub.media_type === 'puzzle' ? (
+                            <div className="bg-muted flex size-16 shrink-0 flex-col items-center justify-center rounded p-1 text-center">
+                              <span className="text-[10px] font-bold uppercase">Puzzle</span>
+                              <span className="text-muted-foreground text-[9px] leading-tight">
+                                {puzzleSubmissionStatLabel(sub.media_url)}
+                              </span>
+                            </div>
+                          ) : sub.media_type === 'text' ? (
                             <div
                               className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
                             >
@@ -2117,6 +2128,11 @@ export function FacilitatorEventPage() {
                             >
                               {sub.status}
                             </p>
+                            {sub.media_type === 'puzzle' && sub.points_awarded !== null ? (
+                              <span className="text-muted-foreground ml-2 text-xs font-semibold">
+                                +{sub.points_awarded} pts
+                              </span>
+                            ) : null}
                           </div>
                         </button>
                       </li>
