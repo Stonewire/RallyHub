@@ -1,6 +1,7 @@
-import { Clock3, Grid3X3, Plus, Rows3, Trash2 } from 'lucide-react'
+import { Grid3X3, Plus, Puzzle, Rows3, Trash2 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 
+import { CrosswordEditor } from '@/components/games/CrosswordEditor'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -30,9 +31,8 @@ const SUBTYPES: {
   {
     type: 'crossword',
     name: 'Crossword',
-    description: 'AI-assisted compact crossword creation.',
-    icon: Clock3,
-    upcoming: true,
+    description: 'Build a 5x5 crossword. Faster solves earn more points.',
+    icon: Puzzle,
   },
 ]
 
@@ -50,13 +50,13 @@ export function PuzzleEditor({
   ]
 
   function selectSubtype(type: PuzzleType) {
-    if (type === 'crossword') return
     setConfig((current) => ({
       ...current,
       puzzle_type: type,
       puzzle_wordle_answer: current.puzzle_wordle_answer ?? 'TEAM',
       puzzle_matching_pairs:
         current.puzzle_matching_pairs ?? [newMatchingPair(), newMatchingPair()],
+      puzzle_crossword_words: current.puzzle_crossword_words ?? [],
     }))
   }
 
@@ -212,12 +212,7 @@ export function PuzzleEditor({
       ) : null}
 
       {selected === 'crossword' ? (
-        <div className="rounded-xl border border-dashed p-6 text-center">
-          <p className="font-semibold">Crossword is coming later</p>
-          <p className="text-muted-foreground mt-2 text-sm">
-            It will combine AI word/clue suggestions with RallyHub's own grid validator.
-          </p>
-        </div>
+        <CrosswordEditor config={config} setConfig={setConfig} />
       ) : null}
     </Card>
   )
