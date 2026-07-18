@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
+import { getCurrentParticipantSession } from '@/lib/participant-session'
 import type { Database } from '@/types/database'
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -61,6 +62,12 @@ export const supabase = createClient<Database>(
         }
         if (participantAnonMode) {
           headers.set('Authorization', `Bearer ${resolvedAnonKey}`)
+          // Prove team ownership on participant writes: the private per-device
+          // team token minted at claim, verified by digest server-side.
+          const session = getCurrentParticipantSession()
+          if (session?.purchaseToken) {
+            headers.set('x-team-token', session.purchaseToken)
+          }
         }
         return fetch(input, { ...init, headers })
       },
