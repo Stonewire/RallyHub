@@ -64,13 +64,11 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     setCells((current) => (next.completed ? next.filledCells : { ...next.filledCells, ...current }))
   }, [])
 
+  const tokenMissing = !teamToken
+
   // Mounting registers the fill row, which starts the solve timer server-side.
   useEffect(() => {
-    if (!teamToken) {
-      setError('Rejoin this event on this phone once to enable secure puzzle play.')
-      setLoading(false)
-      return
-    }
+    if (!teamToken) return
     let cancelled = false
     void supabase
       .rpc('update_crossword_fill', {
@@ -187,6 +185,14 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
 
   if (!layout || openCells.length === 0) {
     return <p className="py-8 text-white/70">This crossword is not configured yet.</p>
+  }
+
+  if (tokenMissing) {
+    return (
+      <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
+        Rejoin this event on this phone once to enable secure puzzle play.
+      </p>
+    )
   }
 
   if (loading) {

@@ -2,6 +2,7 @@ import JSZip from 'jszip'
 
 import { toCsv } from '@/lib/csv'
 import { supabase } from '@/lib/supabase'
+import { puzzleSubmissionStatLabel } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
 async function fetchBlob(url: string): Promise<Blob | null> {
@@ -66,7 +67,8 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
   }
 
   for (const sub of submissions) {
-    if (!sub.media_url || sub.media_type?.startsWith('quiz')) continue
+    if (!sub.media_url || sub.media_type?.startsWith('quiz') || sub.media_type === 'puzzle')
+      continue
     const blob = await fetchBlob(sub.media_url)
     if (!blob) continue
     const team = teams.find((t) => t.id === sub.team_id)
@@ -83,13 +85,13 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
   // package is photos + videos, plus quiz/bingo log data (which has no
   // downloadable media) so those results aren't lost.
   const hasQuizOrBingo = games.some(
-    (g) => g.type === 'quiz' || g.type === 'music_bingo',
+    (g) => g.type === 'quiz' || g.type === 'music_bingo' || g.type === 'puzzle',
   )
   if (hasQuizOrBingo) {
     const rows = submissions
       .filter((s) => {
         const g = games.find((gg) => gg.id === s.game_id)
-        return g?.type === 'quiz' || g?.type === 'music_bingo'
+        return g?.type === 'quiz' || g?.type === 'music_bingo' || g?.type === 'puzzle'
       })
       .map((s) => {
         const g = games.find((gg) => gg.id === s.game_id)
@@ -99,10 +101,11 @@ export async function downloadEventPackage(eventId: string): Promise<void> {
           g?.type ?? '',
           s.status ?? '',
           s.points_awarded ?? 0,
+          s.media_type === 'puzzle' ? puzzleSubmissionStatLabel(s.media_url) : '',
         ]
       })
 
-    const csv = toCsv(['Team', 'Game', 'Type', 'Status', 'Points'], rows)
+    const csv = toCsv(['Team', 'Game', 'Type', 'Status', 'Points', 'Result'], rows)
     zip.file('quiz-bingo-results.csv', csv)
   }
 
