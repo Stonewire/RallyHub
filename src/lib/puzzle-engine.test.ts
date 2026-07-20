@@ -9,6 +9,7 @@ import {
   seededPuzzleShuffle,
   validatePuzzleConfig,
   wordleFeedback,
+  wordleKeyStates,
   wordleScore,
 } from '@/lib/puzzle-engine'
 
@@ -36,6 +37,27 @@ describe('Wordle feedback', () => {
 
   it('supports Unicode letters', () => {
     expect(wordleFeedback('ÉTÉ', 'ÉTÉ')).toEqual(['correct', 'correct', 'correct'])
+  })
+})
+
+describe('wordleKeyStates', () => {
+  it('keeps the best state seen for each letter across all guesses', () => {
+    const states = wordleKeyStates([
+      { word: 'RATE', feedback: ['absent', 'correct', 'present', 'absent'] },
+      { word: 'CARS', feedback: ['absent', 'present', 'absent', 'correct'] },
+    ])
+    expect(states).toEqual({
+      r: 'absent',
+      a: 'correct',
+      t: 'present',
+      e: 'absent',
+      c: 'absent',
+      s: 'correct',
+    })
+  })
+
+  it('returns an empty map for no guesses', () => {
+    expect(wordleKeyStates([])).toEqual({})
   })
 })
 

@@ -64,6 +64,21 @@ export function matchingScore(maxPoints: number, wrongMatches: number): number {
   )
 }
 
+/** Best-seen key state per letter across every guess: correct > present > absent. */
+export function wordleKeyStates(guesses: PuzzleGuess[]): Record<string, WordleCellState> {
+  const priority: Record<WordleCellState, number> = { absent: 0, present: 1, correct: 2 }
+  const state: Record<string, WordleCellState> = {}
+  for (const { word, feedback } of guesses) {
+    Array.from(word.toLocaleLowerCase()).forEach((letter, i) => {
+      const next = feedback[i]
+      if (!next) return
+      const current = state[letter]
+      if (!current || priority[next] > priority[current]) state[letter] = next
+    })
+  }
+  return state
+}
+
 /** Wordle duplicate-letter rules: exact matches consume letters before presents. */
 export function wordleFeedback(answer: string, guess: string): WordleCellState[] {
   const answerChars = Array.from(answer.toLocaleLowerCase())
