@@ -176,8 +176,9 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   negative after) with points decaying live. New scoring: full points at or under
   5:00, -5% per 30s block over (rounded up), -10% per hint, 10% floor, always
   awarded on solve. New migration `20260719120000_crossword_rework.sql` (hint RPC,
-  per-word validation, 3-arg scoring) NOT yet applied to Supabase; apply before
-  the live test. Build, lint, and 139 unit tests pass. Design:
+  per-word validation, 3-arg scoring) APPLIED to the shared Supabase project
+  (2026-07-19); server scoring + solve-detection smoke-tested against the DB and
+  match the engine. Build, lint, and 139 unit tests pass. Design:
   `docs/superpowers/specs/2026-07-19-crossword-rework-design.md`,
   plan: `docs/superpowers/plans/2026-07-19-crossword-rework.md`.
 
