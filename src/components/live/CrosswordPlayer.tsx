@@ -1,4 +1,4 @@
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Lightbulb, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
@@ -7,9 +7,9 @@ import {
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
-import { parsePuzzleProgress, type PuzzleProgress } from '@/lib/puzzle-engine'
+import { crosswordScore, parsePuzzleProgress, type PuzzleProgress } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
-import type { GameConfig } from '@/types/game-config'
+import type { CrosswordClue, GameConfig } from '@/types/game-config'
 import type { Json } from '@/types/json'
 import type { Tables } from '@/types/helpers'
 
@@ -20,20 +20,34 @@ type Props = {
   accentColor: string
 }
 
-function formatSolveTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`
+const GRID_SIZE = 6
+const SOLVE_WINDOW = 300 // seconds at full points
+
+function formatClock(seconds: number): string {
+  const sign = seconds < 0 ? '-' : ''
+  const abs = Math.abs(Math.floor(seconds))
+  return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, '0')}`
+}
+
+function clueCells(clue: CrosswordClue): string[] {
+  return Array.from({ length: clue.length }, (_, i) =>
+    clue.direction === 'down' ? `${clue.row + i}-${clue.col}` : `${clue.row}-${clue.col + i}`,
+  )
 }
 
 export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const config = (game.config ?? {}) as GameConfig
   const layout = config.puzzle_crossword_layout
+  const maxPoints = Math.max(1, game.points_static ?? 100)
   const session = getCurrentParticipantSession()
   const teamToken =
     session?.eventId === eventId && session.teamId === teamId ? session.purchaseToken : undefined
 
   const [progress, setProgress] = useState<PuzzleProgress | null>(null)
   const [cells, setCells] = useState<Record<string, string>>({})
+  const [activeClueId, setActiveClueId] = useState<string | null>(null)
+  const [panelCell, setPanelCell] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
@@ -41,27 +55,54 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const syncTimer = useRef<number | null>(null)
   const cellRefs = useRef(new Map<string, HTMLInputElement>())
 
-  const openCells = useMemo(() => layout?.cells ?? [], [layout])
-  const openKeys = useMemo(() => openCells.map(({ row, col }) => `${row}-${col}`), [openCells])
-  const across = useMemo(
-    () => (layout?.clues ?? []).filter((clue) => clue.direction === 'across'),
+  const clues = useMemo(() => layout?.clues ?? [], [layout])
+  const openKeys = useMemo(
+    () => new Set((layout?.cells ?? []).map(({ row, col }) => `${row}-${col}`)),
     [layout],
   )
-  const down = useMemo(
-    () => (layout?.clues ?? []).filter((clue) => clue.direction === 'down'),
+  const blockedKeys = useMemo(
+    () => new Set((layout?.blocked ?? []).map(({ row, col }) => `${row}-${col}`)),
     [layout],
   )
+  const cluesByStart = useMemo(() => {
+    const map = new Map<string, CrosswordClue[]>()
+    for (const clue of clues) {
+      const key = `${clue.row}-${clue.col}`
+      map.set(key, [...(map.get(key) ?? []), clue])
+    }
+    return map
+  }, [clues])
   const startNumbers = useMemo(() => {
     const map = new Map<string, number>()
-    for (const clue of layout?.clues ?? []) {
+    for (const clue of clues) {
       if (!map.has(`${clue.row}-${clue.col}`)) map.set(`${clue.row}-${clue.col}`, clue.number)
     }
     return map
-  }, [layout])
+  }, [clues])
+
+  const solvedWordIds = useMemo(() => new Set(progress?.solvedWordIds ?? []), [progress])
+  const revealedKeys = useMemo(
+    () => new Set(Object.keys(progress?.revealedCells ?? {})),
+    [progress],
+  )
+  const solvedCellKeys = useMemo(() => {
+    const keys = new Set<string>()
+    for (const clue of clues) {
+      if (solvedWordIds.has(clue.id)) clueCells(clue).forEach((k) => keys.add(k))
+    }
+    return keys
+  }, [clues, solvedWordIds])
+
+  const activeClue = clues.find((c) => c.id === activeClueId) ?? null
+  const activeCells = activeClue ? clueCells(activeClue) : []
 
   const applyProgress = useCallback((next: PuzzleProgress) => {
     setProgress(next)
-    setCells((current) => (next.completed ? next.filledCells : { ...next.filledCells, ...current }))
+    setCells((current) =>
+      next.completed
+        ? next.filledCells
+        : { ...next.filledCells, ...current, ...next.revealedCells },
+    )
   }, [])
 
   const tokenMissing = !teamToken
@@ -79,9 +120,8 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
       })
       .then(({ data, error: loadError }) => {
         if (cancelled) return
-        if (loadError) {
-          setError(loadError.message)
-        } else {
+        if (loadError) setError(loadError.message)
+        else {
           applyProgress(parsePuzzleProgress(data as Json))
           setError(null)
         }
@@ -117,6 +157,13 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     [applyProgress, eventId, game.id, teamId, teamToken],
   )
 
+  // Live clock tick while unsolved.
+  useEffect(() => {
+    if (progress?.completed) return
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [progress?.completed])
+
   const syncFill = useCallback(
     (nextCells: Record<string, string>) => {
       if (!teamToken) return
@@ -135,8 +182,8 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     [eventId, game.id, teamId, teamToken],
   )
 
-  const checkGrid = useCallback(
-    async (nextCells: Record<string, string>) => {
+  const checkWord = useCallback(
+    async (nextCells: Record<string, string>, wordId: string) => {
       if (!teamToken || checking) return
       setChecking(true)
       try {
@@ -152,7 +199,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         void publishPuzzleProgressChange(eventId, teamId, game.id)
         if (next.completed) {
           void publishLiveBundleReload(eventId)
-        } else if (next.lastCheckCorrect === false) {
+        } else if (!next.solvedWordIds.includes(wordId)) {
           setWrongFlash(true)
           window.setTimeout(() => setWrongFlash(false), 900)
         }
@@ -165,7 +212,29 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     [applyProgress, checking, eventId, game.id, teamId, teamToken],
   )
 
+  const useHint = useCallback(async () => {
+    if (!teamToken) return
+    try {
+      const { data, error: hintError } = await supabase.rpc('use_crossword_hint', {
+        p_event_id: eventId,
+        p_game_id: game.id,
+        p_team_token: teamToken,
+        p_cells: cells,
+      })
+      if (hintError) throw hintError
+      applyProgress(parsePuzzleProgress(data as Json))
+      void publishPuzzleProgressChange(eventId, teamId, game.id)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not use a hint.')
+    }
+  }, [applyProgress, cells, eventId, game.id, teamId, teamToken])
+
+  function isLocked(key: string) {
+    return solvedCellKeys.has(key) || revealedKeys.has(key)
+  }
+
   function setCellLetter(key: string, raw: string) {
+    if (isLocked(key)) return
     const letter = raw.replace(/[^\p{L}]/gu, '').slice(-1).toLocaleUpperCase()
     const nextCells = { ...cells }
     if (letter) nextCells[key] = letter
@@ -173,17 +242,42 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     setCells(nextCells)
     setError(null)
     syncFill(nextCells)
-    if (letter) {
-      const index = openKeys.indexOf(key)
-      const nextKey = openKeys[index + 1]
+    if (letter && activeClue) {
+      const index = activeCells.indexOf(key)
+      const nextKey = activeCells.slice(index + 1).find((k) => !isLocked(k))
       if (nextKey) cellRefs.current.get(nextKey)?.focus()
     }
-    if (openKeys.every((cellKey) => nextCells[cellKey])) {
-      void checkGrid(nextCells)
+    if (activeClue && activeCells.every((k) => nextCells[k])) {
+      void checkWord(nextCells, activeClue.id)
     }
   }
 
-  if (!layout || openCells.length === 0) {
+  function onCellKeyDown(key: string, event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Backspace' || !activeClue) return
+    if (cells[key]) return // default clears this cell
+    const index = activeCells.indexOf(key)
+    const prevKey = activeCells.slice(0, index).reverse().find((k) => !isLocked(k))
+    if (!prevKey) return
+    event.preventDefault()
+    const nextCells = { ...cells }
+    delete nextCells[prevKey]
+    setCells(nextCells)
+    syncFill(nextCells)
+    cellRefs.current.get(prevKey)?.focus()
+  }
+
+  function onCellFocus(key: string) {
+    const starts = cluesByStart.get(key)
+    if (starts && starts.length > 0) setPanelCell(key)
+    // If the cell belongs to the active word keep it; otherwise pick a clue
+    // that covers this cell so typing flows in a sensible direction.
+    if (!activeClue || !activeCells.includes(key)) {
+      const covering = clues.find((c) => clueCells(c).includes(key))
+      if (covering) setActiveClueId(covering.id)
+    }
+  }
+
+  if (!layout || openKeys.size === 0) {
     return <p className="py-8 text-white/70">This crossword is not configured yet.</p>
   }
 
@@ -205,36 +299,70 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
 
   if (progress?.completed) {
     return (
-      <div className="xp-glass-panel rounded-2xl bg-black/30 p-8">
+      <div className="xp-glass-panel rounded-2xl bg-black/30 p-8 text-center">
         <Check className="mx-auto size-12 text-green-400" />
         <p className="mt-3 text-2xl font-black">Crossword complete!</p>
         <p className="mt-2 text-lg font-semibold" style={{ color: accentColor }}>
           +{progress.pointsAwarded ?? 0} points
         </p>
         {progress.solveSeconds !== null ? (
-          <p className="mt-2 text-sm text-white/65">
-            Solved in {formatSolveTime(progress.solveSeconds)}
-          </p>
+          <p className="mt-2 text-sm text-white/65">Solved in {formatClock(progress.solveSeconds)}</p>
         ) : null}
       </div>
     )
   }
 
+  const startedAt = progress?.startedAt ? Date.parse(progress.startedAt) : null
+  const elapsed = startedAt ? Math.max(0, (now - startedAt) / 1000) : 0
+  const remaining = SOLVE_WINDOW - elapsed
+  const hintsUsed = progress?.hintsUsed ?? 0
+  const livePoints = crosswordScore(maxPoints, elapsed, hintsUsed)
+  const clockColor =
+    remaining < 0 ? 'text-red-400' : remaining <= 60 ? 'text-amber-300' : 'text-green-400'
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className={`text-2xl font-black tabular-nums ${clockColor}`}>{formatClock(remaining)}</p>
+          <p className="text-xs text-white/60">Time left</p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black tabular-nums" style={{ color: accentColor }}>
+            {livePoints}
+          </p>
+          <p className="text-xs text-white/60">Points if solved now</p>
+        </div>
+        <button
+          type="button"
+          onClick={useHint}
+          disabled={hintsUsed >= 3}
+          className="flex flex-col items-center rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-white disabled:opacity-40"
+        >
+          <Lightbulb className="size-5" />
+          <span className="mt-0.5 text-xs font-semibold">Hint {3 - hintsUsed}</span>
+        </button>
+      </div>
+
       <div
-        className={`mx-auto grid w-fit grid-cols-5 gap-1 transition-transform ${
-          wrongFlash ? 'scale-[1.02]' : ''
+        className={`mx-auto grid w-fit grid-cols-6 gap-1 transition-transform ${
+          wrongFlash ? 'animate-pulse' : ''
         }`}
       >
-        {Array.from({ length: 5 }, (_, row) =>
-          Array.from({ length: 5 }, (_, col) => {
+        {Array.from({ length: GRID_SIZE }, (_, row) =>
+          Array.from({ length: GRID_SIZE }, (_, col) => {
             const key = `${row}-${col}`
-            const open = openKeys.includes(key)
-            if (!open) {
+            if (blockedKeys.has(key)) {
+              return <span key={key} className="size-12 rounded-md bg-[#FFC107]" />
+            }
+            if (!openKeys.has(key)) {
               return <span key={key} className="size-12 rounded-md bg-black/50" />
             }
             const number = startNumbers.get(key)
+            const solved = solvedCellKeys.has(key)
+            const revealed = revealedKeys.has(key)
+            const locked = solved || revealed
+            const inActive = activeCells.includes(key)
             return (
               <span key={key} className="relative">
                 {number ? (
@@ -247,52 +375,69 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                     if (node) cellRefs.current.set(key, node)
                     else cellRefs.current.delete(key)
                   }}
-                  value={cells[key] ?? ''}
+                  value={locked ? (progress?.filledCells[key] ?? cells[key] ?? '') : cells[key] ?? ''}
+                  readOnly={locked}
                   disabled={checking}
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}
                   aria-label={`Row ${row + 1} column ${col + 1}`}
-                  className={`size-12 rounded-md border-2 bg-white/10 text-center text-lg font-black uppercase text-white focus:border-white ${
-                    wrongFlash ? 'border-amber-400/80' : 'border-white/30'
-                  }`}
+                  onFocus={() => onCellFocus(key)}
                   onChange={(event) => setCellLetter(key, event.target.value)}
+                  onKeyDown={(event) => onCellKeyDown(key, event)}
+                  className={`size-12 rounded-md border-2 text-center text-lg font-black uppercase focus:border-white ${
+                    solved
+                      ? 'border-green-400/70 bg-green-500/25 text-green-100'
+                      : revealed
+                        ? 'border-amber-300/70 bg-amber-400/20 text-amber-100'
+                        : inActive
+                          ? 'border-white/70 bg-white/20 text-white'
+                          : 'border-white/30 bg-white/10 text-white'
+                  } ${number && !locked && !inActive ? 'ring-2 ring-inset ring-[#FFC107]/60' : ''} ${
+                    wrongFlash && inActive ? 'border-red-400/80' : ''
+                  }`}
                 />
               </span>
             )
           }),
         )}
       </div>
+
+      {panelCell && cluesByStart.get(panelCell) ? (
+        <div className="rounded-xl bg-black/30 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-white/60">Clues here</p>
+          <div className="mt-2 space-y-1">
+            {(cluesByStart.get(panelCell) ?? []).map((clue) => (
+              <button
+                key={clue.id}
+                type="button"
+                onClick={() => {
+                  setActiveClueId(clue.id)
+                  const first = clueCells(clue).find((k) => !isLocked(k))
+                  if (first) cellRefs.current.get(first)?.focus()
+                }}
+                className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
+                  activeClueId === clue.id ? 'bg-white/20' : 'bg-white/5'
+                }`}
+              >
+                <span className="font-bold uppercase text-white/70">
+                  {clue.direction === 'across' ? 'Across' : 'Down'}
+                </span>{' '}
+                {clue.clue}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-center text-xs text-white/60">
+          Tap a highlighted cell to read its clues, then type the answer.
+        </p>
+      )}
+
       {wrongFlash ? (
-        <p className="text-sm font-semibold text-amber-300">Not quite yet. Keep going!</p>
+        <p className="text-center text-sm font-semibold text-amber-300">Not quite. Try again.</p>
       ) : null}
-      <div className="grid gap-4 text-left sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-white/60">Across</p>
-          <ul className="mt-1 space-y-1 text-sm">
-            {across.map((clue) => (
-              <li key={clue.id}>
-                <span className="font-bold">{clue.number}.</span> {clue.clue}{' '}
-                <span className="text-white/50">({clue.length})</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-white/60">Down</p>
-          <ul className="mt-1 space-y-1 text-sm">
-            {down.map((clue) => (
-              <li key={clue.id}>
-                <span className="font-bold">{clue.number}.</span> {clue.clue}{' '}
-                <span className="text-white/50">({clue.length})</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      <p className="text-xs text-white/60">
-        Solve fast for full points. The grid checks itself when every cell is filled.
-      </p>
+
       {error ? (
         <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
           {error}

@@ -1102,6 +1102,15 @@ export type Database = {
         }
         Returns: Json
       }
+      use_crossword_hint: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_cells: Json
+        }
+        Returns: Json
+      }
       restart_bingo_run_scores: {
         Args: {
           p_event_id: string
