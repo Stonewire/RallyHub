@@ -182,6 +182,25 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   `docs/superpowers/specs/2026-07-19-crossword-rework-design.md`,
   plan: `docs/superpowers/plans/2026-07-19-crossword-rework.md`.
 
+- [~] **PUZZLES-3 Puzzle keyboard + hint fix:** on `feature/puzzles`
+  (2026-07-20), after a second play-test round. Crossword hint fixed: now
+  reveals exactly one letter per use (was one letter per unsolved word,
+  which could light up many cells at once), preferring a cell shared by two
+  unsolved crossing words; smoke-tested against the live DB. Crossword and
+  Wordle both drop the native mobile keyboard (which caused viewport jump)
+  in favour of a shared, always-present on-screen `VirtualKeyboard`
+  (Latin/Cyrillic, designer-selected per puzzle via a new
+  `puzzle_keyboard_alphabet` config field). Crossword cells are now
+  cursor-driven buttons instead of real `<input>`s. Wordle keeps its box
+  display but types via the same keyboard, with keys coloured green/yellow/
+  gray from guess history and gray (absent) letters locked from reuse. Also
+  fixed an editor bug where hovering a run to pick direction never focused
+  the typing input. New migration
+  `20260720170000_crossword_hint_single_letter.sql` applied to the shared
+  Supabase project. Build, lint, and 141 unit tests pass. Design:
+  `docs/superpowers/specs/2026-07-20-puzzle-keyboard-and-hint-design.md`,
+  plan: `docs/superpowers/plans/2026-07-20-puzzle-keyboard-and-hint.md`.
+
 - [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
   display, teams, pretty event,
   Inventory purchase, and tablet links now use the domain of the page currently
