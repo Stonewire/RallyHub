@@ -93,6 +93,37 @@ export function PuzzleEditor({
         </div>
       </div>
 
+      {selected === 'wordle' || selected === 'crossword' ? (
+        <div>
+          <Label>Player keyboard</Label>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Which on-screen keyboard players see while solving.
+          </p>
+          <div className="mt-2 flex gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={(config.puzzle_keyboard_alphabet ?? 'latin') === 'latin' ? 'default' : 'outline'}
+              onClick={() =>
+                setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'latin' }))
+              }
+            >
+              Latin
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={config.puzzle_keyboard_alphabet === 'cyrillic' ? 'default' : 'outline'}
+              onClick={() =>
+                setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'cyrillic' }))
+              }
+            >
+              Cyrillic
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {selected === 'wordle' ? (
         <div className="space-y-3">
           <div>

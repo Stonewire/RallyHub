@@ -115,6 +115,8 @@ export type GameConfig = {
   puzzle_crossword_words?: PuzzleCrosswordWord[]
   /** Public grid layout derived at edit time; safe for participants. */
   puzzle_crossword_layout?: CrosswordLayout
+  /** On-screen keyboard alphabet for Wordle/Crossword players. Answer-free. */
+  puzzle_keyboard_alphabet?: 'latin' | 'cyrillic'
 }
 
 export type EventTeam = {
