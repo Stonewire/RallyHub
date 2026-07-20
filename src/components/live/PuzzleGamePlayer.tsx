@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
+import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import { Button } from '@/components/ui/button'
 import { RichText } from '@/components/ui/rich-text'
 import {
@@ -17,6 +18,7 @@ import {
   parsePuzzleProgress,
   puzzleType,
   seededPuzzleShuffle,
+  wordleKeyStates,
   type PuzzleProgress,
   type WordleCellState,
 } from '@/lib/puzzle-engine'
@@ -126,6 +128,16 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
     }
   }
 
+  function handleWordleKey(letter: string) {
+    if (saving) return
+    setGuess((current) => (Array.from(current).length < wordLength ? current + letter.toLocaleUpperCase() : current))
+  }
+
+  function handleWordleBackspace() {
+    if (saving) return
+    setGuess((current) => Array.from(current).slice(0, -1).join(''))
+  }
+
   async function submitMatch(leftId: string, rightId: string) {
     if (!teamToken || saving) return
     setSaving(true)
@@ -168,6 +180,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
   const matchedLeft = new Set(progress?.matchedLeftIds ?? [])
   const matchedRight = new Set(progress?.matchedRightIds ?? [])
   const wordLength = Math.max(3, Math.min(12, config.puzzle_wordle_length ?? 5))
+  const wordleKeyState = useMemo(() => wordleKeyStates(progress?.guesses ?? []), [progress?.guesses])
   const onAccent = textOnAccent(accentColor)
 
   return (
@@ -239,28 +252,14 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
               ))}
             </div>
           </div>
-          <input
-            value={guess}
+          <VirtualKeyboard
+            alphabet={config.puzzle_keyboard_alphabet ?? 'latin'}
+            onKey={handleWordleKey}
+            onBackspace={handleWordleBackspace}
+            onSubmit={() => void submitWordleGuess()}
+            submitDisabled={saving || Array.from(guess).length !== wordLength}
+            keyState={wordleKeyState}
             disabled={saving}
-            maxLength={wordLength}
-            autoCapitalize="characters"
-            autoComplete="off"
-            spellCheck={false}
-            className="xp-field w-full rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-center text-lg font-bold uppercase tracking-[0.18em] text-white placeholder:text-white/45"
-            placeholder={`${wordLength}-letter word`}
-            onChange={(event) =>
-              setGuess(
-                event.target.value
-                  .replace(/[^\p{L}]/gu, '')
-                  .slice(0, wordLength)
-                  .toLocaleUpperCase(),
-              )
-            }
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && Array.from(guess).length === wordLength) {
-                void submitWordleGuess()
-              }
-            }}
           />
           <LiveAccentButton
             type="button"
