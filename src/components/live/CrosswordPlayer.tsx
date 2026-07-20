@@ -1,6 +1,7 @@
 import { Check, Lightbulb, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import {
   publishLiveBundleReload,
   publishPuzzleProgressChange,
@@ -46,6 +47,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const [progress, setProgress] = useState<PuzzleProgress | null>(null)
   const [cells, setCells] = useState<Record<string, string>>({})
   const [activeClueId, setActiveClueId] = useState<string | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
   const [panelCell, setPanelCell] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
@@ -53,7 +55,6 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const [checking, setChecking] = useState(false)
   const [wrongFlash, setWrongFlash] = useState(false)
   const syncTimer = useRef<number | null>(null)
-  const cellRefs = useRef(new Map<string, HTMLInputElement>())
 
   const clues = useMemo(() => layout?.clues ?? [], [layout])
   const openKeys = useMemo(
@@ -233,47 +234,56 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     return solvedCellKeys.has(key) || revealedKeys.has(key)
   }
 
-  function setCellLetter(key: string, raw: string) {
-    if (isLocked(key)) return
-    const letter = raw.replace(/[^\p{L}]/gu, '').slice(-1).toLocaleUpperCase()
-    const nextCells = { ...cells }
-    if (letter) nextCells[key] = letter
-    else delete nextCells[key]
+  function handleKey(letter: string) {
+    if (checking || !activeClue) return
+    const key = activeCells[activeIndex]
+    if (!key || isLocked(key)) return
+    const nextCells = { ...cells, [key]: letter.toLocaleUpperCase() }
     setCells(nextCells)
     setError(null)
     syncFill(nextCells)
-    if (letter && activeClue) {
-      const index = activeCells.indexOf(key)
-      const nextKey = activeCells.slice(index + 1).find((k) => !isLocked(k))
-      if (nextKey) cellRefs.current.get(nextKey)?.focus()
-    }
-    if (activeClue && activeCells.every((k) => nextCells[k])) {
+    const nextIndex = activeCells.findIndex((k, i) => i > activeIndex && !isLocked(k))
+    if (nextIndex !== -1) setActiveIndex(nextIndex)
+    if (activeCells.every((k) => nextCells[k])) {
       void checkWord(nextCells, activeClue.id)
     }
   }
 
-  function onCellKeyDown(key: string, event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Backspace' || !activeClue) return
-    if (cells[key]) return // default clears this cell
-    const index = activeCells.indexOf(key)
-    const prevKey = activeCells.slice(0, index).reverse().find((k) => !isLocked(k))
-    if (!prevKey) return
-    event.preventDefault()
+  function handleBackspace() {
+    if (checking || !activeClue) return
+    const key = activeCells[activeIndex]
+    if (key && cells[key] && !isLocked(key)) {
+      const nextCells = { ...cells }
+      delete nextCells[key]
+      setCells(nextCells)
+      syncFill(nextCells)
+      return
+    }
+    const prevIndex = [...activeCells.keys()]
+      .slice(0, activeIndex)
+      .reverse()
+      .find((i) => !isLocked(activeCells[i]))
+    if (prevIndex === undefined) return
+    const prevKey = activeCells[prevIndex]
     const nextCells = { ...cells }
     delete nextCells[prevKey]
     setCells(nextCells)
     syncFill(nextCells)
-    cellRefs.current.get(prevKey)?.focus()
+    setActiveIndex(prevIndex)
   }
 
-  function onCellFocus(key: string) {
+  function selectCell(key: string) {
     const starts = cluesByStart.get(key)
     if (starts && starts.length > 0) setPanelCell(key)
-    // If the cell belongs to the active word keep it; otherwise pick a clue
-    // that covers this cell so typing flows in a sensible direction.
-    if (!activeClue || !activeCells.includes(key)) {
-      const covering = clues.find((c) => clueCells(c).includes(key))
-      if (covering) setActiveClueId(covering.id)
+    let clue = activeClue && activeCells.includes(key) ? activeClue : null
+    if (!clue) {
+      clue = clues.find((c) => clueCells(c).includes(key)) ?? null
+      if (clue) setActiveClueId(clue.id)
+    }
+    if (clue) {
+      const cellsForClue = clueCells(clue)
+      const index = cellsForClue.indexOf(key)
+      setActiveIndex(index === -1 ? 0 : index)
     }
   }
 
@@ -363,6 +373,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
             const revealed = revealedKeys.has(key)
             const locked = solved || revealed
             const inActive = activeCells.includes(key)
+            const isCursor = inActive && !locked && activeCells[activeIndex] === key
             return (
               <span key={key} className="relative">
                 {number ? (
@@ -370,22 +381,12 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                     {number}
                   </span>
                 ) : null}
-                <input
-                  ref={(node) => {
-                    if (node) cellRefs.current.set(key, node)
-                    else cellRefs.current.delete(key)
-                  }}
-                  value={locked ? (progress?.filledCells[key] ?? cells[key] ?? '') : cells[key] ?? ''}
-                  readOnly={locked}
+                <button
+                  type="button"
                   disabled={checking}
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  spellCheck={false}
+                  onClick={() => selectCell(key)}
                   aria-label={`Row ${row + 1} column ${col + 1}`}
-                  onFocus={() => onCellFocus(key)}
-                  onChange={(event) => setCellLetter(key, event.target.value)}
-                  onKeyDown={(event) => onCellKeyDown(key, event)}
-                  className={`size-12 rounded-md border-2 text-center text-lg font-black uppercase focus:border-white ${
+                  className={`size-12 rounded-md border-2 text-center text-lg font-black uppercase ${
                     solved
                       ? 'border-green-400/70 bg-green-500/25 text-green-100'
                       : revealed
@@ -394,9 +395,11 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                           ? 'border-white/70 bg-white/20 text-white'
                           : 'border-white/30 bg-white/10 text-white'
                   } ${number && !locked && !inActive ? 'ring-2 ring-inset ring-[#FFC107]/60' : ''} ${
-                    wrongFlash && inActive ? 'border-red-400/80' : ''
-                  }`}
-                />
+                    isCursor ? 'ring-2 ring-white' : ''
+                  } ${wrongFlash && inActive ? 'border-red-400/80' : ''}`}
+                >
+                  {locked ? (progress?.filledCells[key] ?? cells[key] ?? '') : (cells[key] ?? '')}
+                </button>
               </span>
             )
           }),
@@ -413,8 +416,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                 type="button"
                 onClick={() => {
                   setActiveClueId(clue.id)
-                  const first = clueCells(clue).find((k) => !isLocked(k))
-                  if (first) cellRefs.current.get(first)?.focus()
+                  const cellsForClue = clueCells(clue)
+                  const first = cellsForClue.findIndex((k) => !isLocked(k))
+                  setActiveIndex(first === -1 ? 0 : first)
                 }}
                 className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
                   activeClueId === clue.id ? 'bg-white/20' : 'bg-white/5'
@@ -433,6 +437,13 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           Tap a highlighted cell to read its clues, then type the answer.
         </p>
       )}
+
+      <VirtualKeyboard
+        alphabet={config.puzzle_keyboard_alphabet ?? 'latin'}
+        onKey={handleKey}
+        onBackspace={handleBackspace}
+        disabled={checking}
+      />
 
       {wrongFlash ? (
         <p className="text-center text-sm font-semibold text-amber-300">Not quite. Try again.</p>
