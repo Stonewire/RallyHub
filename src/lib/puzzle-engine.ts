@@ -1,5 +1,6 @@
 import type {
   CrosswordClue,
+  CrosswordDirection,
   CrosswordLayout,
   GameConfig,
   PuzzleCrosswordWord,
@@ -25,6 +26,10 @@ export type PuzzleProgress = {
   matchedLeftIds: string[]
   matchedRightIds: string[]
   filledCells: Record<string, string>
+  revealedCells: Record<string, string>
+  hintsUsed: number
+  solvedWordIds: string[]
+  startedAt: string | null
   failedFullChecks: number
   solveSeconds: number | null
   completed: boolean
@@ -122,6 +127,17 @@ export function parsePuzzleProgress(value: Json | null | undefined): PuzzleProgr
             ),
           )
         : {},
+    revealedCells:
+      raw.revealedCells && typeof raw.revealedCells === 'object' && !Array.isArray(raw.revealedCells)
+        ? Object.fromEntries(
+            Object.entries(raw.revealedCells as Record<string, unknown>).filter(
+              (entry): entry is [string, string] => typeof entry[1] === 'string',
+            ),
+          )
+        : {},
+    hintsUsed: typeof raw.hintsUsed === 'number' ? raw.hintsUsed : 0,
+    solvedWordIds: strings(raw.solvedWordIds),
+    startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : null,
     failedFullChecks: typeof raw.failedFullChecks === 'number' ? raw.failedFullChecks : 0,
     solveSeconds: typeof raw.solveSeconds === 'number' ? raw.solveSeconds : null,
     completed: raw.completed === true,
@@ -139,7 +155,7 @@ export function validatePuzzleConfig(config: GameConfig): string | null {
   const type = puzzleType(config)
   if (type === 'crossword') {
     const words = config.puzzle_crossword_words ?? []
-    const layoutError = validateCrosswordWords(words)
+    const layoutError = validateCrosswordWords(words, config.puzzle_crossword_layout?.blocked ?? [])
     if (layoutError) return layoutError
     if (!config.puzzle_crossword_layout) {
       return 'Crossword layout is missing. Re-open the editor and save again.'
@@ -199,7 +215,50 @@ export function newMatchingPair(left = '', right = ''): PuzzleMatchingPair {
   }
 }
 
-export const CROSSWORD_SIZE = 5
+export const CROSSWORD_SIZE = 6
+
+export type CrosswordCell = { row: number; col: number }
+
+/** Every maximal straight run of 2+ letters, across then down, row-major. */
+export function detectCrosswordRuns(
+  letters: Map<string, string>,
+  blocked: Set<string>,
+): { row: number; col: number; direction: CrosswordDirection; answer: string }[] {
+  const runs: { row: number; col: number; direction: CrosswordDirection; answer: string }[] = []
+  const at = (row: number, col: number) => {
+    const key = `${row}-${col}`
+    return blocked.has(key) ? undefined : letters.get(key)
+  }
+  const scan = (direction: CrosswordDirection) => {
+    for (let a = 0; a < CROSSWORD_SIZE; a++) {
+      let run = ''
+      let startB = 0
+      const flush = () => {
+        if (run.length >= 2) {
+          const row = direction === 'across' ? a : startB
+          const col = direction === 'across' ? startB : a
+          runs.push({ row, col, direction, answer: run })
+        }
+        run = ''
+      }
+      for (let b = 0; b < CROSSWORD_SIZE; b++) {
+        const letter = direction === 'across' ? at(a, b) : at(b, a)
+        if (letter) {
+          if (run.length === 0) startB = b
+          run += letter
+        } else {
+          flush()
+        }
+      }
+      flush()
+    }
+  }
+  scan('across')
+  scan('down')
+  return runs.sort(
+    (x, y) => x.row - y.row || x.col - y.col || (x.direction === 'across' ? -1 : 1),
+  )
+}
 
 export function crosswordWordCells(
   word: PuzzleCrosswordWord,
@@ -228,8 +287,12 @@ export function crosswordCellLetters(words: PuzzleCrosswordWord[]): {
   return { letters, conflicts }
 }
 
-export function validateCrosswordWords(words: PuzzleCrosswordWord[]): string | null {
+export function validateCrosswordWords(
+  words: PuzzleCrosswordWord[],
+  blocked: CrosswordCell[] = [],
+): string | null {
   if (words.length < 2) return 'Add at least 2 words.'
+  const blockedKeys = new Set(blocked.map((cell) => `${cell.row}-${cell.col}`))
   for (const word of words) {
     const length = Array.from(word.answer).length
     if (length < 2 || length > CROSSWORD_SIZE) {
@@ -243,6 +306,9 @@ export function validateCrosswordWords(words: PuzzleCrosswordWord[]): string | n
       last.row >= CROSSWORD_SIZE || last.col >= CROSSWORD_SIZE
     ) {
       return `"${word.answer}" does not fit on the grid from that cell.`
+    }
+    if (cells.some(({ row, col }) => blockedKeys.has(`${row}-${col}`))) {
+      return `"${word.answer}" runs through a blocked cell.`
     }
     if (!word.clue.trim()) return `"${word.answer}" needs a clue.`
   }
@@ -277,7 +343,10 @@ export function validateCrosswordWords(words: PuzzleCrosswordWord[]): string | n
   return null
 }
 
-export function buildCrosswordLayout(words: PuzzleCrosswordWord[]): CrosswordLayout {
+export function buildCrosswordLayout(
+  words: PuzzleCrosswordWord[],
+  blocked: CrosswordCell[] = [],
+): CrosswordLayout {
   const { letters } = crosswordCellLetters(words)
   const cells = [...letters.keys()]
     .map((key) => {
@@ -309,13 +378,18 @@ export function buildCrosswordLayout(words: PuzzleCrosswordWord[]): CrosswordLay
       clue: word.clue,
     })
   }
-  return { cells, clues }
+  return { cells, blocked, clues }
 }
 
-export function crosswordScore(maxPoints: number, solveSeconds: number): number {
+export function crosswordScore(
+  maxPoints: number,
+  solveSeconds: number,
+  hintsUsed: number,
+): number {
   const max = Math.max(0, Math.round(maxPoints))
-  const extraMinutes = Math.max(0, Math.floor((Math.max(0, solveSeconds) - 120) / 60))
-  return Math.max(Math.round(max * 0.9 ** extraMinutes), Math.ceil(max * 0.25))
+  const overBlocks = Math.ceil(Math.max(0, solveSeconds - 300) / 30)
+  const factor = Math.max(0.1, 1 - 0.05 * overBlocks - 0.1 * Math.max(0, hintsUsed))
+  return Math.round(max * factor)
 }
 
 export function liveMatchingItems(config: GameConfig): {

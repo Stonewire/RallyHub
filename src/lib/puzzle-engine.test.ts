@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CROSSWORD_SIZE,
+  crosswordScore,
+  detectCrosswordRuns,
   matchingScore,
+  parsePuzzleProgress,
   seededPuzzleShuffle,
   validatePuzzleConfig,
   wordleFeedback,
@@ -71,7 +75,6 @@ describe('puzzle configuration', () => {
 import {
   buildCrosswordLayout,
   crosswordCellLetters,
-  crosswordScore,
   validateCrosswordWords,
 } from '@/lib/puzzle-engine'
 import type { PuzzleCrosswordWord } from '@/types/game-config'
@@ -139,19 +142,74 @@ describe('crossword engine', () => {
     expect(layout.cells.length).toBe(12)
   })
 
-  it('scores full points inside 2 minutes', () => {
-    expect(crosswordScore(100, 0)).toBe(100)
-    expect(crosswordScore(100, 119)).toBe(100)
-    expect(crosswordScore(100, 179)).toBe(100)
-  })
+})
 
-  it('decays 10% of remaining per full extra minute', () => {
-    expect(crosswordScore(100, 180)).toBe(90)
-    expect(crosswordScore(100, 240)).toBe(81)
-    expect(crosswordScore(100, 300)).toBe(73)
+describe('crossword grid size', () => {
+  it('is 6', () => {
+    expect(CROSSWORD_SIZE).toBe(6)
   })
+})
 
-  it('clamps at the 25% floor', () => {
-    expect(crosswordScore(100, 60 * 60)).toBe(25)
+describe('crossword scoring', () => {
+  it('awards full points at or under five minutes with no hints', () => {
+    expect(crosswordScore(100, 299, 0)).toBe(100)
+    expect(crosswordScore(100, 300, 0)).toBe(100)
+  })
+  it('deducts five percent per thirty-second block over five minutes', () => {
+    expect(crosswordScore(100, 310, 0)).toBe(95) // 5:10 -> 1 block
+    expect(crosswordScore(100, 330, 0)).toBe(95) // 5:30 -> 1 block
+    expect(crosswordScore(100, 345, 0)).toBe(90) // 5:45 -> 2 blocks
+    expect(crosswordScore(100, 360, 0)).toBe(90) // 6:00 -> 2 blocks
+  })
+  it('deducts ten percent per hint', () => {
+    expect(crosswordScore(100, 200, 1)).toBe(90)
+    expect(crosswordScore(100, 200, 3)).toBe(70)
+  })
+  it('floors at ten percent of max', () => {
+    expect(crosswordScore(100, 6000, 3)).toBe(10)
+  })
+})
+
+describe('crossword run detection', () => {
+  it('finds every across and down run of two or more letters', () => {
+    const letters = new Map<string, string>([
+      ['0-0', 'c'], ['0-1', 'a'], ['0-2', 't'],
+      ['1-0', 'o'], ['2-0', 'w'],
+    ])
+    const runs = detectCrosswordRuns(letters, new Set())
+    expect(runs).toEqual([
+      { row: 0, col: 0, direction: 'across', answer: 'cat' },
+      { row: 0, col: 0, direction: 'down', answer: 'cow' },
+    ])
+  })
+  it('breaks runs on blocked cells and ignores single letters', () => {
+    const letters = new Map<string, string>([
+      ['0-0', 'a'], ['0-1', 't'], ['0-3', 'x'],
+    ])
+    const runs = detectCrosswordRuns(letters, new Set(['0-2']))
+    expect(runs).toEqual([{ row: 0, col: 0, direction: 'across', answer: 'at' }])
+  })
+})
+
+describe('crossword progress parsing', () => {
+  it('reads hints, revealed cells, solved words and start time', () => {
+    const parsed = parsePuzzleProgress({
+      puzzleType: 'crossword',
+      hintsUsed: 2,
+      revealedCells: { '0-0': 'C', '1-1': 'x' },
+      solvedWordIds: ['a', 'b'],
+      startedAt: '2026-07-19T10:00:00Z',
+    })
+    expect(parsed.hintsUsed).toBe(2)
+    expect(parsed.revealedCells).toEqual({ '0-0': 'C', '1-1': 'x' })
+    expect(parsed.solvedWordIds).toEqual(['a', 'b'])
+    expect(parsed.startedAt).toBe('2026-07-19T10:00:00Z')
+  })
+  it('defaults the new fields', () => {
+    const parsed = parsePuzzleProgress({ puzzleType: 'crossword' })
+    expect(parsed.hintsUsed).toBe(0)
+    expect(parsed.revealedCells).toEqual({})
+    expect(parsed.solvedWordIds).toEqual([])
+    expect(parsed.startedAt).toBeNull()
   })
 })

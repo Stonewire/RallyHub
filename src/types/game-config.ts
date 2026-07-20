@@ -40,6 +40,7 @@ export type CrosswordClue = {
 
 export type CrosswordLayout = {
   cells: { row: number; col: number }[]
+  blocked: { row: number; col: number }[]
   clues: CrosswordClue[]
 }
 
