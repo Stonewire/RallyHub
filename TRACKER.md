@@ -165,6 +165,22 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   Build, lint, and 133 unit tests pass. Remaining before staging: Rumen's
   real-phone live test (two phones, one team, all three puzzles).
 
+- [~] **PUZZLES-2 Crossword rework:** on `feature/puzzles` (2026-07-19), after
+  play-test feedback. 6x6 grid; designer can paint blocked (solid yellow) cells;
+  inline word entry (click a cell, hover the row/column that lights up, type the
+  word, add a clue); every straight run of 2+ letters is auto-detected as a word
+  and must be clued before saving. Player: word-start cells highlighted, tap for
+  clues, per-word server auto-solve (green on correct, shake on wrong), 3 hints
+  per team (each reveals one letter per unsolved word, deduped at crossings,
+  -10% each), live countdown from 5:00 (green, yellow in the last minute, red and
+  negative after) with points decaying live. New scoring: full points at or under
+  5:00, -5% per 30s block over (rounded up), -10% per hint, 10% floor, always
+  awarded on solve. New migration `20260719120000_crossword_rework.sql` (hint RPC,
+  per-word validation, 3-arg scoring) NOT yet applied to Supabase; apply before
+  the live test. Build, lint, and 139 unit tests pass. Design:
+  `docs/superpowers/specs/2026-07-19-crossword-rework-design.md`,
+  plan: `docs/superpowers/plans/2026-07-19-crossword-rework.md`.
+
 - [x] **LINKS-1 Branch-aware generated links:** live in V2.13.1. Facilitator,
   display, teams, pretty event,
   Inventory purchase, and tablet links now use the domain of the page currently
