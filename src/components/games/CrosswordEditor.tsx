@@ -328,9 +328,9 @@ export function CrosswordEditor({
               onMouseEnter={() => {
                 if (tool !== 'word' || !start || dir) return
                 if (acrossRun.some((c) => c.row === row && c.col === col) && row === start.row) {
-                  setDir('across')
+                  chooseDirection('across')
                 } else if (downRun.some((c) => c.row === row && c.col === col) && col === start.col) {
-                  setDir('down')
+                  chooseDirection('down')
                 }
               }}
               className={`flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
