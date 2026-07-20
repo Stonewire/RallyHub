@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowRight, Plus, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ArrowDown, ArrowRight, Check, Eraser, Pencil, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label'
 import {
   CROSSWORD_SIZE,
   buildCrosswordLayout,
-  crosswordCellLetters,
-  crosswordWordCells,
+  detectCrosswordRuns,
   validateCrosswordWords,
 } from '@/lib/puzzle-engine'
 import type {
@@ -18,9 +17,41 @@ import type {
   PuzzleCrosswordWord,
 } from '@/types/game-config'
 
-const GRID = Array.from({ length: CROSSWORD_SIZE }, (_, row) =>
+type Cell = { row: number; col: number }
+
+const GRID: Cell[] = Array.from({ length: CROSSWORD_SIZE }, (_, row) =>
   Array.from({ length: CROSSWORD_SIZE }, (_, col) => ({ row, col })),
-)
+).flat()
+
+const CLUE_LIMIT = 120
+const colLetter = (col: number) => String.fromCharCode(65 + col)
+const runKeyOf = (row: number, col: number, dir: CrosswordDirection) => `${row}-${col}-${dir}`
+
+function lettersMap(placed: Record<string, string>): Map<string, string> {
+  return new Map(Object.entries(placed))
+}
+
+function initialState(config: GameConfig): {
+  placed: Record<string, string>
+  clues: Record<string, string>
+  blocked: string[]
+} {
+  const placed: Record<string, string> = {}
+  const clues: Record<string, string> = {}
+  for (const word of config.puzzle_crossword_words ?? []) {
+    Array.from(word.answer.toLocaleLowerCase()).forEach((ch, i) => {
+      const row = word.direction === 'down' ? word.row + i : word.row
+      const col = word.direction === 'across' ? word.col + i : word.col
+      placed[`${row}-${col}`] = ch
+    })
+    clues[runKeyOf(word.row, word.col, word.direction)] = word.clue
+  }
+  return {
+    placed,
+    clues,
+    blocked: (config.puzzle_crossword_layout?.blocked ?? []).map((c) => `${c.row}-${c.col}`),
+  }
+}
 
 export function CrosswordEditor({
   config,
@@ -29,59 +60,218 @@ export function CrosswordEditor({
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
 }) {
-  const words = useMemo(() => config.puzzle_crossword_words ?? [], [config.puzzle_crossword_words])
-  const [start, setStart] = useState<{ row: number; col: number } | null>(null)
-  const [direction, setDirection] = useState<CrosswordDirection>('across')
-  const [draftAnswer, setDraftAnswer] = useState('')
-  const [draftClue, setDraftClue] = useState('')
+  const seed = useRef(initialState(config)).current
+  const [placed, setPlaced] = useState<Record<string, string>>(seed.placed)
+  const [blocked, setBlocked] = useState<string[]>(seed.blocked)
+  const [clues, setClues] = useState<Record<string, string>>(seed.clues)
+  const [tool, setTool] = useState<'word' | 'block'>('word')
+  const [start, setStart] = useState<Cell | null>(null)
+  const [dir, setDir] = useState<CrosswordDirection | null>(null)
+  const [draft, setDraft] = useState('')
+  const [clueTarget, setClueTarget] = useState<string | null>(null)
+  const [clueDraft, setClueDraft] = useState('')
+  const [sweeping, setSweeping] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const idMap = useRef(new Map<string, string>())
+  const draftInput = useRef<HTMLInputElement>(null)
 
-  const { letters, conflicts } = useMemo(() => crosswordCellLetters(words), [words])
-  const validationError = words.length > 0 ? validateCrosswordWords(words) : null
+  const blockedSet = useMemo(() => new Set(blocked), [blocked])
 
-  function commitWords(next: PuzzleCrosswordWord[]) {
+  const runs = useMemo(
+    () => detectCrosswordRuns(lettersMap(placed), blockedSet),
+    [placed, blockedSet],
+  )
+
+  // Every detected run becomes a word, carrying its clue (empty = needs clue).
+  const words = useMemo<PuzzleCrosswordWord[]>(
+    () =>
+      runs.map((run) => {
+        const key = runKeyOf(run.row, run.col, run.direction)
+        let id = idMap.current.get(key)
+        if (!id) {
+          id = crypto.randomUUID()
+          idMap.current.set(key, id)
+        }
+        return {
+          id,
+          answer: run.answer.toLocaleUpperCase(),
+          clue: clues[key] ?? '',
+          row: run.row,
+          col: run.col,
+          direction: run.direction,
+        }
+      }),
+    [runs, clues],
+  )
+
+  const blockedCells = useMemo<Cell[]>(
+    () => blocked.map((k) => {
+      const [row, col] = k.split('-').map(Number)
+      return { row, col }
+    }),
+    [blocked],
+  )
+
+  // Push the derived word set and answer-free layout up to the game config.
+  useEffect(() => {
     setConfig((current) => ({
       ...current,
-      puzzle_crossword_words: next,
-      puzzle_crossword_layout: buildCrosswordLayout(next),
+      puzzle_crossword_words: words,
+      puzzle_crossword_layout: buildCrosswordLayout(words, blockedCells),
     }))
+  }, [words, blockedCells, setConfig])
+
+  const needsClue = useMemo(
+    () => runs
+      .map((run) => runKeyOf(run.row, run.col, run.direction))
+      .filter((key) => !(clues[key] ?? '').trim()),
+    [runs, clues],
+  )
+
+  const validationError =
+    words.length > 0 ? validateCrosswordWords(words, blockedCells) : null
+
+  // Reachable run from the start cell in a direction: stops at edge or block.
+  function runCells(from: Cell, direction: CrosswordDirection): Cell[] {
+    const cells: Cell[] = []
+    for (let i = 0; i < CROSSWORD_SIZE; i++) {
+      const row = direction === 'down' ? from.row + i : from.row
+      const col = direction === 'across' ? from.col + i : from.col
+      if (row >= CROSSWORD_SIZE || col >= CROSSWORD_SIZE) break
+      if (blockedSet.has(`${row}-${col}`)) break
+      cells.push({ row, col })
+    }
+    return cells
   }
 
-  const draftCells =
-    start && draftAnswer
-      ? crosswordWordCells({
-          id: 'draft',
-          answer: draftAnswer,
-          clue: '',
-          row: start.row,
-          col: start.col,
-          direction,
-        })
-      : []
-  const draftOutOfBounds = draftCells.some(
-    (cell) => cell.row >= CROSSWORD_SIZE || cell.col >= CROSSWORD_SIZE,
-  )
-  const canAdd =
-    start !== null &&
-    Array.from(draftAnswer).length >= 2 &&
-    draftClue.trim().length > 0 &&
-    !draftOutOfBounds
+  const acrossRun = start ? runCells(start, 'across') : []
+  const downRun = start ? runCells(start, 'down') : []
+  const activeRun = dir === 'across' ? acrossRun : dir === 'down' ? downRun : []
+  const draftChars = Array.from(draft)
 
-  function addWord() {
-    if (!start || !canAdd) return
-    commitWords([
-      ...words,
-      {
-        id: crypto.randomUUID(),
-        answer: draftAnswer,
-        clue: draftClue.trim(),
-        row: start.row,
-        col: start.col,
-        direction,
-      },
-    ])
-    setDraftAnswer('')
-    setDraftClue('')
+  const draftByCell = new Map<string, string>()
+  if (dir) {
+    activeRun.forEach((cell, i) => {
+      if (draftChars[i]) draftByCell.set(`${cell.row}-${cell.col}`, draftChars[i])
+    })
+  }
+
+  function cancelDraft() {
     setStart(null)
+    setDir(null)
+    setDraft('')
+    setMessage(null)
+  }
+
+  function chooseDirection(direction: CrosswordDirection) {
+    setDir(direction)
+    setDraft('')
+    setMessage(null)
+    window.setTimeout(() => draftInput.current?.focus(), 0)
+  }
+
+  function onCellClick(cell: Cell) {
+    const key = `${cell.row}-${cell.col}`
+    setMessage(null)
+    if (tool === 'block') {
+      if (placed[key]) {
+        setMessage('Clear the letter before blocking this cell.')
+        return
+      }
+      setBlocked((current) =>
+        current.includes(key) ? current.filter((k) => k !== key) : [...current, key],
+      )
+      return
+    }
+    if (blockedSet.has(key)) return
+    setStart(cell)
+    setDir(null)
+    setDraft('')
+  }
+
+  function confirmWord() {
+    if (!dir || !start || draftChars.length < 2) {
+      setMessage('Words need at least 2 letters.')
+      return
+    }
+    const cells = activeRun.slice(0, draftChars.length)
+    const next = { ...placed }
+    for (let i = 0; i < cells.length; i++) {
+      const key = `${cells[i].row}-${cells[i].col}`
+      const letter = draftChars[i].toLocaleLowerCase()
+      const existing = next[key]
+      if (existing && existing !== letter) {
+        setMessage('That letter clashes with a crossing word.')
+        return
+      }
+      next[key] = letter
+    }
+    setPlaced(next)
+    const key = runKeyOf(start.row, start.col, dir)
+    setStart(null)
+    setDir(null)
+    setDraft('')
+    openClue(key)
+  }
+
+  function openClue(key: string) {
+    setClueTarget(key)
+    setClueDraft(clues[key] ?? '')
+  }
+
+  function saveClue() {
+    if (!clueTarget) return
+    setClues((current) => ({ ...current, [clueTarget]: clueDraft.trim() }))
+    const remaining = needsClue.filter((k) => k !== clueTarget)
+    if (sweeping && remaining.length > 0) {
+      openClue(remaining[0])
+    } else {
+      setSweeping(false)
+      setClueTarget(null)
+      setClueDraft('')
+    }
+  }
+
+  function removeWord(word: PuzzleCrosswordWord) {
+    // Clear only cells owned solely by this word; keep crossing letters.
+    const owners = new Map<string, number>()
+    for (const run of runs) {
+      for (let i = 0; i < Array.from(run.answer).length; i++) {
+        const row = run.direction === 'down' ? run.row + i : run.row
+        const col = run.direction === 'across' ? run.col + i : run.col
+        const k = `${row}-${col}`
+        owners.set(k, (owners.get(k) ?? 0) + 1)
+      }
+    }
+    const next = { ...placed }
+    const chars = Array.from(word.answer)
+    chars.forEach((_, i) => {
+      const row = word.direction === 'down' ? word.row + i : word.row
+      const col = word.direction === 'across' ? word.col + i : word.col
+      const k = `${row}-${col}`
+      if ((owners.get(k) ?? 0) <= 1) delete next[k]
+    })
+    setPlaced(next)
+  }
+
+  function startSweep() {
+    if (needsClue.length === 0) return
+    setSweeping(true)
+    openClue(needsClue[0])
+  }
+
+  const wordByRunKey = new Map(
+    words.map((w) => [runKeyOf(w.row, w.col, w.direction), w]),
+  )
+  const needsClueCellKeys = new Set<string>()
+  for (const key of needsClue) {
+    const word = wordByRunKey.get(key)
+    if (!word) continue
+    Array.from(word.answer).forEach((_, i) => {
+      const row = word.direction === 'down' ? word.row + i : word.row
+      const col = word.direction === 'across' ? word.col + i : word.col
+      needsClueCellKeys.add(`${row}-${col}`)
+    })
   }
 
   return (
@@ -89,33 +279,74 @@ export function CrosswordEditor({
       <div>
         <Label>Crossword grid</Label>
         <p className="text-muted-foreground mt-1 text-xs">
-          Tap a start cell, pick a direction, type the word and its clue, then add it.
-          Words are 2 to {CROSSWORD_SIZE} letters and every word must cross another.
+          Pick a cell, hover the row or column that lights up, then type the word.
+          Every straight run of 2 or more letters becomes a word and needs a clue.
+          Use the block tool to seal cells you do not want used.
         </p>
       </div>
 
-      <div className="mx-auto grid w-fit grid-cols-5 gap-1">
-        {GRID.flat().map(({ row, col }) => {
+      <div className="flex gap-1">
+        <Button
+          type="button"
+          size="sm"
+          variant={tool === 'word' ? 'default' : 'outline'}
+          onClick={() => { setTool('word'); cancelDraft() }}
+        >
+          <Pencil className="mr-1 size-4" /> Word
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={tool === 'block' ? 'default' : 'outline'}
+          onClick={() => { setTool('block'); cancelDraft() }}
+        >
+          <Eraser className="mr-1 size-4" /> Block
+        </Button>
+      </div>
+
+      <div className="mx-auto grid w-fit grid-cols-6 gap-1">
+        {GRID.map(({ row, col }) => {
           const key = `${row}-${col}`
-          const letter = letters.get(key)
-          const isDraft = draftCells.some((cell) => cell.row === row && cell.col === col)
+          const isBlocked = blockedSet.has(key)
+          const draftLetter = draftByCell.get(key)
+          const letter = draftLetter ?? placed[key]
+          const inActive = dir
+            ? activeRun.some((c) => c.row === row && c.col === col)
+            : false
+          const inHighlight = !dir && start
+            ? acrossRun.some((c) => c.row === row && c.col === col) ||
+              downRun.some((c) => c.row === row && c.col === col)
+            : false
           const isStart = start?.row === row && start.col === col
+          const needsClueCell = needsClueCellKeys.has(key)
           return (
             <button
               key={key}
               type="button"
-              aria-label={`Cell row ${row + 1}, column ${col + 1}`}
-              onClick={() => setStart({ row, col })}
+              aria-label={`Cell row ${row + 1}, column ${colLetter(col)}`}
+              onClick={() => onCellClick({ row, col })}
+              onMouseEnter={() => {
+                if (tool !== 'word' || !start || dir) return
+                if (acrossRun.some((c) => c.row === row && c.col === col) && row === start.row) {
+                  setDir('across')
+                } else if (downRun.some((c) => c.row === row && c.col === col) && col === start.col) {
+                  setDir('down')
+                }
+              }}
               className={`flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
-                conflicts.has(key)
-                  ? 'border-red-500 bg-red-500/20 text-red-600'
+                isBlocked
+                  ? 'border-[#FFC107] bg-[#FFC107] text-transparent'
                   : isStart
-                    ? 'border-[#FFC107] bg-[#FFC107]/25'
-                    : isDraft
-                      ? 'border-[#FFC107]/70 bg-[#FFC107]/10'
-                      : letter
-                        ? 'border-border bg-muted'
-                        : 'border-border/60 bg-background'
+                    ? 'border-[#FFC107] bg-[#FFC107]/40'
+                    : inActive
+                      ? 'border-[#FFC107] bg-[#FFC107]/25'
+                      : inHighlight
+                        ? 'border-[#FFC107]/70 bg-[#FFC107]/10'
+                        : needsClueCell
+                          ? 'border-red-400 bg-red-500/10 text-red-600'
+                          : letter
+                            ? 'border-border bg-muted'
+                            : 'border-border/60 bg-background'
               }`}
             >
               {letter?.toLocaleUpperCase() ?? ''}
@@ -124,78 +355,131 @@ export function CrosswordEditor({
         })}
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            variant={direction === 'across' ? 'default' : 'outline'}
-            onClick={() => setDirection('across')}
-          >
-            <ArrowRight className="mr-1 size-4" /> Across
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={direction === 'down' ? 'default' : 'outline'}
-            onClick={() => setDirection('down')}
-          >
-            <ArrowDown className="mr-1 size-4" /> Down
-          </Button>
+      {/* Direction chooser + inline typing */}
+      {tool === 'word' && start ? (
+        <div className="space-y-2">
+          {!dir ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-xs">Choose a direction:</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={acrossRun.length < 2}
+                onClick={() => chooseDirection('across')}
+              >
+                <ArrowRight className="mr-1 size-4" /> Across
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={downRun.length < 2}
+                onClick={() => chooseDirection('down')}
+              >
+                <ArrowDown className="mr-1 size-4" /> Down
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                ref={draftInput}
+                value={draft}
+                maxLength={activeRun.length}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Type the word"
+                className="w-40 bg-background font-bold uppercase tracking-[0.15em]"
+                onChange={(event) =>
+                  setDraft(
+                    event.target.value
+                      .replace(/[^\p{L}]/gu, '')
+                      .slice(0, activeRun.length)
+                      .toLocaleUpperCase(),
+                  )
+                }
+              />
+              <Button type="button" size="sm" disabled={draftChars.length < 2} onClick={confirmWord}>
+                <Check className="mr-1 size-4" /> Confirm
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
+                <X className="mr-1 size-4" /> Cancel
+              </Button>
+            </div>
+          )}
         </div>
-        <Input
-          value={draftAnswer}
-          maxLength={CROSSWORD_SIZE}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="WORD"
-          className="w-28 bg-background font-bold uppercase tracking-[0.15em]"
-          onChange={(event) =>
-            setDraftAnswer(event.target.value.replace(/[^\p{L}]/gu, '').toLocaleUpperCase())
-          }
-        />
-        <Input
-          value={draftClue}
-          maxLength={200}
-          placeholder="Clue for this word"
-          className="min-w-48 flex-1 bg-background"
-          onChange={(event) => setDraftClue(event.target.value)}
-        />
-        <Button type="button" size="sm" disabled={!canAdd} onClick={addWord}>
-          <Plus className="mr-1 size-4" /> Add word
-        </Button>
-      </div>
-      {start === null ? (
-        <p className="text-muted-foreground text-xs">
-          Tap a grid cell to choose where the word starts.
-        </p>
-      ) : draftOutOfBounds ? (
-        <p className="text-xs font-medium text-red-600">
-          That word does not fit from the selected cell.
-        </p>
       ) : null}
+
+      {/* Clue box */}
+      {clueTarget ? (
+        <div className="space-y-2 rounded-lg border p-3">
+          <Label>
+            Clue for {wordByRunKey.get(clueTarget)?.answer ?? 'this word'}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              value={clueDraft}
+              maxLength={CLUE_LIMIT}
+              autoFocus
+              placeholder="Write the clue"
+              className="flex-1 bg-background"
+              onChange={(event) => setClueDraft(event.target.value)}
+            />
+            <Button type="button" size="sm" disabled={!clueDraft.trim()} onClick={saveClue}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {message ? <p className="text-xs font-medium text-red-600">{message}</p> : null}
 
       {words.length > 0 ? (
         <div className="space-y-2">
-          <Label>Words and clues</Label>
-          {words.map((word) => (
-            <div key={word.id} className="flex items-center gap-2 text-sm">
-              <span className="w-20 shrink-0 font-bold uppercase tracking-wide">{word.answer}</span>
-              <span className="text-muted-foreground w-16 shrink-0 text-xs">
-                {word.direction === 'across' ? 'Across' : 'Down'} R{word.row + 1}C{word.col + 1}
-              </span>
-              <span className="min-w-0 flex-1 truncate">{word.clue}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Remove ${word.answer}`}
-                onClick={() => commitWords(words.filter((item) => item.id !== word.id))}
-              >
-                <Trash2 className="size-4" />
+          <div className="flex items-center justify-between">
+            <Label>Words and clues</Label>
+            {needsClue.length > 0 ? (
+              <Button type="button" size="sm" variant="outline" onClick={startSweep}>
+                Add missing clues ({needsClue.length})
               </Button>
-            </div>
-          ))}
+            ) : null}
+          </div>
+          {words.map((word) => {
+            const key = runKeyOf(word.row, word.col, word.direction)
+            const missing = !(clues[key] ?? '').trim()
+            return (
+              <div key={word.id} className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground w-14 shrink-0 text-xs">
+                  R{word.row + 1}{colLetter(word.col)}{' '}
+                  {word.direction === 'across' ? '→' : '↓'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openClue(key)}
+                  className={`w-24 shrink-0 text-left font-bold uppercase tracking-wide ${
+                    missing ? 'text-red-600' : 'text-[#B8860B]'
+                  }`}
+                >
+                  {word.answer}
+                </button>
+                <span className="text-muted-foreground min-w-0 flex-1 truncate">
+                  {missing ? 'Needs a clue' : word.clue}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remove ${word.answer}`}
+                  onClick={() => removeWord(word)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            )
+          })}
         </div>
       ) : null}
 

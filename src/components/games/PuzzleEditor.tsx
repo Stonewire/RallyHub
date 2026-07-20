@@ -31,7 +31,7 @@ const SUBTYPES: {
   {
     type: 'crossword',
     name: 'Crossword',
-    description: 'Build a 5x5 crossword. Faster solves earn more points.',
+    description: 'Build a 6x6 crossword. Faster solves earn more points.',
     icon: Puzzle,
   },
 ]
