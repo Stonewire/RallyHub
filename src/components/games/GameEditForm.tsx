@@ -153,18 +153,23 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
     setError(null)
     try {
       const isPhotoVideo = gameType === 'photo' || gameType === 'video'
+      const hasPoints = isPhotoVideo || gameType === 'text'
       await updateGame.mutateAsync({
         gameId,
         patch: {
           name: name.trim(),
           description: description ? sanitizeRichText(description) : null,
           cover_url: coverUrl,
-          ...(isPhotoVideo
+          ...(hasPoints
             ? {
                 points_type: pointsType,
                 points_static: pointsType === 'static' ? pointsStatic : null,
                 points_min: pointsType === 'range' ? pointsMin : null,
                 points_max: pointsType === 'range' ? pointsMax : null,
+              }
+            : {}),
+          ...(isPhotoVideo
+            ? {
                 solution_description: solutionDescription || null,
                 solution_image_url: solutionImageUrl,
               }
@@ -275,6 +280,16 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
                   setCoverUrl(url)
                 }}
+              />
+              <PointsEditor
+                pointsType={pointsType}
+                setPointsType={setPointsType}
+                pointsStatic={pointsStatic}
+                setPointsStatic={setPointsStatic}
+                pointsMin={pointsMin}
+                setPointsMin={setPointsMin}
+                pointsMax={pointsMax}
+                setPointsMax={setPointsMax}
               />
             </Card>
             <TextGameEditor config={config} setConfig={setConfig} />

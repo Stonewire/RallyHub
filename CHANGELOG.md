@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.15.1 - 2026-07-21 (fix missing points editor for text games)
+
+- Editing a text game (side panel or the standalone page) was missing the
+  Points control entirely — a pre-existing bug, not something the V2.15.0
+  panel introduced. Points editing only ever saved for photo/video games.
+  Text games now get the same Points editor as New game, and points save
+  correctly on update.
+
 ## V2.15.0 - 2026-07-21 (edit games from a side panel)
 
 - Clicking "Edit" on a game in the Games library now opens a side panel
