@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.15.0 - 2026-07-21 (edit games from a side panel)
+
+- Clicking "Edit" on a game in the Games library now opens a side panel
+  instead of navigating to a full page. The games list stays visible and
+  clickable behind it — save your changes, then click straight into the
+  next game's Edit button without closing anything first.
+- The standalone `/admin/games/:id` edit page still works the same as
+  before (e.g. deep links, the Bin's restore flow) — both now share the
+  same underlying form component.
+
 ## V2.14.0 - 2026-07-21 (example video for photo games)
 
 - Photo games can now have an optional example/instructional video attached
