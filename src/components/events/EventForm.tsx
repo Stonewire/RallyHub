@@ -504,10 +504,7 @@ export function EventForm({
             ) : stage.type === 'open' ? (
               <QuestStageGames
                 stage={stage}
-                // Whole org library, not just event-selected games — adding to the
-                // stage unions into the event automatically, so the modal step is
-                // no longer a prerequisite.
-                compatible={games.filter(
+                compatible={selectedGames.filter(
                   (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
                 )}
                 groups={groups}

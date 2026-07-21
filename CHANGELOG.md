@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.5 - 2026-07-21 (quest stage picker scoped to event's games)
+
+- Quest stage game picker offered every game in the org's library, not just
+  the ones already added to the event via "Games in this event". It now
+  only lists games already in the event — add a game to the event first,
+  then it becomes pickable for a stage.
+
 ## V2.13.4 - 2026-07-21 (quest stage picker no longer dumps every game)
 
 - The per-stage game picker stopped showing every available game as a giant
