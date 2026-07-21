@@ -194,6 +194,7 @@ export function ChallengeMediaCaptureFlow({
         description={description}
         pointsLabel={pointsLabel}
         coverUrl={coverUrl}
+        exampleVideoUrl={config?.example_video_url}
         accentColor={accentColor}
         mediaType={mediaType}
         disabled={disabled}

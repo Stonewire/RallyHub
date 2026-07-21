@@ -1092,11 +1092,7 @@ export function JoinGameView({
               coverUrl={activeOpenGame.cover_url}
               accentColor={accent}
               mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
-              config={
-                activeOpenGame.type === 'video'
-                  ? (activeOpenGame.config as GameConfig)
-                  : undefined
-              }
+              config={activeOpenGame.config as GameConfig}
               disabled={submitting}
               onCaptureActiveChange={setCaptureActive}
               onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}

@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.14.0 - 2026-07-21 (example video for photo games)
+
+- Photo games can now have an optional example/instructional video attached
+  in the game editor (New game and Edit game), same upload field video games
+  already had.
+- Fixed a pre-existing gap: the example video was saved but never actually
+  shown to teams. It now renders on the challenge briefing screen (before
+  they start capturing) for both photo and video games.
+
 ## V2.13.6 - 2026-07-21 (revert stage picker group/search filters)
 
 - Reverted the group-filter chips and search box added to the quest stage
