@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.6 - 2026-07-21 (revert stage picker group/search filters)
+
+- Reverted the group-filter chips and search box added to the quest stage
+  game picker in V2.13.3/V2.13.4 — back to the original type-only quick
+  filters (All / photo / video / text) with the always-visible pill list.
+  The picker still correctly sources only from "Games in this event"
+  (V2.13.5 fix kept).
+
 ## V2.13.5 - 2026-07-21 (quest stage picker scoped to event's games)
 
 - Quest stage game picker offered every game in the org's library, not just

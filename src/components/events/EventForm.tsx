@@ -507,7 +507,6 @@ export function EventForm({
                 compatible={selectedGames.filter(
                   (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
                 )}
-                groups={groups}
                 onChange={onChange}
               />
             ) : (
@@ -698,17 +697,14 @@ const QUEST_QUICK_FILTERS = [
 
 type QuestStageGamesProps = {
   stage: EventStage
-  /** Photo/video/text games already in the event library. */
+  /** Photo/video/text games already added to the event. */
   compatible: GameRow[]
-  groups: GameGroupWithItems[]
   onChange: EventFormProps['onChange']
 }
 
 /** Quest stage games: ordered draggable list (= players' display order) + quick add. */
-function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGamesProps) {
+function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [groupFilter, setGroupFilter] = useState<string>('all')
-  const [search, setSearch] = useState('')
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
   const inStage = useMemo(
@@ -722,20 +718,6 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
     () => compatible.filter((g) => !ids.includes(g.id)),
     [compatible, ids],
   )
-  const groupFilteredAvailable = useMemo(() => {
-    if (groupFilter === 'all') return available
-    const groupGameIds = new Set(
-      groups.find((group) => group.id === groupFilter)?.items.map((i) => i.game_id) ?? [],
-    )
-    return available.filter((g) => groupGameIds.has(g.id))
-  }, [available, groups, groupFilter])
-
-  const searchTerm = search.trim().toLowerCase()
-  const browsingList = groupFilter !== 'all' || searchTerm !== ''
-  const visibleAvailable = useMemo(() => {
-    if (!searchTerm) return groupFilteredAvailable
-    return groupFilteredAvailable.filter((g) => g.name.toLowerCase().includes(searchTerm))
-  }, [groupFilteredAvailable, searchTerm])
 
   // Adding always unions into the event library too (same rule as before).
   function setStageIds(nextIds: string[], addedIds: string[] = []) {
@@ -749,9 +731,7 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
   }
 
   function quickAdd(type: (typeof QUEST_QUICK_FILTERS)[number]['type']) {
-    const toAdd = groupFilteredAvailable
-      .filter((g) => type == null || g.type === type)
-      .map((g) => g.id)
+    const toAdd = available.filter((g) => type == null || g.type === type).map((g) => g.id)
     if (toAdd.length === 0) return
     setStageIds([...ids, ...toAdd], toAdd)
   }
@@ -821,35 +801,9 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
         </p>
       )}
 
-      {groups.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={groupFilter === 'all' ? 'default' : 'outline'}
-            onClick={() => setGroupFilter('all')}
-          >
-            All games
-          </Button>
-          {groups.map((group) => (
-            <Button
-              key={group.id}
-              type="button"
-              size="sm"
-              variant={groupFilter === group.id ? 'default' : 'outline'}
-              onClick={() => setGroupFilter(group.id)}
-            >
-              {group.name}
-            </Button>
-          ))}
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-2">
         {QUEST_QUICK_FILTERS.map(({ label, type }) => {
-          const count = groupFilteredAvailable.filter(
-            (g) => type == null || g.type === type,
-          ).length
+          const count = available.filter((g) => type == null || g.type === type).length
           return (
             <Button
               key={label}
@@ -867,33 +821,20 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
       </div>
 
       {available.length > 0 ? (
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search games to add individually…"
-          className="bg-background max-w-sm"
-        />
-      ) : null}
-
-      {browsingList ? (
-        visibleAvailable.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {visibleAvailable.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-                onClick={() => setStageIds([...ids, g.id], [g.id])}
-              >
-                <Plus className="size-3" />
-                {g.name}
-                <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-xs">No matching games.</p>
-        )
+        <div className="flex flex-wrap gap-1.5">
+          {available.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+              onClick={() => setStageIds([...ids, g.id], [g.id])}
+            >
+              <Plus className="size-3" />
+              {g.name}
+              <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   )
