@@ -510,6 +510,7 @@ export function EventForm({
                 compatible={games.filter(
                   (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
                 )}
+                groups={groups}
                 onChange={onChange}
               />
             ) : (
@@ -702,12 +703,14 @@ type QuestStageGamesProps = {
   stage: EventStage
   /** Photo/video/text games already in the event library. */
   compatible: GameRow[]
+  groups: GameGroupWithItems[]
   onChange: EventFormProps['onChange']
 }
 
 /** Quest stage games: ordered draggable list (= players' display order) + quick add. */
-function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) {
+function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [groupFilter, setGroupFilter] = useState<string>('all')
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
   const inStage = useMemo(
@@ -721,6 +724,13 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
     () => compatible.filter((g) => !ids.includes(g.id)),
     [compatible, ids],
   )
+  const groupFilteredAvailable = useMemo(() => {
+    if (groupFilter === 'all') return available
+    const groupGameIds = new Set(
+      groups.find((group) => group.id === groupFilter)?.items.map((i) => i.game_id) ?? [],
+    )
+    return available.filter((g) => groupGameIds.has(g.id))
+  }, [available, groups, groupFilter])
 
   // Adding always unions into the event library too (same rule as before).
   function setStageIds(nextIds: string[], addedIds: string[] = []) {
@@ -734,7 +744,9 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
   }
 
   function quickAdd(type: (typeof QUEST_QUICK_FILTERS)[number]['type']) {
-    const toAdd = available.filter((g) => type == null || g.type === type).map((g) => g.id)
+    const toAdd = groupFilteredAvailable
+      .filter((g) => type == null || g.type === type)
+      .map((g) => g.id)
     if (toAdd.length === 0) return
     setStageIds([...ids, ...toAdd], toAdd)
   }
@@ -804,9 +816,35 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
         </p>
       )}
 
+      {groups.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={groupFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setGroupFilter('all')}
+          >
+            All games
+          </Button>
+          {groups.map((group) => (
+            <Button
+              key={group.id}
+              type="button"
+              size="sm"
+              variant={groupFilter === group.id ? 'default' : 'outline'}
+              onClick={() => setGroupFilter(group.id)}
+            >
+              {group.name}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         {QUEST_QUICK_FILTERS.map(({ label, type }) => {
-          const count = available.filter((g) => type == null || g.type === type).length
+          const count = groupFilteredAvailable.filter(
+            (g) => type == null || g.type === type,
+          ).length
           return (
             <Button
               key={label}
@@ -823,9 +861,9 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
         })}
       </div>
 
-      {available.length > 0 ? (
+      {groupFilteredAvailable.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {available.map((g) => (
+          {groupFilteredAvailable.map((g) => (
             <button
               key={g.id}
               type="button"
@@ -838,6 +876,8 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
             </button>
           ))}
         </div>
+      ) : groupFilter !== 'all' ? (
+        <p className="text-muted-foreground text-xs">No games left to add in this group.</p>
       ) : null}
     </div>
   )

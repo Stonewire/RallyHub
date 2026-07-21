@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.3 - 2026-07-21 (game group filter for quest stages)
+
+- Quest stage game picker (the "Add games below" list under an open/quest
+  stage) now has the same group filter chips as the event-level Add games
+  modal — pick a group or "All games" to narrow the list, then quick-add all
+  of it or add games one at a time.
+
 ## V2.13.2 - 2026-07-21 (game group filter, hide team points)
 
 - Event editor's "Add games" modal now lets you filter by game group (or all
