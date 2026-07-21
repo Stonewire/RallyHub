@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.4 - 2026-07-21 (quest stage picker no longer dumps every game)
+
+- The per-stage game picker stopped showing every available game as a giant
+  flat list by default (orgs without groups saw 100+ pills at once). It now
+  only lists individual games once you pick a group or type a search term;
+  a new search box narrows by name. Quick-add-by-type buttons are unchanged.
+
 ## V2.13.3 - 2026-07-21 (game group filter for quest stages)
 
 - Quest stage game picker (the "Add games below" list under an open/quest

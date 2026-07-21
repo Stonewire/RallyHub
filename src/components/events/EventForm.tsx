@@ -711,6 +711,7 @@ type QuestStageGamesProps = {
 function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [groupFilter, setGroupFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
   const inStage = useMemo(
@@ -731,6 +732,13 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
     )
     return available.filter((g) => groupGameIds.has(g.id))
   }, [available, groups, groupFilter])
+
+  const searchTerm = search.trim().toLowerCase()
+  const browsingList = groupFilter !== 'all' || searchTerm !== ''
+  const visibleAvailable = useMemo(() => {
+    if (!searchTerm) return groupFilteredAvailable
+    return groupFilteredAvailable.filter((g) => g.name.toLowerCase().includes(searchTerm))
+  }, [groupFilteredAvailable, searchTerm])
 
   // Adding always unions into the event library too (same rule as before).
   function setStageIds(nextIds: string[], addedIds: string[] = []) {
@@ -861,23 +869,34 @@ function QuestStageGames({ stage, compatible, groups, onChange }: QuestStageGame
         })}
       </div>
 
-      {groupFilteredAvailable.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {groupFilteredAvailable.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-              onClick={() => setStageIds([...ids, g.id], [g.id])}
-            >
-              <Plus className="size-3" />
-              {g.name}
-              <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
-            </button>
-          ))}
-        </div>
-      ) : groupFilter !== 'all' ? (
-        <p className="text-muted-foreground text-xs">No games left to add in this group.</p>
+      {available.length > 0 ? (
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search games to add individually…"
+          className="bg-background max-w-sm"
+        />
+      ) : null}
+
+      {browsingList ? (
+        visibleAvailable.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {visibleAvailable.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+                onClick={() => setStageIds([...ids, g.id], [g.id])}
+              >
+                <Plus className="size-3" />
+                {g.name}
+                <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-xs">No matching games.</p>
+        )
       ) : null}
     </div>
   )
