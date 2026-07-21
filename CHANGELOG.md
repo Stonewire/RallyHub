@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.13.2 - 2026-07-21 (game group filter, hide team points)
+
+- Event editor's "Add games" modal now lets you filter by game group (or all
+  games) before selecting, instead of only pre-selecting a group's games into
+  a mixed list.
+- Facilitator panel gained a "Hide points for teams" toggle, independent of
+  "Show scores on display" — hides each team's running point total on their
+  own device (main game header and bingo header) without affecting the
+  audience display.
+
 ## V2.13.1 - 2026-07-17 (branch-aware generated links)
 
 - Facilitator, display, teams, pretty event, Inventory purchase, and tablet links
