@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.15.2 - 2026-07-21 (fix cropped game cover images)
+
+- Cover images on the challenge briefing screen (photo/video games), text
+  challenges, and the submission review screen were cropped to fill the
+  frame (object-cover). Switched to object-contain so the full image
+  always shows, scaled down to fit within the same size limits.
+
 ## V2.15.1 - 2026-07-21 (fix missing points editor for text games)
 
 - Editing a text game (side panel or the standalone page) was missing the

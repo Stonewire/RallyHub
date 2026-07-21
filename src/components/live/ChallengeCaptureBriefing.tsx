@@ -46,7 +46,7 @@ export function ChallengeCaptureBriefing({
         <img
           src={coverUrl}
           alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
         />
       ) : null}
       {description ? (
