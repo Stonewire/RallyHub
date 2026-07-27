@@ -5,6 +5,29 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.16.0 - 2026-07-28 (puzzle games: Wordle, Matching, Crossword)
+
+- New `puzzle` game type for Quest stages, with three subtypes. All three score
+  automatically on the server and keep every device on a team in sync.
+- **Wordle:** organiser sets the answer and the keyboard alphabet. Players type
+  on a built-in on-screen keyboard, never the phone's own. Unlimited guesses;
+  each extra guess costs 10% of the remaining score. Letters colour green,
+  amber and grey as they are ruled in or out.
+- **Matching:** two shuffled columns per team, tap a pair to match. Wrong pairs
+  are recorded and reduce the score.
+- **Crossword:** 6x6 grid, organiser paints blocked cells and types words
+  inline; every straight run of 2+ letters is auto-detected and must be clued.
+  Players tap any letter cell to read its clue, tap again at a crossing to
+  switch between across and down, and get 3 hints per team at -10% each. Full
+  points at or under 5:00, then -5% per 30 seconds, 10% floor.
+- The on-screen keyboard is letters only, laid out like a QWERTY board with
+  equal-width keys, and stays locked to the bottom of the screen so Delete and
+  Submit are always in reach. Latin and Cyrillic alphabets.
+- **Fixed before release:** crossword progress was wiped whenever a player left
+  the game and came back, because registering the solve timer overwrote the
+  saved grid. Clues also only appeared when tapping the first cell of a word.
+- Text games keep the normal device keyboard, unchanged.
+
 ## V2.15.2 - 2026-07-21 (fix cropped game cover images)
 
 - Cover images on the challenge briefing screen (photo/video games), text

@@ -166,8 +166,8 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Later / ideas
 
-- [~] **PUZZLES-1 Puzzle game family:** all three subtypes implemented on
-  `feature/puzzles` (2026-07-18). Wordle, Matching, and the manual 5x5 Crossword
+- [x] **PUZZLES-1 Puzzle game family:** live in V2.16.0. All three subtypes shipped
+  (built 2026-07-18). Wordle, Matching, and the manual 5x5 Crossword
   are Quest-stage games with automatic, server-authoritative scoring and
   synchronized team progress. Crossword: organizer places words on the grid with
   clues, players auto-solve (silent full-grid validation), score decays with
@@ -179,7 +179,7 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   Build, lint, and 133 unit tests pass. Remaining before staging: Rumen's
   real-phone live test (two phones, one team, all three puzzles).
 
-- [~] **PUZZLES-2 Crossword rework:** on `feature/puzzles` (2026-07-19), after
+- [x] **PUZZLES-2 Crossword rework:** live in V2.16.0 (built 2026-07-19), after
   play-test feedback. 6x6 grid; designer can paint blocked (solid yellow) cells;
   inline word entry (click a cell, hover the row/column that lights up, type the
   word, add a clue); every straight run of 2+ letters is auto-detected as a word
@@ -196,8 +196,8 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   `docs/superpowers/specs/2026-07-19-crossword-rework-design.md`,
   plan: `docs/superpowers/plans/2026-07-19-crossword-rework.md`.
 
-- [~] **PUZZLES-3 Puzzle keyboard + hint fix:** on `feature/puzzles`
-  (2026-07-20), after a second play-test round. Crossword hint fixed: now
+- [x] **PUZZLES-3 Puzzle keyboard + hint fix:** live in V2.16.0
+  (built 2026-07-20), after a second play-test round. Crossword hint fixed: now
   reveals exactly one letter per use (was one letter per unsolved word,
   which could light up many cells at once), preferring a cell shared by two
   unsolved crossing words; smoke-tested against the live DB. Crossword and
