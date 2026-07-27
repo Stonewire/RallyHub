@@ -1,9 +1,23 @@
 # RallyHub Fixes Tracker
 
-Workflow since 7 Jul 2026: small fixes, redesigns and features push straight
-to `main` (production). The `fixes` branch is reserved for risky live-event
-work (currently: the bingo smoothness investigation). Branch `stable-2.0` is
-the pre-2.1.0 fallback checkpoint.
+Workflow since 16 Jul 2026 (supersedes the old push-straight-to-`main` rule):
+
+- **Level 1 — isolated work.** Each major feature gets its own
+  `feature/<short-name>` branch; all ordinary bug fixes share the long-lived
+  `bug-fixes` branch.
+- **Level 2 — integration.** Merge confirmed Level 1 branches into `dev` and
+  test them together.
+- **Level 3 — release candidate.** Refresh `staging` from the latest `main`,
+  then merge the confirmed `dev` candidate in. Final production-like test.
+- **Level 4 — production.** Merge `staging` into `main` only after Rumen
+  confirms staging. `main` is live.
+- A single isolated change may go Level 1 → `staging` directly, skipping `dev`,
+  but still has to be confirmed on `staging` before `main`.
+- After every production release, realign `staging` and `dev` with the new
+  `main` before starting the next cycle.
+
+Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
+branch is historical and must not receive new work.
 
 **Versioning on main** (three numbers, MAJOR.MINOR.PATCH):
 - Patch (small fixes): 2.0.1, 2.0.2, ...
