@@ -1987,6 +1987,14 @@ export function FacilitatorEventPage() {
                 />
                 Show scores on display
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={state.hide_team_points}
+                  onChange={(e) => void patchState({ hide_team_points: e.target.checked })}
+                />
+                Hide points for teams
+              </label>
             </div>
           </Card>
 

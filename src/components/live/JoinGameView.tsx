@@ -946,7 +946,7 @@ export function JoinGameView({
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null
-      ) : (
+      ) : state.hide_team_points ? null : (
         <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
           {team.score} points
         </p>
@@ -1092,11 +1092,7 @@ export function JoinGameView({
               coverUrl={activeOpenGame.cover_url}
               accentColor={accent}
               mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
-              config={
-                activeOpenGame.type === 'video'
-                  ? (activeOpenGame.config as GameConfig)
-                  : undefined
-              }
+              config={activeOpenGame.config as GameConfig}
               disabled={submitting}
               onCaptureActiveChange={setCaptureActive}
               onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}
@@ -1409,9 +1405,11 @@ export function JoinGameView({
               Locking answers…
             </p>
           ) : null}
-          <p className="xp-glass-panel shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
-            {team.score} pts
-          </p>
+          {state.hide_team_points ? null : (
+            <p className="xp-glass-panel shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
+              {team.score} pts
+            </p>
+          )}
         </div>
         <div className="grid h-[calc(100%-58px)] grid-cols-5 grid-rows-5 gap-1">
           {cellLabels.map((cell, i) => {

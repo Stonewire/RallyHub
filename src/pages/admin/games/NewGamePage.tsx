@@ -172,7 +172,7 @@ export function AdminGamesNewPage() {
         is_platform_template: isPlatformLibrary,
         config: {
           ...config,
-          example_video_url: gameType === 'video' ? exampleVideoUrl : undefined,
+          example_video_url: isPhotoVideo ? exampleVideoUrl : undefined,
           max_video_duration_seconds:
             gameType === 'video'
               ? Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)
@@ -282,54 +282,56 @@ export function AdminGamesNewPage() {
               setPointsMax={setPointsMax}
             />
             {gameType === 'video' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Max video duration</Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxMinutes}
-                        onChange={(e) =>
-                          setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">min</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxSeconds}
-                        onChange={(e) =>
-                          setVideoMaxSeconds(
-                            Math.min(59, Math.max(0, Number(e.target.value) || 0)),
-                          )
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">sec</span>
-                    </div>
+              <div className="space-y-2">
+                <Label>Max video duration</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={videoMaxMinutes}
+                      onChange={(e) =>
+                        setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
+                      }
+                      className="bg-background w-20"
+                    />
+                    <span className="text-muted-foreground text-sm">min</span>
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    Stored as{' '}
-                    {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds total
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={videoMaxSeconds}
+                      onChange={(e) =>
+                        setVideoMaxSeconds(
+                          Math.min(59, Math.max(0, Number(e.target.value) || 0)),
+                        )
+                      }
+                      className="bg-background w-20"
+                    />
+                    <span className="text-muted-foreground text-sm">sec</span>
+                  </div>
                 </div>
-                <FileField
-                  label="Example video (visible to participants)"
-                  accept="video/*"
-                  onFile={(f) =>
-                    void handleFile(f, setExampleVideoUrl, `videos/${newGameId()}`)
-                  }
-                  preview={exampleVideoUrl}
-                />
-              </>
+                <p className="text-muted-foreground text-xs">
+                  Stored as{' '}
+                  {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds total
+                </p>
+              </div>
             )}
+            <FileField
+              label={
+                gameType === 'video'
+                  ? 'Example video (visible to participants)'
+                  : 'Example / instructional video (optional, visible to participants)'
+              }
+              accept="video/*"
+              onFile={(f) =>
+                void handleFile(f, setExampleVideoUrl, `videos/${newGameId()}`)
+              }
+              preview={exampleVideoUrl}
+            />
           </Card>
         )}
 

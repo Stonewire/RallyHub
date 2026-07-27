@@ -659,6 +659,7 @@ export type Database = {
           quiz_timer_running: boolean
           show_scores: boolean
           show_timer_on_display: boolean
+          hide_team_points: boolean
           quiz_state: string
           quiz_correct_answer_id: string | null
           bingo_state: string
@@ -687,6 +688,7 @@ export type Database = {
           quiz_timer_running?: boolean
           show_scores?: boolean
           show_timer_on_display?: boolean
+          hide_team_points?: boolean
           quiz_state?: string
           quiz_correct_answer_id?: string | null
           bingo_state?: string
@@ -712,6 +714,7 @@ export type Database = {
           quiz_timer_running?: boolean
           show_scores?: boolean
           show_timer_on_display?: boolean
+          hide_team_points?: boolean
           quiz_state?: string
           quiz_correct_answer_id?: string | null
           bingo_state?: string

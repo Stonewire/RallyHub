@@ -57,6 +57,7 @@ export function EventForm({
   const { notify } = useNotification()
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [modalSelection, setModalSelection] = useState<string[]>([])
+  const [modalGroupFilter, setModalGroupFilter] = useState<string>('all')
   // New-event forms do not have a database id yet. Keep one stable upload
   // folder for the lifetime of the form so superseded logo uploads can still
   // be removed together when that event is permanently deleted.
@@ -84,9 +85,17 @@ export function EventForm({
     [games, selectedGameIds],
   )
 
-  const availableGameIds = useMemo(
-    () => games.filter((g) => !selectedGameIds.includes(g.id)).map((g) => g.id),
-    [games, selectedGameIds],
+  const modalGames = useMemo(() => {
+    if (modalGroupFilter === 'all') return games
+    const groupGameIds = new Set(
+      groups.find((group) => group.id === modalGroupFilter)?.items.map((i) => i.game_id) ?? [],
+    )
+    return games.filter((g) => groupGameIds.has(g.id))
+  }, [games, groups, modalGroupFilter])
+
+  const modalAvailableGameIds = useMemo(
+    () => modalGames.filter((g) => !selectedGameIds.includes(g.id)).map((g) => g.id),
+    [modalGames, selectedGameIds],
   )
 
   function onTeamCountChange(n: number) {
@@ -360,6 +369,7 @@ export function EventForm({
             variant="outline"
             onClick={() => {
               setModalSelection([])
+              setModalGroupFilter('all')
               setGameModalOpen(true)
             }}
           >
@@ -494,10 +504,7 @@ export function EventForm({
             ) : stage.type === 'open' ? (
               <QuestStageGames
                 stage={stage}
-                // Whole org library, not just event-selected games — adding to the
-                // stage unions into the event automatically, so the modal step is
-                // no longer a prerequisite.
-                compatible={games.filter(
+                compatible={selectedGames.filter(
                   (g) => g.type === 'photo' || g.type === 'video' || g.type === 'text',
                 )}
                 onChange={onChange}
@@ -552,41 +559,53 @@ export function EventForm({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setGameModalOpen(false)}
+                onClick={() => {
+                  setModalGroupFilter('all')
+                  setGameModalOpen(false)
+                }}
               >
                 <X className="size-4" />
               </Button>
             </div>
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-3 flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
-                disabled={availableGameIds.length === 0}
-                onClick={() => setModalSelection(availableGameIds)}
+                variant={modalGroupFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setModalGroupFilter('all')}
               >
-                Select all
+                All games
               </Button>
               {groups.map((group) => (
                 <Button
                   key={group.id}
                   type="button"
                   size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setModalSelection(
-                      group.items
-                        .map((i) => i.game_id)
-                        .filter((id) => !selectedGameIds.includes(id)),
-                    )
-                  }
+                  variant={modalGroupFilter === group.id ? 'default' : 'outline'}
+                  onClick={() => setModalGroupFilter(group.id)}
                 >
                   {group.name}
                 </Button>
               ))}
             </div>
+            <div className="mb-4">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={modalAvailableGameIds.length === 0}
+                onClick={() => setModalSelection(modalAvailableGameIds)}
+              >
+                {modalGroupFilter === 'all'
+                  ? 'Select all'
+                  : `Select all in ${groups.find((g) => g.id === modalGroupFilter)?.name ?? 'group'}`}
+              </Button>
+            </div>
+            {modalGames.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No games in this group.</p>
+            ) : null}
             <ul className="space-y-2">
-              {games.map((g) => {
+              {modalGames.map((g) => {
                 const alreadyAdded = selectedGameIds.includes(g.id)
                 const checked = modalSelection.includes(g.id)
                 return (
@@ -631,7 +650,14 @@ export function EventForm({
               })}
             </ul>
             <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setGameModalOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setModalGroupFilter('all')
+                  setGameModalOpen(false)
+                }}
+              >
                 Cancel
               </Button>
               <NeoButton
@@ -671,7 +697,7 @@ const QUEST_QUICK_FILTERS = [
 
 type QuestStageGamesProps = {
   stage: EventStage
-  /** Photo/video/text games already in the event library. */
+  /** Photo/video/text games already added to the event. */
   compatible: GameRow[]
   onChange: EventFormProps['onChange']
 }

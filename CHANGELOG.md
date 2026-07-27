@@ -5,6 +5,79 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.15.2 - 2026-07-21 (fix cropped game cover images)
+
+- Cover images on the challenge briefing screen (photo/video games), text
+  challenges, and the submission review screen were cropped to fill the
+  frame (object-cover). Switched to object-contain so the full image
+  always shows, scaled down to fit within the same size limits.
+
+## V2.15.1 - 2026-07-21 (fix missing points editor for text games)
+
+- Editing a text game (side panel or the standalone page) was missing the
+  Points control entirely — a pre-existing bug, not something the V2.15.0
+  panel introduced. Points editing only ever saved for photo/video games.
+  Text games now get the same Points editor as New game, and points save
+  correctly on update.
+
+## V2.15.0 - 2026-07-21 (edit games from a side panel)
+
+- Clicking "Edit" on a game in the Games library now opens a side panel
+  instead of navigating to a full page. The games list stays visible and
+  clickable behind it — save your changes, then click straight into the
+  next game's Edit button without closing anything first.
+- The standalone `/admin/games/:id` edit page still works the same as
+  before (e.g. deep links, the Bin's restore flow) — both now share the
+  same underlying form component.
+
+## V2.14.0 - 2026-07-21 (example video for photo games)
+
+- Photo games can now have an optional example/instructional video attached
+  in the game editor (New game and Edit game), same upload field video games
+  already had.
+- Fixed a pre-existing gap: the example video was saved but never actually
+  shown to teams. It now renders on the challenge briefing screen (before
+  they start capturing) for both photo and video games.
+
+## V2.13.6 - 2026-07-21 (revert stage picker group/search filters)
+
+- Reverted the group-filter chips and search box added to the quest stage
+  game picker in V2.13.3/V2.13.4 — back to the original type-only quick
+  filters (All / photo / video / text) with the always-visible pill list.
+  The picker still correctly sources only from "Games in this event"
+  (V2.13.5 fix kept).
+
+## V2.13.5 - 2026-07-21 (quest stage picker scoped to event's games)
+
+- Quest stage game picker offered every game in the org's library, not just
+  the ones already added to the event via "Games in this event". It now
+  only lists games already in the event — add a game to the event first,
+  then it becomes pickable for a stage.
+
+## V2.13.4 - 2026-07-21 (quest stage picker no longer dumps every game)
+
+- The per-stage game picker stopped showing every available game as a giant
+  flat list by default (orgs without groups saw 100+ pills at once). It now
+  only lists individual games once you pick a group or type a search term;
+  a new search box narrows by name. Quick-add-by-type buttons are unchanged.
+
+## V2.13.3 - 2026-07-21 (game group filter for quest stages)
+
+- Quest stage game picker (the "Add games below" list under an open/quest
+  stage) now has the same group filter chips as the event-level Add games
+  modal — pick a group or "All games" to narrow the list, then quick-add all
+  of it or add games one at a time.
+
+## V2.13.2 - 2026-07-21 (game group filter, hide team points)
+
+- Event editor's "Add games" modal now lets you filter by game group (or all
+  games) before selecting, instead of only pre-selecting a group's games into
+  a mixed list.
+- Facilitator panel gained a "Hide points for teams" toggle, independent of
+  "Show scores on display" — hides each team's running point total on their
+  own device (main game header and bingo header) without affecting the
+  audience display.
+
 ## V2.13.1 - 2026-07-17 (branch-aware generated links)
 
 - Facilitator, display, teams, pretty event, Inventory purchase, and tablet links

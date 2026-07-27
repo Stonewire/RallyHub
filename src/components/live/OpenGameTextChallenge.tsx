@@ -42,7 +42,7 @@ export function OpenGameTextChallenge({
         <img
           src={game.cover_url}
           alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
         />
       ) : null}
       {game.description ? (
