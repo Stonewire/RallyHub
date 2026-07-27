@@ -1,3 +1,7 @@
+import { Delete } from 'lucide-react'
+import type { CSSProperties } from 'react'
+
+import { textOnAccent } from '@/lib/live-event'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
 type Alphabet = 'latin' | 'cyrillic'
@@ -19,8 +23,19 @@ const CYRILLIC_ROWS = [
 const STATE_COLOR: Record<WordleCellState, string> = {
   correct: '#16A34A',
   present: '#D97706',
-  absent: '#4B5563',
+  // Darker than an untouched key, so a ruled-out letter reads as struck off
+  // rather than as the next one to press.
+  absent: '#252A33',
 }
+
+const UNUSED_KEY_COLOR = 'rgba(255,255,255,0.26)'
+
+/**
+ * Every key is the same width regardless of how many sit in its row, so short
+ * rows centre with the indent of a real QWERTY board instead of stretching to
+ * fill. 10 keys per row plus the 9 gaps between them.
+ */
+const KEY_WIDTH = 'calc((100% - 9 * 0.25rem) / 10)'
 
 type Props = {
   alphabet: Alphabet
@@ -28,6 +43,8 @@ type Props = {
   onBackspace: () => void
   onSubmit?: () => void
   submitDisabled?: boolean
+  submitLabel?: string
+  accentColor?: string
   keyState?: Record<string, WordleCellState>
   disabled?: boolean
 }
@@ -38,51 +55,77 @@ export function VirtualKeyboard({
   onBackspace,
   onSubmit,
   submitDisabled,
+  submitLabel = 'Submit',
+  accentColor,
   keyState,
   disabled,
 }: Props) {
   const rows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
+  const keyStyle: CSSProperties = { width: KEY_WIDTH }
+  const submitInactive = disabled || submitDisabled
+
   return (
-    <div className="space-y-1.5 select-none">
-      {rows.map((row, i) => (
-        <div key={i} className="flex justify-center gap-1">
-          {row.map((letter) => {
-            const state = keyState?.[letter.toLocaleLowerCase()]
-            const locked = state === 'absent'
-            return (
-              <button
-                key={letter}
-                type="button"
-                disabled={disabled || locked}
-                onClick={() => onKey(letter)}
-                className="flex h-10 min-w-8 flex-1 items-center justify-center rounded-md text-sm font-bold uppercase text-white transition-colors disabled:opacity-40"
-                style={{ backgroundColor: state ? STATE_COLOR[state] : 'rgba(255,255,255,0.12)' }}
-              >
-                {letter}
-              </button>
-            )
-          })}
-        </div>
-      ))}
-      <div className="flex justify-center gap-1">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onBackspace}
-          className="h-10 flex-[1.5] rounded-md bg-white/10 text-xs font-bold uppercase text-white disabled:opacity-40"
-        >
-          Delete
-        </button>
-        {onSubmit ? (
+    // Sticky so a tall grid can never push Delete/Submit off the bottom of the
+    // phone. pb-10 clears the fixed "Powered by RallyHub" badge underneath it.
+    // -mx-3 cancels the participant page's gutter so the panel runs edge to edge.
+    <div className="sticky bottom-0 z-30 -mx-3 bg-black/55 pt-2.5 pb-10 backdrop-blur-sm select-none">
+      <div className="mx-auto w-full max-w-md space-y-1.5 px-3">
+        {rows.map((row, i) => (
+          <div key={i} className="flex justify-center gap-1">
+            {row.map((letter) => {
+              const state = keyState?.[letter.toLocaleLowerCase()]
+              // A letter is only ever 'absent' once every occurrence of it has come
+              // back absent, so locking it can never hide a letter still in play.
+              const locked = state === 'absent'
+              return (
+                <button
+                  key={letter}
+                  type="button"
+                  disabled={disabled || locked}
+                  onClick={() => onKey(letter)}
+                  style={{
+                    ...keyStyle,
+                    backgroundColor: state ? STATE_COLOR[state] : UNUSED_KEY_COLOR,
+                  }}
+                  // Ruled-out keys keep their solid grey instead of fading, so they
+                  // still read as "already tried" rather than as a rendering glitch.
+                  className={`flex h-12 items-center justify-center rounded-md text-base font-bold uppercase text-white transition-colors active:scale-95 ${
+                    disabled && !locked ? 'opacity-40' : ''
+                  }`}
+                >
+                  {letter}
+                </button>
+              )
+            })}
+          </div>
+        ))}
+        <div className="flex justify-center gap-1 pt-1">
           <button
             type="button"
-            disabled={disabled || submitDisabled}
-            onClick={onSubmit}
-            className="h-10 flex-[1.5] rounded-md bg-white/10 text-xs font-bold uppercase text-white disabled:opacity-40"
+            disabled={disabled}
+            onClick={onBackspace}
+            aria-label="Delete last letter"
+            style={{ width: `calc(${KEY_WIDTH} * 3 + 0.5rem)` }}
+            className="flex h-12 items-center justify-center gap-1.5 rounded-md bg-white/25 text-xs font-bold uppercase text-white active:scale-95 disabled:opacity-40"
           >
-            Submit
+            <Delete className="size-4" /> Delete
           </button>
-        ) : null}
+          {onSubmit ? (
+            <button
+              type="button"
+              disabled={submitInactive}
+              onClick={onSubmit}
+              style={{
+                width: `calc(${KEY_WIDTH} * 4 + 0.75rem)`,
+                backgroundColor: submitInactive ? UNUSED_KEY_COLOR : accentColor,
+                color: submitInactive || !accentColor ? '#FFFFFF' : textOnAccent(accentColor),
+              }}
+              className="flex h-12 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40"
+            >
+              {submitLabel}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   )

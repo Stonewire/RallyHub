@@ -1,8 +1,7 @@
 import { Check, Loader2, RotateCcw } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
-import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import { Button } from '@/components/ui/button'
 import { RichText } from '@/components/ui/rich-text'
@@ -62,6 +61,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null)
   const [selectedRight, setSelectedRight] = useState<string | null>(null)
   const [wrongSelection, setWrongSelection] = useState<{ left: string; right: string } | null>(null)
+  const activeRowRef = useRef<HTMLDivElement | null>(null)
 
   const loadProgress = useCallback(async () => {
     if (!teamToken) {
@@ -103,6 +103,14 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
       }),
     [eventId, game.id, loadProgress, teamId],
   )
+
+  // Once the guesses outgrow the screen, keep the row being typed in view above
+  // the keyboard instead of making the player scroll after every guess.
+  const guessCount = progress?.guesses.length ?? 0
+  useEffect(() => {
+    if (guessCount === 0) return
+    activeRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [guessCount])
 
   async function submitWordleGuess() {
     if (!teamToken || saving) return
@@ -208,6 +216,13 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
         />
       ) : null}
 
+      {/* Above the puzzle, so the sticky keyboard can never hide a failure. */}
+      {error ? (
+        <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
+          {error}
+        </p>
+      ) : null}
+
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-white/75">
           <Loader2 className="size-5 animate-spin" /> Loading puzzle…
@@ -227,7 +242,13 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
         </div>
       ) : type === 'wordle' ? (
         <div className="space-y-4">
-          <div className="space-y-2" aria-label="Word guesses">
+          {/* min-h keeps the sticky keyboard pinned to the bottom of the screen
+              even on the first guess; justify-end keeps the row being typed
+              directly above the keyboard as older guesses stack upwards. */}
+          <div
+            className="flex min-h-[38vh] flex-col justify-end space-y-2"
+            aria-label="Word guesses"
+          >
             {(progress?.guesses ?? []).map((row, rowIndex) => (
               <div key={`${row.word}-${rowIndex}`} className="flex justify-center gap-1.5">
                 {Array.from(row.word.toLocaleUpperCase()).map((letter, index) => (
@@ -241,7 +262,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
                 ))}
               </div>
             ))}
-            <div className="flex justify-center gap-1.5">
+            <div ref={activeRowRef} className="flex scroll-mb-64 justify-center gap-1.5">
               {Array.from({ length: wordLength }, (_, index) => (
                 <span
                   key={index}
@@ -252,27 +273,22 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
               ))}
             </div>
           </div>
+          <p className="text-xs text-white/60">
+            Unlimited guesses · each extra guess reduces the remaining score by 10%
+          </p>
+          {/* The keyboard's own Submit is the only one — a second button below it
+              was one more thing to reach for on a phone. */}
           <VirtualKeyboard
             alphabet={config.puzzle_keyboard_alphabet ?? 'latin'}
             onKey={handleWordleKey}
             onBackspace={handleWordleBackspace}
             onSubmit={() => void submitWordleGuess()}
             submitDisabled={saving || Array.from(guess).length !== wordLength}
+            submitLabel={saving ? 'Checking…' : 'Submit'}
+            accentColor={accentColor}
             keyState={wordleKeyState}
             disabled={saving}
           />
-          <LiveAccentButton
-            type="button"
-            className="w-full py-4 text-base"
-            accentColor={accentColor}
-            disabled={saving || Array.from(guess).length !== wordLength}
-            onClick={() => void submitWordleGuess()}
-          >
-            {saving ? 'Checking…' : 'Submit guess'}
-          </LiveAccentButton>
-          <p className="text-xs text-white/60">
-            Unlimited guesses · each extra guess reduces the remaining score by 10%
-          </p>
         </div>
       ) : type === 'matching' ? (
         <div className="space-y-4">
@@ -359,12 +375,6 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
       ) : (
         <CrosswordPlayer eventId={eventId} teamId={teamId} game={game} accentColor={accentColor} />
       )}
-
-      {error ? (
-        <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
-          {error}
-        </p>
-      ) : null}
     </div>
   )
 }

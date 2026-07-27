@@ -65,11 +65,14 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     () => new Set((layout?.blocked ?? []).map(({ row, col }) => `${row}-${col}`)),
     [layout],
   )
-  const cluesByStart = useMemo(() => {
+  // Keyed by every cell a word passes through, not just its first cell, so
+  // tapping anywhere in a word shows that word's clue.
+  const cluesByCell = useMemo(() => {
     const map = new Map<string, CrosswordClue[]>()
     for (const clue of clues) {
-      const key = `${clue.row}-${clue.col}`
-      map.set(key, [...(map.get(key) ?? []), clue])
+      for (const key of clueCells(clue)) {
+        map.set(key, [...(map.get(key) ?? []), clue])
+      }
     }
     return map
   }, [clues])
@@ -108,26 +111,49 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
 
   const tokenMissing = !teamToken
 
-  // Mounting registers the fill row, which starts the solve timer server-side.
+  // Read first, and only register a fill row when the team has not started yet.
+  // `update_crossword_fill` REPLACES filled_cells, so calling it with {} on every
+  // mount used to wipe a half-finished grid whenever a player left the game and
+  // came back (or their phone reloaded) while the solve timer kept running.
   useEffect(() => {
     if (!teamToken) return
     let cancelled = false
-    void supabase
-      .rpc('update_crossword_fill', {
+    void (async () => {
+      const args = {
         p_event_id: eventId,
         p_game_id: game.id,
         p_team_token: teamToken,
+      }
+      const { data: existing, error: readError } = await supabase.rpc(
+        'get_team_puzzle_progress',
+        args,
+      )
+      if (cancelled) return
+      if (readError) {
+        setError(readError.message)
+        setLoading(false)
+        return
+      }
+      const parsed = parsePuzzleProgress(existing as Json)
+      if (parsed.startedAt) {
+        applyProgress(parsed)
+        setError(null)
+        setLoading(false)
+        return
+      }
+      // No row yet: this write creates it, which is what starts the solve timer.
+      const { data, error: startError } = await supabase.rpc('update_crossword_fill', {
+        ...args,
         p_cells: {},
       })
-      .then(({ data, error: loadError }) => {
-        if (cancelled) return
-        if (loadError) setError(loadError.message)
-        else {
-          applyProgress(parsePuzzleProgress(data as Json))
-          setError(null)
-        }
-        setLoading(false)
-      })
+      if (cancelled) return
+      if (startError) setError(startError.message)
+      else {
+        applyProgress(parsePuzzleProgress(data as Json))
+        setError(null)
+      }
+      setLoading(false)
+    })()
     return () => {
       cancelled = true
     }
@@ -273,18 +299,21 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   }
 
   function selectCell(key: string) {
-    const starts = cluesByStart.get(key)
-    if (starts && starts.length > 0) setPanelCell(key)
-    let clue = activeClue && activeCells.includes(key) ? activeClue : null
-    if (!clue) {
-      clue = clues.find((c) => clueCells(c).includes(key)) ?? null
-      if (clue) setActiveClueId(clue.id)
-    }
-    if (clue) {
-      const cellsForClue = clueCells(clue)
-      const index = cellsForClue.indexOf(key)
-      setActiveIndex(index === -1 ? 0 : index)
-    }
+    const here = cluesByCell.get(key) ?? []
+    if (here.length === 0) return
+    setPanelCell(key)
+    // Tapping the cursor cell again at a crossing swaps across/down, the way a
+    // normal crossword behaves. Otherwise keep the word already being typed.
+    const alreadyActive = activeClue && here.some((c) => c.id === activeClue.id)
+    const clue =
+      alreadyActive && here.length > 1 && activeCells[activeIndex] === key
+        ? (here.find((c) => c.id !== activeClue.id) ?? activeClue)
+        : alreadyActive
+          ? activeClue
+          : here[0]
+    setActiveClueId(clue.id)
+    const index = clueCells(clue).indexOf(key)
+    setActiveIndex(index === -1 ? 0 : index)
   }
 
   if (!layout || openKeys.size === 0) {
@@ -406,11 +435,13 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         )}
       </div>
 
-      {panelCell && cluesByStart.get(panelCell) ? (
+      {panelCell && cluesByCell.get(panelCell)?.length ? (
         <div className="rounded-xl bg-black/30 p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-white/60">Clues here</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-white/60">
+            {(cluesByCell.get(panelCell) ?? []).length > 1 ? 'Clues here' : 'Clue'}
+          </p>
           <div className="mt-2 space-y-1">
-            {(cluesByStart.get(panelCell) ?? []).map((clue) => (
+            {(cluesByCell.get(panelCell) ?? []).map((clue) => (
               <button
                 key={clue.id}
                 type="button"
@@ -434,16 +465,10 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         </div>
       ) : (
         <p className="text-center text-xs text-white/60">
-          Tap a highlighted cell to read its clues, then type the answer.
+          Tap any letter cell to read its clue, then type the answer. Tap it again
+          where two words cross to switch between across and down.
         </p>
       )}
-
-      <VirtualKeyboard
-        alphabet={config.puzzle_keyboard_alphabet ?? 'latin'}
-        onKey={handleKey}
-        onBackspace={handleBackspace}
-        disabled={checking}
-      />
 
       {wrongFlash ? (
         <p className="text-center text-sm font-semibold text-amber-300">Not quite. Try again.</p>
@@ -454,6 +479,14 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           {error}
         </p>
       ) : null}
+
+      {/* Last in the flow so the sticky keyboard never covers the feedback above it. */}
+      <VirtualKeyboard
+        alphabet={config.puzzle_keyboard_alphabet ?? 'latin'}
+        onKey={handleKey}
+        onBackspace={handleBackspace}
+        disabled={checking}
+      />
     </div>
   )
 }

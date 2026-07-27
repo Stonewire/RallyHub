@@ -14,7 +14,14 @@
       "Bash(git restore *)",
       "Bash(git rev-list *)",
       "Bash(git stash *)",
-      "Bash(git cherry-pick *)"
+      "Bash(git cherry-pick *)",
+      "Bash(node \"/private/tmp/claude-501/-Users-rumenaleksandrov-Documents-Cowork-Plauground-RallyHub-rallyhub/f3a22b70-aa72-4d88-a832-0a543fe42bd1/scratchpad/puzzle-smoke-fixture.mjs\" setup)",
+      "Bash(cp \"/private/tmp/claude-501/-Users-rumenaleksandrov-Documents-Cowork-Plauground-RallyHub-rallyhub/f3a22b70-aa72-4d88-a832-0a543fe42bd1/scratchpad/puzzle-smoke-fixture.mjs\" scripts/puzzle-smoke-fixture.mjs)",
+      "Bash(node scripts/puzzle-smoke-fixture.mjs setup)",
+      "Bash(lsof -nP -iTCP:5173 -iTCP:5174 -sTCP:LISTEN)",
+      "Bash(node -e ' *)",
+      "Bash(npx prettier *)",
+      "Bash(node scripts/puzzle-smoke-fixture.mjs)"
     ]
   }
 }
