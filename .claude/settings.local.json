@@ -2,17 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(supabase functions *)",
-      "Bash(git rev-list *)",
       "Bash(npm test *)",
       "Bash(npm run *)",
+      "Bash(python3 -)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'docs: correct branch workflow, mark V2.16.0 unreleased, ignore review-assets *)",
-      "Bash(git push *)",
-      "Bash(git fetch *)",
       "Bash(git checkout *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
       "Bash(git merge *)",
+      "Bash(git push *)",
       "Bash(git restore *)",
-      "Bash(git commit -q -m 'Merge main \\(V2.15.2\\) into feature/puzzles *)"
+      "Bash(git rev-list *)",
+      "Bash(git stash *)",
+      "Bash(git cherry-pick *)"
     ]
   }
 }
