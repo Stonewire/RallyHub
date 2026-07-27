@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
+import { GameEditPanel } from '@/components/games/GameEditPanel'
 import { GameImportModal } from '@/components/games/GameImportModal'
 import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
@@ -173,6 +174,7 @@ export function AdminGamesPage() {
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const [editingGameId, setEditingGameId] = useState<string | null>(null)
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
@@ -418,6 +420,7 @@ export function AdminGamesPage() {
         />
       ) : (
       <>
+      <div className={editingGameId ? 'xl:pr-[38rem]' : undefined}>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(({ value, label }) => (
@@ -501,6 +504,7 @@ export function AdminGamesPage() {
                         void assignGroup.mutateAsync({ gameId, groupId: gid })
                       }
                       onReorder={handleReorder}
+                      onEdit={setEditingGameId}
                       onInstall={
                         isPlatformLibrary ? (game) => setInstallGame(game) : undefined
                       }
@@ -531,12 +535,14 @@ export function AdminGamesPage() {
                   void assignGroup.mutateAsync({ gameId, groupId: gid })
                 }
                 onReorder={handleReorder}
+                onEdit={setEditingGameId}
                 onInstall={isPlatformLibrary ? (game) => setInstallGame(game) : undefined}
               />
             </section>
           ) : null}
         </div>
       )}
+      </div>
       {installGame ? (
         <InstallGameModal game={installGame} onClose={() => setInstallGame(null)} />
       ) : null}
@@ -719,6 +725,10 @@ export function AdminGamesPage() {
             </div>
           </Card>
         </div>
+      ) : null}
+
+      {editingGameId ? (
+        <GameEditPanel gameId={editingGameId} onClose={() => setEditingGameId(null)} />
       ) : null}
       </>
       )}

@@ -1,6 +1,5 @@
 import { Download, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
@@ -12,6 +11,7 @@ type DraggableGamesGridProps = {
   onDelete: (game: GameRow) => void
   onAssignGroup: (gameId: string, groupId: string | null) => void
   onReorder: (gameId: string, index: number) => void
+  onEdit: (gameId: string) => void
   onInstall?: (game: GameRow) => void
 }
 
@@ -22,6 +22,7 @@ export function DraggableGamesGrid({
   onDelete,
   onAssignGroup,
   onReorder,
+  onEdit,
   onInstall,
 }: DraggableGamesGridProps) {
   const [dragId, setDragId] = useState<string | null>(null)
@@ -125,11 +126,14 @@ export function DraggableGamesGrid({
                 Install
               </NeoButton>
             ) : null}
-            <NeoButton variant="surface" size="sm" asChild>
-              <Link to={`/admin/games/${game.id}`}>
-                <Pencil className="size-3" />
-                Edit
-              </Link>
+            <NeoButton
+              type="button"
+              variant="surface"
+              size="sm"
+              onClick={() => onEdit(game.id)}
+            >
+              <Pencil className="size-3" />
+              Edit
             </NeoButton>
             <NeoButton
               type="button"

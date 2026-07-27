@@ -9,6 +9,7 @@ type ChallengeCaptureBriefingProps = {
   description?: string | null
   pointsLabel: string
   coverUrl?: string | null
+  exampleVideoUrl?: string | null
   accentColor: string
   mediaType: 'photo' | 'video'
   disabled?: boolean
@@ -20,6 +21,7 @@ export function ChallengeCaptureBriefing({
   description,
   pointsLabel,
   coverUrl,
+  exampleVideoUrl,
   accentColor,
   mediaType,
   disabled,
@@ -44,7 +46,7 @@ export function ChallengeCaptureBriefing({
         <img
           src={coverUrl}
           alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-cover object-center shadow-lg sm:max-h-48"
+          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
         />
       ) : null}
       {description ? (
@@ -52,6 +54,19 @@ export function ChallengeCaptureBriefing({
           html={description}
           className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
         />
+      ) : null}
+      {exampleVideoUrl ? (
+        <div className="mx-auto w-full max-w-md space-y-1.5">
+          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            Example video
+          </p>
+          <video
+            src={exampleVideoUrl}
+            controls
+            playsInline
+            className="mx-auto w-full max-h-56 rounded-xl shadow-lg"
+          />
+        </div>
       ) : null}
       <LiveAccentButton
         type="button"
