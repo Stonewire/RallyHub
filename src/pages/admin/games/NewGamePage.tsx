@@ -151,7 +151,7 @@ export function AdminGamesNewPage() {
       return
     }
     if (gameType === 'text') {
-      const textErr = validateTextGameConfig(config)
+      const textErr = validateTextGameConfig(config, pointsType === 'range')
       if (textErr) {
         setError(textErr)
         return
@@ -409,7 +409,11 @@ export function AdminGamesNewPage() {
                 setPointsMax={setPointsMax}
               />
             </Card>
-            <TextGameEditor config={config} setConfig={setConfig} />
+            <TextGameEditor
+              config={config}
+              setConfig={setConfig}
+              judged={pointsType === 'range'}
+            />
           </>
         )}
 
