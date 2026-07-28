@@ -122,6 +122,7 @@ export function AdminEventEditPage() {
             : null,
           team_count: capTeamCountForEventStatus(values.teamCount, eventStatus),
           branding_enabled: values.brandingEnabled,
+          inventory_enabled: values.inventoryEnabled,
           logo_url: values.brandingEnabled
             ? values.logoUrl
             : org?.logo_url ?? null,

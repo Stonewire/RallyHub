@@ -338,6 +338,7 @@ export type Database = {
           status: string
           team_count: number
           branding_enabled: boolean
+          inventory_enabled: boolean
           logo_url: string | null
           brand_colors: Json
           teams_config: Json
@@ -363,6 +364,7 @@ export type Database = {
           status?: string
           team_count?: number
           branding_enabled?: boolean
+          inventory_enabled?: boolean
           logo_url?: string | null
           brand_colors?: Json
           teams_config?: Json
@@ -381,6 +383,7 @@ export type Database = {
           status?: string
           team_count?: number
           branding_enabled?: boolean
+          inventory_enabled?: boolean
           logo_url?: string | null
           brand_colors?: Json
           teams_config?: Json

@@ -188,6 +188,8 @@ export function JoinGameView({
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
+  // Organisers running an event without a physical item shop switch this off.
+  const inventoryEnabled = event.inventory_enabled ?? true
 
   const handleInventoryItemScanned = useCallback((publicCode: string) => {
     setInventoryScannerOpen(false)
@@ -1044,7 +1046,7 @@ export function JoinGameView({
               >
                 ← Back
               </Button>
-              {!captureActive ? (
+              {!captureActive && inventoryEnabled ? (
                 <Button type="button" size="sm" className="gap-2 font-semibold" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
                   <QrCode className="size-4" /> Buy Items
                 </Button>
@@ -1112,9 +1114,11 @@ export function JoinGameView({
     } else {
       body = (
         <div className="mx-auto max-w-2xl px-4">
-          <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
-            <QrCode className="size-5" /> Buy Items
-          </Button>
+          {inventoryEnabled ? (
+            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
+              <QrCode className="size-5" /> Buy Items
+            </Button>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             {openGames.map((g) => {
               const sub = activeSubmissionForGame(mySubs, g.id)

@@ -82,6 +82,7 @@ export function AdminEventsNewPage() {
           status: 'draft',
           team_count: values.teamCount,
           branding_enabled: values.brandingEnabled,
+          inventory_enabled: values.inventoryEnabled,
           logo_url: values.brandingEnabled
             ? values.logoUrl
             : org?.logo_url ?? null,

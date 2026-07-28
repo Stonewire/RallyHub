@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.16.1 - 2026-07-28 (per-event item purchases toggle)
+
+- The event editor has a new "Teams can buy items with their points" checkbox
+  under Item purchases. Turn it off and the Buy Items button and QR scanner
+  disappear from every team's phone for that event.
+- On by default, so every existing event is unchanged.
+- Purchases are also rejected server-side when the switch is off, so an item QR
+  code kept from an earlier event cannot be used.
+
 ## V2.16.0 - 2026-07-28 (puzzle games: Wordle, Matching, Crossword)
 
 - New `puzzle` game type for Quest stages, with three subtypes. All three score

@@ -15,6 +15,8 @@ export type EventFormValues = {
   teamCount: number
   teams: EventTeam[]
   brandingEnabled: boolean
+  /** Shows the participant "Buy Items" button and allows Inventory purchases. */
+  inventoryEnabled: boolean
   logoUrl: string | null
   brandColors: [string, string, string]
   displayLayout: DisplayLayout
@@ -105,6 +107,7 @@ export function eventToFormValues(
     teamCount: event.team_count,
     teams,
     brandingEnabled: event.branding_enabled,
+    inventoryEnabled: event.inventory_enabled ?? true,
     logoUrl: event.logo_url,
     brandColors: parseBrandColors(event.brand_colors),
     displayLayout:
@@ -136,6 +139,7 @@ export function emptyEventForm(): EventFormValues {
     teamCount: INCLUDED_TEAMS_PER_EVENT,
     teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),
     brandingEnabled: true,
+    inventoryEnabled: true,
     logoUrl: null,
     brandColors: ['#3E3D3E', '#6f6f6f', '#FFC107'],
     displayLayout: 'rank_list',

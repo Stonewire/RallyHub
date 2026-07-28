@@ -71,6 +71,7 @@ export function EventForm({
     teamCount,
     teams,
     brandingEnabled,
+    inventoryEnabled,
     logoUrl,
     brandColors,
     selectedGameIds,
@@ -182,6 +183,22 @@ export function EventForm({
             colors).             Use white on dark palettes; black on light secondary colors.
           </p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-foreground text-lg font-semibold">Item purchases</h2>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={inventoryEnabled}
+                onChange={(e) => set({ inventoryEnabled: e.target.checked })}
+              />
+              Teams can buy items with their points
+            </label>
+            <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
+              Shows the Buy Items button and QR scanner on every team's phone. Turn
+              it off for events without a physical item shop.
+            </p>
           </div>
 
           <div className="space-y-4">
