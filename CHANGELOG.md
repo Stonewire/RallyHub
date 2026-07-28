@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.19.0 - 2026-07-29 (participant writes now prove team ownership)
+
+- **Client half of a two-step security deploy** (SEC-TEAM). Previously every
+  anonymous participant in an event shared the same join token, which could
+  prove they belonged to *an* event but not that a given write actually
+  belonged to their claimed team.
+- The private per-device team token minted at team claim (already stored in
+  every participant's session since V2.13.0) is now attached as an
+  `x-team-token` header on every participant write.
+- This step alone changes no behaviour — the server does not enforce the
+  header yet. Enforcement lands separately once this build is confirmed live,
+  via migration `20260719130000_team_owned_participant_writes.sql`, in the
+  correct order (client first, then migration) to avoid locking out
+  in-flight events.
+- Originally built and reviewed on `feature/team-write-security`
+  (2026-07-19), merged into `main` today after re-verifying it against three
+  weeks of intervening changes: the team token is still minted unconditionally
+  at claim, no later migration touched the write-guard trigger, build/lint/141
+  tests all pass clean.
+
 ## V2.18.0 - 2026-07-29 (self-service account settings for every role)
 
 - New shared "My Account" panel: first/last name, username, email, and password
