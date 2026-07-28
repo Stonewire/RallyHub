@@ -81,17 +81,19 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Open bugs / security
 
-- [ ] **SEC-TEAM Participant writes are event-scoped, not team-owned** — existing
-  limitation found during the V2.10.3 optimistic-submit security review. Every
-  anonymous participant in an event shares the same join token; current
-  submission RLS/guards verify the event but cannot prove that the caller owns
-  the submitted `team_id`. A participant crafting direct API requests could
-  therefore attempt writes against another team in the same event. This is not
-  introduced or widened by client-generated submission IDs (an ID collision is
-  a rejected plain INSERT, never an overwrite). A real fix needs a separate
-  short-lived participant/team credential minted when a team is claimed, then
-  enforced in submission INSERT/UPDATE/DELETE policies and triggers. Treat as a
-  dedicated live-security migration with compatibility planning and phone tests.
+- [~] **SEC-TEAM Participant writes are event-scoped, not team-owned** — fix
+  implemented on `feature/team-write-security` (2026-07-19), NOT yet deployed.
+  The private per-device team token minted at claim (inventory_team_access,
+  V2.13.0) is now sent as an `x-team-token` header by the participant client
+  and verified by digest in `submissions_guard_participant_write` for every
+  anonymous submission insert and update (migration 20260719130000). Puzzle
+  RPC score inserts keep their existing bypass because those RPCs validate the
+  same token as an argument. Compatibility: teams without a token row (claimed
+  before V2.13.0) keep the old event-scoped behaviour instead of being locked
+  out. CRITICAL deploy order: ship the client (header) to production BEFORE
+  applying the migration, else in-flight events reject legitimate writes.
+  Remaining: real-phone test (own-team write succeeds, cross-team forged write
+  rejected), then release.
 - [x] **P1-QUIZ-REVEAL** Next question did not auto-reveal after a timeout — **fixed in V2.10.2**. `quizTimerDisplay` remained `0` for the first render of the next question while `useLiveTimer` synchronized to the new duration in an effect. The facilitator interpreted that stale display as a second timeout and consumed the new question's one-shot reveal key before anyone answered; if the normal start write then won the race, later answers could not auto-reveal. Auto-reveal now uses authoritative `quiz_timer_running` + `quiz_timer_seconds`. The reveal RPC also advances `event_state.updated_at`, so timestamp-guarded fallback polling accepts the changed state when Realtime is missed. Regression-covered in `quiz-auto-reveal.test.ts`.
 - [x] **FACIL-2** Event-manager facilitator-link black screen — **fixed in V2.5.5**. `isAtLeastFacilitator()` accidentally omitted `event_manager`; valid Afterglow event-manager sessions were rejected by the facilitator route, sent to login, and immediately redirected back to the same rejected UUID route in a loop. Added the missing role; the pretty link → UUID redirect is expected and unchanged.
 - [x] **P1-B5** Event-manager bingo run missing — **fixed in V2.5.6**. FACIL-2 exposed a second authorization layer: the route accepted event managers, but `activate-bingo-run` and `is_facilitator_for_event()` still rejected them. The panel then fell back to playing the first configured clip despite zero `bingo_runs`/`bingo_team_cards`, so it displayed `0 / 0 songs` and could not advance. The RLS helper is live and verified against the Afterglow Test event-manager identity; the client fallback now creates runs/cards. Edge Function source is ready, but its dashboard deployment remains pending because the configured CLI account lacks project deploy privileges.
