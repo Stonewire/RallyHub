@@ -18,6 +18,8 @@ third = small fixes (e.g. 2.1.1).
   the answer field becomes a private note shown to the facilitator as a guide.
 - Choose-answer games can also be judged: the options still define what the team
   picks from, but no option has to be marked correct.
+- Platform library content: 6 themed quizzes (360 questions), 28 puzzle games and
+  all 125 quest placements are now seeded as installable templates.
 
 ## V2.16.0 - 2026-07-28 (puzzle games: Wordle, Matching, Crossword)
 

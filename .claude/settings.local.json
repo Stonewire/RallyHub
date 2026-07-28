@@ -29,7 +29,12 @@
       "Bash(mkdir -p scripts/data)",
       "Bash(cp __TRACKED_VAR__/build-crosswords.mjs scripts/build-crosswords.mjs)",
       "Bash(cp __TRACKED_VAR__/crosswords.json scripts/data/crossword-layouts.json)",
-      "Bash(node scripts/seed-puzzle-library.mjs --dry)"
+      "Bash(node scripts/seed-puzzle-library.mjs --dry)",
+      "Bash(node scripts/check-quizzes.mjs)",
+      "Bash(node scripts/seed-quiz-library.mjs --dry)",
+      "Bash(node scripts/seed-quiz-library.mjs)",
+      "Bash(node scripts/build-cover-prompts.mjs)",
+      "Bash(grep -c \"\\\\.png$\" docs/GAME-COVER-PROMPTS.md)"
     ]
   }
 }

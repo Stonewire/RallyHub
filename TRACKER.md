@@ -264,15 +264,22 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   - Cover prompts for every puzzle plus the five quest group covers are in
     `docs/GAME-COVER-PROMPTS.md`, with a SOURCE MANUALLY list for covers needing
     a licensed reference.
-  - Remaining: the **6 quizzes x 60 questions** (themes named, no questions
-    written) and **125 per-game quest cover prompts**. Decisions taken 28 Jul:
-    questions in English only; Harry Potter and Marvel quizzes keep their themes
-    with original abstract covers (no franchise imagery); all 125 quest games get
-    their own cover. Format follows the existing Brains & Embarrassment template:
-    4 options per question, 20 points, 10-second timer, three rounds of 20.
-  - The 10 auto-scored text games are seeded with empty answer lists; the
-    organiser fills in the accepted answers in the editor rather than the script
-    inventing them.
+  - **6 themed quizzes, 360 questions** seeded via
+    `scripts/seed-quiz-library.mjs` into a "Quizzes" group: Harry Potter, Marvel,
+    Bonjour France, Passport Please, Screen Time, and the 90s & 2000s Time
+    Machine. Each is 20 easy, 20 medium and 20 hard across three rounds, 4
+    options, 20 points, 10-second timer. Source data in `scripts/data/quizzes/`.
+    `scripts/check-quizzes.mjs` enforces round sizes, four unique options, a
+    valid correct index and no duplicate questions; verified in the database that
+    all 360 correct-answer ids resolve to a real option.
+    Correct answers are shuffled deterministically at seed time
+    (`scripts/lib/quiz-shuffle.mjs`) because writing them where they read best
+    put them in the first two slots almost every time.
+  - **159 cover prompts** in `docs/GAME-COVER-PROMPTS.md`, grouped into 7 pasteable
+    batches (one per quest group, one for puzzles, one for quizzes), each naming
+    its output folder and exact filenames. Regenerate with
+    `scripts/build-cover-prompts.mjs` after adding games.
+  - Remaining: generating and uploading the 159 cover images.
 - [x] **TEXT-JUDGED Judged free-text games** — a text game with **range** points
   is now scored by the facilitator instead of being matched against a correct
   answer. Free-type games need no answers; choose-answer games still need their
