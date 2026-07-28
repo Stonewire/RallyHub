@@ -120,9 +120,12 @@ unsolvable inside the 5-minute full-points window.
 
 ## Build order
 
-1. Wordle set. Fastest to produce, no layout work, immediately playable.
-2. Matching set. Content is written above; only needs entering.
-3. Crossword set. Slowest, needs grid layout per puzzle in the editor.
+1. ~~Wordle set~~ — **seeded**, 12 games live in the library.
+2. ~~Matching set~~ — **seeded**, 10 games live in the library.
+3. Crossword set. **Not seeded.** A 6x6 grid needs every word placed at a
+   row/col with a direction, and guessed placements produce unsolvable grids.
+   Lay these out in the editor, which auto-detects runs and forces a clue on
+   each. Word banks are in the table above.
 4. Covers, once the content above is approved. Prompts live in
    `GAME-COVER-PROMPTS.md`.
 5. Mark all of them `is_platform_template = true` so client orgs can install them.

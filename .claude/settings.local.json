@@ -22,7 +22,9 @@
       "Bash(npx prettier *)",
       "Bash(python3 -)",
       "Bash(supabase functions *)",
-      "Bash(text)"
+      "Bash(text)",
+      "Bash(node scripts/seed-puzzle-library.mjs)",
+      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__execute_sql"
     ]
   }
 }

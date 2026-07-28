@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## UNRELEASED (judged free-text games)
+
+> Version number assigned when this merges, to avoid colliding with the
+> promo-code branch.
+
+- Text games now choose how they score through their points type. **Range**
+  means the facilitator reads the answer and awards points, the same as a photo
+  or video challenge. **Static** keeps the existing behaviour of checking the
+  answer against a correct one.
+- Judged games need no correct answers at all. Anything the organiser types in
+  the answer field becomes a private note shown to the facilitator as a guide.
+- Choose-answer games can also be judged: the options still define what the team
+  picks from, but no option has to be marked correct.
+
 ## V2.16.0 - 2026-07-28 (puzzle games: Wordle, Matching, Crossword)
 
 - New `puzzle` game type for Quest stages, with three subtypes. All three score

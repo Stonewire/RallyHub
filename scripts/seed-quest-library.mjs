@@ -9,9 +9,9 @@
  *   node scripts/seed-quest-library.mjs           # create/update games + groups
  *   node scripts/seed-quest-library.mjs --remove  # delete everything it created
  *
- * Judged free-text challenges are skipped: RallyHub `text` games are auto-scored
- * and need a correct answer, which those challenges do not have. They are listed
- * in the report so the gap stays visible rather than being silently fudged.
+ * Text games use points type to decide how they score: a range means the
+ * facilitator judges the answer, static means it is checked against a correct
+ * answer. The judged challenges in the plan are seeded as ranges.
  */
 import { createClient } from '@supabase/supabase-js'
 import { existsSync, readFileSync } from 'node:fs'
@@ -35,7 +35,16 @@ function loadEnv() {
   return out
 }
 
-/** Challenges with no single correct answer cannot be an auto-scored text game. */
+/**
+ * Text challenges with no single correct answer. These seed as judged games,
+ * which in RallyHub means range points: the facilitator reads the answer and
+ * awards a score instead of it being matched automatically.
+ *
+ * Four of them are written in the plan with fixed points, which a judged text
+ * game cannot express. They get a range floored at a third of the planned value
+ * so a weak-but-real answer still earns something, with the plan's number as the
+ * maximum. Adjust in the editor if that split is wrong.
+ */
 const JUDGED_TEXT = new Set([
   'Five-Word Story Chain',
   'Memory Tray',
@@ -91,12 +100,22 @@ function parsePoints(points) {
 
 function toGame(row) {
   const kind = row.submission.split(',')[0].trim().toLowerCase()
-  if (kind === 'text' && JUDGED_TEXT.has(row.name)) return null
+  const judged = kind === 'text' && JUDGED_TEXT.has(row.name)
+  let points = parsePoints(row.points)
+  if (judged && points.points_type === 'static') {
+    const max = points.points_static
+    points = {
+      points_type: 'range',
+      points_static: null,
+      points_min: Math.round(max / 3),
+      points_max: max,
+    }
+  }
 
   const base = {
     name: row.name,
     description: row.challenge,
-    ...parsePoints(row.points),
+    ...points,
     is_platform_template: true,
     status: 'active',
   }
@@ -110,9 +129,14 @@ function toGame(row) {
     }
   }
   if (kind === 'text') {
-    // Auto-scored: the facilitator fills in the accepted answers in the editor.
-    // Seeded empty so the game is visible and editable rather than invented.
-    return { ...base, type: 'text', config: { text_answer_mode: 'type_text', text_correct_answers: [] } }
+    // Judged games need no answers. Auto-scored ones are seeded with an empty
+    // list so the organiser fills in the accepted answers in the editor, rather
+    // than this script inventing them.
+    return {
+      ...base,
+      type: 'text',
+      config: { text_answer_mode: 'type_text', text_correct_answers: [] },
+    }
   }
   return null
 }
@@ -121,13 +145,17 @@ async function main() {
   const mode = process.argv[2] ?? ''
   const rows = parsePlan()
   const planned = rows.map((r) => ({ row: r, game: toGame(r) }))
-  const skipped = planned.filter((p) => !p.game)
   const usable = planned.filter((p) => p.game)
+  const judged = usable.filter((p) => JUDGED_TEXT.has(p.row.name))
 
   console.log(`parsed ${rows.length} placements from the plan`)
-  console.log(`  seeding : ${usable.length}`)
-  console.log(`  skipped : ${skipped.length} judged free-text challenges`)
-  for (const s of skipped) console.log(`            - ${s.row.name} (${s.row.points})`)
+  console.log(`  seeding     : ${usable.length}`)
+  console.log(`  judged text : ${judged.length} (facilitator scores these)`)
+  for (const j of judged) {
+    console.log(
+      `                - ${j.row.name}: plan ${j.row.points} -> range ${j.game.points_min}-${j.game.points_max}`,
+    )
+  }
 
   if (mode === '--dry') return
 

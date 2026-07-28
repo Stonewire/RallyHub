@@ -249,19 +249,35 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 - [~] **DATA-1 Storage-first deletion lifecycle:** code promoted in V2.11.0; Supabase deployment remains. Event Bin expiry, six-month retention, manual permanent event deletion, super-admin client deletion, and client-requested 30-day account deletion converge on one private retry queue + `data-lifecycle` Edge worker. Storage prefixes are deleted through the API in 1,000-object batches before DB finalization; failures remain retryable. Client Organization Settings includes request/restore controls, Paddle renewal scheduling/undo, and a 30-day countdown. Deployment/Vault setup and destructive smoke checklist: `docs/DATA-LIFECYCLE.md`.
 - [ ] **DEV-DB1 Fresh local Supabase reset:** the historical migration chain cannot currently build a database from zero. Migrations 030/037 consume a newly added enum label in the same transaction, then 038 attempts to change `resolve_tenant_by_host`'s return type with `create or replace`. This predates DATA-1; the new lifecycle migration was instead applied and behavior-tested successfully against an isolated Supabase Postgres schema. Repair the historical chain separately without rewriting already-applied production state.
 - [ ] **PAY-1 live launch:** follow `docs/PADDLE-LIVE-CHECKLIST.md`: apply the pending billing/lifecycle migrations; deploy current Paddle Edge Functions and `data-lifecycle`; configure lifecycle Vault/cron secrets; audit and clear confirmed sandbox Paddle IDs; switch Supabase/Vercel to live Paddle credentials and production environment together; confirm production webhook subscriptions, VAT-exclusive tax setting, and the destructive lifecycle smoke checklist. Enable `VITE_ENABLE_PLAN_CHANGES` / `ENABLE_PLAN_CHANGES` only after the live smoke test.
-- [~] **CONTENT-1 Game catalogue:** puzzle library specified in
-  `docs/GAME-CONTENT-PLAN-PUZZLES.md` (12 Wordle, 10 Matching, 6 Crossword), and
-  cover-image prompts for every puzzle plus the five quest group covers are in
-  `docs/GAME-COVER-PROMPTS.md`, with a SOURCE MANUALLY list for the covers that
-  need a licensed reference. Still to write: the 125 quest placements' own
-  covers and the 6 quizzes x 60 questions. Everything installs into the RallyHub
-  Game Library org with `is_platform_template = true`. **116 of the 125 quest
-  placements are seeded and live** in the library as platform templates, with the
-  five groups built, via `scripts/seed-quest-library.mjs` (parses the plan, so the
-  markdown stays the source of truth; `--dry` to preview, `--remove` to undo).
-  **Blocked:** 9 judged free-text challenges cannot be seeded. RallyHub `text`
-  games are auto-scored and require a correct answer; those challenges
-  ("Brand Slogan Remix", "Policy in Plain English", "Exact Estimate" and 6 more)
-  have no single right answer. They need either a judged free-text game mode or a
-  rewrite into photo/video submissions. Original plan: parked for next week in `docs/GAME-CONTENT-PLAN.md`. Produce five groups of 25 quest placements, then six themed quizzes with 60 questions each: 20 easy, 20 medium, and 20 hard. Generate covers only after content approval.
+- [~] **CONTENT-1 Game catalogue:** **147 platform templates are live** in the
+  RallyHub Game Library org (`is_platform_template = true`), installable by
+  client orgs through the existing Install to clients flow.
+  - All **125 quest placements** seeded across the five groups via
+    `scripts/seed-quest-library.mjs`, which parses `docs/GAME-CONTENT-PLAN.md`
+    so the markdown stays the source of truth (`--dry` previews, `--remove`
+    undoes). 49 photo, 57 video, 19 text.
+  - **22 puzzle games** (12 Wordle, 10 Matching) seeded via
+    `scripts/seed-puzzle-library.mjs` into a "Puzzles" group. Content and rules:
+    `docs/GAME-CONTENT-PLAN-PUZZLES.md`.
+  - Cover prompts for every puzzle plus the five quest group covers are in
+    `docs/GAME-COVER-PROMPTS.md`, with a SOURCE MANUALLY list for covers needing
+    a licensed reference.
+  - Remaining: the **6 quizzes x 60 questions** (themes named, no questions
+    written), per-game quest covers, and the **6 crosswords**, whose 6x6 grids
+    have to be laid out in the editor because guessed placements produce
+    unsolvable grids. Word banks are in the puzzle plan.
+  - The 10 auto-scored text games are seeded with empty answer lists; the
+    organiser fills in the accepted answers in the editor rather than the script
+    inventing them.
+- [x] **TEXT-JUDGED Judged free-text games** — a text game with **range** points
+  is now scored by the facilitator instead of being matched against a correct
+  answer. Free-type games need no answers; choose-answer games still need their
+  options but no correct one marked. The editor relabels the answer fields as
+  optional organiser notes, and the facilitator's reference panel hides itself
+  when there is nothing to reference. Verified end to end on a throwaway event:
+  the player gets a free answer box showing "Up to 250", the submission lands
+  `pending` with the range attached, and the facilitator gets the points input.
+  Four judged challenges written in the plan with fixed points were seeded as
+  ranges floored at a third of the planned value (the plan's number stays the
+  maximum) because a judged text game cannot express fixed points.
 - [ ] **PDF-1** Branded PDF event-recap report — `src/lib/event-export.ts` currently ships a ZIP of media + CSV logs as a stand-in; the real branded PDF report was deferred and never built
