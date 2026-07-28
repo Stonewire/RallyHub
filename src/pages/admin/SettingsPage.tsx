@@ -9,6 +9,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { MyAccountPanel } from '@/components/admin/MyAccountPanel'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Button } from '@/components/ui/button'
@@ -38,13 +39,14 @@ import { copyToClipboard } from '@/lib/clipboard'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 
-type SettingsTab = 'profile' | 'billing'
+type SettingsTab = 'profile' | 'billing' | 'account'
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const tab: SettingsTab = tabParam === 'billing' ? 'billing' : 'profile'
+  const tab: SettingsTab =
+    tabParam === 'billing' ? 'billing' : tabParam === 'account' ? 'account' : 'profile'
 
   const { notify } = useNotification()
   const orgQuery = useOrganization(organizationId)
@@ -186,7 +188,7 @@ export function AdminSettingsPage() {
   }
 
   function setTab(next: SettingsTab) {
-    setSearchParams(next === 'billing' ? { tab: 'billing' } : {})
+    setSearchParams(next === 'profile' ? {} : { tab: next })
   }
 
   const profileLoading = orgQuery.isLoading
@@ -231,6 +233,16 @@ export function AdminSettingsPage() {
         >
           Billing
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('account')}
+          className={cn(
+            'neo-tab px-4 py-2 text-sm font-medium',
+            tab === 'account' ? 'neo-tab-active' : '',
+          )}
+        >
+          My Account
+        </button>
       </div>
 
       {profileLoading && !profileReady ? (
@@ -245,6 +257,8 @@ export function AdminSettingsPage() {
           paddleSubscriptionId={orgQuery.data?.paddle_subscription_id}
           showAvailablePlans
         />
+      ) : tab === 'account' ? (
+        <MyAccountPanel />
       ) : (
         <div className="space-y-8">
           {!orgQuery.data ? (

@@ -104,7 +104,12 @@ export function ClientEventEditRoute() {
 export function ClientSettingsRoute() {
   const { role, profileLoading } = useAuth()
   if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
-  if (isFacilitatorOnlyRole(role)) return <FacilitatorSettingsPage />
+  // event_manager gets no org-wide Settings access (canAccessOrgSettings), but
+  // still needs somewhere to edit their own name/username/email/password —
+  // the same personal-only page facilitators use.
+  if (isFacilitatorOnlyRole(role) || role === 'event_manager') {
+    return <FacilitatorSettingsPage />
+  }
   if (!canAccessOrgSettings(role)) {
     return <Navigate to="/admin/events" replace />
   }

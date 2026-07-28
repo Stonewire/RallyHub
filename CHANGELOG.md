@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.18.0 - 2026-07-29 (self-service account settings for every role)
+
+- New shared "My Account" panel: first/last name, username, email, and password
+  in one place, backed by the existing `update-org-user` Edge Function's
+  self-service path (already supported any role editing their own record, just
+  never had frontend fields for it beyond name).
+- Facilitators' existing Profile page now exposes all four fields, not just name.
+- Event managers previously had no personal account page at all (`/admin/settings`
+  silently bounced them to Events) — they now get the same page, plus a new
+  "Profile" sidebar entry.
+- Client admins and super admins get a new "My Account" tab alongside
+  Organization Profile and Billing in Settings.
+- Verified live against a real facilitator login on a local dev server: all
+  fields prefill correctly and the organisation field stays read-only.
+
 ## V2.17.0 - 2026-07-28 (judged text games and the full content library)
 
 - Text games now choose how they score through their points type. **Range**

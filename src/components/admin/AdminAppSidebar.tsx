@@ -82,6 +82,9 @@ export function AdminAppSidebar() {
   const isFacilitator = isFacilitatorOnlyRole(role)
   const showOrgSettings = canAccessOrgSettings(role)
   const showTeamNav = canManageOrgUsers(role) && !showOrgSettings
+  // event_manager has no org-wide Settings access but still needs somewhere
+  // to edit their own name/username/email/password.
+  const showPersonalProfileNav = isFacilitator || role === 'event_manager'
   // Facilitators get a stripped nav: their events list + their own profile.
   const visibleMainNav = isFacilitator
     ? mainNav.filter((item) => item.to === '/admin/events')
@@ -168,7 +171,7 @@ export function AdminAppSidebar() {
                 </SidebarMenuItem>
               ))}
 
-              {isFacilitator ? (
+              {showPersonalProfileNav ? (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
