@@ -255,5 +255,13 @@ ENG2, AI features (L-2), PDF report (PDF-1).
   `docs/GAME-COVER-PROMPTS.md`, with a SOURCE MANUALLY list for the covers that
   need a licensed reference. Still to write: the 125 quest placements' own
   covers and the 6 quizzes x 60 questions. Everything installs into the RallyHub
-  Game Library org with `is_platform_template = true`. Original plan: parked for next week in `docs/GAME-CONTENT-PLAN.md`. Produce five groups of 25 quest placements, then six themed quizzes with 60 questions each: 20 easy, 20 medium, and 20 hard. Generate covers only after content approval.
+  Game Library org with `is_platform_template = true`. **116 of the 125 quest
+  placements are seeded and live** in the library as platform templates, with the
+  five groups built, via `scripts/seed-quest-library.mjs` (parses the plan, so the
+  markdown stays the source of truth; `--dry` to preview, `--remove` to undo).
+  **Blocked:** 9 judged free-text challenges cannot be seeded. RallyHub `text`
+  games are auto-scored and require a correct answer; those challenges
+  ("Brand Slogan Remix", "Policy in Plain English", "Exact Estimate" and 6 more)
+  have no single right answer. They need either a judged free-text game mode or a
+  rewrite into photo/video submissions. Original plan: parked for next week in `docs/GAME-CONTENT-PLAN.md`. Produce five groups of 25 quest placements, then six themed quizzes with 60 questions each: 20 easy, 20 medium, and 20 hard. Generate covers only after content approval.
 - [ ] **PDF-1** Branded PDF event-recap report — `src/lib/event-export.ts` currently ships a ZIP of media + CSV logs as a stand-in; the real branded PDF report was deferred and never built

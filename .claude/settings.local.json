@@ -21,7 +21,11 @@
       "Bash(lsof -nP -iTCP:5173 -iTCP:5174 -sTCP:LISTEN)",
       "Bash(node -e ' *)",
       "Bash(npx prettier *)",
-      "Bash(node scripts/puzzle-smoke-fixture.mjs)"
+      "Bash(node scripts/puzzle-smoke-fixture.mjs)",
+      "Bash(node scripts/seed-quest-library.mjs --dry)",
+      "Bash(node scripts/seed-quest-library.mjs)",
+      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__execute_sql",
+      "Bash(text)"
     ]
   }
 }
