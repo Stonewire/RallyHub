@@ -24,7 +24,12 @@
       "Bash(supabase functions *)",
       "Bash(text)",
       "Bash(node scripts/seed-puzzle-library.mjs)",
-      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__execute_sql"
+      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__execute_sql",
+      "Bash(node \"/private/tmp/claude-501/-Users-rumenaleksandrov-Documents-Cowork-Plauground-RallyHub-rallyhub/f3a22b70-aa72-4d88-a832-0a543fe42bd1/scratchpad/build-crosswords.mjs\")",
+      "Bash(mkdir -p scripts/data)",
+      "Bash(cp __TRACKED_VAR__/build-crosswords.mjs scripts/build-crosswords.mjs)",
+      "Bash(cp __TRACKED_VAR__/crosswords.json scripts/data/crossword-layouts.json)",
+      "Bash(node scripts/seed-puzzle-library.mjs --dry)"
     ]
   }
 }

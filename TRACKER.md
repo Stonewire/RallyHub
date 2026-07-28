@@ -256,16 +256,20 @@ ENG2, AI features (L-2), PDF report (PDF-1).
     `scripts/seed-quest-library.mjs`, which parses `docs/GAME-CONTENT-PLAN.md`
     so the markdown stays the source of truth (`--dry` previews, `--remove`
     undoes). 49 photo, 57 video, 19 text.
-  - **22 puzzle games** (12 Wordle, 10 Matching) seeded via
+  - **28 puzzle games** (12 Wordle, 10 Matching, 6 Crossword) seeded via
     `scripts/seed-puzzle-library.mjs` into a "Puzzles" group. Content and rules:
-    `docs/GAME-CONTENT-PLAN-PUZZLES.md`.
+    `docs/GAME-CONTENT-PLAN-PUZZLES.md`. Crossword grids are generated and
+    validated by `scripts/build-crosswords.mjs`; verified live that a generated
+    grid renders 18 cells and the server accepts a solved word.
   - Cover prompts for every puzzle plus the five quest group covers are in
     `docs/GAME-COVER-PROMPTS.md`, with a SOURCE MANUALLY list for covers needing
     a licensed reference.
   - Remaining: the **6 quizzes x 60 questions** (themes named, no questions
-    written), per-game quest covers, and the **6 crosswords**, whose 6x6 grids
-    have to be laid out in the editor because guessed placements produce
-    unsolvable grids. Word banks are in the puzzle plan.
+    written) and **125 per-game quest cover prompts**. Decisions taken 28 Jul:
+    questions in English only; Harry Potter and Marvel quizzes keep their themes
+    with original abstract covers (no franchise imagery); all 125 quest games get
+    their own cover. Format follows the existing Brains & Embarrassment template:
+    4 options per question, 20 points, 10-second timer, three rounds of 20.
   - The 10 auto-scored text games are seeded with empty answer lists; the
     organiser fills in the accepted answers in the editor rather than the script
     inventing them.

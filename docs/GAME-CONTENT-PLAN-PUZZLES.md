@@ -122,10 +122,13 @@ unsolvable inside the 5-minute full-points window.
 
 1. ~~Wordle set~~ — **seeded**, 12 games live in the library.
 2. ~~Matching set~~ — **seeded**, 10 games live in the library.
-3. Crossword set. **Not seeded.** A 6x6 grid needs every word placed at a
-   row/col with a direction, and guessed placements produce unsolvable grids.
-   Lay these out in the editor, which auto-detects runs and forces a clue on
-   each. Word banks are in the table above.
+3. ~~Crossword set~~ — **seeded**, 6 grids live in the library. Layouts are
+   generated and validated by `scripts/build-crosswords.mjs`, because the player
+   engine treats every straight run of 2+ letters as a word needing a clue, so
+   two words in adjacent parallel rows quietly create stray runs. The search
+   only accepts a grid whose runs are exactly the intended words with at least
+   three crossings. Some banks fit 5 of their 6 words rather than all 6; the
+   generator drops one instead of shipping a broken grid.
 4. Covers, once the content above is approved. Prompts live in
    `GAME-COVER-PROMPTS.md`.
 5. Mark all of them `is_platform_template = true` so client orgs can install them.

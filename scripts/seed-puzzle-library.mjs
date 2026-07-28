@@ -7,10 +7,10 @@
  *   node scripts/seed-puzzle-library.mjs
  *   node scripts/seed-puzzle-library.mjs --remove
  *
- * Crosswords are not seeded: a 6x6 grid needs each word placed at a row/col with
- * a direction, and guessing placements produces unsolvable grids. Their word
- * banks are in the plan; lay them out in the editor, which auto-detects runs and
- * forces a clue on each.
+ * Crossword layouts come from scripts/data/crossword-layouts.json, produced by
+ * scripts/build-crosswords.mjs. That search exists because the player engine
+ * treats every straight run of 2+ letters as a word needing a clue, so two words
+ * in adjacent parallel rows quietly create stray runs and break the puzzle.
  */
 import { createClient } from '@supabase/supabase-js'
 import { existsSync, readFileSync } from 'node:fs'
@@ -18,6 +18,9 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const CROSSWORDS = JSON.parse(
+  readFileSync(resolve(root, 'scripts/data/crossword-layouts.json'), 'utf8'),
+)
 const LIBRARY_SUBDOMAIN = 'rallyhub-library'
 const GROUP_NAME = 'Puzzles'
 
@@ -207,14 +210,35 @@ function matchingGames() {
   }))
 }
 
+function crosswordGames() {
+  return CROSSWORDS.map((c) => ({
+    name: c.name,
+    type: 'puzzle',
+    description:
+      'Fill the grid from the clues. Tap any letter cell to read its clue. Solve it inside five minutes for full points.',
+    points_type: 'static',
+    points_static: 120,
+    points_min: null,
+    points_max: null,
+    is_platform_template: true,
+    status: 'active',
+    config: {
+      puzzle_type: 'crossword',
+      puzzle_crossword_words: c.words,
+      puzzle_crossword_layout: c.layout,
+      puzzle_keyboard_alphabet: 'latin',
+    },
+  }))
+}
+
 async function main() {
   const mode = process.argv[2] ?? ''
-  const games = [...wordleGames(), ...matchingGames()]
+  const games = [...wordleGames(), ...matchingGames(), ...crosswordGames()]
 
   console.log(`puzzle games to seed: ${games.length}`)
   console.log(`  wordle   : ${WORDLE.length}`)
   console.log(`  matching : ${MATCHING.length}`)
-  console.log('  crossword: 0 (grids must be laid out in the editor, see the plan)')
+  console.log(`  crossword: ${CROSSWORDS.length}`)
   if (mode === '--dry') return
 
   const env = { ...loadEnv(), ...process.env }
