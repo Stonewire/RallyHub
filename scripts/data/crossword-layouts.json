@@ -1,0 +1,1066 @@
+[
+  {
+    "name": "Grid Rally: Office Life",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "EMAIL",
+        "clue": "Message with a subject line",
+        "row": 5,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "DESK",
+        "clue": "Where you sit to work",
+        "row": 1,
+        "col": 1,
+        "direction": "across"
+      },
+      {
+        "id": "w3",
+        "answer": "TEAM",
+        "clue": "Group working together",
+        "row": 3,
+        "col": 2,
+        "direction": "across"
+      },
+      {
+        "id": "w4",
+        "answer": "MEET",
+        "clue": "Gather to discuss",
+        "row": 0,
+        "col": 2,
+        "direction": "down"
+      },
+      {
+        "id": "w5",
+        "answer": "NOTE",
+        "clue": "Short written reminder",
+        "row": 2,
+        "col": 0,
+        "direction": "down"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 4
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 5,
+          "direction": "across",
+          "row": 5,
+          "col": 0,
+          "length": 5,
+          "clue": "Message with a subject line"
+        },
+        {
+          "id": "w2",
+          "number": 2,
+          "direction": "across",
+          "row": 1,
+          "col": 1,
+          "length": 4,
+          "clue": "Where you sit to work"
+        },
+        {
+          "id": "w3",
+          "number": 4,
+          "direction": "across",
+          "row": 3,
+          "col": 2,
+          "length": 4,
+          "clue": "Group working together"
+        },
+        {
+          "id": "w4",
+          "number": 1,
+          "direction": "down",
+          "row": 0,
+          "col": 2,
+          "length": 4,
+          "clue": "Gather to discuss"
+        },
+        {
+          "id": "w5",
+          "number": 3,
+          "direction": "down",
+          "row": 2,
+          "col": 0,
+          "length": 4,
+          "clue": "Short written reminder"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Grid Rally: On Tour",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "TRAIN",
+        "clue": "Runs on rails",
+        "row": 0,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "HOTEL",
+        "clue": "Where you sleep away from home",
+        "row": 5,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w3",
+        "answer": "PACK",
+        "clue": "Fill your suitcase",
+        "row": 3,
+        "col": 2,
+        "direction": "across"
+      },
+      {
+        "id": "w4",
+        "answer": "GATE",
+        "clue": "Where you board the plane",
+        "row": 2,
+        "col": 3,
+        "direction": "down"
+      },
+      {
+        "id": "w5",
+        "answer": "TOUR",
+        "clue": "Organised trip around the sights",
+        "row": 0,
+        "col": 0,
+        "direction": "down"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 4
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 1,
+          "direction": "across",
+          "row": 0,
+          "col": 0,
+          "length": 5,
+          "clue": "Runs on rails"
+        },
+        {
+          "id": "w2",
+          "number": 4,
+          "direction": "across",
+          "row": 5,
+          "col": 0,
+          "length": 5,
+          "clue": "Where you sleep away from home"
+        },
+        {
+          "id": "w3",
+          "number": 3,
+          "direction": "across",
+          "row": 3,
+          "col": 2,
+          "length": 4,
+          "clue": "Fill your suitcase"
+        },
+        {
+          "id": "w4",
+          "number": 2,
+          "direction": "down",
+          "row": 2,
+          "col": 3,
+          "length": 4,
+          "clue": "Where you board the plane"
+        },
+        {
+          "id": "w5",
+          "number": 1,
+          "direction": "down",
+          "row": 0,
+          "col": 0,
+          "length": 4,
+          "clue": "Organised trip around the sights"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Grid Rally: Kitchen",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "OVEN",
+        "clue": "It bakes and roasts",
+        "row": 2,
+        "col": 2,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "SALT",
+        "clue": "The most basic seasoning",
+        "row": 4,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w3",
+        "answer": "RICE",
+        "clue": "Grain served with curry",
+        "row": 0,
+        "col": 2,
+        "direction": "across"
+      },
+      {
+        "id": "w4",
+        "answer": "CHEF",
+        "clue": "Runs the kitchen",
+        "row": 0,
+        "col": 4,
+        "direction": "down"
+      },
+      {
+        "id": "w5",
+        "answer": "PAN",
+        "clue": "You fry in it",
+        "row": 3,
+        "col": 1,
+        "direction": "down"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 1
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 3,
+          "direction": "across",
+          "row": 2,
+          "col": 2,
+          "length": 4,
+          "clue": "It bakes and roasts"
+        },
+        {
+          "id": "w2",
+          "number": 5,
+          "direction": "across",
+          "row": 4,
+          "col": 0,
+          "length": 4,
+          "clue": "The most basic seasoning"
+        },
+        {
+          "id": "w3",
+          "number": 1,
+          "direction": "across",
+          "row": 0,
+          "col": 2,
+          "length": 4,
+          "clue": "Grain served with curry"
+        },
+        {
+          "id": "w4",
+          "number": 2,
+          "direction": "down",
+          "row": 0,
+          "col": 4,
+          "length": 4,
+          "clue": "Runs the kitchen"
+        },
+        {
+          "id": "w5",
+          "number": 4,
+          "direction": "down",
+          "row": 3,
+          "col": 1,
+          "length": 3,
+          "clue": "You fry in it"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Grid Rally: Outdoors",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "TENT",
+        "clue": "Canvas shelter for the night",
+        "row": 3,
+        "col": 2,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "PATH",
+        "clue": "Narrow way through the woods",
+        "row": 1,
+        "col": 5,
+        "direction": "down"
+      },
+      {
+        "id": "w3",
+        "answer": "LAKE",
+        "clue": "Still water surrounded by land",
+        "row": 0,
+        "col": 3,
+        "direction": "down"
+      },
+      {
+        "id": "w4",
+        "answer": "MOSS",
+        "clue": "Soft green growth on stones",
+        "row": 5,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w5",
+        "answer": "HILL",
+        "clue": "Smaller than a mountain",
+        "row": 0,
+        "col": 0,
+        "direction": "down"
+      },
+      {
+        "id": "w6",
+        "answer": "CAMP",
+        "clue": "Set up for the night outdoors",
+        "row": 1,
+        "col": 2,
+        "direction": "across"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 5,
+          "direction": "across",
+          "row": 3,
+          "col": 2,
+          "length": 4,
+          "clue": "Canvas shelter for the night"
+        },
+        {
+          "id": "w2",
+          "number": 4,
+          "direction": "down",
+          "row": 1,
+          "col": 5,
+          "length": 4,
+          "clue": "Narrow way through the woods"
+        },
+        {
+          "id": "w3",
+          "number": 2,
+          "direction": "down",
+          "row": 0,
+          "col": 3,
+          "length": 4,
+          "clue": "Still water surrounded by land"
+        },
+        {
+          "id": "w4",
+          "number": 6,
+          "direction": "across",
+          "row": 5,
+          "col": 0,
+          "length": 4,
+          "clue": "Soft green growth on stones"
+        },
+        {
+          "id": "w5",
+          "number": 1,
+          "direction": "down",
+          "row": 0,
+          "col": 0,
+          "length": 4,
+          "clue": "Smaller than a mountain"
+        },
+        {
+          "id": "w6",
+          "number": 3,
+          "direction": "across",
+          "row": 1,
+          "col": 2,
+          "length": 4,
+          "clue": "Set up for the night outdoors"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Grid Rally: Music",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "DRUM",
+        "clue": "You hit it to keep time",
+        "row": 0,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "BASS",
+        "clue": "The low end",
+        "row": 2,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w3",
+        "answer": "SONG",
+        "clue": "Words set to music",
+        "row": 2,
+        "col": 2,
+        "direction": "down"
+      },
+      {
+        "id": "w4",
+        "answer": "TUNE",
+        "clue": "A melody, or what you do to a guitar",
+        "row": 1,
+        "col": 5,
+        "direction": "down"
+      },
+      {
+        "id": "w5",
+        "answer": "BAND",
+        "clue": "Group that plays together",
+        "row": 2,
+        "col": 0,
+        "direction": "down"
+      },
+      {
+        "id": "w6",
+        "answer": "NOTE",
+        "clue": "Single sound on a stave",
+        "row": 4,
+        "col": 2,
+        "direction": "across"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 1,
+          "direction": "across",
+          "row": 0,
+          "col": 0,
+          "length": 4,
+          "clue": "You hit it to keep time"
+        },
+        {
+          "id": "w2",
+          "number": 3,
+          "direction": "across",
+          "row": 2,
+          "col": 0,
+          "length": 4,
+          "clue": "The low end"
+        },
+        {
+          "id": "w3",
+          "number": 4,
+          "direction": "down",
+          "row": 2,
+          "col": 2,
+          "length": 4,
+          "clue": "Words set to music"
+        },
+        {
+          "id": "w4",
+          "number": 2,
+          "direction": "down",
+          "row": 1,
+          "col": 5,
+          "length": 4,
+          "clue": "A melody, or what you do to a guitar"
+        },
+        {
+          "id": "w5",
+          "number": 3,
+          "direction": "down",
+          "row": 2,
+          "col": 0,
+          "length": 4,
+          "clue": "Group that plays together"
+        },
+        {
+          "id": "w6",
+          "number": 5,
+          "direction": "across",
+          "row": 4,
+          "col": 2,
+          "length": 4,
+          "clue": "Single sound on a stave"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Grid Rally: Celebration",
+    "words": [
+      {
+        "id": "w1",
+        "answer": "TOAST",
+        "clue": "Raise a glass, or breakfast",
+        "row": 5,
+        "col": 1,
+        "direction": "across"
+      },
+      {
+        "id": "w2",
+        "answer": "DANCE",
+        "clue": "Move to the music",
+        "row": 0,
+        "col": 0,
+        "direction": "across"
+      },
+      {
+        "id": "w3",
+        "answer": "CAKE",
+        "clue": "It arrives with candles",
+        "row": 0,
+        "col": 3,
+        "direction": "down"
+      },
+      {
+        "id": "w4",
+        "answer": "GIFT",
+        "clue": "Wrapped and given",
+        "row": 2,
+        "col": 1,
+        "direction": "down"
+      },
+      {
+        "id": "w5",
+        "answer": "HOST",
+        "clue": "Throws the party",
+        "row": 2,
+        "col": 5,
+        "direction": "down"
+      }
+    ],
+    "layout": {
+      "cells": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 4
+        },
+        {
+          "row": 5,
+          "col": 5
+        }
+      ],
+      "blocked": [],
+      "clues": [
+        {
+          "id": "w1",
+          "number": 5,
+          "direction": "across",
+          "row": 5,
+          "col": 1,
+          "length": 5,
+          "clue": "Raise a glass, or breakfast"
+        },
+        {
+          "id": "w2",
+          "number": 1,
+          "direction": "across",
+          "row": 0,
+          "col": 0,
+          "length": 5,
+          "clue": "Move to the music"
+        },
+        {
+          "id": "w3",
+          "number": 2,
+          "direction": "down",
+          "row": 0,
+          "col": 3,
+          "length": 4,
+          "clue": "It arrives with candles"
+        },
+        {
+          "id": "w4",
+          "number": 3,
+          "direction": "down",
+          "row": 2,
+          "col": 1,
+          "length": 4,
+          "clue": "Wrapped and given"
+        },
+        {
+          "id": "w5",
+          "number": 4,
+          "direction": "down",
+          "row": 2,
+          "col": 5,
+          "length": 4,
+          "clue": "Throws the party"
+        }
+      ]
+    }
+  }
+]

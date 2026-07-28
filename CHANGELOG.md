@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.17.0 - 2026-07-28 (judged text games and the full content library)
+
+- Text games now choose how they score through their points type. **Range**
+  means the facilitator reads the answer and awards points, the same as a photo
+  or video challenge. **Static** keeps the existing behaviour of checking the
+  answer against a correct one.
+- Judged games need no correct answers at all. Anything the organiser types in
+  the answer field becomes a private note shown to the facilitator as a guide.
+- Choose-answer games can also be judged: the options still define what the team
+  picks from, but no option has to be marked correct.
+- Platform library content: 6 themed quizzes (360 questions), 28 puzzle games and
+  all 125 quest placements are now seeded as installable templates.
 ## V2.16.1 - 2026-07-28 (per-event item purchases toggle)
 
 - The event editor has a new "Teams can buy items with their points" checkbox

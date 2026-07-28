@@ -17,9 +17,12 @@ function defaultOptions(): QuizAnswer[] {
 export function TextGameEditor({
   config,
   setConfig,
+  judged = false,
 }: {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
+  /** Range points mean a facilitator scores the answer, so nothing is required. */
+  judged?: boolean
 }) {
   const mode: TextAnswerMode = config.text_answer_mode ?? 'type_text'
   const correctAnswers = config.text_correct_answers ?? ['']
@@ -67,10 +70,11 @@ export function TextGameEditor({
       {mode === 'type_text' ? (
         <div className="space-y-3">
           <div>
-            <Label>Correct answers</Label>
+            <Label>{judged ? 'Answer notes (optional)' : 'Correct answers'}</Label>
             <p className="text-muted-foreground mt-1 text-xs">
-              Teams type their answer. Capital letters, lowercase, numbers, and symbols
-              must match exactly when the facilitator checks submissions.
+              {judged
+                ? 'This game is judged: teams type a free answer and the facilitator awards points inside the range. Anything you add here is shown to the facilitator as a guide, not checked automatically.'
+                : 'Teams type their answer. Capital letters, lowercase, numbers, and symbols must match exactly when the facilitator checks submissions.'}
             </p>
           </div>
           {correctAnswers.map((answer, i) => (
@@ -203,9 +207,14 @@ export function TextGameEditor({
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- validation helper for TextGameEditor's config shape
-export function validateTextGameConfig(config: GameConfig): string | null {
+export function validateTextGameConfig(
+  config: GameConfig,
+  /** Range points mean the facilitator scores the answer, so nothing is required. */
+  judged = false,
+): string | null {
   const mode = config.text_answer_mode ?? 'type_text'
   if (mode === 'type_text') {
+    if (judged) return null
     const answers = (config.text_correct_answers ?? []).filter((a) => a.length > 0)
     if (answers.length === 0) return 'Add at least one correct answer.'
     return null
@@ -217,6 +226,9 @@ export function validateTextGameConfig(config: GameConfig): string | null {
   if (options.some((o) => !o.text.trim())) {
     return 'Every answer option needs text.'
   }
+  // A judged game still needs its options (they are what the team picks from),
+  // but there is no right answer to mark.
+  if (judged) return null
   if (!config.text_correct_answer_id) {
     return 'Mark the correct answer option.'
   }

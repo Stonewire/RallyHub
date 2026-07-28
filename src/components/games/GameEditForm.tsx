@@ -144,7 +144,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       return
     }
     if (gameType === 'text') {
-      const textErr = validateTextGameConfig(config)
+      const textErr = validateTextGameConfig(config, pointsType === 'range')
       if (textErr) {
         setError(textErr)
         return
@@ -302,7 +302,11 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                 setPointsMax={setPointsMax}
               />
             </Card>
-            <TextGameEditor config={config} setConfig={setConfig} />
+            <TextGameEditor
+              config={config}
+              setConfig={setConfig}
+              judged={pointsType === 'range'}
+            />
           </>
         ) : null}
 

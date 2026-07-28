@@ -1,12 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(supabase functions *)",
-      "Bash(npm test *)",
-      "Bash(npm run *)",
-      "Bash(python3 -)",
+      "Bash(awk 'NR>=42 && NR<=200' supabase/migrations/20260716124826_allow_authorized_inventory_score_deduction.sql)",
+      "Bash(cp __TRACKED_VAR__/build-crosswords.mjs scripts/build-crosswords.mjs)",
+      "Bash(cp __TRACKED_VAR__/crosswords.json scripts/data/crossword-layouts.json)",
       "Bash(git add *)",
       "Bash(git checkout *)",
+      "Bash(git cherry-pick *)",
       "Bash(git commit *)",
       "Bash(git fetch *)",
       "Bash(git merge *)",
@@ -14,18 +14,26 @@
       "Bash(git restore *)",
       "Bash(git rev-list *)",
       "Bash(git stash *)",
-      "Bash(git cherry-pick *)",
-      "Bash(node \"/private/tmp/claude-501/-Users-rumenaleksandrov-Documents-Cowork-Plauground-RallyHub-rallyhub/f3a22b70-aa72-4d88-a832-0a543fe42bd1/scratchpad/puzzle-smoke-fixture.mjs\" setup)",
-      "Bash(cp \"/private/tmp/claude-501/-Users-rumenaleksandrov-Documents-Cowork-Plauground-RallyHub-rallyhub/f3a22b70-aa72-4d88-a832-0a543fe42bd1/scratchpad/puzzle-smoke-fixture.mjs\" scripts/puzzle-smoke-fixture.mjs)",
-      "Bash(node scripts/puzzle-smoke-fixture.mjs setup)",
       "Bash(lsof -nP -iTCP:5173 -iTCP:5174 -sTCP:LISTEN)",
+      "Bash(mkdir -p scripts/data)",
       "Bash(node -e ' *)",
-      "Bash(npx prettier *)",
+      "Bash(node scripts/build-cover-prompts.mjs)",
+      "Bash(node scripts/check-quizzes.mjs)",
+      "Bash(node scripts/puzzle-smoke-fixture.mjs setup)",
       "Bash(node scripts/puzzle-smoke-fixture.mjs)",
-      "Bash(awk 'NR>=42 && NR<=200' supabase/migrations/20260716124826_allow_authorized_inventory_score_deduction.sql)",
-      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__list_projects",
-      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__apply_migration",
-      "mcp__723858ec-2e3b-40b1-98ed-d71bc15f86e1__execute_sql"
+      "Bash(node scripts/seed-puzzle-library.mjs --dry)",
+      "Bash(node scripts/seed-puzzle-library.mjs)",
+      "Bash(node scripts/seed-quest-library.mjs --dry)",
+      "Bash(node scripts/seed-quest-library.mjs)",
+      "Bash(node scripts/seed-quiz-library.mjs --dry)",
+      "Bash(node scripts/seed-quiz-library.mjs)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx prettier *)",
+      "Bash(python3 -)",
+      "Bash(supabase functions *)",
+      "Bash(text)",
+      "mcp__plugin_paddle_paddle-sandbox__execute"
     ]
   }
 }

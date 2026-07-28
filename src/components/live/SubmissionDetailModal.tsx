@@ -56,6 +56,13 @@ export function SubmissionDetailModal({
   const answerLabel =
     isText && game ? textSubmissionDisplayLabel(game, sub.media_url) : sub.media_url ?? ''
   const textCfg = game ? parseTextGameConfig(game.config) : null
+  // A judged text game has no right answer, so there may be nothing to show the
+  // facilitator beyond the optional notes the organiser left.
+  const textReference =
+    textCfg?.mode === 'type_text'
+      ? (textCfg.correctAnswers ?? []).filter((a) => a.length > 0)
+      : textCfg?.options?.filter((o) => o.id === textCfg.correctAnswerId).map((o) => o.text) ?? []
+  const hasTextReference = textReference.length > 0
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -179,10 +186,10 @@ export function SubmissionDetailModal({
           ) : (
             <p className="text-muted-foreground text-sm">No media attached</p>
           )}
-          {isText && textCfg && game && isTextGame(game) ? (
+          {isText && textCfg && game && isTextGame(game) && hasTextReference ? (
             <div className="border-border/80 mt-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                Reference for approval
+                {isRange ? 'Notes from the organiser' : 'Reference for approval'}
               </p>
               {textCfg.mode === 'type_text' ? (
                 <ul className="mt-2 space-y-1">
