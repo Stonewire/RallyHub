@@ -930,12 +930,8 @@
   }
 }
 
-/* New-design sidebar metrics: 168px expanded, 64px collapsed. */
-.neo-minimal-scope {
-  --sidebar-width: 168px;
-  --sidebar-width-icon: 64px;
-}
-
+/* Sidebar widths are set inline by SidebarProvider (see AdminLayout), because
+   its inline style beats any rule declared here. */
 .neo-minimal-scope .admin-shell-sidebar,
 .neo-minimal-scope .admin-shell-sidebar [data-sidebar='sidebar'] {
   transition: width 0.15s ease;

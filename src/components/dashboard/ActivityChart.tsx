@@ -36,7 +36,10 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
           <h2 className="text-sm font-bold">Participation</h2>
           <p className="text-nm-neutral-500 text-xs">Last 30 days</p>
         </div>
-        <div className="bg-nm-slate-700 flex rounded-full p-1">
+        {/* The slate ramp mirrors in dark mode, so slate-700 alone would flip to
+            a light track and strand the white inactive label. slate-700 (light)
+            and slate-300 (dark) both resolve to #2b2e36, keeping it dark. */}
+        <div className="bg-nm-slate-700 dark:bg-nm-slate-300 flex rounded-full p-1">
           {METRICS.map((option) => (
             <button
               key={option.key}
@@ -69,7 +72,9 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
             <div>
               <p className="text-2xl font-bold tabular-nums">{total}</p>
               <p className="text-nm-neutral-500 text-[10px] tracking-wider uppercase">
-                Total
+                {/* Summing daily distinct teams counts team-days, not distinct
+                    teams, so the label must not claim to be a total. */}
+                {metric === 'teams' ? 'Team days' : 'Total'}
               </p>
             </div>
             <div>

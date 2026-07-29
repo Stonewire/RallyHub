@@ -1,3 +1,4 @@
+import type * as React from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { AdminAppSidebar } from '@/components/admin/AdminAppSidebar'
@@ -11,7 +12,17 @@ import { cn } from '@/lib/utils'
 export function AdminLayout() {
   useDocumentTitle('Admin')
   return (
-    <SidebarProvider className="neo-minimal-scope">
+    <SidebarProvider
+      className="neo-minimal-scope"
+      // SidebarProvider sets these as inline styles, so a stylesheet rule
+      // cannot override them. The new design wants 168px / 64px.
+      style={
+        {
+          '--sidebar-width': '168px',
+          '--sidebar-width-icon': '64px',
+        } as React.CSSProperties
+      }
+    >
       <AdminAppSidebar />
       <SidebarInset
         className={cn(
