@@ -240,11 +240,11 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
 
   return (
     <>
-      <Card className="border-border/80 bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <Card className="border-border/80 overflow-hidden bg-card p-0 shadow-sm">
+        <div className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
           <div>
-            <h2 className="text-foreground text-lg font-semibold">{title}</h2>
-            <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
+            <h2 className="text-foreground text-base font-bold">{title}</h2>
+            <p className="text-muted-foreground mt-1 text-xs">{subtitle}</p>
           </div>
           <Button
             type="button"
@@ -258,22 +258,26 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
           </Button>
         </div>
         {usersQuery.isLoading ? (
-          <QueryLoading rows={2} />
+          <div className="p-5"><QueryLoading rows={2} /></div>
         ) : usersQuery.isError ? (
-          <QueryError message={usersQuery.error.message} />
+          <div className="p-5"><QueryError message={usersQuery.error.message} /></div>
         ) : (usersQuery.data?.length ?? 0) === 0 ? (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground p-5 text-sm">
             {facilitatorsOnly ? 'No facilitators yet.' : 'No users yet.'}
           </p>
         ) : (
+          <div>
+          <div className="text-muted-foreground border-border hidden grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
+            <span>Name</span><span>Username</span><span>Email</span><span>Role</span><span />
+          </div>
           <ul className="divide-border divide-y">
             {usersQuery.data?.map((user) => (
               <li
                 key={user.id}
-                className="flex items-center justify-between gap-3 py-3"
+                className="grid gap-2 px-5 py-3 md:grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] md:items-center md:gap-3"
               >
                 <div className="min-w-0">
-                  <p className="text-foreground flex items-center gap-2 font-medium">
+                  <p className="text-foreground flex items-center gap-2 truncate text-sm font-semibold">
                     {displayUserName(user)}
                     {user.id === currentUserId ? (
                       <span className="bg-primary/15 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -281,12 +285,14 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       </span>
                     ) : null}
                   </p>
-                  <p className="text-muted-foreground truncate text-sm">
-                    @{user.username} · {user.email} · {formatUserRole(user.role)}
-                    {user.must_change_password ? ' · pending password change' : ''}
-                  </p>
+                  {user.must_change_password ? <p className="text-amber-600 mt-0.5 text-[10px] font-medium">Password change pending</p> : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                <p className="text-muted-foreground truncate text-xs">@{user.username}</p>
+                <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                <span className="bg-nm-slate-100 text-nm-slate-700 w-fit rounded px-2 py-1 text-[10px] font-semibold capitalize">
+                  {formatUserRole(user.role)}
+                </span>
+                <div className="flex shrink-0 items-center justify-end gap-1">
                   {canEditUser(user) ? (
                     <Button
                       type="button"
@@ -315,6 +321,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
               </li>
             ))}
           </ul>
+          </div>
         )}
       </Card>
 

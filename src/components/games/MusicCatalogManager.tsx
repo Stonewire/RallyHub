@@ -179,31 +179,39 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
       {error ? <QueryError message={error} /> : null}
 
-      {/* Playlists bar */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="border-nm-slate-800 bg-card overflow-hidden rounded-lg border-2 lg:grid lg:grid-cols-[180px_minmax(0,1fr)]">
+      {/* Playlist rail */}
+      <aside className="border-border bg-card flex flex-col border-b p-3 lg:min-h-[34rem] lg:border-b-0 lg:border-r">
+        <div className="mb-3">
+          <h3 className="text-foreground text-sm font-bold">My Playlists</h3>
+          <div className="bg-primary mt-1 h-0.5 w-8" />
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
         <button
           type="button"
           onClick={() => setActivePlaylist(null)}
-          className={`rounded-full border px-3 py-1 text-xs font-medium ${
+          className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-xs font-medium transition-colors ${
             activePlaylist === null
-              ? 'border-primary bg-primary/10 text-foreground'
-              : 'border-border/80 text-muted-foreground hover:bg-muted/40'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
           }`}
         >
-          All ({allRows.length})
+          <span>All tracks</span><span>{allRows.length}</span>
         </button>
         {playlists.map((pl) => (
           <span
             key={pl.id}
-            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${
+            className={`flex w-full items-center gap-1 rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
               activePlaylist === pl.id
-                ? 'border-primary bg-primary/10 text-foreground'
-                : 'border-border/80 text-muted-foreground hover:bg-muted/40'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
             }`}
           >
-            <button type="button" onClick={() => setActivePlaylist(pl.id)}>
-              {pl.name} ({tracksByPlaylist.get(pl.id)?.size ?? 0})
+            <span className="bg-nm-slate-400 size-2.5 shrink-0 rounded-sm" />
+            <button type="button" className="min-w-0 flex-1 truncate text-left" onClick={() => setActivePlaylist(pl.id)}>
+              {pl.name}
             </button>
+            <span className="text-[10px]">{tracksByPlaylist.get(pl.id)?.size ?? 0}</span>
             <button
               type="button"
               aria-label={`Delete playlist ${pl.name}`}
@@ -217,30 +225,34 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
             </button>
           </span>
         ))}
-        <span className="ml-auto inline-flex items-center gap-1">
+        </div>
+        <span className="mt-3 flex items-center gap-1">
           <Input
             value={newPlaylistName}
             onChange={(e) => setNewPlaylistName(e.target.value)}
             placeholder="New playlist"
-            className="h-8 w-36 text-xs"
+            className="h-8 min-w-0 flex-1 text-xs"
             onKeyDown={(e) => {
               if (e.key === 'Enter') void handleCreatePlaylist()
             }}
           />
           <Button
             type="button"
-            size="sm"
-            variant="outline"
+            size="icon-sm"
+            variant="default"
             disabled={!newPlaylistName.trim() || createPlaylist.isPending}
             onClick={() => void handleCreatePlaylist()}
+            aria-label="Add playlist"
           >
-            Add
+            +
           </Button>
         </span>
-      </div>
+      </aside>
+
+      <div className="min-w-0 p-4">
 
       {/* Search + sort */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="border-border mb-3 flex flex-wrap items-center gap-2 border-b pb-3">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -267,7 +279,7 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
           No tracks yet. Upload MP3s above — clips are generated automatically.
         </p>
       ) : (
-        <Card className="border-border/80 space-y-3 bg-card p-4">
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-1.5 text-xs font-medium">
               <input
@@ -325,28 +337,31 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
               </>
             ) : null}
           </div>
+          <div className="text-muted-foreground hidden grid-cols-[28px_minmax(180px,1fr)_120px_80px] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] sm:grid">
+            <span /> <span>Title / Artist</span> <span>Genre</span> <span className="text-right">Actions</span>
+          </div>
           <ul className="divide-border/50 divide-y text-sm">
             {rows.map((row) => (
-              <li key={row.id} className="flex items-center gap-2 py-2">
+              <li key={row.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 sm:grid-cols-[28px_minmax(180px,1fr)_120px_80px]">
                 <input
                   type="checkbox"
                   className="shrink-0"
                   checked={selected.has(row.id)}
                   onChange={() => toggle(row.id)}
                 />
-                <span className="min-w-0 flex-1 truncate">
-                  {row.title} — {row.artist}
-                  {row.genre ? (
-                    <span className="text-muted-foreground"> · {row.genre}</span>
-                  ) : null}
+                <span className="min-w-0">
+                  <span className="text-foreground block truncate text-xs font-semibold">{row.title}</span>
+                  <span className="text-muted-foreground block truncate text-[11px]">{row.artist}</span>
                   {!row.clip_url ? <span className="text-amber-600"> · clip pending</span> : null}
                 </span>
-                <Button type="button" size="sm" variant="ghost" onClick={() => startEdit(row)}>
+                <span className="text-muted-foreground hidden truncate text-xs sm:block">{row.genre || '—'}</span>
+                <span className="flex justify-end">
+                <Button type="button" size="icon-sm" variant="ghost" onClick={() => startEdit(row)}>
                   <Pencil className="size-4" />
                 </Button>
                 <Button
                   type="button"
-                  size="sm"
+                  size="icon-sm"
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                   disabled={deleteCatalog.isPending}
@@ -354,14 +369,17 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
                 >
                   <Trash2 className="size-4" />
                 </Button>
+                </span>
               </li>
             ))}
             {rows.length === 0 ? (
               <li className="text-muted-foreground py-3 text-sm">No tracks match.</li>
             ) : null}
           </ul>
-        </Card>
+        </div>
       )}
+      </div>
+      </div>
 
       {editing ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

@@ -190,6 +190,20 @@ expected on this branch and is not a bug to chase.
   sidebar Billing item (`nav-billing`). Support gained an Export button
   (plain-text transcript download) and Enter-to-send with Shift+Enter for
   newlines, both named in the design and previously missing.
+  Phase 2 broad-layout pass 2 is now code complete and awaiting Rumen's live
+  review: Games now uses the reference's library tabs, compact cover-card grid,
+  type chips, group filter, renamed Add Group/Add Game actions and a 560px
+  slide-over editor with full-screen affordance; Music Library now has a proper
+  playlist rail and compact song table; Deleted Games/Events use the shared
+  bordered table treatment. Events now has status chips, date-range filtering,
+  Upcoming vs Past/Archived card sections, inline lifecycle controls, the
+  four-part Display/UI Colour/Branding/Teams strip, and revised Event Links.
+  New Game's type picker and the Event editor's Primary, Branding, Teams,
+  Games, Stages and shared Danger Zone surfaces now follow the same design
+  language. The shared Organisation/Team facilitator table was updated too.
+  Build and lint are clean; all 153 tests pass. Puzzle-specific editors and
+  puzzle play layouts were deliberately not changed in this pass, per Rumen's
+  direction; those remain in ND-3 for later refinement.
   Deliberately left alone, with reasons: Billing's internal section layout
   stays stacked rather than the design's two-column treatment, it is shared
   with the super-admin client detail page (out of scope) and wraps live Paddle
@@ -202,10 +216,8 @@ expected on this branch and is not a bug to chase.
   neither capability exists in the backend (no session-revocation, no
   per-user account deletion separate from whole-org deletion), and building
   them needs Rumen's sign-off on the underlying security decisions first.
-  Games and Events (library, music, deleted, event cards, links modal,
-  full-screen editors, the game type-picker modal and slide-over game editor)
-  are deliberately still untouched, waiting on Rumen's walkthrough of puzzle
-  and layout behaviour before guessing at that surface.
+  The unresolved Support alignment and My Account security decisions remain
+  unchanged pending Rumen's call.
 - [ ] **ND-3** Behaviour differences Rumen flagged verbally (puzzle games, some
   layouts behave slightly differently in the new design). He will walk through
   these screen by screen during phase 2 rather than guessing now.

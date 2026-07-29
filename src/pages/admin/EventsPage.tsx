@@ -1,5 +1,5 @@
-import { Calendar } from 'lucide-react'
-import { useCallback } from 'react'
+import { Calendar, Gamepad2, Plus } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -39,7 +39,15 @@ import { brandColorsForEvent, logoForEvent } from '@/lib/live-event'
 import { isOrgSuspended } from '@/lib/account-status'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
-import { useState } from 'react'
+
+const EVENT_FILTERS: { value: 'all' | EventStatus; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'demo', label: 'Demo' },
+  { value: 'active', label: 'Active' },
+  { value: 'archived', label: 'Archived' },
+]
 
 export function AdminEventsPage() {
   const organizationId = useOrganizationId()
@@ -65,6 +73,10 @@ export function AdminEventsPage() {
   const [permanentDeleteConfirmEvent, setPermanentDeleteConfirmEvent] =
     useState<EventRow | null>(null)
   const [view, setView] = useState<'events' | 'bin'>('events')
+  const [statusFilter, setStatusFilter] = useState<'all' | EventStatus>('all')
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const applyReorder = useCallback(
     async (eventId: string, newStatus: EventStatus, indexInGroup: number) => {
@@ -192,43 +204,111 @@ export function AdminEventsPage() {
   }
 
   const events = eventsQuery.data ?? []
+  const visibleEvents = events.filter((event) => {
+    if (statusFilter !== 'all' && event.status !== statusFilter) return false
+    if (!event.event_date) return !dateFrom && !dateTo
+    const date = event.event_date.slice(0, 10)
+    if (dateFrom && date < dateFrom) return false
+    if (dateTo && date > dateTo) return false
+    return true
+  })
   const suspended = isOrgSuspended(orgQuery.data?.account_status)
 
   return (
     <AdminPageShell
       title="Events"
-      subtitle="Drag cards to reorder or move between status groups. Click a card to edit."
+      subtitle="Manage your events."
       actions={
-        suspended ? (
-          <NeoButton variant="accent" disabled>
-            Create New Event
+        <>
+          <NeoButton variant="surface" asChild>
+            <Link to="/admin/games">
+              <Gamepad2 className="size-3.5" />
+              Games
+            </Link>
           </NeoButton>
-        ) : (
-          <NeoButton variant="accent" asChild>
-            <Link to="/admin/events/new" data-tour="new-event-button">Create New Event</Link>
-          </NeoButton>
-        )
+          {suspended ? (
+            <NeoButton variant="accent" disabled>
+              <Plus className="size-3.5" />
+              Event
+            </NeoButton>
+          ) : (
+            <NeoButton variant="accent" asChild>
+              <Link to="/admin/events/new" data-tour="new-event-button">
+                <Plus className="size-3.5" />
+                Event
+              </Link>
+            </NeoButton>
+          )}
+        </>
       }
     >
       <OrgSuspendedBanner accountStatus={orgQuery.data?.account_status} />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <NeoButton
+      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+        <button
           type="button"
-          size="sm"
-          variant={view === 'events' ? 'primary' : 'surface'}
-          onClick={() => setView('events')}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === 'all' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
+          onClick={() => {
+            setView('events')
+            setStatusFilter('all')
+          }}
         >
-          Events
-        </NeoButton>
-        <NeoButton
+          All
+        </button>
+        {EVENT_FILTERS.slice(1).map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === item.value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
+            onClick={() => {
+              setView('events')
+              setStatusFilter(item.value)
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+        <button
           type="button"
-          size="sm"
-          variant={view === 'bin' ? 'primary' : 'surface'}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'bin' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
           onClick={() => setView('bin')}
         >
-          Bin {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
-        </NeoButton>
+          Deleted {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
+        </button>
+        </div>
+        {view === 'events' ? (
+          <div className="relative">
+            <NeoButton
+              type="button"
+              size="sm"
+              variant={dateFrom || dateTo ? 'accent' : 'surface'}
+              onClick={() => setDatePickerOpen((open) => !open)}
+            >
+              <Calendar className="size-3.5" />
+              {dateFrom || dateTo ? 'Date applied' : 'Date'}
+            </NeoButton>
+            {datePickerOpen ? (
+              <div className="border-border bg-card absolute right-0 top-10 z-30 w-72 rounded-lg border p-4 shadow-xl">
+                <p className="text-foreground mb-3 text-xs font-semibold uppercase tracking-[0.08em]">Date range</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-muted-foreground space-y-1 text-xs">
+                    <span>From</span>
+                    <input className="neo-field w-full text-xs" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                  </label>
+                  <label className="text-muted-foreground space-y-1 text-xs">
+                    <span>To</span>
+                    <input className="neo-field w-full text-xs" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                  </label>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <NeoButton type="button" size="sm" variant="ghost" onClick={() => { setDateFrom(''); setDateTo('') }}>Clear</NeoButton>
+                  <NeoButton type="button" size="sm" variant="primary" onClick={() => setDatePickerOpen(false)}>Apply</NeoButton>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {view === 'bin' ? (
@@ -256,12 +336,14 @@ export function AdminEventsPage() {
         <QueryLoading rows={5} />
       ) : eventsQuery.isError ? (
         <QueryError message={eventsQuery.error.message} />
-      ) : events.length === 0 ? (
+      ) : visibleEvents.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <Calendar className="text-muted-foreground size-10 opacity-60" />
           <p className="text-foreground font-medium">No events yet</p>
           <p className="text-muted-foreground max-w-sm text-sm">
-            Create an event to schedule team activities and manage live sessions.
+            {events.length === 0
+              ? 'Create an event to schedule team activities and manage live sessions.'
+              : 'No events match the selected filters.'}
           </p>
           {suspended ? (
             <NeoButton variant="accent" disabled className="mt-2">
@@ -275,7 +357,7 @@ export function AdminEventsPage() {
         </Card>
       ) : (
         <DraggableEventsGrid
-          events={events}
+          events={visibleEvents}
           deleting={deleteEvent.isPending}
           statusPending={updateStatus.isPending || activation.confirmingActivation}
           onStatusChange={handleStatusChange}

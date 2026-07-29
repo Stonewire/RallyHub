@@ -10,6 +10,10 @@ export type BinItem = {
   deletedAt: string
 }
 
+function formatDeletedDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value))
+}
+
 export function BinPanel({
   items,
   emptyLabel,
@@ -37,13 +41,19 @@ export function BinPanel({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="border-nm-slate-800 bg-card overflow-hidden rounded-lg border-2">
+      <div className="text-muted-foreground border-border hidden grid-cols-[minmax(0,1fr)_130px_110px_250px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
+        <span>Name</span>
+        <span>Deleted on</span>
+        <span>Delete in</span>
+        <span className="text-right">Actions</span>
+      </div>
       {items.map((item) => {
         const remaining = daysRemaining(item.deletedAt)
         return (
-          <Card
+          <div
             key={item.id}
-            className="border-border/80 flex items-center justify-between gap-3 bg-card p-4 shadow-sm"
+            className="border-border/70 grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[minmax(0,1fr)_130px_110px_250px] md:items-center"
           >
             <div className="min-w-0">
               <button
@@ -53,13 +63,13 @@ export function BinPanel({
               >
                 {item.name}
               </button>
-              <p className="text-muted-foreground text-xs">
-                {remaining > 0
-                  ? `${remaining} day${remaining === 1 ? '' : 's'} left before it's deleted for good`
-                  : 'Deleting soon'}
-              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs md:hidden">Deleted {formatDeletedDate(item.deletedAt)}</p>
             </div>
-            <div className="flex shrink-0 gap-2">
+            <p className="text-muted-foreground hidden text-xs md:block">{formatDeletedDate(item.deletedAt)}</p>
+            <p className="text-muted-foreground text-xs">
+              {remaining > 0 ? `${remaining} day${remaining === 1 ? '' : 's'}` : 'Deleting soon'}
+            </p>
+            <div className="flex shrink-0 justify-start gap-2 md:justify-end">
               <NeoButton type="button" variant="surface" size="sm" onClick={() => onOpen(item.id)}>
                 Open
               </NeoButton>
@@ -86,7 +96,7 @@ export function BinPanel({
                 </NeoButton>
               ) : null}
             </div>
-          </Card>
+          </div>
         )
       })}
     </div>

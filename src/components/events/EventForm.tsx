@@ -127,11 +127,14 @@ export function EventForm({
   }
 
   return (
-    <div className="space-y-8">
-      <Card className="border-border/80 bg-card p-6 shadow-sm">
-        <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
-          <div className="space-y-4">
-            <h2 className="text-foreground text-lg font-semibold">Event details</h2>
+    <div className="space-y-6">
+      <Card className="border-border/80 bg-card p-5 shadow-sm sm:p-6">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:gap-10">
+          <div className="space-y-4 lg:row-span-2">
+            <div className="border-border border-b pb-2">
+              <h2 className="text-foreground text-base font-bold">Primary</h2>
+              <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
+            </div>
             <div className="space-y-2">
               <Label>Event name</Label>
               <Input
@@ -185,9 +188,9 @@ export function EventForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <h2 className="text-foreground text-lg font-semibold">Item purchases</h2>
-            <label className="flex items-center gap-2 text-sm font-medium">
+          <div className="border-border space-y-2 border-b pb-6">
+            <h2 className="text-foreground text-base font-bold">Item purchases</h2>
+            <label className="bg-muted/40 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium">
               <input
                 type="checkbox"
                 checked={inventoryEnabled}
@@ -202,8 +205,11 @@ export function EventForm({
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-foreground text-lg font-semibold">Event branding</h2>
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <div className="border-border border-b pb-2">
+              <h2 className="text-foreground text-base font-bold">Branding</h2>
+              <p className="text-muted-foreground mt-1 text-xs">Optional visual overrides for this event.</p>
+            </div>
+            <label className="bg-muted/40 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium">
               <input
                 type="checkbox"
                 checked={brandingEnabled}
@@ -274,8 +280,12 @@ export function EventForm({
         </div>
       </Card>
 
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <div className="flex flex-wrap items-end gap-4">
+      <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
+        <div className="border-border flex flex-wrap items-end gap-4 border-b pb-3">
+          <div className="mr-auto">
+            <h3 className="text-foreground text-base font-bold">Teams</h3>
+            <p className="text-muted-foreground mt-1 text-xs">Set team names and colours for the live event.</p>
+          </div>
           <div className="space-y-2">
             <Label>Number of teams</Label>
             <Input
@@ -316,7 +326,7 @@ export function EventForm({
           {teams.map((team) => (
             <li
               key={team.id}
-              className="border-border/80 flex items-center gap-3 rounded-lg border p-3"
+              className="border-border/80 bg-background flex items-center gap-3 rounded-md border p-3"
             >
               <input
                 type="color"
@@ -378,9 +388,12 @@ export function EventForm({
         </ul>
       </Card>
 
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-foreground font-semibold">Games in this event</h3>
+          <div>
+            <h3 className="text-foreground text-base font-bold">Games</h3>
+            <p className="text-muted-foreground mt-1 text-xs">Your event library. Stages below decide when each game appears.</p>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -400,7 +413,7 @@ export function EventForm({
             {selectedGames.map((g) => (
               <li
                 key={g.id}
-                className="border-border/80 flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                className="border-border/80 bg-background flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
               >
                 {g.name}
                 <button
@@ -419,9 +432,12 @@ export function EventForm({
         )}
       </Card>
 
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-foreground font-semibold">Stages</h3>
+          <div>
+            <h3 className="text-foreground text-base font-bold">Stages</h3>
+            <p className="text-muted-foreground mt-1 text-xs">Build the running order for facilitators and players.</p>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -433,7 +449,7 @@ export function EventForm({
           </Button>
         </div>
         {stages.map((stage) => (
-          <Card key={stage.id} className="border-border/80 space-y-3 p-4">
+          <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
             <div className="flex flex-wrap items-center gap-3">
               <Input
                 value={stage.name}
@@ -573,7 +589,7 @@ export function EventForm({
 
       {gameModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-border/80 max-h-[80vh] w-full max-w-lg overflow-auto bg-card p-6 shadow-lg">
+          <Card className="border-nm-slate-800 max-h-[80vh] w-full max-w-lg overflow-auto bg-card p-6 shadow-xl border-2">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-foreground font-semibold">Select games</h3>
               <Button

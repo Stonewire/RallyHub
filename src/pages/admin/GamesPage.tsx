@@ -3,8 +3,10 @@ import {
   ChevronDown,
   ChevronRight,
   ImageIcon,
+  Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -90,10 +92,10 @@ function GroupHeader({
   onInstall?: () => void
 }) {
   return (
-    <div className="mb-2 flex items-center gap-2">
+    <div className="border-border/70 mb-3 flex items-center gap-2 border-b pb-2">
       <button
         type="button"
-        className="text-foreground hover:bg-muted/40 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold"
+        className="text-foreground hover:bg-muted/40 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-semibold uppercase tracking-[0.08em]"
         onClick={onToggle}
       >
         {collapsed ? (
@@ -172,6 +174,7 @@ export function AdminGamesPage() {
 
   const [view, setView] = useState<'games' | 'catalog' | 'inventory' | 'bin'>('games')
   const [filter, setFilter] = useState<'all' | GameType>('all')
+  const [groupFilter, setGroupFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
@@ -212,11 +215,13 @@ export function AdminGamesPage() {
     const list = gamesQuery.data ?? []
     return list.filter((game) => {
       const matchesType = filter === 'all' || game.type === filter
+      const matchesGroup =
+        groupFilter === 'all' || gameToGroupId.get(game.id) === groupFilter
       const q = search.trim().toLowerCase()
       const matchesSearch = !q || game.name.toLowerCase().includes(q)
-      return matchesType && matchesSearch
+      return matchesType && matchesGroup && matchesSearch
     })
-  }, [gamesQuery.data, filter, search])
+  }, [gamesQuery.data, filter, groupFilter, search, gameToGroupId])
 
   const ungrouped = filtered.filter((g) => !gameToGroupId.has(g.id))
 
@@ -343,64 +348,70 @@ export function AdminGamesPage() {
       actions={
         view === 'games' ? <>
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
+            <Upload className="size-3.5" />
             Import
           </NeoButton>
           <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
-            New Group
+            <Plus className="size-3.5" />
+            Add Group
           </NeoButton>
           <NeoButton variant="accent" asChild>
-            <Link to="/admin/games/new" data-tour="new-game-button">Create New Game</Link>
+            <Link to="/admin/games/new" data-tour="new-game-button">
+              <Plus className="size-3.5" />
+              Add Game
+            </Link>
           </NeoButton>
         </> : undefined
       }
     >
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <NeoButton
+      <div className="border-border mb-5 flex items-center justify-center gap-6 border-b" role="tablist" aria-label="Game libraries">
+        <button
           type="button"
-          size="sm"
-          variant={view === 'games' ? 'primary' : 'surface'}
+          role="tab"
+          aria-selected={view === 'games'}
+          className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'games' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('games')}
         >
-          Games
-        </NeoButton>
-        <NeoButton
+          Games Library
+        </button>
+        <button
           type="button"
-          size="sm"
-          variant={view === 'catalog' ? 'primary' : 'surface'}
+          role="tab"
+          aria-selected={view === 'catalog'}
+          className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'catalog' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('catalog')}
         >
-          Music {isPlatformLibrary ? 'Library' : 'Catalog'}
-        </NeoButton>
+          Music Library
+        </button>
         {!isPlatformLibrary ? (
-          <NeoButton
+          <button
             type="button"
-            size="sm"
-            variant={view === 'inventory' ? 'primary' : 'surface'}
+            role="tab"
+            aria-selected={view === 'inventory'}
+            className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'inventory' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
             onClick={() => setView('inventory')}
           >
             Inventory Library
-          </NeoButton>
+          </button>
         ) : null}
-        <NeoButton
+        <button
           type="button"
-          size="sm"
-          variant={view === 'bin' ? 'primary' : 'surface'}
+          role="tab"
+          aria-selected={view === 'bin'}
+          className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'bin' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('bin')}
         >
-          Bin {trashedGamesQuery.data?.length ? `(${trashedGamesQuery.data.length})` : ''}
-        </NeoButton>
-        {isPlatformLibrary && view === 'catalog' ? (
-          <NeoButton
-            type="button"
-            size="sm"
-            variant="accent"
-            className="ml-auto"
-            onClick={() => setInstallMusicOpen(true)}
-          >
+          Deleted Games {trashedGamesQuery.data?.length ? `(${trashedGamesQuery.data.length})` : ''}
+        </button>
+      </div>
+
+      {isPlatformLibrary && view === 'catalog' ? (
+        <div className="mb-4 flex justify-end">
+          <NeoButton type="button" size="sm" variant="accent" onClick={() => setInstallMusicOpen(true)}>
             Install to clients
           </NeoButton>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {view === 'catalog' && organizationId ? (
         <MusicCatalogManager organizationId={organizationId} />
@@ -421,28 +432,39 @@ export function AdminGamesPage() {
       ) : (
       <>
       <div className={editingGameId ? 'xl:pr-[38rem]' : undefined}>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(({ value, label }) => (
-            <NeoButton
+            <button
               key={value}
               type="button"
-              size="sm"
-              variant={filter === value ? 'primary' : 'surface'}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${filter === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
               onClick={() => setFilter(value)}
             >
               {label}
-            </NeoButton>
+            </button>
           ))}
         </div>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search games…"
-            className="bg-card pl-8"
-          />
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <select
+            value={groupFilter}
+            onChange={(e) => setGroupFilter(e.target.value)}
+            className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
+          >
+            <option value="all">All Groups</option>
+            {groups.map((group) => (
+              <option key={group.id} value={group.id}>{group.name}</option>
+            ))}
+          </select>
+          <div className="relative min-w-52 flex-1">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search games…"
+              className="bg-card h-9 pl-8 text-xs"
+            />
+          </div>
         </div>
       </div>
 
@@ -460,7 +482,7 @@ export function AdminGamesPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {groups.map((group) => {
+          {groups.filter((group) => groupFilter === 'all' || group.id === groupFilter).map((group) => {
             const groupGames = filtered.filter(
               (g) => gameToGroupId.get(g.id) === group.id,
             )
@@ -515,7 +537,7 @@ export function AdminGamesPage() {
             )
           })}
 
-          {ungrouped.length > 0 ? (
+          {groupFilter === 'all' && ungrouped.length > 0 ? (
             <section>
               <h2 className="text-foreground mb-2 text-sm font-semibold">
                 Ungrouped

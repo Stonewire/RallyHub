@@ -1,10 +1,10 @@
-import { Copy, Eye, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
+import { CalendarDays, Copy, Eye, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { NeoButton } from '@/components/neo-minimal'
-import { EVENT_STATUS_LABELS, groupEventsByStatus, type EventRow } from '@/hooks/use-events'
+import { type EventRow } from '@/hooks/use-events'
 import { canTransitionEventStatus, isEventActivated } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 
@@ -14,6 +14,16 @@ function formatEventDate(iso: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(iso))
+}
+
+function displayLayoutLabel(value: string) {
+  return value === 'orbit_view' ? 'Orbit' : 'Rank list'
+}
+
+function eventBrandColors(event: EventRow) {
+  if (!Array.isArray(event.brand_colors)) return ['#ffc107', '#1f2126', '#8a8d94']
+  const colors = event.brand_colors.filter((value): value is string => typeof value === 'string')
+  return colors.length >= 3 ? colors.slice(0, 3) : ['#ffc107', '#1f2126', '#8a8d94']
 }
 
 type DraggableEventsGridProps = {
@@ -49,7 +59,8 @@ export function DraggableEventsGrid({
     return da.localeCompare(db)
   })
 
-  const groups = groupEventsByStatus(sorted)
+  const upcoming = sorted.filter((event) => event.status !== 'archived')
+  const archived = sorted.filter((event) => event.status === 'archived')
 
   function handleDrop(targetStatus: EventStatus, targetEventId: string | null) {
     if (!dragId) return
@@ -78,145 +89,122 @@ export function DraggableEventsGrid({
     setDragId(null)
   }
 
-  return (
-    <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.status}>
-          <h3 className="text-foreground mb-3 text-sm font-semibold">
-            {group.label}{' '}
-            <span className="text-muted-foreground font-normal">({group.events.length})</span>
-          </h3>
-          <div
-            className="grid gap-3 sm:grid-cols-2"
-            onDragOver={(e) => {
-              e.preventDefault()
-              e.dataTransfer.dropEffect = 'move'
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              handleDrop(group.status, null)
-            }}
-          >
-            {group.events.map((event) => {
-              const activated = isEventActivated(event)
-              const canDrag =
-                !activated || (event.status as EventStatus) !== 'archived'
+  function eventCard(event: EventRow, compact = false) {
+    const archivedEvent = (event.status as EventStatus) === 'archived'
+    const activated = isEventActivated(event)
+    const canDrag = !activated || !archivedEvent
+    const colors = eventBrandColors(event)
 
-              return (
-              <article
-                key={event.id}
-                draggable={canDrag}
-                onDragStart={(e) => {
-                  setDragId(event.id)
-                  e.dataTransfer.effectAllowed = 'move'
-                  e.dataTransfer.setData('text/plain', event.id)
-                }}
-                onDragEnd={() => setDragId(null)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleDrop(group.status, event.id)
-                }}
-                className="border-border/80 bg-card hover:border-border flex cursor-pointer flex-col gap-2 rounded-lg border p-3 shadow-sm transition-colors"
-                onClick={() => navigate(`/admin/events/${event.id}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') navigate(`/admin/events/${event.id}`)
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-start gap-2">
-                  <GripVertical
-                    className="text-muted-foreground mt-0.5 size-4 shrink-0 cursor-grab active:cursor-grabbing"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className="flex flex-wrap items-center gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
-                      <p className="text-foreground line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug">
-                        {event.name}
-                      </p>
-                      <EventStatusMenu
-                        status={event.status as EventStatus}
-                        activatedAt={event.activated_at}
-                        disabled={statusPending}
-                        onSelect={(status) => onStatusChange(event.id, status)}
-                      />
-                    </div>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      {formatEventDate(event.event_date)} · {event.team_count} teams
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className="flex flex-wrap gap-1.5 pl-6"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {(event.status as EventStatus) === 'archived' ? (
-                    // Archived events are read-only: view details or duplicate — no editing.
-                    <>
-                      <NeoButton variant="surface" size="sm" asChild>
-                        <Link to={`/admin/events/${event.id}`}>
-                          <Eye className="size-3" />
-                          View
-                        </Link>
-                      </NeoButton>
-                      <NeoButton
-                        type="button"
-                        variant="surface"
-                        size="sm"
-                        disabled={duplicating}
-                        onClick={() => onDuplicate(event)}
-                      >
-                        <Copy className="size-3" />
-                        {duplicating ? 'Duplicating…' : 'Duplicate'}
-                      </NeoButton>
-                    </>
-                  ) : (
-                    <>
-                      <NeoButton
-                        type="button"
-                        variant="surface"
-                        size="sm"
-                        onClick={() => onViewLinks(event)}
-                      >
-                        <Link2 className="size-3" />
-                        View Links
-                      </NeoButton>
-                      <NeoButton variant="surface" size="sm" asChild>
-                        <Link to={`/admin/events/${event.id}`}>
-                          <Pencil className="size-3" />
-                          Edit
-                        </Link>
-                      </NeoButton>
-                    </>
-                  )}
-                  <NeoButton
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    disabled={deleting}
-                    onClick={() => onDelete(event)}
-                  >
-                    <Trash2 className="size-3" />
-                    Delete
-                  </NeoButton>
-                </div>
-              </article>
-              )
-            })}
-            {group.events.length === 0 ? (
-              <p className="text-muted-foreground col-span-2 py-4 text-center text-xs">
-                Drop events here to set status to {EVENT_STATUS_LABELS[group.status]}
-              </p>
-            ) : null}
+    return (
+      <article
+        key={event.id}
+        draggable={canDrag}
+        onDragStart={(dragEvent) => {
+          setDragId(event.id)
+          dragEvent.dataTransfer.effectAllowed = 'move'
+          dragEvent.dataTransfer.setData('text/plain', event.id)
+        }}
+        onDragEnd={() => setDragId(null)}
+        onDragOver={(dragEvent) => dragEvent.preventDefault()}
+        onDrop={(dragEvent) => {
+          dragEvent.preventDefault()
+          dragEvent.stopPropagation()
+          handleDrop(event.status as EventStatus, event.id)
+        }}
+        className={`border-border/80 bg-card hover:border-nm-slate-400 group flex cursor-pointer flex-col rounded-lg border p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md ${compact ? 'opacity-80' : ''}`}
+        onClick={() => navigate(`/admin/events/${event.id}`)}
+        onKeyDown={(keyEvent) => {
+          if (keyEvent.key === 'Enter') navigate(`/admin/events/${event.id}`)
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="flex items-start gap-2">
+          <GripVertical className="text-muted-foreground mt-1 size-4 shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2" onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
+              <h3 className={`${compact ? 'text-base' : 'min-h-11 text-lg'} text-foreground line-clamp-2 min-w-0 flex-1 font-bold leading-tight`}>
+                {event.name}
+              </h3>
+              <EventStatusMenu
+                status={event.status as EventStatus}
+                activatedAt={event.activated_at}
+                disabled={statusPending}
+                onSelect={(status) => onStatusChange(event.id, status)}
+              />
+            </div>
+            <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
+              <CalendarDays className="size-3.5" />
+              {formatEventDate(event.event_date)}
+            </p>
           </div>
+        </div>
+
+        {!compact ? (
+          <div className="border-border/70 mt-3 grid grid-cols-4 gap-2 border-t pt-3 text-center">
+            <div>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Display</p>
+              <p className="text-foreground mt-1 truncate text-[11px] font-semibold">{displayLayoutLabel(event.display_layout)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">UI colour</p>
+              <span className="border-border mx-auto mt-1 block size-3 rounded-full border" style={{ backgroundColor: event.display_text_color }} />
+            </div>
+            <div>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Branding</p>
+              <div className="mt-1.5 flex justify-center -space-x-0.5">
+                {colors.map((color, index) => <span key={`${color}-${index}`} className="border-card size-3 rounded-full border" style={{ backgroundColor: color }} />)}
+              </div>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Teams</p>
+              <p className="text-foreground mt-1 text-[11px] font-semibold">{event.team_count}</p>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="border-border/70 mt-3 flex gap-1.5 border-t pt-3" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+          {archivedEvent ? (
+            <>
+              <NeoButton variant="surface" size="sm" className="flex-1" asChild>
+                <Link to={`/admin/events/${event.id}`}><Eye className="size-3" />View</Link>
+              </NeoButton>
+              <NeoButton type="button" variant="surface" size="sm" className="flex-1" disabled={duplicating} onClick={() => onDuplicate(event)}>
+                <Copy className="size-3" />{duplicating ? 'Duplicating…' : 'Duplicate'}
+              </NeoButton>
+            </>
+          ) : (
+            <>
+              <NeoButton type="button" variant="surface" size="sm" className="flex-1" onClick={() => onViewLinks(event)}>
+                <Link2 className="size-3" />Event Links
+              </NeoButton>
+              <NeoButton variant="surface" size="sm" className="flex-1" asChild>
+                <Link to={`/admin/events/${event.id}`}><Pencil className="size-3" />View</Link>
+              </NeoButton>
+            </>
+          )}
+          <NeoButton type="button" variant="ghost" size="sm" className="text-destructive px-2" disabled={deleting} onClick={() => onDelete(event)} title="Delete event">
+            <Trash2 className="size-3.5" />
+          </NeoButton>
+        </div>
+      </article>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      {upcoming.length > 0 ? (
+        <section>
+          <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Upcoming Events</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{upcoming.map((event) => eventCard(event))}</div>
         </section>
-      ))}
+      ) : null}
+      {archived.length > 0 ? (
+        <section>
+          <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Past / Archived Events</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{archived.map((event) => eventCard(event, true))}</div>
+        </section>
+      ) : null}
     </div>
   )
 }

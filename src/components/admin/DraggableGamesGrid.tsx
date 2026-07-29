@@ -44,9 +44,16 @@ export function DraggableGamesGrid({
     setDragId(null)
   }
 
+  function pointsLabel(game: GameRow) {
+    if (game.points_type === 'range') {
+      return `${game.points_min ?? 0}–${game.points_max ?? 0} pts`
+    }
+    return `${game.points_static ?? 0} pts`
+  }
+
   return (
     <div
-      className="grid auto-rows-fr gap-3 sm:grid-cols-2"
+      className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
       onDragOver={(e) => {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
@@ -72,33 +79,45 @@ export function DraggableGamesGrid({
             e.stopPropagation()
             handleDrop(game.id)
           }}
-          className="border-border/80 bg-card flex h-full min-h-[7.5rem] flex-col gap-2 rounded-lg border p-3 shadow-sm"
+          className="border-border/80 bg-card group relative flex h-full min-h-44 cursor-pointer flex-col overflow-hidden rounded-lg border shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-nm-slate-400 hover:shadow-md"
+          onClick={() => onEdit(game.id)}
         >
-          <div className="flex items-start gap-2">
-            <GripVertical
-              className="text-muted-foreground mt-0.5 size-4 shrink-0 cursor-grab active:cursor-grabbing"
-              aria-hidden
-            />
+          <div className="bg-nm-slate-100 relative flex h-20 items-center justify-center overflow-hidden">
             {game.cover_url ? (
               <img
                 src={game.cover_url}
                 alt=""
-                className="border-border/80 size-10 shrink-0 rounded object-cover"
+                className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
               />
             ) : (
-              <div className="bg-muted/50 size-10 shrink-0 rounded" />
+              <span className="text-nm-slate-500 text-[9px] font-semibold uppercase tracking-[0.12em]">
+                Cover image
+              </span>
             )}
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
-                {game.name}
-              </p>
-              <p className="text-muted-foreground text-xs">{GAME_TYPE_LABELS[game.type]}</p>
-            </div>
+            <span className="bg-nm-slate-800 absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+              {GAME_TYPE_LABELS[game.type]}
+            </span>
+            <GripVertical
+              className="absolute left-1.5 top-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+              aria-hidden
+            />
           </div>
-          <div className="mt-auto flex flex-wrap gap-1.5">
+          <div className="flex min-h-20 flex-1 flex-col items-center px-2 py-2 text-center">
+            <p className="text-foreground line-clamp-2 min-h-8 text-xs font-semibold leading-4">
+              {game.name}
+            </p>
+            <p className="mt-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+              {pointsLabel(game)}
+            </p>
+          </div>
+          <div
+            className="border-border/60 mt-auto flex items-center justify-center gap-1 border-t px-1.5 py-1.5"
+            onClick={(event) => event.stopPropagation()}
+          >
             {groups.length > 0 ? (
               <select
-                className="neo-field max-w-[7rem] px-1.5 py-1 text-xs"
+                aria-label={`Move ${game.name} to group`}
+                className="neo-field h-7 min-w-0 flex-1 px-1.5 py-0 text-[10px]"
                 defaultValue=""
                 onChange={(e) => {
                   const v = e.target.value
@@ -118,32 +137,35 @@ export function DraggableGamesGrid({
             {onInstall ? (
               <NeoButton
                 type="button"
-                variant="surface"
+                variant="ghost"
                 size="sm"
+                className="size-7 p-0"
+                title="Install game"
                 onClick={() => onInstall(game)}
               >
                 <Download className="size-3" />
-                Install
               </NeoButton>
             ) : null}
             <NeoButton
               type="button"
-              variant="surface"
+              variant="ghost"
               size="sm"
+              className="size-7 p-0"
+              title="Edit game"
               onClick={() => onEdit(game.id)}
             >
               <Pencil className="size-3" />
-              Edit
             </NeoButton>
             <NeoButton
               type="button"
-              variant="destructive"
+              variant="ghost"
               size="sm"
+              className="text-destructive size-7 p-0"
+              title="Delete game"
               disabled={deleting}
               onClick={() => onDelete(game)}
             >
               <Trash2 className="size-3" />
-              Delete
             </NeoButton>
           </div>
         </article>

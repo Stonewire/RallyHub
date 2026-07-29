@@ -218,19 +218,27 @@ export function AdminGamesNewPage() {
         backTo="/admin/games"
         backLabel="Back to games"
       >
-        <div className="grid gap-4 sm:grid-cols-2" data-tour="game-type-picker">
+        <div className="border-nm-slate-800 bg-card mx-auto max-w-3xl rounded-lg border-2 p-4 shadow-lg" data-tour="game-type-picker">
+          <div className="border-border mb-4 border-b pb-3">
+            <h2 className="text-foreground text-sm font-bold">Select game type</h2>
+            <p className="text-muted-foreground mt-1 text-xs">Choose the format. You can configure all content on the next screen.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {TYPES.map(({ type, label, icon: Icon, description }) => (
             <button
               key={type}
               type="button"
               onClick={() => selectType(type)}
-              className="border-border/80 hover:border-[#FFC107]/60 bg-card text-left rounded-xl border p-6 shadow-sm transition-colors"
+              className="border-border hover:border-primary hover:bg-primary/5 bg-background text-left rounded-md border p-4 transition-[background-color,border-color,transform] hover:-translate-y-0.5"
             >
-              <Icon className="text-foreground mb-4 size-10" strokeWidth={1.5} />
-              <h3 className="text-foreground text-lg font-semibold">{label}</h3>
-              <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+              <span className="bg-nm-slate-100 mb-3 flex size-9 items-center justify-center rounded-md">
+                <Icon className="text-nm-slate-700 size-5" strokeWidth={1.8} />
+              </span>
+              <h3 className="text-foreground text-sm font-semibold">{label}</h3>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{description}</p>
             </button>
           ))}
+          </div>
         </div>
       </AdminPageShell>
     )

@@ -8,6 +8,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventActivityLog } from '@/components/admin/EventActivityLog'
+import { DangerZone } from '@/components/admin/DangerZone'
 import { EventForm } from '@/components/events/EventForm'
 import { EventLinksPanel } from '@/components/events/EventLinksPanel'
 import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDialog'
@@ -368,23 +369,28 @@ export function AdminEventEditPage() {
               ) : null}
 
               {resetAllowed && !isArchived ? (
-                <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
-                  <div>
-                    <h2 className="text-foreground text-lg font-semibold">Reset event data</h2>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      Clear all teams, submissions, scores, chat, and live progress so you can run a
-                      fresh rehearsal. Event games, stages, and branding are kept.
-                    </p>
-                  </div>
-                  <NeoButton
-                    type="button"
-                    variant="destructive"
-                    disabled={resetEventDataMutation.isPending || loading}
-                    onClick={() => setResetDialogOpen(true)}
-                  >
-                    Reset event data
-                  </NeoButton>
-                </Card>
+                <div className="mt-8">
+                  <DangerZone
+                    rows={[
+                      {
+                        id: 'reset-event-data',
+                        label: 'Reset event data',
+                        description:
+                          'Clear teams, submissions, scores, chat, and live progress while keeping games, stages, and branding.',
+                        action: (
+                          <NeoButton
+                            type="button"
+                            variant="destructive"
+                            disabled={resetEventDataMutation.isPending || loading}
+                            onClick={() => setResetDialogOpen(true)}
+                          >
+                            Reset event data
+                          </NeoButton>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
               ) : null}
 
               {!isArchived && (
