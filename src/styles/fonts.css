@@ -1,7 +1,7 @@
 /**
  * RallyHub brand typography.
- * Display: Abril Fatface (H1–H2, hero).  Body/UI: Manrope (variable).
- * Font files live in /public/fonts.
+ * Body/UI/headings: Inter (variable). Font files live in /public/fonts.
+ * Abril Fatface is retained only for the marketing site's display type.
  */
 
 @font-face {
@@ -10,6 +10,14 @@
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/AbrilFatface-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/Inter-VariableFont.ttf') format('truetype');
 }
 
 @font-face {

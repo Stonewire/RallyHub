@@ -23,6 +23,46 @@
   --nm-border: rgb(51 51 51 / 0.08);
   --nm-border-strong: rgb(51 51 51 / 0.12);
 
+  /* ─── Cool grey surfaces (new design). These deliberately follow the warm
+     ivory values above so they win by cascade order. The ivory tokens stay
+     declared because the marketing pages still read some of them. ─── */
+  --nm-bg-base: #f7f7f8;
+  --nm-bg-surface: #ffffff;
+  --nm-bg-elevated: #ffffff;
+  --nm-bg-muted: #eeeef0;
+  --nm-bg-inset: #dadbde;
+
+  --nm-text-primary: #1f2126;
+  --nm-text-secondary: #63666d;
+  --nm-text-muted: #8a8d94;
+
+  --nm-border: rgb(31 33 38 / 0.14);
+  --nm-border-strong: rgb(31 33 38 / 0.22);
+
+  /* ─── Slate ramp (the design's accent-2) ─── */
+  --nm-slate-100: #edeef0;
+  --nm-slate-200: #d9dbdf;
+  --nm-slate-300: #b8bcc4;
+  --nm-slate-400: #8d93a0;
+  --nm-slate-500: #5c616d;
+  --nm-slate-600: #3f434c;
+  --nm-slate-700: #2b2e36;
+  --nm-slate-800: #1d1f24;
+  --nm-slate-900: #121317;
+
+  /* ─── Neutral ramp ─── */
+  --nm-neutral-100: #f7f7f8;
+  --nm-neutral-200: #eeeef0;
+  --nm-neutral-300: #dadbde;
+  --nm-neutral-400: #b7b9be;
+  --nm-neutral-500: #8a8d94;
+  --nm-neutral-600: #63666d;
+  --nm-neutral-700: #454850;
+  --nm-neutral-800: #2a2c33;
+  --nm-neutral-900: #1a1b1f;
+
+  --nm-danger: #c0392b;
+
   /* ─── Spacing scale ─── */
   --nm-space-1: 0.25rem;
   --nm-space-2: 0.5rem;
@@ -34,12 +74,12 @@
   --nm-space-10: 2.5rem;
   --nm-space-12: 3rem;
 
-  /* ─── Border radii ─── */
-  --nm-radius-sm: 0.5rem;
-  --nm-radius-md: 0.75rem;
-  --nm-radius-lg: 1rem;
-  --nm-radius-xl: 1.25rem;
-  --nm-radius-2xl: 1.5rem;
+  /* ─── Border radii (new design's tighter scale) ─── */
+  --nm-radius-sm: 3px;
+  --nm-radius-md: 6px;
+  --nm-radius-lg: 10px;
+  --nm-radius-xl: 14px;
+  --nm-radius-2xl: 18px;
 
   /* ─── Layered shadows (neomorphic-leaning) ─── */
   --nm-shadow-soft:
@@ -81,6 +121,40 @@
 
   --nm-border: rgb(250 247 242 / 0.1);
   --nm-border-strong: rgb(250 247 242 / 0.16);
+
+  /* ─── Cool grey dark surfaces (new design). Ramps mirror 100 to 900. ─── */
+  --nm-bg-base: #15161a;
+  --nm-bg-surface: #1e2025;
+  --nm-bg-elevated: #1e2025;
+  --nm-bg-muted: #2a2c33;
+  --nm-bg-inset: #121317;
+
+  --nm-text-primary: #f1f1f3;
+  --nm-text-secondary: #b7b9be;
+  --nm-text-muted: #8a8d94;
+
+  --nm-border: rgb(255 255 255 / 0.14);
+  --nm-border-strong: rgb(255 255 255 / 0.22);
+
+  --nm-slate-100: #121317;
+  --nm-slate-200: #1d1f24;
+  --nm-slate-300: #2b2e36;
+  --nm-slate-400: #3f434c;
+  --nm-slate-500: #5c616d;
+  --nm-slate-600: #8d93a0;
+  --nm-slate-700: #b8bcc4;
+  --nm-slate-800: #d9dbdf;
+  --nm-slate-900: #edeef0;
+
+  --nm-neutral-100: #1a1b1f;
+  --nm-neutral-200: #2a2c33;
+  --nm-neutral-300: #454850;
+  --nm-neutral-400: #63666d;
+  --nm-neutral-500: #8a8d94;
+  --nm-neutral-600: #b7b9be;
+  --nm-neutral-700: #dadbde;
+  --nm-neutral-800: #eeeef0;
+  --nm-neutral-900: #f7f7f8;
 
   --nm-shadow-soft:
     0 1px 2px rgb(0 0 0 / 0.3),
@@ -135,45 +209,45 @@
    .bg-card rule below). The sidebar stays charcoal (set on --rh-surface-sidebar).
    Dark mode keeps its own dark-on-darker treatment via the .dark override. */
 .neo-minimal-scope .admin-shell-inset {
-  --nm-bg-base: #ffffff;    /* White canvas */
-  --nm-bg-surface: #faf7f2; /* Warm Ivory blocks */
-  --nm-bg-elevated: #faf7f2;
-  --nm-bg-muted: #f1ece4;
-  --nm-bg-inset: #ece6dd;
-  --nm-text-primary: #111111;   /* Near-black text */
-  --nm-text-secondary: #3a3a3a;
-  --nm-text-muted: #5c5854;
-  --background: #ffffff;
-  --foreground: #111111;
-  --card: #faf7f2;
-  --card-foreground: #111111;
-  --popover: #faf7f2;
-  --popover-foreground: #111111;
-  --muted: #f1ece4;
-  --muted-foreground: #5c5854;
-  --border: rgb(17 17 17 / 0.08);
-  --input: rgb(17 17 17 / 0.14);
+  --nm-bg-base: #f7f7f8;    /* Cool grey canvas */
+  --nm-bg-surface: #ffffff; /* White cards */
+  --nm-bg-elevated: #ffffff;
+  --nm-bg-muted: #eeeef0;
+  --nm-bg-inset: #dadbde;
+  --nm-text-primary: #1f2126;
+  --nm-text-secondary: #63666d;
+  --nm-text-muted: #8a8d94;
+  --background: #f7f7f8;
+  --foreground: #1f2126;
+  --card: #ffffff;
+  --card-foreground: #1f2126;
+  --popover: #ffffff;
+  --popover-foreground: #1f2126;
+  --muted: #eeeef0;
+  --muted-foreground: #63666d;
+  --border: rgb(31 33 38 / 0.14);
+  --input: rgb(31 33 38 / 0.22);
 }
 
 .dark .neo-minimal-scope .admin-shell-inset {
-  --nm-bg-base: #1f1f1f; /* darkest canvas */
-  --nm-bg-surface: #272727;
-  --nm-bg-elevated: #313131; /* lifted blocks */
-  --nm-bg-muted: #383838;
-  --nm-bg-inset: #181818;
-  --nm-text-primary: #faf7f2; /* keep ivory text in dark — overrides the light block */
-  --nm-text-secondary: #c7c2ba;
-  --nm-text-muted: #9a958d;
-  --background: #1f1f1f;
-  --foreground: #faf7f2;
-  --card: #313131;
-  --card-foreground: #faf7f2;
-  --popover: #313131;
-  --popover-foreground: #faf7f2;
-  --muted: #383838;
-  --muted-foreground: #9a958d;
-  --border: rgb(250 247 242 / 0.1);
-  --input: rgb(250 247 242 / 0.14);
+  --nm-bg-base: #15161a; /* darkest canvas */
+  --nm-bg-surface: #1e2025;
+  --nm-bg-elevated: #1e2025; /* lifted blocks */
+  --nm-bg-muted: #2a2c33;
+  --nm-bg-inset: #121317;
+  --nm-text-primary: #f1f1f3;
+  --nm-text-secondary: #b7b9be;
+  --nm-text-muted: #8a8d94;
+  --background: #15161a;
+  --foreground: #f1f1f3;
+  --card: #1e2025;
+  --card-foreground: #f1f1f3;
+  --popover: #1e2025;
+  --popover-foreground: #f1f1f3;
+  --muted: #2a2c33;
+  --muted-foreground: #8a8d94;
+  --border: rgb(255 255 255 / 0.14);
+  --input: rgb(255 255 255 / 0.22);
 }
 
 @layer components {

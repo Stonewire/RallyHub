@@ -10,7 +10,7 @@
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-display: 'Abril Fatface', Georgia, 'Times New Roman', serif;
 
     --shadow-soft: var(--shadow-rh-soft);
@@ -21,6 +21,28 @@
     --color-nm-muted: var(--nm-bg-muted);
     --color-nm-charcoal: var(--nm-charcoal);
     --color-nm-yellow: var(--nm-yellow);
+    --color-nm-danger: var(--nm-danger);
+
+    /* New-design tint ramps. Values mirror in dark mode, see neo-minimal.css. */
+    --color-nm-slate-100: var(--nm-slate-100);
+    --color-nm-slate-200: var(--nm-slate-200);
+    --color-nm-slate-300: var(--nm-slate-300);
+    --color-nm-slate-400: var(--nm-slate-400);
+    --color-nm-slate-500: var(--nm-slate-500);
+    --color-nm-slate-600: var(--nm-slate-600);
+    --color-nm-slate-700: var(--nm-slate-700);
+    --color-nm-slate-800: var(--nm-slate-800);
+    --color-nm-slate-900: var(--nm-slate-900);
+
+    --color-nm-neutral-100: var(--nm-neutral-100);
+    --color-nm-neutral-200: var(--nm-neutral-200);
+    --color-nm-neutral-300: var(--nm-neutral-300);
+    --color-nm-neutral-400: var(--nm-neutral-400);
+    --color-nm-neutral-500: var(--nm-neutral-500);
+    --color-nm-neutral-600: var(--nm-neutral-600);
+    --color-nm-neutral-700: var(--nm-neutral-700);
+    --color-nm-neutral-800: var(--nm-neutral-800);
+    --color-nm-neutral-900: var(--nm-neutral-900);
 
     --shadow-nm-soft: var(--nm-shadow-soft);
     --shadow-nm-raised: var(--nm-shadow-raised);
