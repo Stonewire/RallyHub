@@ -29,6 +29,7 @@ import {
   VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
 import { sumUnpaidDue } from '@/lib/billing-display'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 type BillingOverviewProps = {
   organizationId: string | null | undefined
@@ -53,6 +54,7 @@ export function BillingOverview({
   showAdminSummary = false,
 }: BillingOverviewProps) {
   const { notify } = useNotification()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const [openingPortal, setOpeningPortal] = useState(false)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
   const invoicesQuery = useOrganizationInvoices(organizationId)
@@ -81,7 +83,7 @@ export function BillingOverview({
     if (!organizationId) return
     setDownloadingInvoiceId(invoiceId)
     try {
-      await openInvoicePdf(organizationId, invoiceId)
+      await openInvoicePdf(organizationId, invoiceId, isDemo)
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not fetch the invoice.')
     } finally {
@@ -93,7 +95,7 @@ export function BillingOverview({
     if (!organizationId) return
     setOpeningPortal(true)
     try {
-      await openBillingPortal(organizationId)
+      await openBillingPortal(organizationId, isDemo)
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not open billing details.')
     } finally {
@@ -245,7 +247,7 @@ export function BillingOverview({
             )}
           </div>
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
-          {PLAN_CHANGES_ENABLED && showAvailablePlans && organizationId && paddleSubscriptionId && !plan.freeSubscription && !plan.priceOnRequest ? (
+          {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest ? (
             <SubscriptionChangeForm
               key={`${planId}-${period}`}
               organizationId={organizationId}
@@ -284,14 +286,16 @@ export function BillingOverview({
         </section>
       ) : null}
 
-      <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
+      <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans && !isDemo} />
 
       {showAvailablePlans ? (
         <section className="space-y-3">
           <div>
             <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
             <p className="text-muted-foreground text-sm">
-              {paddleSubscriptionId
+              {isDemo
+                ? 'Use Change subscription above to try Pay Per Event, Starter, or Pro.'
+                : paddleSubscriptionId
                 ? PLAN_CHANGES_ENABLED
                   ? 'Use Change subscription above to switch between Starter and Pro.'
                   : 'Plan changes will be enabled after the final pricing structure is confirmed.'

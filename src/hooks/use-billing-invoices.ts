@@ -4,6 +4,8 @@ import { payWithPaddle } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { demoBillingRequest } from '@/lib/demo-sandbox'
 
 export type EventInvoiceWithEvent = Tables<'invoices'> & {
   event: Pick<
@@ -107,9 +109,24 @@ export function useMarkInvoiceStatus() {
  */
 export function usePayEventInvoiceWithPaddle(organizationId: string | null | undefined) {
   const qc = useQueryClient()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   return useMutation({
     mutationFn: async (invoiceId: string) => {
       if (!organizationId) throw new Error('No organization selected.')
+      if (isDemo) {
+        const prepared = await demoBillingRequest<{ transactionId: string }>(organizationId, {
+          kind: 'event', invoiceId,
+        })
+        const result = await payWithPaddle(prepared.transactionId)
+        if (result === 'completed') {
+          await demoBillingRequest(organizationId, {
+            kind: 'event_complete',
+            invoiceId,
+            transactionId: prepared.transactionId,
+          })
+        }
+        return result
+      }
       const { data, error } = await supabase.functions.invoke('paddle-checkout', {
         body: { organizationId, kind: 'event', invoiceId },
       })

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { cn } from '@/lib/utils'
+import { DemoSandboxBar } from '@/components/demo/DemoSandboxBar'
 
 export function AdminLayout() {
   useDocumentTitle('Admin')
@@ -25,6 +26,7 @@ export function AdminLayout() {
             on the light canvas, ivory on the dark canvas (text-foreground). */}
         <SidebarTrigger className="text-foreground absolute left-3 top-3 z-30 opacity-70 hover:opacity-100 [&_svg]:size-5" />
         <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          <DemoSandboxBar />
           <div className="flex-1">
             <Outlet />
           </div>

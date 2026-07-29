@@ -8,9 +8,10 @@ import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal
 import { useAuth } from '@/contexts/auth-context'
 import { resolvePostLoginPath } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
+import { isDemoHost } from '@/lib/demo-sandbox'
 
 export function LoginPage() {
-  const { user, role, loading, profileLoading, profile, signInWithIdentifier } = useAuth()
+  const { user, role, loading, profileLoading, profile, signInWithIdentifier, authError } = useAuth()
   const location = useLocation()
 
   const from =
@@ -44,6 +45,26 @@ export function LoginPage() {
     }
     const target = resolvePostLoginPath(from, role)
     return <Navigate to={target} replace />
+  }
+
+  if (!loading && !user && isDemoHost()) {
+    return (
+      <AuthPageShell>
+        <NeoCard className="w-full max-w-sm space-y-5 p-8 text-center">
+          <div className="space-y-2">
+            <h1 className="text-foreground text-xl font-semibold tracking-tight">
+              Demo temporarily unavailable
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {authError ?? 'We could not start the demo session.'}
+            </p>
+          </div>
+          <NeoButton className="w-full" onClick={() => window.location.reload()}>
+            Try again
+          </NeoButton>
+        </NeoCard>
+      </AuthPageShell>
+    )
   }
 
   async function handleSubmit(e: FormEvent) {

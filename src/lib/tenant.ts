@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { isPublicLivePath, RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
 import { fetchOrganizationTenantBySubdomain } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
+import { DEMO_SUBDOMAIN, isDemoHost } from '@/lib/demo-sandbox'
 import type { Database } from '@/types/database'
 
 export type TenantPublicOrg = {
@@ -22,6 +23,8 @@ export type TenantPublicOrg = {
   brand_body_font: string | null
   brand_heading_font_url: string | null
   brand_body_font_url: string | null
+  is_demo: boolean
+  demo_reset_at: string | null
 }
 
 export type TenantContext =
@@ -55,6 +58,10 @@ export function parseTenantFromHost(hostname: string): TenantContext {
 
   if (typeof window !== 'undefined' && isPublicLivePath(window.location.pathname)) {
     return { kind: 'platform' }
+  }
+
+  if (isDemoHost(host)) {
+    return { kind: 'tenant', subdomain: DEMO_SUBDOMAIN }
   }
 
   if (PLATFORM_HOSTS.has(host)) {

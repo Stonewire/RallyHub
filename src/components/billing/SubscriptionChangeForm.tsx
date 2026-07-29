@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { NeoButton, NeoLabel, NeoSelect } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { useNotification } from '@/contexts/notification-context'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 import {
   type SubscriptionChangePreview,
   usePaddleSubscriptionChange,
@@ -39,6 +40,7 @@ export function SubscriptionChangeForm({
   currentBillingPeriod,
 }: SubscriptionChangeFormProps) {
   const { notify } = useNotification()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const [targetPlanId, setTargetPlanId] = useState<PlanId>(currentPlanId)
   const [targetPeriod, setTargetPeriod] = useState<BillingPeriod>(currentBillingPeriod)
   const [preview, setPreview] = useState<SubscriptionChangePreview | null>(null)
@@ -75,7 +77,9 @@ export function SubscriptionChangeForm({
       <div>
         <p className="text-foreground text-sm font-medium">Change subscription</p>
         <p className="text-muted-foreground text-xs">
-          Paddle calculates an exact prorated credit for unused time before anything changes.
+          {isDemo
+            ? 'Try any plan. This preview never contacts Paddle or charges a card.'
+            : 'Paddle calculates an exact prorated credit for unused time before anything changes.'}
         </p>
       </div>
 
@@ -90,7 +94,7 @@ export function SubscriptionChangeForm({
               clearPreview()
             }}
           >
-            {CHANGEABLE_PLANS.map((plan) => (
+            {(isDemo ? getSelfServePlans() : CHANGEABLE_PLANS).map((plan) => (
               <option key={plan.id} value={plan.id}>{plan.name}</option>
             ))}
           </NeoSelect>
@@ -140,7 +144,9 @@ export function SubscriptionChangeForm({
             </span>
           </div>
           <p className="text-muted-foreground text-xs">
-            The change is applied only if Paddle successfully processes any amount due now.
+            {isDemo
+              ? 'Confirming updates only this temporary sandbox.'
+              : 'The change is applied only if Paddle successfully processes any amount due now.'}
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <NeoButton

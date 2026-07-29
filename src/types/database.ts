@@ -46,6 +46,12 @@ type OrgRow = {
   brand_heading_font_url: string | null
   brand_body_font_url: string | null
   internal_notes: string | null
+  is_demo: boolean
+  demo_reset_at: string | null
+  demo_last_reset_at: string | null
+  demo_reset_interval_minutes: number
+  demo_generation: number
+  demo_user_id: string | null
   created_at: string
   updated_at: string
 }

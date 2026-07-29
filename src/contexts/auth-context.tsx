@@ -11,6 +11,7 @@ import type { Session, User } from '@supabase/supabase-js'
 
 import { setLiveJoinToken, supabase } from '@/lib/supabase'
 import { resolveLoginEmail } from '@/lib/auth-identifier'
+import { enterDemoSandbox, isDemoHost } from '@/lib/demo-sandbox'
 import type { AppRole } from '@/types/database'
 import type { Tables } from '@/types/helpers'
 
@@ -23,6 +24,7 @@ type AuthContextValue = {
   role: AppRole | null
   loading: boolean
   profileLoading: boolean
+  authError: string | null
   signInWithPassword: (email: string, password: string) => Promise<void>
   signInWithIdentifier: (identifier: string, password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
   // Which user id `profile` actually reflects (or has finished trying to fetch
   // for). Plain `profileLoading` alone isn't enough: it settles back to false
   // between the session resolving and the profile-fetch effect for the NEW
@@ -47,10 +50,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    supabase.auth.getSession().then(({ data: { session: next } }) => {
-      if (!cancelled) setSession(next)
-      if (!cancelled) setLoading(false)
-    })
+    async function initializeSession() {
+      try {
+        let { data: { session: next } } = await supabase.auth.getSession()
+
+        if (
+          isDemoHost() &&
+          next?.user.user_metadata?.rallyhub_demo !== true
+        ) {
+          await enterDemoSandbox()
+          const refreshed = await supabase.auth.getSession()
+          next = refreshed.data.session
+        }
+
+        if (!cancelled) {
+          setSession(next)
+          setAuthError(null)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSession(null)
+          setAuthError(
+            error instanceof Error ? error.message : 'The demo is temporarily unavailable.',
+          )
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void initializeSession()
 
     const {
       data: { subscription },
@@ -175,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading:
         Boolean(session?.user?.id) &&
         (profileLoading || profileUserId !== session?.user?.id),
+      authError,
       signInWithPassword,
       signInWithIdentifier,
       signOut,
@@ -186,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       profileLoading,
       profileUserId,
+      authError,
       signInWithPassword,
       signInWithIdentifier,
       signOut,

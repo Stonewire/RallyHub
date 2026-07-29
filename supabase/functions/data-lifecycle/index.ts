@@ -355,13 +355,16 @@ async function purgeOrganization(
 ): Promise<{ removedObjects: number; removedUsers: number; missing?: boolean }> {
   const { data: org, error: orgError } = await admin
     .from('organizations')
-    .select('id, paddle_subscription_id')
+    .select('id, paddle_subscription_id, is_demo')
     .eq('id', organizationId)
     .maybeSingle()
   if (orgError) throw orgError
   if (!org) {
     if (jobId) await admin.rpc('complete_data_cleanup_job', { p_job_id: jobId })
     return { removedObjects: 0, removedUsers: 0, missing: true }
+  }
+  if (org.is_demo) {
+    throw new Error('The public demo organization cannot be deleted.')
   }
 
   const users = await fetchOrganizationUsers(admin, organizationId)
@@ -439,10 +442,11 @@ async function requestOrganizationDeletion(
 
   const { data: org, error: orgError } = await admin
     .from('organizations')
-    .select('paddle_subscription_id')
+    .select('paddle_subscription_id, is_demo')
     .eq('id', organizationId)
     .single()
   if (orgError) throw orgError
+  if (org.is_demo) throw new Error('The public demo organization cannot be deleted.')
 
   let warning: string | null = null
   if (org.paddle_subscription_id) {

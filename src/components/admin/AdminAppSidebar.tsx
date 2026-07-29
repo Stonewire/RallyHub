@@ -318,17 +318,19 @@ export function AdminAppSidebar() {
               ) : null}
             </SidebarMenuItem>
           ) : null}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              type="button"
-              className="text-sidebar-foreground"
-              tooltip="Sign out"
-              onClick={() => void handleSignOut()}
-            >
-              <LogOut className="shrink-0" strokeWidth={1.75} />
-              <span className="font-medium">Sign out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {!tenantOrg?.is_demo ? (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                type="button"
+                className="text-sidebar-foreground"
+                tooltip="Sign out"
+                onClick={() => void handleSignOut()}
+              >
+                <LogOut className="shrink-0" strokeWidth={1.75} />
+                <span className="font-medium">Sign out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ) : null}
         </SidebarMenu>
         <p className="text-sidebar-foreground/40 px-2 pt-1 text-[10px] tracking-wide">
           {APP_BUILD_LABEL}

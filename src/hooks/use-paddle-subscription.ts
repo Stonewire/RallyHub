@@ -4,6 +4,8 @@ import { payWithPaddle } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
 import type { BillingPeriod, PlanId } from '@/lib/subscription-plans'
 import { supabase } from '@/lib/supabase'
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { demoBillingRequest } from '@/lib/demo-sandbox'
 
 /**
  * Starts paying for a plan via Paddle: creates a transaction for the plan's
@@ -18,9 +20,27 @@ import { supabase } from '@/lib/supabase'
  */
 export function usePaddleSubscriptionCheckout(organizationId: string | null | undefined) {
   const qc = useQueryClient()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   return useMutation({
     mutationFn: async ({ planId, billingPeriod }: { planId: string; billingPeriod: BillingPeriod }) => {
       if (!organizationId) throw new Error('No organization selected.')
+      if (isDemo) {
+        const prepared = await demoBillingRequest<{ transactionId: string }>(organizationId, {
+          kind: 'subscription',
+          planId: planId as PlanId,
+          billingPeriod,
+        })
+        const result = await payWithPaddle(prepared.transactionId)
+        if (result === 'completed') {
+          await demoBillingRequest(organizationId, {
+            kind: 'subscription_complete',
+            planId: planId as PlanId,
+            billingPeriod,
+            transactionId: prepared.transactionId,
+          })
+        }
+        return result
+      }
       const { data, error } = await supabase.functions.invoke('paddle-checkout', {
         body: { organizationId, kind: 'subscription', planId, billingPeriod },
       })
@@ -88,14 +108,19 @@ async function subscriptionChangeRequest<T>(
 export function usePaddleSubscriptionChangePreview(
   organizationId: string | null | undefined,
 ) {
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   return useMutation({
     mutationFn: ({ planId, billingPeriod }: { planId: PlanId; billingPeriod: BillingPeriod }) =>
-      subscriptionChangeRequest<SubscriptionChangePreview>(
-        organizationId,
-        'subscription_change_preview',
-        planId,
-        billingPeriod,
-      ),
+      isDemo && organizationId
+        ? demoBillingRequest<SubscriptionChangePreview>(organizationId, {
+            kind: 'subscription_change_preview', planId, billingPeriod,
+          })
+        : subscriptionChangeRequest<SubscriptionChangePreview>(
+            organizationId,
+            'subscription_change_preview',
+            planId,
+            billingPeriod,
+          ),
   })
 }
 
@@ -103,14 +128,20 @@ export function usePaddleSubscriptionChange(
   organizationId: string | null | undefined,
 ) {
   const qc = useQueryClient()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   return useMutation({
     mutationFn: ({ planId, billingPeriod }: { planId: PlanId; billingPeriod: BillingPeriod }) =>
-      subscriptionChangeRequest<{ changed: true; planId: PlanId; billingPeriod: BillingPeriod }>(
-        organizationId,
-        'subscription_change',
-        planId,
-        billingPeriod,
-      ),
+      isDemo && organizationId
+        ? demoBillingRequest<{ changed: true; planId: PlanId; billingPeriod: BillingPeriod }>(
+            organizationId,
+            { kind: 'subscription_change', planId, billingPeriod },
+          )
+        : subscriptionChangeRequest<{ changed: true; planId: PlanId; billingPeriod: BillingPeriod }>(
+            organizationId,
+            'subscription_change',
+            planId,
+            billingPeriod,
+          ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.organization(organizationId ?? null) })
       void qc.invalidateQueries({ queryKey: ['rallyhub', 'client', organizationId ?? undefined] })
