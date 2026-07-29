@@ -5,10 +5,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.demo-session]
-verify_jwt = false
+verify_jwt = true
 
 [functions.demo-reset]
-verify_jwt = false
+verify_jwt = true
 
 [functions.demo-billing]
-verify_jwt = false
+verify_jwt = true

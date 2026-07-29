@@ -23,7 +23,7 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if old.is_demo and coalesce(auth.role(), '') <> 'service_role' then
+  if old.is_demo and coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
     new.is_demo := old.is_demo;
     new.demo_reset_at := old.demo_reset_at;
     new.demo_last_reset_at := old.demo_last_reset_at;
@@ -174,7 +174,7 @@ declare
   v_teams_config jsonb;
   v_now timestamptz := clock_timestamp();
 begin
-  if coalesce(auth.role(), '') <> 'service_role' then
+  if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
     raise exception 'Service role required';
   end if;
 
@@ -202,19 +202,19 @@ begin
     raise exception 'Platform game library organization not found';
   end if;
 
-  delete from public.organization_deletion_requests where organization_id = v_org.id;
-  delete from public.organization_members where organization_id = v_org.id;
-  delete from public.tablet_sessions where organization_id = v_org.id;
-  delete from public.tablet_login_attempts where organization_id = v_org.id;
-  delete from public.support_tickets where organization_id = v_org.id;
-  delete from public.promo_code_redemptions where organization_id = v_org.id;
-  delete from public.subscription_transactions where organization_id = v_org.id;
-  delete from public.inventory_items where organization_id = v_org.id;
-  delete from public.events where organization_id = v_org.id;
-  delete from public.game_groups where organization_id = v_org.id;
-  delete from public.games where organization_id = v_org.id;
-  delete from public.music_playlists where organization_id = v_org.id;
-  delete from public.music_catalog where organization_id = v_org.id;
+  delete from public.organization_deletion_requests dr where dr.organization_id = v_org.id;
+  delete from public.organization_members om where om.organization_id = v_org.id;
+  delete from public.tablet_sessions ts where ts.organization_id = v_org.id;
+  delete from public.tablet_login_attempts tla where tla.organization_id = v_org.id;
+  delete from public.support_tickets st where st.organization_id = v_org.id;
+  delete from public.promo_code_redemptions pr where pr.organization_id = v_org.id;
+  delete from public.subscription_transactions tx where tx.organization_id = v_org.id;
+  delete from public.inventory_items ii where ii.organization_id = v_org.id;
+  delete from public.events e where e.organization_id = v_org.id;
+  delete from public.game_groups gg where gg.organization_id = v_org.id;
+  delete from public.games g where g.organization_id = v_org.id;
+  delete from public.music_playlists mp where mp.organization_id = v_org.id;
+  delete from public.music_catalog mc where mc.organization_id = v_org.id;
 
   create temporary table if not exists demo_game_map (
     source_id uuid primary key,
@@ -225,12 +225,12 @@ begin
   truncate table demo_game_map;
 
   for v_template in
-    select * from public.games
-    where organization_id = v_platform_id
-      and is_platform_template
-      and deleted_at is null
-      and status = 'active'
-    order by list_order, created_at
+    select * from public.games g
+    where g.organization_id = v_platform_id
+      and g.is_platform_template
+      and g.deleted_at is null
+      and g.status = 'active'
+    order by g.list_order, g.created_at
     limit 24
   loop
     insert into public.games (
@@ -271,8 +271,8 @@ begin
   select v_org.id, artist, title, audio_url, clip_url, clip_start_seconds,
     clip_duration_seconds, duration_seconds, source_filename, genre,
     parse_confidence, license_confirmed_at
-  from public.music_catalog
-  where organization_id = v_platform_id;
+  from public.music_catalog mc
+  where mc.organization_id = v_platform_id;
 
   v_stages := jsonb_build_array(
     jsonb_build_object('id', gen_random_uuid(), 'name', 'Warm-up challenges', 'type', 'open', 'gameId', v_primary_game, 'gameIds', to_jsonb(v_game_ids[1:least(4, array_length(v_game_ids, 1))])),
