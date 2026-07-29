@@ -929,3 +929,14 @@
       0 6px 20px rgb(0 0 0 / 0.35);
   }
 }
+
+/* New-design sidebar metrics: 168px expanded, 64px collapsed. */
+.neo-minimal-scope {
+  --sidebar-width: 168px;
+  --sidebar-width-icon: 64px;
+}
+
+.neo-minimal-scope .admin-shell-sidebar,
+.neo-minimal-scope .admin-shell-sidebar [data-sidebar='sidebar'] {
+  transition: width 0.15s ease;
+}

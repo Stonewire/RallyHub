@@ -1,26 +1,16 @@
 import {
   Building2,
   Calendar,
-  ChevronDown,
   CreditCard,
   Gamepad2,
   LayoutDashboard,
   LifeBuoy,
-  LogOut,
-  Moon,
-  Sun,
   UserCircle,
   Users,
 } from 'lucide-react'
-import * as React from 'react'
-import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -32,16 +22,15 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  useSidebar,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
-import { useTheme } from '@/contexts/theme-context'
-import { canAccessOrgSettings, canManageOrgUsers, isFacilitatorOnlyRole } from '@/lib/auth-routes'
+import {
+  canAccessOrgSettings,
+  canManageOrgUsers,
+  isFacilitatorOnlyRole,
+} from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
@@ -51,32 +40,33 @@ const mainNav = [
   { to: '/admin/events', label: 'Events', icon: Calendar, end: false, tourId: 'nav-events' },
 ] as const
 
-const orgRoutes = [
+// The new design shows Organisation and Billing as flat top-level items rather
+// than nested under a collapsible Org Settings group. Both still land on the
+// existing settings routes underneath.
+const orgNav = [
   {
     to: '/admin/settings',
-    label: 'Organization Profile',
-    icon: UserCircle,
-    tab: null,
+    search: '',
+    label: 'Organisation',
+    icon: Building2,
+    tourId: 'nav-org-settings',
   },
   {
     to: '/admin/settings',
+    search: '?tab=billing',
     label: 'Billing',
     icon: CreditCard,
-    tab: 'billing',
+    tourId: undefined,
   },
 ] as const
 
 export function AdminAppSidebar() {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
-  const { signOut, role } = useAuth()
+  const { role } = useAuth()
   const { tenantOrg } = useTenant()
-  const { resolvedTheme, toggleTheme } = useTheme()
   // Item 7: sidebar is always charcoal, so a client's *light* logo replaces ours.
   const clientLogo = tenantOrg?.logo_light_url ?? null
-  const { state: sidebarState } = useSidebar()
-  const sidebarCollapsed = sidebarState === 'collapsed'
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
   const isFacilitator = isFacilitatorOnlyRole(role)
@@ -90,29 +80,6 @@ export function AdminAppSidebar() {
     ? mainNav.filter((item) => item.to === '/admin/events')
     : mainNav
 
-  const orgChildActive =
-    pathname.startsWith('/admin/settings/') ||
-    pathname === '/admin/settings'
-
-  const [orgMenuOpenWhenBrowsing, setOrgMenuOpenWhenBrowsing] =
-    React.useState(false)
-
-  const orgMenuOpen = orgChildActive ? true : orgMenuOpenWhenBrowsing
-
-  function onOrgMenuOpenChange(next: boolean) {
-    if (orgChildActive && !next) return
-    setOrgMenuOpenWhenBrowsing(next)
-  }
-
-  async function handleSignOut() {
-    try {
-      await signOut()
-      navigate('/login', { replace: true })
-    } catch (err) {
-      console.error('[RallyHub] Sign out failed', err)
-    }
-  }
-
   return (
     <Sidebar
       collapsible="icon"
@@ -120,7 +87,7 @@ export function AdminAppSidebar() {
       style={{ color: 'var(--sidebar-foreground)' }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        {/* Sidebar is always charcoal → client light logo, else Ivory+Yellow. */}
+        {/* Sidebar is always charcoal, so client light logo, else Ivory+Yellow. */}
         <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           {clientLogo ? (
             <img
@@ -203,102 +170,45 @@ export function AdminAppSidebar() {
                 </SidebarMenuItem>
               ) : null}
 
-              {showOrgSettings && sidebarCollapsed ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip="Org Settings"
-                    isActive={orgChildActive}
-                    className="text-sidebar-foreground"
-                  >
-                    <NavLink to="/admin/settings" data-tour="nav-org-settings">
-                      <Building2 className="shrink-0" strokeWidth={1.75} />
-                      <span className="font-medium">Org Settings</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : showOrgSettings ? (
-                <SidebarMenuItem>
-                  <Collapsible
-                    open={orgMenuOpen}
-                    onOpenChange={onOrgMenuOpenChange}
-                    className="group/org w-full"
-                  >
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip="Org Settings"
-                        isActive={false}
-                        type="button"
-                        data-tour="nav-org-settings"
-                        className={[
-                          'group admin-org-trigger font-medium text-sidebar-foreground',
-                          orgChildActive ? 'admin-org-trigger-active' : '',
-                        ].join(' ')}
-                      >
-                        <Building2 className="shrink-0" strokeWidth={1.75} />
-                        <span className="font-medium">Org Settings</span>
-                        <ChevronDown className="ml-auto shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
+              {showOrgSettings
+                ? orgNav.map(({ to, search, label, icon: Icon, tourId }) => {
+                    const onSettings = pathname.startsWith('/admin/settings')
+                    const isActive =
+                      search === '?tab=billing'
+                        ? onSettings && settingsTab === 'billing'
+                        : onSettings &&
+                          settingsTab !== 'billing' &&
+                          settingsTab !== 'account'
 
-                    <CollapsibleContent className="data-[state=closed]:animate-none">
-                      <SidebarMenuSub>
-                        {orgRoutes.map(({ to, label, icon: Icon, tab }) => {
-                          const isActive =
-                            pathname.startsWith('/admin/settings') &&
-                            (tab === 'billing'
-                              ? settingsTab === 'billing'
-                              : settingsTab !== 'billing')
-
-                          return (
-                            <SidebarMenuSubItem key={label}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={isActive}
-                                size="md"
-                              >
-                                <NavLink
-                                  to={
-                                    tab
-                                      ? { pathname: to, search: `?tab=${tab}` }
-                                      : to
-                                  }
-                                >
-                                  <Icon className="shrink-0" strokeWidth={1.75} />
-                                  <span>{label}</span>
-                                </NavLink>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          )
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </SidebarMenuItem>
-              ) : null}
+                    return (
+                      <SidebarMenuItem key={label}>
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={label}
+                          isActive={isActive}
+                          className="text-sidebar-foreground"
+                        >
+                          <NavLink
+                            to={search ? { pathname: to, search } : to}
+                            data-tour={tourId}
+                          >
+                            <Icon className="shrink-0" strokeWidth={1.75} />
+                            <span className="font-medium">{label}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })
+                : null}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Theme toggle and sign-out moved to the header, per the new design. */}
       <SidebarFooter className="border-sidebar-border mt-auto shrink-0 border-t p-2">
-        <SidebarMenu className="gap-px">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              type="button"
-              className="text-sidebar-foreground"
-              tooltip={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-              onClick={toggleTheme}
-            >
-              {resolvedTheme === 'dark'
-                ? <Sun className="shrink-0" strokeWidth={1.75} />
-                : <Moon className="shrink-0" strokeWidth={1.75} />}
-              <span className="font-medium">
-                {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          {!isFacilitator ? (
+        {!isFacilitator ? (
+          <SidebarMenu className="gap-px">
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -317,19 +227,8 @@ export function AdminAppSidebar() {
                 </SidebarMenuBadge>
               ) : null}
             </SidebarMenuItem>
-          ) : null}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              type="button"
-              className="text-sidebar-foreground"
-              tooltip="Sign out"
-              onClick={() => void handleSignOut()}
-            >
-              <LogOut className="shrink-0" strokeWidth={1.75} />
-              <span className="font-medium">Sign out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+          </SidebarMenu>
+        ) : null}
         <p className="text-sidebar-foreground/40 px-2 pt-1 text-[10px] tracking-wide">
           {APP_BUILD_LABEL}
         </p>
