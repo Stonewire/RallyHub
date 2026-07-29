@@ -9,6 +9,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { DangerZone } from '@/components/admin/DangerZone'
 import { MyAccountPanel } from '@/components/admin/MyAccountPanel'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -43,7 +44,7 @@ type SettingsTab = 'profile' | 'billing' | 'account'
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
   const tab: SettingsTab =
     tabParam === 'billing' ? 'billing' : tabParam === 'account' ? 'account' : 'profile'
@@ -187,17 +188,31 @@ export function AdminSettingsPage() {
     }
   }
 
-  function setTab(next: SettingsTab) {
-    setSearchParams(next === 'profile' ? {} : { tab: next })
-  }
-
   const profileLoading = orgQuery.isLoading
   const profileReady = orgQuery.isFetched
 
+  // The new design navigates these from the sidebar (Organisation, Billing) and
+  // the header avatar (My Account), so the page carries no tab strip and titles
+  // itself after whichever surface is active.
+  const PAGE_COPY: Record<SettingsTab, { title: string; subtitle: string }> = {
+    profile: {
+      title: 'Organisation',
+      subtitle: 'Brand identity, company details, team and tablet access.',
+    },
+    billing: {
+      title: 'Billing',
+      subtitle: 'Your plan, invoices and promo codes.',
+    },
+    account: {
+      title: 'My Account',
+      subtitle: 'Your personal profile, sign-in details and password.',
+    },
+  }
+
   return (
     <AdminPageShell
-      title="Org Settings"
-      subtitle="Organization profile, team, tablet access, and billing."
+      title={PAGE_COPY[tab].title}
+      subtitle={PAGE_COPY[tab].subtitle}
       actions={
         tab === 'profile' ? (
           <NeoButton
@@ -211,40 +226,6 @@ export function AdminSettingsPage() {
         ) : null
       }
     >
-      <div className="neo-tabs border-border/80 mb-8 flex gap-1 border-b">
-        <button
-          type="button"
-          onClick={() => setTab('profile')}
-          className={cn(
-            'neo-tab px-4 py-2 text-sm font-medium',
-            tab === 'profile' ? 'neo-tab-active' : '',
-          )}
-        >
-          Organization Profile
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('billing')}
-          data-tour="settings-tab-billing"
-          className={cn(
-            'neo-tab px-4 py-2 text-sm font-medium',
-            tab === 'billing' ? 'neo-tab-active' : '',
-          )}
-        >
-          Billing
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('account')}
-          className={cn(
-            'neo-tab px-4 py-2 text-sm font-medium',
-            tab === 'account' ? 'neo-tab-active' : '',
-          )}
-        >
-          My Account
-        </button>
-      </div>
-
       {profileLoading && !profileReady ? (
         <QueryLoading rows={4} />
       ) : orgQuery.isError ? (
@@ -281,12 +262,17 @@ export function AdminSettingsPage() {
             </p>
           ) : null}
 
+          {/* Design pairs Brand Identity with Company Details side by side. */}
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <Card
             className="border-border/80 space-y-5 bg-card p-6 shadow-sm"
             data-tour="org-profile-form"
           >
+            <h2 className="text-foreground text-lg font-semibold">
+              Brand Identity
+            </h2>
             <div className="space-y-2">
-              <Label htmlFor="org-name">Organization Name</Label>
+              <Label htmlFor="org-name">Organisation Name</Label>
               <Input
                 id="org-name"
                 value={form.name}
@@ -330,7 +316,7 @@ export function AdminSettingsPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               {(
                 [
                   ['primary_color', 'Primary'],
@@ -365,7 +351,7 @@ export function AdminSettingsPage() {
 
           <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
             <h2 className="text-foreground text-lg font-semibold">
-              Company Details
+              Legal &amp; Billing Details
             </h2>
             <div className="space-y-2">
               <Label htmlFor="vat">VAT</Label>
@@ -438,6 +424,7 @@ export function AdminSettingsPage() {
               </div>
             </div>
           </Card>
+          </div>
 
           <TeamUsersPanel />
 
@@ -511,62 +498,66 @@ export function AdminSettingsPage() {
             ) : null}
           </Card>
 
-          <Card className="space-y-4 border-red-300/60 bg-card p-6 shadow-sm dark:border-red-900/60">
-            <div className="space-y-1">
-              <h2 className="text-foreground text-lg font-semibold">Account deletion</h2>
-              {deletionRequestQuery.data ? (
-                <p className="text-muted-foreground text-sm">
-                  This organization is scheduled for permanent deletion on{' '}
-                  <strong className="text-foreground">
-                    {new Intl.DateTimeFormat('en-GB', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }).format(new Date(deletionRequestQuery.data.scheduled_for))}
-                  </strong>
-                  . Until then, all data remains available and you can restore the account.
-                </p>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  Request permanent account deletion. Your organization remains restorable for
-                  30 days; afterward its events, games, submissions, uploaded media, and user
-                  accounts are permanently removed from Supabase.
-                </p>
-              )}
-            </div>
-
-            {deletionRequestQuery.data?.paddle_cancellation_error ? (
-              <p className="text-destructive text-sm" role="alert">
-                Subscription cancellation will be retried automatically. You can also check it
-                now from Billing: {deletionRequestQuery.data.paddle_cancellation_error}
-              </p>
-            ) : null}
-            {deletionMessage ? (
-              <p className="text-muted-foreground text-sm" role="status">
-                {deletionMessage}
-              </p>
-            ) : null}
-
-            {deletionRequestQuery.data ? (
-              <NeoButton
-                type="button"
-                variant="surface"
-                disabled={cancelDeletion.isPending}
-                onClick={() => void handleCancelDeletion()}
-              >
-                {cancelDeletion.isPending ? 'Restoring…' : 'Restore account'}
-              </NeoButton>
-            ) : (
-              <NeoButton
-                type="button"
-                variant="destructive"
-                disabled={requestDeletion.isPending || deletionRequestQuery.isLoading}
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                Request account deletion
-              </NeoButton>
-            )}
-          </Card>
+          <DangerZone
+            notice={
+              <>
+                {deletionRequestQuery.data?.paddle_cancellation_error ? (
+                  <p className="text-destructive" role="alert">
+                    Subscription cancellation will be retried automatically. You can also
+                    check it now from Billing:{' '}
+                    {deletionRequestQuery.data.paddle_cancellation_error}
+                  </p>
+                ) : null}
+                {deletionMessage ? (
+                  <p className="text-muted-foreground" role="status">
+                    {deletionMessage}
+                  </p>
+                ) : null}
+              </>
+            }
+            rows={[
+              {
+                id: 'delete-organisation',
+                label: deletionRequestQuery.data
+                  ? 'Deletion scheduled'
+                  : 'Delete this account',
+                description: deletionRequestQuery.data ? (
+                  <>
+                    Scheduled for permanent deletion on{' '}
+                    <strong className="text-foreground">
+                      {new Intl.DateTimeFormat('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }).format(new Date(deletionRequestQuery.data.scheduled_for))}
+                    </strong>
+                    . Until then all data remains available and you can restore it.
+                  </>
+                ) : (
+                  'Your organisation stays restorable for 30 days. After that its events, games, submissions, uploaded media and user accounts are permanently removed.'
+                ),
+                action: deletionRequestQuery.data ? (
+                  <NeoButton
+                    type="button"
+                    variant="surface"
+                    disabled={cancelDeletion.isPending}
+                    onClick={() => void handleCancelDeletion()}
+                  >
+                    {cancelDeletion.isPending ? 'Restoring…' : 'Restore account'}
+                  </NeoButton>
+                ) : (
+                  <NeoButton
+                    type="button"
+                    variant="destructive"
+                    disabled={requestDeletion.isPending || deletionRequestQuery.isLoading}
+                    onClick={() => setDeleteConfirmOpen(true)}
+                  >
+                    Delete
+                  </NeoButton>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 

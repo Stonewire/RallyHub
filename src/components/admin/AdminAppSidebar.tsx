@@ -56,7 +56,7 @@ const orgNav = [
     search: '?tab=billing',
     label: 'Billing',
     icon: CreditCard,
-    tourId: undefined,
+    tourId: 'nav-billing',
   },
 ] as const
 

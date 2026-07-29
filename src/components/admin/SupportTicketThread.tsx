@@ -1,3 +1,4 @@
+import { Download } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -52,6 +53,19 @@ export function SupportTicketThread({
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [messages?.length, ticket.id])
 
+  function handleExport() {
+    const lines = (messages ?? []).map(
+      (m) => `[${formatMessageTime(m.created_at)}] ${m.sender_name}: ${m.body}`,
+    )
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${ticket.ticket_number ?? ticket.id}-transcript.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleSend() {
     const body = draft.trim()
     if (!body || sendMessage.isPending) return
@@ -66,6 +80,22 @@ export function SupportTicketThread({
 
   return (
     <div className={cn('flex min-h-0 flex-col gap-3', className)}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-xs">
+          {ticket.ticket_number ? `Ref ${ticket.ticket_number}` : null}
+        </p>
+        <NeoButton
+          type="button"
+          variant="surface"
+          size="sm"
+          disabled={!messages?.length}
+          onClick={handleExport}
+        >
+          <Download className="size-3.5" aria-hidden />
+          Export
+        </NeoButton>
+      </div>
+
       <div className="border-border/80 bg-muted/20 min-h-[14rem] rounded-lg border">
         {isLoading ? (
           <div className="p-4">
@@ -116,7 +146,9 @@ export function SupportTicketThread({
           className="neo-field w-full px-3 py-2 text-sm"
           placeholder="Write a message…"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            // Plain Enter sends, matching the design's chat-input pattern;
+            // Shift+Enter still inserts a newline for longer replies.
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
               void handleSend()
             }

@@ -81,9 +81,11 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     clientAdminOnly: true,
     title: 'Open Billing',
     route: '/admin/settings',
-    target: 'settings-tab-billing',
+    // Billing moved from a tab on the settings page to a top-level sidebar
+    // item in the new design, so this step targets the nav entry.
+    target: 'nav-billing',
     advanceOn: 'click',
-    body: ['Click the Billing tab to see your plan, invoices and promo codes.'],
+    body: ['Open Billing in the sidebar to see your plan, invoices and promo codes.'],
   },
   {
     id: 'billing-plan',
