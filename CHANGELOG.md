@@ -5,6 +5,28 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.0 - 2026-07-30 (public self-resetting demo account)
+
+- Added the passwordless `demo.rallyhub.games` tenant with normal client-admin,
+  facilitator, display, join, scoring, upload, inventory, and event behavior.
+- The shared sandbox automatically restores every 30 minutes and can also be
+  reset manually from its countdown control. Demo storage is cleaned safely as
+  part of each reset.
+- Each reset installs all 159 active platform games and refreshes their current
+  names, configuration, cover images, group names, group order, and group
+  memberships. All seven platform groups are preserved, and the demo-only
+  Music Bingo game has its own group with no ungrouped games remaining.
+- Added 14 populated events across roughly one year of activity, with different
+  game sets, teams, scores, submissions, invoices, activity logs, inventory,
+  and subscription history.
+- The ready `RallyHub Product Showcase` includes runnable Quest, Quiz, Break,
+  and Music Bingo stages. Bingo uses 25 locally hosted 30-second CC0 music
+  clips with their original source recorded for provenance.
+- Upgrade, downgrade, subscription, and event-payment flows are simulated
+  inside the demo and never call Paddle or create real charges.
+- Supabase migrations and Edge Functions were deployed and verified before the
+  web release. The full app lint, 146-test suite, and production build pass.
+
 ## V2.19.1 - 2026-07-29 (team-ownership enforcement live, hotfix included)
 
 - Migration `20260719130000_team_owned_participant_writes.sql` applied to

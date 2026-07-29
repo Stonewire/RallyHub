@@ -23,6 +23,10 @@ invoices. The account also includes upcoming/draft events, a ready
 `RallyHub Product Showcase`, inventory items, a paid Pro subscription history,
 and one unpaid event invoice for testing the simulated checkout.
 
+Platform game groups and memberships are also recreated on every reset in the
+same order as the source library. The demo-only bingo game is placed in its own
+**Music Bingo** group, leaving no games in the ungrouped section.
+
 The Showcase always has four runnable stages: **RallyHub Quest**, **Quiz
 Challenge**, **Refreshment Break**, and **Music Bingo Finale**. The Quest stage
 includes a photo, video, text, and puzzle game. The quiz comes from the platform
@@ -49,16 +53,17 @@ in the demo after the next automatic or manual reset.
 2. Set `FFMPEG_PATH` to an ffmpeg-compatible binary and upload the CC0 clips
    with `node --env-file=.env scripts/seed-demo-music.mjs`, then apply
    `20260730020000_expand_demo_showcase.sql`.
-3. Deploy `demo-session`, `demo-reset`, `demo-billing`, and the updated
+3. Apply `20260730030000_preserve_demo_game_groups.sql`.
+4. Deploy `demo-session`, `demo-reset`, `demo-billing`, and the updated
    `data-lifecycle` Edge Function.
-4. Optionally set `DEMO_HOST=demo.rallyhub.games` and
+5. Optionally set `DEMO_HOST=demo.rallyhub.games` and
    `DEMO_ACCOUNT_EMAIL=demo@rallyhub.games` as Supabase Edge Function secrets.
    Those are already the safe defaults; no demo password secret is required.
-5. Set `VITE_DEMO_HOST=demo.rallyhub.games` in the web deployment and deploy the
+6. Set `VITE_DEMO_HOST=demo.rallyhub.games` in the web deployment and deploy the
    approved application branch to staging.
-6. Smoke-test automatic entry, manual reset, a live event with two phones, an
+7. Smoke-test automatic entry, manual reset, a live event with two phones, an
    event invoice payment, plan upgrade/downgrade, and expiry at 30 minutes.
-7. Attach `demo.rallyhub.games` to the web project and create the DNS
+8. Attach `demo.rallyhub.games` to the web project and create the DNS
    CNAME using the hosting provider's exact target.
 
 ## Operational notes

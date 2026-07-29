@@ -322,9 +322,10 @@ worth a real pass if it's been a while since the last live event exercised them.
   the `demo.rallyhub.games` CNAME is configured. The expanded seed is also live:
   all 159 active platform games refresh into the demo, 14 events use distinct
   game sets, and the ready `RallyHub Product Showcase` includes Quest, Quiz,
-  Break, and a playable 25-track CC0 Music Bingo stage. Awaiting web branch
-  deployment and browser/device staging confirmation. See
-  `docs/DEMO-SANDBOX.md`.
+  Break, and a playable 25-track CC0 Music Bingo stage. All seven platform game
+  groups and memberships are preserved; the demo-only bingo sits in its own
+  group, with zero ungrouped games. Awaiting browser/device production
+  confirmation. See `docs/DEMO-SANDBOX.md`.
 
 - [x] **LEGAL-1** DPA / legal-acceptance tracking + participant privacy notice (V2.10.0) — GDPR-relevant, no dedicated line existed until now.
 - [x] **GAMES-FILTER** Game-group filter + search in the Add-games / quest-stage-picker modals, went through several iterations: added (V2.13.2), "Hide points for teams" toggle (V2.13.3), stage-picker scoping (V2.13.4), a scoping fix (V2.13.5), then the filter/search UI was fully reverted back to type-only pills (V2.13.6) — current state is the V2.13.6 reversion.
