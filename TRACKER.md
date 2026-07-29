@@ -319,8 +319,12 @@ worth a real pass if it's been a while since the last live event exercised them.
   real platform game library, runnable live events, simulated Paddle checkout,
   plan changes, fake paid/unpaid invoices, storage cleanup, and deletion guards.
   Supabase migration and Edge Functions deployed and smoke-tested on 2026-07-30;
-  the `demo.rallyhub.games` CNAME is configured. Awaiting web branch deployment
-  and browser/device staging confirmation. See `docs/DEMO-SANDBOX.md`.
+  the `demo.rallyhub.games` CNAME is configured. The expanded seed is also live:
+  all 159 active platform games refresh into the demo, 14 events use distinct
+  game sets, and the ready `RallyHub Product Showcase` includes Quest, Quiz,
+  Break, and a playable 25-track CC0 Music Bingo stage. Awaiting web branch
+  deployment and browser/device staging confirmation. See
+  `docs/DEMO-SANDBOX.md`.
 
 - [x] **LEGAL-1** DPA / legal-acceptance tracking + participant privacy notice (V2.10.0) — GDPR-relevant, no dedicated line existed until now.
 - [x] **GAMES-FILTER** Game-group filter + search in the Add-games / quest-stage-picker modals, went through several iterations: added (V2.13.2), "Hide points for teams" toggle (V2.13.3), stage-picker scoping (V2.13.4), a scoping fix (V2.13.5), then the filter/search UI was fully reverted back to type-only pills (V2.13.6) — current state is the V2.13.6 reversion.
