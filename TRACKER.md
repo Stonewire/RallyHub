@@ -154,6 +154,41 @@ worth a real pass if it's been a while since the last live event exercised them.
 - [x] **P2-4** Strip PII debug logs (names / team ids in console) — confirmed live on `main`, zero matches left
 - [x] **ENG3** Re-delete dead components (scroll-area, BrandingTab, CompactListRow) — confirmed live on `main`, zero references left
 
+## New design rollout (client admin panel)
+
+Branch `feature/new-design`. Design reference and handover live in `new-design/`.
+Spec: `docs/superpowers/specs/2026-07-30-new-design-shell-and-dashboard-design.md`.
+Plan: `docs/superpowers/plans/2026-07-30-new-design-shell-and-dashboard.md`.
+
+**Do not merge this branch until the whole redesign is signed off.** Phase 1
+changed the shared `--nm-*` tokens, so admin screens that have not been
+redesigned yet render in the new palette with their old layout. That is
+expected on this branch and is not a bug to chase.
+
+- [~] **ND-1** Phase 1: app shell + Overview. Code complete, awaiting Rumen's signed-in check.
+  Cool grey surfaces (`#f7f7f8` canvas, white cards, `#1f2126` text) with brand
+  yellow `#ffc107` kept; Inter replaces Manrope; radii tightened to 3/6/10px;
+  new slate and neutral 100-900 ramps. New 40px header carries search, New Game,
+  New Event, theme toggle, Help, Exit and an initials avatar. Sidebar keeps every
+  role-gating rule but loses its theme and sign-out rows, and Organisation and
+  Billing are now flat top-level items. Overview rebuilt as four stat tiles, a
+  30-day participation chart (hand-rolled SVG, no charting dependency) with a
+  Submissions/Teams switcher, a game-type breakdown and the activity feed.
+  Deliberately omitted, with reasons: stat week-over-week deltas (no historical
+  data), an "active players" metric (no participants table, submissions carry
+  only `team_id`), image avatars (`profiles` has no `avatar_url`), help article
+  content (no content system), and the Your Plan and Quick Links cards (dropped
+  by decision). Auth and marketing pages still read the legacy `--rh-*` tokens
+  and stay ivory; restyling them is a later phase.
+- [ ] **ND-2** Phase 2 onwards: Games (library, music, deleted), Events (cards,
+  links modal, full-screen editor), Organisation, Billing, Support (iMessage-style
+  chat), My Account. Includes the design's game type-picker modal and slide-over
+  game editor, which phase 1's header CTAs deliberately bypass in favour of
+  today's existing flows.
+- [ ] **ND-3** Behaviour differences Rumen flagged verbally (puzzle games, some
+  layouts behave slightly differently in the new design). He will walk through
+  these screen by screen during phase 2 rather than guessing now.
+
 ## UI redesign — facilitator console
 
 - [x] **UI-1** Inline timer control + editing (#16) — [-15] [N min] [+15] next to Start; click paused countdown to type minutes or mm:ss, Save/Cancel (on `main` since V2.1.0)
