@@ -180,11 +180,32 @@ expected on this branch and is not a bug to chase.
   content (no content system), and the Your Plan and Quick Links cards (dropped
   by decision). Auth and marketing pages still read the legacy `--rh-*` tokens
   and stay ivory; restyling them is a later phase.
-- [ ] **ND-2** Phase 2 onwards: Games (library, music, deleted), Events (cards,
-  links modal, full-screen editor), Organisation, Billing, Support (iMessage-style
-  chat), My Account. Includes the design's game type-picker modal and slide-over
-  game editor, which phase 1's header CTAs deliberately bypass in favour of
-  today's existing flows.
+- [~] **ND-2** Phase 2 pass 1: Organisation, Billing, Support, My Account.
+  Code complete, verified live, awaiting Rumen's check. Organisation dropped its
+  tab strip (now navigated from the flat sidebar) and gained a two-column Brand
+  Identity / Legal & Billing Details layout; account deletion moved into a new
+  shared `DangerZone` component (`src/components/admin/DangerZone.tsx`) matching
+  the design's red-bordered pattern, reusable for My Account and the event editor
+  later. Onboarding tour's billing step retargeted from the removed tab to the
+  sidebar Billing item (`nav-billing`). Support gained an Export button
+  (plain-text transcript download) and Enter-to-send with Shift+Enter for
+  newlines, both named in the design and previously missing.
+  Deliberately left alone, with reasons: Billing's internal section layout
+  stays stacked rather than the design's two-column treatment, it is shared
+  with the super-admin client detail page (out of scope) and wraps live Paddle
+  checkout, so restructuring risk outweighed the cosmetic gain. Support's
+  bubble alignment/colour (design wants "me" right in iMessage blue, "support"
+  left in gold; today "support" messages render right-aligned) was left as
+  a UX judgement call, not changed silently, since it is exactly the kind of
+  behaviour difference Rumen flagged he'd walk through. My Account's Danger
+  Zone (Log out of all devices, Delete my account) was not built at all:
+  neither capability exists in the backend (no session-revocation, no
+  per-user account deletion separate from whole-org deletion), and building
+  them needs Rumen's sign-off on the underlying security decisions first.
+  Games and Events (library, music, deleted, event cards, links modal,
+  full-screen editors, the game type-picker modal and slide-over game editor)
+  are deliberately still untouched, waiting on Rumen's walkthrough of puzzle
+  and layout behaviour before guessing at that surface.
 - [ ] **ND-3** Behaviour differences Rumen flagged verbally (puzzle games, some
   layouts behave slightly differently in the new design). He will walk through
   these screen by screen during phase 2 rather than guessing now.
