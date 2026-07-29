@@ -1,8 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 
+import {
+  ACTIVITY_WINDOW_DAYS,
+  bucketActivity,
+  tallyGameTypes,
+  type ActivityMetric,
+  type ActivityPoint,
+  type GameTypeCount,
+} from '@/lib/dashboard-activity'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
-import type { EventStatus } from '@/types/database'
+import type { EventStatus, GameType } from '@/types/database'
 import type { RallyStatusTone } from '@/components/ui/status-indicator'
 
 export type DashboardStats = {
@@ -100,6 +108,84 @@ export function useRecentEvents(organizationId: string | null) {
         dateISO: row.event_date ?? row.created_at,
         status: toRallyStatus(row.status as EventStatus),
       }))
+    },
+  })
+}
+
+/** ISO timestamp for the start of the trailing activity window. */
+function windowStartISO(): string {
+  const start = new Date()
+  start.setUTCDate(start.getUTCDate() - (ACTIVITY_WINDOW_DAYS - 1))
+  start.setUTCHours(0, 0, 0, 0)
+  return start.toISOString()
+}
+
+export function useActivitySeries(
+  organizationId: string | null,
+  metric: ActivityMetric,
+) {
+  return useQuery({
+    queryKey: queryKeys.activitySeries(organizationId, metric),
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<ActivityPoint[]> => {
+      if (!organizationId) return []
+
+      // `submissions` has no organization_id, so scope via the events join.
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('created_at, team_id, events!inner(organization_id)')
+        .eq('events.organization_id', organizationId)
+        .gte('created_at', windowStartISO())
+
+      if (error) throw error
+
+      const rows = (data ?? []).map((row) => ({
+        created_at: row.created_at as string,
+        team_id: row.team_id as string,
+      }))
+
+      return bucketActivity(rows, metric, new Date())
+    },
+  })
+}
+
+export function useGameTypeBreakdown(organizationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.gameTypeBreakdown(organizationId),
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<GameTypeCount[]> => {
+      if (!organizationId) return []
+
+      // The hand-authored DB types declare no submissions-to-games relation,
+      // so the game type is resolved client-side from the org's game list
+      // rather than through an embedded select.
+      const [submissionsRes, gamesRes] = await Promise.all([
+        supabase
+          .from('submissions')
+          .select('game_id, events!inner(organization_id)')
+          .eq('events.organization_id', organizationId)
+          .gte('created_at', windowStartISO()),
+        supabase
+          .from('games')
+          .select('id, type')
+          .eq('organization_id', organizationId),
+      ])
+
+      if (submissionsRes.error) throw submissionsRes.error
+      if (gamesRes.error) throw gamesRes.error
+
+      const typeByGameId = new Map<string, GameType>(
+        (gamesRes.data ?? []).map((game) => [game.id, game.type]),
+      )
+
+      const rows = (submissionsRes.data ?? [])
+        .map((row) => {
+          const type = typeByGameId.get(row.game_id)
+          return type ? { type } : null
+        })
+        .filter((row): row is { type: GameType } => row !== null)
+
+      return tallyGameTypes(rows)
     },
   })
 }

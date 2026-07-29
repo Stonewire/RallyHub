@@ -7,6 +7,12 @@ export const queryKeys = {
     ['organization-members', id] as const,
   dashboardStats: (orgId: string | null) => ['dashboard-stats', orgId] as const,
   recentEvents: (orgId: string | null) => ['recent-events', orgId] as const,
+  activitySeries: (orgId: string | null, metric: string) =>
+    ['activity-series', orgId, metric] as const,
+  gameTypeBreakdown: (orgId: string | null) =>
+    ['game-type-breakdown', orgId] as const,
+  globalSearch: (orgId: string | null, query: string) =>
+    ['global-search', orgId, query] as const,
   games: (orgId: string | null) => ['games', orgId] as const,
   platformLibraryGames: () => ['platform-library-games'] as const,
   platformLibraryOrg: () => ['platform-library-org'] as const,
