@@ -22,7 +22,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!user) {
     return (
       <Navigate
-        to="/login"
+        to={{ pathname: '/login', search: location.search }}
         replace
         state={{ from: `${location.pathname}${location.search}` }}
       />
@@ -51,7 +51,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   ) {
     return (
       <Navigate
-        to="/login"
+        to={{ pathname: '/login', search: location.search }}
         replace
         state={{ from: `${location.pathname}${location.search}` }}
       />
