@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.19.1 - 2026-07-29 (team-ownership enforcement live, hotfix included)
+
+- Migration `20260719130000_team_owned_participant_writes.sql` applied to
+  production, activating the enforcement described in V2.19.0.
+- Live end-to-end test immediately after, directly against production via a
+  real join token, the real `claim_team_with_inventory_access` RPC, and real
+  submission inserts: legitimate own-team write succeeded, a forged write
+  using another team's token was rejected, a write with no token was rejected.
+- That test caught a real bug in the original implementation: the migration
+  revoked EXECUTE on the two helper functions from `anon`, but the calling
+  trigger isn't `SECURITY DEFINER` — so it broke every anonymous submission
+  write the instant it went live. Fixed within minutes via
+  `20260729010000_team_owned_participant_writes_grant_fix.sql`, re-tested
+  clean, test fixtures cleaned up.
+
 ## V2.19.0 - 2026-07-29 (participant writes now prove team ownership)
 
 - **Client half of a two-step security deploy** (SEC-TEAM). Previously every

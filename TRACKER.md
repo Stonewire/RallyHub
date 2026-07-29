@@ -81,19 +81,27 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 
 ## Open bugs / security
 
-- [~] **SEC-TEAM Participant writes are event-scoped, not team-owned** — fix
-  implemented on `feature/team-write-security` (2026-07-19), NOT yet deployed.
-  The private per-device team token minted at claim (inventory_team_access,
-  V2.13.0) is now sent as an `x-team-token` header by the participant client
-  and verified by digest in `submissions_guard_participant_write` for every
-  anonymous submission insert and update (migration 20260719130000). Puzzle
-  RPC score inserts keep their existing bypass because those RPCs validate the
-  same token as an argument. Compatibility: teams without a token row (claimed
-  before V2.13.0) keep the old event-scoped behaviour instead of being locked
-  out. CRITICAL deploy order: ship the client (header) to production BEFORE
-  applying the migration, else in-flight events reject legitimate writes.
-  Remaining: real-phone test (own-team write succeeds, cross-team forged write
-  rejected), then release.
+- [x] **SEC-TEAM Participant writes are event-scoped, not team-owned** — **fully
+  live 2026-07-29 (V2.19.0 + migrations 20260719130000, 20260729010000).**
+  Merged from `feature/team-write-security` (2026-07-19) after re-verifying it
+  against three weeks of intervening changes. Deployed in the required order:
+  client (x-team-token header) shipped first, migration applied after. Live
+  end-to-end test against production immediately after, using a real join
+  token, the real `claim_team_with_inventory_access` RPC, and real submission
+  inserts: legitimate own-team write succeeded (201), a forged write using
+  another team's token was rejected (400, "This phone is not authorized for
+  that team"), and a write with no token at all was rejected the same way.
+  **That same test caught a real bug the original implementation had never
+  actually been run against**: the migration revoked EXECUTE on
+  `team_has_private_token`/`live_team_token_matches` from `anon` but the
+  calling trigger isn't `SECURITY DEFINER`, so it broke every anonymous
+  submission write the instant it went live — SECURITY DEFINER controls what a
+  function's body runs as once called, not who is allowed to call it.
+  Corrected within minutes via a follow-up grant migration, then re-tested
+  clean. Compatibility: teams claimed before the token existed (pre-V2.13.0)
+  keep the old event-scoped behaviour instead of being locked out. Puzzle RPC
+  score inserts keep their bypass (they validate the same token as an
+  argument). Test fixtures cleaned up after.
 - [x] **P1-QUIZ-REVEAL** Next question did not auto-reveal after a timeout — **fixed in V2.10.2**. `quizTimerDisplay` remained `0` for the first render of the next question while `useLiveTimer` synchronized to the new duration in an effect. The facilitator interpreted that stale display as a second timeout and consumed the new question's one-shot reveal key before anyone answered; if the normal start write then won the race, later answers could not auto-reveal. Auto-reveal now uses authoritative `quiz_timer_running` + `quiz_timer_seconds`. The reveal RPC also advances `event_state.updated_at`, so timestamp-guarded fallback polling accepts the changed state when Realtime is missed. Regression-covered in `quiz-auto-reveal.test.ts`.
 - [x] **FACIL-2** Event-manager facilitator-link black screen — **fixed in V2.5.5**. `isAtLeastFacilitator()` accidentally omitted `event_manager`; valid Afterglow event-manager sessions were rejected by the facilitator route, sent to login, and immediately redirected back to the same rejected UUID route in a loop. Added the missing role; the pretty link → UUID redirect is expected and unchanged.
 - [x] **P1-B5** Event-manager bingo run missing — **fixed in V2.5.6**. FACIL-2 exposed a second authorization layer: the route accepted event managers, but `activate-bingo-run` and `is_facilitator_for_event()` still rejected them. The panel then fell back to playing the first configured clip despite zero `bingo_runs`/`bingo_team_cards`, so it displayed `0 / 0 songs` and could not advance. The RLS helper is live and verified against the Afterglow Test event-manager identity; the client fallback now creates runs/cards. Edge Function source is ready, but its dashboard deployment remains pending because the configured CLI account lacks project deploy privileges.
