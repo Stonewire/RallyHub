@@ -59,34 +59,6 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-/** Request the highest resolution the device exposes (portrait-oriented when applicable). */
-export async function applyMaxVideoTrackQuality(track: MediaStreamTrack): Promise<void> {
-  const caps = track.getCapabilities?.()
-  if (!caps) return
-
-  const maxW = caps.width?.max
-  const maxH = caps.height?.max
-  if (!maxW || !maxH) return
-
-  let targetWidth = maxW
-  let targetHeight = maxH
-  if (isPortraitDevice() && maxW > maxH) {
-    targetWidth = maxH
-    targetHeight = maxW
-  }
-
-  try {
-    await track.applyConstraints({
-      width: { ideal: targetWidth },
-      height: { ideal: targetHeight },
-      aspectRatio: { ideal: 9 / 16 },
-      frameRate: { ideal: 30 },
-    })
-  } catch {
-    // Keep negotiated stream settings.
-  }
-}
-
 async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   const { width = 0, height = 0 } = track.getSettings()
   if (!width || !height || width <= height) return
@@ -101,6 +73,15 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   }
 }
 
+/**
+ * The negotiated stream is used at its requested ~1080x1920 size, deliberately
+ * NOT reconfigured to the sensor's maximum. Device evidence (record-timing,
+ * 30 Jul 2026): the max-resolution reconfigure pushed the event tablet's track
+ * to 3120x2448 and the recording preview to a measured 3fps, with the hardware
+ * mp4 encoder collapsing under 18Mbps of 7.6MP frames. At the negotiated size
+ * the bitrate computed from real track dimensions (~5Mbps at 1080p) is well
+ * within what the hardware handles.
+ */
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
@@ -109,11 +90,8 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
-  if (track) {
-    await applyMaxVideoTrackQuality(track)
-    if (isPortraitDevice()) {
-      await tryPortraitConstraints(track)
-    }
+  if (track && isPortraitDevice()) {
+    await tryPortraitConstraints(track)
   }
 
   return stream

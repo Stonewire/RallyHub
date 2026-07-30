@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.13 - 2026-07-30 (choppy tablet video fixed from measured evidence)
+
+- V2.20.12's record-timing rows caught the choppiness red-handed: the camera
+  opened at the requested 1080x1920 but was then reconfigured to the sensor's
+  maximum, 3120x2448 (7.6 megapixels per frame), and the recording preview
+  dropped to a measured 3fps while the hardware mp4 encoder collapsed trying
+  to eat 18Mbps of those frames.
+- The max-resolution reconfigure is removed. Video now records the stream at
+  its negotiated ~1080x1920 size, and the bitrate is computed from the real
+  track dimensions (~5Mbps at 1080p), comfortably within what the tablet's
+  hardware encoder handles. Recorded files also get meaningfully smaller.
+- Verification is the instrumentation: a smooth next recording (over 24fps,
+  at or under 1080x1920) writes no record-timing row. Any row that still
+  appears shows exactly what the camera negotiated instead.
+
 ## V2.20.12 - 2026-07-30 (measure the choppy tablet video before fixing it)
 
 - Diagnostic-only release for the last big open item: video recording on the
