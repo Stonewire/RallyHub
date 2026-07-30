@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.8 - 2026-07-30 (real-error capture for the camera/upload mysteries)
+
+- Following the V2.20.7 revert, added a permanent `client_diagnostics` table
+  and a small `reportClientIssue` utility, wired into every currently
+  mysterious failure point: the join-team-photo upload, in-game photo/video
+  submission upload, photo capture, video recording, and the text-submit
+  close-on-submit timing.
+- Each failure now shows its real error detail on screen (instead of a
+  generic message) and is saved server-side, queryable by event/team/context/
+  platform, so the next reproduction on a real device gives actual evidence
+  instead of another guess.
+- RLS on the new table mirrors the existing `submissions` anon-write pattern
+  (join-token gated INSERT, no anon SELECT), reusing established precedent
+  rather than inventing new access rules in an area (anon writes) that has
+  already caused real incidents in this codebase.
+- No root causes are fixed yet. Next step: reproduce bugs 1-4 from
+  `docs/superpowers/specs/2026-07-30-media-capture-investigation-design.md`
+  on the real iPhone and Android tablet with this logging live, then diagnose
+  from what comes back.
+
 ## V2.20.7 - 2026-07-30 (revert today's camera/upload changes, restart investigation properly)
 
 - Six commits today (V2.20.1 through V2.20.6) chased camera and upload bugs
