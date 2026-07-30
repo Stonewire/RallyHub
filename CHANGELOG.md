@@ -5,6 +5,29 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.1 - 2026-07-30 (participant camera capture fixed on every platform)
+
+- Photo and video capture was dead for teams: the camera screen opened onto a
+  black frame on computers, and on tablets the very first team photo opened a
+  file picker instead of a camera. Two separate faults, both silently swallowed
+  into an empty stream.
+- Capture asked for `width: { min: 720 }` and `height: { min: 1280 }`. `min` is
+  a hard requirement, so the camera request was rejected outright on any camera
+  that cannot produce a 720x1280 portrait frame, which covers every 720p
+  landscape laptop webcam and many tablets. Resolution is now a preference, with
+  one plain-video retry for drivers that reject size hints altogether.
+- Capture was also gated behind a stored "permission granted" flag, set by a
+  camera request fired on page load with no user tap, behind the privacy notice,
+  and needing microphone as well as camera. Browsers suppress prompts like that,
+  and one suppressed prompt left capture dead for the whole event. Permission is
+  now requested when the participant taps the capture button.
+- Failures now say what went wrong (blocked, no camera, camera in use) instead
+  of a generic "not granted", and the next attempt falls back to the device
+  camera app or a file upload.
+- The team photo on the join screen used a bare file input, so desktop only ever
+  offered a file dialog. It now opens the in-app camera where one exists, with
+  an explicit upload option underneath.
+
 ## V2.20.0 - 2026-07-30 (public self-resetting demo account)
 
 - Added the passwordless `demo.rallyhub.games` tenant with normal client-admin,
