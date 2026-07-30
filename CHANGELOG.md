@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.26 - 2026-07-31 (shutter timing shown on the snapshot itself)
+
+- Hermit provably runs the current build (the on-screen V2.20.25 stamp
+  confirmed it) yet its slow shots still write no diagnostic rows, so the
+  network channel from inside Hermit cannot be relied on for this
+  investigation. The measurement now bypasses it entirely: after each photo,
+  a small line under the snapshot shows the shutter time, its setup / draw /
+  encode split, and the build number, readable straight off the device.
+- If the on-screen number is small while the wait feels long, the delay sits
+  before the shutter handler even runs (the WebView delaying input), which
+  is a different chase than a slow capture pipeline. Either way the next
+  Hermit round produces a definitive number without trusting the network.
+
 ## V2.20.25 - 2026-07-31 (visible build stamp on live pages)
 
 - Hermit still feels slow after a cache clear, yet the diagnostics table
