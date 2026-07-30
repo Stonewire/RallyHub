@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.25 - 2026-07-31 (visible build stamp on live pages)
+
+- Hermit still feels slow after a cache clear, yet the diagnostics table
+  stays empty, which is impossible on a current build (slow shots write
+  rows). The only consistent explanation is that Hermit's WebView is still
+  serving a bundle from before the instrumentation existed. There is no
+  service worker in the app, so it is plain WebView page caching.
+- The Powered by RallyHub badge on live pages now carries a tiny version
+  stamp, so the RUNNING build can be read straight off any device. This
+  settles every "which version is this device actually on" question in
+  seconds, for this investigation and for future support.
+
 ## V2.20.24 - 2026-07-31 (every diagnostic row names its build; photo timing measures to first paint)
 
 - Rumen's latest Hermit round felt slower than ever yet wrote no timing rows,
