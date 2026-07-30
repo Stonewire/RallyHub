@@ -40,14 +40,26 @@ export function previewVideoStyle(
   return { transform: parts.join(' ') }
 }
 
+/**
+ * Recording (withAudio) runs camera, preview, and encoder at once; 720p keeps
+ * budget tablets at full frame rate. Device evidence (record-timing, 30 Jul
+ * 2026): even at 1080p with the ~5Mbps hardware mp4 encoder, the event
+ * tablet's preview measured 9fps. Rumen's explicit call: frame rate over
+ * resolution. Photo opens without audio and grabs one still, so it keeps the
+ * sharper 1080p.
+ *
+ * Ideal-only sizes: `min` is a HARD requirement that rejects with
+ * OverconstrainedError on cameras that cannot meet it (every 720p landscape
+ * laptop webcam), killing capture outright. Ideals degrade instead of failing.
+ */
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): MediaStreamConstraints {
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: 1080, min: 720 },
-    height: { ideal: 1920, min: 1280 },
+    width: { ideal: withAudio ? 720 : 1080 },
+    height: { ideal: withAudio ? 1280 : 1920 },
     aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',

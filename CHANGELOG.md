@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.14 - 2026-07-30 (record at 720p: frame rate over resolution)
+
+- After V2.20.13 the tablet's recording preview improved from 3fps to a
+  measured 9fps at the negotiated 1920x1080, still short of smooth. Per
+  Rumen's explicit call, frame rate now wins over resolution: video
+  recording requests 720p (about 2.3x fewer pixels per frame), which budget
+  tablet hardware encodes at full rate. Photos keep the sharper 1080p
+  stream, since a single still cannot be choppy.
+- The hard `min` resolution constraints were also dropped from the camera
+  request as part of the same edit: `min` is a hard requirement that fails
+  camera open outright (OverconstrainedError) on cameras that cannot meet
+  it, which is what broke desktop and laptop webcams this morning. Ideal
+  values degrade gracefully instead of failing.
+- Verification unchanged: a smooth recording writes no record-timing row;
+  any row that appears shows the negotiated size and measured fps.
+
 ## V2.20.13 - 2026-07-30 (choppy tablet video fixed from measured evidence)
 
 - V2.20.12's record-timing rows caught the choppiness red-handed: the camera
