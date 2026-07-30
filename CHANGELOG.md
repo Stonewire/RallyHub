@@ -41,7 +41,7 @@ third = small fixes (e.g. 2.1.1).
     hard `min` resolution constraint that fails camera open outright on
     desktop and some tablets, the original ~5 second full-resolution
     `ImageCapture` photo path, AND the `x-team-token` CORS-preflight bug
-    fixed in V2.20.2 (`68bcfb9`) — that fix was production-verified, not
+    fixed in V2.20.2 (`68bcfb9`); that fix was production-verified, not
     guessed, but is deliberately left reverted so Phase 2 reproduces the
     original "fail to send a request to the edge function" failure
     unmodified. This is the direct cause of bugs 1 and 3 in the spec, and it
