@@ -113,19 +113,23 @@ export function PhotoChallengeCapture({
       setSnapshotUrl(url)
       stopStream()
 
-      const totalMs = Math.round(captureDone - shutterPressed)
-      if (totalMs > 1000) {
+      // Measure through to the preview actually appearing: the felt delay is
+      // shutter press to seeing the shot, not just the internal capture call.
+      requestAnimationFrame(() => {
+        const totalMs = Math.round(nowMs() - shutterPressed)
+        if (totalMs <= 600) return
         reportClientTiming('capture-timing', `slow photo shutter: ${totalMs}ms`, {
           eventId,
           extra: {
-            captureMs: totalMs,
+            captureMs: Math.round(captureDone - shutterPressed),
+            renderMs: Math.round(nowMs() - captureDone),
             totalMs,
             cameraOpenMs: cameraOpenMsRef.current,
             finalBytes: blob.size,
             ...stages,
           },
         })
-      }
+      })
     } catch (err) {
       const detail = reportClientIssue('photo-capture', err, { eventId })
       notify(`Could not capture photo (${detail}) — hold steady and try again`)

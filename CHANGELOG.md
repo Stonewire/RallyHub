@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.24 - 2026-07-31 (every diagnostic row names its build; photo timing measures to first paint)
+
+- Rumen's latest Hermit round felt slower than ever yet wrote no timing rows,
+  and the user-agent data shows Hermit disguises itself as Chrome, so a stale
+  cached build inside Hermit cannot be told apart from the live deploy by
+  fingerprint. Every diagnostic row now records the APP_VERSION that wrote
+  it: if Hermit is serving an old cached bundle, the next row says so
+  outright.
+- Photo capture timing now measures from shutter press to the preview
+  actually appearing on screen (not just the internal capture call), with
+  the reporting threshold lowered to 600ms, so a felt delay that lives in
+  rendering rather than capture is caught too.
+
 ## V2.20.23 - 2026-07-31 (name the stage that owns Hermit's 13-second shutter)
 
 - Diagnostic-only. Photo capture inside the Hermit app is erratically slow:

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { APP_VERSION } from '@/lib/version'
 import type { TablesInsert } from '@/types/helpers'
 
 export type DiagnosticContext =
@@ -77,6 +78,7 @@ export function buildDiagnosticPayload(
     detail: {
       name,
       stack,
+      appVersion: APP_VERSION,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
       extra: options?.extra ?? null,
     },
@@ -133,6 +135,7 @@ export function reportClientTiming(
         detail: {
           name: 'Timing',
           stack: null,
+          appVersion: APP_VERSION,
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
           extra: options?.extra ?? null,
         },
