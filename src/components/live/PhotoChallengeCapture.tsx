@@ -8,7 +8,8 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
-  captureStillPhoto,
+  captureStillFrame,
+  encodeCanvasToJpeg,
   getChallengeCameraStream,
   previewVideoStyle,
   type ChallengeFacingMode,
@@ -34,21 +35,28 @@ export function PhotoChallengeCapture({
   const { notify } = useNotification()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const snapshotUrlRef = useRef<string | null>(null)
+  // The captured frame lives as a canvas element appended into this host:
+  // showing pixels needs no JPEG, so the snapshot appears the same frame the
+  // shutter is pressed even when Hermit's encoder stalls (see challenge-camera).
+  const snapshotHostRef = useRef<HTMLDivElement>(null)
+  const encodePromiseRef = useRef<Promise<Blob> | null>(null)
+  const encodeSeqRef = useRef(0)
   const [ready, setReady] = useState(false)
-  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
-  const [capturing, setCapturing] = useState(false)
+  const [snapshotTaken, setSnapshotTaken] = useState(false)
+  const [encodePending, setEncodePending] = useState(false)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
-  // On-screen shutter timing: Hermit's WebView provably runs the current build
+  // On-screen shutter timing: Hermit's WebView provably runs current builds
   // yet its diagnostic writes never arrive, so the measurement is shown
   // directly on the snapshot instead of trusted to the network (31 Jul 2026).
   const [shutterStats, setShutterStats] = useState<string | null>(null)
 
-  function revokeSnapshotUrl() {
-    if (snapshotUrlRef.current) {
-      URL.revokeObjectURL(snapshotUrlRef.current)
-      snapshotUrlRef.current = null
-    }
+  function clearSnapshot() {
+    encodeSeqRef.current += 1
+    encodePromiseRef.current = null
+    snapshotHostRef.current?.replaceChildren()
+    setSnapshotTaken(false)
+    setShutterStats(null)
+    setEncodePending(false)
   }
 
   function stopStream() {
@@ -62,21 +70,17 @@ export function PhotoChallengeCapture({
     void startCamera(facingMode)
     return () => {
       stopStream()
-      revokeSnapshotUrl()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only bootstrap using the initial facingMode; flipCamera() explicitly restarts the stream on change, so re-running this effect too would restart it twice
   }, [])
 
   useEffect(() => {
     const el = videoRef.current
-    if (!el || !streamRef.current || snapshotUrl) return
+    if (!el || !streamRef.current || snapshotTaken) return
     el.srcObject = streamRef.current
     void el.play().catch(() => {})
-  }, [ready, snapshotUrl, facingMode])
+  }, [ready, snapshotTaken, facingMode])
 
-  // Stage timings for the slow-shutter investigation. cameraOpenMs is kept in a
-  // ref so the capture report can include how long this session's stream took
-  // to open, alongside the per-shot stages.
   const cameraOpenMsRef = useRef<number | null>(null)
 
   async function startCamera(facing: ChallengeFacingMode) {
@@ -96,86 +100,82 @@ export function PhotoChallengeCapture({
     const next: ChallengeFacingMode =
       facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
-    revokeSnapshotUrl()
-    setSnapshotUrl(null)
+    clearSnapshot()
     void startCamera(next)
   }
 
-  async function capturePhoto() {
-    if (!streamRef.current || capturing) return
-    setCapturing(true)
+  function capturePhoto() {
+    const video = videoRef.current
+    if (!streamRef.current || !video || snapshotTaken) return
     try {
       const shutterPressed = nowMs()
-      let stages: Record<string, number | boolean> = {}
-      // Already at upload size and orientation — no second downscale pass.
-      const blob = await captureStillPhoto(
-        streamRef.current,
-        videoRef.current,
-        (s) => {
-          stages = s
-        },
-        // Frame is on the canvas: release the camera BEFORE the encode, so the
-        // encoder is not fighting the live camera pipeline for the GPU
-        // (Hermit's WebView starved 8-13s per shot with the camera running).
-        () => stopStream(),
-      )
-      const captureDone = nowMs()
-      revokeSnapshotUrl()
-      const url = URL.createObjectURL(blob)
-      snapshotUrlRef.current = url
-      setSnapshotUrl(url)
-      setShutterStats(
-        `${Math.round(captureDone - shutterPressed)}ms (setup ${stages.setupMs ?? '?'} / draw ${stages.drawMs ?? '?'} / encode ${stages.encodeMs ?? '?'}) ${APP_VERSION}`,
-      )
+      const canvas = captureStillFrame(video)
+      const drawDone = nowMs()
+      // Frame is safely on the canvas: release the camera before anything
+      // else so the encoder never fights the live camera pipeline for the GPU.
+      stopStream()
 
-      // Measure through to the preview actually appearing: the felt delay is
-      // shutter press to seeing the shot, not just the internal capture call.
-      requestAnimationFrame(() => {
-        const totalMs = Math.round(nowMs() - shutterPressed)
-        if (totalMs <= 600) return
-        reportClientTiming('capture-timing', `slow photo shutter: ${totalMs}ms`, {
-          eventId,
-          extra: {
-            captureMs: Math.round(captureDone - shutterPressed),
-            renderMs: Math.round(nowMs() - captureDone),
-            totalMs,
-            cameraOpenMs: cameraOpenMsRef.current,
-            finalBytes: blob.size,
-            ...stages,
-          },
-        })
+      canvas.className = CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS
+      snapshotHostRef.current?.replaceChildren(canvas)
+      setSnapshotTaken(true)
+
+      const drawMs = Math.round(drawDone - shutterPressed)
+      setShutterStats(`draw ${drawMs}ms, encoding… ${APP_VERSION}`)
+
+      // Encode in the background while the participant reviews the shot. A
+      // stalled Hermit encode now costs invisible review-time, not shutter-time.
+      const seq = ++encodeSeqRef.current
+      const encodeStarted = nowMs()
+      const promise = encodeCanvasToJpeg(canvas).then((blob) => {
+        if (encodeSeqRef.current === seq) {
+          const encodeMs = Math.round(nowMs() - encodeStarted)
+          setShutterStats(`draw ${drawMs}ms, encode ${encodeMs}ms ${APP_VERSION}`)
+          if (encodeMs > 600) {
+            reportClientTiming('capture-timing', `slow background encode: ${encodeMs}ms`, {
+              eventId,
+              extra: {
+                drawMs,
+                encodeMs,
+                cameraOpenMs: cameraOpenMsRef.current,
+                finalBytes: blob.size,
+              },
+            })
+          }
+        }
+        return blob
       })
+      encodePromiseRef.current = promise
+      // Submit owns real error handling; this only prevents an unhandled
+      // rejection if the participant retakes before the encode settles.
+      promise.catch(() => {})
     } catch (err) {
       const detail = reportClientIssue('photo-capture', err, { eventId })
       notify(`Could not capture photo (${detail}) — hold steady and try again`)
-    } finally {
-      setCapturing(false)
     }
   }
 
   function retake() {
-    revokeSnapshotUrl()
-    setSnapshotUrl(null)
-    setShutterStats(null)
+    clearSnapshot()
     void startCamera(facingMode)
   }
 
   function cancelCapture() {
     stopStream()
-    revokeSnapshotUrl()
-    setSnapshotUrl(null)
+    clearSnapshot()
     onClose()
   }
 
   function submitPhoto() {
-    if (!snapshotUrl) return
-    fetch(snapshotUrl)
-      .then((r) => r.blob())
+    const promise = encodePromiseRef.current
+    if (!promise || encodePending) return
+    setEncodePending(true)
+    promise
       .then((blob) => {
         const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
         onFileReady(file)
       })
       .catch(() => notify('Could not process photo'))
+      .then(() => setEncodePending(false))
   }
 
   const livePreviewStyle = previewVideoStyle(facingMode, false)
@@ -200,13 +200,13 @@ export function PhotoChallengeCapture({
 
       <div className="flex min-h-0 flex-1">
         <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
-          {snapshotUrl ? (
-            <img
-              src={snapshotUrl}
-              alt="Preview"
-              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
-            />
-          ) : (
+          {/* Snapshot canvas host: always mounted so the captured canvas can be
+              appended synchronously; hidden while the live preview shows. */}
+          <div
+            ref={snapshotHostRef}
+            className={snapshotTaken ? 'size-full' : 'hidden'}
+          />
+          {!snapshotTaken ? (
             <>
               <video
                 ref={videoRef}
@@ -219,7 +219,7 @@ export function PhotoChallengeCapture({
               <button
                 type="button"
                 onClick={flipCamera}
-                disabled={!ready || capturing}
+                disabled={!ready}
                 aria-label="Switch camera"
                 className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
               >
@@ -227,7 +227,7 @@ export function PhotoChallengeCapture({
                 Flip
               </button>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -237,10 +237,10 @@ export function PhotoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
-        {snapshotUrl && shutterStats ? (
+        {snapshotTaken && shutterStats ? (
           <p className="w-full text-center text-[10px] text-white/50">{shutterStats}</p>
         ) : null}
-        {snapshotUrl ? (
+        {snapshotTaken ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button
               type="button"
@@ -254,10 +254,10 @@ export function PhotoChallengeCapture({
               type="button"
               className="min-h-12 flex-1 text-base"
               accentColor={accentColor}
-              disabled={disabled}
+              disabled={disabled || encodePending}
               onClick={submitPhoto}
             >
-              Submit
+              {encodePending ? 'Preparing…' : 'Submit'}
             </LiveAccentButton>
           </div>
         ) : (
@@ -265,11 +265,11 @@ export function PhotoChallengeCapture({
             type="button"
             className="mx-auto min-h-12 w-full max-w-lg gap-2 text-base"
             accentColor={accentColor}
-            disabled={disabled || !ready || capturing}
-            onClick={() => void capturePhoto()}
+            disabled={disabled || !ready}
+            onClick={capturePhoto}
           >
             <Camera className="size-5" />
-            {capturing ? 'Capturing…' : 'Take photo'}
+            Take photo
           </LiveAccentButton>
         )}
       </div>

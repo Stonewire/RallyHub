@@ -178,35 +178,21 @@ function drawVideoFrameToCanvas(
 }
 
 /**
- * Per-shot stage durations, for the Hermit WebView investigation: three real
- * shots measured 13.2s almost to the millisecond (31 Jul 2026), a signature
- * of a hidden timeout, and this breakdown names the stage that owns it.
+ * Grab the current live frame into a ready-to-display canvas, synchronously.
+ *
+ * Split from the JPEG encode on purpose: Hermit's WebView intermittently
+ * stalls canvas.toBlob for a near-constant ~13s (measured five times at
+ * 13.1-13.2s on 30-31 Jul 2026, independent of scene content), while the
+ * frame grab itself is ~15ms every single time. Callers show this canvas as
+ * the snapshot preview immediately and run encodeCanvasToJpeg in the
+ * background, so a stalled encode costs review-time nobody notices instead
+ * of shutter-time everybody does.
+ *
+ * Deliberately NOT ImageCapture.takePhoto(): that measured 2-23s per shot on
+ * the event tablets (capture-timing, 30 Jul 2026). Front-camera preview
+ * mirroring stays CSS-only; the saved image matches the sensor.
  */
-export type CaptureStages = {
-  setupMs: number
-  drawMs: number
-  encodeMs: number
-  ownedVideo: boolean
-}
-
-async function captureWithCanvas(
-  stream: MediaStream,
-  videoEl: HTMLVideoElement | null,
-  onStages?: (stages: CaptureStages) => void,
-  onFrameDrawn?: () => void,
-): Promise<Blob> {
-  const started = performance.now()
-  const video = videoEl ?? document.createElement('video')
-  const ownsVideo = !videoEl
-
-  if (ownsVideo) {
-    video.muted = true
-    video.playsInline = true
-    video.srcObject = stream
-    await video.play()
-    await waitForVideoFrame(video)
-  }
-
+export function captureStillFrame(video: HTMLVideoElement): HTMLCanvasElement {
   const w = video.videoWidth
   const h = video.videoHeight
   if (!w || !h) throw new Error('Camera frame not ready')
@@ -215,79 +201,19 @@ async function captureWithCanvas(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
-  const beforeDraw = performance.now()
   drawVideoFrameToCanvas(ctx, canvas, video)
-  const afterDraw = performance.now()
+  return canvas
+}
 
-  if (ownsVideo) {
-    video.srcObject = null
-  }
-  // The frame is safely on the canvas; let the caller RELEASE THE CAMERA
-  // before the encode. Hermit device evidence (31 Jul 2026, on-screen stats):
-  // encoding while the camera pipeline stayed live starved the WebView for
-  // 8-13s per shot (encode 8705ms of an 8747ms shot; a 13.2s shot with the
-  // gap unattributed), while the same encode is ~100ms once the camera is off.
-  onFrameDrawn?.()
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
+/** The upload-size JPEG for a captured frame. May stall in Hermit; see above. */
+export function encodeCanvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
       'image/jpeg',
       PHOTO_QUALITY,
     )
   })
-  const afterEncode = performance.now()
-
-  onStages?.({
-    setupMs: Math.round(beforeDraw - started),
-    drawMs: Math.round(afterDraw - beforeDraw),
-    encodeMs: Math.round(afterEncode - afterDraw),
-    ownedVideo: ownsVideo,
-  })
-
-  return blob
-}
-
-function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
-  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-    return Promise.resolve()
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error('Camera frame timeout')), 5000)
-    video.onloadedmetadata = () => {
-      window.clearTimeout(timeout)
-      resolve()
-    }
-    video.onerror = () => {
-      window.clearTimeout(timeout)
-      reject(new Error('Camera frame error'))
-    }
-  })
-}
-
-/**
- * Grab a still from the live preview frame.
- *
- * Deliberately does NOT use ImageCapture.takePhoto(): device evidence
- * (client_diagnostics capture-timing, 30 Jul 2026) measured that call at 2 to
- * 23 SECONDS per shot on the event tablets, producing a 3-4MB full-res still
- * that was then shrunk to ~130KB anyway. Reading the frame already on screen
- * is one canvas pass at upload size and orientation.
- *
- * Preview mirroring for the front camera is CSS-only; the saved image matches
- * the sensor output. The returned blob is the full frame at upload size, so
- * callers must NOT run it through downscalePhoto() again.
- */
-export async function captureStillPhoto(
-  stream: MediaStream,
-  videoEl?: HTMLVideoElement | null,
-  onStages?: (stages: CaptureStages) => void,
-  onFrameDrawn?: () => void,
-): Promise<Blob> {
-  const track = stream.getVideoTracks()[0]
-  if (!track) throw new Error('No camera track')
-
-  return captureWithCanvas(stream, videoEl ?? null, onStages, onFrameDrawn)
 }
 
 /**

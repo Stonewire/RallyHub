@@ -5,6 +5,30 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.35 - 2026-07-31 (the shutter is instant even when Hermit's encoder stalls)
+
+- Rumen's on-screen stage readings settled the deep investigation: the frame
+  grab is ~15ms on every single shot, and the delay is the JPEG encode
+  intermittently stalling at a near-constant ~13.1 seconds (five sightings at
+  13.1-13.2s across different sessions, plus 7.3s and 8.7s outliers). The
+  repetition of the same number is a timeout inside Hermit's WebView encoder;
+  scene content, lighting, and focus are irrelevant, out-of-focus shots
+  included, and retakes in the same game are instant while the first shot of
+  a newly opened game is the one that stalls. Earlier "confirmed fixed"
+  rounds were lucky streaks through an intermittent fault, V2.20.27's
+  included.
+- The app no longer waits for that encoder. Pressing the shutter now puts
+  the captured frame on screen immediately as the snapshot (showing pixels
+  needs no JPEG), the camera is released at once, and the JPEG conversion
+  runs in the background while the participant reviews the shot. Submit
+  waits only for whatever encode time is still outstanding, showing
+  "Preparing" if tapped early; in the common case the human review gap
+  absorbs the entire stall, worst case included.
+- The on-screen stats line now shows the draw time instantly and fills in
+  the encode time when it completes, so the background stall stays
+  observable without ever being felt. This flow is shared by all platforms;
+  on Chrome and iPhone the encode is fast and Submit is simply never gated.
+
 ## V2.20.34 - 2026-07-31 (restore the exact build Rumen confirmed, stats line included)
 
 - Rollback target corrected per Rumen: the build he signed off on device was
