@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.15 - 2026-07-30 (photos upright when the tablet is held upright)
+
+- Photos taken with the tablet held upright came out horizontal. The rotate
+  decision trusted the orientation the camera driver reported when the
+  stream opened, and this tablet's driver reports one orientation while
+  delivering another.
+- Both the saved photo and the live preview now decide rotation from the
+  actual frame at the moment it is used: device upright plus a
+  wider-than-tall frame means rotate. Driver reports are no longer consulted
+  for photo orientation.
+- Video preview rotation is unchanged in this release; recorded video file
+  orientation on landscape-sensor devices remains a known follow-up.
+
 ## V2.20.14 - 2026-07-30 (record at 720p: frame rate over resolution)
 
 - After V2.20.13 the tablet's recording preview improved from 3fps to a

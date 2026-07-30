@@ -118,18 +118,22 @@ const PHOTO_QUALITY = 0.8
  * to upload size in the SAME canvas pass. Draw-then-downscale would encode a
  * JPEG only to immediately decode and shrink it: two extra full-frame passes,
  * measured at ~1.1s each shot on the event tablets.
+ *
+ * The rotate decision reads the ACTUAL frame dimensions at capture time, not
+ * the track's reported settings: the event tablet's camera driver reports one
+ * orientation and delivers another, which produced sideways photos when the
+ * tablet was held upright (reported 30 Jul 2026).
  */
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
-  quarterTurn: boolean,
 ): void {
   const vw = video.videoWidth
   const vh = video.videoHeight
   ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-  const rotate = quarterTurn && vw > vh
+  const rotate = isPortraitDevice() && vw > vh
   const outW = rotate ? vh : vw
   const outH = rotate ? vw : vh
   const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(outW, outH))
@@ -146,7 +150,6 @@ function drawVideoFrameToCanvas(
 async function captureWithCanvas(
   stream: MediaStream,
   videoEl: HTMLVideoElement | null,
-  quarterTurn: boolean,
 ): Promise<Blob> {
   const video = videoEl ?? document.createElement('video')
   const ownsVideo = !videoEl
@@ -167,7 +170,7 @@ async function captureWithCanvas(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
-  drawVideoFrameToCanvas(ctx, canvas, video, quarterTurn)
+  drawVideoFrameToCanvas(ctx, canvas, video)
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -217,13 +220,11 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
 export async function captureStillPhoto(
   stream: MediaStream,
   videoEl?: HTMLVideoElement | null,
-  options?: { quarterTurn?: boolean },
 ): Promise<Blob> {
   const track = stream.getVideoTracks()[0]
   if (!track) throw new Error('No camera track')
 
-  const quarterTurn = options?.quarterTurn ?? streamNeedsQuarterTurn(stream)
-  return captureWithCanvas(stream, videoEl ?? null, quarterTurn)
+  return captureWithCanvas(stream, videoEl ?? null)
 }
 
 /**

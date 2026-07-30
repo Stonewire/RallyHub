@@ -9,8 +9,8 @@ import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
   getChallengeCameraStream,
+  isPortraitDevice,
   previewVideoStyle,
-  streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
 import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
@@ -68,6 +68,12 @@ export function PhotoChallengeCapture({
     const el = videoRef.current
     if (!el || !streamRef.current || snapshotUrl) return
     el.srcObject = streamRef.current
+    // Decide preview rotation from the real frame, not driver-reported track
+    // settings: the event tablet's driver reports one orientation and delivers
+    // another (sideways-photo report, 30 Jul 2026).
+    el.onloadedmetadata = () => {
+      setQuarterTurn(isPortraitDevice() && el.videoWidth > el.videoHeight)
+    }
     void el.play().catch(() => {})
   }, [ready, snapshotUrl, quarterTurn, facingMode])
 
@@ -86,7 +92,6 @@ export function PhotoChallengeCapture({
     }
     cameraOpenMsRef.current = Math.round(nowMs() - openStarted)
     streamRef.current = stream
-    setQuarterTurn(streamNeedsQuarterTurn(stream))
     setReady(true)
   }
 
@@ -105,7 +110,7 @@ export function PhotoChallengeCapture({
     try {
       const shutterPressed = nowMs()
       // Already at upload size and orientation — no second downscale pass.
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current)
       const captureDone = nowMs()
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
