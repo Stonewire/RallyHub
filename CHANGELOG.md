@@ -5,6 +5,24 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.10 - 2026-07-30 (timing instrumentation for the two remaining slowdowns)
+
+- Diagnostic-only release, no behavior changes. Two timing captures added to
+  `client_diagnostics`, reported only when a threshold is exceeded so normal
+  runs write nothing:
+- `capture-timing`: when a photo takes over a second from shutter press to
+  ready, records the camera-open, still-capture, and downscale stage
+  durations, whether the ImageCapture API was used, and the image sizes. This
+  is for the Android tablet's ~3 second shutter lag; the earlier "fixed"
+  build still showed 4-5 seconds there, so this time the fix will be chosen
+  from measured stages instead of re-landed on faith.
+- `submit-timing`: when a challenge submit takes over 1.5 seconds to close
+  (or the screen takes over 400ms to repaint after closing), records the
+  upload, state-flush, sound/notify, and repaint-delay durations. This is for
+  the iPhone's 4-5 second lingering submit screens; the repaint measurement
+  distinguishes a blocked main thread from a compositor stall, which point at
+  different culprits.
+
 ## V2.20.9 - 2026-07-30 (re-land the x-team-token fix, now confirmed by device evidence)
 
 - Phase 2 of the investigation ran: Rumen reproduced the failures on a real

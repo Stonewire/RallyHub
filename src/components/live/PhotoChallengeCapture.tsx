@@ -14,7 +14,7 @@ import {
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
-import { reportClientIssue } from '@/lib/client-diagnostics'
+import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
@@ -72,13 +72,20 @@ export function PhotoChallengeCapture({
     void el.play().catch(() => {})
   }, [ready, snapshotUrl, quarterTurn, facingMode])
 
+  // Stage timings for the slow-shutter investigation. cameraOpenMs is kept in a
+  // ref so the capture report can include how long this session's stream took
+  // to open, alongside the per-shot stages.
+  const cameraOpenMsRef = useRef<number | null>(null)
+
   async function startCamera(facing: ChallengeFacingMode) {
     stopStream()
+    const openStarted = nowMs()
     const stream = await getChallengeCameraStream(facing, false)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens')
       return
     }
+    cameraOpenMsRef.current = Math.round(nowMs() - openStarted)
     streamRef.current = stream
     setQuarterTurn(streamNeedsQuarterTurn(stream))
     setReady(true)
@@ -97,13 +104,32 @@ export function PhotoChallengeCapture({
     if (!streamRef.current || capturing) return
     setCapturing(true)
     try {
+      const shutterPressed = nowMs()
       const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      const captureDone = nowMs()
       const blob = await downscalePhoto(raw)
+      const downscaleDone = nowMs()
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
       setSnapshotUrl(url)
       stopStream()
+
+      const totalMs = Math.round(downscaleDone - shutterPressed)
+      if (totalMs > 1000) {
+        reportClientTiming('capture-timing', `slow photo shutter: ${totalMs}ms`, {
+          eventId,
+          extra: {
+            captureMs: Math.round(captureDone - shutterPressed),
+            downscaleMs: Math.round(downscaleDone - captureDone),
+            totalMs,
+            cameraOpenMs: cameraOpenMsRef.current,
+            imageCaptureApi: typeof window !== 'undefined' && 'ImageCapture' in window,
+            rawBytes: raw.size,
+            finalBytes: blob.size,
+          },
+        })
+      }
     } catch (err) {
       const detail = reportClientIssue('photo-capture', err, { eventId })
       notify(`Could not capture photo (${detail}) — hold steady and try again`)

@@ -7,6 +7,8 @@ export type DiagnosticContext =
   | 'text-submit'
   | 'photo-capture'
   | 'video-record'
+  | 'capture-timing'
+  | 'submit-timing'
 
 export type DiagnosticPlatform = 'ios' | 'android' | 'desktop' | 'other'
 
@@ -28,6 +30,16 @@ export class DiagnosticReportedError extends Error {
     super(message, options)
     this.name = 'DiagnosticReportedError'
   }
+}
+
+/**
+ * performance.now() for timing user-gesture code paths (submit handlers,
+ * shutter presses). Lives here because react-hooks/purity cannot distinguish
+ * those handlers from render scope and flags direct performance.now() calls in
+ * component bodies; none of the timing callers run during render.
+ */
+export function nowMs(): number {
+  return performance.now()
 }
 
 /** Coarse platform tag for filtering client_diagnostics rows. */
@@ -95,4 +107,40 @@ export function reportClientIssue(
     // Logging must never break the caller's flow.
   }
   return diagnosticSummary(error)
+}
+
+/**
+ * Fire-and-forget timing capture for stages that complete but take too long
+ * (slow shutter, submit screens that linger, late realtime echoes). Same
+ * never-throw / never-block contract as reportClientIssue; callers gate on a
+ * threshold themselves so normal-speed runs produce no rows.
+ */
+export function reportClientTiming(
+  context: DiagnosticContext,
+  message: string,
+  options?: DiagnosticOptions,
+): void {
+  try {
+    void supabase
+      .from('client_diagnostics')
+      .insert({
+        event_id: options?.eventId ?? null,
+        team_id: options?.teamId ?? null,
+        context,
+        platform: detectPlatform(),
+        message,
+        detail: {
+          name: 'Timing',
+          stack: null,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+          extra: options?.extra ?? null,
+        },
+      })
+      .then(
+        () => {},
+        () => {},
+      )
+  } catch {
+    // Logging must never break the caller's flow.
+  }
 }

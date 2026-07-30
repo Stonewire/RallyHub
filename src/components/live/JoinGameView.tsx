@@ -33,7 +33,12 @@ import {
 } from '@/contexts/notification-context'
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
-import { DiagnosticReportedError, reportClientIssue } from '@/lib/client-diagnostics'
+import {
+  DiagnosticReportedError,
+  nowMs,
+  reportClientIssue,
+  reportClientTiming,
+} from '@/lib/client-diagnostics'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
@@ -546,17 +551,50 @@ export function JoinGameView({
     })
   }
 
-  function finishOpenSubmitOptimistically() {
+  function finishOpenSubmitOptimistically(timing?: {
+    submitPressedAt: number
+    mediaType: 'text' | 'photo' | 'video'
+    gameId: string
+    uploadMs?: number
+  }) {
     // Leave the loading screen before doing confirmation UI/audio work. On
     // mobile Safari this makes the local transition independent of delivery of
     // the Supabase INSERT response.
+    const beforeFlush = nowMs()
     flushSync(() => {
       setSelectedGame(null)
       setCaptureActive(false)
       setSubmitting(false)
     })
+    const afterFlush = nowMs()
     playSubmitSound()
     notify('Submitted — waiting for approval')
+    if (!timing) return
+
+    // The iOS mystery is the screen visibly lingering AFTER this function has
+    // run. requestAnimationFrame measures how long the main thread takes to
+    // come back to us: a blocked thread (long paintDelayMs) and an instant
+    // callback with a still-frozen screen point at different culprits.
+    const afterSideEffects = nowMs()
+    requestAnimationFrame(() => {
+      const paintDelayMs = Math.round(nowMs() - afterSideEffects)
+      const totalMs = Math.round(nowMs() - timing.submitPressedAt)
+      if (totalMs <= 1500 && paintDelayMs <= 400) return
+      reportClientTiming('submit-timing', `slow submit close: ${totalMs}ms (paint +${paintDelayMs}ms)`, {
+        eventId: event.id,
+        teamId,
+        extra: {
+          mediaType: timing.mediaType,
+          gameId: timing.gameId,
+          uploadMs: timing.uploadMs ?? null,
+          preFinishMs: Math.round(beforeFlush - timing.submitPressedAt),
+          flushMs: Math.round(afterFlush - beforeFlush),
+          soundNotifyMs: Math.round(afterSideEffects - afterFlush),
+          paintDelayMs,
+          totalMs,
+        },
+      })
+    })
   }
 
   function optimisticOpenSubmission(
@@ -596,6 +634,7 @@ export function JoinGameView({
       notify('Enter or choose an answer first')
       return
     }
+    const submitPressedAt = nowMs()
     beginOpenSubmit()
     let optimistic: Tables<'submissions'> | null = null
     try {
@@ -621,7 +660,7 @@ export function JoinGameView({
       setOpenSubmissionWrite(optimistic.id, true)
       mergeOwnSubmission('INSERT', optimistic)
       try {
-        finishOpenSubmitOptimistically()
+        finishOpenSubmitOptimistically({ submitPressedAt, mediaType: 'text', gameId: game.id })
       } catch (err) {
         const detail = reportClientIssue('text-submit', err, {
           eventId: event.id,
@@ -665,6 +704,7 @@ export function JoinGameView({
       notify('This event is now closed')
       return
     }
+    const submitPressedAt = nowMs()
     beginOpenSubmit()
     let optimistic: Tables<'submissions'> | null = null
     try {
@@ -675,6 +715,7 @@ export function JoinGameView({
       openUploadPrefetchRef.current = null
       const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
 
+      const uploadStartedAt = nowMs()
       let url: string
       try {
         url = minted
@@ -712,7 +753,12 @@ export function JoinGameView({
 
       setOpenSubmissionWrite(optimistic.id, true)
       mergeOwnSubmission('INSERT', optimistic)
-      finishOpenSubmitOptimistically()
+      finishOpenSubmitOptimistically({
+        submitPressedAt,
+        mediaType,
+        gameId: game.id,
+        uploadMs: Math.round(nowMs() - uploadStartedAt),
+      })
 
       const { data, error } = await write
       setOpenSubmissionWrite(optimistic.id, false)
