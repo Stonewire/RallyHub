@@ -5,6 +5,27 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.3 - 2026-07-30 (taking a photo is instant instead of a five-second wait)
+
+- Pressing "Take photo" on an Android tablet stalled for around five seconds
+  before the shot appeared. The app was doing a lot of expensive work and then
+  throwing the result away.
+- Every photo was captured at the sensor's full resolution: the camera was
+  reconfigured to its largest frame when the camera opened, a full-resolution
+  still was requested from the sensor, that image was rotated at full resolution,
+  and only then was it shrunk to 1600px for upload. Four heavy steps, on a
+  12-megapixel image, to produce a 1600px photo.
+- Stills now come from the frame already on screen and are rotated and scaled to
+  final size in a single pass. The camera is no longer pushed to full resolution
+  for photos, and the second shrink pass is gone. Video recording still uses full
+  resolution, where it pairs with the high bitrate and is wanted.
+- Photo quality is unchanged in practice: the preview is a portrait 1080x1920 and
+  the saved photo is 1600px on its long edge, exactly as before.
+- Measured on a stubbed camera: time from tap to preview halved, with the
+  remaining cost being a single JPEG encode. The full-sensor delay that dominated
+  on the tablet cannot be reproduced off-device, so the real gain there should be
+  larger.
+
 ## V2.20.2 - 2026-07-30 (photo and video submissions reach the server again)
 
 - Teams could take a photo or video, hit Submit, watch the loading screen, and

@@ -8,7 +8,6 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
-  downscalePhoto,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
@@ -77,7 +76,9 @@ export function PhotoChallengeCapture({
     stopStream()
     let stream: MediaStream
     try {
-      stream = await getChallengeCameraStream(facing, false)
+      // maxResolution off: stills come from the preview frame and are downscaled
+      // to 1600px, so a full-sensor stream would only add capture latency.
+      stream = await getChallengeCameraStream(facing, false, { maxResolution: false })
     } catch (err) {
       notify(mediaErrorMessage(err))
       if (onCameraUnavailable) onCameraUnavailable()
@@ -102,8 +103,8 @@ export function PhotoChallengeCapture({
     if (!streamRef.current || capturing) return
     setCapturing(true)
     try {
-      const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
-      const blob = await downscalePhoto(raw)
+      // Already at upload size and orientation — no second downscale pass.
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
