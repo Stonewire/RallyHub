@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.22 - 2026-07-31 (join photo uses the in-app camera on tablets)
+
+- The last open item from the original five: the join screen's Take Photo on
+  Android tablets opened a file browser, because tablet browsers turn the
+  camera-input attribute into a plain file picker. Take Photo now opens the
+  same in-app camera the challenges use (full view, edge to edge, fast
+  shutter) everywhere except iOS, which keeps its native camera per Rumen's
+  verdict that it is perfect there.
+- An explicit "Or upload a photo" link keeps the file picker available as a
+  deliberate choice on the in-app-camera platforms.
+- Photos from the in-app camera arrive already sized for upload; the upload
+  path itself is unchanged.
+
 ## V2.20.21 - 2026-07-31 (iPhone video records vertical again)
 
 - iPhone video quality recovered in V2.20.20 but the view stayed horizontal:

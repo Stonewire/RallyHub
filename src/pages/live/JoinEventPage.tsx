@@ -8,6 +8,7 @@ import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyN
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
+import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -23,6 +24,7 @@ import {
 } from '@/lib/event-demo'
 import { unlockAudioFromUserGesture } from '@/lib/sounds'
 import {
+  brandColorsForEvent,
   displayTextColorForEvent,
   isEventLive,
   PARTICIPANT_TEAM_KEY,
@@ -41,6 +43,7 @@ import {
   clearCurrentParticipantSession,
   saveCurrentParticipantSession,
 } from '@/lib/participant-session'
+import { shouldUseNativePhotoCapture } from '@/lib/capture-platform'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
@@ -85,6 +88,9 @@ export function JoinEventPage() {
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [justJoined, setJustJoined] = useState(false)
   const [mediaReady, setMediaReady] = useState(false)
+  // In-app camera for the join team photo (non-iOS); the file input stays as
+  // the iOS-native path and the explicit upload fallback.
+  const [joinCameraOpen, setJoinCameraOpen] = useState(false)
 
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
   const hasJoined = Boolean(teamId && (myTeam?.name?.trim() || justJoined))
@@ -416,11 +422,30 @@ export function JoinEventPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => photoInputRef.current?.click()}
+                onClick={() => {
+                  // iOS opens its native camera (excellent); everywhere else the
+                  // in-app camera, because tablet browsers turn the camera-input
+                  // attribute into a plain file browser (join-photo report,
+                  // 30 Jul 2026).
+                  if (shouldUseNativePhotoCapture()) {
+                    photoInputRef.current?.click()
+                    return
+                  }
+                  setJoinCameraOpen(true)
+                }}
               >
                 <Camera className="size-4" />
                 Take Photo
               </Button>
+              {!shouldUseNativePhotoCapture() ? (
+                <button
+                  type="button"
+                  className="text-muted-foreground w-full text-center text-xs underline"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  Or upload a photo
+                </button>
+              ) : null}
               {photoPreview ? (
                 <img
                   src={photoPreview}
@@ -448,6 +473,20 @@ export function JoinEventPage() {
             </div>
           </Card>
         </div>
+      ) : null}
+
+      {joinCameraOpen && eventId ? (
+        <PhotoChallengeCapture
+          accentColor={brandColorsForEvent(event, organization)[2]}
+          eventId={eventId}
+          onClose={() => setJoinCameraOpen(false)}
+          onFileReady={(file) => {
+            // Already full-frame at upload size from the in-app camera.
+            setJoinCameraOpen(false)
+            setClaimError(null)
+            setClaimPhoto(file)
+          }}
+        />
       ) : null}
     </LivePanelShell>
   )
