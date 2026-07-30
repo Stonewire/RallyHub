@@ -26,6 +26,13 @@ import {
 
 const BRAND_LABELS = ['Primary', 'Secondary', 'Accent'] as const
 
+const STAGE_TYPE_OPTIONS: { value: EventStage['type']; label: string }[] = [
+  { value: 'open', label: 'Quest' },
+  { value: 'quiz', label: 'Quiz' },
+  { value: 'bingo', label: 'Bingo' },
+  { value: 'break', label: 'Break' },
+]
+
 const BRAND_COLOR_HELP: Record<(typeof BRAND_LABELS)[number], string> = {
   Primary: 'Animated brand blobs on team join and display screens.',
   Secondary: 'Base background behind the live gradient (join + display).',
@@ -126,11 +133,22 @@ export function EventForm({
     })
   }
 
+  function setStageType(stageId: string, type: EventStage['type']) {
+    onChange((prev) => ({
+      ...prev,
+      stages: prev.stages.map((stage) =>
+        stage.id === stageId
+          ? { ...stage, type, gameId: null, gameIds: [] }
+          : stage,
+      ),
+    }))
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-border/80 bg-card p-5 shadow-sm sm:p-6">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:gap-10">
-          <div className="space-y-4 lg:row-span-2">
+          <div className="space-y-4">
             <div className="border-border border-b pb-2">
               <h2 className="text-foreground text-base font-bold">Primary</h2>
               <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
@@ -152,55 +170,31 @@ export function EventForm({
                 className="bg-background max-w-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Display layout</Label>
-          <select
-            value={values.displayLayout}
-            onChange={(e) =>
-              set({
-                displayLayout: e.target.value as EventFormValues['displayLayout'],
-              })
-            }
-            className="border-input bg-background max-w-sm rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="rank_list">Rank List</option>
-            <option value="orbit_view">Orbit View</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label>Live UI text color</Label>
-          <select
-            value={values.displayTextColor}
-            onChange={(e) =>
-              set({
-                displayTextColor: e.target.value as EventFormValues['displayTextColor'],
-              })
-            }
-            className="border-input bg-background max-w-sm rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-          <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-            Controls title and score readability on top of your event background (not button
-            colors).             Use white on dark palettes; black on light secondary colors.
-          </p>
-            </div>
-          </div>
-
-          <div className="border-border space-y-2 border-b pb-6">
-            <h2 className="text-foreground text-base font-bold">Item purchases</h2>
-            <label className="bg-muted/40 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={inventoryEnabled}
-                onChange={(e) => set({ inventoryEnabled: e.target.checked })}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <TogglePair
+                label="Display"
+                leftLabel="Rank list"
+                rightLabel="Orbit"
+                rightSelected={values.displayLayout === 'orbit_view'}
+                onChange={(rightSelected) => set({ displayLayout: rightSelected ? 'orbit_view' : 'rank_list' })}
               />
-              Teams can buy items with their points
-            </label>
-            <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-              Shows the Buy Items button and QR scanner on every team's phone. Turn
-              it off for events without a physical item shop.
+              <TogglePair
+                label="UI colour"
+                leftLabel="White"
+                rightLabel="Black"
+                rightSelected={values.displayTextColor === 'black'}
+                onChange={(rightSelected) => set({ displayTextColor: rightSelected ? 'black' : 'white' })}
+              />
+              <TogglePair
+                label="Purchase items"
+                leftLabel="Off"
+                rightLabel="On"
+                rightSelected={inventoryEnabled}
+                onChange={(rightSelected) => set({ inventoryEnabled: rightSelected })}
+              />
+            </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Display and colour settings apply to the live host, audience, and player surfaces.
             </p>
           </div>
 
@@ -209,14 +203,13 @@ export function EventForm({
               <h2 className="text-foreground text-base font-bold">Branding</h2>
               <p className="text-muted-foreground mt-1 text-xs">Optional visual overrides for this event.</p>
             </div>
-            <label className="bg-muted/40 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={brandingEnabled}
-                onChange={(e) => set({ brandingEnabled: e.target.checked })}
-              />
-              Custom branding for this event
-            </label>
+            <TogglePair
+              label="Custom event branding"
+              leftLabel="Off"
+              rightLabel="On"
+              rightSelected={brandingEnabled}
+              onChange={(rightSelected) => set({ brandingEnabled: rightSelected })}
+            />
             {brandingEnabled ? (
               <>
                 <p className="text-muted-foreground text-sm">
@@ -250,25 +243,55 @@ export function EventForm({
                     className="border-border/80 size-16 rounded-lg border object-contain"
                   />
                 ) : null}
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3">
                   {brandColors.map((c, i) => (
-                    <div key={BRAND_LABELS[i]} className="space-y-2">
+                    <div key={BRAND_LABELS[i]} className="space-y-1.5 text-center">
                       <Label>{BRAND_LABELS[i]}</Label>
-                      <p className="text-muted-foreground text-xs leading-snug">
-                        {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
-                      </p>
                       <input
                         type="color"
                         value={c}
+                        aria-label={`${BRAND_LABELS[i]} colour`}
                         onChange={(e) => {
                           const next = [...brandColors] as [string, string, string]
                           next[i] = e.target.value
                           set({ brandColors: next })
                         }}
-                        className="h-10 w-full cursor-pointer rounded border"
+                        className="mx-auto block size-9 cursor-pointer rounded-full border-0 bg-transparent p-0"
                       />
+                      <Input
+                        value={c}
+                        maxLength={7}
+                        aria-label={`${BRAND_LABELS[i]} hex value`}
+                        onChange={(e) => {
+                          const next = [...brandColors] as [string, string, string]
+                          next[i] = e.target.value
+                          set({ brandColors: next })
+                        }}
+                        className="bg-background h-7 px-1 text-center font-mono text-[10px] uppercase"
+                      />
+                      <p className="sr-only">{BRAND_COLOR_HELP[BRAND_LABELS[i]]}</p>
                     </div>
                   ))}
+                </div>
+                <div className="flex items-end justify-center gap-4 pt-1">
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="border-border flex aspect-video items-center justify-center overflow-hidden rounded-md border"
+                      style={{ background: `linear-gradient(135deg, ${brandColors[0]}, ${brandColors[1]} 55%, ${brandColors[2]})` }}
+                    >
+                      {logoUrl ? <img src={logoUrl} alt="" className="max-h-10 max-w-24 object-contain" /> : <span className="px-2 text-center text-xs font-bold text-white drop-shadow">{name || 'Event preview'}</span>}
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-center text-[10px]">Host / TV</p>
+                  </div>
+                  <div className="w-16 shrink-0">
+                    <div
+                      className="border-border flex aspect-[9/16] items-center justify-center overflow-hidden rounded-md border"
+                      style={{ background: `linear-gradient(160deg, ${brandColors[0]}, ${brandColors[1]} 55%, ${brandColors[2]})` }}
+                    >
+                      <span className="px-1 text-center text-[8px] font-bold text-white drop-shadow">{name || 'Event'}</span>
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-center text-[10px]">Player</p>
+                  </div>
                 </div>
               </>
             ) : orgDefaults ? (
@@ -288,14 +311,11 @@ export function EventForm({
           </div>
           <div className="space-y-2">
             <Label>Number of teams</Label>
-            <Input
-              type="number"
-              min={1}
-              max={maxTeamCount}
-              value={teamCount}
-              onChange={(e) => onTeamCountChange(Number(e.target.value))}
-              className="bg-background w-24"
-            />
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= 1} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
+              <Input type="number" min={1} max={maxTeamCount} value={teamCount} onChange={(e) => onTeamCountChange(Number(e.target.value))} className="bg-background h-8 w-16 text-center tabular-nums" />
+              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount >= maxTeamCount} onClick={() => onTeamCountChange(teamCount + 1)}>+</Button>
+            </div>
           </div>
           {maxTeamCount <= 2 ? (
             <p className="text-muted-foreground text-xs">
@@ -448,9 +468,10 @@ export function EventForm({
             Add stage
           </Button>
         </div>
-        {stages.map((stage) => (
+        {stages.map((stage, stageIndex) => (
           <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
             <div className="flex flex-wrap items-center gap-3">
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">Stage {stageIndex + 1}</span>
               <Input
                 value={stage.name}
                 onChange={(e) =>
@@ -461,32 +482,8 @@ export function EventForm({
                     ),
                   }))
                 }
-                className="bg-background max-w-[10rem]"
+                className="bg-background h-8 min-w-40 flex-1 text-sm font-semibold"
               />
-              <select
-                value={stage.type}
-                onChange={(e) =>
-                  onChange((prev) => ({
-                    ...prev,
-                    stages: prev.stages.map((x) =>
-                      x.id === stage.id
-                        ? {
-                            ...x,
-                            type: e.target.value as EventStage['type'],
-                            gameId: null,
-                            gameIds: [],
-                          }
-                        : x,
-                    ),
-                  }))
-                }
-                className="border-input bg-background rounded-lg border px-2 py-1.5 text-sm"
-              >
-                <option value="open">Quest</option>
-                <option value="quiz">Quiz</option>
-                <option value="bingo">Bingo</option>
-                <option value="break">Break</option>
-              </select>
               <Button
                 type="button"
                 variant="ghost"
@@ -502,9 +499,23 @@ export function EventForm({
                 <Trash2 className="size-4" />
               </Button>
             </div>
+            <div className="bg-nm-slate-800 grid grid-cols-4 gap-1 rounded-full p-1">
+              {STAGE_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`rounded-full px-2 py-1.5 text-xs font-semibold transition-colors ${stage.type === option.value ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
+                  onClick={() => setStageType(stage.id, option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
             {stage.type === 'break' ? (
-              <>
-                <Input
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-end">
+                <label className="space-y-1.5 text-xs font-medium">
+                  <span>Break message</span>
+                  <textarea
                   placeholder="Break message"
                   value={stage.message ?? ''}
                   onChange={(e) =>
@@ -515,11 +526,15 @@ export function EventForm({
                       ),
                     }))
                   }
-                  className="bg-background"
-                />
-                <Input
+                  rows={2}
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="space-y-1.5 text-xs font-medium">
+                  <span>Duration (minutes)</span>
+                  <Input
                   type="number"
-                  placeholder="Duration (minutes)"
+                  min={0}
                   value={stage.durationMinutes ?? ''}
                   onChange={(e) =>
                     onChange((prev) => ({
@@ -531,9 +546,10 @@ export function EventForm({
                       ),
                     }))
                   }
-                  className="bg-background max-w-[10rem]"
-                />
-              </>
+                  className="bg-background"
+                  />
+                </label>
+              </div>
             ) : stage.type === 'open' ? (
               <QuestStageGames
                 stage={stage}
@@ -721,6 +737,44 @@ export function EventForm({
           </Card>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function TogglePair({
+  label,
+  leftLabel,
+  rightLabel,
+  rightSelected,
+  onChange,
+}: {
+  label: string
+  leftLabel: string
+  rightLabel: string
+  rightSelected: boolean
+  onChange: (rightSelected: boolean) => void
+}) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-foreground text-xs font-semibold">{label}</p>
+      <div className="bg-nm-slate-800 grid grid-cols-2 gap-1 rounded-full p-1">
+        <button
+          type="button"
+          aria-pressed={!rightSelected}
+          className={`rounded-full px-2 py-1.5 text-[11px] font-semibold transition-colors ${!rightSelected ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
+          onClick={() => onChange(false)}
+        >
+          {leftLabel}
+        </button>
+        <button
+          type="button"
+          aria-pressed={rightSelected}
+          className={`rounded-full px-2 py-1.5 text-[11px] font-semibold transition-colors ${rightSelected ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
+          onClick={() => onChange(true)}
+        >
+          {rightLabel}
+        </button>
+      </div>
     </div>
   )
 }

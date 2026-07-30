@@ -61,10 +61,13 @@ export function PuzzleEditor({
   }
 
   return (
-    <Card className="border-border/80 space-y-6 bg-card p-6 shadow-sm">
-      <div>
-        <Label>Puzzle type</Label>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+    <Card className="border-border/80 space-y-6 bg-card p-5 shadow-sm sm:p-6">
+      <div className="border-border border-b pb-5">
+        <div className="mb-3">
+          <h3 className="text-foreground text-base font-bold">Puzzle designer</h3>
+          <p className="text-muted-foreground mt-1 text-xs">Choose a format and configure the player challenge.</p>
+        </div>
+        <div className="bg-nm-slate-800 grid grid-cols-3 gap-1 rounded-full p-1">
           {SUBTYPES.map(({ type, name, description, icon: Icon, upcoming }) => {
             const active = selected === type && !upcoming
             return (
@@ -73,20 +76,20 @@ export function PuzzleEditor({
                 type="button"
                 disabled={upcoming}
                 onClick={() => selectSubtype(type)}
-                className={`relative rounded-xl border p-4 text-left transition-colors ${
+                title={description}
+                className={`relative flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
                   active
-                    ? 'border-[#FFC107] bg-[#FFC107]/10'
-                    : 'border-border/80 bg-background hover:border-[#FFC107]/60'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-nm-slate-200 hover:text-white'
                 } disabled:cursor-not-allowed disabled:opacity-65`}
               >
                 {upcoming ? (
-                  <span className="absolute top-2 right-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                  <span className="absolute -top-2 right-1 rounded bg-muted px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide">
                     Upcoming
                   </span>
                 ) : null}
-                <Icon className="mb-3 size-6" />
-                <p className="font-semibold">{name}</p>
-                <p className="text-muted-foreground mt-1 text-xs">{description}</p>
+                <Icon className="size-3.5" />
+                <span>{name}</span>
               </button>
             )
           })}
@@ -94,16 +97,17 @@ export function PuzzleEditor({
       </div>
 
       {selected === 'wordle' || selected === 'crossword' ? (
-        <div>
-          <Label>Player keyboard</Label>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Which on-screen keyboard players see while solving.
-          </p>
-          <div className="mt-2 flex gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <Label>Player keyboard</Label>
+            <p className="text-muted-foreground mt-1 text-xs">Choose the on-screen alphabet.</p>
+          </div>
+          <div className="bg-muted grid grid-cols-2 gap-1 rounded-full p-1">
             <Button
               type="button"
               size="sm"
-              variant={(config.puzzle_keyboard_alphabet ?? 'latin') === 'latin' ? 'default' : 'outline'}
+              variant={(config.puzzle_keyboard_alphabet ?? 'latin') === 'latin' ? 'default' : 'ghost'}
+              className="rounded-full"
               onClick={() =>
                 setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'latin' }))
               }
@@ -113,7 +117,8 @@ export function PuzzleEditor({
             <Button
               type="button"
               size="sm"
-              variant={config.puzzle_keyboard_alphabet === 'cyrillic' ? 'default' : 'outline'}
+              variant={config.puzzle_keyboard_alphabet === 'cyrillic' ? 'default' : 'ghost'}
+              className="rounded-full"
               onClick={() =>
                 setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'cyrillic' }))
               }
@@ -125,7 +130,8 @@ export function PuzzleEditor({
       ) : null}
 
       {selected === 'wordle' ? (
-        <div className="space-y-3">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
+          <div className="space-y-3">
           <div>
             <Label htmlFor="puzzle-wordle-answer">Answer</Label>
             <p className="text-muted-foreground mt-1 text-xs">
@@ -151,6 +157,18 @@ export function PuzzleEditor({
             {Array.from(config.puzzle_wordle_answer ?? '').length || 0} letters · first guess earns
             the maximum, then each extra guess removes 10% of the remaining score.
           </p>
+          </div>
+          <div className="border-border bg-muted/25 rounded-md border p-4">
+            <p className="text-muted-foreground mb-3 text-[10px] font-semibold uppercase tracking-[0.1em]">Player preview</p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {Array.from(config.puzzle_wordle_answer ?? 'TEAM').map((letter, index) => (
+                <span key={`${letter}-${index}`} className="border-nm-slate-400 bg-card flex size-9 items-center justify-center rounded border text-sm font-bold uppercase">
+                  {letter || ' '}
+                </span>
+              ))}
+            </div>
+            <p className="text-muted-foreground mt-3 text-center text-[10px]">Answer length preview only</p>
+          </div>
         </div>
       ) : null}
 
@@ -183,7 +201,7 @@ export function PuzzleEditor({
             ) : null}
           </div>
 
-          <div className="space-y-2">
+          <div className="border-border bg-muted/20 space-y-2 rounded-md border p-3">
             <div className="text-muted-foreground grid grid-cols-[1fr_1fr_2.5rem] gap-2 px-1 text-xs font-semibold uppercase tracking-wide">
               <span>Left</span>
               <span>Matches with</span>

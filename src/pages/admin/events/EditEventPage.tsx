@@ -15,11 +15,11 @@ import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDi
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useNotification } from '@/contexts/notification-context'
 import {
   useDuplicateEvent,
+  useDeleteEvent,
   useEvent,
   useEventGameIds,
   useResetEventData,
@@ -57,6 +57,7 @@ export function AdminEventEditPage() {
   const updateEvent = useUpdateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
   const duplicateEvent = useDuplicateEvent(organizationId)
+  const deleteEvent = useDeleteEvent(organizationId)
   const resetEventDataMutation = useResetEventData(organizationId)
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
@@ -72,6 +73,7 @@ export function AdminEventEditPage() {
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'settings' | 'log'>('settings')
 
   // Baseline snapshot of the form as loaded, for unsaved-change detection (#15).
@@ -197,6 +199,17 @@ export function AdminEventEditPage() {
       notify('Event data reset — teams and live progress cleared')
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not reset event data')
+    }
+  }
+
+  async function handleDeleteEvent() {
+    if (!eventId) return
+    try {
+      await deleteEvent.mutateAsync(eventId)
+      notify('Event moved to Deleted events.')
+      navigate('/admin/events', { replace: true })
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Could not delete event')
     }
   }
 
@@ -326,19 +339,6 @@ export function AdminEventEditPage() {
                         QR codes and URLs for facilitator, display, and team join.
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={downloading}
-                      onClick={() => {
-                        setDownloading(true)
-                        void downloadEventPackage(eventId).finally(() =>
-                          setDownloading(false),
-                        )
-                      }}
-                    >
-                      {downloading ? 'Preparing…' : 'Download media & PDF'}
-                    </Button>
                   </div>
                   <EventLinksPanel
                     eventId={eventId}
@@ -368,30 +368,57 @@ export function AdminEventEditPage() {
                 </Card>
               ) : null}
 
-              {resetAllowed && !isArchived ? (
-                <div className="mt-8">
-                  <DangerZone
-                    rows={[
-                      {
-                        id: 'reset-event-data',
-                        label: 'Reset event data',
-                        description:
-                          'Clear teams, submissions, scores, chat, and live progress while keeping games, stages, and branding.',
-                        action: (
-                          <NeoButton
-                            type="button"
-                            variant="destructive"
-                            disabled={resetEventDataMutation.isPending || loading}
-                            onClick={() => setResetDialogOpen(true)}
-                          >
-                            Reset event data
-                          </NeoButton>
-                        ),
-                      },
-                    ]}
-                  />
-                </div>
-              ) : null}
+              <div className="mt-8">
+                <DangerZone
+                  rows={[
+                    {
+                      id: 'download-event-files',
+                      label: 'Download all event files',
+                      description: 'Export the event package, uploaded media, and QR-code PDF.',
+                      action: (
+                        <NeoButton
+                          type="button"
+                          variant="surface"
+                          disabled={downloading}
+                          onClick={() => {
+                            setDownloading(true)
+                            void downloadEventPackage(eventId!).finally(() => setDownloading(false))
+                          }}
+                        >
+                          {downloading ? 'Preparing…' : 'Download'}
+                        </NeoButton>
+                      ),
+                    },
+                    ...(resetAllowed && !isArchived
+                      ? [{
+                          id: 'reset-event-data',
+                          label: 'Reset event data',
+                          description: 'Clear teams, submissions, scores, chat, and live progress while keeping games, stages, and branding.',
+                          action: (
+                            <NeoButton
+                              type="button"
+                              variant="destructive"
+                              disabled={resetEventDataMutation.isPending || loading}
+                              onClick={() => setResetDialogOpen(true)}
+                            >
+                              Reset
+                            </NeoButton>
+                          ),
+                        }]
+                      : []),
+                    {
+                      id: 'delete-event',
+                      label: 'Delete this event',
+                      description: 'Move this event to Deleted events. It can be restored before permanent removal.',
+                      action: (
+                        <NeoButton type="button" variant="destructive" disabled={deleteEvent.isPending} onClick={() => setDeleteDialogOpen(true)}>
+                          Delete
+                        </NeoButton>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
 
               {!isArchived && (
                 <FormSaveFooter
@@ -417,6 +444,25 @@ export function AdminEventEditPage() {
               onCancel={() => setResetDialogOpen(false)}
               onConfirm={() => void handleResetEventData()}
             />
+          ) : null}
+
+          {deleteDialogOpen && eventQuery.data ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <Card className="border-nm-slate-800 w-full max-w-sm space-y-4 border-2 bg-card p-6 shadow-xl">
+                <div>
+                  <h3 className="text-foreground font-semibold">Delete this event?</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {eventQuery.data.name} will move to Deleted events and can be restored before permanent removal.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <NeoButton type="button" variant="surface" disabled={deleteEvent.isPending} onClick={() => setDeleteDialogOpen(false)}>Cancel</NeoButton>
+                  <NeoButton type="button" variant="destructive" disabled={deleteEvent.isPending} onClick={() => void handleDeleteEvent()}>
+                    {deleteEvent.isPending ? 'Deleting…' : 'Delete event'}
+                  </NeoButton>
+                </div>
+              </Card>
+            </div>
           ) : null}
 
           {blocker.state === 'blocked' ? (

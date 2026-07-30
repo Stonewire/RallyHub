@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { Download, Send } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -110,18 +110,18 @@ export function SupportTicketThread({
         ) : (
           <ul ref={listRef} className="flex max-h-80 flex-col gap-3 overflow-y-auto p-4">
             {messages.map((m) => {
-              const isSupport = m.sender_role === 'support'
+              const isMine = m.sender_role === senderRole
               return (
                 <li
                   key={m.id}
-                  className={cn('flex flex-col gap-1', isSupport ? 'items-end' : 'items-start')}
+                  className={cn('flex flex-col gap-1', isMine ? 'items-end' : 'items-start')}
                 >
                   <div
                     className={cn(
                       'max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm',
-                      isSupport
-                        ? 'neo-support-bubble rounded-br-md'
-                        : 'bg-card border-border/80 border rounded-bl-md',
+                      isMine
+                        ? 'rounded-br-md bg-[#0A84FF] text-white'
+                        : 'bg-primary text-primary-foreground rounded-bl-md',
                     )}
                   >
                     <p className="whitespace-pre-wrap">{m.body}</p>
@@ -137,13 +137,14 @@ export function SupportTicketThread({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`reply-${ticket.id}`}>Reply</Label>
+        <Label htmlFor={`reply-${ticket.id}`} className="sr-only">Reply</Label>
+        <div className="border-border bg-card flex items-end gap-2 rounded-2xl border p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
         <textarea
           id={`reply-${ticket.id}`}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          rows={3}
-          className="neo-field w-full px-3 py-2 text-sm"
+          rows={2}
+          className="max-h-32 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm outline-none"
           placeholder="Write a message…"
           onKeyDown={(e) => {
             // Plain Enter sends, matching the design's chat-input pattern;
@@ -157,11 +158,15 @@ export function SupportTicketThread({
         <NeoButton
           type="button"
           variant="primary"
+          size="sm"
+          className="mb-0.5 shrink-0 rounded-xl"
           disabled={!draft.trim() || sendMessage.isPending}
           onClick={() => void handleSend()}
         >
-          {sendMessage.isPending ? 'Sending…' : 'Send reply'}
+          <Send className="size-3.5" />
+          {sendMessage.isPending ? 'Sending…' : 'Send'}
         </NeoButton>
+        </div>
       </div>
     </div>
   )

@@ -116,7 +116,7 @@ export function BillingOverview({
   const canStartSubscription = !plan.hidden && !plan.freeSubscription && !plan.priceOnRequest
 
   return (
-    <div className="space-y-8">
+    <div className={showAvailablePlans ? 'grid gap-x-10 gap-y-8 lg:grid-cols-2' : 'space-y-8'}>
       {showAdminSummary && unpaid.length > 0 ? (
         <Card className="border-border/80 bg-muted/30 px-4 py-3 shadow-sm">
           <p className="text-foreground text-sm font-medium">
@@ -188,7 +188,7 @@ export function BillingOverview({
         )}
       </section>
 
-      <section className="space-y-3" data-tour="billing-history">
+      <section className={`space-y-3 ${showAvailablePlans ? 'lg:col-span-2' : ''}`} data-tour="billing-history">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Payment history</h2>
           <p className="text-muted-foreground text-sm">
@@ -284,10 +284,12 @@ export function BillingOverview({
         </section>
       ) : null}
 
-      <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
+      <div className={showAvailablePlans ? 'lg:col-span-2' : undefined}>
+        <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
+      </div>
 
       {showAvailablePlans ? (
-        <section className="space-y-3">
+        <section className="space-y-3 lg:col-span-2">
           <div>
             <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
             <p className="text-muted-foreground text-sm">

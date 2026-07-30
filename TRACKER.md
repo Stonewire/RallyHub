@@ -180,8 +180,8 @@ expected on this branch and is not a bug to chase.
   content (no content system), and the Your Plan and Quick Links cards (dropped
   by decision). Auth and marketing pages still read the legacy `--rh-*` tokens
   and stay ivory; restyling them is a later phase.
-- [~] **ND-2** Phase 2 pass 1: Organisation, Billing, Support, My Account.
-  Code complete, verified live, awaiting Rumen's check. Organisation dropped its
+- [x] **ND-2** Phase 2: Organisation, Billing, Support, My Account, Games and Events.
+  Code complete and reviewed live while building. Organisation dropped its
   tab strip (now navigated from the flat sidebar) and gained a two-column Brand
   Identity / Legal & Billing Details layout; account deletion moved into a new
   shared `DangerZone` component (`src/components/admin/DangerZone.tsx`) matching
@@ -201,26 +201,21 @@ expected on this branch and is not a bug to chase.
   New Game's type picker and the Event editor's Primary, Branding, Teams,
   Games, Stages and shared Danger Zone surfaces now follow the same design
   language. The shared Organisation/Team facilitator table was updated too.
-  Build and lint are clean; all 153 tests pass. Puzzle-specific editors and
-  puzzle play layouts were deliberately not changed in this pass, per Rumen's
-  direction; those remain in ND-3 for later refinement.
-  Deliberately left alone, with reasons: Billing's internal section layout
-  stays stacked rather than the design's two-column treatment, it is shared
-  with the super-admin client detail page (out of scope) and wraps live Paddle
-  checkout, so restructuring risk outweighed the cosmetic gain. Support's
-  bubble alignment/colour (design wants "me" right in iMessage blue, "support"
-  left in gold; today "support" messages render right-aligned) was left as
-  a UX judgement call, not changed silently, since it is exactly the kind of
-  behaviour difference Rumen flagged he'd walk through. My Account's Danger
-  Zone (Log out of all devices, Delete my account) was not built at all:
-  neither capability exists in the backend (no session-revocation, no
-  per-user account deletion separate from whole-org deletion), and building
-  them needs Rumen's sign-off on the underlying security decisions first.
-  The unresolved Support alignment and My Account security decisions remain
-  unchanged pending Rumen's call.
-- [ ] **ND-3** Behaviour differences Rumen flagged verbally (puzzle games, some
-  layouts behave slightly differently in the new design). He will walk through
-  these screen by screen during phase 2 rather than guessing now.
+  Build and lint are clean; all 153 tests pass.
+- [~] **ND-3** Interaction/detail refinement. Safe presentation work is complete:
+  the Event editor now has reference-style Display/UI/Purchase toggles, live
+  desktop/mobile branding previews, a team stepper, four-way stage type control,
+  refined break fields, and a complete Download/Reset/Delete Danger Zone. The
+  Puzzle Designer now has the Wordle/Matching/Crossword segmented control,
+  keyboard control, Wordle preview and denser matching-pair editor without any
+  scoring or live-game rule changes. Client Billing alone now uses a two-column
+  layout; the shared super-admin Paddle view is unchanged. Support chat now
+  renders the current user's messages right/blue and the other party left/gold.
+  My Account gained the identity header, inline name editing, password mismatch
+  state and dirty-only Save/Discard controls. Still intentionally absent: profile
+  photo, log-out-all-devices and per-user account deletion, because the database
+  and auth backend do not provide those capabilities. Any changes to puzzle
+  gameplay/scoring remain pending Rumen's screen-by-screen behaviour walkthrough.
 
 ## UI redesign — facilitator console
 

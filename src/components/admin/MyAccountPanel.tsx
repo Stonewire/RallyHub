@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
@@ -20,8 +21,32 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   const [email, setEmail] = useState(user?.email ?? '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [editingName, setEditingName] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; msg: string } | null>(null)
+
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || username || 'My account'
+  const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || username.slice(0, 2).toUpperCase()
+  const dirty = Boolean(
+    firstName !== (profile?.first_name ?? '') ||
+    lastName !== (profile?.last_name ?? '') ||
+    username !== (profile?.username ?? '') ||
+    email !== (user?.email ?? '') ||
+    password ||
+    confirmPassword,
+  )
+  const passwordsMatch = !password || password === confirmPassword
+
+  function discardChanges() {
+    setFirstName(profile?.first_name ?? '')
+    setLastName(profile?.last_name ?? '')
+    setUsername(profile?.username ?? '')
+    setEmail(user?.email ?? '')
+    setPassword('')
+    setConfirmPassword('')
+    setEditingName(false)
+    setStatus(null)
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -89,9 +114,25 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   }
 
   return (
-    <NeoCard className="p-6">
-      <form onSubmit={onSubmit} className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+    <NeoCard className="overflow-hidden p-0">
+      <form onSubmit={onSubmit}>
+        <div className="border-border flex items-center gap-4 border-b p-5">
+          <div className="bg-nm-slate-800 text-nm-slate-100 flex size-14 shrink-0 items-center justify-center rounded-lg text-sm font-bold tracking-[0.08em]">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-foreground truncate text-base font-bold">{displayName}</h2>
+              <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName((editing) => !editing)}>
+                <Pencil className="size-3.5" />
+              </button>
+            </div>
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">@{username}</p>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-5">
+        {editingName ? <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <NeoLabel htmlFor="acct-first">First name</NeoLabel>
             <NeoInput
@@ -110,6 +151,10 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
               onChange={(e) => setLastName(e.target.value)}
             />
           </div>
+        </div> : null}
+
+        <div className="border-border border-b pb-2">
+          <h3 className="text-foreground text-sm font-bold">Personal details</h3>
         </div>
 
         <div className="grid gap-1.5">
@@ -146,7 +191,11 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
           </div>
         ) : null}
 
-        <div className="border-border/80 grid gap-4 border-t pt-5 sm:grid-cols-2">
+        <div className="border-border border-b pb-2 pt-2">
+          <h3 className="text-foreground text-sm font-bold">Password</h3>
+          <p className="text-muted-foreground mt-1 text-xs">Leave both fields empty to keep your current password.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <NeoLabel htmlFor="acct-password">New password</NeoLabel>
             <NeoInput
@@ -172,6 +221,10 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
           </div>
         </div>
 
+        {!passwordsMatch && confirmPassword ? (
+          <p className="text-destructive text-xs font-medium" role="alert">Passwords do not match.</p>
+        ) : null}
+
         {status ? (
           <p
             role={status.kind === 'error' ? 'alert' : 'status'}
@@ -181,10 +234,14 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
           </p>
         ) : null}
 
-        <div className="flex justify-end">
-          <NeoButton variant="primary" type="submit" disabled={saving}>
+        {dirty ? <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <NeoButton variant="surface" type="button" disabled={saving} onClick={discardChanges}>
+            Discard
+          </NeoButton>
+          <NeoButton variant="primary" type="submit" disabled={saving || !passwordsMatch}>
             {saving ? 'Saving…' : 'Save changes'}
           </NeoButton>
+        </div> : null}
         </div>
       </form>
     </NeoCard>

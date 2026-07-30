@@ -793,14 +793,6 @@
     --rh-status-dot-archived: #8a837c;
   }
 
-  /* ─── Support thread bubbles ─── */
-  .neo-minimal-scope .neo-support-bubble {
-    background: var(--nm-charcoal) !important;
-    color: #faf7f3 !important;
-    border: 1px solid color-mix(in srgb, var(--nm-charcoal) 88%, black);
-    box-shadow: var(--nm-shadow-soft);
-  }
-
   /* Payment-required pill (billing) */
   .neo-minimal-scope .bg-primary\/15.text-foreground {
     background: color-mix(in srgb, #c49a5a 14%, var(--nm-bg-muted)) !important;
