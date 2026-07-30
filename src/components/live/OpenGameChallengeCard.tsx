@@ -18,7 +18,7 @@ type OpenGameChallengeCardProps = {
   accentColor: string
   onAccentColor: string
   canSubmit: boolean
-  onSelect: () => void
+  onSelect: (e: React.MouseEvent) => void
 }
 
 function challengeTypeIcon(game: Tables<'games'>): LucideIcon {
@@ -87,8 +87,8 @@ export function OpenGameChallengeCard({
         backgroundColor: appearance.backgroundColor,
         color: appearance.color,
       }}
-      onClick={() => {
-        if (!locked && canSubmit) onSelect()
+      onClick={(e) => {
+        if (!locked && canSubmit) onSelect(e)
       }}
     >
       <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full">{game.name}</span>

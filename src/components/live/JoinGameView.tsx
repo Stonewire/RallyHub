@@ -1211,7 +1211,24 @@ export function JoinGameView({
                   accentColor={accent}
                   onAccentColor={onAccent}
                   canSubmit={canSubmit}
-                  onSelect={() => setSelectedGame(g)}
+                  onSelect={(e) => {
+                    // e.timeStamp is when the finger actually tapped; nowMs()
+                    // minus it is how long the tap sat queued before the app
+                    // processed it (the post-submit next-tap lag, iOS report
+                    // 31 Jul 2026). The rAF then measures render time.
+                    const dispatchMs = Math.round(nowMs() - e.timeStamp)
+                    const handlerAt = nowMs()
+                    setSelectedGame(g)
+                    requestAnimationFrame(() => {
+                      const renderMs = Math.round(nowMs() - handlerAt)
+                      if (dispatchMs + renderMs <= 400) return
+                      reportClientTiming('tap-timing', `slow game open: tap waited ${dispatchMs}ms, render ${renderMs}ms`, {
+                        eventId: event.id,
+                        teamId,
+                        extra: { gameId: g.id, dispatchMs, renderMs },
+                      })
+                    })
+                  }}
                 />
               )
             })}

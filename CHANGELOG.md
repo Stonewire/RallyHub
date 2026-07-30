@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.29 - 2026-07-31 (measure the iPhone's post-submit tap lag)
+
+- Diagnostic-only. On iPhone, tapping the next game right after any
+  submission (text included) takes a couple of seconds to open. The
+  submit-timing rows already show the phone repainting within ~30ms of
+  submitting, so the delay lives in one of two places: the tap sitting in
+  the browser's queue before the app processes it, or the game view taking
+  long to render after.
+- Game-card taps now measure both halves separately (using the browser's
+  hardware timestamp for the true moment of touch) and report any open
+  slower than 400ms. The split names the culprit: queued tap points at
+  something blocking input after submission; slow render points at the
+  game view itself.
+
 ## V2.20.28 - 2026-07-31 (investigation closed, debug line removed)
 
 - Rumen confirmed the Hermit shutter fix on device: releasing the camera
