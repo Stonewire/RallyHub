@@ -33,6 +33,7 @@ import {
 } from '@/contexts/notification-context'
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
+import { reportClientIssue } from '@/lib/client-diagnostics'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
@@ -619,7 +620,16 @@ export function JoinGameView({
 
       setOpenSubmissionWrite(optimistic.id, true)
       mergeOwnSubmission('INSERT', optimistic)
-      finishOpenSubmitOptimistically()
+      try {
+        finishOpenSubmitOptimistically()
+      } catch (err) {
+        const detail = reportClientIssue('text-submit', err, {
+          eventId: event.id,
+          teamId,
+          extra: { gameId: game.id },
+        })
+        throw new Error(`Could not finish submitting (${detail})`, { cause: err })
+      }
 
       const { data, error } = await write
       setOpenSubmissionWrite(optimistic.id, false)
@@ -630,13 +640,17 @@ export function JoinGameView({
         mergeOwnSubmission('UPDATE', data)
         void publishSubmissionChange(event.id, 'INSERT', data)
       }
-    } catch {
+    } catch (err) {
       if (optimistic) {
         setOpenSubmissionWrite(optimistic.id, false)
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
-      notify("Couldn't submit — tap to retry")
+      const msg =
+        err instanceof Error && err.message.includes('Could not finish submitting')
+          ? err.message
+          : "Couldn't submit — tap to retry"
+      notify(msg)
       setSubmitting(false)
     }
   }
@@ -657,14 +671,24 @@ export function JoinGameView({
       openUploadPrefetchRef.current = null
       const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
 
-      const url = minted
-        ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
-        : await uploadParticipantAsset(
-            event.id,
-            `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
-            file,
-            { mediaKind: kind },
-          )
+      let url: string
+      try {
+        url = minted
+          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
+          : await uploadParticipantAsset(
+              event.id,
+              `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
+              file,
+              { mediaKind: kind },
+            )
+      } catch (err) {
+        const detail = reportClientIssue('submission-upload', err, {
+          eventId: event.id,
+          teamId,
+          extra: { gameId: game.id, mediaType: kind },
+        })
+        throw new Error(`Could not upload submission (${detail})`, { cause: err })
+      }
       const mediaType = game.type === 'video' ? 'video' : 'photo'
       optimistic = optimisticOpenSubmission(game, url, mediaType)
       const write = supabase
@@ -700,7 +724,7 @@ export function JoinGameView({
         setSelectedGame(game)
       }
       const msg =
-        err instanceof Error && err.message.includes('must be')
+        err instanceof Error && (err.message.includes('must be') || err.message.includes('Could not upload'))
           ? err.message
           : "Couldn't submit — tap to retry"
       notify(msg)
