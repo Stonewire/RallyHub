@@ -5,6 +5,29 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.9 - 2026-07-30 (re-land the x-team-token fix, now confirmed by device evidence)
+
+- Phase 2 of the investigation ran: Rumen reproduced the failures on a real
+  iPhone and the Android tablet with V2.20.8's diagnostics live. All six
+  captured failures, on both platforms, were the same transport-level error
+  ("Failed to send a request to the Edge Function") on the upload
+  authorization call, while every REST request (name-only join, text
+  submissions, the diagnostics themselves) went through fine.
+- That is exactly the `x-team-token` CORS behavior V2.20.2 fixed: REST
+  accepts the header, Edge Functions' preflight does not, so the browser
+  refuses to send only the Edge Function requests. The fix is now re-landed
+  with real-device evidence behind it instead of inference: the header is
+  sent only on `/rest/v1/` calls, where Postgres actually reads it.
+  Server-side enforcement is unchanged, and the `supabase.test.ts` tests
+  covering the header gating are restored with it.
+- Also learned from the evidence, for the remaining open items: the Android
+  tablet's Chrome is running in desktop mode (its user agent reports desktop
+  Linux), which explains the join screen opening a file browser instead of a
+  camera (desktop browsers ignore the camera-capture input attribute). And
+  the iPhone text-submit delay produced no error row at all while the
+  submission demonstrably arrived instantly, so the close-path stall is a
+  timing issue needing its own instrumentation, not an exception.
+
 ## V2.20.8 - 2026-07-30 (real-error capture for the camera/upload mysteries)
 
 - Following the V2.20.7 revert, added a permanent `client_diagnostics` table
