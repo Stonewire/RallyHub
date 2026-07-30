@@ -193,6 +193,7 @@ async function captureWithCanvas(
   stream: MediaStream,
   videoEl: HTMLVideoElement | null,
   onStages?: (stages: CaptureStages) => void,
+  onFrameDrawn?: () => void,
 ): Promise<Blob> {
   const started = performance.now()
   const video = videoEl ?? document.createElement('video')
@@ -218,6 +219,16 @@ async function captureWithCanvas(
   drawVideoFrameToCanvas(ctx, canvas, video)
   const afterDraw = performance.now()
 
+  if (ownsVideo) {
+    video.srcObject = null
+  }
+  // The frame is safely on the canvas; let the caller RELEASE THE CAMERA
+  // before the encode. Hermit device evidence (31 Jul 2026, on-screen stats):
+  // encoding while the camera pipeline stayed live starved the WebView for
+  // 8-13s per shot (encode 8705ms of an 8747ms shot; a 13.2s shot with the
+  // gap unattributed), while the same encode is ~100ms once the camera is off.
+  onFrameDrawn?.()
+
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
@@ -226,10 +237,6 @@ async function captureWithCanvas(
     )
   })
   const afterEncode = performance.now()
-
-  if (ownsVideo) {
-    video.srcObject = null
-  }
 
   onStages?.({
     setupMs: Math.round(beforeDraw - started),
@@ -275,11 +282,12 @@ export async function captureStillPhoto(
   stream: MediaStream,
   videoEl?: HTMLVideoElement | null,
   onStages?: (stages: CaptureStages) => void,
+  onFrameDrawn?: () => void,
 ): Promise<Blob> {
   const track = stream.getVideoTracks()[0]
   if (!track) throw new Error('No camera track')
 
-  return captureWithCanvas(stream, videoEl ?? null, onStages)
+  return captureWithCanvas(stream, videoEl ?? null, onStages, onFrameDrawn)
 }
 
 /**

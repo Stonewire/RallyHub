@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.27 - 2026-07-31 (release the camera before encoding: the Hermit shutter fix)
+
+- Rumen's on-screen stats and his own sharp observation solved it together:
+  the photo IS captured instantly (the frame he framed), then the WebView
+  stalls 8-13 seconds turning it into a JPEG while the camera keeps running.
+  One shot showed encode at 8705ms of an 8747ms total; the live preview kept
+  moving throughout because it is composited by the GPU while the encoder
+  starves against the active camera pipeline. Chrome tolerates that
+  contention; Hermit's system WebView does not.
+- The capture now draws the frame to the canvas (instant), releases the
+  camera, and only then encodes. With the camera off, the encoder has the
+  hardware to itself.
+- The on-screen stats line stays for this verification round: the encode
+  number on the next Hermit shot is the verdict.
+
 ## V2.20.26 - 2026-07-31 (shutter timing shown on the snapshot itself)
 
 - Hermit provably runs the current build (the on-screen V2.20.25 stamp

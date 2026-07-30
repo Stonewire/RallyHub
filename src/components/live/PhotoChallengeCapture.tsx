@@ -108,9 +108,17 @@ export function PhotoChallengeCapture({
       const shutterPressed = nowMs()
       let stages: Record<string, number | boolean> = {}
       // Already at upload size and orientation — no second downscale pass.
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current, (s) => {
-        stages = s
-      })
+      const blob = await captureStillPhoto(
+        streamRef.current,
+        videoRef.current,
+        (s) => {
+          stages = s
+        },
+        // Frame is on the canvas: release the camera BEFORE the encode, so the
+        // encoder is not fighting the live camera pipeline for the GPU
+        // (Hermit's WebView starved 8-13s per shot with the camera running).
+        () => stopStream(),
+      )
       const captureDone = nowMs()
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
@@ -119,7 +127,6 @@ export function PhotoChallengeCapture({
       setShutterStats(
         `${Math.round(captureDone - shutterPressed)}ms (setup ${stages.setupMs ?? '?'} / draw ${stages.drawMs ?? '?'} / encode ${stages.encodeMs ?? '?'}) ${APP_VERSION}`,
       )
-      stopStream()
 
       // Measure through to the preview actually appearing: the felt delay is
       // shutter press to seeing the shot, not just the internal capture call.
