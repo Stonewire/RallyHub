@@ -70,53 +70,40 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
-  const { width = 0, height = 0 } = track.getSettings()
-  if (!width || !height || width <= height) return
-  try {
-    await track.applyConstraints({
-      width: { ideal: Math.min(width, height) },
-      height: { ideal: Math.max(width, height) },
-      aspectRatio: { ideal: 9 / 16 },
-    })
-  } catch {
-    // Keep the stream as-is; preview/capture will correct orientation.
-  }
-}
-
 /**
  * Throws on failure; callers report mediaErrorMessage(err) and offer upload.
  *
- * The negotiated stream is used as-is. We used to reconfigure the track to the
- * sensor's largest frame straight after opening it; that cost seconds per photo
- * on Android tablets and left some of them with a live track that never painted
- * a frame, i.e. a black preview. A portrait 1080x1920 ideal is what both photo
- * and video want, and the recording bitrate is computed from the real track
- * size, so quality is unaffected.
+ * The negotiated stream is used as-is, with NO reconfigure call on the live
+ * track after opening it. We used to make two such calls in sequence
+ * (applyMaxVideoTrackQuality, removed in V2.20.4, and a portrait-orientation
+ * swap here) and both are the same failure mode on some Android hardware:
+ * `applyConstraints()` on an already-flowing camera track can stall for
+ * seconds or destabilize the whole pipeline for the rest of the session —
+ * matching reports of a slow-to-capture photo AND a video preview that keeps
+ * lagging afterward. If the sensor delivers landscape frames on a portrait
+ * device, streamNeedsQuarterTurn()/previewVideoStyle() already correct that in
+ * software for the live preview and captureStillPhoto() bakes the correction
+ * into every photo, regardless of the track's raw orientation. Recorded VIDEO
+ * FILES are the one output that is not corrected this way — MediaRecorder
+ * encodes the raw track, not the rotated preview — so a landscape-sensor
+ * device may record a sideways video. Needs a check on the tablet; if it
+ * shows up, the fix is recording through a canvas (draw the same corrected
+ * frames we already draw for stills) instead of the raw track, not resurrecting
+ * this reconfigure.
  */
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): Promise<MediaStream> {
-  let stream: MediaStream
   try {
-    stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
+    return await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
   } catch (err) {
     // ponytail: one bare retry covers drivers that reject any resolution hint
     // and cameras with no usable facingMode. Anything past that is a real fault.
     const name = err instanceof Error ? err.name : ''
     if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw err
-    stream = await getTeamMediaStream({ video: true, audio: withAudio })
+    return getTeamMediaStream({ video: true, audio: withAudio })
   }
-
-  const track = stream.getVideoTracks()[0]
-  if (track) {
-    if (isPortraitDevice()) {
-      await tryPortraitConstraints(track)
-    }
-  }
-
-  return stream
 }
 
 /**

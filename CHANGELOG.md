@@ -5,6 +5,37 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.6 - 2026-07-30 (removed the second live-camera reconfigure causing Android lag)
+
+- Photo capture regressed to ~15 seconds and video preview lagged continuously
+  after V2.20.4/5. Root cause: a second call left over from the same bug class
+  fixed in V2.20.4. `tryPortraitConstraints()` called `track.applyConstraints()`
+  on the already-open camera track, on every photo and video open, whenever the
+  sensor reported landscape. That is a live-track reconfigure exactly like
+  applyMaxVideoTrackQuality, which V2.20.4 removed for photo but this second
+  call site was missed. `applyConstraints()` on an active getUserMedia track is
+  unreliable on some Android hardware: it can stall for seconds or leave the
+  camera pipeline degraded for the rest of the session, which also explains the
+  "goes straight to files" report — that was the black-preview fallback message
+  added in V2.20.4 firing because this same reconfigure was stalling the track.
+- The manual browser test that showed capture as "instant" never exercised this
+  code path: the stubbed test camera was already portrait, so the
+  landscape-only branch that triggers the reconfigure never ran. It was
+  confirmed this time with a stubbed landscape (1920x1080) sensor stream, the
+  actual shape of the bug.
+- The reconfigure call is now removed entirely. Preview and photo orientation
+  are unaffected: both already correct sensor orientation in software
+  (CSS rotation for the live preview, a canvas rotate baked into every captured
+  still) regardless of what the raw track reports, and that was verified against
+  a stubbed landscape stream with zero `applyConstraints` calls and a
+  correctly-rotated output image.
+- Open risk, flagged rather than hidden: recorded VIDEO FILES are the one output
+  not corrected this way — MediaRecorder encodes the raw track, not the rotated
+  preview — so a landscape-sensor device could record a sideways video file. If
+  that turns up on the tablet, the fix is recording through a canvas (the same
+  frames already drawn correctly for stills) instead of the raw track, not
+  bringing back this reconfigure.
+
 ## V2.20.5 - 2026-07-30 (Android video recording no longer goes black on Record)
 
 - V2.20.4 fixed a black camera preview on Android tablets. A different bug
