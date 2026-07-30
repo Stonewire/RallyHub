@@ -553,6 +553,7 @@ export function EventForm({
             ) : stage.type === 'open' ? (
               <QuestStageGames
                 stage={stage}
+                groups={groups}
                 compatible={selectedGames.filter(
                   (g) =>
                     g.type === 'photo' ||
@@ -789,14 +790,17 @@ const QUEST_QUICK_FILTERS = [
 
 type QuestStageGamesProps = {
   stage: EventStage
+  groups: GameGroupWithItems[]
   /** Photo/video/text/puzzle games already added to the event. */
   compatible: GameRow[]
   onChange: EventFormProps['onChange']
 }
 
 /** Quest stage games: ordered draggable list (= players' display order) + quick add. */
-function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) {
+function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [groupFilter, setGroupFilter] = useState('all')
+  const [pickerOpen, setPickerOpen] = useState((stage.gameIds ?? []).length === 0)
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
   const inStage = useMemo(
@@ -810,6 +814,13 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
     () => compatible.filter((g) => !ids.includes(g.id)),
     [compatible, ids],
   )
+  const filteredAvailable = useMemo(() => {
+    if (groupFilter === 'all') return available
+    const gameIds = new Set(
+      groups.find((group) => group.id === groupFilter)?.items.map((item) => item.game_id) ?? [],
+    )
+    return available.filter((game) => gameIds.has(game.id))
+  }, [available, groupFilter, groups])
 
   // Adding always unions into the event library too (same rule as before).
   function setStageIds(nextIds: string[], addedIds: string[] = []) {
@@ -823,9 +834,10 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
   }
 
   function quickAdd(type: (typeof QUEST_QUICK_FILTERS)[number]['type']) {
-    const toAdd = available.filter((g) => type == null || g.type === type).map((g) => g.id)
+    const toAdd = filteredAvailable.filter((g) => type == null || g.type === type).map((g) => g.id)
     if (toAdd.length === 0) return
     setStageIds([...ids, ...toAdd], toAdd)
+    setPickerOpen(false)
   }
 
   function moveTo(from: number, to: number) {
@@ -881,7 +893,7 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
                   title="Remove from stage"
                   onClick={() => setStageIds(ids.filter((id) => id !== g.id))}
                 >
-                  <X className="size-3.5" />
+                  <Trash2 className="size-3.5" />
                 </button>
               </li>
             ))}
@@ -893,9 +905,28 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
         </p>
       )}
 
+      {inStage.length > 0 && !pickerOpen && available.length > 0 ? (
+        <NeoButton type="button" variant="surface" size="sm" onClick={() => setPickerOpen(true)}>
+          <Plus className="size-3.5" />
+          Add More
+        </NeoButton>
+      ) : null}
+
+      {pickerOpen || inStage.length === 0 ? <div className="border-border/70 space-y-3 border-t pt-3">
       <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={groupFilter}
+          onChange={(event) => setGroupFilter(event.target.value)}
+          className="border-input bg-background h-8 min-w-40 rounded-md border px-2 text-xs font-semibold"
+          aria-label="Filter available quest games by group"
+        >
+          <option value="all">All groups</option>
+          {groups.map((group) => (
+            <option key={group.id} value={group.id}>{group.name}</option>
+          ))}
+        </select>
         {QUEST_QUICK_FILTERS.map(({ label, type }) => {
-          const count = available.filter((g) => type == null || g.type === type).length
+          const count = filteredAvailable.filter((g) => type == null || g.type === type).length
           return (
             <Button
               key={label}
@@ -912,14 +943,17 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
         })}
       </div>
 
-      {available.length > 0 ? (
+      {filteredAvailable.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {available.map((g) => (
+          {filteredAvailable.map((g) => (
             <button
               key={g.id}
               type="button"
               className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-              onClick={() => setStageIds([...ids, g.id], [g.id])}
+              onClick={() => {
+                setStageIds([...ids, g.id], [g.id])
+                setPickerOpen(false)
+              }}
             >
               <Plus className="size-3" />
               {g.name}
@@ -927,7 +961,10 @@ function QuestStageGames({ stage, compatible, onChange }: QuestStageGamesProps) 
             </button>
           ))}
         </div>
+      ) : available.length > 0 ? (
+        <p className="text-muted-foreground text-xs">No available games in this group.</p>
       ) : null}
+      </div> : null}
     </div>
   )
 }

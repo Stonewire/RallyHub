@@ -325,7 +325,7 @@ export function AdminEventsPage() {
               ? permanentlyDeleteEvent.variables
               : undefined
           }
-          onRestore={(id) => void restoreEvent.mutateAsync(id)}
+          onRestore={(id) => restoreEvent.mutateAsync(id)}
           onOpen={(id) => navigate(`/admin/events/${id}`)}
           onDeletePermanently={(id) => {
             const event = trashedEventsQuery.data?.find((item) => item.id === id)

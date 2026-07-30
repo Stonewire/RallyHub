@@ -202,7 +202,7 @@ expected on this branch and is not a bug to chase.
   Games, Stages and shared Danger Zone surfaces now follow the same design
   language. The shared Organisation/Team facilitator table was updated too.
   Build and lint are clean; all 153 tests pass.
-- [~] **ND-3** Interaction/detail refinement. Safe presentation work is complete:
+- [x] **ND-3** Interaction/detail refinement. Safe redesign scope is code complete:
   the Event editor now has reference-style Display/UI/Purchase toggles, live
   desktop/mobile branding previews, a team stepper, four-way stage type control,
   refined break fields, and a complete Download/Reset/Delete Danger Zone. The
@@ -212,10 +212,20 @@ expected on this branch and is not a bug to chase.
   layout; the shared super-admin Paddle view is unchanged. Support chat now
   renders the current user's messages right/blue and the other party left/gold.
   My Account gained the identity header, inline name editing, password mismatch
-  state and dirty-only Save/Discard controls. Still intentionally absent: profile
+  state and dirty-only Save/Discard controls. The final autonomous pass completed
+  the group workflows (select/filter games while creating a group, and Add Games
+  for an existing group), type/group/search filters plus bulk restore in Deleted
+  Games, a real Music Library preview player and its playlist/date/duration table,
+  group-aware Quest-stage picking that collapses behind Add More after selection,
+  corrected the global New Game shortcut, and added skip-navigation, semantic main
+  content and a useful 404 recovery action. Production build and lint are clean;
+  all 153 tests pass. Still intentionally absent: profile
   photo, log-out-all-devices and per-user account deletion, because the database
-  and auth backend do not provide those capabilities. Any changes to puzzle
-  gameplay/scoring remain pending Rumen's screen-by-screen behaviour walkthrough.
+  and auth backend do not provide those capabilities. Permanent deletion of games
+  is also not exposed because no safe game-deletion backend exists. Puzzle
+  gameplay/scoring was deliberately preserved; only its editor presentation was
+  redesigned. The branch still requires Rumen's overall staging/sign-off before
+  it can enter the release workflow.
 
 ## UI redesign — facilitator console
 

@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { Link, Navigate, createBrowserRouter } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { RouteErrorBoundary } from '@/components/errors/RouteErrorBoundary'
@@ -87,10 +87,17 @@ function RootPage() {
 function NotFoundPage() {
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-foreground text-2xl font-bold">Page not found</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
+      <p className="text-primary text-xs font-bold tracking-[0.16em] uppercase">404</p>
+      <h1 className="text-foreground mt-2 text-3xl font-bold">Page not found</h1>
+      <p className="text-muted-foreground mt-2 max-w-sm text-sm">
         This URL does not match any RallyHub page.
       </p>
+      <Link
+        to="/"
+        className="bg-primary text-primary-foreground mt-6 rounded-md px-4 py-2 text-sm font-semibold"
+      >
+        Back to RallyHub
+      </Link>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { Pencil, Trash2, X } from 'lucide-react'
+import { Music2, Pencil, Play, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
@@ -22,6 +22,16 @@ import {
 } from '@/hooks/use-music-playlists'
 
 type SortBy = 'title' | 'date' | 'genre'
+
+function formatDuration(seconds: number | null) {
+  if (seconds == null || !Number.isFinite(seconds)) return '—'
+  const rounded = Math.max(0, Math.round(seconds))
+  return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`
+}
+
+function formatAddedDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+}
 
 /**
  * Org-wide Music Catalog manager — bulk upload (30s clips), edit (incl. optional
@@ -52,9 +62,10 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
   const [activePlaylist, setActivePlaylist] = useState<string | null>(null)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
 
   const allRows = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data])
-  const playlists = playlistsQuery.data ?? []
+  const playlists = useMemo(() => playlistsQuery.data ?? [], [playlistsQuery.data])
   const memberships = useMemo(() => membershipsQuery.data ?? [], [membershipsQuery.data])
 
   // playlist_id -> Set(track_id)
@@ -66,6 +77,18 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
     }
     return map
   }, [memberships])
+  const playlistNamesByTrack = useMemo(() => {
+    const names = new Map<string, string[]>()
+    const playlistById = new Map(playlists.map((playlist) => [playlist.id, playlist.name]))
+    for (const membership of memberships) {
+      const playlistName = playlistById.get(membership.playlist_id)
+      if (!playlistName) continue
+      const current = names.get(membership.track_id) ?? []
+      current.push(playlistName)
+      names.set(membership.track_id, current)
+    }
+    return names
+  }, [memberships, playlists])
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -94,6 +117,7 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
   }, [allRows, activePlaylist, tracksByPlaylist, search, sortBy])
 
   const selectedRows = allRows.filter((r) => selected.has(r.id))
+  const playingTrack = allRows.find((row) => row.id === playingTrackId) ?? null
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -251,6 +275,31 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
       <div className="min-w-0 p-4">
 
+      <div className="bg-nm-slate-900 text-white mb-4 flex flex-col gap-3 rounded-lg px-4 py-3 sm:flex-row sm:items-center">
+        <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
+          <Music2 className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold tracking-[0.1em] text-white/55 uppercase">Preview player</p>
+          <p className="truncate text-sm font-semibold">
+            {playingTrack ? playingTrack.title : 'Choose a track to preview'}
+          </p>
+          {playingTrack ? <p className="truncate text-xs text-white/60">{playingTrack.artist}</p> : null}
+        </div>
+        {playingTrack ? (
+          <audio
+            key={playingTrack.id}
+            src={playingTrack.clip_url ?? playingTrack.audio_url}
+            controls
+            preload="metadata"
+            className="h-8 w-full max-w-sm"
+            aria-label={`Preview ${playingTrack.title} by ${playingTrack.artist}`}
+          />
+        ) : (
+          <p className="text-xs text-white/55">Use the play button beside any song.</p>
+        )}
+      </div>
+
       {/* Search + sort */}
       <div className="border-border mb-3 flex flex-wrap items-center gap-2 border-b pb-3">
         <Input
@@ -337,24 +386,36 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
               </>
             ) : null}
           </div>
-          <div className="text-muted-foreground hidden grid-cols-[28px_minmax(180px,1fr)_120px_80px] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] sm:grid">
-            <span /> <span>Title / Artist</span> <span>Genre</span> <span className="text-right">Actions</span>
+          <div className="text-muted-foreground hidden grid-cols-[28px_minmax(180px,1fr)_minmax(120px,0.7fr)_90px_65px_80px] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] xl:grid">
+            <span /> <span>Title / Artist</span> <span>Playlists</span> <span>Added</span><span>Duration</span> <span className="text-right">Actions</span>
           </div>
           <ul className="divide-border/50 divide-y text-sm">
             {rows.map((row) => (
-              <li key={row.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 sm:grid-cols-[28px_minmax(180px,1fr)_120px_80px]">
+              <li key={row.id} className={`grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 xl:grid-cols-[28px_minmax(180px,1fr)_minmax(120px,0.7fr)_90px_65px_80px] ${playingTrackId === row.id ? 'bg-primary/5' : ''}`}>
                 <input
                   type="checkbox"
                   className="shrink-0"
                   checked={selected.has(row.id)}
                   onChange={() => toggle(row.id)}
                 />
-                <span className="min-w-0">
-                  <span className="text-foreground block truncate text-xs font-semibold">{row.title}</span>
-                  <span className="text-muted-foreground block truncate text-[11px]">{row.artist}</span>
+                <button
+                  type="button"
+                  className="group min-w-0 text-left"
+                  onClick={() => setPlayingTrackId(row.id)}
+                  aria-label={`Preview ${row.title} by ${row.artist}`}
+                >
+                  <span className="text-foreground flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold">
+                    <Play className="text-primary size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
+                    <span className="truncate">{row.title}</span>
+                  </span>
+                  <span className="text-muted-foreground block truncate pl-[18px] text-[11px]">{row.artist}</span>
                   {!row.clip_url ? <span className="text-amber-600"> · clip pending</span> : null}
+                </button>
+                <span className="text-muted-foreground hidden truncate text-xs xl:block">
+                  {playlistNamesByTrack.get(row.id)?.join(', ') || '—'}
                 </span>
-                <span className="text-muted-foreground hidden truncate text-xs sm:block">{row.genre || '—'}</span>
+                <span className="text-muted-foreground hidden text-xs xl:block">{formatAddedDate(row.created_at)}</span>
+                <span className="text-muted-foreground hidden text-xs tabular-nums xl:block">{formatDuration(row.duration_seconds)}</span>
                 <span className="flex justify-end">
                 <Button type="button" size="icon-sm" variant="ghost" onClick={() => startEdit(row)}>
                   <Pencil className="size-4" />

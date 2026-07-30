@@ -23,6 +23,12 @@ export function AdminLayout() {
         } as React.CSSProperties
       }
     >
+      <a
+        href="#admin-main"
+        className="bg-primary text-primary-foreground focus:top-2 fixed -top-20 left-2 z-[100] rounded-md px-3 py-2 text-sm font-semibold shadow-lg transition-[top]"
+      >
+        Skip to main content
+      </a>
       <AdminAppSidebar />
       <SidebarInset
         className={cn(
@@ -32,9 +38,9 @@ export function AdminLayout() {
         {/* The sidebar collapse control lives in the header now. */}
         <AdminHeader />
         <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          <div className="flex-1">
+          <main id="admin-main" className="flex-1" tabIndex={-1}>
             <Outlet />
-          </div>
+          </main>
           <AppLegalFooter />
         </div>
       </SidebarInset>

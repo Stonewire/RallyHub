@@ -67,7 +67,7 @@ export function AdminHeader() {
             <>
               <Divider />
               <Link
-                to="/admin/games"
+                to="/admin/games/new"
                 className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-[26px] shrink-0 items-center gap-1.5 border px-2.5 text-xs font-semibold whitespace-nowrap"
               >
                 <Plus className="size-3" strokeWidth={2} />
