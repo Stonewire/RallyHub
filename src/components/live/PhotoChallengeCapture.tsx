@@ -208,7 +208,7 @@ export function PhotoChallengeCapture({
       </div>
 
       <div
-        className="shrink-0 space-y-3 px-4 pt-3"
+        className="flex shrink-0 flex-col items-center space-y-3 px-4 pt-3"
         style={{
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}

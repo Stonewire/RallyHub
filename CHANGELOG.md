@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.19 - 2026-07-30 (centre the capture buttons on wide screens)
+
+- On the tablet's wide screen the Take photo / Record video / Submit buttons
+  sat left of centre: the button component is inline-flex, which ignores the
+  auto-margin centring the layout relied on. The capture footers are now
+  flex columns that centre their children, so the buttons sit centred on
+  every screen width. Phones were already visually centred and are
+  unchanged.
+
 ## V2.20.18 - 2026-07-30 (capture view goes edge to edge)
 
 - With the zoom crop gone, the tablet's wide camera view was rendering inside
