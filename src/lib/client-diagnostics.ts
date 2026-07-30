@@ -11,7 +11,6 @@ export type DiagnosticContext =
   | 'capture-timing'
   | 'submit-timing'
   | 'record-timing'
-  | 'tap-timing'
 
 export type DiagnosticPlatform = 'ios' | 'android' | 'desktop' | 'other'
 

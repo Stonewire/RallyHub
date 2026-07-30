@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.33 - 2026-07-31 (roll back to the confirmed-good V2.20.28 code)
+
+- Rumen reported delays back on the Hermit tablets and called for a rollback
+  to the last confirmed-good state. The code is now byte-identical to
+  V2.20.28, the build he signed off on device ("that's it") after the Hermit
+  shutter fix: the only live code difference since then was V2.20.29's
+  tap-measurement wrapper (the iPhone-freeze hunt's other two changes were
+  iOS-gated and already reverted in V2.20.32), and it is removed.
+- If delays still appear in Hermit on this build, they cannot be caused by
+  anything shipped since the sign-off; check the corner version stamp reads
+  V2.20.33 before judging, since Hermit has already been caught serving
+  stale cached bundles once tonight.
+
 ## V2.20.32 - 2026-07-31 (iOS freeze: experiments reverted, page-level causes exhausted)
 
 - Both remaining candidate fixes were disproven on device (V2.20.30 toast
