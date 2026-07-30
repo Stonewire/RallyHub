@@ -34,7 +34,6 @@ import {
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import {
-  detectPlatform,
   DiagnosticReportedError,
   nowMs,
   reportClientIssue,
@@ -568,12 +567,7 @@ export function JoinGameView({
       setSubmitting(false)
     })
     const afterFlush = nowMs()
-    // iOS test (31 Jul 2026): the submit sound is the last suspect for the
-    // constant-length post-submit freeze that floats between screens. Starting
-    // HTMLAudio playback on iOS activates the system audio session (and
-    // renegotiates the route after camera use), an OS-level UI stall invisible
-    // to every in-page timer. Skipped on iOS only; Android keeps the sound.
-    if (detectPlatform() !== 'ios') playSubmitSound()
+    playSubmitSound()
     notify('Submitted — waiting for approval')
     if (!timing) return
 

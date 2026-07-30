@@ -9,8 +9,6 @@ import {
   type ReactNode,
 } from 'react'
 
-import { detectPlatform } from '@/lib/client-diagnostics'
-
 type Notification = {
   id: number
   message: string
@@ -76,18 +74,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         >
           <div className="pointer-events-auto w-full max-w-md">
             <div
-              // backdrop-blur is dropped on iOS ONLY: the frosted toast froze
-              // iOS Safari's compositor for seconds every time it appeared
-              // (the post-submit screen freezes and next-tap lag, 31 Jul 2026,
-              // where every JS/paint timer measured idle while pixels stalled).
-              // A slightly darker flat background keeps it readable; Android
-              // and desktop keep the identical blurred look.
-              className={`flex items-center justify-center gap-2 rounded-2xl border border-white/25 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg ${
-                detectPlatform() === 'ios' ? '' : 'backdrop-blur-xl'
-              }`}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg backdrop-blur-xl"
               style={{
-                backgroundColor:
-                  detectPlatform() === 'ios' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.45)',
+                backgroundColor: 'rgba(0,0,0,0.45)',
                 boxShadow: `0 8px 32px rgba(0,0,0,0.35), inset 0 0 0 1px ${accentColor}55`,
               }}
             >

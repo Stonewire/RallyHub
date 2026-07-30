@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.32 - 2026-07-31 (iOS freeze: experiments reverted, page-level causes exhausted)
+
+- Both remaining candidate fixes were disproven on device (V2.20.30 toast
+  blur removal, V2.20.31 submit-sound skip) and are reverted: the sound and
+  the frosted toast are back exactly as before, on all platforms.
+- The night's instrumentation record now amounts to a proof: across every
+  reproduction of the iPhone's post-submit freeze, submit close, repaint,
+  tap queuing (hardware timestamps), and render all measured fast, and not
+  one iOS diagnostic row crossed a threshold. The multi-second stall exists
+  between iOS and the page, in Safari's own input and display pipeline, not
+  in the app, which is why no page-level change could touch it.
+- Parked in TRACKER.md as IOS-FREEZE with the decisive next step: a short
+  wired Web Inspector session (iPhone via cable to the Mac), whose timeline
+  can see the system layers that in-page instrumentation cannot. Not
+  event-blocking: the tablets are the event platform, and the iPhone flow
+  works correctly aside from the post-submit sluggishness.
+
 ## V2.20.31 - 2026-07-31 (test: skip the submit sound on iOS)
 
 - The toast blur was acquitted: V2.20.30 changed nothing on the iPhone. The
