@@ -294,7 +294,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 (No push yet — this is an intermediate commit; the feature ships as one push
-at the end of Task 6.)
+at the end of Task 7, once diagnostics are wired into every call site and
+the TRACKER.md/CHANGELOG/version bump are in place.)
 
 ---
 
