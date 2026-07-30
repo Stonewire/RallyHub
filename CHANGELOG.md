@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.31 - 2026-07-31 (test: skip the submit sound on iOS)
+
+- The toast blur was acquitted: V2.20.30 changed nothing on the iPhone. The
+  decisive new observation is that the post-submit freeze is a
+  constant-length delay that lands in different places (sometimes before the
+  game list appears, sometimes on the next tap after it), which points at a
+  fixed-duration system-level operation rather than rendering or app code.
+  The one such operation at every submission is the submit sound: starting
+  audio playback on iOS activates the system audio session, and after a
+  session has used the camera it renegotiates the audio route, a well-known
+  OS-level UI stall of one to two seconds that no in-page timer can see.
+- Test change, iOS only: the participant submit sound is skipped on iOS.
+  Android keeps its sound and is untouched, per Rumen's constraint. If the
+  freezes vanish with it, the sound is the confirmed cause and can be
+  brought back properly through the already-running Web Audio context
+  instead of HTMLAudio playback.
+
 ## V2.20.30 - 2026-07-31 (drop the toast blur on iOS: the post-submit freeze fix)
 
 - The iPhone's whole post-submit symptom family (text screen frozen for
