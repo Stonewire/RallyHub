@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
@@ -344,7 +344,7 @@ export function VideoChallengeCapture({
               controls
               playsInline
               preload="auto"
-              className={CHALLENGE_VIDEO_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
             >
               <source src={reviewUrl} type={recordedFile.type || undefined} />
             </video>
@@ -355,7 +355,7 @@ export function VideoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_MEDIA_CLASS}
+                className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (

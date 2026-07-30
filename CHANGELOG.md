@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.17 - 2026-07-30 (full camera view, no zoom crop, on every capture screen)
+
+- The vertical capture window was centre-cropping the camera image, which on
+  the tablets looked like heavy zoom and cost real quality (a slice of the
+  frame blown up to fill the window). Root cause is physical: the tablet's
+  camera sensor is landscape-mounted, so its full field of view is a wide
+  picture, and locking the tablet vertical cannot change the sensor's shape.
+- Per Rumen's call, full field of view wins: capture screens now show the
+  WHOLE camera frame inside the vertical window, letterboxed on black where
+  the sensor is wider than the screen. Saved photos are the full frame at
+  upload size, with no crop and no upscaling. Phones with portrait sensors
+  still fill the window edge to edge and are unaffected.
+- Video recording itself was never cropped (the recorded file always
+  contained the full frame); only its on-screen preview and review windows
+  were cropping, and those now show the full frame too. The recording
+  pipeline is untouched.
+- The same full-view treatment applies to the participant's pre-submit
+  review and the facilitator's submission viewer, so media is never shown
+  cropped anywhere in the flow.
+
 ## V2.20.16 - 2026-07-30 (photo capture matches the video capture's vertical window)
 
 - V2.20.15's rotation fix was the wrong diagnosis and is reverted: the

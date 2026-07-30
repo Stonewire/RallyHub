@@ -12,8 +12,13 @@ export const CHALLENGE_PREVIEW_MEDIA_CLASS =
 export const CHALLENGE_VIDEO_FRAME_CLASS =
   'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
 
-/** Fill the 9:16 frame; minor edge crop if sensor aspect differs slightly. */
-export const CHALLENGE_VIDEO_MEDIA_CLASS = 'size-full object-cover'
+/**
+ * Show the WHOLE frame inside the 9:16 window, letterboxed on black where the
+ * sensor is wider than the window. Used by photo and video capture so a
+ * landscape-sensor tablet is not zoom-cropped (full field of view, no quality
+ * loss from blowing up a slice).
+ */
+export const CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS = 'size-full object-contain'
 
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
@@ -114,12 +119,11 @@ const PHOTO_MAX_DIM = 1600
 const PHOTO_QUALITY = 0.8
 
 /**
- * Center-crop the live frame to the same 9:16 portrait window the preview
- * shows (object-cover in a fixed portrait frame), scaled to upload size, in
- * one canvas pass. No rotation: device evidence (30 Jul 2026) showed the
- * event tablet delivers upright content in landscape-shaped frames, so
- * rotating produced sideways photos while a plain portrait crop matches
- * exactly what the participant framed on screen.
+ * Scale the FULL live frame to upload size in one canvas pass. No cropping
+ * and no rotation: the event tablet's sensor is landscape-mounted and
+ * delivers upright content in wide frames, and Rumen's call (30 Jul 2026) is
+ * to keep the whole field of view rather than zoom-crop it to portrait.
+ * Phones with portrait sensors deliver portrait frames and are unaffected.
  */
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -129,20 +133,12 @@ function drawVideoFrameToCanvas(
   const vw = video.videoWidth
   const vh = video.videoHeight
 
-  const targetRatio = 9 / 16
-  let sw = vw
-  let sh = vh
-  if (vw / vh > targetRatio) sw = Math.round(vh * targetRatio)
-  else sh = Math.round(vw / targetRatio)
-  const sx = Math.round((vw - sw) / 2)
-  const sy = Math.round((vh - sh) / 2)
-
-  const scale = Math.min(1, PHOTO_MAX_DIM / sh)
-  canvas.width = Math.round(sw * scale)
-  canvas.height = Math.round(sh * scale)
+  const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(vw, vh))
+  canvas.width = Math.round(vw * scale)
+  canvas.height = Math.round(vh * scale)
 
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+  ctx.drawImage(video, 0, 0, vw, vh, 0, 0, canvas.width, canvas.height)
 }
 
 async function captureWithCanvas(
@@ -212,9 +208,8 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
  * is one canvas pass at upload size and orientation.
  *
  * Preview mirroring for the front camera is CSS-only; the saved image matches
- * the sensor output. The returned blob is already cropped to the preview's
- * 9:16 portrait window and at upload size, so callers must NOT run it through
- * downscalePhoto() again.
+ * the sensor output. The returned blob is the full frame at upload size, so
+ * callers must NOT run it through downscalePhoto() again.
  */
 export async function captureStillPhoto(
   stream: MediaStream,
