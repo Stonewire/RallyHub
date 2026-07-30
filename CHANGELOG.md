@@ -5,6 +5,27 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.2 - 2026-07-30 (photo and video submissions reach the server again)
+
+- Teams could take a photo or video, hit Submit, watch the loading screen, and
+  end up with nothing: no submission on their phone, nothing for the facilitator.
+  Uploads had been failing since V2.19.0 on 29 July. Only two photo/video
+  submissions existed in the database, both from 13 July.
+- V2.19.0 started attaching the `x-team-token` header, which proves a phone owns
+  the team it claims to be, to every participant request. Only Postgres reads
+  that header. Edge Functions and Storage answer the CORS preflight with a fixed
+  list of allowed headers that does not include it, so the browser passed the
+  preflight and then silently refused to send the real request. The upload
+  authorization call died there, and with it every photo and video submission and
+  every team join photo.
+- The header is now sent only on REST and RPC calls, the only place it is read.
+  No change to what the server enforces.
+- Verified against production from a real participant session: upload
+  authorization and the storage upload now go out without the header, a
+  submission insert carrying it returns 201, and the same insert without it is
+  still rejected with "This phone is not authorized for that team", so the
+  V2.19.x ownership guard is untouched. Test rows removed afterwards.
+
 ## V2.20.1 - 2026-07-30 (participant camera capture fixed on every platform)
 
 - Photo and video capture was dead for teams: the camera screen opened onto a
