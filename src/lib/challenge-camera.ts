@@ -15,19 +15,6 @@ export const CHALLENGE_VIDEO_FRAME_CLASS =
 /** Fill the 9:16 frame; minor edge crop if sensor aspect differs slightly. */
 export const CHALLENGE_VIDEO_MEDIA_CLASS = 'size-full object-cover'
 
-type ImageCaptureInstance = {
-  takePhoto: (settings?: PhotoSettings) => Promise<Blob>
-  getPhotoCapabilities?: () => Promise<PhotoCapabilities>
-}
-
-type ImageCaptureConstructor = new (track: MediaStreamTrack) => ImageCaptureInstance
-
-function imageCaptureCtor(): ImageCaptureConstructor | null {
-  if (typeof window === 'undefined') return null
-  const ctor = (window as Window & { ImageCapture?: ImageCaptureConstructor }).ImageCapture
-  return ctor ?? null
-}
-
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
   return window.innerHeight >= window.innerWidth
@@ -132,34 +119,16 @@ export async function getChallengeCameraStream(
   return stream
 }
 
-async function captureWithImageCapture(track: MediaStreamTrack): Promise<Blob> {
-  const ctor = imageCaptureCtor()
-  if (!ctor) throw new Error('ImageCapture unavailable')
+/** Upload size for stills. Matches downscalePhoto()'s target for file uploads. */
+const PHOTO_MAX_DIM = 1600
+const PHOTO_QUALITY = 0.8
 
-  const capture = new ctor(track)
-  const photoSettings: PhotoSettings = {}
-
-  if (capture.getPhotoCapabilities) {
-    try {
-      const caps = await capture.getPhotoCapabilities()
-      if (caps.imageWidth?.max) photoSettings.imageWidth = caps.imageWidth.max
-      if (caps.imageHeight?.max) photoSettings.imageHeight = caps.imageHeight.max
-    } catch {
-      // Use defaults from takePhoto()
-    }
-  }
-
-  const settings = track.getSettings()
-  if (!photoSettings.imageWidth && settings.width) {
-    photoSettings.imageWidth = settings.width
-  }
-  if (!photoSettings.imageHeight && settings.height) {
-    photoSettings.imageHeight = settings.height
-  }
-
-  return capture.takePhoto(photoSettings)
-}
-
+/**
+ * Rotate (when the sensor delivers landscape on an upright device) and scale
+ * to upload size in the SAME canvas pass. Draw-then-downscale would encode a
+ * JPEG only to immediately decode and shrink it: two extra full-frame passes,
+ * measured at ~1.1s each shot on the event tablets.
+ */
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
@@ -170,18 +139,18 @@ function drawVideoFrameToCanvas(
   const vh = video.videoHeight
   ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-  if (quarterTurn && vw > vh) {
-    canvas.width = vh
-    canvas.height = vw
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    ctx.rotate(Math.PI / 2)
-    ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
-    return
-  }
+  const rotate = quarterTurn && vw > vh
+  const outW = rotate ? vh : vw
+  const outH = rotate ? vw : vh
+  const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(outW, outH))
 
-  canvas.width = vw
-  canvas.height = vh
-  ctx.drawImage(video, 0, 0, vw, vh)
+  canvas.width = Math.round(outW * scale)
+  canvas.height = Math.round(outH * scale)
+
+  ctx.translate(canvas.width / 2, canvas.height / 2)
+  ctx.scale(scale, scale)
+  if (rotate) ctx.rotate(Math.PI / 2)
+  ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
 }
 
 async function captureWithCanvas(
@@ -214,7 +183,7 @@ async function captureWithCanvas(
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
       'image/jpeg',
-      0.95,
+      PHOTO_QUALITY,
     )
   })
 
@@ -243,8 +212,17 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
 }
 
 /**
- * Capture a full-resolution still from the live camera stream.
- * Preview mirroring for front camera is CSS-only; saved image matches sensor output.
+ * Grab a still from the live preview frame.
+ *
+ * Deliberately does NOT use ImageCapture.takePhoto(): device evidence
+ * (client_diagnostics capture-timing, 30 Jul 2026) measured that call at 2 to
+ * 23 SECONDS per shot on the event tablets, producing a 3-4MB full-res still
+ * that was then shrunk to ~130KB anyway. Reading the frame already on screen
+ * is one canvas pass at upload size and orientation.
+ *
+ * Preview mirroring for the front camera is CSS-only; the saved image matches
+ * the sensor output. The returned blob is already at upload size, so callers
+ * must NOT run it through downscalePhoto() again.
  */
 export async function captureStillPhoto(
   stream: MediaStream,
@@ -255,49 +233,7 @@ export async function captureStillPhoto(
   if (!track) throw new Error('No camera track')
 
   const quarterTurn = options?.quarterTurn ?? streamNeedsQuarterTurn(stream)
-
-  if (imageCaptureCtor()) {
-    try {
-      const blob = await captureWithImageCapture(track)
-      if (!quarterTurn) return blob
-      // ImageCapture may still return landscape on some Android devices — rotate via canvas.
-      return await rotatePhotoBlob(blob, true)
-    } catch {
-      // Fall back to canvas capture.
-    }
-  }
-
   return captureWithCanvas(stream, videoEl ?? null, quarterTurn)
-}
-
-async function rotatePhotoBlob(blob: Blob, quarterTurn: boolean): Promise<Blob> {
-  if (!quarterTurn) return blob
-  const url = URL.createObjectURL(blob)
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image()
-      el.onload = () => resolve(el)
-      el.onerror = () => reject(new Error('Could not decode photo'))
-      el.src = url
-    })
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas unavailable')
-    canvas.width = img.height
-    canvas.height = img.width
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    ctx.rotate(Math.PI / 2)
-    ctx.drawImage(img, -img.width / 2, -img.height / 2)
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
-        'image/jpeg',
-        0.95,
-      )
-    })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
 }
 
 /**

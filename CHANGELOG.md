@@ -5,6 +5,29 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.11 - 2026-07-30 (tablet photo shutter fixed from measured evidence)
+
+- V2.20.10's capture-timing rows nailed the tablet's slow shutter with hard
+  numbers: the full-resolution `ImageCapture.takePhoto()` call took between
+  2.2 and 23.4 seconds per shot across six captures, returning a 3-4MB still
+  that was then shrunk to ~130KB anyway, with the shrink costing a further
+  ~1.1 seconds per shot.
+- Photos are now grabbed from the live preview frame in a single canvas pass
+  that rotates (for landscape sensors on upright devices) and scales to the
+  1600px upload size together. Both measured costs are gone; the remaining
+  work per shot is one JPEG encode.
+- The `ImageCapture` and rotate-after-the-fact code paths are removed
+  entirely. Video recording is untouched.
+- The capture-timing instrumentation stays in place and is the verification:
+  if any shutter still takes over a second on the tablet, it writes a row.
+  No rows means fixed.
+- Also confirmed from the same evidence run: the tablet now reports itself as
+  Android (desktop mode is genuinely off), and the iPhone's earlier lingering
+  submit screens did not reproduce in a fresh event; its one slow submit was
+  2.6 seconds of legitimate video upload time. If the lingering returns in a
+  long-running event, the permanent submit-timing instrumentation will
+  capture it.
+
 ## V2.20.10 - 2026-07-30 (timing instrumentation for the two remaining slowdowns)
 
 - Diagnostic-only release, no behavior changes. Two timing captures added to

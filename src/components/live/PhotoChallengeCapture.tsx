@@ -8,7 +8,6 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
-  downscalePhoto,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
@@ -105,27 +104,23 @@ export function PhotoChallengeCapture({
     setCapturing(true)
     try {
       const shutterPressed = nowMs()
-      const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      // Already at upload size and orientation — no second downscale pass.
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
       const captureDone = nowMs()
-      const blob = await downscalePhoto(raw)
-      const downscaleDone = nowMs()
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
       setSnapshotUrl(url)
       stopStream()
 
-      const totalMs = Math.round(downscaleDone - shutterPressed)
+      const totalMs = Math.round(captureDone - shutterPressed)
       if (totalMs > 1000) {
         reportClientTiming('capture-timing', `slow photo shutter: ${totalMs}ms`, {
           eventId,
           extra: {
-            captureMs: Math.round(captureDone - shutterPressed),
-            downscaleMs: Math.round(downscaleDone - captureDone),
+            captureMs: totalMs,
             totalMs,
             cameraOpenMs: cameraOpenMsRef.current,
-            imageCaptureApi: typeof window !== 'undefined' && 'ImageCapture' in window,
-            rawBytes: raw.size,
             finalBytes: blob.size,
           },
         })
