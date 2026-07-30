@@ -55,12 +55,14 @@ export function previewVideoStyle(
 }
 
 /**
- * Recording (withAudio) runs camera, preview, and encoder at once; 720p keeps
- * budget tablets at full frame rate. Device evidence (record-timing, 30 Jul
- * 2026): even at 1080p with the ~5Mbps hardware mp4 encoder, the event
- * tablet's preview measured 9fps. Rumen's explicit call: frame rate over
- * resolution. Photo opens without audio and grabs one still, so it keeps the
- * sharper 1080p.
+ * Recording (withAudio) runs camera, preview, and encoder at once. The 720p
+ * recording request is ANDROID-ONLY, calibrated by device evidence
+ * (record-timing, 30 Jul 2026): the event tablet's preview measured 9fps even
+ * at 1080p, and unknown Android hardware gets the same safe floor. iPhones
+ * and iPads are known-good camera hardware and asking them for 720x1280 made
+ * Safari pick a wide low-resolution mode (horizontal, soft preview reported
+ * 30 Jul 2026), so iOS keeps the full 1080x1920 portrait request. Photo opens
+ * without audio and grabs one still, so it uses 1080p everywhere.
  *
  * Ideal-only sizes: `min` is a HARD requirement that rejects with
  * OverconstrainedError on cameras that cannot meet it (every 720p landscape
@@ -70,10 +72,11 @@ export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): MediaStreamConstraints {
+  const lowPowerRecording = withAudio && isAndroid()
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: withAudio ? 720 : 1080 },
-    height: { ideal: withAudio ? 1280 : 1920 },
+    width: { ideal: lowPowerRecording ? 720 : 1080 },
+    height: { ideal: lowPowerRecording ? 1280 : 1920 },
     aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',
@@ -83,6 +86,10 @@ export function buildChallengeVideoConstraints(
     video,
     audio: withAudio,
   }
+}
+
+function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
 async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {

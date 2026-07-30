@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.20 - 2026-07-30 (full 1080p video on iPhone and iPad, 720p stays Android-only)
+
+- The 720p recording request shipped in V2.20.14 was calibrated on the
+  Android event tablet but applied everywhere. On iPhone it made Safari pick
+  a wide, low-resolution camera mode: a horizontal preview and visibly lower
+  quality on hardware that handles 1080p without breaking a sweat.
+- Video recording now asks for the full 1080x1920 portrait stream everywhere
+  EXCEPT Android, which keeps the measured 720p floor: the event tablet
+  needed it to stay smooth (9fps at 1080p, measured), and Android event
+  devices are unknown hardware in general. iPhones and iPads are known-good
+  cameras, per Rumen's explicit call.
+- Photo capture is unchanged (1080p everywhere already). The record-timing
+  instrumentation stays armed: if any device still records choppy or
+  oversized, it writes a row showing what the camera negotiated.
+
 ## V2.20.19 - 2026-07-30 (centre the capture buttons on wide screens)
 
 - On the tablet's wide screen the Take photo / Record video / Submit buttons
