@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.23 - 2026-07-31 (name the stage that owns Hermit's 13-second shutter)
+
+- Diagnostic-only. Photo capture inside the Hermit app is erratically slow:
+  the timing rows show three real shots at 13.2 seconds almost to the
+  millisecond (13172, 13157, 13198ms) with a 1.4 second outlier. Numbers
+  that identical are a hidden timeout or forced fallback inside the WebView,
+  not random load, and the current measurement only sees the capture step as
+  one block.
+- The capture step's timing is now split into its parts (setup, canvas draw,
+  JPEG encode) and attached to the same capture-timing rows, so the next
+  slow Hermit shot names the exact operation that owns the 13 seconds. Fast
+  shots keep writing nothing.
+
 ## V2.20.22 - 2026-07-31 (join photo uses the in-app camera on tablets)
 
 - The last open item from the original five: the join screen's Take Photo on

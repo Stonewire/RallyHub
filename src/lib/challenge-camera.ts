@@ -177,10 +177,24 @@ function drawVideoFrameToCanvas(
   ctx.drawImage(video, 0, 0, vw, vh, 0, 0, canvas.width, canvas.height)
 }
 
+/**
+ * Per-shot stage durations, for the Hermit WebView investigation: three real
+ * shots measured 13.2s almost to the millisecond (31 Jul 2026), a signature
+ * of a hidden timeout, and this breakdown names the stage that owns it.
+ */
+export type CaptureStages = {
+  setupMs: number
+  drawMs: number
+  encodeMs: number
+  ownedVideo: boolean
+}
+
 async function captureWithCanvas(
   stream: MediaStream,
   videoEl: HTMLVideoElement | null,
+  onStages?: (stages: CaptureStages) => void,
 ): Promise<Blob> {
+  const started = performance.now()
   const video = videoEl ?? document.createElement('video')
   const ownsVideo = !videoEl
 
@@ -200,7 +214,9 @@ async function captureWithCanvas(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
+  const beforeDraw = performance.now()
   drawVideoFrameToCanvas(ctx, canvas, video)
+  const afterDraw = performance.now()
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -209,10 +225,18 @@ async function captureWithCanvas(
       PHOTO_QUALITY,
     )
   })
+  const afterEncode = performance.now()
 
   if (ownsVideo) {
     video.srcObject = null
   }
+
+  onStages?.({
+    setupMs: Math.round(beforeDraw - started),
+    drawMs: Math.round(afterDraw - beforeDraw),
+    encodeMs: Math.round(afterEncode - afterDraw),
+    ownedVideo: ownsVideo,
+  })
 
   return blob
 }
@@ -250,11 +274,12 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
 export async function captureStillPhoto(
   stream: MediaStream,
   videoEl?: HTMLVideoElement | null,
+  onStages?: (stages: CaptureStages) => void,
 ): Promise<Blob> {
   const track = stream.getVideoTracks()[0]
   if (!track) throw new Error('No camera track')
 
-  return captureWithCanvas(stream, videoEl ?? null)
+  return captureWithCanvas(stream, videoEl ?? null, onStages)
 }
 
 /**

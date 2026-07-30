@@ -101,8 +101,11 @@ export function PhotoChallengeCapture({
     setCapturing(true)
     try {
       const shutterPressed = nowMs()
+      let stages: Record<string, number | boolean> = {}
       // Already at upload size and orientation — no second downscale pass.
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current)
+      const blob = await captureStillPhoto(streamRef.current, videoRef.current, (s) => {
+        stages = s
+      })
       const captureDone = nowMs()
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
@@ -119,6 +122,7 @@ export function PhotoChallengeCapture({
             totalMs,
             cameraOpenMs: cameraOpenMsRef.current,
             finalBytes: blob.size,
+            ...stages,
           },
         })
       }
