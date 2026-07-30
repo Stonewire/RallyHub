@@ -23,6 +23,7 @@ import {
 } from '@/lib/event-demo'
 import { unlockAudioFromUserGesture } from '@/lib/sounds'
 import {
+  brandColorsForEvent,
   displayTextColorForEvent,
   isEventLive,
   PARTICIPANT_TEAM_KEY,
@@ -31,7 +32,8 @@ import {
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
-import { requestTeamMediaPermissions } from '@/lib/media-permissions'
+import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
+import { shouldUseNativePhotoCapture } from '@/lib/capture-platform'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadParticipantAsset } from '@/lib/storage'
@@ -83,7 +85,9 @@ export function JoinEventPage() {
   const [claimError, setClaimError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [justJoined, setJustJoined] = useState(false)
-  const [mediaReady, setMediaReady] = useState(false)
+  // In-app camera for the team photo, with the OS picker as the fallback.
+  const [teamPhotoCaptureOpen, setTeamPhotoCaptureOpen] = useState(false)
+  const [teamPhotoForceNative, setTeamPhotoForceNative] = useState(false)
 
   const myTeam = bundle?.teams.find((t) => t.id === teamId) ?? null
   const hasJoined = Boolean(teamId && (myTeam?.name?.trim() || justJoined))
@@ -128,10 +132,6 @@ export function JoinEventPage() {
     }
   }, [bundle?.state.announcement, bundle?.state.announcement_target])
 
-  useEffect(() => {
-    if (mediaReady) return
-    void requestTeamMediaPermissions().then((granted) => setMediaReady(granted))
-  }, [mediaReady])
 
   if (loading || !bundle) {
     return (
@@ -407,11 +407,24 @@ export function JoinEventPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => photoInputRef.current?.click()}
+                onClick={() => {
+                  if (teamPhotoForceNative || shouldUseNativePhotoCapture()) {
+                    photoInputRef.current?.click()
+                    return
+                  }
+                  setTeamPhotoCaptureOpen(true)
+                }}
               >
                 <Camera className="size-4" />
                 Take Photo
               </Button>
+              <button
+                type="button"
+                className="text-muted-foreground w-full text-xs underline"
+                onClick={() => photoInputRef.current?.click()}
+              >
+                Or upload a photo
+              </button>
               {photoPreview ? (
                 <img
                   src={photoPreview}
@@ -439,6 +452,22 @@ export function JoinEventPage() {
             </div>
           </Card>
         </div>
+      ) : null}
+
+      {teamPhotoCaptureOpen ? (
+        <PhotoChallengeCapture
+          accentColor={brandColorsForEvent(event, organization)[2]}
+          onClose={() => setTeamPhotoCaptureOpen(false)}
+          onCameraUnavailable={() => {
+            setTeamPhotoForceNative(true)
+            setTeamPhotoCaptureOpen(false)
+          }}
+          onFileReady={(file) => {
+            setTeamPhotoCaptureOpen(false)
+            setClaimError(null)
+            setClaimPhoto(file)
+          }}
+        />
       ) : null}
     </LivePanelShell>
   )

@@ -1,77 +1,48 @@
-const TEAM_MEDIA_PERMISSION_KEY = 'rallyhub:team-media-permission-granted'
+/**
+ * Camera / mic access for participant capture.
+ *
+ * Permission is requested at the moment the participant taps a capture button,
+ * inside the user gesture — never up front on page load. Browsers (Chrome on
+ * Android in particular) suppress or auto-dismiss gesture-less prompts, and a
+ * suppressed prompt used to leave capture permanently dead with no way back.
+ */
 
-export function hasStoredMediaGrant(): boolean {
-  try {
-    return localStorage.getItem(TEAM_MEDIA_PERMISSION_KEY) === '1'
-  } catch {
-    return false
+/** Turn a getUserMedia rejection into something a participant can act on. */
+export function mediaErrorMessage(err: unknown, allowUpload = true): string {
+  const name =
+    err instanceof Error ? err.name : ((err as { name?: string } | null)?.name ?? '')
+  const upload = allowUpload ? ' or upload a file instead' : ''
+
+  switch (name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return 'Camera blocked. Allow camera access for this site in your browser settings, then try again'
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+    case 'OverconstrainedError':
+      return `No usable camera found on this device${upload}`
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return `Camera is already in use by another app. Close it and try again${upload}`
+    default:
+      return `Could not open the camera${upload}`
   }
 }
 
-function storeGrant() {
-  try {
-    localStorage.setItem(TEAM_MEDIA_PERMISSION_KEY, '1')
-  } catch {
-    // Ignore storage errors in private modes.
-  }
-}
-
-async function isAlreadyGrantedByPermissionsApi(): Promise<boolean> {
-  if (!('permissions' in navigator) || !navigator.permissions?.query) return false
-  try {
-    const [cameraPerm, micPerm] = await Promise.all([
-      navigator.permissions.query({ name: 'camera' as PermissionName }),
-      navigator.permissions.query({ name: 'microphone' as PermissionName }),
-    ])
-    return cameraPerm.state === 'granted' && micPerm.state === 'granted'
-  } catch {
-    return false
-  }
-}
-
-export async function mediaPermissionsAlreadyGranted(): Promise<boolean> {
-  if (hasStoredMediaGrant()) return true
-  if (await isAlreadyGrantedByPermissionsApi()) {
-    storeGrant()
-    return true
-  }
-  return false
-}
-
-/** Request camera + mic once when the join app opens (user gesture not required for first prompt). */
-export async function requestTeamMediaPermissions(): Promise<boolean> {
-  if (!navigator.mediaDevices?.getUserMedia) return false
-  if (await mediaPermissionsAlreadyGranted()) return true
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
-      audio: true,
-    })
-    stream.getTracks().forEach((t) => t.stop())
-    storeGrant()
-    return true
-  } catch {
-    return false
-  }
-}
-
-type MediaStreamConstraints = {
-  video?: boolean | MediaTrackConstraints
-  audio?: boolean | MediaTrackConstraints
+/** True when the browser exposes a camera API at all (needs a secure context). */
+export function canOpenCamera(): boolean {
+  return Boolean(navigator.mediaDevices?.getUserMedia)
 }
 
 /**
- * Open camera/mic for a challenge without re-prompting when permission was already granted.
- * Does not request permission — call requestTeamMediaPermissions() once at app open.
+ * Open a camera/mic stream. Throws on failure — callers show
+ * mediaErrorMessage(err) and fall back to file upload.
  */
 export async function getTeamMediaStream(
   constraints: MediaStreamConstraints,
-): Promise<MediaStream | null> {
-  if (!navigator.mediaDevices?.getUserMedia) return null
-  if (!(await mediaPermissionsAlreadyGranted())) return null
-  try {
-    return await navigator.mediaDevices.getUserMedia(constraints)
-  } catch {
-    return null
+): Promise<MediaStream> {
+  if (!canOpenCamera()) {
+    throw Object.assign(new Error('getUserMedia unavailable'), { name: 'NotFoundError' })
   }
+  return navigator.mediaDevices.getUserMedia(constraints)
 }

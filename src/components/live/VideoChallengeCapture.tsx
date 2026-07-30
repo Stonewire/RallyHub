@@ -17,6 +17,7 @@ import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
 } from '@/lib/live-event'
+import { mediaErrorMessage } from '@/lib/media-permissions'
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import {
@@ -111,9 +112,12 @@ export function VideoChallengeCapture({
   }
 
   async function openPreview(facing: ChallengeFacingMode) {
-    const stream = await getChallengeCameraStream(facing, true)
-    if (!stream) {
-      notify('Camera access not granted — allow camera when the app opens, or upload a video')
+    let stream: MediaStream
+    try {
+      stream = await getChallengeCameraStream(facing, true)
+    } catch (err) {
+      // Modal stays open: it already offers "Upload video" as the fallback.
+      notify(mediaErrorMessage(err))
       return
     }
     streamRef.current = stream

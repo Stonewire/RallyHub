@@ -53,14 +53,21 @@ export function previewVideoStyle(
   return { transform: parts.join(' ') }
 }
 
+/**
+ * Ideal-only constraints. `min`/`exact` are HARD requirements: a portrait
+ * `height: { min: 1280 }` rejects with OverconstrainedError on every 720p
+ * landscape webcam (laptops, desktops) and on plenty of tablets, which killed
+ * the in-app camera outright. Ideals degrade instead of failing; the portrait
+ * fixups below run on the negotiated track.
+ */
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): MediaStreamConstraints {
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: 1080, min: 720 },
-    height: { ideal: 1920, min: 1280 },
+    width: { ideal: 1080 },
+    height: { ideal: 1920 },
     aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',
@@ -114,12 +121,21 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   }
 }
 
+/** Throws on failure; callers report mediaErrorMessage(err) and offer upload. */
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
-): Promise<MediaStream | null> {
-  const stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
-  if (!stream) return null
+): Promise<MediaStream> {
+  let stream: MediaStream
+  try {
+    stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
+  } catch (err) {
+    // ponytail: one bare retry covers drivers that reject any resolution hint
+    // and cameras with no usable facingMode. Anything past that is a real fault.
+    const name = err instanceof Error ? err.name : ''
+    if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw err
+    stream = await getTeamMediaStream({ video: true, audio: withAudio })
+  }
 
   const track = stream.getVideoTracks()[0]
   if (track) {

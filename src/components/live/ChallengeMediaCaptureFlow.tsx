@@ -49,10 +49,14 @@ export function ChallengeMediaCaptureFlow({
   const [nativePreviewFile, setNativePreviewFile] = useState<File | null>(null)
   const [nativePreviewUrl, setNativePreviewUrl] = useState<string | null>(null)
 
+  // Set when the in-app camera cannot open at all (blocked, missing, in use):
+  // every later attempt goes straight to the OS camera / file picker.
+  const [forceNative, setForceNative] = useState(false)
+
   const useNativePhoto = shouldUseNativePhotoCapture()
   const useNativeVideo = shouldUseNativeVideoCapture()
   const useNativeForMedia =
-    mediaType === 'photo' ? useNativePhoto : useNativeVideo
+    forceNative || (mediaType === 'photo' ? useNativePhoto : useNativeVideo)
   const captureActive = captureOpen || nativePreviewFile !== null
 
   useEffect(() => {
@@ -148,6 +152,11 @@ export function ChallengeMediaCaptureFlow({
     setCaptureOpen(false)
   }
 
+  function handleCameraUnavailable() {
+    setForceNative(true)
+    setCaptureOpen(false)
+  }
+
   function handleInAppFileReady(file: File) {
     onFileReady(file)
     setCaptureOpen(false)
@@ -172,22 +181,21 @@ export function ChallengeMediaCaptureFlow({
 
   return (
     <>
-      {useNativeForMedia ? (
-        <input
-          ref={nativeInputRef}
-          type="file"
-          accept={nativeAccept}
-          {...(mediaType === 'photo'
-            ? { capture: 'environment' as const }
-            : { capture: true })}
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            e.target.value = ''
-            if (f) void handleNativeFile(f)
-          }}
-        />
-      ) : null}
+      {/* Always mounted so the camera-unavailable fallback has an input to open. */}
+      <input
+        ref={nativeInputRef}
+        type="file"
+        accept={nativeAccept}
+        {...(mediaType === 'photo'
+          ? { capture: 'environment' as const }
+          : { capture: true })}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) void handleNativeFile(f)
+        }}
+      />
 
       <ChallengeCaptureBriefing
         title={title}
@@ -218,6 +226,7 @@ export function ChallengeMediaCaptureFlow({
           accentColor={accentColor}
           disabled={disabled}
           onClose={closeInAppCapture}
+          onCameraUnavailable={handleCameraUnavailable}
           onFileReady={handleInAppFileReady}
         />
       ) : null}
