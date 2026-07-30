@@ -8,9 +8,18 @@ export type ChallengeFacingMode = 'environment' | 'user'
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
 
-/** Fixed 9:16 portrait frame for video capture and review. */
+/** Fixed 9:16 portrait frame for embedded review surfaces (modals, cards). */
 export const CHALLENGE_VIDEO_FRAME_CLASS =
   'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
+
+/**
+ * Full-bleed capture container: the live camera uses the whole available
+ * screen, so a landscape-sensor tablet's letterboxed wide view renders as
+ * large as the display allows instead of inside a narrow phone-shaped column
+ * (too-small-to-frame report, 30 Jul 2026).
+ */
+export const CHALLENGE_CAPTURE_FRAME_CLASS =
+  'relative size-full overflow-hidden bg-black'
 
 /**
  * Show the WHOLE frame inside the 9:16 window, letterboxed on black where the

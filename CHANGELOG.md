@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.18 - 2026-07-30 (capture view goes edge to edge)
+
+- With the zoom crop gone, the tablet's wide camera view was rendering inside
+  a narrow phone-shaped column and came out too small to frame a shot with.
+  The photo and video capture screens now use the whole screen for the
+  camera: the full view renders as large as the display allows on every
+  device, letterboxed only where the sensor's shape demands it.
+- Embedded review surfaces (submission viewer, pre-submit review card) keep
+  their compact framed layout; only the live capture screens go full bleed.
+- Context for the record, from Rumen's question: the tablet's camera cannot
+  deliver a true vertical full-frame picture because its sensor is
+  physically landscape-mounted. Tablet native camera apps that show
+  "portrait" are crop-zooming the same wide sensor. Full field of view on
+  this hardware is inherently a wide picture; phones with portrait sensors
+  are unaffected and stay fully vertical.
+
 ## V2.20.17 - 2026-07-30 (full camera view, no zoom crop, on every capture screen)
 
 - The vertical capture window was centre-cropping the camera image, which on

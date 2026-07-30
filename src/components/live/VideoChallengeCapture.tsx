@@ -6,7 +6,7 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
   getChallengeCameraStream,
   previewVideoStyle,
@@ -335,8 +335,8 @@ export function VideoChallengeCapture({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
+      <div className="flex min-h-0 flex-1">
+        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
