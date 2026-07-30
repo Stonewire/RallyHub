@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildDiagnosticPayload,
   detectPlatform,
+  DiagnosticReportedError,
   diagnosticSummary,
   reportClientIssue,
 } from '@/lib/client-diagnostics'
@@ -42,6 +43,22 @@ describe('buildDiagnosticPayload', () => {
     expect(payload.team_id).toBe('team-1')
     const detail = payload.detail as { extra: Record<string, unknown> }
     expect(detail.extra).toEqual({ mediaType: 'video' })
+  })
+})
+
+describe('DiagnosticReportedError', () => {
+  it('is an Error subclass carrying the given message and a marker name', () => {
+    const err = new DiagnosticReportedError('Could not upload submission (boom)')
+    expect(err).toBeInstanceOf(Error)
+    expect(err).toBeInstanceOf(DiagnosticReportedError)
+    expect(err.name).toBe('DiagnosticReportedError')
+    expect(err.message).toBe('Could not upload submission (boom)')
+  })
+
+  it('preserves the cause option so the original error is not lost', () => {
+    const cause = new Error('original failure')
+    const err = new DiagnosticReportedError('wrapped', { cause })
+    expect(err.cause).toBe(cause)
   })
 })
 

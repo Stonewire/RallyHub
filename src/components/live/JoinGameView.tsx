@@ -33,7 +33,7 @@ import {
 } from '@/contexts/notification-context'
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
-import { reportClientIssue } from '@/lib/client-diagnostics'
+import { DiagnosticReportedError, reportClientIssue } from '@/lib/client-diagnostics'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
@@ -628,7 +628,7 @@ export function JoinGameView({
           teamId,
           extra: { gameId: game.id },
         })
-        throw new Error(`Could not finish submitting (${detail})`, { cause: err })
+        throw new DiagnosticReportedError(`Could not finish submitting (${detail})`, { cause: err })
       }
 
       const { data, error } = await write
@@ -647,9 +647,13 @@ export function JoinGameView({
         setSelectedGame(game)
       }
       const msg =
-        err instanceof Error && err.message.includes('Could not finish submitting')
+        err instanceof DiagnosticReportedError
           ? err.message
-          : "Couldn't submit — tap to retry"
+          : `Couldn't submit (${reportClientIssue('text-submit', err, {
+              eventId: event.id,
+              teamId,
+              extra: { gameId: game.id },
+            })}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
@@ -687,7 +691,7 @@ export function JoinGameView({
           teamId,
           extra: { gameId: game.id, mediaType: kind },
         })
-        throw new Error(`Could not upload submission (${detail})`, { cause: err })
+        throw new DiagnosticReportedError(`Could not upload submission (${detail})`, { cause: err })
       }
       const mediaType = game.type === 'video' ? 'video' : 'photo'
       optimistic = optimisticOpenSubmission(game, url, mediaType)
@@ -724,9 +728,15 @@ export function JoinGameView({
         setSelectedGame(game)
       }
       const msg =
-        err instanceof Error && (err.message.includes('must be') || err.message.includes('Could not upload'))
+        err instanceof Error && err.message.includes('must be')
           ? err.message
-          : "Couldn't submit — tap to retry"
+          : err instanceof DiagnosticReportedError
+            ? err.message
+            : `Couldn't submit (${reportClientIssue('submission-upload', err, {
+                eventId: event.id,
+                teamId,
+                extra: { gameId: game.id },
+              })}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }

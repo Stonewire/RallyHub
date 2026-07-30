@@ -18,6 +18,18 @@ export type DiagnosticOptions = {
   extra?: DiagnosticExtra
 }
 
+/**
+ * Thrown by an inner wrapper that has already called reportClientIssue, so an
+ * outer catch can tell "already reported, just show this message" apart from
+ * "not yet reported, report it now" without fragile string matching.
+ */
+export class DiagnosticReportedError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'DiagnosticReportedError'
+  }
+}
+
 /** Coarse platform tag for filtering client_diagnostics rows. */
 export function detectPlatform(): DiagnosticPlatform {
   if (typeof navigator === 'undefined') return 'other'
