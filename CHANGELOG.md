@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.12 - 2026-07-30 (measure the choppy tablet video before fixing it)
+
+- Diagnostic-only release for the last big open item: video recording on the
+  Android tablet is visibly choppy while recording. "Choppy" is low frames
+  per second, and that is measurable, so this release measures it instead of
+  guessing between the three suspects (sensor pushed to maximum resolution,
+  the hardware mp4 encoder, the requested bitrate).
+- While recording, the preview's real frame rate is counted from actual
+  rendered frames. When a recording of at least 1.5 seconds ends with a
+  preview under 24fps, a track resolution beyond 1080x1920, or an
+  unmeasurable frame rate, a `record-timing` row captures: measured fps, the
+  resolution and frame rate the camera actually negotiated, the recorder
+  format chosen, the requested bitrate, recording duration, and file size.
+- Smooth recordings write nothing. The next tablet recording session gives
+  the numbers that pick the fix.
+
 ## V2.20.11 - 2026-07-30 (tablet photo shutter fixed from measured evidence)
 
 - V2.20.10's capture-timing rows nailed the tablet's slow shutter with hard

@@ -9,6 +9,7 @@ export type DiagnosticContext =
   | 'video-record'
   | 'capture-timing'
   | 'submit-timing'
+  | 'record-timing'
 
 export type DiagnosticPlatform = 'ios' | 'android' | 'desktop' | 'other'
 
