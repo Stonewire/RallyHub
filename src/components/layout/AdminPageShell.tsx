@@ -10,6 +10,7 @@ type AdminPageShellProps = {
   backTo?: string
   backLabel?: string
   className?: string
+  centeredHeader?: boolean
 }
 
 /** Centered responsive content column for admin pages (neo-minimal). */

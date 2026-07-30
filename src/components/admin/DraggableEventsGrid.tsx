@@ -133,10 +133,9 @@ export function DraggableEventsGrid({
                 onSelect={(status) => onStatusChange(event.id, status)}
               />
             </div>
-            <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
-              <CalendarDays className="size-3.5" />
-              {formatEventDate(event.event_date)}
-            </p>
+            <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatEventDate(event.event_date)}</p>
+            </div>
           </div>
         </div>
 
@@ -185,6 +184,7 @@ export function DraggableEventsGrid({
           )}
           <NeoButton type="button" variant="ghost" size="sm" className="text-destructive px-2" disabled={deleting} onClick={() => onDelete(event)} title="Delete event">
             <Trash2 className="size-3.5" />
+            Delete
           </NeoButton>
         </div>
       </article>
@@ -196,13 +196,13 @@ export function DraggableEventsGrid({
       {upcoming.length > 0 ? (
         <section>
           <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Upcoming Events</p>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{upcoming.map((event) => eventCard(event))}</div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">{upcoming.map((event) => eventCard(event))}</div>
         </section>
       ) : null}
       {archived.length > 0 ? (
         <section>
           <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Past / Archived Events</p>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{archived.map((event) => eventCard(event, true))}</div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(14.5rem,1fr))] gap-4">{archived.map((event) => eventCard(event, true))}</div>
         </section>
       ) : null}
     </div>

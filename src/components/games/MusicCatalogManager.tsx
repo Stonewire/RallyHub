@@ -203,7 +203,7 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
       {error ? <QueryError message={error} /> : null}
 
-      <div className="border-nm-slate-800 bg-card overflow-hidden rounded-lg border-2 lg:grid lg:grid-cols-[180px_minmax(0,1fr)]">
+      <div className="border-nm-slate-800 bg-card min-h-[35rem] overflow-hidden rounded-lg border-2 lg:grid lg:grid-cols-[150px_minmax(0,1fr)_130px]">
       {/* Playlist rail */}
       <aside className="border-border bg-card flex flex-col border-b p-3 lg:min-h-[34rem] lg:border-b-0 lg:border-r">
         <div className="mb-3">
@@ -440,6 +440,14 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
         </div>
       )}
       </div>
+      <aside className="bg-nm-slate-800 hidden min-h-[35rem] flex-col lg:flex">
+        <div className="bg-primary text-primary-foreground flex flex-1 items-center justify-center px-3 text-center text-[11px] font-bold tracking-[0.08em] uppercase">
+          Album Cover
+        </div>
+        <p className="px-3 py-3 text-center text-xs font-bold text-white">
+          {activePlaylist ? playlists.find((playlist) => playlist.id === activePlaylist)?.name : 'Full Library'}
+        </p>
+      </aside>
       </div>
 
       {editing ? (

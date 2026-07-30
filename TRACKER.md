@@ -226,6 +226,22 @@ expected on this branch and is not a bug to chase.
   gameplay/scoring was deliberately preserved; only its editor presentation was
   redesigned. The branch still requires Rumen's overall staging/sign-off before
   it can enter the release workflow.
+- [~] **ND-4** High-fidelity layout correction after live review. The earlier
+  implementation followed the feature inventory but did not follow the design's
+  page geometry closely enough. The shared page shell now uses the full admin
+  workspace with the reference's 32px inset instead of a centered 1152px column,
+  and admin headings use Inter at 32px/700 rather than the legacy display serif.
+  Organisation now follows the exact two-column hierarchy: Brand Identity and
+  Legal & Billing on the left, Tablet Access and Team Management on the right,
+  with Public/Private tags, the large logo dropzone, compact colour controls,
+  payment-details link, compact QR controls, and both data-export and deletion
+  rows in the Danger Zone. Billing now uses the reference's 1:2 plan/invoice
+  grid; Support uses its centered heading, segmented control and 520px case
+  form; My Account uses paired profile/details and password/security columns.
+  Games and Events use the denser auto-fill card grids from the design, and the
+  Music Library now includes its right-hand album/playlist rail. Real Paddle,
+  auth, deletion, event lifecycle and game-editing behavior remains intact.
+  Build/lint/tests are clean (153 tests); awaiting Rumen's refreshed visual pass.
 
 ## UI redesign — facilitator console
 

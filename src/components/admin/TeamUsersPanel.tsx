@@ -233,7 +233,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
     }
   }
 
-  const title = facilitatorsOnly ? 'Facilitators' : 'Team'
+  const title = facilitatorsOnly ? 'Facilitators' : 'Team Management'
   const subtitle = facilitatorsOnly
     ? 'Create facilitator accounts with a temporary password for first login.'
     : 'Organization accounts with username login and a temporary password on first sign-in.'
@@ -241,21 +241,26 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
   return (
     <>
       <Card className="border-border/80 overflow-hidden bg-card p-0 shadow-sm">
-        <div className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
+        <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-3">
           <div>
             <h2 className="text-foreground text-base font-bold">{title}</h2>
             <p className="text-muted-foreground mt-1 text-xs">{subtitle}</p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openUserModal}
-            data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
-          >
-            <Plus className="size-4" />
-            {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {!facilitatorsOnly ? (
+              <span className="bg-nm-slate-100 text-nm-slate-600 rounded px-2 py-1 text-[10px] font-semibold">Private</span>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openUserModal}
+              data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
+            >
+              <Plus className="size-4" />
+              {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
+            </Button>
+          </div>
         </div>
         {usersQuery.isLoading ? (
           <div className="p-5"><QueryLoading rows={2} /></div>
@@ -267,14 +272,22 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
           </p>
         ) : (
           <div>
-          <div className="text-muted-foreground border-border hidden grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
-            <span>Name</span><span>Username</span><span>Email</span><span>Role</span><span />
+          <div className={facilitatorsOnly
+            ? 'text-muted-foreground border-border hidden grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid'
+            : 'text-muted-foreground border-border hidden grid-cols-[minmax(0,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid'}>
+            {facilitatorsOnly ? (
+              <><span>Name</span><span>Username</span><span>Email</span><span>Role</span><span /></>
+            ) : (
+              <><span>User</span><span>Role</span><span /></>
+            )}
           </div>
           <ul className="divide-border divide-y">
             {usersQuery.data?.map((user) => (
               <li
                 key={user.id}
-                className="grid gap-2 px-5 py-3 md:grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] md:items-center md:gap-3"
+                className={facilitatorsOnly
+                  ? 'grid gap-2 px-4 py-3 md:grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] md:items-center md:gap-3'
+                  : 'grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_110px_76px] md:items-center md:gap-3'}
               >
                 <div className="min-w-0">
                   <p className="text-foreground flex items-center gap-2 truncate text-sm font-semibold">
@@ -286,9 +299,16 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     ) : null}
                   </p>
                   {user.must_change_password ? <p className="text-amber-600 mt-0.5 text-[10px] font-medium">Password change pending</p> : null}
+                  {!facilitatorsOnly ? (
+                    <p className="text-muted-foreground mt-0.5 truncate text-[11px]">@{user.username} · {user.email}</p>
+                  ) : null}
                 </div>
-                <p className="text-muted-foreground truncate text-xs">@{user.username}</p>
-                <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                {facilitatorsOnly ? (
+                  <>
+                    <p className="text-muted-foreground truncate text-xs">@{user.username}</p>
+                    <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                  </>
+                ) : null}
                 <span className="bg-nm-slate-100 text-nm-slate-700 w-fit rounded px-2 py-1 text-[10px] font-semibold capitalize">
                   {formatUserRole(user.role)}
                 </span>

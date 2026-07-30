@@ -1,7 +1,8 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, Upload } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
+import { DangerZone } from '@/components/admin/DangerZone'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 
@@ -114,136 +115,113 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   }
 
   return (
-    <NeoCard className="overflow-hidden p-0">
-      <form onSubmit={onSubmit}>
-        <div className="border-border flex items-center gap-4 border-b p-5">
-          <div className="bg-nm-slate-800 text-nm-slate-100 flex size-14 shrink-0 items-center justify-center rounded-lg text-sm font-bold tracking-[0.08em]">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-foreground truncate text-base font-bold">{displayName}</h2>
-              <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName((editing) => !editing)}>
-                <Pencil className="size-3.5" />
-              </button>
-            </div>
-            <p className="text-muted-foreground mt-0.5 truncate text-xs">@{username}</p>
-          </div>
-        </div>
-
-        <div className="space-y-5 p-5">
-        {editingName ? <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <NeoLabel htmlFor="acct-first">First name</NeoLabel>
-            <NeoInput
-              id="acct-first"
-              value={firstName}
-              autoComplete="given-name"
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <NeoLabel htmlFor="acct-last">Last name</NeoLabel>
-            <NeoInput
-              id="acct-last"
-              value={lastName}
-              autoComplete="family-name"
-              onChange={(e) => setLastName(e.target.value)}
-            />
-          </div>
-        </div> : null}
-
-        <div className="border-border border-b pb-2">
-          <h3 className="text-foreground text-sm font-bold">Personal details</h3>
-        </div>
-
-        <div className="grid gap-1.5">
-          <NeoLabel htmlFor="acct-username">Username</NeoLabel>
-          <NeoInput
-            id="acct-username"
-            value={username}
-            autoComplete="username"
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <p className="text-muted-foreground text-xs">
-            Letters, numbers, and underscores only. Used to sign in.
-          </p>
-        </div>
-
-        <div className="grid gap-1.5">
-          <NeoLabel htmlFor="acct-email">Email</NeoLabel>
-          <NeoInput
-            id="acct-email"
-            type="email"
-            value={email}
-            autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
-        {orgName !== undefined ? (
-          <div className="grid gap-1.5">
-            <NeoLabel htmlFor="acct-org">Organisation</NeoLabel>
-            <NeoInput id="acct-org" value={orgName ?? '—'} readOnly disabled />
-            <p className="text-muted-foreground text-xs">
-              Contact your organisation admin to change your organisation or role.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="border-border border-b pb-2 pt-2">
-          <h3 className="text-foreground text-sm font-bold">Password</h3>
-          <p className="text-muted-foreground mt-1 text-xs">Leave both fields empty to keep your current password.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <NeoLabel htmlFor="acct-password">New password</NeoLabel>
-            <NeoInput
-              id="acct-password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              placeholder="Leave blank to keep current"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <NeoLabel htmlFor="acct-password-confirm">Confirm new password</NeoLabel>
-            <NeoInput
-              id="acct-password-confirm"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {!passwordsMatch && confirmPassword ? (
-          <p className="text-destructive text-xs font-medium" role="alert">Passwords do not match.</p>
-        ) : null}
-
-        {status ? (
-          <p
-            role={status.kind === 'error' ? 'alert' : 'status'}
-            className={`text-sm font-medium ${status.kind === 'error' ? 'text-[#c0574f]' : 'text-[#1f9d55]'}`}
-          >
-            {status.msg}
-          </p>
-        ) : null}
-
-        {dirty ? <div className="flex justify-end gap-2 border-t border-border pt-4">
+    <form onSubmit={onSubmit}>
+      {dirty ? <div className="mb-4 flex justify-end gap-2">
           <NeoButton variant="surface" type="button" disabled={saving} onClick={discardChanges}>
             Discard
           </NeoButton>
           <NeoButton variant="primary" type="submit" disabled={saving || !passwordsMatch}>
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? 'Saving…' : 'Save'}
           </NeoButton>
-        </div> : null}
+      </div> : null}
+
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <NeoCard className="space-y-4 p-4">
+            <h2 className="text-foreground text-sm font-bold">Profile Photo</h2>
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0" title="Profile photo uploads require account storage support">
+                <div className="bg-nm-slate-400 text-nm-slate-900 border-border flex size-24 items-center justify-center rounded-full border-2 text-2xl font-bold">
+                  {initials}
+                </div>
+                <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2">
+                  <Upload className="size-3.5" />
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                {editingName ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <NeoInput id="acct-first" value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} aria-label="First name" autoFocus />
+                    <NeoInput id="acct-last" value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} aria-label="Last name" onBlur={() => setEditingName(false)} />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-foreground truncate text-xl font-bold">{displayName}</p>
+                    <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName(true)}>
+                      <Pencil className="size-3.5" />
+                    </button>
+                  </div>
+                )}
+                <p className="text-muted-foreground mt-1 truncate text-xs">@{username}</p>
+              </div>
+            </div>
+          </NeoCard>
+
+          <NeoCard className="space-y-4 p-4">
+            <h2 className="text-foreground text-sm font-bold">Personal Details</h2>
+            <div className="grid gap-1.5">
+              <NeoLabel htmlFor="acct-username">Username</NeoLabel>
+              <NeoInput id="acct-username" value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <NeoLabel htmlFor="acct-email">Email</NeoLabel>
+              <NeoInput id="acct-email" type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+            </div>
+            {orgName !== undefined ? (
+              <div className="grid gap-1.5">
+                <NeoLabel htmlFor="acct-org">Organisation</NeoLabel>
+                <NeoInput id="acct-org" value={orgName ?? '—'} readOnly disabled />
+              </div>
+            ) : null}
+          </NeoCard>
         </div>
-      </form>
-    </NeoCard>
+
+        <div className="flex flex-col gap-4">
+          <NeoCard className="space-y-4 p-4">
+            <div>
+              <h2 className="text-foreground text-sm font-bold">Password</h2>
+              <p className="text-muted-foreground mt-1 text-xs">Leave both fields empty to keep your current password.</p>
+            </div>
+            <div className="grid gap-1.5">
+              <NeoLabel htmlFor="acct-password">New Password</NeoLabel>
+              <NeoInput id="acct-password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <NeoLabel htmlFor="acct-password-confirm">Confirm New Password</NeoLabel>
+              <NeoInput id="acct-password-confirm" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+            </div>
+            {!passwordsMatch && confirmPassword ? (
+              <p className="text-destructive text-xs font-medium" role="alert">Passwords do not match.</p>
+            ) : null}
+            <NeoButton variant="primary" type="submit" size="sm" className="w-fit" disabled={!password || password.length < 8 || !passwordsMatch || saving}>
+              {saving ? 'Updating…' : 'Update Password'}
+            </NeoButton>
+          </NeoCard>
+
+          <DangerZone
+            rows={[
+              {
+                id: 'logout-all-devices',
+                label: 'Log out of all devices',
+                description: 'Ends every other active session. Secure session revocation is not enabled yet.',
+                action: <NeoButton type="button" variant="surface" disabled>Log Out All</NeoButton>,
+              },
+              {
+                id: 'delete-personal-account',
+                label: 'Delete my account',
+                description: 'Permanently removes your personal access. Organisation data is unaffected.',
+                action: <NeoButton type="button" variant="destructive" disabled>Delete</NeoButton>,
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      {status ? (
+        <p role={status.kind === 'error' ? 'alert' : 'status'} className={`mt-4 text-sm font-medium ${status.kind === 'error' ? 'text-[#c0574f]' : 'text-[#1f9d55]'}`}>
+          {status.msg}
+        </p>
+      ) : null}
+    </form>
   )
 }

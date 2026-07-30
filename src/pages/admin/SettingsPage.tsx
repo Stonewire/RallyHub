@@ -1,9 +1,8 @@
-import { Check, Copy, Upload } from 'lucide-react'
+import { CreditCard, Download, ExternalLink, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
-import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -26,7 +25,6 @@ import {
 import { TabletLinkEditor } from '@/components/admin/TabletLinkEditor'
 import {
   EMPTY_ORG_FORM,
-  getTabletLink,
   orgToForm,
   uploadOrganizationLogo,
   useOrganization,
@@ -35,12 +33,34 @@ import {
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
 import { BillingOverview } from '@/components/billing/BillingOverview'
-import { useNotification } from '@/contexts/notification-context'
-import { copyToClipboard } from '@/lib/clipboard'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
+import { downloadClientPackage } from '@/lib/client-export'
 
 type SettingsTab = 'profile' | 'billing' | 'account'
+
+const BRAND_COLOUR_COPY = {
+  primary_color: 'Buttons, highlights & active states',
+  secondary_color: 'Headers, nav & body text',
+  accent_color: 'Borders, muted text & dividers',
+} as const
+
+function SettingsCardHeader({
+  title,
+  visibility,
+}: {
+  title: string
+  visibility: 'Public' | 'Private'
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-foreground text-sm font-bold">{title}</h2>
+      <span className="bg-nm-slate-100 text-nm-slate-600 rounded px-2 py-1 text-[10px] font-semibold">
+        {visibility}
+      </span>
+    </div>
+  )
+}
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
@@ -49,7 +69,6 @@ export function AdminSettingsPage() {
   const tab: SettingsTab =
     tabParam === 'billing' ? 'billing' : tabParam === 'account' ? 'account' : 'profile'
 
-  const { notify } = useNotification()
   const orgQuery = useOrganization(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
   const saveLogo = useSaveOrganizationLogo(organizationId)
@@ -59,12 +78,11 @@ export function AdminSettingsPage() {
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
-  const [copied, setCopied] = useState(false)
-  const [passwordCopied, setPasswordCopied] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deletionMessage, setDeletionMessage] = useState<string | null>(null)
+  const [exportingData, setExportingData] = useState(false)
 
   useEffect(() => {
     if (orgQuery.data) {
@@ -90,7 +108,6 @@ export function AdminSettingsPage() {
     )
   }
 
-  const tabletLink = orgQuery.data ? getTabletLink(orgQuery.data) : ''
   // P2-3: 1234 is the shipped default — block handing out the kiosk link until changed.
   const tabletPinIsDefault = (form.tablet_password.trim() || '1234') === '1234'
 
@@ -127,26 +144,6 @@ export function AdminSettingsPage() {
     } finally {
       setLogoUploading(false)
     }
-  }
-
-  async function handleCopyLink() {
-    if (!tabletLink) return
-    if (!(await copyToClipboard(tabletLink))) {
-      notify('Could not copy — copy it manually')
-      return
-    }
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
-  }
-
-  async function handleCopyPassword() {
-    const password = form.tablet_password.trim() || '1234'
-    if (!(await copyToClipboard(password))) {
-      notify('Could not copy — copy it manually')
-      return
-    }
-    setPasswordCopied(true)
-    window.setTimeout(() => setPasswordCopied(false), 2000)
   }
 
   async function handleRequestDeletion() {
@@ -188,6 +185,19 @@ export function AdminSettingsPage() {
     }
   }
 
+  async function handleDownloadData() {
+    if (!organizationId) return
+    setSaveMessage(null)
+    setExportingData(true)
+    try {
+      await downloadClientPackage(organizationId)
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : 'Could not download your data.')
+    } finally {
+      setExportingData(false)
+    }
+  }
+
   const profileLoading = orgQuery.isLoading
   const profileReady = orgQuery.isFetched
 
@@ -201,11 +211,11 @@ export function AdminSettingsPage() {
     },
     billing: {
       title: 'Billing',
-      subtitle: 'Your plan, invoices and promo codes.',
+      subtitle: 'Manage your plan and invoices.',
     },
     account: {
       title: 'My Account',
-      subtitle: 'Your personal profile, sign-in details and password.',
+      subtitle: 'Manage your personal profile and security settings.',
     },
   }
 
@@ -215,14 +225,24 @@ export function AdminSettingsPage() {
       subtitle={PAGE_COPY[tab].subtitle}
       actions={
         tab === 'profile' ? (
-          <NeoButton
-            type="button"
-            variant="primary"
-            disabled={saveOrg.isPending}
-            onClick={() => void handleSave()}
-          >
-            {saveOrg.isPending ? 'Saving…' : 'Save'}
-          </NeoButton>
+          <>
+            <NeoButton
+              type="button"
+              variant="surface"
+              disabled={!dirty || saveOrg.isPending || !orgQuery.data}
+              onClick={() => orgQuery.data && setForm(orgToForm(orgQuery.data))}
+            >
+              Discard
+            </NeoButton>
+            <NeoButton
+              type="button"
+              variant="primary"
+              disabled={!dirty || saveOrg.isPending}
+              onClick={() => void handleSave()}
+            >
+              {saveOrg.isPending ? 'Saving…' : 'Save'}
+            </NeoButton>
+          </>
         ) : null
       }
     >
@@ -262,241 +282,156 @@ export function AdminSettingsPage() {
             </p>
           ) : null}
 
-          {/* Design pairs Brand Identity with Company Details side by side. */}
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <Card
-            className="border-border/80 space-y-5 bg-card p-6 shadow-sm"
-            data-tour="org-profile-form"
-          >
-            <h2 className="text-foreground text-lg font-semibold">
-              Brand Identity
-            </h2>
-            <div className="space-y-2">
-              <Label htmlFor="org-name">Organisation Name</Label>
-              <Input
-                id="org-name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="bg-background"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Logo</Label>
-              <div className="flex flex-wrap items-center gap-4">
-                {form.logo_url ? (
-                  <img
-                    src={form.logo_url}
-                    alt="Organization logo"
-                    className="border-border/80 size-16 rounded-lg border object-contain"
+          <div className="grid items-start gap-4 xl:grid-cols-2">
+            <div className="flex flex-col gap-4">
+              <Card
+                className="border-border/80 space-y-4 bg-card p-4 shadow-sm"
+                data-tour="org-profile-form"
+              >
+                <SettingsCardHeader title="Brand Identity" visibility="Public" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="org-name">Organisation Name</Label>
+                  <Input
+                    id="org-name"
+                    value={form.name}
+                    onChange={(event) => setForm({ ...form, name: event.target.value })}
+                    placeholder="Your Organisation's Name"
                   />
-                ) : (
-                  <div className="bg-muted/50 text-muted-foreground flex size-16 items-center justify-center rounded-lg text-xs">
-                    No logo
-                  </div>
-                )}
+                </div>
+
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) =>
-                    void handleLogoChange(e.target.files?.[0])
-                  }
+                  onChange={(event) => void handleLogoChange(event.target.files?.[0])}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="outline"
                   disabled={logoUploading}
                   onClick={() => fileRef.current?.click()}
+                  className="border-border text-muted-foreground hover:border-nm-slate-400 hover:bg-muted/20 flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed px-4 py-6 text-center text-xs transition-colors"
                 >
-                  <Upload className="size-4" />
-                  {logoUploading ? 'Uploading…' : 'Upload logo'}
-                </Button>
-              </div>
-            </div>
+                  {form.logo_url ? (
+                    <img src={form.logo_url} alt="Organization logo" className="max-h-20 max-w-48 object-contain" />
+                  ) : (
+                    <Upload className="size-5" />
+                  )}
+                  <span>
+                    {logoUploading ? 'Uploading…' : form.logo_url ? 'Click to replace your logo' : 'Drag & drop your logo here'}
+                  </span>
+                  <span className="text-[10px]">SVG, PNG or JPG (Max 2MB)</span>
+                </button>
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              {(
-                [
-                  ['primary_color', 'Primary'],
-                  ['secondary_color', 'Secondary'],
-                  ['accent_color', 'Accent'],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="space-y-2">
-                  <Label htmlFor={key}>{label}</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id={key}
-                      type="color"
-                      value={form[key]}
-                      onChange={(e) =>
-                        setForm({ ...form, [key]: e.target.value })
-                      }
-                      className="border-border/80 size-10 cursor-pointer rounded-md border bg-transparent"
-                    />
-                    <Input
-                      value={form[key]}
-                      onChange={(e) =>
-                        setForm({ ...form, [key]: e.target.value })
-                      }
-                      className="bg-background font-mono text-xs"
-                    />
+                <div>
+                  <p className="text-muted-foreground mb-2.5 text-center text-[11px] font-semibold tracking-[0.06em] uppercase">
+                    Brand Colours
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        ['primary_color', 'Primary'],
+                        ['secondary_color', 'Secondary'],
+                        ['accent_color', 'Accent'],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div key={key} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+                        <input
+                          id={key}
+                          type="color"
+                          value={form[key]}
+                          onChange={(event) => setForm({ ...form, [key]: event.target.value })}
+                          className="border-border size-9 cursor-pointer appearance-none overflow-hidden rounded-full border-2 bg-transparent p-0"
+                          aria-label={`${label} colour`}
+                        />
+                        <Label htmlFor={key} className="text-foreground text-xs">{label}</Label>
+                        <Input
+                          value={form[key]}
+                          onChange={(event) => setForm({ ...form, [key]: event.target.value })}
+                          className="h-6 w-full px-1.5 text-center font-mono text-[11px] uppercase"
+                          aria-label={`${label} hex value`}
+                        />
+                        <p className="text-muted-foreground text-[10px] leading-tight">{BRAND_COLOUR_COPY[key]}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              </Card>
 
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <h2 className="text-foreground text-lg font-semibold">
-              Legal &amp; Billing Details
-            </h2>
-            <div className="space-y-2">
-              <Label htmlFor="vat">VAT</Label>
-              <Input
-                id="vat"
-                value={form.vat_number}
-                onChange={(e) =>
-                  setForm({ ...form, vat_number: e.target.value })
-                }
-                className="bg-background"
-              />
+              <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+                <SettingsCardHeader title="Legal & Billing Details" visibility="Private" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="vat">Tax / VAT ID</Label>
+                  <Input id="vat" value={form.vat_number} onChange={(event) => setForm({ ...form, vat_number: event.target.value })} placeholder="MT12341234" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="address-street">Street</Label>
+                  <Input id="address-street" value={form.address_street} onChange={(event) => setForm({ ...form, address_street: event.target.value })} placeholder="Number and street name" />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address-city">City</Label>
+                    <Input id="address-city" value={form.address_city} onChange={(event) => setForm({ ...form, address_city: event.target.value })} placeholder="Valletta" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address-country">Country</Label>
+                    <Input id="address-country" value={form.address_country} onChange={(event) => setForm({ ...form, address_country: event.target.value })} placeholder="Malta" />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address-state">State or Region</Label>
+                    <Input id="address-state" value={form.address_state} onChange={(event) => setForm({ ...form, address_state: event.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address-postal">Post Code</Label>
+                    <Input id="address-postal" value={form.address_postal} onChange={(event) => setForm({ ...form, address_postal: event.target.value })} placeholder="VLT 1234" />
+                  </div>
+                </div>
+                <Button type="button" variant="outline" className="w-full" asChild>
+                  <Link to="/admin/settings?tab=billing">
+                    <CreditCard className="size-4" />
+                    Manage Payment Details
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
+              </Card>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="address-street">Street Address</Label>
-              <Input
-                id="address-street"
-                value={form.address_street}
-                onChange={(e) =>
-                  setForm({ ...form, address_street: e.target.value })
-                }
-                className="bg-background"
-              />
+
+            <div className="flex flex-col gap-4">
+              <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+                <SettingsCardHeader title="Tablet Access" visibility="Public" />
+                {orgQuery.data ? (
+                  <TabletLinkEditor subdomain={orgQuery.data.subdomain} disabled={tabletPinIsDefault} />
+                ) : null}
+                <div className="space-y-1.5">
+                  <Label htmlFor="tablet-password">Tablet Password (4 digits)</Label>
+                  <Input
+                    id="tablet-password"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    autoComplete="off"
+                    value={form.tablet_password}
+                    onChange={(event) => setForm({ ...form, tablet_password: event.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    className="max-w-32 font-semibold tracking-[0.3em]"
+                  />
+                  {tabletPinIsDefault ? (
+                    <p className="text-destructive text-xs font-medium" role="alert">
+                      Change the default password before sharing the tablet link.
+                    </p>
+                  ) : null}
+                </div>
+                {dirty ? (
+                  <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
+                    {saveOrg.isPending ? 'Saving…' : 'Save'}
+                  </NeoButton>
+                ) : null}
+              </Card>
+
+              <TeamUsersPanel />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="address-city">City</Label>
-                <Input
-                  id="address-city"
-                  value={form.address_city}
-                  onChange={(e) =>
-                    setForm({ ...form, address_city: e.target.value })
-                  }
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address-state">State or Region</Label>
-                <Input
-                  id="address-state"
-                  value={form.address_state}
-                  onChange={(e) =>
-                    setForm({ ...form, address_state: e.target.value })
-                  }
-                  className="bg-background"
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="address-postal">Postal Code</Label>
-                <Input
-                  id="address-postal"
-                  value={form.address_postal}
-                  onChange={(e) =>
-                    setForm({ ...form, address_postal: e.target.value })
-                  }
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address-country">Country</Label>
-                <Input
-                  id="address-country"
-                  value={form.address_country}
-                  onChange={(e) =>
-                    setForm({ ...form, address_country: e.target.value })
-                  }
-                  className="bg-background"
-                />
-              </div>
-            </div>
-          </Card>
           </div>
-
-          <TeamUsersPanel />
-
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <h2 className="text-foreground text-lg font-semibold">
-              Tablet Access
-            </h2>
-            {orgQuery.data ? (
-              <TabletLinkEditor subdomain={orgQuery.data.subdomain} />
-            ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="tablet-password">Tablet Password</Label>
-              <div className="flex max-w-md gap-2">
-                <Input
-                  id="tablet-password"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={form.tablet_password}
-                  onChange={(e) =>
-                    setForm({ ...form, tablet_password: e.target.value })
-                  }
-                  className="bg-background flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void handleCopyPassword()}
-                >
-                  {passwordCopied ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  Copy
-                </Button>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                Shared venue code for the tablet kiosk. Defaults to 1234 if unchanged.
-              </p>
-              {tabletPinIsDefault ? (
-                <p className="text-destructive text-xs font-medium" role="alert">
-                  1234 is the well-known default — set your own password (and save)
-                  before using the tablet kiosk.
-                </p>
-              ) : null}
-            </div>
-            {tabletLink ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={tabletPinIsDefault}
-                  onClick={() => void handleCopyLink()}
-                >
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  Copy link
-                </Button>
-                {tabletPinIsDefault ? (
-                  <Button type="button" variant="outline" disabled>
-                    Open tablet page
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" asChild>
-                    <Link to={tabletLink} target="_blank">
-                      Open tablet page
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            ) : null}
-          </Card>
 
           <DangerZone
             notice={
@@ -516,6 +451,17 @@ export function AdminSettingsPage() {
               </>
             }
             rows={[
+              {
+                id: 'download-organisation-data',
+                label: 'Download all your data',
+                description: 'Export every game, event, submission, payment record and uploaded file tied to this account.',
+                action: (
+                  <NeoButton type="button" variant="surface" disabled={exportingData} onClick={() => void handleDownloadData()}>
+                    <Download className="size-3.5" />
+                    {exportingData ? 'Preparing…' : 'Download All Data'}
+                  </NeoButton>
+                ),
+              },
               {
                 id: 'delete-organisation',
                 label: deletionRequestQuery.data
@@ -560,15 +506,6 @@ export function AdminSettingsPage() {
           />
         </div>
       )}
-
-      {tab === 'profile' && profileReady && !orgQuery.isError ? (
-        <FormSaveFooter
-          onSave={() => void handleSave()}
-          saving={saveOrg.isPending}
-          label="Save settings"
-          dirty={dirty}
-        />
-      ) : null}
 
       {blocker.state === 'blocked' ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

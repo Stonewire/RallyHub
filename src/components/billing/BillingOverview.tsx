@@ -116,7 +116,7 @@ export function BillingOverview({
   const canStartSubscription = !plan.hidden && !plan.freeSubscription && !plan.priceOnRequest
 
   return (
-    <div className={showAvailablePlans ? 'grid gap-x-10 gap-y-8 lg:grid-cols-2' : 'space-y-8'}>
+    <div className={showAvailablePlans ? 'grid items-start gap-4 xl:grid-cols-[minmax(17rem,1fr)_minmax(0,2fr)]' : 'space-y-8'}>
       {showAdminSummary && unpaid.length > 0 ? (
         <Card className="border-border/80 bg-muted/30 px-4 py-3 shadow-sm">
           <p className="text-foreground text-sm font-medium">
@@ -126,9 +126,9 @@ export function BillingOverview({
         </Card>
       ) : null}
 
-      <section className="space-y-3" data-tour="billing-plan">
+      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-1 xl:row-start-1' : 'space-y-3'} data-tour="billing-plan">
         <div>
-          <h2 className="text-foreground text-lg font-semibold">Current plan</h2>
+          <p className="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase">Current Plan</p>
           <p className="text-muted-foreground text-sm">
             {formatPlanLabel(planId)} ·{' '}
             {plan.freeSubscription
@@ -143,7 +143,7 @@ export function BillingOverview({
           planId={planId}
           billingPeriod={period}
           highlighted
-          className="max-w-md"
+          className="w-full"
         />
         {plan.monthlyEventLimit !== null ? (
           <p className="text-muted-foreground text-sm">
@@ -165,9 +165,9 @@ export function BillingOverview({
         ) : null}
       </section>
 
-      <section className="space-y-3" data-tour="billing-unpaid">
+      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-2 xl:row-start-1' : 'space-y-3'} data-tour="billing-unpaid">
         <div>
-          <h2 className="text-foreground text-lg font-semibold">Unpaid events</h2>
+          <h2 className="text-foreground text-base font-bold">Payments &amp; Invoices</h2>
           <p className="text-muted-foreground text-sm">
             Activated events awaiting payment.
             {showAvailablePlans ? ' Pay online below.' : ' Payable online from the client’s own settings.'}
@@ -188,7 +188,7 @@ export function BillingOverview({
         )}
       </section>
 
-      <section className={`space-y-3 ${showAvailablePlans ? 'lg:col-span-2' : ''}`} data-tour="billing-history">
+      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-2 xl:row-start-2' : 'space-y-3'} data-tour="billing-history">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Payment history</h2>
           <p className="text-muted-foreground text-sm">
@@ -208,7 +208,7 @@ export function BillingOverview({
         )}
       </section>
 
-      <section className="space-y-3" data-tour="billing-subscription">
+      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-1 xl:row-start-2' : 'space-y-3'} data-tour="billing-subscription">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Subscription</h2>
           <p className="text-muted-foreground text-sm">
@@ -257,7 +257,7 @@ export function BillingOverview({
       </section>
 
       {showAvailablePlans ? (
-        <section className="space-y-3" data-tour="billing-payment-methods">
+        <section className="space-y-3 xl:col-start-1 xl:row-start-3" data-tour="billing-payment-methods">
           <div>
             <h2 className="text-foreground text-lg font-semibold">Billing details</h2>
             <p className="text-muted-foreground text-sm">
@@ -284,12 +284,12 @@ export function BillingOverview({
         </section>
       ) : null}
 
-      <div className={showAvailablePlans ? 'lg:col-span-2' : undefined}>
+      <div className={showAvailablePlans ? 'xl:col-start-1 xl:row-start-4' : undefined}>
         <PromoCodeSection organizationId={organizationId} allowAdd={showAvailablePlans} />
       </div>
 
       {showAvailablePlans ? (
-        <section className="space-y-3 lg:col-span-2">
+        <section className="space-y-3 xl:col-start-1 xl:row-start-5">
           <div>
             <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
             <p className="text-muted-foreground text-sm">
@@ -301,7 +301,7 @@ export function BillingOverview({
             </p>
             <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3">
             {getVisiblePlans().map((visiblePlan) => (
               <PlanDetailsCard
                 key={visiblePlan.id}

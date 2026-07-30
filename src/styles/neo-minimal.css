@@ -449,18 +449,18 @@
   /* ─── Page header (pilot) ─── */
   .neo-page-title {
     color: var(--nm-text-primary);
-    font-family: var(--font-display); /* Abril Fatface — brand H1 */
-    font-size: clamp(1.875rem, 4vw, 2.25rem);
-    font-weight: 400; /* Abril is a single 400 weight; never synth-bold it */
-    letter-spacing: -0.015em;
-    line-height: 1.12;
+    font-family: var(--font-sans);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
   }
 
   .neo-page-subtitle {
     color: var(--nm-text-secondary);
-    font-size: 1rem;
-    font-weight: 450;
-    line-height: 1.6;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
     max-width: 42rem;
   }
 
@@ -831,13 +831,13 @@
     box-shadow: var(--nm-shadow-raised);
   }
 
-  /* ─── AdminPageShell typography (Games editors on platform) ─── */
+  /* ─── Admin page typography ─── */
   .neo-minimal-scope .flex.w-full.flex-1.justify-center h1.text-3xl {
-    font-family: var(--font-display); /* Abril Fatface — brand H1 */
-    font-size: clamp(1.875rem, 4vw, 2.25rem);
-    font-weight: 400;
-    letter-spacing: -0.015em;
-    line-height: 1.12;
+    font-family: var(--font-sans);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
     color: var(--nm-text-primary);
   }
 

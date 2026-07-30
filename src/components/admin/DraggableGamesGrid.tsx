@@ -53,7 +53,7 @@ export function DraggableGamesGrid({
 
   return (
     <div
-      className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+      className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2"
       onDragOver={(e) => {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
@@ -79,10 +79,10 @@ export function DraggableGamesGrid({
             e.stopPropagation()
             handleDrop(game.id)
           }}
-          className="border-border/80 bg-card group relative flex h-full min-h-44 cursor-pointer flex-col overflow-hidden rounded-lg border shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-nm-slate-400 hover:shadow-md"
+          className="border-border/80 bg-card group relative flex h-full min-h-36 cursor-pointer flex-col overflow-hidden rounded-lg border shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-nm-slate-400 hover:shadow-md"
           onClick={() => onEdit(game.id)}
         >
-          <div className="bg-nm-slate-100 relative flex h-20 items-center justify-center overflow-hidden">
+          <div className="bg-nm-slate-100 relative flex h-[50px] items-center justify-center overflow-hidden">
             {game.cover_url ? (
               <img
                 src={game.cover_url}
@@ -102,7 +102,7 @@ export function DraggableGamesGrid({
               aria-hidden
             />
           </div>
-          <div className="flex min-h-20 flex-1 flex-col items-center px-2 py-2 text-center">
+          <div className="flex min-h-16 flex-1 flex-col items-center px-1.5 py-1.5 text-center">
             <p className="text-foreground line-clamp-2 min-h-8 text-xs font-semibold leading-4">
               {game.name}
             </p>

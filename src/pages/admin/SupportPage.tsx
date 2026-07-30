@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Paperclip } from 'lucide-react'
 
 import {
   NoOrganizationMessage,
@@ -23,6 +24,7 @@ export function AdminSupportPage() {
 
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  const [category, setCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showNewForm, setShowNewForm] = useState(true)
@@ -44,10 +46,11 @@ export function AdminSupportPage() {
     try {
       const { ticket } = await createTicket.mutateAsync({
         subject: subject.trim(),
-        body: body.trim(),
+        body: category ? `Category: ${category}\n\n${body.trim()}` : body.trim(),
       })
       setSubject('')
       setBody('')
+      setCategory('')
       setShowNewForm(false)
       setSelectedId(ticket.id)
     } catch (err) {
@@ -66,63 +69,89 @@ export function AdminSupportPage() {
   return (
     <AdminPageShell
       title="Support"
-      subtitle="Submit a ticket or continue an existing conversation with RallyHub support."
+      subtitle="If you have any issues or questions, our support team will get back to you within 24 hours."
+      centeredHeader
     >
-      <div className="mb-4 flex flex-wrap gap-2">
-        <NeoButton
+      <div className="mx-auto mb-6 grid w-fit grid-cols-2 rounded-full bg-nm-slate-800 p-1">
+        <button
           type="button"
-          variant={showNewForm ? 'primary' : 'surface'}
+          className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${showNewForm ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
           onClick={() => {
             setShowNewForm(true)
             setSelectedId(null)
           }}
         >
-          New ticket
-        </NeoButton>
-        {tickets.length > 0 ? (
-          <NeoButton
-            type="button"
-            variant={!showNewForm && selected ? 'primary' : 'surface'}
-            onClick={() => {
-              setShowNewForm(false)
-              if (!selectedId && tickets[0]) setSelectedId(tickets[0].id)
-            }}
-          >
-            My tickets ({tickets.length})
-          </NeoButton>
-        ) : null}
+          New Ticket
+        </button>
+        <button
+          type="button"
+          className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${!showNewForm ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
+          onClick={() => {
+            setShowNewForm(false)
+            if (!selectedId && tickets[0]) setSelectedId(tickets[0].id)
+          }}
+        >
+          My Tickets{tickets.length > 0 ? ` (${tickets.length})` : ''}
+        </button>
       </div>
 
-      {error ? <QueryError message={error} /> : null}
+      <div className="mx-auto w-full max-w-[1100px]">
+      {error ? <div className="mb-4"><QueryError message={error} /></div> : null}
 
       {showNewForm ? (
-        <NeoCard className="mb-6 max-w-xl space-y-4 p-6">
+        <NeoCard className="mx-auto mb-6 max-w-[520px] space-y-4 p-4">
+          <div>
+            <h2 className="text-foreground text-sm font-bold">Open a Case</h2>
+            <p className="text-muted-foreground mt-1 text-xs">Our specialised team will respond within 24 hours.</p>
+          </div>
           <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <NeoLabel htmlFor="support-subject">Subject</NeoLabel>
               <NeoInput
                 id="support-subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="bg-background"
+                placeholder="Briefly describe the issue…"
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              <NeoLabel htmlFor="support-category">Category</NeoLabel>
+              <select
+                id="support-category"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="h-9 w-full px-3 text-sm"
+                required
+              >
+                <option value="">Select Category</option>
+                <option value="Billing">Billing</option>
+                <option value="Technical">Technical</option>
+                <option value="Account">Account</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
               <NeoLabel htmlFor="support-body">Details</NeoLabel>
               <NeoTextarea
                 id="support-body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                rows={6}
+                rows={4}
                 className="w-full resize-y bg-background"
-                placeholder="What happened? Steps to reproduce, event name, etc."
+                placeholder="Provide as much context as possible. Include steps to reproduce the issue if applicable…"
                 required
               />
             </div>
-            <NeoButton type="submit" variant="primary" disabled={createTicket.isPending}>
-              {createTicket.isPending ? 'Submitting…' : 'Submit ticket'}
-            </NeoButton>
+            <div className="flex items-center justify-between gap-3">
+              <NeoButton type="button" variant="ghost" disabled title="Ticket attachments are not available yet">
+                <Paperclip className="size-4" />
+                Upload a File
+              </NeoButton>
+              <NeoButton type="submit" variant="primary" disabled={createTicket.isPending}>
+                {createTicket.isPending ? 'Submitting…' : 'Submit'}
+              </NeoButton>
+            </div>
           </form>
         </NeoCard>
       ) : null}
@@ -155,6 +184,7 @@ export function AdminSupportPage() {
           <SupportTicketThread ticket={selected} senderRole="client" />
         </NeoCard>
       ) : null}
+      </div>
     </AdminPageShell>
   )
 }
