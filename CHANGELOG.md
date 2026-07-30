@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.16 - 2026-07-30 (photo capture matches the video capture's vertical window)
+
+- V2.20.15's rotation fix was the wrong diagnosis and is reverted: the
+  tablet delivers upright content in wide frames, so rotating produced
+  sideways photos and a broken-looking, flipped preview. The report that
+  video capture looks perfect was the clue, since video applies no rotation
+  at all.
+- Photo capture now works exactly like video capture: a fixed vertical 9:16
+  window shows the camera with the sides cropped away, and the saved photo
+  is the same centre crop at upload size. What the participant frames on
+  screen is what gets submitted. No rotation logic remains in the photo
+  path.
+- Video capture is untouched, per Rumen's explicit instruction, as it works.
+
 ## V2.20.15 - 2026-07-30 (photos upright when the tablet is held upright)
 
 - Photos taken with the tablet held upright came out horizontal. The rotate

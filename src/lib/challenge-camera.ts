@@ -114,15 +114,12 @@ const PHOTO_MAX_DIM = 1600
 const PHOTO_QUALITY = 0.8
 
 /**
- * Rotate (when the sensor delivers landscape on an upright device) and scale
- * to upload size in the SAME canvas pass. Draw-then-downscale would encode a
- * JPEG only to immediately decode and shrink it: two extra full-frame passes,
- * measured at ~1.1s each shot on the event tablets.
- *
- * The rotate decision reads the ACTUAL frame dimensions at capture time, not
- * the track's reported settings: the event tablet's camera driver reports one
- * orientation and delivers another, which produced sideways photos when the
- * tablet was held upright (reported 30 Jul 2026).
+ * Center-crop the live frame to the same 9:16 portrait window the preview
+ * shows (object-cover in a fixed portrait frame), scaled to upload size, in
+ * one canvas pass. No rotation: device evidence (30 Jul 2026) showed the
+ * event tablet delivers upright content in landscape-shaped frames, so
+ * rotating produced sideways photos while a plain portrait crop matches
+ * exactly what the participant framed on screen.
  */
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -131,20 +128,21 @@ function drawVideoFrameToCanvas(
 ): void {
   const vw = video.videoWidth
   const vh = video.videoHeight
+
+  const targetRatio = 9 / 16
+  let sw = vw
+  let sh = vh
+  if (vw / vh > targetRatio) sw = Math.round(vh * targetRatio)
+  else sh = Math.round(vw / targetRatio)
+  const sx = Math.round((vw - sw) / 2)
+  const sy = Math.round((vh - sh) / 2)
+
+  const scale = Math.min(1, PHOTO_MAX_DIM / sh)
+  canvas.width = Math.round(sw * scale)
+  canvas.height = Math.round(sh * scale)
+
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-  const rotate = isPortraitDevice() && vw > vh
-  const outW = rotate ? vh : vw
-  const outH = rotate ? vw : vh
-  const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(outW, outH))
-
-  canvas.width = Math.round(outW * scale)
-  canvas.height = Math.round(outH * scale)
-
-  ctx.translate(canvas.width / 2, canvas.height / 2)
-  ctx.scale(scale, scale)
-  if (rotate) ctx.rotate(Math.PI / 2)
-  ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
 }
 
 async function captureWithCanvas(
@@ -214,8 +212,9 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
  * is one canvas pass at upload size and orientation.
  *
  * Preview mirroring for the front camera is CSS-only; the saved image matches
- * the sensor output. The returned blob is already at upload size, so callers
- * must NOT run it through downscalePhoto() again.
+ * the sensor output. The returned blob is already cropped to the preview's
+ * 9:16 portrait window and at upload size, so callers must NOT run it through
+ * downscalePhoto() again.
  */
 export async function captureStillPhoto(
   stream: MediaStream,

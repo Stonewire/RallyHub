@@ -6,10 +6,10 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_PREVIEW_MEDIA_CLASS,
+  CHALLENGE_VIDEO_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CLASS,
   captureStillPhoto,
   getChallengeCameraStream,
-  isPortraitDevice,
   previewVideoStyle,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
@@ -38,7 +38,6 @@ export function PhotoChallengeCapture({
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
-  const [quarterTurn, setQuarterTurn] = useState(false)
 
   function revokeSnapshotUrl() {
     if (snapshotUrlRef.current) {
@@ -52,7 +51,6 @@ export function PhotoChallengeCapture({
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     setReady(false)
-    setQuarterTurn(false)
   }
 
   useEffect(() => {
@@ -68,14 +66,8 @@ export function PhotoChallengeCapture({
     const el = videoRef.current
     if (!el || !streamRef.current || snapshotUrl) return
     el.srcObject = streamRef.current
-    // Decide preview rotation from the real frame, not driver-reported track
-    // settings: the event tablet's driver reports one orientation and delivers
-    // another (sideways-photo report, 30 Jul 2026).
-    el.onloadedmetadata = () => {
-      setQuarterTurn(isPortraitDevice() && el.videoWidth > el.videoHeight)
-    }
     void el.play().catch(() => {})
-  }, [ready, snapshotUrl, quarterTurn, facingMode])
+  }, [ready, snapshotUrl, facingMode])
 
   // Stage timings for the slow-shutter investigation. cameraOpenMs is kept in a
   // ref so the capture report can include how long this session's stream took
@@ -162,7 +154,7 @@ export function PhotoChallengeCapture({
       .catch(() => notify('Could not process photo'))
   }
 
-  const livePreviewStyle = previewVideoStyle(facingMode, quarterTurn)
+  const livePreviewStyle = previewVideoStyle(facingMode, false)
 
   if (typeof document === 'undefined') return null
 
@@ -183,21 +175,21 @@ export function PhotoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <div className="xp-media-frame mx-auto flex w-full max-w-lg items-center justify-center bg-black">
+        <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
           {snapshotUrl ? (
             <img
               src={snapshotUrl}
               alt="Preview"
-              className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CLASS}
             />
           ) : (
-            <div className="relative flex w-full items-center justify-center">
+            <>
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_PREVIEW_MEDIA_CLASS}
+                className={CHALLENGE_VIDEO_MEDIA_CLASS}
                 style={livePreviewStyle}
               />
               <button
@@ -210,7 +202,7 @@ export function PhotoChallengeCapture({
                 <SwitchCamera className="size-4" />
                 Flip
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
