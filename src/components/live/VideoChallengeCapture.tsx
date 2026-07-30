@@ -13,6 +13,7 @@ import {
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
+import { reportClientIssue } from '@/lib/client-diagnostics'
 import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
@@ -30,6 +31,7 @@ type VideoChallengeCaptureProps = {
   config: GameConfig | null | undefined
   accentColor: string
   disabled?: boolean
+  eventId: string
   onClose: () => void
   onFileReady: (file: File) => void
 }
@@ -38,6 +40,7 @@ export function VideoChallengeCapture({
   config,
   accentColor,
   disabled,
+  eventId,
   onClose,
   onFileReady,
 }: VideoChallengeCaptureProps) {
@@ -203,8 +206,9 @@ export function VideoChallengeCapture({
         setRemaining(left)
         if (left <= 0) recorderRef.current?.stop()
       }, 200)
-    } catch {
-      notify('Could not start recording')
+    } catch (err) {
+      const detail = reportClientIssue('video-record', err, { eventId })
+      notify(`Could not start recording (${detail})`)
     }
   }
 

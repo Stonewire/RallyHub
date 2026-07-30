@@ -14,10 +14,12 @@ import {
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
+import { reportClientIssue } from '@/lib/client-diagnostics'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
   disabled?: boolean
+  eventId: string
   onClose: () => void
   onFileReady: (file: File) => void
 }
@@ -25,6 +27,7 @@ type PhotoChallengeCaptureProps = {
 export function PhotoChallengeCapture({
   accentColor,
   disabled,
+  eventId,
   onClose,
   onFileReady,
 }: PhotoChallengeCaptureProps) {
@@ -101,8 +104,9 @@ export function PhotoChallengeCapture({
       snapshotUrlRef.current = url
       setSnapshotUrl(url)
       stopStream()
-    } catch {
-      notify('Could not capture photo — hold steady and try again')
+    } catch (err) {
+      const detail = reportClientIssue('photo-capture', err, { eventId })
+      notify(`Could not capture photo (${detail}) — hold steady and try again`)
     } finally {
       setCapturing(false)
     }

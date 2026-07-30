@@ -1129,6 +1129,7 @@ export function JoinGameView({
               mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
               config={activeOpenGame.config as GameConfig}
               disabled={submitting}
+              eventId={event.id}
               onCaptureActiveChange={setCaptureActive}
               onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}
             />

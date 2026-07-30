@@ -26,6 +26,7 @@ type ChallengeMediaCaptureFlowProps = {
   mediaType: 'photo' | 'video'
   config?: GameConfig | null
   disabled?: boolean
+  eventId: string
   onFileReady: (file: File) => void
   onCaptureActiveChange?: (active: boolean) => void
 }
@@ -39,6 +40,7 @@ export function ChallengeMediaCaptureFlow({
   mediaType,
   config,
   disabled,
+  eventId,
   onFileReady,
   onCaptureActiveChange,
 }: ChallengeMediaCaptureFlowProps) {
@@ -217,6 +219,7 @@ export function ChallengeMediaCaptureFlow({
         <PhotoChallengeCapture
           accentColor={accentColor}
           disabled={disabled}
+          eventId={eventId}
           onClose={closeInAppCapture}
           onFileReady={handleInAppFileReady}
         />
@@ -226,6 +229,7 @@ export function ChallengeMediaCaptureFlow({
           config={config}
           accentColor={accentColor}
           disabled={disabled}
+          eventId={eventId}
           onClose={closeInAppCapture}
           onFileReady={handleInAppFileReady}
         />
