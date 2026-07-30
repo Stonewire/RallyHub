@@ -109,7 +109,11 @@ reportClientIssue(context: string, error: unknown, extra?: Record<string, unknow
 - `MediaRecorder` error paths in `VideoChallengeCapture` (currently only
   surfaces a generic "Could not start recording").
 - The catch block in `JoinGameView.submitOpenGame` — the path responsible for
-  the iPhone submit-freeze in bug 2.
+  the iPhone submit-freeze in bug 2 (photo/video half).
+- `JoinGameView.submitTextGame` — added after planning found this code is
+  byte-for-byte identical on both platforms (fires the insert and closes
+  immediately, no platform branch), so an iPhone-only discrepancy here is a
+  genuine mystery, not a known gap. See Phase 4 revision below.
 
 ### Error handling
 
@@ -146,17 +150,28 @@ This phase cannot be fully specified yet — the actual fixes are unknown
 until Phase 2 produces real evidence. It will very likely need its own
 follow-up spec(s) once that evidence exists, per bug or per root cause found.
 
-## Phase 4: known UX gaps (no investigation needed)
+## Phase 4: known UX gaps — revised, dissolved into Phases 1/3
 
-Two straightforward, already-understood fixes, sequenced after the above
-since they're simple and non-blocking:
+Originally scoped as two simple, already-understood UX fixes. Reading the
+actual code during planning found both premises wrong:
 
-- **Submit loading indicator:** photo/video (and text) submissions currently
-  give no visible "submitting" feedback on iPhone. Add a visible in-progress
-  state during submit.
-- **iPhone auto-close on submit:** Android text submission already closes
-  immediately on success; iPhone should match that behavior for text (and,
-  once photo/video submission actually works, for those too).
+- **"No submitting animation" for photo/video is not a bug.**
+  `beginOpenSubmit()` already shows a loading screen the instant Submit is
+  tapped, and bug 2's own description confirms it appears ("I have a loading
+  screen, and then just go back to the same screen"). What follows is the
+  upload throwing — the same root cause as bugs 1/3/4. Fully covered by
+  Phase 3; no separate UX task needed.
+- **iPhone text-submit not closing like Android is not a known gap.**
+  `submitTextGame` is identical code on both platforms: it fires the insert
+  and closes immediately without awaiting the response, no platform branch
+  anywhere. A platform-specific discrepancy in identical code is a mystery
+  like the others, not something to guess-fix. Moved into Phase 1
+  (`submitTextGame` added to the diagnostic call sites) and Phase 3 (fixed
+  once real evidence exists).
+
+Phase 4 is dissolved — nothing in this spec remains a "just implement it"
+UX task. Everything folds into diagnostics (Phase 1) and evidence-driven
+fixes (Phase 3).
 
 ## Out of scope for this spec
 
