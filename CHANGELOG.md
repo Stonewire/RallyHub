@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.30 - 2026-07-31 (drop the toast blur on iOS: the post-submit freeze fix)
+
+- The iPhone's whole post-submit symptom family (text screen frozen for
+  seconds after submitting, next game slow to open right after a submission,
+  approvals appearing late) finally cohered: every timer says the phone is
+  idle during the freeze (JS fast, repaint callback within 30ms, taps
+  processed instantly), so the stall is in iOS Safari's renderer, not the
+  app. The one thing that appears at exactly that moment in every case is
+  the "Submitted" toast, whose frosted-glass backdrop blur is a known
+  multi-second compositor stall on iOS Safari. It also explains why the
+  instrumentation stayed silent: the freeze lives below everything the app
+  can measure.
+- On iOS only, the toast drops the backdrop blur and uses a slightly darker
+  flat background instead (visually near-identical, fully readable). Android
+  and desktop keep the exact same blurred toast as before; per Rumen's
+  instruction, nothing that could affect Android behavior was touched.
+- Verification on device: submit a text challenge; the screen should switch
+  instantly, and a game tapped right after a photo submission should open
+  without the lag.
+
 ## V2.20.29 - 2026-07-31 (measure the iPhone's post-submit tap lag)
 
 - Diagnostic-only. On iPhone, tapping the next game right after any
