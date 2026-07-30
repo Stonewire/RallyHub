@@ -14,6 +14,7 @@ import {
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
 import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
+import { APP_VERSION } from '@/lib/version'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
@@ -38,6 +39,10 @@ export function PhotoChallengeCapture({
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
+  // On-screen shutter timing: Hermit's WebView provably runs the current build
+  // yet its diagnostic writes never arrive, so the measurement is shown
+  // directly on the snapshot instead of trusted to the network (31 Jul 2026).
+  const [shutterStats, setShutterStats] = useState<string | null>(null)
 
   function revokeSnapshotUrl() {
     if (snapshotUrlRef.current) {
@@ -119,6 +124,9 @@ export function PhotoChallengeCapture({
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url
       setSnapshotUrl(url)
+      setShutterStats(
+        `${Math.round(captureDone - shutterPressed)}ms (setup ${stages.setupMs ?? '?'} / draw ${stages.drawMs ?? '?'} / encode ${stages.encodeMs ?? '?'}) ${APP_VERSION}`,
+      )
 
       // Measure through to the preview actually appearing: the felt delay is
       // shutter press to seeing the shot, not just the internal capture call.
@@ -148,6 +156,7 @@ export function PhotoChallengeCapture({
   function retake() {
     revokeSnapshotUrl()
     setSnapshotUrl(null)
+    setShutterStats(null)
     void startCamera(facingMode)
   }
 
@@ -228,6 +237,9 @@ export function PhotoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
+        {snapshotUrl && shutterStats ? (
+          <p className="w-full text-center text-[10px] text-white/50">{shutterStats}</p>
+        ) : null}
         {snapshotUrl ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button

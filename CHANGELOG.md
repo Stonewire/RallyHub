@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.34 - 2026-07-31 (restore the exact build Rumen confirmed, stats line included)
+
+- Rollback target corrected per Rumen: the build he signed off on device was
+  V2.20.27, which still had the on-screen timing line under each snapshot;
+  V2.20.28 removed that line, and every delay report since came after that
+  removal. The entire src tree is now byte-identical to V2.20.27 (verified:
+  empty diff), with only the version string changed so the corner stamp can
+  confirm the deploy. The on-screen shutter stats line is therefore back.
+
 ## V2.20.33 - 2026-07-31 (roll back to the confirmed-good V2.20.28 code)
 
 - Rumen reported delays back on the Hermit tablets and called for a rollback
