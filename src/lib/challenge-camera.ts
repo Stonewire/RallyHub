@@ -70,34 +70,6 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-/** Request the highest resolution the device exposes (portrait-oriented when applicable). */
-export async function applyMaxVideoTrackQuality(track: MediaStreamTrack): Promise<void> {
-  const caps = track.getCapabilities?.()
-  if (!caps) return
-
-  const maxW = caps.width?.max
-  const maxH = caps.height?.max
-  if (!maxW || !maxH) return
-
-  let targetWidth = maxW
-  let targetHeight = maxH
-  if (isPortraitDevice() && maxW > maxH) {
-    targetWidth = maxH
-    targetHeight = maxW
-  }
-
-  try {
-    await track.applyConstraints({
-      width: { ideal: targetWidth },
-      height: { ideal: targetHeight },
-      aspectRatio: { ideal: 9 / 16 },
-      frameRate: { ideal: 30 },
-    })
-  } catch {
-    // Keep negotiated stream settings.
-  }
-}
-
 async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   const { width = 0, height = 0 } = track.getSettings()
   if (!width || !height || width <= height) return
@@ -115,15 +87,16 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
 /**
  * Throws on failure; callers report mediaErrorMessage(err) and offer upload.
  *
- * `maxResolution` reconfigures the track to the sensor's largest frame. Video
- * recording wants that (it pairs with the high bitrate). Photo capture must not
- * ask for it: stills are downscaled to 1600px anyway, and driving a tablet
- * sensor at full resolution costs seconds per shot for pixels we discard.
+ * The negotiated stream is used as-is. We used to reconfigure the track to the
+ * sensor's largest frame straight after opening it; that cost seconds per photo
+ * on Android tablets and left some of them with a live track that never painted
+ * a frame, i.e. a black preview. A portrait 1080x1920 ideal is what both photo
+ * and video want, and the recording bitrate is computed from the real track
+ * size, so quality is unaffected.
  */
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
-  options?: { maxResolution?: boolean },
 ): Promise<MediaStream> {
   let stream: MediaStream
   try {
@@ -138,9 +111,6 @@ export async function getChallengeCameraStream(
 
   const track = stream.getVideoTracks()[0]
   if (track) {
-    if (options?.maxResolution ?? true) {
-      await applyMaxVideoTrackQuality(track)
-    }
     if (isPortraitDevice()) {
       await tryPortraitConstraints(track)
     }

@@ -76,9 +76,7 @@ export function PhotoChallengeCapture({
     stopStream()
     let stream: MediaStream
     try {
-      // maxResolution off: stills come from the preview frame and are downscaled
-      // to 1600px, so a full-sensor stream would only add capture latency.
-      stream = await getChallengeCameraStream(facing, false, { maxResolution: false })
+      stream = await getChallengeCameraStream(facing, false)
     } catch (err) {
       notify(mediaErrorMessage(err))
       if (onCameraUnavailable) onCameraUnavailable()

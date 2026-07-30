@@ -5,6 +5,25 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.4 - 2026-07-30 (video capture on Android tablets)
+
+- Video challenges showed a black screen on Android tablets while working on
+  iPhone. Photo capture on the same tablets started working in V2.20.3, and the
+  only remaining difference between the two paths was that video still pushed the
+  camera to its maximum sensor resolution immediately after opening it. Some
+  Android camera stacks respond to that by handing back a track that is live but
+  never paints a frame.
+- Video now uses the negotiated portrait 1080x1920 stream, the same as photo. The
+  recording bitrate is calculated from the real track size, so it adapts and
+  quality at 1080p is unaffected. Recordings are also smaller, which helps them
+  stay under the upload limit.
+- A black preview can no longer be silent: if no frame arrives within three
+  seconds, the participant is told to record with their camera app and upload it,
+  and the Upload video button is already on that screen.
+- Honest caveat: the black screen itself cannot be reproduced without the
+  affected tablet, so this is the fix indicated by the photo/video difference
+  rather than one confirmed on the device. Needs a check on the tablet.
+
 ## V2.20.3 - 2026-07-30 (taking a photo is instant instead of a five-second wait)
 
 - Pressing "Take photo" on an Android tablet stalled for around five seconds

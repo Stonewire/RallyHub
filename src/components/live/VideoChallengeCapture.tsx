@@ -98,6 +98,18 @@ export function VideoChallengeCapture({
     void el.play().catch(() => {})
   }, [previewReady, recording, recordedFile, quarterTurn, facingMode])
 
+  // Some Android camera stacks hand back a live track that never paints a frame.
+  // The old symptom was a silent black screen with a working Record button; say
+  // so instead, and point at the upload fallback already in this modal.
+  useEffect(() => {
+    if (!previewReady || recordedFile || recording) return
+    const id = window.setTimeout(() => {
+      if ((previewRef.current?.videoWidth ?? 0) > 0) return
+      notify('Camera preview did not start — record with your camera app and upload it here')
+    }, 3000)
+    return () => window.clearTimeout(id)
+  }, [previewReady, recordedFile, recording, notify])
+
   function stopStream() {
     if (tickRef.current != null) {
       window.clearInterval(tickRef.current)
