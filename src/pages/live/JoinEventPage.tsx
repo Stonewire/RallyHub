@@ -29,6 +29,7 @@ import {
   logoForEvent,
 } from '@/lib/live-event'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
+import { reportClientIssue } from '@/lib/client-diagnostics'
 import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { requestTeamMediaPermissions } from '@/lib/media-permissions'
@@ -182,12 +183,20 @@ export function JoinEventPage() {
     try {
       let photoUrl: string | null = claimSlot.photo_url
       if (claimPhoto) {
-        photoUrl = await uploadParticipantAsset(
-          eventId,
-          `${eventId}/teams/${claimSlot.id}/${Date.now()}.jpg`,
-          claimPhoto,
-          { mediaKind: 'photo' },
-        )
+        try {
+          photoUrl = await uploadParticipantAsset(
+            eventId,
+            `${eventId}/teams/${claimSlot.id}/${Date.now()}.jpg`,
+            claimPhoto,
+            { mediaKind: 'photo' },
+          )
+        } catch (err) {
+          const detail = reportClientIssue('join-team-photo', err, {
+            eventId,
+            teamId: claimSlot.id,
+          })
+          throw new Error(`Could not upload team photo (${detail})`, { cause: err })
+        }
       }
       const trimmed = claimName.trim()
       const { data: claimResult, error: updateError } = await supabase
