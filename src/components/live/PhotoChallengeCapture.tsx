@@ -15,7 +15,6 @@ import {
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
 import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
-import { APP_VERSION } from '@/lib/version'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
@@ -45,17 +44,12 @@ export function PhotoChallengeCapture({
   const [snapshotTaken, setSnapshotTaken] = useState(false)
   const [encodePending, setEncodePending] = useState(false)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
-  // On-screen shutter timing: Hermit's WebView provably runs current builds
-  // yet its diagnostic writes never arrive, so the measurement is shown
-  // directly on the snapshot instead of trusted to the network (31 Jul 2026).
-  const [shutterStats, setShutterStats] = useState<string | null>(null)
 
   function clearSnapshot() {
     encodeSeqRef.current += 1
     encodePromiseRef.current = null
     snapshotHostRef.current?.replaceChildren()
     setSnapshotTaken(false)
-    setShutterStats(null)
     setEncodePending(false)
   }
 
@@ -120,7 +114,6 @@ export function PhotoChallengeCapture({
       setSnapshotTaken(true)
 
       const drawMs = Math.round(drawDone - shutterPressed)
-      setShutterStats(`draw ${drawMs}ms, encoding… ${APP_VERSION}`)
 
       // Encode in the background while the participant reviews the shot. A
       // stalled Hermit encode now costs invisible review-time, not shutter-time.
@@ -129,7 +122,6 @@ export function PhotoChallengeCapture({
       const promise = encodeCanvasToJpeg(canvas).then((blob) => {
         if (encodeSeqRef.current === seq) {
           const encodeMs = Math.round(nowMs() - encodeStarted)
-          setShutterStats(`draw ${drawMs}ms, encode ${encodeMs}ms ${APP_VERSION}`)
           if (encodeMs > 600) {
             reportClientTiming('capture-timing', `slow background encode: ${encodeMs}ms`, {
               eventId,
@@ -237,9 +229,6 @@ export function PhotoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
-        {snapshotTaken && shutterStats ? (
-          <p className="w-full text-center text-[10px] text-white/50">{shutterStats}</p>
-        ) : null}
         {snapshotTaken ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button

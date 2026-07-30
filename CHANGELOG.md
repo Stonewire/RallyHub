@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.36 - 2026-07-31 (remove the on-screen shutter stats line)
+
+- Rumen confirmed the instant-shutter flow on device: any residual wait now
+  lives inside the normal submission step instead of freezing the photo, and
+  the diagnostic stats line under the snapshot has done its job. Removed.
+- The silent instrumentation stays: background encodes slower than 600ms
+  still write timing rows (visible from Chrome traffic), and the corner
+  version stamp on live pages remains for support.
+
 ## V2.20.35 - 2026-07-31 (the shutter is instant even when Hermit's encoder stalls)
 
 - Rumen's on-screen stage readings settled the deep investigation: the frame
