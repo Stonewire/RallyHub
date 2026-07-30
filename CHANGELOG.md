@@ -5,6 +5,31 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.7 - 2026-07-30 (revert today's camera/upload changes, restart investigation properly)
+
+- Six commits today (V2.20.1 through V2.20.6) chased camera and upload bugs
+  one guess at a time, each verified only in a sandboxed desktop browser.
+  On real hardware, five distinct problems remained or worsened, including
+  the core issue: photo/video submissions failing on both iPhone and Android
+  with "fail to send a request to the edge function."
+- Reverted `main` to `a4fa36a` (V2.20.0), the state before any of today's six
+  commits. This is a deliberate, explicit tradeoff, not a clean win:
+  - Removed (regressions from today, correctly undone): the black-screen
+    Android video-record bug, the ~15-second live-track-reconfigure photo
+    slowdown, and the `x-team-token` CORS-preflight bug that broke every
+    submission.
+  - Reintroduced (the original problems from before today, now back): the
+    hard `min` resolution constraint that fails camera open outright on
+    desktop and some tablets, and the original ~5 second full-resolution
+    `ImageCapture` photo path.
+- No server-side changes (migrations, Edge Functions) were touched by any of
+  today's six commits, so this is a pure client rollback with no data or
+  schema impact.
+- Next: a permanent diagnostic-logging mechanism ships next (see
+  `docs/superpowers/specs/2026-07-30-media-capture-investigation-design.md`)
+  so the real root causes get diagnosed from evidence instead of guessed at
+  again. No further camera/upload fixes ship until that evidence exists.
+
 ## V2.20.6 - 2026-07-30 (removed the second live-camera reconfigure causing Android lag)
 
 - Photo capture regressed to ~15 seconds and video preview lagged continuously

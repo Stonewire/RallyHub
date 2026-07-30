@@ -8,19 +8,17 @@ import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   captureStillPhoto,
+  downscalePhoto,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
-import { mediaErrorMessage } from '@/lib/media-permissions'
 
 type PhotoChallengeCaptureProps = {
   accentColor: string
   disabled?: boolean
   onClose: () => void
-  /** In-app camera could not open; caller should fall back to OS camera / upload. */
-  onCameraUnavailable?: () => void
   onFileReady: (file: File) => void
 }
 
@@ -28,7 +26,6 @@ export function PhotoChallengeCapture({
   accentColor,
   disabled,
   onClose,
-  onCameraUnavailable,
   onFileReady,
 }: PhotoChallengeCaptureProps) {
   const { notify } = useNotification()
@@ -74,13 +71,9 @@ export function PhotoChallengeCapture({
 
   async function startCamera(facing: ChallengeFacingMode) {
     stopStream()
-    let stream: MediaStream
-    try {
-      stream = await getChallengeCameraStream(facing, false)
-    } catch (err) {
-      notify(mediaErrorMessage(err))
-      if (onCameraUnavailable) onCameraUnavailable()
-      else onClose()
+    const stream = await getChallengeCameraStream(facing, false)
+    if (!stream) {
+      notify('Camera access not granted — allow camera when the app opens')
       return
     }
     streamRef.current = stream
@@ -101,8 +94,8 @@ export function PhotoChallengeCapture({
     if (!streamRef.current || capturing) return
     setCapturing(true)
     try {
-      // Already at upload size and orientation — no second downscale pass.
-      const blob = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      const raw = await captureStillPhoto(streamRef.current, videoRef.current, { quarterTurn })
+      const blob = await downscalePhoto(raw)
       revokeSnapshotUrl()
       const url = URL.createObjectURL(blob)
       snapshotUrlRef.current = url

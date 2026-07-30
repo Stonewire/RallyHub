@@ -4,10 +4,6 @@ import { getTeamMediaStream } from '@/lib/media-permissions'
 
 export type ChallengeFacingMode = 'environment' | 'user'
 
-/** Upload size for stills. Matches downscalePhoto()'s default for file uploads. */
-const PHOTO_MAX_DIM = 1600
-const PHOTO_QUALITY = 0.8
-
 /** Portrait photo preview — flexible height, no fixed crop. */
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
@@ -18,6 +14,19 @@ export const CHALLENGE_VIDEO_FRAME_CLASS =
 
 /** Fill the 9:16 frame; minor edge crop if sensor aspect differs slightly. */
 export const CHALLENGE_VIDEO_MEDIA_CLASS = 'size-full object-cover'
+
+type ImageCaptureInstance = {
+  takePhoto: (settings?: PhotoSettings) => Promise<Blob>
+  getPhotoCapabilities?: () => Promise<PhotoCapabilities>
+}
+
+type ImageCaptureConstructor = new (track: MediaStreamTrack) => ImageCaptureInstance
+
+function imageCaptureCtor(): ImageCaptureConstructor | null {
+  if (typeof window === 'undefined') return null
+  const ctor = (window as Window & { ImageCapture?: ImageCaptureConstructor }).ImageCapture
+  return ctor ?? null
+}
 
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
@@ -44,21 +53,14 @@ export function previewVideoStyle(
   return { transform: parts.join(' ') }
 }
 
-/**
- * Ideal-only constraints. `min`/`exact` are HARD requirements: a portrait
- * `height: { min: 1280 }` rejects with OverconstrainedError on every 720p
- * landscape webcam (laptops, desktops) and on plenty of tablets, which killed
- * the in-app camera outright. Ideals degrade instead of failing; the portrait
- * fixups below run on the negotiated track.
- */
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): MediaStreamConstraints {
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: 1080 },
-    height: { ideal: 1920 },
+    width: { ideal: 1080, min: 720 },
+    height: { ideal: 1920, min: 1280 },
     aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',
@@ -70,80 +72,122 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-/**
- * Throws on failure; callers report mediaErrorMessage(err) and offer upload.
- *
- * The negotiated stream is used as-is, with NO reconfigure call on the live
- * track after opening it. We used to make two such calls in sequence
- * (applyMaxVideoTrackQuality, removed in V2.20.4, and a portrait-orientation
- * swap here) and both are the same failure mode on some Android hardware:
- * `applyConstraints()` on an already-flowing camera track can stall for
- * seconds or destabilize the whole pipeline for the rest of the session —
- * matching reports of a slow-to-capture photo AND a video preview that keeps
- * lagging afterward. If the sensor delivers landscape frames on a portrait
- * device, streamNeedsQuarterTurn()/previewVideoStyle() already correct that in
- * software for the live preview and captureStillPhoto() bakes the correction
- * into every photo, regardless of the track's raw orientation. Recorded VIDEO
- * FILES are the one output that is not corrected this way — MediaRecorder
- * encodes the raw track, not the rotated preview — so a landscape-sensor
- * device may record a sideways video. Needs a check on the tablet; if it
- * shows up, the fix is recording through a canvas (draw the same corrected
- * frames we already draw for stills) instead of the raw track, not resurrecting
- * this reconfigure.
- */
-export async function getChallengeCameraStream(
-  facingMode: ChallengeFacingMode,
-  withAudio: boolean,
-): Promise<MediaStream> {
+/** Request the highest resolution the device exposes (portrait-oriented when applicable). */
+export async function applyMaxVideoTrackQuality(track: MediaStreamTrack): Promise<void> {
+  const caps = track.getCapabilities?.()
+  if (!caps) return
+
+  const maxW = caps.width?.max
+  const maxH = caps.height?.max
+  if (!maxW || !maxH) return
+
+  let targetWidth = maxW
+  let targetHeight = maxH
+  if (isPortraitDevice() && maxW > maxH) {
+    targetWidth = maxH
+    targetHeight = maxW
+  }
+
   try {
-    return await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
-  } catch (err) {
-    // ponytail: one bare retry covers drivers that reject any resolution hint
-    // and cameras with no usable facingMode. Anything past that is a real fault.
-    const name = err instanceof Error ? err.name : ''
-    if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw err
-    return getTeamMediaStream({ video: true, audio: withAudio })
+    await track.applyConstraints({
+      width: { ideal: targetWidth },
+      height: { ideal: targetHeight },
+      aspectRatio: { ideal: 9 / 16 },
+      frameRate: { ideal: 30 },
+    })
+  } catch {
+    // Keep negotiated stream settings.
   }
 }
 
-/**
- * Rotate (if the sensor is landscape while the device is upright) and scale to
- * the target size in the SAME pass. Doing it as draw-then-downscale meant
- * encoding a JPEG and immediately decoding it again to shrink it: two extra
- * full-frame passes for an image we always shrink anyway.
- */
+async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
+  const { width = 0, height = 0 } = track.getSettings()
+  if (!width || !height || width <= height) return
+  try {
+    await track.applyConstraints({
+      width: { ideal: Math.min(width, height) },
+      height: { ideal: Math.max(width, height) },
+      aspectRatio: { ideal: 9 / 16 },
+    })
+  } catch {
+    // Keep the stream as-is; preview/capture will correct orientation.
+  }
+}
+
+export async function getChallengeCameraStream(
+  facingMode: ChallengeFacingMode,
+  withAudio: boolean,
+): Promise<MediaStream | null> {
+  const stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
+  if (!stream) return null
+
+  const track = stream.getVideoTracks()[0]
+  if (track) {
+    await applyMaxVideoTrackQuality(track)
+    if (isPortraitDevice()) {
+      await tryPortraitConstraints(track)
+    }
+  }
+
+  return stream
+}
+
+async function captureWithImageCapture(track: MediaStreamTrack): Promise<Blob> {
+  const ctor = imageCaptureCtor()
+  if (!ctor) throw new Error('ImageCapture unavailable')
+
+  const capture = new ctor(track)
+  const photoSettings: PhotoSettings = {}
+
+  if (capture.getPhotoCapabilities) {
+    try {
+      const caps = await capture.getPhotoCapabilities()
+      if (caps.imageWidth?.max) photoSettings.imageWidth = caps.imageWidth.max
+      if (caps.imageHeight?.max) photoSettings.imageHeight = caps.imageHeight.max
+    } catch {
+      // Use defaults from takePhoto()
+    }
+  }
+
+  const settings = track.getSettings()
+  if (!photoSettings.imageWidth && settings.width) {
+    photoSettings.imageWidth = settings.width
+  }
+  if (!photoSettings.imageHeight && settings.height) {
+    photoSettings.imageHeight = settings.height
+  }
+
+  return capture.takePhoto(photoSettings)
+}
+
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
   quarterTurn: boolean,
-  maxDim: number,
 ): void {
   const vw = video.videoWidth
   const vh = video.videoHeight
   ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-  const rotate = quarterTurn && vw > vh
-  // Output dimensions, before scaling, are swapped when the frame is rotated.
-  const outW = rotate ? vh : vw
-  const outH = rotate ? vw : vh
-  const scale = Math.min(1, maxDim / Math.max(outW, outH))
+  if (quarterTurn && vw > vh) {
+    canvas.width = vh
+    canvas.height = vw
+    ctx.translate(canvas.width / 2, canvas.height / 2)
+    ctx.rotate(Math.PI / 2)
+    ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
+    return
+  }
 
-  canvas.width = Math.round(outW * scale)
-  canvas.height = Math.round(outH * scale)
-
-  ctx.translate(canvas.width / 2, canvas.height / 2)
-  ctx.scale(scale, scale)
-  if (rotate) ctx.rotate(Math.PI / 2)
-  ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
+  canvas.width = vw
+  canvas.height = vh
+  ctx.drawImage(video, 0, 0, vw, vh)
 }
 
 async function captureWithCanvas(
   stream: MediaStream,
   videoEl: HTMLVideoElement | null,
   quarterTurn: boolean,
-  maxDim: number,
-  quality: number,
 ): Promise<Blob> {
   const video = videoEl ?? document.createElement('video')
   const ownsVideo = !videoEl
@@ -164,13 +208,13 @@ async function captureWithCanvas(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
-  drawVideoFrameToCanvas(ctx, canvas, video, quarterTurn, maxDim)
+  drawVideoFrameToCanvas(ctx, canvas, video, quarterTurn)
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
       'image/jpeg',
-      quality,
+      0.95,
     )
   })
 
@@ -199,38 +243,61 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
 }
 
 /**
- * Grab a still from the live preview frame.
- *
- * This deliberately does NOT use ImageCapture.takePhoto(). That asks the sensor
- * for a full-resolution shot, which on Android tablets stalls for seconds while
- * the camera reconfigures, and then needs a full-resolution rotate and a
- * full-resolution downscale on top — three heavy passes to produce a 1600px
- * image. Reading the frame already on screen is one canvas pass and feels
- * instant, and the preview is a portrait 1080x1920, which survives the 1600px
- * downscale with nothing meaningful lost.
- *
- * Preview mirroring for the front camera is CSS-only; the saved image matches
- * what the sensor produced.
- *
- * The returned blob is already at upload size, so callers must NOT run it
- * through downscalePhoto() again.
+ * Capture a full-resolution still from the live camera stream.
+ * Preview mirroring for front camera is CSS-only; saved image matches sensor output.
  */
 export async function captureStillPhoto(
   stream: MediaStream,
   videoEl?: HTMLVideoElement | null,
-  options?: { quarterTurn?: boolean; maxDim?: number; quality?: number },
+  options?: { quarterTurn?: boolean },
 ): Promise<Blob> {
   const track = stream.getVideoTracks()[0]
   if (!track) throw new Error('No camera track')
 
   const quarterTurn = options?.quarterTurn ?? streamNeedsQuarterTurn(stream)
-  return captureWithCanvas(
-    stream,
-    videoEl ?? null,
-    quarterTurn,
-    options?.maxDim ?? PHOTO_MAX_DIM,
-    options?.quality ?? PHOTO_QUALITY,
-  )
+
+  if (imageCaptureCtor()) {
+    try {
+      const blob = await captureWithImageCapture(track)
+      if (!quarterTurn) return blob
+      // ImageCapture may still return landscape on some Android devices — rotate via canvas.
+      return await rotatePhotoBlob(blob, true)
+    } catch {
+      // Fall back to canvas capture.
+    }
+  }
+
+  return captureWithCanvas(stream, videoEl ?? null, quarterTurn)
+}
+
+async function rotatePhotoBlob(blob: Blob, quarterTurn: boolean): Promise<Blob> {
+  if (!quarterTurn) return blob
+  const url = URL.createObjectURL(blob)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('Could not decode photo'))
+      el.src = url
+    })
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas unavailable')
+    canvas.width = img.height
+    canvas.height = img.width
+    ctx.translate(canvas.width / 2, canvas.height / 2)
+    ctx.rotate(Math.PI / 2)
+    ctx.drawImage(img, -img.width / 2, -img.height / 2)
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
+        'image/jpeg',
+        0.95,
+      )
+    })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }
 
 /**

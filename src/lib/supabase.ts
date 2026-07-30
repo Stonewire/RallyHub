@@ -17,24 +17,14 @@ let participantAnonMode = false
 
 const resolvedAnonKey = anonKey || 'placeholder'
 
-function requestUrlOf(input: RequestInfo | URL): string {
-  return typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-}
-
 function isSupabaseAuthRequest(input: RequestInfo | URL): boolean {
-  return requestUrlOf(input).includes('/auth/v1/')
-}
-
-/**
- * x-team-token is read by Postgres out of `request.headers`, so only REST and RPC
- * calls need it. Sending it anywhere else breaks the request outright: Edge
- * Functions and Storage answer the CORS preflight with a fixed
- * Access-Control-Allow-Headers list that does not include x-team-token, so the
- * browser passes the preflight and then refuses to send the real request. That
- * killed every photo/video submission and every participant upload.
- */
-export function acceptsTeamTokenHeader(input: RequestInfo | URL): boolean {
-  return requestUrlOf(input).includes('/rest/v1/')
+  const requestUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url
+  return requestUrl.includes('/auth/v1/')
 }
 
 /** Sets the join token sent on Supabase REST requests (x-join-token header for Phase 2 RLS). */
@@ -75,7 +65,7 @@ export const supabase = createClient<Database>(
           // Prove team ownership on participant writes: the private per-device
           // team token minted at claim, verified by digest server-side.
           const session = getCurrentParticipantSession()
-          if (session?.purchaseToken && acceptsTeamTokenHeader(input)) {
+          if (session?.purchaseToken) {
             headers.set('x-team-token', session.purchaseToken)
           }
         }
