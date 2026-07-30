@@ -656,6 +656,36 @@ export type Database = {
         }
         Relationships: []
       }
+      client_diagnostics: {
+        Row: {
+          id: string
+          created_at: string
+          event_id: string | null
+          team_id: string | null
+          context: string
+          platform: string
+          message: string
+          detail: Json | null
+        }
+        Insert: {
+          id?: string
+          event_id?: string | null
+          team_id?: string | null
+          context: string
+          platform: string
+          message: string
+          detail?: Json | null
+        }
+        Update: {
+          event_id?: string | null
+          team_id?: string | null
+          context?: string
+          platform?: string
+          message?: string
+          detail?: Json | null
+        }
+        Relationships: []
+      }
       event_state: {
         Row: {
           id: string
