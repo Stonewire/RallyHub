@@ -12,14 +12,23 @@ export const VIDEO_RECORD_MAX_BITS_PER_SECOND = 20_000_000
 const BITS_PER_PIXEL_PER_FRAME = 0.08
 const TARGET_FPS = 30
 
-/** Prefer formats that play back in Safari/iOS review UI. */
+function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+}
+
+/**
+ * Prefer formats that play back in Safari/iOS review UI — EXCEPT on Android.
+ * `video/mp4` there hands the recording to a hardware H.264 encoder that shares
+ * the camera pipeline with the live preview. Attaching it while the preview is
+ * already running is a known source of a black/flickering preview and no
+ * output the moment recording starts, on tablets in particular. `vp8`/`vp9` use
+ * a software encoder that doesn't touch the camera hardware. Desktop/iOS Safari
+ * still need `mp4` first: they support no vp8/vp9 MediaRecorder output at all.
+ */
 export function pickVideoRecorderMime(): string {
-  const candidates = [
-    'video/mp4',
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-  ]
+  const candidates = isAndroid()
+    ? ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']
+    : ['video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
   for (const mime of candidates) {
     if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mime)) {
       return mime

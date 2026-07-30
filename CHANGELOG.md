@@ -5,6 +5,27 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.5 - 2026-07-30 (Android video recording no longer goes black on Record)
+
+- V2.20.4 fixed a black camera preview on Android tablets. A different bug
+  remained: the preview showed fine, but pressing Record turned it black and
+  flickering, with no video produced. iPhone was unaffected — but iPhone video
+  challenges always use the OS camera app instead of this in-app recorder, so
+  it never exercised this code at all. Android tablets always go through it,
+  which is why only they showed it.
+- The recorder tried `video/mp4` first everywhere. On Android, MediaRecorder
+  hands that to a hardware H.264 encoder that shares the camera pipeline with
+  the live preview; attaching it while the preview is already running is a
+  known way to get exactly this: a black, flickering preview and no output the
+  instant recording starts.
+- Android now records `vp9`/`vp8` first, a software encoder that never touches
+  the camera hardware. Every other platform is unchanged — desktop and iOS
+  Safari need `mp4` first, since they have no `vp8`/`vp9` MediaRecorder support
+  at all.
+- Not reproducible without an affected Android tablet. This is the fix the
+  symptom (works until Record specifically) points to, added test pins the
+  platform-specific ordering; the tablet itself is the real test.
+
 ## V2.20.4 - 2026-07-30 (video capture on Android tablets)
 
 - Video challenges showed a black screen on Android tablets while working on
