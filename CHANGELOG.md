@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.21 - 2026-07-31 (iPhone video records vertical again)
+
+- iPhone video quality recovered in V2.20.20 but the view stayed horizontal:
+  iOS Safari ignores polite portrait hints at camera open and stays in its
+  landscape mode. The old max-resolution reconfigure removed in V2.20.13 had
+  been flipping it to portrait as a side effect, which is why iPhone video
+  was vertical before today's tablet work.
+- iOS now gets a firm portrait demand after the camera opens (an exact
+  width/height swap), with the polite fallback kept if a device genuinely
+  cannot. Android is untouched: its drivers either honour the polite hints
+  or deliver upright wide frames where forcing portrait would be wrong.
+- Also checked from the timing rows: the photo submit delay Rumen flagged is
+  honest upload time on the network (photo submits stayed under the 1.5
+  second reporting threshold; the video submits that crossed it spent the
+  whole time in the file transfer). The instrumentation keeps watching it.
+
 ## V2.20.20 - 2026-07-30 (full 1080p video on iPhone and iPad, 720p stays Android-only)
 
 - The 720p recording request shipped in V2.20.14 was calibrated on the

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 
+import { isIOSOrIPadOS } from '@/lib/capture-platform'
 import { getTeamMediaStream } from '@/lib/media-permissions'
 
 export type ChallengeFacingMode = 'environment' | 'user'
@@ -95,6 +96,25 @@ function isAndroid(): boolean {
 async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   const { width = 0, height = 0 } = track.getSettings()
   if (!width || !height || width <= height) return
+
+  // iOS Safari ignores ideal-only portrait hints and stays in its landscape
+  // camera mode (horizontal iPhone video, reported 30 Jul 2026 after the old
+  // post-open reconfigure was removed for the Android tablet's sake). An
+  // `exact` demand flips it; if the device truly cannot, the catch keeps the
+  // stream as-is. Android stays on ideals: its drivers either honour them or
+  // deliver upright-content wide frames where forcing would be wrong.
+  if (isIOSOrIPadOS()) {
+    try {
+      await track.applyConstraints({
+        width: { exact: Math.min(width, height) },
+        height: { exact: Math.max(width, height) },
+      })
+      return
+    } catch {
+      // Fall through to the polite attempt below.
+    }
+  }
+
   try {
     await track.applyConstraints({
       width: { ideal: Math.min(width, height) },
