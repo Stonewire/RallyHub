@@ -323,6 +323,52 @@ service worker if it should survive a patchy venue connection. The offline
 question is the interesting one for a tablet at an event, and it is a real
 piece of work rather than a design change.
 
+## Quiz designer: specified 1 Aug 2026, next to build
+
+Rumen's spec, captured before building because it needs config fields that do
+not exist yet.
+
+**Layout.** Half and half, not the two thirds used elsewhere.
+- Left, Primary settings: quiz name, description, points per correct answer,
+  time per question in seconds, and the number of rounds.
+- Right, Quiz designer: the background, then the Groups card beneath it.
+- Below both, full width: one card per round.
+
+**Background.** A pill choosing Photo or Colours.
+- Photo: upload or paste a link, with a preview. Same control as elsewhere.
+- Colours: **four** colours, forming a corner-to-corner gradient behind the
+  quiz, one colour pinned to each corner like a slide.
+- Either way the panel previews how the quiz will look.
+
+**Rounds.** Typing a number on the left generates that many rounds, collapsed.
+Each round is its own full-width card with an editable name, shown to players
+when that round starts, and a delete button. Deleting a round updates the number
+on the left, and so does adding one. There is no add-round button down here:
+rounds come from the number, and only leave from the card.
+
+**Questions.** Inside a round: the question text, four answers, and a way to
+mark the correct one. Every question has text; alongside it a pill chooses what
+else the question carries: **None, Photo, Video, Audio**.
+- Photo and Audio are uploads only.
+- Video is an embed link, YouTube.
+- Each needs a preview: the image and video inline, audio as a play button.
+The point is questions like "who is in this photo", "what did you see in this
+clip", "what can you hear".
+An "Add another question" button sits at the bottom of each round.
+
+**What this needs that does not exist.**
+- A fourth background colour. GameConfig carries primary, secondary and accent;
+  a fourth was deliberately not invented earlier because nothing consumed one.
+  The corner gradient is the consumer, so it can be added now.
+- Per-question media: a kind (none/photo/video/audio) and a URL. Today a
+  question has only `photoUrl`, so photo has to migrate onto the new shape
+  without breaking the questions that already use it.
+- Nothing here changes scoring, so `points_static` stays the per-correct award.
+
+**Deferred by Rumen:** how the media behaves during a live quiz, when the video
+plays, whether audio autoplays, what the host sees. That belongs with the
+player and display screens rather than the editor.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.
