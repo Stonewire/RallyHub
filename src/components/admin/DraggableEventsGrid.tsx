@@ -1,4 +1,4 @@
-import { CalendarDays, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Archive, CalendarDays, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -93,6 +93,9 @@ export function DraggableEventsGrid({
     const archivedEvent = (event.status as EventStatus) === 'archived'
     const activated = isEventActivated(event)
     const canDrag = !activated || !archivedEvent
+    // A running event reads as "archive", not "delete"; the underlying action
+    // is the same soft-delete either way.
+    const isLive = (event.status as EventStatus) === 'active'
     const colors = eventBrandColors(event)
 
     return (
@@ -188,9 +191,20 @@ export function DraggableEventsGrid({
               </NeoButton>
             </>
           )}
-          <NeoButton type="button" variant="ghost" size="sm" className="text-destructive px-2" disabled={deleting} onClick={() => onDelete(event)} title="Delete event">
-            <Trash2 className="size-3.5" />
-            Delete
+          {/* A live event is archived rather than deleted, per the design. The
+              action is the same soft-delete either way; the wording just stops
+              implying that an event mid-play is being destroyed. */}
+          <NeoButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={isLive ? 'text-primary px-2' : 'text-destructive px-2'}
+            disabled={deleting}
+            onClick={() => onDelete(event)}
+            title={isLive ? 'Archive event' : 'Delete event'}
+          >
+            {isLive ? <Archive className="size-3.5" /> : <Trash2 className="size-3.5" />}
+            {isLive ? 'Archive' : 'Delete'}
           </NeoButton>
         </div>
       </article>

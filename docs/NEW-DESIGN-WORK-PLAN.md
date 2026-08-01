@@ -61,7 +61,7 @@ is not), and text approval mode alters how submissions are approved mid-event.
 Bulk permanent delete is wired for Events only; Games has no safe
 permanent-delete backend and inventing one is not a design task.
 
-## Phase 5: restyle the kept features into the design language
+## Phase 5: restyle the kept features into the design language (DONE)
 
 These stay functionally as they are; only their presentation changes.
 
@@ -71,9 +71,24 @@ These stay functionally as they are; only their presentation changes.
 - Events: bin, duplicate, activation and status lifecycle surfaces.
 - Support: keep status grouping, unread badges, realtime and mark-as-read, restyled.
 
-## Phase 6: game preview
+## Phase 6: game preview (DONE)
 
 The design's Preview modal (TV mock plus phone mock side by side) and the Quiz and Music Bingo Background Designer with live previews. Largest single unbuilt piece; deliberately last because it depends on the control primitives and the restyled editors.
+
+Both built. The preview renders the draft being edited (real name, cover, first
+question and answers) rather than the design's hardcoded sample, and sits in the
+editor header so all six game types can reach it. The Background Designer is one
+shared component for quiz and music bingo; it also fixed quiz colours being
+editable only during creation and unreachable when editing an existing quiz.
+
+Phase 5 note: Billing and Organisation were restructured (two-column billing,
+plan actions, invoice table, colour picker popover, country dropdown, scoped
+tablet save). Games, Events and Support needed no structural restyle beyond the
+token layer they already inherit; the remaining work there was control
+unification, which is complete. A sweep confirms every hand-rolled pill toggle
+in the admin panel is now FlipSwitch or SegmentedPill: the only `aria-pressed`
+controls left are the marketing site and the live facilitator mute button, both
+outside this scope.
 
 ## Phase 7: live-path work, after the design is finished
 
