@@ -1,5 +1,5 @@
 import { IconGrid, IconPlus, IconPuzzle, IconRows, IconTrash } from '@/components/icons'
-import type { Dispatch, SetStateAction } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 
 import { CrosswordEditor } from '@/components/games/CrosswordEditor'
 import { SegmentedPill } from '@/components/neo-minimal'
@@ -9,6 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { newMatchingPair, puzzleType, validatePuzzleConfig } from '@/lib/puzzle-engine'
 import type { GameConfig, PuzzleType } from '@/types/game-config'
+
+/** Six keeps the preview on one row at any width. */
+const WORDLE_MAX_LETTERS = 6
+
+const MAX_PAIRS = 12
 
 const SUBTYPES: {
   type: PuzzleType
@@ -48,6 +53,7 @@ export function PuzzleEditor({
   section?: 'settings' | 'designer'
 }) {
   const selected = puzzleType(config)
+  const [wordleHint, setWordleHint] = useState<string | null>(null)
   const pairs = config.puzzle_matching_pairs ?? [
     newMatchingPair('France', 'Paris'),
     newMatchingPair('Italy', 'Rome'),
@@ -89,11 +95,8 @@ export function PuzzleEditor({
       <h3 className="text-foreground text-sm font-bold">Puzzle designer</h3>
 
       {selected === 'wordle' || selected === 'crossword' ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Label>Player keyboard</Label>
-            <p className="text-muted-foreground mt-1 text-xs">Choose the on-screen alphabet.</p>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Label className="shrink-0">Player keyboard</Label>
           <div className="bg-muted grid grid-cols-2 gap-1 rounded-full p-1">
             <Button
               type="button"
@@ -122,76 +125,64 @@ export function PuzzleEditor({
       ) : null}
 
       {selected === 'wordle' ? (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
-          <div className="space-y-3">
-          <div>
-            <Label htmlFor="puzzle-wordle-answer">Answer</Label>
-            <p className="text-muted-foreground mt-1 text-xs">
-              One word, 3–12 letters. Teams can guess as many times as they need.
-            </p>
+        <div className="space-y-4">
+          <div className="flex w-full flex-wrap items-center gap-3">
+            <Label htmlFor="puzzle-wordle-answer" className="shrink-0">
+              Answer
+            </Label>
+            <Input
+              id="puzzle-wordle-answer"
+              value={config.puzzle_wordle_answer ?? ''}
+              maxLength={WORDLE_MAX_LETTERS}
+              autoComplete="off"
+              spellCheck={false}
+              className="bg-background w-48 text-lg font-bold uppercase tracking-[0.2em]"
+              placeholder="TEAM"
+              onChange={(event) => {
+                // Truncated here as well as by maxLength: the attribute only
+                // stops typing and pasting, so anything set another way could
+                // still push a longer answer into the config.
+                const cleaned = Array.from(
+                  event.target.value.replace(/[^\p{L}]/gu, '').toLocaleUpperCase(),
+                )
+                  .slice(0, WORDLE_MAX_LETTERS)
+                  .join('')
+                // maxLength stops typing silently; say why rather than just
+                // refusing the keystroke.
+                setWordleHint(
+                  Array.from(cleaned).length >= WORDLE_MAX_LETTERS
+                    ? `${WORDLE_MAX_LETTERS} letters is the maximum.`
+                    : null,
+                )
+                setConfig((current) => ({ ...current, puzzle_wordle_answer: cleaned }))
+              }}
+            />
+            <span className="text-muted-foreground text-xs">
+              {wordleHint ?? `Up to ${WORDLE_MAX_LETTERS} letters.`}
+            </span>
           </div>
-          <Input
-            id="puzzle-wordle-answer"
-            value={config.puzzle_wordle_answer ?? ''}
-            maxLength={12}
-            autoComplete="off"
-            spellCheck={false}
-            className="max-w-sm bg-background text-lg font-bold uppercase tracking-[0.2em]"
-            placeholder="TEAM"
-            onChange={(event) =>
-              setConfig((current) => ({
-                ...current,
-                puzzle_wordle_answer: event.target.value.replace(/[^\p{L}]/gu, '').toLocaleUpperCase(),
-              }))
-            }
-          />
-          <p className="text-muted-foreground text-xs">
-            {Array.from(config.puzzle_wordle_answer ?? '').length || 0} letters · first guess earns
-            the maximum, then each extra guess removes 10% of the remaining score.
-          </p>
-          </div>
+
           <div className="border-border bg-muted/25 rounded-md border p-4">
-            <p className="text-muted-foreground mb-3 text-[10px] font-semibold uppercase tracking-[0.1em]">Player preview</p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {Array.from(config.puzzle_wordle_answer ?? 'TEAM').map((letter, index) => (
-                <span key={`${letter}-${index}`} className="border-nm-slate-400 bg-card flex size-9 items-center justify-center rounded border text-sm font-bold uppercase">
-                  {letter || ' '}
+            <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-[0.1em] uppercase">
+              Player preview
+            </p>
+            <div className="flex justify-center gap-2">
+              {Array.from(config.puzzle_wordle_answer || 'TEAM').map((letter, index) => (
+                <span
+                  key={`${letter}-${index}`}
+                  className="border-nm-slate-400 bg-card flex size-12 items-center justify-center rounded border text-lg font-bold uppercase"
+                >
+                  {letter || ' '}
                 </span>
               ))}
             </div>
-            <p className="text-muted-foreground mt-3 text-center text-[10px]">Answer length preview only</p>
           </div>
         </div>
       ) : null}
 
       {selected === 'matching' ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <Label>Matching pairs</Label>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Add 2–12 pairs. Each incorrect match costs 5% of the maximum score.
-              </p>
-            </div>
-            {pairs.length < 12 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setConfig((current) => ({
-                    ...current,
-                    puzzle_matching_pairs: [
-                      ...(current.puzzle_matching_pairs ?? pairs),
-                      newMatchingPair(),
-                    ],
-                  }))
-                }
-              >
-                <IconPlus className="mr-1 size-4" /> Add pair
-              </Button>
-            ) : null}
-          </div>
+          <Label>Matching pairs</Label>
 
           <div className="border-border bg-muted/20 space-y-2 rounded-md border p-3">
             <div className="text-muted-foreground grid grid-cols-[1fr_1fr_2.5rem] gap-2 px-1 text-xs font-semibold uppercase tracking-wide">
@@ -248,6 +239,27 @@ export function PuzzleEditor({
                 </Button>
               </div>
             ))}
+            {/* Inside the box, under the last pair: adding one continues the
+                list rather than reaching back up to a separate button. */}
+            {pairs.length < MAX_PAIRS ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="w-full justify-center"
+                onClick={() =>
+                  setConfig((current) => ({
+                    ...current,
+                    puzzle_matching_pairs: [
+                      ...(current.puzzle_matching_pairs ?? pairs),
+                      newMatchingPair(),
+                    ],
+                  }))
+                }
+              >
+                <IconPlus className="mr-1 size-4" /> Add more
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}

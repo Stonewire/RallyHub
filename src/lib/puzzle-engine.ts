@@ -180,7 +180,10 @@ export function validatePuzzleConfig(config: GameConfig): string | null {
   if (type === 'wordle') {
     const answer = (config.puzzle_wordle_answer ?? '').trim()
     const length = Array.from(answer).length
-    if (length < 3 || length > 12) return 'Wordle answers need between 3 and 12 letters.'
+    // 6 keeps the player's grid on one row at any width, and the editor caps
+    // typing at the same number. Checked against live data when tightened:
+    // none of the 26 existing wordle games had an answer longer than 6.
+    if (length < 3 || length > 6) return 'Wordle answers need between 3 and 6 letters.'
     if (!/^\p{L}+$/u.test(answer)) return 'Wordle answers can contain letters only.'
     return null
   }
