@@ -272,33 +272,10 @@ export const InventoryLibraryManager = forwardRef<
         <p className="text-destructive text-sm" role="alert">{error}</p>
       ) : null}
 
-      {/* Search and group filter are the Games Library controls, same classes,
-          so the two tabs are the same toolbar. */}
-      <div className="border-border/70 flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-center">
-        <div className="relative min-w-52 sm:max-w-sm sm:flex-1">
-          <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-          <NeoInput
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search inventory…"
-            className="bg-card h-9 pl-8 text-xs"
-          />
-        </div>
-        <select
-          aria-label="Filter by group"
-          value={activeGroup ?? 'all'}
-          onChange={(event) =>
-            setActiveGroup(event.target.value === 'all' ? null : event.target.value)
-          }
-          className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
-        >
-          <option value="all">All Groups</option>
-          {groups.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </select>
+      {/* Same band as the Games Library: group actions sit on the left where
+          that tab keeps its type filters, search and the group selector on the
+          right, everything h-9. */}
+      <div className="border-border/70 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
         {groups.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {renamingGroup ? (
@@ -366,7 +343,36 @@ export const InventoryLibraryManager = forwardRef<
               </>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <span />
+        )}
+
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+          <div className="relative min-w-52 flex-1">
+            <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+            <NeoInput
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search inventory…"
+              className="bg-card h-9 pl-8 text-xs"
+            />
+          </div>
+          <select
+            aria-label="Filter by group"
+            value={activeGroup ?? 'all'}
+            onChange={(event) =>
+              setActiveGroup(event.target.value === 'all' ? null : event.target.value)
+            }
+            className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
+          >
+            <option value="all">All Groups</option>
+            {groups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {items.length === 0 ? (

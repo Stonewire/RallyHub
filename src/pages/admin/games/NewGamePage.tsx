@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import {
   IconMusicBingo,
@@ -50,6 +50,14 @@ const TYPES: {
   { type: 'puzzle', label: 'Puzzle', icon: IconPuzzle, description: 'Wordle, matching, and upcoming puzzle formats' },
 ]
 
+function defaultGameName(type: GameType | null): string {
+  if (type === 'quiz') return 'New Quiz'
+  if (type === 'music_bingo') return 'Music Bingo'
+  if (type === 'text') return 'New Text Challenge'
+  if (type === 'puzzle') return 'New Puzzle'
+  return ''
+}
+
 function emptyQuestion(): QuizQuestion {
   const answers = [1, 2, 3, 4].map((n) => ({
     id: newGameId(),
@@ -74,13 +82,20 @@ export function AdminGamesNewPage() {
   const availableGroups = useMemo(() => gameGroupsQuery.data ?? [], [gameGroupsQuery.data])
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set())
 
-  const [step, setStep] = useState<'type' | 'editor'>('type')
-  const [gameType, setGameType] = useState<GameType | null>(null)
+  // The type comes from the picker modal. Landing here without one (a stale
+  // link, a typed URL) sends the organiser back to the library, where the
+  // picker lives, rather than showing a second copy of it.
+  const [searchParams] = useSearchParams()
+  const requestedType = searchParams.get('type')
+  const initialType = TYPES.some((t) => t.type === requestedType)
+    ? (requestedType as GameType)
+    : null
+  const gameType = initialType
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Shared / photo / video
-  const [name, setName] = useState('')
+  const [name, setName] = useState(() => defaultGameName(initialType))
   const [description, setDescription] = useState('')
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [pointsType, setPointsType] = useState<PointsType>('static')
@@ -131,15 +146,6 @@ export function AdminGamesNewPage() {
         </p>
       </AdminPageShell>
     )
-  }
-
-  function selectType(type: GameType) {
-    setGameType(type)
-    setStep('editor')
-    if (type === 'quiz' && !name) setName('New Quiz')
-    if (type === 'music_bingo' && !name) setName('Music Bingo')
-    if (type === 'text' && !name) setName('New Text Challenge')
-    if (type === 'puzzle' && !name) setName('New Puzzle')
   }
 
   async function handleFile(
@@ -236,39 +242,7 @@ export function AdminGamesNewPage() {
     }
   }
 
-  if (step === 'type') {
-    return (
-      <AdminPageShell
-        title="New game"
-        subtitle="Choose a game type to get started."
-        backTo="/admin/games"
-        backLabel="Back to games"
-      >
-        <div className="border-nm-slate-800 bg-card mx-auto max-w-3xl rounded-lg border-2 p-4 shadow-lg" data-tour="game-type-picker">
-          <div className="border-border mb-4 border-b pb-3">
-            <h2 className="text-foreground text-sm font-bold">Select game type</h2>
-            <p className="text-muted-foreground mt-1 text-xs">Choose the format. You can configure all content on the next screen.</p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {TYPES.map(({ type, label, icon: Icon, description }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => selectType(type)}
-              className="border-border hover:border-primary hover:bg-primary/5 bg-background text-left rounded-md border p-4 transition-[background-color,border-color,transform] hover:-translate-y-0.5"
-            >
-              <span className="bg-nm-slate-100 mb-3 flex size-9 items-center justify-center rounded-md">
-                <Icon className="text-nm-slate-700 size-8" />
-              </span>
-              <h3 className="text-foreground text-sm font-semibold">{label}</h3>
-              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{description}</p>
-            </button>
-          ))}
-          </div>
-        </div>
-      </AdminPageShell>
-    )
-  }
+  if (!gameType) return <Navigate to="/admin/games" replace />
 
   const isPhotoVideo = gameType === 'photo' || gameType === 'video'
   const isText = gameType === 'text'

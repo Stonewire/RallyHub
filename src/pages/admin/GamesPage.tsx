@@ -1,11 +1,12 @@
 import { IconCheck, IconChevronDown, IconChevronRight, IconClose, IconPhoto, IconSearch, IconTrash } from '@/components/icons'
 import { useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
 import { GameEditPanel } from '@/components/games/GameEditPanel'
 import { GameImportModal } from '@/components/games/GameImportModal'
+import { NewGameTypeModal } from '@/components/games/NewGameTypeModal'
 import { InstallGameGroupModal } from '@/components/rallyhub/InstallGameGroupModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { InstallMusicLibraryModal } from '@/components/rallyhub/InstallMusicLibraryModal'
@@ -199,6 +200,7 @@ export function AdminGamesPage() {
   const [pendingDeleteGroup, setPendingDeleteGroup] = useState<{ id: string; name: string } | null>(
     null,
   )
+  const [newGameOpen, setNewGameOpen] = useState(false)
   const [createGroupOpen, setCreateGroupOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [createGroupSelection, setCreateGroupSelection] = useState<Set<string>>(new Set())
@@ -552,10 +554,13 @@ export function AdminGamesPage() {
           <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
             New Group
           </NeoButton>
-          <NeoButton variant="accent" asChild>
-            <Link to="/admin/games/new" data-tour="new-game-button">
-              New Game
-            </Link>
+          <NeoButton
+            variant="accent"
+            type="button"
+            data-tour="new-game-button"
+            onClick={() => setNewGameOpen(true)}
+          >
+            New Game
           </NeoButton>
         </> : undefined
       }
@@ -741,8 +746,8 @@ export function AdminGamesPage() {
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <IconPhoto className="text-muted-foreground size-10 opacity-60" />
           <p className="text-foreground font-medium">No games yet</p>
-          <NeoButton variant="accent" asChild className="mt-2">
-            <Link to="/admin/games/new">Create New Game</Link>
+          <NeoButton variant="accent" type="button" className="mt-2" onClick={() => setNewGameOpen(true)}>
+            Create New Game
           </NeoButton>
         </Card>
       ) : (
@@ -833,6 +838,8 @@ export function AdminGamesPage() {
       {installMusicOpen ? (
         <InstallMusicLibraryModal onClose={() => setInstallMusicOpen(false)} />
       ) : null}
+
+      <NewGameTypeModal open={newGameOpen} onClose={() => setNewGameOpen(false)} />
 
       {importOpen && organizationId ? (
         <GameImportModal

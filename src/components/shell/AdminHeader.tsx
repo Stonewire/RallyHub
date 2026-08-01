@@ -14,6 +14,7 @@ import { LoggedOutScreen } from '@/components/auth/LoggedOutScreen'
 import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
 import { HeaderSearch } from '@/components/shell/HeaderSearch'
 import { HelpModal } from '@/components/shell/HelpModal'
+import { NewGameTypeModal } from '@/components/games/NewGameTypeModal'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
@@ -35,6 +36,7 @@ export function AdminHeader() {
   const { role, signOut } = useAuth()
   const { tenantOrg } = useTenant()
   const [helpOpen, setHelpOpen] = useState(false)
+  const [newGameOpen, setNewGameOpen] = useState(false)
   const [loggedOut, setLoggedOut] = useState(false)
 
   // Facilitators cannot create games or events, so those CTAs stay hidden.
@@ -75,13 +77,14 @@ export function AdminHeader() {
           {canCreate ? (
             <>
               <Divider />
-              <Link
-                to="/admin/games/new"
+              <button
+                type="button"
+                onClick={() => setNewGameOpen(true)}
                 className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-3 text-xs font-semibold whitespace-nowrap"
               >
                 <IconGames className="size-4" />
                 New Game
-              </Link>
+              </button>
               <Link
                 to="/admin/events/new"
                 className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
@@ -136,6 +139,7 @@ export function AdminHeader() {
       </header>
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <NewGameTypeModal open={newGameOpen} onClose={() => setNewGameOpen(false)} />
 
       {loggedOut ? (
         <LoggedOutScreen
