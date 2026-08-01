@@ -1,15 +1,16 @@
-import { Download, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { Download, GripVertical, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
+import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { NeoButton } from '@/components/neo-minimal'
 import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
 
 type DraggableGamesGridProps = {
   games: GameRow[]
-  groups: { id: string; name: string }[]
+  /** Group names per game id, for the card footer. */
+  groupNamesByGame: Record<string, string[]>
   deleting: boolean
   onDelete: (game: GameRow) => void
-  onAssignGroup: (gameId: string, groupId: string | null) => void
   onReorder: (gameId: string, index: number) => void
   onEdit: (gameId: string) => void
   onInstall?: (game: GameRow) => void
@@ -17,10 +18,9 @@ type DraggableGamesGridProps = {
 
 export function DraggableGamesGrid({
   games,
-  groups,
+  groupNamesByGame,
   deleting,
   onDelete,
-  onAssignGroup,
   onReorder,
   onEdit,
   onInstall,
@@ -63,7 +63,9 @@ export function DraggableGamesGrid({
         handleDrop(null)
       }}
     >
-      {sorted.map((game) => (
+      {sorted.map((game) => {
+        const gameGroupNames = groupNamesByGame[game.id] ?? []
+        return (
         <article
           key={game.id}
           draggable
@@ -94,11 +96,26 @@ export function DraggableGamesGrid({
                 Cover image
               </span>
             )}
-            <span className="bg-nm-slate-800 absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+            <span className={`absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-semibold text-white ${gameTypeTagClass(game.type)}`}>
               {GAME_TYPE_LABELS[game.type]}
             </span>
+            {/* Delete sits over the cover so the card footer is free for the
+                group list. Appears on hover, like the drag handle. */}
+            <button
+              type="button"
+              title="Delete game"
+              aria-label={`Delete ${game.name}`}
+              disabled={deleting}
+              className="absolute left-1.5 top-1.5 rounded bg-black/45 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70 disabled:opacity-30"
+              onClick={(event) => {
+                event.stopPropagation()
+                onDelete(game)
+              }}
+            >
+              <Trash2 className="size-3" />
+            </button>
             <GripVertical
-              className="absolute left-1.5 top-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+              className="absolute bottom-1.5 left-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
               aria-hidden
             />
           </div>
@@ -110,66 +127,36 @@ export function DraggableGamesGrid({
               {pointsLabel(game)}
             </p>
           </div>
-          <div
-            className="border-border/60 mt-auto flex items-center justify-center gap-1 border-t px-1.5 py-1.5"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {groups.length > 0 ? (
-              <select
-                aria-label={`Move ${game.name} to group`}
-                className="neo-field h-7 min-w-0 flex-1 px-1.5 py-0 text-[10px]"
-                defaultValue=""
-                onChange={(e) => {
-                  const v = e.target.value
-                  onAssignGroup(game.id, v === '' ? null : v === '__none' ? null : v)
-                  e.target.value = ''
-                }}
-              >
-                <option value="">Group…</option>
-                <option value="__none">Ungroup</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
+          {/* Groups this game belongs to, as plain text. No edit button: the
+              card itself opens the editor, so a pencil would be a second
+              control for the same action. Truncated with the full list on
+              hover, since a game can sit in several groups. */}
+          <div className="border-border/60 mt-auto flex items-center gap-1 border-t px-1.5 py-1.5">
+            <p
+              className="text-muted-foreground min-w-0 flex-1 truncate text-[10px]"
+              title={gameGroupNames.length > 0 ? gameGroupNames.join(', ') : undefined}
+            >
+              {gameGroupNames.length > 0 ? gameGroupNames.join(', ') : 'No group'}
+            </p>
             {onInstall ? (
               <NeoButton
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="size-7 p-0"
+                className="size-6 shrink-0 p-0"
                 title="Install game"
-                onClick={() => onInstall(game)}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onInstall(game)
+                }}
               >
                 <Download className="size-3" />
               </NeoButton>
             ) : null}
-            <NeoButton
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="size-7 p-0"
-              title="Edit game"
-              onClick={() => onEdit(game.id)}
-            >
-              <Pencil className="size-3" />
-            </NeoButton>
-            <NeoButton
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-destructive size-7 p-0"
-              title="Delete game"
-              disabled={deleting}
-              onClick={() => onDelete(game)}
-            >
-              <Trash2 className="size-3" />
-            </NeoButton>
           </div>
         </article>
-      ))}
+        )
+      })}
     </div>
   )
 }

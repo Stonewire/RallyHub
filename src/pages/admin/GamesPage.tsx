@@ -222,7 +222,17 @@ export function AdminGamesPage() {
 
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data])
   const allGames = useMemo(() => gamesQuery.data ?? [], [gamesQuery.data])
-  const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
+
+  const groupNamesByGame = useMemo(() => {
+    const map: Record<string, string[]> = {}
+    for (const group of groups) {
+      for (const item of group.items) {
+        if (!map[item.game_id]) map[item.game_id] = []
+        map[item.game_id].push(group.name)
+      }
+    }
+    return map
+  }, [groups])
 
   const gameToGroupId = useMemo(() => {
     const map = new Map<string, string>()
@@ -721,15 +731,12 @@ export function AdminGamesPage() {
                   ) : (
                     <DraggableGamesGrid
                       games={groupGames}
-                      groups={groupOptions}
+                      groupNamesByGame={groupNamesByGame}
                       deleting={deleteGame.isPending}
                       onDelete={(game) => {
                         setDialogError(null)
                         setPendingDeleteGame({ id: game.id, name: game.name })
                       }}
-                      onAssignGroup={(gameId, gid) =>
-                        void assignGroup.mutateAsync({ gameId, groupId: gid })
-                      }
                       onReorder={handleReorder}
                       onEdit={setEditingGameId}
                       onInstall={
@@ -752,15 +759,12 @@ export function AdminGamesPage() {
               </h2>
               <DraggableGamesGrid
                 games={ungrouped}
-                groups={groupOptions}
+                groupNamesByGame={groupNamesByGame}
                 deleting={deleteGame.isPending}
                 onDelete={(game) => {
                   setDialogError(null)
                   setPendingDeleteGame({ id: game.id, name: game.name })
                 }}
-                onAssignGroup={(gameId, gid) =>
-                  void assignGroup.mutateAsync({ gameId, groupId: gid })
-                }
                 onReorder={handleReorder}
                 onEdit={setEditingGameId}
                 onInstall={isPlatformLibrary ? (game) => setInstallGame(game) : undefined}
