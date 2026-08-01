@@ -130,7 +130,7 @@ export function AdminAppSidebar() {
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={to} end={end} data-tour={tourId}>
-                      <Icon className="shrink-0" strokeWidth={1.75} />
+                      <Icon className="shrink-0" />
                       <span className="font-medium">{label}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -191,7 +191,7 @@ export function AdminAppSidebar() {
                             to={search ? { pathname: to, search } : to}
                             data-tour={tourId}
                           >
-                            <Icon className="shrink-0" strokeWidth={1.75} />
+                            <Icon className="shrink-0" />
                             <span className="font-medium">{label}</span>
                           </NavLink>
                         </SidebarMenuButton>

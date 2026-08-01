@@ -29,7 +29,11 @@ export function RhIcon({ className, children, ...props }: RhIconProps) {
       strokeLinejoin="round"
       aria-hidden
       focusable="false"
-      className={cn('shrink-0', className)}
+      // size-4 by default. lucide carried width/height={24} attributes, so a
+      // call site that forgot a size class still rendered at 24px; an SVG with
+      // neither attribute nor class stretches to fill its container instead,
+      // which is how a missed site turns into a giant icon.
+      className={cn('size-4 shrink-0', className)}
       {...props}
     >
       {children}

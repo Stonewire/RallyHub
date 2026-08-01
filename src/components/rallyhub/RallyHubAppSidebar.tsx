@@ -92,7 +92,7 @@ export function RallyHubAppSidebar() {
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={to} end={end}>
-                      <Icon className="shrink-0" strokeWidth={1.75} />
+                      <Icon className="shrink-0" />
                       <span className="font-medium">{label}</span>
                     </NavLink>
                   </SidebarMenuButton>
