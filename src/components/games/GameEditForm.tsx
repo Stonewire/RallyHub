@@ -510,8 +510,9 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         ) : null}
 
         {gameType === 'photo' || gameType === 'video' ? (
-          <>
+          <div className="grid items-start gap-6 xl:grid-cols-[2fr_1fr]">
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
               <AssetField
                 label="Cover image"
                 preview={coverUrl}
@@ -583,7 +584,13 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                 onFile={(file) =>
                   void handleFile(file, setExampleVideoUrl, `videos/${newGameId()}`)
                 }
+                onUrl={setExampleVideoUrl}
+                urlPlaceholder="or paste a YouTube link…"
               />
+              <p className="text-muted-foreground -mt-2 text-xs">
+                A YouTube link works here as well as an upload. Unlisted is fine;
+                private videos will not play for participants.
+              </p>
             </Card>
 
             <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
@@ -630,7 +637,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                 previewLabel="Solution preview"
               />
             </Card>
-          </>
+          </div>
         ) : null}
       </div>
 

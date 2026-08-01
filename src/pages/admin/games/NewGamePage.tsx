@@ -9,6 +9,7 @@ import {
   IconText,
   IconVideo,
 } from '@/components/icons'
+import { AssetField } from '@/components/games/AssetField'
 import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
@@ -294,10 +295,12 @@ export function AdminGamesNewPage() {
               <Label>Description</Label>
               <RichTextEditor value={description} onChange={setDescription} />
             </div>
-            <FileField
+            <AssetField
               label="Cover image"
               onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
+              onUrl={setCoverUrl}
               preview={coverUrl}
+              showPreviewPanel
             />
             <PointsEditor
               pointsType={pointsType}
@@ -348,7 +351,7 @@ export function AdminGamesNewPage() {
                 </p>
               </div>
             )}
-            <FileField
+            <AssetField
               label={
                 gameType === 'video'
                   ? 'Example video (visible to participants)'
@@ -358,8 +361,14 @@ export function AdminGamesNewPage() {
               onFile={(f) =>
                 void handleFile(f, setExampleVideoUrl, `videos/${newGameId()}`)
               }
+              onUrl={setExampleVideoUrl}
+              urlPlaceholder="or paste a YouTube link…"
               preview={exampleVideoUrl}
             />
+            <p className="text-muted-foreground -mt-2 text-xs">
+              A YouTube link works here as well as an upload. Unlisted is fine;
+              private videos will not play for participants.
+            </p>
           </Card>
         )}
 
@@ -377,7 +386,7 @@ export function AdminGamesNewPage() {
                 className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
               />
             </div>
-            <FileField
+            <AssetField
               label="Solution image"
               onFile={(f) =>
                 void handleFile(f, setSolutionImageUrl, `solutions/${newGameId()}`)
@@ -404,7 +413,7 @@ export function AdminGamesNewPage() {
                   className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
-              <FileField
+              <AssetField
                 label="Cover image"
                 onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
                 preview={coverUrl}
@@ -439,7 +448,7 @@ export function AdminGamesNewPage() {
                 <Label>Description</Label>
                 <RichTextEditor value={description} onChange={setDescription} />
               </div>
-              <FileField
+              <AssetField
                 label="Cover image"
                 onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
                 preview={coverUrl}
@@ -468,7 +477,7 @@ export function AdminGamesNewPage() {
               <Label>Quiz name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
             </div>
-            <FileField
+            <AssetField
               label="Cover photo"
               onFile={(f) => void handleFile(f, setCoverUrl, `quiz/cover-${newGameId()}`)}
               preview={coverUrl}
@@ -528,39 +537,6 @@ export function AdminGamesNewPage() {
         label="Save game"
       />
     </AdminPageShell>
-  )
-}
-
-function FileField({
-  label,
-  accept = 'image/*',
-  preview,
-  onFile,
-}: {
-  label: string
-  accept?: string
-  preview: string | null
-  onFile: (file: File | undefined) => void
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap items-center gap-3">
-        {preview ? (
-          accept.startsWith('video') ? (
-            <video src={preview} className="max-h-24 rounded-lg" controls />
-          ) : (
-            <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
-          )
-        ) : null}
-        <Input
-          type="file"
-          accept={accept}
-          className="max-w-xs"
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-      </div>
-    </div>
   )
 }
 

@@ -1,3 +1,5 @@
+import type { CSSProperties, ReactNode } from 'react'
+
 import { IconClose } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -86,7 +88,7 @@ export function GamePreviewModal({
       onClick={onClose}
     >
       <div
-        className="bg-nm-surface border-border w-full max-w-3xl rounded-nm-lg border p-5 shadow-xl"
+        className="bg-nm-surface border-border max-h-[90vh] w-full max-w-6xl overflow-auto rounded-nm-lg border p-5 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between gap-3">
@@ -101,76 +103,43 @@ export function GamePreviewModal({
           </button>
         </div>
         <p className="text-muted-foreground mb-4 text-xs">
-          Sample screens: the host display on the left, a player's phone on the
-          right. Not interactive.
+          How this game looks on a computer, a tablet and a phone. Each pane
+          scrolls on its own.
         </p>
 
-        <div className="flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
-          <div className="w-full max-w-sm">
-            <div className="rounded-nm-lg bg-[#1c1d21] p-2 pb-5 shadow-lg">
-              <div
-                className="bg-nm-slate-200 relative aspect-video overflow-hidden rounded-md"
-                style={coverStyle}
-              >
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-black/45 p-4 text-center">
-                  <p className="text-sm font-bold text-white drop-shadow">{title}</p>
-                  <p className="text-xs text-white/90 drop-shadow">{question}</p>
-                  {showOptions ? (
-                    <div className="grid w-full max-w-64 grid-cols-2 gap-1.5">
-                      {options.slice(0, 4).map((option, index) => (
-                        <span
-                          key={option + index}
-                          className={
-                            index === 1
-                              ? 'bg-nm-yellow text-nm-charcoal truncate rounded-nm-sm px-2 py-1 text-[10px] font-semibold'
-                              : 'text-nm-charcoal truncate rounded-nm-sm bg-white/90 px-2 py-1 text-[10px] font-semibold'
-                          }
-                        >
-                          {option}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <p className="text-muted-foreground mt-1.5 text-center text-[11px]">
-              TV / host display
-            </p>
-          </div>
+        {/* Three frames side by side: computer, tablet, phone. Each pane
+            scrolls on its own so a long description can be read in the frame
+            it will actually appear in, rather than only at the top. */}
+        <div className="grid items-start gap-5 lg:grid-cols-[1.35fr_1fr_.62fr]">
+          <DeviceFrame label="Computer" bezel="rounded-nm-lg p-2 pb-5" screen="aspect-video rounded-md">
+            <ScreenContents
+              style={coverStyle}
+              title={title}
+              question={question}
+              options={showOptions ? options : []}
+              scale="lg"
+            />
+          </DeviceFrame>
 
-          <div className="shrink-0">
-            <div className="w-[150px] rounded-[20px] bg-[#1c1d21] p-2.5 shadow-lg">
-              <div
-                className="bg-nm-slate-200 relative aspect-9/16 overflow-hidden rounded-xl"
-                style={coverStyle}
-              >
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 p-2.5 text-center">
-                  <p className="text-[11px] font-bold text-white drop-shadow">{title}</p>
-                  <p className="text-[9px] text-white/90 drop-shadow">{question}</p>
-                  {showOptions ? (
-                    <div className="flex w-full flex-col gap-1">
-                      {options.slice(0, 4).map((option, index) => (
-                        <span
-                          key={option + index}
-                          className={
-                            index === 1
-                              ? 'bg-nm-yellow text-nm-charcoal truncate rounded px-1.5 py-1 text-[8px] font-semibold'
-                              : 'text-nm-charcoal truncate rounded bg-white/90 px-1.5 py-1 text-[8px] font-semibold'
-                          }
-                        >
-                          {option}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <p className="text-muted-foreground mt-1.5 text-center text-[11px]">
-              Player's phone
-            </p>
-          </div>
+          <DeviceFrame label="Tablet" bezel="rounded-2xl p-3" screen="aspect-4/3 rounded-lg">
+            <ScreenContents
+              style={coverStyle}
+              title={title}
+              question={question}
+              options={showOptions ? options : []}
+              scale="md"
+            />
+          </DeviceFrame>
+
+          <DeviceFrame label="Phone" bezel="rounded-[20px] p-2.5" screen="aspect-9/16 rounded-xl">
+            <ScreenContents
+              style={coverStyle}
+              title={title}
+              question={question}
+              options={showOptions ? options : []}
+              scale="sm"
+            />
+          </DeviceFrame>
         </div>
 
         <div className="mt-5 flex justify-end">
@@ -178,6 +147,75 @@ export function GamePreviewModal({
             Close
           </NeoButton>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** One device: a dark bezel around a scrollable screen, with its name beneath. */
+function DeviceFrame({
+  label,
+  bezel,
+  screen,
+  children,
+}: {
+  label: string
+  bezel: string
+  screen: string
+  children: ReactNode
+}) {
+  return (
+    <div className="min-w-0">
+      <div className={`bg-[#1c1d21] shadow-lg ${bezel}`}>
+        <div className={`bg-nm-slate-200 relative overflow-auto ${screen}`}>{children}</div>
+      </div>
+      <p className="text-muted-foreground mt-1.5 text-center text-[11px]">{label}</p>
+    </div>
+  )
+}
+
+const SCALE = {
+  lg: { title: 'text-sm', body: 'text-xs', option: 'text-[10px]', gap: 'gap-2.5 p-4' },
+  md: { title: 'text-[13px]', body: 'text-[11px]', option: 'text-[9px]', gap: 'gap-2 p-3' },
+  sm: { title: 'text-[11px]', body: 'text-[9px]', option: 'text-[8px]', gap: 'gap-2 p-2.5' },
+} as const
+
+function ScreenContents({
+  style,
+  title,
+  question,
+  options,
+  scale,
+}: {
+  style: CSSProperties | undefined
+  title: string
+  question: string
+  options: string[]
+  scale: keyof typeof SCALE
+}) {
+  const size = SCALE[scale]
+  return (
+    <div className="absolute inset-0" style={style}>
+      <div className={`flex min-h-full flex-col items-center justify-center bg-black/45 text-center ${size.gap}`}>
+        <p className={`font-bold text-white drop-shadow ${size.title}`}>{title}</p>
+        <p className={`text-white/90 drop-shadow ${size.body}`}>{question}</p>
+        {options.length > 0 ? (
+          <div className={scale === 'sm' ? 'flex w-full flex-col gap-1' : 'grid w-full max-w-64 grid-cols-2 gap-1.5'}>
+            {options.slice(0, 4).map((option, index) => (
+              <span
+                key={option + index}
+                className={
+                  (index === 1
+                    ? 'bg-nm-yellow text-nm-charcoal '
+                    : 'text-nm-charcoal bg-white/90 ') +
+                  `truncate rounded-nm-sm px-2 py-1 font-semibold ${size.option}`
+                }
+              >
+                {option}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   )

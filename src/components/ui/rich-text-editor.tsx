@@ -123,7 +123,7 @@ export function RichTextEditor({
           type="color"
           title="Text color"
           aria-label="Text color"
-          className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
+          className="size-7 cursor-pointer overflow-hidden rounded-full border-0 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
           onMouseDown={saveSelection}
           onInput={(e) => {
             const color = e.currentTarget.value
@@ -139,7 +139,7 @@ export function RichTextEditor({
         onFocus={() => document.execCommand('defaultParagraphSeparator', false, 'br')}
         onInput={emitChange}
         onBlur={emitChange}
-        className="rich-text-editable min-h-[10rem] w-full px-3 py-2 text-sm outline-none"
+        className="rich-text-editable min-h-[10rem] w-full resize-y overflow-auto px-3 py-2 text-sm outline-none"
       />
     </div>
   )
