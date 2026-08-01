@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, Check, Trash2, X } from 'lucide-react'
+import { Check, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
@@ -61,11 +61,13 @@ export function CrosswordEditor({
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
 }) {
-  const seed = useRef(initialState(config)).current
+  // Lazy initial state, read once. useState rather than a ref because reading
+  // a ref during render is exactly what it looks like: a purity bug waiting.
+  const [seed] = useState(() => initialState(config))
   const [placed, setPlaced] = useState<Record<string, string>>(seed.placed)
   const [blocked, setBlocked] = useState<string[]>(seed.blocked)
   const [clues, setClues] = useState<Record<string, string>>(seed.clues)
-  const [tool, setTool] = useState<'word' | 'block'>('word')
+  const [tool, setTool] = useState<CrosswordDirection | 'block'>('across')
   const [start, setStart] = useState<Cell | null>(null)
   const [dir, setDir] = useState<CrosswordDirection | null>(null)
   const [draft, setDraft] = useState('')
@@ -73,7 +75,6 @@ export function CrosswordEditor({
   const [clueDraft, setClueDraft] = useState('')
   const [sweeping, setSweeping] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const idMap = useRef(new Map<string, string>())
   const draftInput = useRef<HTMLInputElement>(null)
 
   const blockedSet = useMemo(() => new Set(blocked), [blocked])
@@ -88,13 +89,14 @@ export function CrosswordEditor({
     () =>
       runs.map((run) => {
         const key = runKeyOf(run.row, run.col, run.direction)
-        let id = idMap.current.get(key)
-        if (!id) {
-          id = crypto.randomUUID()
-          idMap.current.set(key, id)
-        }
         return {
-          id,
+          // The run key (row-col-direction) is already unique within a grid and
+          // stable while the word stays put, so it makes a better id than a
+          // random UUID kept alive in a mutable map read during render. Ids are
+          // opaque downstream: puzzle-engine only passes them through to the
+          // player's clue list. Games saved earlier keep their existing UUIDs
+          // until the grid is edited again.
+          id: key,
           answer: run.answer.toLocaleUpperCase(),
           clue: clues[key] ?? '',
           row: run.row,
@@ -164,13 +166,6 @@ export function CrosswordEditor({
     setMessage(null)
   }
 
-  function chooseDirection(direction: CrosswordDirection) {
-    setDir(direction)
-    setDraft('')
-    setMessage(null)
-    window.setTimeout(() => draftInput.current?.focus(), 0)
-  }
-
   function onCellClick(cell: Cell) {
     const key = `${cell.row}-${cell.col}`
     setMessage(null)
@@ -185,9 +180,17 @@ export function CrosswordEditor({
       return
     }
     if (blockedSet.has(key)) return
+    // The pill already carries the direction, so a click both picks the start
+    // cell and commits the direction. Checked here rather than left to a
+    // disabled button, because there is no longer a second step to disable.
+    if (runCells(cell, tool).length < 2) {
+      setMessage(`No room for a word going ${tool} from there.`)
+      return
+    }
     setStart(cell)
-    setDir(null)
+    setDir(tool)
     setDraft('')
+    window.setTimeout(() => draftInput.current?.focus(), 0)
   }
 
   function confirmWord() {
@@ -280,22 +283,19 @@ export function CrosswordEditor({
       <div>
         <Label>Crossword grid</Label>
         <p className="text-muted-foreground mt-1 text-xs">
-          Pick a cell, hover the row or column that lights up, then type the word.
+          Choose Across or Down, click the cell the word starts from, then type it.
           Every straight run of 2 or more letters becomes a word and needs a clue.
-          Use the block tool to seal cells you do not want used.
+          Use Block to seal cells you do not want used.
         </p>
       </div>
 
-      {/* Design shows a single Across/Down/Block pill. The editor keeps its
-          two-step model (pick a tool, then a direction once a run exists),
-          because direction is only meaningful after a cell is chosen. Logged
-          in the work plan as a deliberate interaction difference. */}
       <div className="mx-auto w-fit min-w-64">
         <SegmentedPill
           size="sm"
           aria-label="Crossword tool"
           options={[
-            { value: 'word', label: 'Word' },
+            { value: 'across', label: 'Across' },
+            { value: 'down', label: 'Down' },
             { value: 'block', label: 'Block' },
           ]}
           value={tool}
@@ -327,14 +327,6 @@ export function CrosswordEditor({
               type="button"
               aria-label={`Cell row ${row + 1}, column ${colLetter(col)}`}
               onClick={() => onCellClick({ row, col })}
-              onMouseEnter={() => {
-                if (tool !== 'word' || !start || dir) return
-                if (acrossRun.some((c) => c.row === row && c.col === col) && row === start.row) {
-                  chooseDirection('across')
-                } else if (downRun.some((c) => c.row === row && c.col === col) && col === start.col) {
-                  chooseDirection('down')
-                }
-              }}
               className={`flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
                 isBlocked
                   ? 'border-[#FFC107] bg-[#FFC107] text-transparent'
@@ -357,61 +349,33 @@ export function CrosswordEditor({
         })}
       </div>
 
-      {/* Direction chooser + inline typing */}
-      {tool === 'word' && start ? (
-        <div className="space-y-2">
-          {!dir ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground text-xs">Choose a direction:</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={acrossRun.length < 2}
-                onClick={() => chooseDirection('across')}
-              >
-                <ArrowRight className="mr-1 size-4" /> Across
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={downRun.length < 2}
-                onClick={() => chooseDirection('down')}
-              >
-                <ArrowDown className="mr-1 size-4" /> Down
-              </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                ref={draftInput}
-                value={draft}
-                maxLength={activeRun.length}
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="Type the word"
-                className="w-40 bg-background font-bold uppercase tracking-[0.15em]"
-                onChange={(event) =>
-                  setDraft(
-                    event.target.value
-                      .replace(/[^\p{L}]/gu, '')
-                      .slice(0, activeRun.length)
-                      .toLocaleUpperCase(),
-                  )
-                }
-              />
-              <Button type="button" size="sm" disabled={draftChars.length < 2} onClick={confirmWord}>
-                <Check className="mr-1 size-4" /> Confirm
-              </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
-                <X className="mr-1 size-4" /> Cancel
-              </Button>
-            </div>
-          )}
+      {/* Inline typing. The direction came from the pill, so there is no
+          direction step between picking a cell and typing. */}
+      {tool !== 'block' && start ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            ref={draftInput}
+            value={draft}
+            maxLength={activeRun.length}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Type the word"
+            className="w-40 bg-background font-bold uppercase tracking-[0.15em]"
+            onChange={(event) =>
+              setDraft(
+                event.target.value
+                  .replace(/[^\p{L}]/gu, '')
+                  .slice(0, activeRun.length)
+                  .toLocaleUpperCase(),
+              )
+            }
+          />
+          <Button type="button" size="sm" disabled={draftChars.length < 2} onClick={confirmWord}>
+            <Check className="mr-1 size-4" /> Confirm
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
+            <X className="mr-1 size-4" /> Cancel
+          </Button>
         </div>
       ) : null}
 

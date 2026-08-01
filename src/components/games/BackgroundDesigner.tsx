@@ -49,9 +49,11 @@ export function BackgroundDesigner({
   onOpenPreview,
   previewSubtitle,
 }: BackgroundDesignerProps) {
-  // Derived rather than stored: a background image being set IS "image mode".
-  // A separate stored flag could disagree with the data it describes.
-  const usingImage = Boolean(config.background_url)
+  // Stored, with the old derivation as the fallback so games saved before
+  // background_mode existed keep the appearance they already had.
+  const usingImage = config.background_mode
+    ? config.background_mode === 'image'
+    : Boolean(config.background_url)
 
   const colours = COLOUR_FIELDS.map(({ key, label }) => ({
     key,
@@ -82,12 +84,9 @@ export function BackgroundDesigner({
           onLabel="Colours"
           value={usingImage ? 'image' : 'colours'}
           onChange={(next) =>
-            // Switching to Colours clears the image, which is what makes the
-            // mode derivable; switching back is done by choosing a file.
-            setConfig((c) => ({
-              ...c,
-              background_url: next === 'colours' ? null : c.background_url,
-            }))
+            // The upload survives the switch, so the organiser can compare the
+            // two and settle on one without having to re-upload the image.
+            setConfig((c) => ({ ...c, background_mode: next }))
           }
         />
       </div>
@@ -99,9 +98,11 @@ export function BackgroundDesigner({
           onFile={async (file) => {
             if (!file) return
             const url = await onUploadBackground(file)
-            setConfig((c) => ({ ...c, background_url: url }))
+            setConfig((c) => ({ ...c, background_url: url, background_mode: 'image' }))
           }}
-          onUrl={(url) => setConfig((c) => ({ ...c, background_url: url }))}
+          onUrl={(url) =>
+            setConfig((c) => ({ ...c, background_url: url, background_mode: 'image' }))
+          }
         />
       ) : (
         <div className="grid grid-cols-3 gap-3">

@@ -80,6 +80,14 @@ export type GameConfig = {
   solution_video_url?: string | null
   max_video_duration_seconds?: number
   background_url?: string | null
+  /**
+   * Which background the game uses. Stored rather than derived from
+   * `background_url` so that switching to Colours keeps the uploaded image
+   * instead of discarding it, and the organiser can flip between the two while
+   * deciding. Absent means fall back to the old derivation (an image is set =
+   * image mode), so games saved before this existed keep their appearance.
+   */
+  background_mode?: 'image' | 'colours'
   primary_color?: string
   secondary_color?: string
   accent_color?: string
