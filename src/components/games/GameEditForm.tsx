@@ -1,5 +1,5 @@
 import { Eye } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import {
   NoOrganizationMessage,
@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
 import { GAME_TYPE_LABELS, useGame, useUpdateGame } from '@/hooks/use-games'
 import {
   useAdminOrganizationId,
@@ -61,6 +62,21 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const gameQuery = useGame(gameId)
+  const gameGroupsQuery = useGameGroups(organizationId)
+  const setGameGroups = useSetGameGroups(organizationId)
+  const gameGroups = useMemo(() => gameGroupsQuery.data ?? [], [gameGroupsQuery.data])
+  // Derived from the query, not mirrored in state: the checkbox writes through
+  // immediately and the invalidation brings the new membership back, so there
+  // is no second copy to keep in sync.
+  const selectedGroupIds = useMemo(
+    () =>
+      new Set(
+        gameGroups
+          .filter((group) => group.items.some((item) => item.game_id === gameId))
+          .map((group) => group.id),
+      ),
+    [gameGroups, gameId],
+  )
   const updateGame = useUpdateGame(organizationId)
   const isPlatformLibrary = useIsPlatformGamesAdmin()
   const { notify } = useNotification()
@@ -320,6 +336,41 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
           <div className="space-y-2">
             <Label>Description</Label>
             <RichTextEditor value={description} onChange={setDescription} />
+          </div>
+          {/* Group membership lives here now that the card footer shows groups
+              as read-only text. Many-to-many, which the table always allowed. */}
+          <div className="space-y-2">
+            <Label>Groups</Label>
+            {gameGroups.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No groups yet. Create one from the Games library.
+              </p>
+            ) : (
+              <div className="border-border max-h-44 space-y-1 overflow-auto rounded-md border p-2">
+                {gameGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.has(group.id)}
+                      onChange={() => {
+                        const next = new Set(selectedGroupIds)
+                        if (next.has(group.id)) next.delete(group.id)
+                        else next.add(group.id)
+                        void setGameGroups
+                          .mutateAsync({ gameId, groupIds: [...next] })
+                          .catch((err) =>
+                            setError(err instanceof Error ? err.message : 'Could not update groups'),
+                          )
+                      }}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{group.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
 

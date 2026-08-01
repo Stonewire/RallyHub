@@ -122,3 +122,37 @@ export function useAssignGameToGroup(organizationId: string | null) {
     },
   })
 }
+
+/**
+ * Sets the full list of groups a game belongs to.
+ *
+ * Separate from useAssignGameToGroup, which replaces every membership with a
+ * single one. The data model (game_group_items) has always been many-to-many;
+ * the old single-group behaviour was a limitation of the card control, not of
+ * the schema. This writes the whole set so a game can sit in several groups.
+ */
+export function useSetGameGroups(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ gameId, groupIds }: { gameId: string; groupIds: string[] }) => {
+      const { error: clearError } = await supabase
+        .from('game_group_items')
+        .delete()
+        .eq('game_id', gameId)
+      if (clearError) throw clearError
+
+      if (groupIds.length > 0) {
+        const { error } = await supabase
+          .from('game_group_items')
+          .insert(groupIds.map((groupId) => ({ group_id: groupId, game_id: gameId })))
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.gameGroups(organizationId),
+      })
+    },
+  })
+}
