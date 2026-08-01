@@ -117,9 +117,10 @@ export function AdminSettingsPage() {
   const dirty = orgQuery.data
     ? JSON.stringify(form) !== JSON.stringify(orgToForm(orgQuery.data))
     : false
-  // Tablet Access has its own Save, so it tracks only its own fields. Using the
-  // page-wide dirty flag made that button appear after editing an unrelated
-  // field like the organisation name, implying it saved only the PIN.
+  // Organisation Device Access has its own Save, so it tracks only its own
+  // fields. Using the page-wide dirty flag made that button appear after
+  // editing an unrelated field like the organisation name, implying it saved
+  // only the PIN.
   const tabletDirty = orgQuery.data
     ? form.tablet_password !== orgToForm(orgQuery.data).tablet_password ||
       form.tablet_slug !== orgToForm(orgQuery.data).tablet_slug
@@ -508,7 +509,7 @@ export function AdminSettingsPage() {
 
             <div className="flex flex-col gap-4">
               <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-                <SettingsCardHeader title="Tablet Access" visibility="Public" />
+                <SettingsCardHeader title="Organisation Device Access" visibility="Public" />
                 {orgQuery.data ? (
                   <TabletLinkEditor subdomain={orgQuery.data.subdomain} disabled={tabletPinIsDefault} />
                 ) : null}
@@ -537,7 +538,7 @@ export function AdminSettingsPage() {
                   onClick={() => setInstallGuideOpen(true)}
                 >
                   <Smartphone className="size-3.5" />
-                  How to install this on a device
+                  Instructions on how to install RallyHub on a mobile device
                 </NeoButton>
                 {tabletDirty ? (
                   <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
