@@ -29,11 +29,11 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
  * because the meaning of green/blue/yellow must not flip between light and dark.
  */
 export const EVENT_STATUS_PILL_CLASS: Record<EventStatus, string> = {
-  active: 'bg-[#2f9e6e] text-white border-transparent',
-  demo: 'bg-[#bfe0f5] text-[#1c3d52] border-transparent',
-  ready: 'bg-[#ffc107] text-[#3a2f00] border-transparent',
-  draft: 'bg-[#dcdcdf] text-[#3a3a3f] border-transparent',
-  archived: 'bg-[#4a4a4f] text-white border-transparent',
+  active: 'bg-[#2f9e6e] text-white border-transparent hover:bg-[#2f9e6e] hover:text-white',
+  demo: 'bg-[#bfe0f5] text-[#1c3d52] border-transparent hover:bg-[#bfe0f5] hover:text-[#1c3d52]',
+  ready: 'bg-[#ffc107] text-[#3a2f00] border-transparent hover:bg-[#ffc107] hover:text-[#3a2f00]',
+  draft: 'bg-[#dcdcdf] text-[#3a3a3f] border-transparent hover:bg-[#dcdcdf] hover:text-[#3a3a3f]',
+  archived: 'bg-[#4a4a4f] text-white border-transparent hover:bg-[#4a4a4f] hover:text-white',
 }
 
 export function groupEventsByStatus(events: EventRow[]) {

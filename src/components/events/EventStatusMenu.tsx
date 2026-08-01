@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { StatusIndicator } from '@/components/ui/status-indicator'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_PILL_CLASS } from '@/hooks/use-events'
 import { getAllowedEventStatuses } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
@@ -77,8 +76,16 @@ export function EventStatusMenu({
               setOpen(false)
             }}
           >
-            <StatusIndicator status={s} label="" />
-            {EVENT_STATUS_LABELS[s]}
+            {/* Same pill as the trigger, so the menu shows the colour you are
+                choosing rather than a dot next to plain text. */}
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                EVENT_STATUS_PILL_CLASS[s],
+              )}
+            >
+              {EVENT_STATUS_LABELS[s]}
+            </span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -25,7 +25,9 @@ export function EventLinksModal({
 }: EventLinksModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <Card className="border-nm-slate-800 max-h-[90vh] w-full max-w-3xl overflow-auto border-2 bg-card p-6 shadow-xl">
+      <Card className="border-border/80 max-h-[90vh] w-full max-w-3xl overflow-auto bg-card p-6 shadow-xl">
+        {/* The event name is not repeated here: the card you opened this from
+            already names it, and it pushed the links down for nothing. */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Link2 className="text-foreground size-5" />
@@ -35,7 +37,6 @@ export function EventLinksModal({
             <X className="size-4" />
           </Button>
         </div>
-        <p className="text-muted-foreground mb-6 text-sm">{eventName}</p>
         <EventLinksPanel
           eventId={eventId}
           eventName={eventName}
