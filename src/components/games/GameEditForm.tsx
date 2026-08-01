@@ -5,6 +5,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { AssetField } from '@/components/games/AssetField'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
@@ -163,7 +164,10 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       const isPhotoVideo = gameType === 'photo' || gameType === 'video'
       // Puzzles always score from a single maximum, so they store static points only.
       const isPuzzle = gameType === 'puzzle'
-      const hasPoints = isPhotoVideo || gameType === 'text' || isPuzzle
+      // Quizzes are included: score_current_quiz_question reads points_static
+      // as the per-correct-answer award, so it has to be written.
+      const isQuiz = gameType === 'quiz'
+      const hasPoints = isPhotoVideo || gameType === 'text' || isPuzzle || isQuiz
       await updateGame.mutateAsync({
         gameId,
         patch: {
@@ -172,10 +176,13 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
           cover_url: coverUrl,
           ...(hasPoints
             ? {
-                points_type: isPuzzle ? 'static' : pointsType,
-                points_static: isPuzzle || pointsType === 'static' ? pointsStatic : null,
-                points_min: !isPuzzle && pointsType === 'range' ? pointsMin : null,
-                points_max: !isPuzzle && pointsType === 'range' ? pointsMax : null,
+                points_type: isPuzzle || isQuiz ? 'static' : pointsType,
+                points_static:
+                  isPuzzle || isQuiz || pointsType === 'static' ? pointsStatic : null,
+                points_min:
+                  !isPuzzle && !isQuiz && pointsType === 'range' ? pointsMin : null,
+                points_max:
+                  !isPuzzle && !isQuiz && pointsType === 'range' ? pointsMax : null,
               }
             : {}),
           ...(isPhotoVideo
@@ -254,7 +261,39 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         </Card>
 
         {gameType === 'quiz' ? (
-          <QuizEditor
+          <>
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <AssetField
+                label="Cover image"
+                preview={coverUrl}
+                onFile={async (file) => {
+                  if (!file) return
+                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
+                  setCoverUrl(url)
+                }}
+                onUrl={setCoverUrl}
+                showPreviewPanel
+              />
+              <div className="space-y-2">
+                <Label>Points / correct</Label>
+                {/* Written to games.points_static, which is what the
+                    score_current_quiz_question RPC reads. A config field here
+                    would never be consulted by scoring. */}
+                <Input
+                  type="number"
+                  min={0}
+                  value={pointsStatic}
+                  onChange={(e) =>
+                    setPointsStatic(Math.max(0, Number(e.target.value) || 0))
+                  }
+                  className="bg-background max-w-[8rem]"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Awarded to each team that answers a question correctly.
+                </p>
+              </div>
+            </Card>
+            <QuizEditor
             config={config}
             setConfig={setConfig}
             onUploadQuestionPhoto={async (questionId, file) => {
@@ -266,7 +305,8 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                 ),
               }))
             }}
-          />
+            />
+          </>
         ) : null}
 
         {gameType === 'music_bingo' ? (
@@ -282,7 +322,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         {gameType === 'text' ? (
           <>
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <FileField
+              <AssetField
                 label="Cover image"
                 preview={coverUrl}
                 onFile={async (file) => {
@@ -290,6 +330,8 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
                   setCoverUrl(url)
                 }}
+                onUrl={setCoverUrl}
+                showPreviewPanel
               />
               <PointsEditor
                 pointsType={pointsType}
@@ -313,7 +355,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         {gameType === 'puzzle' ? (
           <>
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <FileField
+              <AssetField
                 label="Cover image"
                 preview={coverUrl}
                 onFile={async (file) => {
@@ -321,6 +363,8 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
                   setCoverUrl(url)
                 }}
+                onUrl={setCoverUrl}
+                showPreviewPanel
               />
               <div className="space-y-2">
                 <Label>Maximum points</Label>
@@ -343,7 +387,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         {gameType === 'photo' || gameType === 'video' ? (
           <>
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <FileField
+              <AssetField
                 label="Cover image"
                 preview={coverUrl}
                 onFile={async (file) => {
@@ -351,6 +395,8 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
                   setCoverUrl(url)
                 }}
+                onUrl={setCoverUrl}
+                showPreviewPanel
               />
               <PointsEditor
                 pointsType={pointsType}
@@ -401,7 +447,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   </p>
                 </div>
               ) : null}
-              <FileField
+              <AssetField
                 label={
                   gameType === 'video'
                     ? 'Example video (visible to participants)'
@@ -428,12 +474,15 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
-              <FileField
+              <AssetField
                 label="Solution image"
                 preview={solutionImageUrl}
                 onFile={(file) =>
                   void handleFile(file, setSolutionImageUrl, `solutions/${newGameId()}`)
                 }
+                onUrl={setSolutionImageUrl}
+                showPreviewPanel
+                previewLabel="Solution preview"
               />
             </Card>
           </>
@@ -454,39 +503,6 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
     headerActions,
     body,
   })
-}
-
-function FileField({
-  label,
-  accept = 'image/*',
-  preview,
-  onFile,
-}: {
-  label: string
-  accept?: string
-  preview: string | null
-  onFile: (file: File | undefined) => void | Promise<void>
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap items-center gap-3">
-        {preview ? (
-          accept.startsWith('video') ? (
-            <video src={preview} className="max-h-24 rounded-lg" controls />
-          ) : (
-            <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
-          )
-        ) : null}
-        <Input
-          type="file"
-          accept={accept}
-          className="max-w-xs"
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-      </div>
-    </div>
-  )
 }
 
 function PointsEditor({

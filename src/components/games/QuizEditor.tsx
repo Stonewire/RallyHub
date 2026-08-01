@@ -320,16 +320,19 @@ export function QuizEditor({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>General timer (seconds)</Label>
-        <Input
-          type="number"
-          value={config.timer_seconds ?? 20}
-          onChange={(e) =>
-            setConfig((c) => ({ ...c, timer_seconds: Number(e.target.value) }))
-          }
-          className="bg-background max-w-[8rem]"
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Time / question (sec)</Label>
+          <Input
+            type="number"
+            min={1}
+            value={config.timer_seconds ?? 20}
+            onChange={(e) =>
+              setConfig((c) => ({ ...c, timer_seconds: Number(e.target.value) }))
+            }
+            className="bg-background"
+          />
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm font-medium">
