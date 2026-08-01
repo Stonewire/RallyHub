@@ -114,12 +114,14 @@ bundled into a design batch.
    The field was drafted and then removed rather than ship a control that
    nothing enforces.
 
-2. **Quiz points verification.** Quiz now writes `games.points_static`, which
-   `score_current_quiz_question` reads as the per-correct-answer award. Before
-   this, quiz games never wrote that column at all, so scoring fell back to its
-   hardcoded 10. The editor change is in, but it alters live scoring, so it
-   needs a real quiz round smoke-tested end to end: set a non-default value,
-   run a question, confirm the awarded score matches.
+2. **Quiz points verification. DONE, passed 1 Aug 2026.** Smoke-tested end to
+   end against the live database: a quiz configured at 37 points per correct
+   answer, a real active event, a real team claim, one answer, and auto-reveal
+   scoring. The team scored exactly 37.
+   The same run also confirmed the invoice was raised at 0.00 due under the
+   Partner plan, that `events.location` persists, and that a game attaches to
+   an event through the stage picker alone with no add-to-event step.
+   Test data was archived and soft-deleted afterwards.
 
 3. **Bingo clip length 60 seconds.** The design offers 30/60/90; the type and
    the clip generator permit 30 and 90 only. Adding 60 touches clip extraction.
@@ -148,7 +150,18 @@ bundled into a design batch.
 - Ticket file attachments.
 - Stat card week-over-week deltas (needs historical data that is not currently recorded).
 
-## BLOCKING: the branch cannot run against the live database
+## RESOLVED: migrations applied 1 Aug 2026
+
+All seven were applied to project `rlnnhgnuprtatmhqxirb` with Rumen's explicit
+approval, and verified by querying `information_schema` and `pg_policies`
+rather than trusting the tool's success responses: six columns, the
+`user-avatars` bucket with four storage policies, `profiles_update_own` plus
+its `guard_profile_self_update` trigger, and `delete_own_account`.
+
+Event creation, which failed with 42703 beforehand, now succeeds. The original
+blocking report is kept below for the record.
+
+## BLOCKING (now resolved): the branch could not run against the live database
 
 Verified 1 Aug 2026 against production from the dev server. Every column added
 in Phase 2 is missing, because those migrations are committed but deliberately
