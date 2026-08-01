@@ -886,6 +886,35 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_groups: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+        }
+        Update: { name?: string }
+        Relationships: []
+      }
+      inventory_group_items: {
+        Row: {
+          id: string
+          group_id: string
+          item_id: string
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          item_id: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
       inventory_purchases: {
         Row: {
           id: string

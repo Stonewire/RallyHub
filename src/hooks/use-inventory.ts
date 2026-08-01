@@ -201,3 +201,56 @@ export function useDeleteInventoryItem(organizationId: string | null) {
     },
   })
 }
+
+/**
+ * Copies an item, including its photo.
+ *
+ * The photo is copied in storage rather than shared: two rows pointing at one
+ * file means deleting either item takes the picture off the other. The copy
+ * gets its own public_code from the column default, so it is a distinct QR.
+ */
+export function useDuplicateInventoryItem(organizationId: string | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (item: InventoryItem) => {
+      if (!organizationId) throw new Error('No organization selected.')
+      const id = crypto.randomUUID()
+      let imageUrl: string | null = null
+
+      const sourcePath = item.image_url
+        ? publicUrlStoragePath(item.image_url, 'game-assets')
+        : null
+      if (sourcePath) {
+        const extension = sourcePath.split('.').pop()?.toLowerCase() || 'jpg'
+        const targetPath = `${organizationId}/inventory/${id}/${crypto.randomUUID()}.${extension}`
+        const { error: copyError } = await supabase.storage
+          .from('game-assets')
+          .copy(sourcePath, targetPath)
+        // A missing source file must not block the duplicate; the copy simply
+        // comes through without a photo.
+        if (!copyError) {
+          imageUrl = supabase.storage.from('game-assets').getPublicUrl(targetPath).data.publicUrl
+        }
+      }
+
+      const insert: TablesInsert<'inventory_items'> = {
+        id,
+        organization_id: organizationId,
+        name: `${item.name} (copy)`.slice(0, 120),
+        description: item.description,
+        points_cost: item.points_cost,
+        image_url: imageUrl,
+      }
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .insert(insert)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventoryItems(organizationId) })
+    },
+  })
+}

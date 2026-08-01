@@ -523,6 +523,9 @@ export function AdminGamesPage() {
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.exportAll()}>
             Export All
           </NeoButton>
+          <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.openCreateGroup()}>
+            New Group
+          </NeoButton>
           <NeoButton type="button" variant="accent" onClick={() => inventoryRef.current?.openCreate()}>
             New Item
           </NeoButton>
