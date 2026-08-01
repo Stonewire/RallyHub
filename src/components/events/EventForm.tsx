@@ -825,13 +825,15 @@ function TogglePair({
   )
 }
 
-const QUEST_QUICK_FILTERS = [
+type QuestTypeFilter = 'photo' | 'video' | 'puzzle' | 'text' | null
+
+const QUEST_TYPE_FILTERS: { label: string; type: QuestTypeFilter }[] = [
   { label: 'All', type: null },
-  { label: 'All photo', type: 'photo' },
-  { label: 'All video', type: 'video' },
-  { label: 'All text', type: 'text' },
-  { label: 'All puzzles', type: 'puzzle' },
-] as const
+  { label: 'Photo', type: 'photo' },
+  { label: 'Video', type: 'video' },
+  { label: 'Puzzle', type: 'puzzle' },
+  { label: 'Text', type: 'text' },
+]
 
 type QuestStageGamesProps = {
   stage: EventStage
@@ -845,6 +847,10 @@ type QuestStageGamesProps = {
 function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [groupFilter, setGroupFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<QuestTypeFilter>(null)
+  // Checked-but-unsaved picks. The design stages a selection and commits it on
+  // Save, rather than the previous behaviour of adding on every single click.
+  const [pending, setPending] = useState<Set<string>>(new Set())
   const [pickerOpen, setPickerOpen] = useState((stage.gameIds ?? []).length === 0)
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
@@ -860,12 +866,28 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
     [compatible, ids],
   )
   const filteredAvailable = useMemo(() => {
-    if (groupFilter === 'all') return available
-    const gameIds = new Set(
-      groups.find((group) => group.id === groupFilter)?.items.map((item) => item.game_id) ?? [],
-    )
-    return available.filter((game) => gameIds.has(game.id))
-  }, [available, groupFilter, groups])
+    let list = available
+    if (groupFilter !== 'all') {
+      const gameIds = new Set(
+        groups.find((group) => group.id === groupFilter)?.items.map((item) => item.game_id) ?? [],
+      )
+      list = list.filter((game) => gameIds.has(game.id))
+    }
+    if (typeFilter) list = list.filter((game) => game.type === typeFilter)
+    return list
+  }, [available, groupFilter, groups, typeFilter])
+
+  const allFilteredChecked =
+    filteredAvailable.length > 0 && filteredAvailable.every((g) => pending.has(g.id))
+
+  function togglePending(id: string) {
+    setPending((previous) => {
+      const next = new Set(previous)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   // Adding always unions into the event library too (same rule as before).
   function setStageIds(nextIds: string[], addedIds: string[] = []) {
@@ -878,11 +900,17 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
     }))
   }
 
-  function quickAdd(type: (typeof QUEST_QUICK_FILTERS)[number]['type']) {
-    const toAdd = filteredAvailable.filter((g) => type == null || g.type === type).map((g) => g.id)
+  /**
+   * Moves everything currently checked into the stage. Called by Save and also
+   * whenever a filter changes, so a partly-made selection is never dropped
+   * silently just because the organiser looked at a different group or type.
+   */
+  function commitPending() {
+    if (pending.size === 0) return
+    const toAdd = [...pending].filter((id) => !ids.includes(id))
+    setPending(new Set())
     if (toAdd.length === 0) return
     setStageIds([...ids, ...toAdd], toAdd)
-    setPickerOpen(false)
   }
 
   function moveTo(from: number, to: number) {
@@ -957,59 +985,102 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
         </NeoButton>
       ) : null}
 
-      {pickerOpen || inStage.length === 0 ? <div className="border-border/70 space-y-3 border-t pt-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={groupFilter}
-          onChange={(event) => setGroupFilter(event.target.value)}
-          className="border-input bg-background h-8 min-w-40 rounded-md border px-2 text-xs font-semibold"
-          aria-label="Filter available quest games by group"
-        >
-          <option value="all">All groups</option>
-          {groups.map((group) => (
-            <option key={group.id} value={group.id}>{group.name}</option>
-          ))}
-        </select>
-        {QUEST_QUICK_FILTERS.map(({ label, type }) => {
-          const count = filteredAvailable.filter((g) => type == null || g.type === type).length
-          return (
+      {pickerOpen || inStage.length === 0 ? (
+        <div className="border-border/70 space-y-3 border-t pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={groupFilter}
+              onChange={(event) => {
+                // Committing first means a half-made selection is never lost
+                // just because the organiser went looking in another group.
+                commitPending()
+                setGroupFilter(event.target.value)
+              }}
+              className="border-input bg-background h-8 min-w-40 rounded-md border px-2 text-xs font-semibold"
+              aria-label="Filter available quest games by group"
+            >
+              <option value="all">All Groups</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>{group.name}</option>
+              ))}
+            </select>
             <Button
-              key={label}
               type="button"
               size="sm"
               variant="outline"
-              disabled={count === 0}
-              onClick={() => quickAdd(type)}
+              disabled={filteredAvailable.length === 0}
+              onClick={() =>
+                setPending(
+                  allFilteredChecked
+                    ? new Set()
+                    : new Set(filteredAvailable.map((g) => g.id)),
+                )
+              }
             >
-              {label}
-              {count > 0 ? ` (${count})` : ''}
+              {allFilteredChecked ? 'Deselect All' : 'Select All'}
             </Button>
-          )
-        })}
-      </div>
+          </div>
 
-      {filteredAvailable.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {filteredAvailable.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className="border-border/80 hover:bg-muted/50 flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-              onClick={() => {
-                setStageIds([...ids, g.id], [g.id])
-                setPickerOpen(false)
-              }}
-            >
-              <Plus className="size-3" />
-              {g.name}
-              <span className="text-muted-foreground text-xs capitalize">{g.type}</span>
-            </button>
-          ))}
+          <div className="flex flex-wrap gap-1.5">
+            {QUEST_TYPE_FILTERS.map(({ label, type }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  commitPending()
+                  setTypeFilter(type)
+                }}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                  typeFilter === type
+                    ? 'bg-nm-yellow text-nm-charcoal'
+                    : 'border-border text-muted-foreground hover:bg-muted/50 border',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {filteredAvailable.length > 0 ? (
+            <>
+              <ul className="border-border/70 max-h-64 divide-y overflow-y-auto rounded-md border">
+                {filteredAvailable.map((g) => (
+                  <li key={g.id}>
+                    <label className="hover:bg-muted/40 flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={pending.has(g.id)}
+                        onChange={() => togglePending(g.id)}
+                      />
+                      <span className="min-w-0 flex-1 truncate">{g.name}</span>
+                      <span className="text-muted-foreground shrink-0 text-xs capitalize">
+                        {g.type === 'music_bingo' ? 'Bingo' : g.type}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex justify-end">
+                <NeoButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={pending.size === 0}
+                  onClick={() => {
+                    commitPending()
+                    setPickerOpen(false)
+                  }}
+                >
+                  Save{pending.size > 0 ? ` (${pending.size})` : ''}
+                </NeoButton>
+              </div>
+            </>
+          ) : available.length > 0 ? (
+            <p className="text-muted-foreground text-xs">No available games match these filters.</p>
+          ) : null}
         </div>
-      ) : available.length > 0 ? (
-        <p className="text-muted-foreground text-xs">No available games in this group.</p>
       ) : null}
-      </div> : null}
     </div>
   )
 }
