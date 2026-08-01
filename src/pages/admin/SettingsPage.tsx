@@ -8,6 +8,7 @@ import {
   QueryError,
   QueryLoading,
 } from '@/components/admin/QueryState'
+import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
 import { DangerZone } from '@/components/admin/DangerZone'
 import { MyAccountPanel } from '@/components/admin/MyAccountPanel'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
@@ -392,24 +393,14 @@ export function AdminSettingsPage() {
                         ['accent_color', 'Accent'],
                       ] as const
                     ).map(([key, label]) => (
-                      <div key={key} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
-                        <input
-                          id={key}
-                          type="color"
-                          value={form[key]}
-                          onChange={(event) => setForm({ ...form, [key]: event.target.value })}
-                          className="border-border size-9 cursor-pointer appearance-none overflow-hidden rounded-full border-2 bg-transparent p-0"
-                          aria-label={`${label} colour`}
-                        />
-                        <Label htmlFor={key} className="text-foreground text-xs">{label}</Label>
-                        <Input
-                          value={form[key]}
-                          onChange={(event) => setForm({ ...form, [key]: event.target.value })}
-                          className="h-6 w-full px-1.5 text-center font-mono text-[11px] uppercase"
-                          aria-label={`${label} hex value`}
-                        />
-                        <p className="text-muted-foreground text-[10px] leading-tight">{BRAND_COLOUR_COPY[key]}</p>
-                      </div>
+                      <BrandColourPicker
+                        key={key}
+                        id={key}
+                        label={label}
+                        description={BRAND_COLOUR_COPY[key]}
+                        value={form[key]}
+                        onChange={(hex) => setForm({ ...form, [key]: hex })}
+                      />
                     ))}
                   </div>
                 </div>
