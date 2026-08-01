@@ -13,9 +13,14 @@ describe('buildSearchResults', () => {
     const results = buildSearchResults(input, 'client_admin')
 
     expect(results).toEqual([
-      { id: 'g1', kind: 'game', label: 'Photo Hunt', to: '/admin/games' },
+      { id: 'g1', kind: 'game', label: 'Photo Hunt', to: '/admin/games/g1' },
       { id: 'e1', kind: 'event', label: 'Summer Rally', to: '/admin/events/e1' },
-      { id: 't1', kind: 'ticket', label: 'Cannot upload', to: '/admin/support' },
+      {
+        id: 't1',
+        kind: 'ticket',
+        label: 'Cannot upload',
+        to: '/admin/support?ticket=t1',
+      },
     ])
   })
 

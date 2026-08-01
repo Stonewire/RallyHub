@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Paperclip } from 'lucide-react'
 
 import {
@@ -33,8 +34,14 @@ export function AdminSupportPage() {
   const [body, setBody] = useState('')
   const [category, setCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [showNewForm, setShowNewForm] = useState(true)
+  // A ?ticket= id (from global search) selects that ticket and opens the
+  // My Tickets view, so a search hit lands on the conversation itself rather
+  // than on an empty New Ticket form.
+  const [searchParams] = useSearchParams()
+  const requestedTicketId = searchParams.get('ticket')
+
+  const [selectedId, setSelectedId] = useState<string | null>(requestedTicketId)
+  const [showNewForm, setShowNewForm] = useState(!requestedTicketId)
 
   const tickets = ticketsQuery.data ?? []
   const selected = tickets.find((t) => t.id === selectedId) ?? null

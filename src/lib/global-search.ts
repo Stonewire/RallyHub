@@ -32,7 +32,9 @@ export function buildSearchResults(
         id: game.id,
         kind: 'game' as const,
         label: game.name,
-        to: '/admin/games',
+        // A real route, so a search hit opens the game rather than dumping the
+        // user on the library to find it again.
+        to: `/admin/games/${game.id}`,
       }))
 
   const events: SearchResult[] = input.events.map((event) => ({
@@ -48,7 +50,7 @@ export function buildSearchResults(
         id: ticket.id,
         kind: 'ticket' as const,
         label: ticket.subject,
-        to: '/admin/support',
+        to: `/admin/support?ticket=${ticket.id}`,
       }))
 
   return [...games, ...events, ...tickets]
