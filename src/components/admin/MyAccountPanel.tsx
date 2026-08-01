@@ -14,6 +14,12 @@ import { ALLOWED_IMAGE_UPLOAD_TYPES, validateImageUpload } from '@/lib/upload-li
  * real values are the demo team's, and editing them would change the shared
  * account for every visitor at once.
  */
+/**
+ * Sample avatar, drawn inline rather than fetched: the demo must not depend
+ * on a third-party image, and a stock photo would carry licence terms.
+ */
+const SAMPLE_AVATAR = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' fill='%23f4f1ea'/><path d='M18 96c1-16 14-24 30-24s29 8 30 24z' fill='%232f3037'/><path d='M42 60h12v12H42z' fill='%23e0ab84'/><ellipse cx='48' cy='42' rx='16' ry='18' fill='%23f0c39b'/><path d='M32 40c0-11 7-18 16-18s16 7 16 18c0-6-6-9-16-9s-16 3-16 9z' fill='%233b3a3f'/><circle cx='42' cy='42' r='1.8' fill='%233b3a3f'/><circle cx='54' cy='42' r='1.8' fill='%233b3a3f'/><path d='M43 50c2 2 8 2 10 0' stroke='%233b3a3f' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>"
+
 const SAMPLE_ACCOUNT = {
   firstName: 'John',
   lastName: 'Doe',
@@ -58,7 +64,9 @@ export function MyAccountPanel({
   const [loggingOutAll, setLoggingOutAll] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null)
+  const [avatarUrl, setAvatarUrl] = useState(
+    sample ? SAMPLE_AVATAR : (profile?.avatar_url ?? null),
+  )
   const [avatarUploading, setAvatarUploading] = useState(false)
 
   /**
@@ -271,7 +279,13 @@ export function MyAccountPanel({
               {/* The whole circle is the file picker, as in the design. */}
               <label
                 className={`group relative shrink-0 ${sample ? '' : 'cursor-pointer'}`}
-                title={sample ? undefined : avatarUploading ? 'Uploading…' : 'Change profile photo'}
+                title={
+                  sample
+                    ? 'Photo uploads are off in the demo'
+                    : avatarUploading
+                      ? 'Uploading…'
+                      : 'Change profile photo'
+                }
               >
                 <input
                   type="file"
@@ -295,13 +309,13 @@ export function MyAccountPanel({
                     {initials}
                   </div>
                 )}
-                {/* No upload badge in sample mode: the picker is off, and a
-                    button that cannot be pressed is worse than none. */}
-                {sample ? null : (
-                  <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110">
-                    <IconUpload className="size-3.5" />
-                  </span>
-                )}
+                {/* The badge stays in the demo so the control is visible; the
+                    file input behind it is disabled, so nothing uploads. */}
+                <span
+                  className={`bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform ${sample ? 'opacity-60' : 'group-hover:scale-110'}`}
+                >
+                  <IconUpload className="size-3.5" />
+                </span>
               </label>
               <div className="min-w-0 flex-1">
                 {editingName ? (
