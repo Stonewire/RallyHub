@@ -46,7 +46,7 @@ export function TextGameEditor({
 
   return (
     <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
-      <div className="flex justify-start">
+      <div className="flex flex-wrap items-start gap-8">
         <FlipSwitch
           caption="Game style"
           offValue="type_text"
@@ -56,7 +56,23 @@ export function TextGameEditor({
           value={mode}
           onChange={(next) => setMode(next)}
         />
+        <FlipSwitch
+          caption="Approval"
+          offValue="auto"
+          onValue="review"
+          offLabel="Auto"
+          onLabel="Review"
+          value={config.text_approval_mode === 'auto' ? 'auto' : 'review'}
+          onChange={(next) =>
+            setConfig((c) => ({ ...c, text_approval_mode: next }))
+          }
+        />
       </div>
+      <p className="text-muted-foreground text-xs">
+        {config.text_approval_mode === 'auto'
+          ? 'Auto: answers are checked and scored the moment a team submits. An exact match scores the full points, anything else scores zero.'
+          : 'Review: every answer waits for a facilitator to score it.'}
+      </p>
 
       {mode === 'type_text' ? (
         <div className="space-y-3">

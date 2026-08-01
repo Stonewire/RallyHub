@@ -102,6 +102,12 @@ export type GameConfig = {
   bingo_points_per_correct?: number
   /** Open-stage text game: typed exact-match answers or multiple choice. */
   text_answer_mode?: TextAnswerMode
+  /**
+   * 'auto' scores the submission server-side on exact match and approves it
+   * immediately. Absent or 'review' sends it to the facilitator, which is what
+   * every text game did before this existed, so old games are unaffected.
+   */
+  text_approval_mode?: 'auto' | 'review'
   /** type_text: accepted answers (case and symbols must match exactly). */
   text_correct_answers?: string[]
   /** choose_answer: 2–6 options shown to teams. */
