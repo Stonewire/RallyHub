@@ -55,7 +55,10 @@ export function EventStatusMenu({
           data-tour="event-status-menu"
           className={cn('gap-1.5', size === 'sm' && 'h-8 px-2')}
         >
-          <StatusIndicator status={status} />
+          {/* Dot only: the label beside it is the domain wording from
+              EVENT_STATUS_LABELS, and StatusIndicator renders its own label by
+              default, which showed every status twice ("Ready Ready"). */}
+          <StatusIndicator status={status} label="" />
           <span className="text-xs font-medium">{EVENT_STATUS_LABELS[status]}</span>
           {allowedStatuses.length > 0 ? (
             <ChevronDown className="size-3.5 opacity-60" />
@@ -72,7 +75,7 @@ export function EventStatusMenu({
               setOpen(false)
             }}
           >
-            <StatusIndicator status={s} />
+            <StatusIndicator status={s} label="" />
             {EVENT_STATUS_LABELS[s]}
           </DropdownMenuItem>
         ))}

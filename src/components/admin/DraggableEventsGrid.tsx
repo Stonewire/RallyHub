@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, ChevronDown, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Archive, CalendarDays, ChevronDown, Copy, Eye, GripVertical, Link2, MapPin, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -139,6 +139,20 @@ export function DraggableEventsGrid({
                 disabled={statusPending}
                 onSelect={(status) => onStatusChange(event.id, status)}
               />
+              {/* Icon only, and only on hover, so the footer is free for the
+                  actions people actually reach for. A live event is archived
+                  rather than deleted: same soft-delete either way, but the
+                  wording stops implying an event mid-play is being destroyed. */}
+              <button
+                type="button"
+                title={isLive ? 'Archive event' : 'Delete event'}
+                aria-label={`${isLive ? 'Archive' : 'Delete'} ${event.name}`}
+                disabled={deleting}
+                className={`shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 ${isLive ? 'text-primary hover:bg-primary/10' : 'text-destructive hover:bg-destructive/10'}`}
+                onClick={() => onDelete(event)}
+              >
+                {isLive ? <Archive className="size-3.5" /> : <Trash2 className="size-3.5" />}
+              </button>
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
               <p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatEventDate(event.event_date)}</p>
@@ -191,25 +205,10 @@ export function DraggableEventsGrid({
                 <Link2 className="size-3" />Event Links
               </NeoButton>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={`/admin/events/${event.id}`}><Pencil className="size-3" />View</Link>
+                <Link to={`/admin/events/${event.id}`}><Eye className="size-3" />View</Link>
               </NeoButton>
             </>
           )}
-          {/* A live event is archived rather than deleted, per the design. The
-              action is the same soft-delete either way; the wording just stops
-              implying that an event mid-play is being destroyed. */}
-          <NeoButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={isLive ? 'text-primary px-2' : 'text-destructive px-2'}
-            disabled={deleting}
-            onClick={() => onDelete(event)}
-            title={isLive ? 'Archive event' : 'Delete event'}
-          >
-            {isLive ? <Archive className="size-3.5" /> : <Trash2 className="size-3.5" />}
-            {isLive ? 'Archive' : 'Delete'}
-          </NeoButton>
         </div>
       </article>
     )
