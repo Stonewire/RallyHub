@@ -1,4 +1,4 @@
-import { Check, GripVertical, Plus, Trash2, X } from 'lucide-react'
+import { GripVertical, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { FlipSwitch, NeoButton, SegmentedPill } from '@/components/neo-minimal'
@@ -69,9 +69,6 @@ export function EventForm({
   // give way rather than fight the cap.
   const minTeamCount = Math.min(INCLUDED_TEAMS_PER_EVENT, maxTeamCount)
   const { notify } = useNotification()
-  const [gameModalOpen, setGameModalOpen] = useState(false)
-  const [modalSelection, setModalSelection] = useState<string[]>([])
-  const [modalGroupFilter, setModalGroupFilter] = useState<string>('all')
   // New-event forms do not have a database id yet. Keep one stable upload
   // folder for the lifetime of the form so superseded logo uploads can still
   // be removed together when that event is permanently deleted.
@@ -88,30 +85,11 @@ export function EventForm({
     inventoryEnabled,
     logoUrl,
     brandColors,
-    selectedGameIds,
     stages,
   } = values
 
   const set = (patch: Partial<EventFormValues>) =>
     onChange((prev) => ({ ...prev, ...patch }))
-
-  const selectedGames = useMemo(
-    () => games.filter((g) => selectedGameIds.includes(g.id)),
-    [games, selectedGameIds],
-  )
-
-  const modalGames = useMemo(() => {
-    if (modalGroupFilter === 'all') return games
-    const groupGameIds = new Set(
-      groups.find((group) => group.id === modalGroupFilter)?.items.map((i) => i.game_id) ?? [],
-    )
-    return games.filter((g) => groupGameIds.has(g.id))
-  }, [games, groups, modalGroupFilter])
-
-  const modalAvailableGameIds = useMemo(
-    () => modalGames.filter((g) => !selectedGameIds.includes(g.id)).map((g) => g.id),
-    [modalGames, selectedGameIds],
-  )
 
   function onTeamCountChange(n: number) {
     const count = Math.max(minTeamCount, Math.min(maxTeamCount, n))
@@ -131,9 +109,14 @@ export function EventForm({
     })
   }
 
+  /**
+   * Stage pickers draw from the ORGANISATION's whole library. The design
+   * removed the old two-step model (add games to the event, then pick from
+   * those); picking a game in a stage is what adds it to the event.
+   */
   function compatibleGames(stageType: EventStage['type']) {
     if (stageType === 'break') return []
-    return selectedGames.filter((g) => {
+    return games.filter((g) => {
       if (stageType === 'quiz') return g.type === 'quiz'
       if (stageType === 'bingo') return g.type === 'music_bingo'
       return g.type === 'photo' || g.type === 'video' || g.type === 'text' || g.type === 'puzzle'
@@ -438,50 +421,6 @@ export function EventForm({
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-foreground text-base font-bold">Games</h3>
-            <p className="text-muted-foreground mt-1 text-xs">Your event library. Stages below decide when each game appears.</p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setModalSelection([])
-              setModalGroupFilter('all')
-              setGameModalOpen(true)
-            }}
-          >
-            Add games
-          </Button>
-        </div>
-        {selectedGames.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No games added yet.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {selectedGames.map((g) => (
-              <li
-                key={g.id}
-                className="border-border/80 bg-background flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
-              >
-                {g.name}
-                <button
-                  type="button"
-                  onClick={() =>
-                    set({
-                      selectedGameIds: selectedGameIds.filter((id) => id !== g.id),
-                    })
-                  }
-                >
-                  <X className="size-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex items-center justify-between">
-          <div>
             <h3 className="text-foreground text-base font-bold">Stages</h3>
             <p className="text-muted-foreground mt-1 text-xs">Build the running order for facilitators and players.</p>
           </div>
@@ -610,13 +549,7 @@ export function EventForm({
               <QuestStageGames
                 stage={stage}
                 groups={groups}
-                compatible={selectedGames.filter(
-                  (g) =>
-                    g.type === 'photo' ||
-                    g.type === 'video' ||
-                    g.type === 'text' ||
-                    g.type === 'puzzle',
-                )}
+                compatible={compatibleGames('open')}
                 onChange={onChange}
               />
             ) : (
@@ -660,140 +593,6 @@ export function EventForm({
         </Button>
       </Card>
 
-      {gameModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="border-nm-slate-800 max-h-[80vh] w-full max-w-lg overflow-auto bg-card p-6 shadow-xl border-2">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-foreground font-semibold">Select games</h3>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => {
-                  setModalGroupFilter('all')
-                  setGameModalOpen(false)
-                }}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={modalGroupFilter === 'all' ? 'default' : 'outline'}
-                onClick={() => setModalGroupFilter('all')}
-              >
-                All games
-              </Button>
-              {groups.map((group) => (
-                <Button
-                  key={group.id}
-                  type="button"
-                  size="sm"
-                  variant={modalGroupFilter === group.id ? 'default' : 'outline'}
-                  onClick={() => setModalGroupFilter(group.id)}
-                >
-                  {group.name}
-                </Button>
-              ))}
-            </div>
-            <div className="mb-4">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={modalAvailableGameIds.length === 0}
-                onClick={() => setModalSelection(modalAvailableGameIds)}
-              >
-                {modalGroupFilter === 'all'
-                  ? 'Select all'
-                  : `Select all in ${groups.find((g) => g.id === modalGroupFilter)?.name ?? 'group'}`}
-              </Button>
-            </div>
-            {modalGames.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No games in this group.</p>
-            ) : null}
-            <ul className="space-y-2">
-              {modalGames.map((g) => {
-                const alreadyAdded = selectedGameIds.includes(g.id)
-                const checked = modalSelection.includes(g.id)
-                return (
-                  <li key={g.id}>
-                    <button
-                      type="button"
-                      disabled={alreadyAdded}
-                      className={cn(
-                        'w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-                        alreadyAdded
-                          ? 'border-border/60 bg-muted/30 cursor-not-allowed opacity-60'
-                          : checked
-                            ? 'border-[#FFC107]/60 bg-[#FFC107]/10 hover:bg-muted/50'
-                            : 'border-border/80 hover:bg-muted/50',
-                      )}
-                      onClick={() => {
-                        if (alreadyAdded) return
-                        setModalSelection((ids) =>
-                          checked ? ids.filter((id) => id !== g.id) : [...ids, g.id],
-                        )
-                      }}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span>
-                          {g.name}
-                          <span className="text-muted-foreground ml-2 text-xs capitalize">
-                            {g.type.replace('_', ' ')}
-                          </span>
-                        </span>
-                        {alreadyAdded ? (
-                          <span
-                            className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs font-medium"
-                          >
-                            <Check className="size-3.5" />
-                            Added
-                          </span>
-                        ) : null}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setModalGroupFilter('all')
-                  setGameModalOpen(false)
-                }}
-              >
-                Cancel
-              </Button>
-              <NeoButton
-                type="button"
-                variant="primary"
-                disabled={modalSelection.length === 0}
-                onClick={() => {
-                  const newIds = modalSelection.filter(
-                    (id) => !selectedGameIds.includes(id),
-                  )
-                  if (newIds.length === 0) return
-                  set({
-                    selectedGameIds: [...new Set([...selectedGameIds, ...newIds])],
-                  })
-                  setModalSelection([])
-                  setGameModalOpen(false)
-                }}
-              >
-                {modalSelection.length > 1
-                  ? `Add ${modalSelection.length} games`
-                  : 'Add game'}
-              </NeoButton>
-            </div>
-          </Card>
-        </div>
-      ) : null}
     </div>
   )
 }
