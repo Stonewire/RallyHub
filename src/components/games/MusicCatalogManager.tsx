@@ -1,4 +1,4 @@
-import { Music2, Pencil, Play, Trash2, X } from 'lucide-react'
+import { Music2, Pencil, Play, SkipBack, SkipForward, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
@@ -118,6 +118,18 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
   const selectedRows = allRows.filter((r) => selected.has(r.id))
   const playingTrack = allRows.find((row) => row.id === playingTrackId) ?? null
+
+  // Transport steps through the list as currently filtered and sorted, which
+  // is what the organiser can actually see, rather than the whole library.
+  const playingIndex = rows.findIndex((row) => row.id === playingTrackId)
+  const hasPrev = playingIndex > 0
+  const hasNext = playingIndex >= 0 && playingIndex < rows.length - 1
+
+  function stepTrack(delta: number) {
+    if (playingIndex < 0) return
+    const next = rows[playingIndex + delta]
+    if (next) setPlayingTrackId(next.id)
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -287,14 +299,38 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
           {playingTrack ? <p className="truncate text-xs text-white/60">{playingTrack.artist}</p> : null}
         </div>
         {playingTrack ? (
-          <audio
-            key={playingTrack.id}
-            src={playingTrack.clip_url ?? playingTrack.audio_url}
-            controls
-            preload="metadata"
-            className="h-8 w-full max-w-sm"
-            aria-label={`Preview ${playingTrack.title} by ${playingTrack.artist}`}
-          />
+          <div className="flex w-full max-w-md items-center gap-2">
+            <button
+              type="button"
+              aria-label="Previous track"
+              disabled={!hasPrev}
+              onClick={() => stepTrack(-1)}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
+            >
+              <SkipBack className="size-4" />
+            </button>
+            <audio
+              key={playingTrack.id}
+              src={playingTrack.clip_url ?? playingTrack.audio_url}
+              controls
+              autoPlay
+              preload="metadata"
+              // Rolling straight into the next track matches how the organiser
+              // auditions a playlist, and mirrors the design's transport bar.
+              onEnded={() => stepTrack(1)}
+              className="h-8 min-w-0 flex-1"
+              aria-label={`Preview ${playingTrack.title} by ${playingTrack.artist}`}
+            />
+            <button
+              type="button"
+              aria-label="Next track"
+              disabled={!hasNext}
+              onClick={() => stepTrack(1)}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
+            >
+              <SkipForward className="size-4" />
+            </button>
+          </div>
         ) : (
           <p className="text-xs text-white/55">Use the play button beside any song.</p>
         )}
