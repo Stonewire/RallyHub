@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
+import { PlansModal } from '@/components/billing/PlansModal'
 import { PromoCodeSection } from '@/components/billing/PromoCodeSection'
 import { SubscriptionChangeForm } from '@/components/billing/SubscriptionChangeForm'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -23,7 +24,6 @@ import {
   formatPlanLabel,
   formatSubscriptionPrice,
   getPlan,
-  getVisiblePlans,
   normalizeBillingPeriod,
   normalizePlanId,
   VAT_DISCLAIMER,
@@ -57,6 +57,7 @@ export function BillingOverview({
   const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const [openingPortal, setOpeningPortal] = useState(false)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
+  const [plansOpen, setPlansOpen] = useState(false)
   const invoicesQuery = useOrganizationInvoices(organizationId)
   const eventsUsed = useMonthlyEventUsage(organizationId).data ?? 0
   const payInvoice = usePayEventInvoiceWithPaddle(organizationId)
@@ -65,7 +66,15 @@ export function BillingOverview({
   const period = normalizeBillingPeriod(billingPeriod)
   const plan = getPlan(planId)
 
-  const { unpaid, settled } = partitionInvoices(invoicesQuery.data ?? [])
+  const { unpaid } = partitionInvoices(invoicesQuery.data ?? [])
+  // One list for the whole section: unpaid first so nothing owed is buried,
+  // then everything else newest first.
+  const allInvoices = [...(invoicesQuery.data ?? [])].sort((a, b) => {
+    const aUnpaid = unpaid.some((invoice) => invoice.id === a.id)
+    const bUnpaid = unpaid.some((invoice) => invoice.id === b.id)
+    if (aUnpaid !== bUnpaid) return aUnpaid ? -1 : 1
+    return b.created_at.localeCompare(a.created_at)
+  })
   const unpaidTotal = sumUnpaidDue(invoicesQuery.data ?? [])
 
   async function handlePayInvoice(invoiceId: string) {
@@ -138,127 +147,100 @@ export function BillingOverview({
         </Card>
       ) : null}
 
-      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-1 xl:row-start-1' : 'space-y-3'} data-tour="billing-plan">
-        <div>
-          <p className="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase">Current Plan</p>
-          <p className="text-muted-foreground text-sm">
-            {formatPlanLabel(planId)} ·{' '}
-            {plan.freeSubscription
-              ? 'No subscription'
-              : plan.priceOnRequest
-                ? 'Custom billing'
-                : `${formatBillingPeriodLabel(period)} billing`}
-            {plan.hidden ? ' · Partner (comped)' : ''}
-          </p>
-        </div>
-        <PlanDetailsCard
-          planId={planId}
-          billingPeriod={period}
-          highlighted
-          className="w-full"
-        />
-        {plan.monthlyEventLimit !== null ? (
-          <p className="text-muted-foreground text-sm">
-            <span className="text-foreground font-medium tabular-nums">
-              {eventsUsed} of {plan.monthlyEventLimit}
-            </span>{' '}
-            event{plan.monthlyEventLimit === 1 ? '' : 's'} activated this month
-            {eventsUsed >= plan.monthlyEventLimit
-              ? ' — you have reached your plan limit. Upgrade to run more.'
-              : '.'}
-          </p>
-        ) : null}
-        <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
-        {plan.hidden ? (
-          <p className="text-muted-foreground text-sm">
-            Your Partner account is fully comped. Event activations are recorded at no
-            charge.
-          </p>
-        ) : null}
-      </section>
-
-      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-2 xl:row-start-1' : 'space-y-3'} data-tour="billing-unpaid">
-        <div>
-          <h2 className="text-foreground text-base font-bold">Payments &amp; Invoices</h2>
-          <p className="text-muted-foreground text-sm">
-            Activated events awaiting payment.
-            {showAvailablePlans ? ' Pay online below.' : ' Payable online from the client’s own settings.'}
-          </p>
-        </div>
-        {invoicesQuery.isLoading ? (
-          <QueryLoading rows={3} />
-        ) : invoicesQuery.isError ? (
-          <QueryError message={invoicesQuery.error.message} />
-        ) : (
-          <EventInvoiceList
-            invoices={unpaid}
-            emptyMessage="No unpaid event invoices."
-            showPayIndicator
-            onPay={showAvailablePlans ? handlePayInvoice : undefined}
-            payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}
-            layout={twoColumn ? 'table' : 'cards'}
-          />
-        )}
-      </section>
-
-      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-2 xl:row-start-2' : 'space-y-3'} data-tour="billing-history">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold">Payment history</h2>
-          <p className="text-muted-foreground text-sm">
-            Paid and comped event invoices, most recent first. Download the invoice
-            for anything you have paid.
-          </p>
-        </div>
-        {invoicesQuery.isLoading ? (
-          <QueryLoading rows={3} />
-        ) : invoicesQuery.isError ? null : (
-          <EventInvoiceList
-            invoices={settled}
-            emptyMessage="No paid or comped event invoices yet."
-            onDownload={handleDownloadInvoice}
-            downloadingInvoiceId={downloadingInvoiceId}
-            layout={twoColumn ? 'table' : 'cards'}
-          />
-        )}
-      </section>
-
-      <section className={showAvailablePlans ? 'space-y-3 xl:col-start-1 xl:row-start-2' : 'space-y-3'} data-tour="billing-subscription">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold">Subscription</h2>
-          <p className="text-muted-foreground text-sm">
-            Your recurring plan fee, billed via Paddle. Separate from the per-event charges above.
-          </p>
-        </div>
-        <Card className="border-border/80 space-y-3 bg-card p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* One Current Plan card. The page used to say the same thing three
+          times: a heading, a plan card, and a Subscription section that
+          repeated the name, price and status. Everything about the plan lives
+          here now, including billing details and starting the subscription. */}
+      <section
+        className={showAvailablePlans ? 'space-y-3 xl:col-start-1 xl:row-start-1' : 'space-y-3'}
+        data-tour="billing-plan"
+      >
+        <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-foreground font-medium">{formatPlanLabel(planId)}</p>
+              <p className="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase">
+                Current Plan
+              </p>
+              <p className="text-foreground text-lg font-bold">{formatPlanLabel(planId)}</p>
               <p className="text-muted-foreground text-sm">
-                {plan.freeSubscription || plan.priceOnRequest
-                  ? formatSubscriptionPrice(plan, period)
-                  : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
+                {plan.freeSubscription
+                  ? 'No subscription'
+                  : plan.priceOnRequest
+                    ? 'Custom billing'
+                    : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
+                {plan.hidden ? ' · Partner (comped)' : ''}
               </p>
             </div>
             {paddleSubscriptionId ? (
               <span className="rounded-full border border-[#1f9d55]/40 bg-[#1f9d55]/10 px-2 py-0.5 text-xs font-medium text-[#1f9d55]">
-                Active — billed via Paddle
+                Active
               </span>
-            ) : showAvailablePlans && canStartSubscription ? (
-              <NeoButton
-                variant="accent"
-                size="sm"
-                onClick={() => void handleStartSubscription()}
-                disabled={startSubscription.isPending}
-              >
-                {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
-              </NeoButton>
+            ) : plan.hidden ? (
+              <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
+                Comped
+              </span>
             ) : (
               <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-                Not yet started
+                Not started
               </span>
             )}
           </div>
+
+          <PlanDetailsCard
+            planId={planId}
+            billingPeriod={period}
+            compact
+            className="w-full border-0 bg-transparent p-0 shadow-none"
+          />
+
+          {plan.monthlyEventLimit !== null ? (
+            <p className="text-muted-foreground text-sm">
+              <span className="text-foreground font-medium tabular-nums">
+                {eventsUsed} of {plan.monthlyEventLimit}
+              </span>{' '}
+              event{plan.monthlyEventLimit === 1 ? '' : 's'} activated this month
+              {eventsUsed >= plan.monthlyEventLimit
+                ? ' — you have reached your plan limit.'
+                : '.'}
+            </p>
+          ) : null}
+
+          {plan.hidden ? (
+            <p className="text-muted-foreground text-sm">
+              Your Partner account is fully comped. Event activations are recorded at no
+              charge.
+            </p>
+          ) : null}
+
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
+
+          {showAvailablePlans ? (
+            <div className="border-border flex flex-wrap gap-2 border-t pt-3">
+              {!paddleSubscriptionId && canStartSubscription ? (
+                <NeoButton
+                  variant="accent"
+                  size="sm"
+                  onClick={() => void handleStartSubscription()}
+                  disabled={startSubscription.isPending}
+                >
+                  {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
+                </NeoButton>
+              ) : null}
+              <NeoButton
+                variant="surface"
+                size="sm"
+                onClick={() => void handleOpenPortal()}
+                disabled={openingPortal}
+              >
+                <CreditCard className="size-4" aria-hidden />
+                {openingPortal ? 'Opening…' : 'Manage billing details'}
+              </NeoButton>
+              <NeoButton variant="surface" size="sm" onClick={() => setPlansOpen(true)}>
+                View other plans
+              </NeoButton>
+            </div>
+          ) : null}
+
           {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest ? (
             <SubscriptionChangeForm
               key={`${planId}-${period}`}
@@ -270,97 +252,53 @@ export function BillingOverview({
         </Card>
       </section>
 
-      {showAvailablePlans ? (
-        <section className="space-y-3 xl:col-start-1 xl:row-start-3" data-tour="billing-payment-methods">
-          <div>
-            <h2 className="text-foreground text-lg font-semibold">Billing details</h2>
-            <p className="text-muted-foreground text-sm">
-              Manage your saved cards, billing address and invoices. Save a card to
-              pay in one click, and to have event fees charged automatically once you
-              are on a subscription.
-            </p>
-          </div>
-          <Card className="border-border/80 space-y-3 bg-card p-5 shadow-sm">
-            <p className="text-muted-foreground text-sm">
-              Card details are handled entirely by Paddle, our payment provider.
-              RallyHub never sees or stores your card.
-            </p>
-            <NeoButton
-              variant="surface"
-              size="sm"
-              onClick={() => void handleOpenPortal()}
-              disabled={openingPortal}
-            >
-              <CreditCard className="size-4" aria-hidden />
-              {openingPortal ? 'Opening…' : 'Manage billing details'}
-            </NeoButton>
-          </Card>
-        </section>
-      ) : null}
+      {/* One invoice list, newest first, unpaid rows carrying Pay now. The
+          separate Payment history section duplicated the same table. */}
+      <section
+        className={showAvailablePlans ? 'space-y-3 xl:col-start-2 xl:row-span-2 xl:row-start-1' : 'space-y-3'}
+        data-tour="billing-unpaid"
+      >
+        <div>
+          <h2 className="text-foreground text-base font-bold">Payments &amp; Invoices</h2>
+          <p className="text-muted-foreground text-sm">
+            {showAvailablePlans
+              ? 'Newest first. Anything unpaid can be paid here, and paid invoices can be downloaded.'
+              : 'Newest first. Payable from the client’s own settings.'}
+          </p>
+        </div>
+        {invoicesQuery.isLoading ? (
+          <QueryLoading rows={4} />
+        ) : invoicesQuery.isError ? (
+          <QueryError message={invoicesQuery.error.message} />
+        ) : (
+          <EventInvoiceList
+            invoices={allInvoices}
+            emptyMessage="No invoices yet."
+            showPayIndicator
+            onPay={showAvailablePlans ? handlePayInvoice : undefined}
+            payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}
+            onDownload={handleDownloadInvoice}
+            downloadingInvoiceId={downloadingInvoiceId}
+            layout={twoColumn ? 'table' : 'cards'}
+          />
+        )}
+      </section>
 
-      <div className={showAvailablePlans ? 'xl:col-start-1 xl:row-start-4' : undefined}>
+      <div className={showAvailablePlans ? 'xl:col-start-1 xl:row-start-2' : undefined}>
         <PromoCodeSection
           organizationId={organizationId}
           allowAdd={showAvailablePlans && !isDemo}
         />
       </div>
 
-      {showAvailablePlans ? (
-        <section className="space-y-3 xl:col-start-1 xl:row-start-5">
-          <div>
-            <h2 className="text-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
-              Available plans
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              {isDemo
-                ? 'Use Change subscription above to try Pay Per Event, Starter, or Pro.'
-                : paddleSubscriptionId
-                ? PLAN_CHANGES_ENABLED
-                  ? 'Use Change subscription above to switch between Starter and Pro.'
-                  : 'Plan changes will be enabled after the final pricing structure is confirmed.'
-                : 'Start your subscription on the current plan above, or contact us to pick a different one.'}
-            </p>
-            <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
-          </div>
-          <div className="grid gap-3">
-            {getVisiblePlans().map((visiblePlan) => (
-              <PlanDetailsCard
-                key={visiblePlan.id}
-                planId={visiblePlan.id}
-                billingPeriod={period}
-                highlighted={visiblePlan.id === planId}
-                action={
-                  visiblePlan.id === planId ? (
-                    <NeoButton variant="surface" size="sm" className="w-full" disabled>
-                      Current plan
-                    </NeoButton>
-                  ) : visiblePlan.priceOnRequest ? (
-                    <NeoButton variant="surface" size="sm" className="w-full" asChild>
-                      <a href="mailto:hello@rallyhub.games?subject=Custom%20plan">Contact us</a>
-                    </NeoButton>
-                  ) : (
-                    // Self-serve switching is gated by the same flag as the
-                    // change form, so this scrolls there instead of implying an
-                    // upgrade path that is not enabled yet.
-                    <NeoButton
-                      variant="accent"
-                      size="sm"
-                      className="w-full"
-                      onClick={() =>
-                        document
-                          .querySelector('[data-tour="billing-subscription"]')
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }
-                    >
-                      Upgrade
-                    </NeoButton>
-                  )
-                }
-              />
-            ))}
-          </div>
-        </section>
+      {plansOpen ? (
+        <PlansModal
+          currentPlanId={planId}
+          billingPeriod={period}
+          onClose={() => setPlansOpen(false)}
+        />
       ) : null}
+
     </div>
   )
 }
