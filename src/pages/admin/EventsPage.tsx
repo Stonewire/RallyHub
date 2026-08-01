@@ -78,6 +78,46 @@ export function AdminEventsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
+  // Month and Year are derived from the range rather than held separately, so
+  // the three controls can never disagree about what is actually filtered.
+  const lastDayOfMonth = (year: number, monthIndex: number) =>
+    new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate()
+
+  const monthValue =
+    dateFrom && dateTo && dateFrom.slice(0, 7) === dateTo.slice(0, 7) &&
+    dateFrom.endsWith('-01')
+      ? dateFrom.slice(0, 7)
+      : ''
+
+  const yearValue =
+    dateFrom.endsWith('-01-01') && dateTo.endsWith('-12-31') &&
+    dateFrom.slice(0, 4) === dateTo.slice(0, 4)
+      ? dateFrom.slice(0, 4)
+      : ''
+
+  function applyMonth(value: string) {
+    if (!value) {
+      setDateFrom('')
+      setDateTo('')
+      return
+    }
+    const [year, month] = value.split('-').map(Number)
+    setDateFrom(`${value}-01`)
+    setDateTo(`${value}-${String(lastDayOfMonth(year, month - 1)).padStart(2, '0')}`)
+  }
+
+  function applyYear(value: string) {
+    if (value.length !== 4) {
+      if (!value) {
+        setDateFrom('')
+        setDateTo('')
+      }
+      return
+    }
+    setDateFrom(`${value}-01-01`)
+    setDateTo(`${value}-12-31`)
+  }
+
   const applyReorder = useCallback(
     async (eventId: string, newStatus: EventStatus, indexInGroup: number) => {
       const all = eventsQuery.data ?? []
@@ -290,7 +330,49 @@ export function AdminEventsPage() {
             </NeoButton>
             {datePickerOpen ? (
               <div className="border-border bg-card absolute right-0 top-10 z-30 w-72 rounded-lg border p-4 shadow-xl">
-                <p className="text-foreground mb-3 text-xs font-semibold uppercase tracking-[0.08em]">Date range</p>
+                <p className="text-foreground mb-3 text-xs font-semibold uppercase tracking-[0.08em]">Filter by date</p>
+                {/* Shortcuts that write the same From/To range the filter
+                    already uses, so there is only one filtering path to reason
+                    about rather than three competing ones. */}
+                <div className="mb-3 space-y-2">
+                  <label className="text-muted-foreground block space-y-1 text-xs">
+                    <span>Specific date</span>
+                    <input
+                      className="neo-field w-full text-xs"
+                      type="date"
+                      value={dateFrom && dateFrom === dateTo ? dateFrom : ''}
+                      onChange={(event) => {
+                        const day = event.target.value
+                        setDateFrom(day)
+                        setDateTo(day)
+                      }}
+                    />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-muted-foreground space-y-1 text-xs">
+                      <span>Month</span>
+                      <input
+                        className="neo-field w-full text-xs"
+                        type="month"
+                        value={monthValue}
+                        onChange={(event) => applyMonth(event.target.value)}
+                      />
+                    </label>
+                    <label className="text-muted-foreground space-y-1 text-xs">
+                      <span>Year</span>
+                      <input
+                        className="neo-field w-full text-xs"
+                        type="number"
+                        min={2000}
+                        max={2100}
+                        placeholder="2026"
+                        value={yearValue}
+                        onChange={(event) => applyYear(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <p className="text-foreground mb-2 text-xs font-semibold uppercase tracking-[0.08em]">Range</p>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-muted-foreground space-y-1 text-xs">
                     <span>From</span>
