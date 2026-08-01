@@ -7,10 +7,12 @@ export const EVENT_LINK_ORDER: EventLinkKey[] = ['facilitator', 'display', 'join
 
 export type EventLinks = Record<EventLinkKey, string>
 
+// Labels describe who the link is FOR, per the design. The keys stay as they
+// are: they map to routes and are referenced across the live surfaces.
 export const EVENT_LINK_LABELS: Record<EventLinkKey, string> = {
-  facilitator: 'Facilitator',
-  display: 'Display',
-  join: 'Teams',
+  facilitator: 'Host Console',
+  display: 'Spectator View',
+  join: 'Player Join',
 }
 
 /**

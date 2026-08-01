@@ -12,6 +12,8 @@ import { INCLUDED_TEAMS_PER_EVENT } from '@/lib/subscription-plans'
 export type EventFormValues = {
   name: string
   eventDate: string
+  /** Free-text venue, shown on event cards. Display only, never parsed. */
+  location: string
   teamCount: number
   teams: EventTeam[]
   brandingEnabled: boolean
@@ -104,6 +106,7 @@ export function eventToFormValues(
   return {
     name: event.name,
     eventDate: toLocalDatetime(event.event_date),
+    location: event.location ?? '',
     teamCount: event.team_count,
     teams,
     brandingEnabled: event.branding_enabled,
@@ -136,6 +139,7 @@ export function emptyEventForm(): EventFormValues {
   return {
     name: '',
     eventDate: '',
+    location: '',
     teamCount: INCLUDED_TEAMS_PER_EVENT,
     teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),
     brandingEnabled: true,

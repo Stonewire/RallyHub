@@ -143,4 +143,6 @@ export type EventStage = {
   gameIds?: string[]
   message?: string
   durationMinutes?: number
+  /** Extra seconds on top of durationMinutes. Absent means zero. */
+  durationSeconds?: number
 }

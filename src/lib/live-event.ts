@@ -213,11 +213,15 @@ export function formatBreakTimer(seconds: number): string {
 }
 
 export function breakDurationSeconds(
-  stage: { durationMinutes?: number } | null,
+  stage: { durationMinutes?: number; durationSeconds?: number } | null,
   storedSeconds: number | null | undefined,
 ): number {
   if (storedSeconds != null && storedSeconds >= 60) return storedSeconds
-  return (stage?.durationMinutes ?? 5) * 60
+  // Stages authored before the seconds field simply have no durationSeconds,
+  // so they keep resolving to whole minutes exactly as before.
+  const minutes = stage?.durationMinutes ?? 5
+  const seconds = stage?.durationSeconds ?? 0
+  return minutes * 60 + seconds
 }
 
 export function quizQuestions(game: Tables<'games'>): QuizQuestion[] {

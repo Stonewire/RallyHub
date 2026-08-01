@@ -123,6 +123,7 @@ export function AdminEventEditPage() {
         eventId,
         event: {
           name: values.name.trim(),
+          location: values.location.trim() || null,
           event_date: values.eventDate
             ? new Date(values.eventDate).toISOString()
             : null,

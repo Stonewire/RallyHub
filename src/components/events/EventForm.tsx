@@ -20,11 +20,15 @@ import type { EventStage } from '@/types/game-config'
 import { cn } from '@/lib/utils'
 import {
   ADDITIONAL_TEAM_PRICE_EUR,
+  INCLUDED_TEAMS_PER_EVENT,
   additionalTeamCharge,
   formatEur,
 } from '@/lib/subscription-plans'
 
 const BRAND_LABELS = ['Primary', 'Secondary', 'Accent'] as const
+
+/** The design caps event names so they fit the card and live display header. */
+export const EVENT_NAME_MAX_LENGTH = 40
 
 const STAGE_TYPE_OPTIONS: { value: EventStage['type']; label: string }[] = [
   { value: 'open', label: 'Quest' },
@@ -61,6 +65,9 @@ export function EventForm({
   orgDefaults,
   maxTeamCount = 20,
 }: EventFormProps) {
+  // Demo events are capped below the normal allowance, so the floor has to
+  // give way rather than fight the cap.
+  const minTeamCount = Math.min(INCLUDED_TEAMS_PER_EVENT, maxTeamCount)
   const { notify } = useNotification()
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [modalSelection, setModalSelection] = useState<string[]>([])
@@ -107,7 +114,7 @@ export function EventForm({
   )
 
   function onTeamCountChange(n: number) {
-    const count = Math.max(1, Math.min(maxTeamCount, n))
+    const count = Math.max(minTeamCount, Math.min(maxTeamCount, n))
     onChange((prev) => {
       let nextTeams = prev.teams
       if (prev.teams.length !== count) {
@@ -154,9 +161,15 @@ export function EventForm({
               <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
             </div>
             <div className="space-y-2">
-              <Label>Event name</Label>
+              <Label>
+                Event name{' '}
+                <span className="text-muted-foreground font-normal">
+                  (max {EVENT_NAME_MAX_LENGTH} characters)
+                </span>
+              </Label>
               <Input
                 value={name}
+                maxLength={EVENT_NAME_MAX_LENGTH}
                 onChange={(e) => set({ name: e.target.value })}
                 className="bg-background"
               />
@@ -168,6 +181,15 @@ export function EventForm({
                 value={eventDate}
                 onChange={(e) => set({ eventDate: e.target.value })}
                 className="bg-background max-w-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input
+                value={values.location}
+                onChange={(e) => set({ location: e.target.value })}
+                placeholder="e.g. Valletta, MT"
+                className="bg-background"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -310,10 +332,15 @@ export function EventForm({
             <p className="text-muted-foreground mt-1 text-xs">Set team names and colours for the live event.</p>
           </div>
           <div className="space-y-2">
-            <Label>Number of teams</Label>
+            <Label>
+              Number of teams{' '}
+              <span className="text-muted-foreground font-normal">
+                (minimum {minTeamCount})
+              </span>
+            </Label>
             <div className="flex items-center gap-1.5">
-              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= 1} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
-              <Input type="number" min={1} max={maxTeamCount} value={teamCount} onChange={(e) => onTeamCountChange(Number(e.target.value))} className="bg-background h-8 w-16 text-center tabular-nums" />
+              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= minTeamCount} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
+              <Input type="number" min={minTeamCount} max={maxTeamCount} value={teamCount} onChange={(e) => onTeamCountChange(Number(e.target.value))} className="bg-background h-8 w-16 text-center tabular-nums" />
               <Button type="button" size="icon-sm" variant="outline" disabled={teamCount >= maxTeamCount} onClick={() => onTeamCountChange(teamCount + 1)}>+</Button>
             </div>
           </div>
@@ -527,25 +554,57 @@ export function EventForm({
                   className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                   />
                 </label>
-                <label className="space-y-1.5 text-xs font-medium">
-                  <span>Duration (minutes)</span>
-                  <Input
-                  type="number"
-                  min={0}
-                  value={stage.durationMinutes ?? ''}
-                  onChange={(e) =>
-                    onChange((prev) => ({
-                      ...prev,
-                      stages: prev.stages.map((x) =>
-                        x.id === stage.id
-                          ? { ...x, durationMinutes: Number(e.target.value) }
-                          : x,
-                      ),
-                    }))
-                  }
-                  className="bg-background"
-                  />
-                </label>
+                <div className="space-y-1.5 text-xs font-medium">
+                  <span className="text-muted-foreground block text-[10px] font-semibold tracking-wider uppercase">
+                    Duration
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      aria-label="Break minutes"
+                      value={stage.durationMinutes ?? ''}
+                      onChange={(e) =>
+                        onChange((prev) => ({
+                          ...prev,
+                          stages: prev.stages.map((x) =>
+                            x.id === stage.id
+                              ? { ...x, durationMinutes: Math.max(0, Number(e.target.value) || 0) }
+                              : x,
+                          ),
+                        }))
+                      }
+                      className="bg-background w-16 text-center tabular-nums"
+                    />
+                    <span className="text-muted-foreground">min</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      aria-label="Break seconds"
+                      value={stage.durationSeconds ?? ''}
+                      onChange={(e) =>
+                        onChange((prev) => ({
+                          ...prev,
+                          stages: prev.stages.map((x) =>
+                            x.id === stage.id
+                              ? {
+                                  ...x,
+                                  // Clamp to 0-59: anything more belongs in minutes.
+                                  durationSeconds: Math.min(
+                                    59,
+                                    Math.max(0, Number(e.target.value) || 0),
+                                  ),
+                                }
+                              : x,
+                          ),
+                        }))
+                      }
+                      className="bg-background w-16 text-center tabular-nums"
+                    />
+                    <span className="text-muted-foreground">sec</span>
+                  </div>
+                </div>
               </div>
             ) : stage.type === 'open' ? (
               <QuestStageGames

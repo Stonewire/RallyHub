@@ -76,6 +76,7 @@ export function AdminEventsNewPage() {
         event: {
           organization_id: organizationId,
           name: values.name.trim(),
+          location: values.location.trim() || null,
           event_date: values.eventDate
             ? new Date(values.eventDate).toISOString()
             : null,

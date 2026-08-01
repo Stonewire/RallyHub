@@ -1,4 +1,4 @@
-import { CalendarDays, Copy, Eye, GripVertical, Link2, Pencil, Trash2 } from 'lucide-react'
+import { CalendarDays, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -135,6 +135,12 @@ export function DraggableEventsGrid({
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
               <p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatEventDate(event.event_date)}</p>
+              {event.location ? (
+                <p className="flex min-w-0 items-center gap-1.5">
+                  <MapPin className="size-3.5 shrink-0" />
+                  <span className="truncate">{event.location}</span>
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
