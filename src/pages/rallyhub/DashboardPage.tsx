@@ -87,8 +87,9 @@ export function RallyHubOverviewPage() {
                     key={status}
                     className="border-border/80 bg-card text-muted-foreground flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium capitalize shadow-sm"
                   >
+                    {/* The indicator prints the label itself; printing it
+                        again beside it is where "Ready Ready" comes from. */}
                     <StatusIndicator status={status} />
-                    {status}
                     <span className="text-foreground font-bold tabular-nums">{count}</span>
                   </span>
                 )

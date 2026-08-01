@@ -71,13 +71,20 @@ export function useAllInvoices() {
       const orgIds = [...new Set(rows.map((i) => i.organization_id))]
       const eventIds = [...new Set(rows.map((i) => i.event_id))]
       const [orgsRes, eventsRes] = await Promise.all([
-        supabase.from('organizations').select('id, name').in('id', orgIds),
+        supabase.from('organizations').select('id, name, is_demo').in('id', orgIds),
         supabase.from('events').select('id, name, event_date').in('id', eventIds),
       ])
 
       const orgMap = new Map((orgsRes.data ?? []).map((o) => [o.id, o.name]))
       const eventMap = new Map((eventsRes.data ?? []).map((e) => [e.id, e]))
-      return rows.map((inv) => ({
+      // Demo orgs get seeded invoices on purpose, so their own billing screen
+      // has something in it. None of it is real, so it never reaches Payments.
+      const demoOrgIds = new Set(
+        (orgsRes.data ?? []).filter((o) => o.is_demo).map((o) => o.id),
+      )
+      return rows
+        .filter((inv) => !demoOrgIds.has(inv.organization_id))
+        .map((inv) => ({
         ...inv,
         org_name: orgMap.get(inv.organization_id) ?? inv.organization_id,
         event_name: eventMap.get(inv.event_id)?.name ?? 'Unknown event',

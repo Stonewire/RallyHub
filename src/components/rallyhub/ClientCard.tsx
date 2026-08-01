@@ -23,6 +23,7 @@ export type ClientCardData = {
   account_status?: string | null
   trial_ends_at?: string | null
   trial_review_needed?: boolean | null
+  is_demo?: boolean | null
   completedEvents: number
   upcomingEvents: number
   unpaidInvoiceCount?: number
@@ -89,15 +90,24 @@ export function ClientCard({ client, className }: ClientCardProps) {
                 {trial}
               </span>
             ) : null}
+            {client.is_demo ? (
+              <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+                Demo
+              </span>
+            ) : null}
             {client.trial_review_needed ? (
               <span className="text-destructive shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
                 Review
               </span>
             ) : null}
           </div>
+          {/* A demo org bills nobody, so a plan line would be a lie. */}
           <p className="text-muted-foreground mt-1 text-xs">
-            Plan: {formatClientPlanLabel(client.billing_plan)} (
-            {formatBillingPeriodLabel(normalizeBillingPeriod(client.billing_period))})
+            {client.is_demo
+              ? 'Demo account · no billing'
+              : `Plan: ${formatClientPlanLabel(client.billing_plan)} (${formatBillingPeriodLabel(
+                  normalizeBillingPeriod(client.billing_period),
+                )})`}
           </p>
         </div>
       </div>

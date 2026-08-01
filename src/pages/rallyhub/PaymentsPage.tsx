@@ -54,8 +54,9 @@ function InvoiceRow({
           >
             {invoice.org_name}
           </Link>
-          <StatusIndicator status={invoiceStatusTone(invoice.status)} />
-          <span className="text-muted-foreground text-xs capitalize">{invoice.status}</span>
+          {/* One label: the indicator prints its own unless given one, which
+              is how "Ready Comped" happened. */}
+          <StatusIndicator status={invoiceStatusTone(invoice.status)} label={invoice.status} />
         </div>
         <p className="text-muted-foreground text-xs">
           {invoice.event_name}

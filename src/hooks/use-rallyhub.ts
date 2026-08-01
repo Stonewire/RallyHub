@@ -38,7 +38,7 @@ export function useRallyHubDashboard() {
     queryKey: ['rallyhub', 'dashboard', ...excludedOrganizationIds],
     queryFn: async () => {
       const [orgsRes, eventsRes, invoicesRes] = await Promise.all([
-        supabase.from('organizations').select('id, subdomain, name'),
+        supabase.from('organizations').select('id, subdomain, name, is_demo'),
         supabase
           .from('events')
           .select('id, name, status, event_date, organization_id, created_at'),
@@ -80,8 +80,13 @@ export function useRallyHubDashboard() {
           clientName: clientName.get(e.organization_id) ?? 'Unknown client',
         }))
 
-      const invoices = (invoicesRes.data ?? []).filter((i) =>
-        clientIds.has(i.organization_id),
+      // Demo orgs carry seeded invoices so the demo billing screen has
+      // something to show. They are not money, so they stay out of revenue.
+      const demoOrgIds = new Set(
+        (orgsRes.data ?? []).filter((org) => org.is_demo).map((org) => org.id),
+      )
+      const invoices = (invoicesRes.data ?? []).filter(
+        (i) => clientIds.has(i.organization_id) && !demoOrgIds.has(i.organization_id),
       )
       const outstanding = invoices
         .filter((i) => i.status === 'unpaid')
@@ -122,9 +127,11 @@ export function useRallyHubClients() {
         supabase.from('invoices').select('organization_id, status'),
       ])
 
+      const demoOrgIds = new Set((orgs ?? []).filter((org) => org.is_demo).map((org) => org.id))
       const unpaidByOrg = new Map<string, number>()
       for (const inv of invoicesRes.data ?? []) {
-        if (inv.status === 'unpaid') {
+        // A demo org's seeded invoices must never read as money owed.
+        if (inv.status === 'unpaid' && !demoOrgIds.has(inv.organization_id)) {
           unpaidByOrg.set(inv.organization_id, (unpaidByOrg.get(inv.organization_id) ?? 0) + 1)
         }
       }
