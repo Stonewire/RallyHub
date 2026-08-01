@@ -1,9 +1,11 @@
-import { Check, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { IconBilling, IconCheck, IconRefresh } from '@/components/icons'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { NeoButton, NeoCard, NeoPageShell } from '@/components/neo-minimal'
+import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { NeoButton } from '@/components/neo-minimal'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 import { useNotification } from '@/contexts/notification-context'
 import {
@@ -77,7 +79,7 @@ function InvoiceRow({
             disabled={marking}
             onClick={() => onMarkPaid(invoice.id)}
           >
-            <Check className="size-3.5" />
+            <IconCheck className="size-3.5" />
             Mark paid
           </NeoButton>
         ) : null}
@@ -100,6 +102,8 @@ export function RallyHubPaymentsPage() {
     .filter((i) => i.status === 'paid')
     .reduce((s, i) => s + Number(i.amount_due), 0)
   const compedCount = invoices.filter((i) => i.status === 'comped').length
+  const unpaidCount = invoices.filter((i) => i.status === 'unpaid').length
+  const paidCount = invoices.filter((i) => i.status === 'paid').length
 
   const filtered = filter === 'all' ? invoices : invoices.filter((i) => i.status === filter)
 
@@ -119,9 +123,20 @@ export function RallyHubPaymentsPage() {
   ]
 
   return (
-    <NeoPageShell
+    <AdminPageShell
       title="Payments"
       subtitle="All event invoices across clients."
+      actions={
+        <NeoButton
+          type="button"
+          variant="surface"
+          disabled={invoicesQuery.isFetching}
+          onClick={() => void invoicesQuery.refetch()}
+        >
+          <IconRefresh className={`size-4 ${invoicesQuery.isFetching ? 'animate-spin' : ''}`} />
+          Refresh
+        </NeoButton>
+      }
     >
       {invoicesQuery.isLoading ? (
         <QueryLoading rows={4} />
@@ -130,63 +145,43 @@ export function RallyHubPaymentsPage() {
       ) : (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <NeoCard className="p-5">
-              <p className="neo-stat-label">Outstanding</p>
-              <p className="neo-stat-value mt-2 text-orange-600">{formatEur(outstanding)}</p>
-              <p className="neo-stat-hint mt-1">
-                {invoices.filter((i) => i.status === 'unpaid').length} unpaid invoice
-                {invoices.filter((i) => i.status === 'unpaid').length === 1 ? '' : 's'}
-              </p>
-            </NeoCard>
-            <NeoCard className="p-5">
-              <p className="neo-stat-label">Collected</p>
-              <p className="neo-stat-value mt-2">{formatEur(collected)}</p>
-              <p className="neo-stat-hint mt-1">
-                {invoices.filter((i) => i.status === 'paid').length} paid
-              </p>
-            </NeoCard>
-            <NeoCard className="p-5">
-              <p className="neo-stat-label">Comped</p>
-              <p className="neo-stat-value mt-2">{compedCount}</p>
-              <p className="neo-stat-hint mt-1">Free activations</p>
-            </NeoCard>
+            <StatTile
+              label="Outstanding"
+              value={formatEur(outstanding)}
+              hint={`${unpaidCount} unpaid invoice${unpaidCount === 1 ? '' : 's'}`}
+            />
+            <StatTile
+              label="Collected"
+              value={formatEur(collected)}
+              hint={`${paidCount} paid`}
+            />
+            <StatTile label="Comped" value={compedCount} hint="Free activations" />
           </div>
 
-          <NeoCard className="p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-1">
-                {FILTERS.map((f) => (
+          <Card className="border-border/80 bg-card p-6 shadow-sm">
+            {/* Pill filters, same as every other list in the panel. */}
+            <div className="border-border/70 mb-4 flex flex-wrap items-center gap-2 border-b pb-4">
+              {FILTERS.map((f) => {
+                const count =
+                  f.value === 'all'
+                    ? invoices.length
+                    : invoices.filter((i) => i.status === f.value).length
+                return (
                   <button
                     key={f.value}
                     type="button"
                     onClick={() => setFilter(f.value)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${
                       filter === f.value
-                        ? 'bg-foreground text-background'
-                        : 'text-muted-foreground hover:text-foreground'
+                        ? 'border-nm-slate-800 bg-nm-slate-800 dark:border-nm-slate-700 dark:bg-nm-slate-700 text-white'
+                        : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'
                     }`}
                   >
                     {f.label}
-                    {f.value !== 'all' ? (
-                      <span className="ml-1.5 tabular-nums">
-                        ({invoices.filter((i) => i.status === f.value).length})
-                      </span>
-                    ) : (
-                      <span className="ml-1.5 tabular-nums">({invoices.length})</span>
-                    )}
+                    <span className="ml-1.5 tabular-nums">({count})</span>
                   </button>
-                ))}
-              </div>
-              <NeoButton
-                type="button"
-                variant="surface"
-                size="sm"
-                disabled={invoicesQuery.isFetching}
-                onClick={() => void invoicesQuery.refetch()}
-              >
-                <RefreshCw className={`size-3.5 ${invoicesQuery.isFetching ? 'animate-spin' : ''}`} />
-                Refresh
-              </NeoButton>
+                )
+              })}
             </div>
 
             {filtered.length === 0 ? (
@@ -205,9 +200,36 @@ export function RallyHubPaymentsPage() {
                 ))}
               </ul>
             )}
-          </NeoCard>
+          </Card>
         </div>
       )}
-    </NeoPageShell>
+    </AdminPageShell>
+  )
+}
+
+function StatTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: number | string
+  hint?: string
+}) {
+  return (
+    <Card className="neo-card border-border/80 bg-card text-card-foreground shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="neo-stat-label text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {label}
+        </CardTitle>
+        <IconBilling aria-hidden className="text-muted-foreground size-5 opacity-75" />
+      </CardHeader>
+      <CardContent>
+        <p className="neo-stat-value text-foreground text-[1.75rem] leading-none font-bold tracking-tight tabular-nums sm:text-[2rem]">
+          {value}
+        </p>
+        {hint ? <p className="text-muted-foreground mt-2 text-xs">{hint}</p> : null}
+      </CardContent>
+    </Card>
   )
 }
