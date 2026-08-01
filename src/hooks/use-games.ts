@@ -177,6 +177,32 @@ export function useRestoreGame(organizationId: string | null) {
   })
 }
 
+/**
+ * Hard-deletes a game that is already in Deleted Games.
+ *
+ * Goes through the permanently_delete_game RPC rather than a direct delete,
+ * because submissions.game_id cascades: a plain delete would silently destroy
+ * every submission ever made for that game. The RPC refuses in that case and
+ * returns a message explaining why, which is surfaced to the organiser.
+ */
+export function usePermanentlyDeleteGame(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (gameId: string) => {
+      const { error } = await supabase.rpc('permanently_delete_game', { p_game_id: gameId })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      invalidateGameListQueries(queryClient, organizationId)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.trashedGames(organizationId) })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+    },
+  })
+}
+
 export function useCreateGameGroup(organizationId: string | null) {
   const queryClient = useQueryClient()
 

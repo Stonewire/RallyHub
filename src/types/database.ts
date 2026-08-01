@@ -1327,6 +1327,10 @@ export type Database = {
         Args: { p_viewer_role: string }
         Returns: { ticket_id: string; unread_count: number }[]
       }
+      permanently_delete_game: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
