@@ -115,6 +115,24 @@ bundled into a design batch.
 3. **Bingo clip length 60 seconds.** The design offers 30/60/90; the type and
    the clip generator permit 30 and 90 only. Adding 60 touches clip extraction.
 
+4. **Solution fields reach participants, hidden only by the UI.** Found while
+   building the design's "Solution Video Link". `get_live_event_games` returns
+   `solution_description`, `solution_image_url` and, for video games, an
+   unredacted `config` to anyone holding a join token.
+   `redact_game_config_for_live` strips answers for quiz, text and puzzle, but
+   video has no branch. Nothing renders those fields to players (only the
+   facilitator's `SubmissionDetailModal` reads them), so this is obscured
+   rather than exposed, but the bytes are in the participant's browser and
+   readable from devtools.
+   The design's Solution Video Link was therefore **not built**: adding a
+   worked-answer URL would widen an existing weakness, and labelling it
+   "players never receive it" would have been untrue.
+   Fix: extend the redactor with a video branch that strips the solution
+   fields, and consider stripping `solution_description` and
+   `solution_image_url` from the participant payload generally. That changes
+   the live bundle, so it lands here with a smoke test rather than in a design
+   batch. Then the Solution Video Link can be added truthfully.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.

@@ -197,6 +197,9 @@ export function AdminGamesPage() {
   const [newGroupName, setNewGroupName] = useState('')
   const [createGroupSelection, setCreateGroupSelection] = useState<Set<string>>(new Set())
   const [createGroupType, setCreateGroupType] = useState<'all' | GameType>('all')
+  // Design's source-group selector: build a new group by drawing from an
+  // existing one, rather than hunting the whole library each time.
+  const [createGroupSource, setCreateGroupSource] = useState('all')
   const [createGroupSearch, setCreateGroupSearch] = useState('')
   const [addToGroupOpen, setAddToGroupOpen] = useState(false)
   const [addToGroupSelection, setAddToGroupSelection] = useState<Set<string>>(new Set())
@@ -250,11 +253,20 @@ export function AdminGamesPage() {
   }, [allGames, gameToGroupId, groupFilter, addToGroupType, addToGroupSearch])
   const createGroupCandidates = useMemo(() => {
     const q = createGroupSearch.trim().toLowerCase()
+    const sourceIds =
+      createGroupSource === 'all'
+        ? null
+        : new Set(
+            groups
+              .find((group) => group.id === createGroupSource)
+              ?.items.map((item) => item.game_id) ?? [],
+          )
     return allGames.filter((game) => {
+      if (sourceIds && !sourceIds.has(game.id)) return false
       if (createGroupType !== 'all' && game.type !== createGroupType) return false
       return !q || game.name.toLowerCase().includes(q)
     })
-  }, [allGames, createGroupSearch, createGroupType])
+  }, [allGames, createGroupSearch, createGroupType, createGroupSource, groups])
 
   function gamesForGroup(group: GameGroupWithItems): GameRow[] {
     const byId = new Map(allGames.map((g) => [g.id, g]))
@@ -776,6 +788,19 @@ export function AdminGamesPage() {
             {allGames.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row">
+                  <select
+                    value={createGroupSource}
+                    onChange={(event) => setCreateGroupSource(event.target.value)}
+                    aria-label="Draw games from group"
+                    className="border-input bg-background h-9 min-w-40 rounded-md border px-2 text-xs font-semibold"
+                  >
+                    <option value="all">All Groups</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
                   <div className="flex flex-wrap gap-1.5">
                     {FILTERS.map(({ value, label }) => (
                       <button
