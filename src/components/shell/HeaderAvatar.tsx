@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { profileDisplayName } from '@/lib/auth-routes'
 
-/** Header initials avatar. `profiles` has no avatar_url, so initials only. */
+/** Header avatar: the user's photo when set, initials otherwise. */
 export function HeaderAvatar() {
   const { profile } = useAuth()
   const name = profileDisplayName(profile)
@@ -20,9 +20,13 @@ export function HeaderAvatar() {
       to="/admin/settings?tab=account"
       title="My Account"
       aria-label="My Account"
-      className="bg-nm-yellow text-nm-charcoal flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+      className="bg-nm-yellow text-nm-charcoal flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold"
     >
-      {initials}
+      {profile?.avatar_url ? (
+        <img src={profile.avatar_url} alt="" className="size-full object-cover" />
+      ) : (
+        initials
+      )}
     </Link>
   )
 }

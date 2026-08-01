@@ -40,7 +40,8 @@
       "mcp__plugin_context-mode_context-mode__ctx_execute_file",
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
       "mcp__plugin_context-mode_context-mode__ctx_execute",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(grep -n \"const { user, profile, refreshProfile }\\\\|const \\\\[deleting\" src/components/admin/MyAccountPanel.tsx)"
     ]
   }
 }

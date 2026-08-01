@@ -4,7 +4,9 @@ import { useState, type FormEvent } from 'react'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { DangerZone } from '@/components/admin/DangerZone'
 import { useAuth } from '@/contexts/auth-context'
+import { uploadAsset } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
+import { ALLOWED_IMAGE_UPLOAD_TYPES, validateImageUpload } from '@/lib/upload-limits'
 
 /**
  * Personal account settings (name, username, email, password) for the
@@ -28,6 +30,55 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   const [loggingOutAll, setLoggingOutAll] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+
+  /**
+   * Uploads to the user-avatars bucket and saves the URL immediately, rather
+   * than folding it into the dirty-check Save. A photo swap is a single
+   * deliberate act with instant visual feedback, so making the user then press
+   * Save would just look broken.
+   */
+  async function handleAvatarChange(file: File) {
+    if (!profile) return
+    const problem = validateImageUpload(file, 'avatar')
+    if (problem) {
+      setStatus({ kind: 'error', msg: problem })
+      return
+    }
+
+    setAvatarUploading(true)
+    setStatus(null)
+    try {
+      // Path must start with the user id: the bucket policies only permit
+      // writes where the leading folder equals auth.uid().
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const url = await uploadAsset(
+        'user-avatars',
+        `${profile.id}/avatar.${extension}`,
+        file,
+        { mediaKind: 'avatar' },
+      )
+      // Cache-bust, or the browser keeps showing the previous photo at the
+      // same object path after an upsert.
+      const busted = `${url}?v=${Date.now()}`
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: busted })
+        .eq('id', profile.id)
+      if (error) throw error
+      setAvatarUrl(busted)
+      await refreshProfile()
+      setStatus({ kind: 'ok', msg: 'Profile photo updated.' })
+    } catch (err) {
+      setStatus({
+        kind: 'error',
+        msg: err instanceof Error ? err.message : 'Could not upload your photo.',
+      })
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   /** Revokes every refresh token for this user, on every device. */
   async function handleLogOutAllDevices() {
@@ -177,14 +228,37 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
           <NeoCard className="space-y-4 p-4">
             <h2 className="text-foreground text-sm font-bold">Profile Photo</h2>
             <div className="flex items-center gap-4">
-              <div className="relative shrink-0" title="Profile photo uploads require account storage support">
-                <div className="bg-nm-slate-400 text-nm-slate-900 border-border flex size-24 items-center justify-center rounded-full border-2 text-2xl font-bold">
-                  {initials}
-                </div>
-                <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2">
+              {/* The whole circle is the file picker, as in the design. */}
+              <label
+                className="group relative shrink-0 cursor-pointer"
+                title={avatarUploading ? 'Uploading…' : 'Change profile photo'}
+              >
+                <input
+                  type="file"
+                  accept={ALLOWED_IMAGE_UPLOAD_TYPES.join(',')}
+                  className="sr-only"
+                  disabled={avatarUploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    if (file) void handleAvatarChange(file)
+                  }}
+                />
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="border-border size-24 rounded-full border-2 object-cover"
+                  />
+                ) : (
+                  <div className="bg-nm-slate-400 text-nm-slate-900 border-border flex size-24 items-center justify-center rounded-full border-2 text-2xl font-bold">
+                    {initials}
+                  </div>
+                )}
+                <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110">
                   <Upload className="size-3.5" />
                 </span>
-              </div>
+              </label>
               <div className="min-w-0 flex-1">
                 {editingName ? (
                   <div className="grid gap-2 sm:grid-cols-2">

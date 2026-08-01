@@ -212,6 +212,7 @@ export type Database = {
           list_order: number
           deleted_at: string | null
           deleted_by: string | null
+          deleted_by_name: string | null
           created_at: string
         }
         Insert: {
@@ -235,6 +236,7 @@ export type Database = {
           list_order?: number
           deleted_at?: string | null
           deleted_by?: string | null
+          deleted_by_name?: string | null
         }
         Update: {
           name?: string
@@ -254,6 +256,7 @@ export type Database = {
           list_order?: number
           deleted_at?: string | null
           deleted_by?: string | null
+          deleted_by_name?: string | null
         }
         Relationships: []
       }

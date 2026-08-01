@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { profileDisplayName } from '@/lib/auth-routes'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { GameType } from '@/types/database'
@@ -121,9 +122,27 @@ export function useDeleteGame(organizationId: string | null) {
 
   return useMutation({
     mutationFn: async (gameId: string) => {
+      // Record who binned it, and snapshot their name so the Deleted Games
+      // list can still attribute it after that account is removed.
+      const { data: auth } = await supabase.auth.getUser()
+      const actorId = auth.user?.id ?? null
+      let actorName: string | null = null
+      if (actorId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, full_name, username')
+          .eq('id', actorId)
+          .maybeSingle()
+        actorName = profileDisplayName(profile) || null
+      }
+
       const { error } = await supabase
         .from('games')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: actorId,
+          deleted_by_name: actorName,
+        })
         .eq('id', gameId)
       if (error) throw error
     },

@@ -7,14 +7,18 @@ import { sanitizeStoragePath } from '@/lib/storage-path'
 import { supabase } from '@/lib/supabase'
 
 export async function uploadAsset(
-  bucket: 'game-assets' | 'organization-logos',
+  bucket: 'game-assets' | 'organization-logos' | 'user-avatars',
   path: string,
   file: File,
   options?: { mediaKind?: UploadMediaKind },
 ): Promise<string> {
   const kind =
     options?.mediaKind ??
-    (bucket === 'organization-logos' ? 'logo' : inferUploadMediaKind(file))
+    (bucket === 'organization-logos'
+      ? 'logo'
+      : bucket === 'user-avatars'
+        ? 'avatar'
+        : inferUploadMediaKind(file))
   const sizeError = validateUploadFileSize(file, kind)
   if (sizeError) throw new Error(sizeError)
 

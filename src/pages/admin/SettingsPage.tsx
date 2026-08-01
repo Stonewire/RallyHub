@@ -36,6 +36,13 @@ import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 import { downloadClientPackage } from '@/lib/client-export'
+import {
+  ALLOWED_IMAGE_UPLOAD_LABEL,
+  ALLOWED_IMAGE_UPLOAD_TYPES,
+  UPLOAD_MAX_PHOTO_BYTES,
+  formatUploadMaxLabel,
+  validateImageUpload,
+} from '@/lib/upload-limits'
 
 type SettingsTab = 'profile' | 'billing' | 'account'
 
@@ -83,6 +90,7 @@ export function AdminSettingsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deletionMessage, setDeletionMessage] = useState<string | null>(null)
   const [exportingData, setExportingData] = useState(false)
+  const [logoDragging, setLogoDragging] = useState(false)
 
   useEffect(() => {
     if (orgQuery.data) {
@@ -131,6 +139,13 @@ export function AdminSettingsPage() {
 
   async function handleLogoChange(file: File | undefined) {
     if (!file || !organizationId) return
+    // The card advertises a type and size limit, so enforce it here rather
+    // than letting Storage reject it with an opaque error.
+    const problem = validateImageUpload(file, 'logo')
+    if (problem) {
+      setSaveMessage(problem)
+      return
+    }
     setLogoUploading(true)
     setSaveMessage(null)
     try {
@@ -313,15 +328,36 @@ export function AdminSettingsPage() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*"
+                  accept={ALLOWED_IMAGE_UPLOAD_TYPES.join(',')}
                   className="hidden"
-                  onChange={(event) => void handleLogoChange(event.target.files?.[0])}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    void handleLogoChange(file)
+                  }}
                 />
+                {/* A real drop target. The copy promised drag and drop long
+                    before there were any drag handlers behind it. */}
                 <button
                   type="button"
                   disabled={logoUploading}
                   onClick={() => fileRef.current?.click()}
-                  className="border-border text-muted-foreground hover:border-nm-slate-400 hover:bg-muted/20 flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed px-4 py-6 text-center text-xs transition-colors"
+                  onDragOver={(event) => {
+                    event.preventDefault()
+                    if (!logoDragging) setLogoDragging(true)
+                  }}
+                  onDragLeave={() => setLogoDragging(false)}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    setLogoDragging(false)
+                    void handleLogoChange(event.dataTransfer.files?.[0])
+                  }}
+                  className={cn(
+                    'text-muted-foreground flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed px-4 py-6 text-center text-xs transition-colors',
+                    logoDragging
+                      ? 'border-primary bg-primary/10 text-foreground'
+                      : 'border-border hover:border-nm-slate-400 hover:bg-muted/20',
+                  )}
                 >
                   {form.logo_url ? (
                     <img src={form.logo_url} alt="Organization logo" className="max-h-20 max-w-48 object-contain" />
@@ -329,9 +365,19 @@ export function AdminSettingsPage() {
                     <Upload className="size-5" />
                   )}
                   <span>
-                    {logoUploading ? 'Uploading…' : form.logo_url ? 'Click to replace your logo' : 'Drag & drop your logo here'}
+                    {logoUploading
+                      ? 'Uploading…'
+                      : logoDragging
+                        ? 'Drop to upload'
+                        : form.logo_url
+                          ? 'Click or drop to replace your logo'
+                          : 'Drag & drop your logo here'}
                   </span>
-                  <span className="text-[10px]">SVG, PNG or JPG (Max 2MB)</span>
+                  {/* SVG is intentionally absent: the bucket is public and an
+                      SVG can carry script, so it is blocked server side too. */}
+                  <span className="text-[10px]">
+                    {ALLOWED_IMAGE_UPLOAD_LABEL} (Max {formatUploadMaxLabel(UPLOAD_MAX_PHOTO_BYTES)})
+                  </span>
                 </button>
 
                 <div>
