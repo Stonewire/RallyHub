@@ -247,6 +247,57 @@ all 40 countries with a per-country pattern and example. It is advisory: it
 catches a UK code typed into a German address, but a string can match the
 pattern and still not exist. Real verification is the same places API job.
 
+## Installable RallyHub: brief for a discussion, 1 Aug 2026
+
+Rumen wants more than a pinned tablet link. Parked deliberately; he asked to
+discuss it before it is built. This is the brief, not a spec.
+
+**What he wants installable:** the admin panel, on a computer or a tablet, so
+an organiser opens it like an app. The facilitator console, so a host taps an
+icon rather than hunting a link. And the existing tablet score entry.
+
+**Why the facilitator console is the hard one.** The tablet link works because
+it is a stable, event-agnostic entry point: one URL plus a 4-digit PIN, then
+pick the event. The facilitator console is per event (`/facilitator/:eventId`),
+so there is nothing durable to pin. There is already a `/facilitator` landing
+page, which is the natural equivalent of the tablet picker and probably the
+thing to build on.
+
+**The idea Rumen was circling:** one Organisation Device Access app per client.
+Install once, open it, and choose what this device is for right now: facilitate
+an event, take scores, show the display, or administer. A launcher rather than
+four separate installs.
+
+**What to settle in the discussion, because these change the build:**
+
+1. **One icon or several?** A manifest has one identity and one start_url. A
+   launcher means one install and an in-app chooser. Separate installs mean
+   several manifests served per route, and a device could hold an "Admin" icon
+   and a "Scores" icon side by side. The launcher is tidier; separate icons are
+   faster to reach and match how staff actually think about a shift.
+
+2. **Three different auth models under one roof.** Tablet is anonymous plus an
+   org PIN. Facilitator is an authenticated user with a role. Admin is a full
+   login. A single installed app has to make "who is this device" and "who is
+   this person" obvious, or someone will hand a tablet to a participant while an
+   admin session is still live on it.
+
+3. **Shared-device security.** A pinned app that stays signed in is convenient
+   and is exactly how a facilitator's account leaks. The tablet PIN exists for
+   this reason. Whatever we build needs the same answer for the facilitator
+   console: a lock screen, a short session, or device-scoped credentials.
+
+4. **Offline.** Still the separate, larger question: what a tablet does when the
+   venue's wifi dies mid-event, and what happens to a score entered while
+   offline. Worth deciding before, not after, because it shapes the whole thing.
+
+**The cheap part, whatever we decide:** a basic manifest with square 192 and 512
+icons (current brand icons are 285x271 and not square), plus the apple meta
+tags. About half an hour, and it makes Chrome's Install option appear at all.
+Omitting `start_url` makes an install launch from the page it was installed
+from, which may solve the multi-entry-point problem outright, but that needs
+testing on a real device rather than trusting the spec.
+
 ## Installable tablet app (PWA): not built, 1 Aug 2026
 
 Rumen asked for a button on Tablet Access explaining how to install the tablet
