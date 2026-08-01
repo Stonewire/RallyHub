@@ -18,6 +18,15 @@ export type DashboardStats = {
   totalEvents: number
   activeEvents: number
   upcomingEvents: number
+  /**
+   * Change against the count seven days ago, for the stats where that can be
+   * reconstructed honestly. Games and events carry created_at and deleted_at,
+   * so "how many existed a week ago" is exact. Live Now and Upcoming Events are
+   * derived from the current status column and no status history is recorded,
+   * so their week-ago value is unknowable and no delta is offered.
+   */
+  gamesDelta: number
+  totalEventsDelta: number
 }
 
 export type RecentEventRow = {
@@ -42,10 +51,17 @@ export function useDashboardStats(organizationId: string | null) {
           totalEvents: 0,
           activeEvents: 0,
           upcomingEvents: 0,
+          gamesDelta: 0,
+          totalEventsDelta: 0,
         }
       }
 
-      const [gamesRes, eventsRes, activeRes, readyRes] = await Promise.all([
+      // Anything created after this, or deleted before it, did not count a week ago.
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const existedThen = `deleted_at.is.null,deleted_at.gte.${weekAgo}`
+
+      const [gamesRes, eventsRes, activeRes, readyRes, gamesThenRes, eventsThenRes] =
+        await Promise.all([
         supabase
           .from('games')
           .select('id', { count: 'exact', head: true })
@@ -68,18 +84,34 @@ export function useDashboardStats(organizationId: string | null) {
           .eq('organization_id', organizationId)
           .eq('status', 'ready')
           .is('deleted_at', null),
+        supabase
+          .from('games')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+          .lt('created_at', weekAgo)
+          .or(existedThen),
+        supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+          .lt('created_at', weekAgo)
+          .or(existedThen),
       ])
 
       if (gamesRes.error) throw gamesRes.error
       if (eventsRes.error) throw eventsRes.error
       if (activeRes.error) throw activeRes.error
       if (readyRes.error) throw readyRes.error
+      if (gamesThenRes.error) throw gamesThenRes.error
+      if (eventsThenRes.error) throw eventsThenRes.error
 
       return {
         totalGames: gamesRes.count ?? 0,
         totalEvents: eventsRes.count ?? 0,
         activeEvents: activeRes.count ?? 0,
         upcomingEvents: readyRes.count ?? 0,
+        gamesDelta: (gamesRes.count ?? 0) - (gamesThenRes.count ?? 0),
+        totalEventsDelta: (eventsRes.count ?? 0) - (eventsThenRes.count ?? 0),
       }
     },
   })

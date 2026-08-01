@@ -23,11 +23,24 @@ export function ClientDashboardPage() {
 
   const stats = statsQuery.data
 
+  // Live Now and Upcoming Events read the current status column, and no status
+  // history is kept, so their week-ago value cannot be reconstructed. They get
+  // no delta rather than a made-up one.
   const cards = [
-    { label: 'Available Games', value: stats?.totalGames, to: '/admin/games' },
+    {
+      label: 'Available Games',
+      value: stats?.totalGames,
+      to: '/admin/games',
+      delta: stats?.gamesDelta,
+    },
     { label: 'Upcoming Events', value: stats?.upcomingEvents, to: '/admin/events' },
     { label: 'Live Now', value: stats?.activeEvents, to: '/admin/events' },
-    { label: 'Total Events', value: stats?.totalEvents, to: '/admin/events' },
+    {
+      label: 'Total Events',
+      value: stats?.totalEvents,
+      to: '/admin/events',
+      delta: stats?.totalEventsDelta,
+    },
   ]
 
   return (
@@ -42,7 +55,12 @@ export function ClientDashboardPage() {
       <div className="grid gap-4 xl:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_minmax(0,2.2fr)]">
         {cards.map((card) => (
           <div key={card.label} className="xl:col-span-1">
-            <StatCard label={card.label} value={card.value} to={card.to} />
+            <StatCard
+              label={card.label}
+              value={card.value}
+              to={card.to}
+              delta={card.delta}
+            />
           </div>
         ))}
 
