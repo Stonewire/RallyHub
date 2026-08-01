@@ -128,6 +128,7 @@ export function QuizEditor({
   const rounds = config.rounds ?? []
   // Rounds start closed: a quiz with several rounds is unreadable otherwise.
   const [collapsedRounds, setCollapsedRounds] = useState<Record<string, boolean>>({})
+  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set())
   const [dragQuestionId, setDragQuestionId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{
     roundId: string | null
@@ -219,6 +220,64 @@ export function QuizEditor({
     setDropTarget(null)
   }
 
+
+  function toggleQuestionSelected(id: string) {
+    setSelectedQuestions((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectedIn(roundId: string) {
+    return questions.filter((q) => q.roundId === roundId && selectedQuestions.has(q.id))
+  }
+
+  function deleteSelected(roundId: string) {
+    const ids = new Set(selectedIn(roundId).map((q) => q.id))
+    if (ids.size === 0) return
+    setConfig((c) => ({
+      ...c,
+      questions: (c.questions ?? []).filter((q) => !ids.has(q.id)),
+      rounds: (c.rounds ?? []).map((r) => ({
+        ...r,
+        questionIds: r.questionIds.filter((qid) => !ids.has(qid)),
+      })),
+    }))
+    setSelectedQuestions(new Set())
+  }
+
+  /**
+   * Duplicate rather than copy: each clone needs its own id, and its answers do
+   * too, or editing one would edit the other.
+   */
+  function duplicateSelected(roundId: string) {
+    const chosen = selectedIn(roundId)
+    if (chosen.length === 0) return
+    const clones = chosen.map((q) => ({
+      ...q,
+      id: newId(),
+      answers: q.answers.map((a) => ({ ...a, id: newId() })),
+    }))
+    // correctAnswerId points at an old answer id, so remap it per clone.
+    clones.forEach((clone, index) => {
+      const source = chosen[index]
+      const position = source.answers.findIndex((a) => a.id === source.correctAnswerId)
+      clone.correctAnswerId = position >= 0 ? clone.answers[position].id : ''
+    })
+    setConfig((c) => ({
+      ...c,
+      questions: [...(c.questions ?? []), ...clones],
+      rounds: (c.rounds ?? []).map((r) =>
+        r.id === roundId
+          ? { ...r, questionIds: [...r.questionIds, ...clones.map((q) => q.id)] }
+          : r,
+      ),
+    }))
+    setSelectedQuestions(new Set())
+  }
+
   function renderQuestionList(roundId: string | null, title?: string) {
     const list = questions.filter((q) =>
       roundId ? q.roundId === roundId : !q.roundId,
@@ -241,6 +300,15 @@ export function QuizEditor({
               handleDrop(roundId, i)
             }}
           >
+            <label className="mb-1 flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={selectedQuestions.has(q.id)}
+                onChange={() => toggleQuestionSelected(q.id)}
+                aria-label={`Select question ${i + 1}`}
+              />
+              <span className="text-muted-foreground">Select</span>
+            </label>
             <QuestionCard
               q={q}
               index={i}
@@ -345,6 +413,50 @@ export function QuizEditor({
                     <span className="text-muted-foreground shrink-0 text-xs">
                       {count} question{count === 1 ? '' : 's'}
                     </span>
+                    {/* Bulk actions appear only with a selection, so the header
+                        stays quiet until there is something to act on. */}
+                    {!collapsed && count > 0 ? (
+                      <label className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select every question in round ${roundIndex + 1}`}
+                          checked={selectedIn(round.id).length === count}
+                          onChange={(event) =>
+                            setSelectedQuestions((current) => {
+                              const next = new Set(current)
+                              for (const q of questions.filter((x) => x.roundId === round.id)) {
+                                if (event.target.checked) next.add(q.id)
+                                else next.delete(q.id)
+                              }
+                              return next
+                            })
+                          }
+                        />
+                        Select all
+                      </label>
+                    ) : null}
+                    {selectedIn(round.id).length > 0 ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={() => duplicateSelected(round.id)}
+                        >
+                          Duplicate {selectedIn(round.id).length}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive shrink-0"
+                          onClick={() => deleteSelected(round.id)}
+                        >
+                          Delete {selectedIn(round.id).length}
+                        </Button>
+                      </>
+                    ) : null}
                     <Button
                       type="button"
                       variant="ghost"
