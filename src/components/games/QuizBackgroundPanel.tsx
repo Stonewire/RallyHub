@@ -11,7 +11,8 @@ import type { GameConfig } from '@/types/game-config'
 const CORNERS = ['Top left', 'Top right', 'Bottom right', 'Bottom left'] as const
 
 /**
- * The quiz's background: one photo, or four colours blended from the corners.
+ * A game's background: one photo, or four colours blended from the corners.
+ * Used by quiz and music bingo, which share this treatment.
  *
  * The four colours are this quiz's own background and nothing else. Brand
  * colours live on the event, so they are deliberately not reused here.
@@ -21,11 +22,15 @@ export function QuizBackgroundPanel({
   setConfig,
   quizName,
   onUploadBackground,
+  title = 'Quiz designer',
+  previewSubtitle = 'Question 1 of your quiz',
 }: {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
   quizName: string
   onUploadBackground: (file: File) => Promise<string>
+  title?: string
+  previewSubtitle?: string
 }) {
   const usingImage = config.background_mode
     ? config.background_mode === 'image'
@@ -56,7 +61,7 @@ export function QuizBackgroundPanel({
   return (
     <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-foreground text-sm font-bold">Quiz designer</h3>
+        <h3 className="text-foreground text-sm font-bold">{title}</h3>
         <SegmentedPill
           size="sm"
           className="w-44"
@@ -116,7 +121,7 @@ export function QuizBackgroundPanel({
             <p className="text-base font-bold text-white drop-shadow">
               {quizName.trim() || 'Untitled quiz'}
             </p>
-            <p className="text-xs text-white/85 drop-shadow">Question 1 of your quiz</p>
+            <p className="text-xs text-white/85 drop-shadow">{previewSubtitle}</p>
           </div>
         </div>
       </div>

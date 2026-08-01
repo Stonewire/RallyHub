@@ -2,6 +2,7 @@ import { IconPlus } from '@/components/icons'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 
+import { AssetField } from '@/components/games/AssetField'
 import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
 import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ type MusicBingoEditorProps = {
   setCoverUrl: (v: string | null) => void
   /** Shown in the Background Designer's live preview. */
   gameName?: string
+  section?: 'settings' | 'designer' | 'tracks'
 }
 
 export function MusicBingoEditor({
@@ -41,6 +43,7 @@ export function MusicBingoEditor({
   coverUrl,
   setCoverUrl,
   gameName = '',
+  section = 'tracks',
 }: MusicBingoEditorProps) {
   const tracks = useMemo(() => config.tracks ?? [], [config.tracks])
   const [clipBusy, setClipBusy] = useState(false)
@@ -143,51 +146,66 @@ export function MusicBingoEditor({
     }
   }
 
-  return (
-    <Card className="border-border/80 space-y-6 bg-card p-6 shadow-sm">
-      <FileField
-        label="Cover image"
-        onFile={async (f) => {
-          if (!f) return
-          setCoverUrl(await uploadGameFile(organizationId, `bingo/cover-${newGameId()}`, f))
-        }}
-        preview={coverUrl}
-      />
+  // 'settings' fills Primary settings, 'designer' the right-hand card, and
+  // 'tracks' the full-width area below, matching the other game types.
+  if (section === 'settings') {
+    return (
+      <>
+        <AssetField
+          label="Cover image"
+          onFile={async (f) => {
+            if (!f) return
+            setCoverUrl(await uploadGameFile(organizationId, `bingo/cover-${newGameId()}`, f))
+          }}
+          onUrl={setCoverUrl}
+          preview={coverUrl}
+          showPreviewPanel
+        />
+        <div className="flex w-full items-center gap-3">
+          <Label className="shrink-0">Clip length</Label>
+          <select
+            value={config.bingo_clip_length == null ? '' : String(config.bingo_clip_length)}
+            onChange={(e) => onClipLengthChange(e.target.value)}
+            className="border-input bg-background h-8 rounded-md border px-2 text-sm"
+          >
+            <option value="">Select length</option>
+            {BINGO_CLIP_LENGTHS.map((len) => (
+              <option key={len} value={len}>
+                {len} seconds
+              </option>
+            ))}
+          </select>
+        </div>
+        <BingoWinningComboEditor
+          config={{
+            ...config,
+            bingo_line_points: config.bingo_line_points ?? 100,
+            bingo_points_per_correct: config.bingo_points_per_correct ?? 10,
+          }}
+          setConfig={setConfig}
+        />
+      </>
+    )
+  }
+
+  if (section === 'designer') {
+    // BackgroundDesigner is already a card with its own heading; wrapping it
+    // gave a card inside a card with two titles.
+    return (
       <BackgroundDesigner
-        config={config}
-        setConfig={setConfig}
-        gameName={gameName}
-        previewSubtitle="Listen and mark your card"
-        onUploadBackground={(file) =>
-          uploadGameFile(organizationId, `bingo/bg-${newGameId()}`, file)
+          config={config}
+          setConfig={setConfig}
+          gameName={gameName}
+          previewSubtitle="Listen and mark your card"
+          onUploadBackground={(file) =>
+            uploadGameFile(organizationId, `bingo/bg-${newGameId()}`, file)
         }
       />
+    )
+  }
 
-      <div className="space-y-2">
-        <Label>Clip length for live bingo</Label>
-        <select
-          value={config.bingo_clip_length == null ? '' : String(config.bingo_clip_length)}
-          onChange={(e) => onClipLengthChange(e.target.value)}
-          className="border-input bg-background max-w-xs rounded-lg border px-3 py-2 text-sm"
-        >
-          <option value="">Select length</option>
-          {BINGO_CLIP_LENGTHS.map((len) => (
-            <option key={len} value={len}>
-              {len} seconds
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <BingoWinningComboEditor
-        config={{
-          ...config,
-          bingo_line_points: config.bingo_line_points ?? 100,
-          bingo_points_per_correct: config.bingo_points_per_correct ?? 10,
-        }}
-        setConfig={setConfig}
-      />
-
+  return (
+    <Card className="border-border/80 space-y-6 bg-card p-6 shadow-sm">
       {/* #23: bingo games only PICK from the catalog. Uploading happens in
           Games → Music Catalog (single source of truth). */}
       <MusicCatalogPicker
@@ -374,39 +392,6 @@ export function MusicBingoEditor({
         document.body,
       ) : null}
     </Card>
-  )
-}
-
-function FileField({
-  label,
-  accept = 'image/*',
-  preview,
-  onFile,
-}: {
-  label: string
-  accept?: string
-  preview: string | null
-  onFile: (file: File | undefined) => void
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap items-center gap-3">
-        {preview ? (
-          accept.startsWith('video') ? (
-            <video src={preview} className="max-h-24 rounded-lg" controls />
-          ) : (
-            <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
-          )
-        ) : null}
-        <Input
-          type="file"
-          accept={accept}
-          className="max-w-xs"
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-      </div>
-    </div>
   )
 }
 

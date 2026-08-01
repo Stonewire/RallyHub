@@ -11,6 +11,7 @@ import {
 } from '@/components/icons'
 import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
 import { GameFormLayout } from '@/components/games/GameFormLayout'
+import { QuizBackgroundPanel } from '@/components/games/QuizBackgroundPanel'
 import { AssetField } from '@/components/games/AssetField'
 import { PointsEditor } from '@/components/games/PointsEditor'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
@@ -367,8 +368,33 @@ export function AdminGamesNewPage() {
         )}
         {!isPhotoVideo && (
           <GameFormLayout
+            evenColumns={gameType === 'quiz' || gameType === 'music_bingo'}
+            below={
+              gameType === 'music_bingo' ? (
+                <MusicBingoEditor
+                  config={config}
+                  setConfig={setConfig}
+                  organizationId={organizationId}
+                  coverUrl={coverUrl}
+                  setCoverUrl={setCoverUrl}
+                  gameName={name}
+                  section="tracks"
+                />
+              ) : null
+            }
             facilitatorCard={
-              isText ? (
+              gameType === 'music_bingo' ? (
+                <QuizBackgroundPanel
+                  config={config}
+                  setConfig={setConfig}
+                  quizName={name}
+                  title="Bingo designer"
+                  previewSubtitle="Listen and mark your card"
+                  onUploadBackground={(file) =>
+                    uploadGameFile(organizationId!, `bingo/bg-${newGameId()}`, file)
+                  }
+                />
+              ) : isText ? (
                 <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
                   <h3 className="text-foreground text-sm font-bold">Game designer</h3>
                   <TextGameEditor
@@ -530,18 +556,20 @@ export function AdminGamesNewPage() {
               <Label>Game name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
             </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <RichTextEditor value={description} onChange={setDescription} />
+            </div>
+            <MusicBingoEditor
+              config={config}
+              setConfig={setConfig}
+              organizationId={organizationId}
+              coverUrl={coverUrl}
+              setCoverUrl={setCoverUrl}
+              gameName={name}
+              section="settings"
+            />
           </Card>
-        )}
-
-        {gameType === 'music_bingo' && (
-          <MusicBingoEditor
-            config={config}
-            setConfig={setConfig}
-            organizationId={organizationId}
-            coverUrl={coverUrl}
-            setCoverUrl={setCoverUrl}
-            gameName={name}
-          />
         )}
           </GameFormLayout>
         )}

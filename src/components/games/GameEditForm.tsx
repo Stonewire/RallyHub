@@ -470,7 +470,18 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         {gameType === 'photo' || gameType === 'video' ? null : (
           <GameFormLayout
             facilitatorCard={
-              gameType === 'quiz' ? (
+              gameType === 'music_bingo' ? (
+                <QuizBackgroundPanel
+                  config={config}
+                  setConfig={setConfig}
+                  quizName={name}
+                  title="Bingo designer"
+                  previewSubtitle="Listen and mark your card"
+                  onUploadBackground={(file) =>
+                    uploadGameFile(organizationId, `bingo/bg-${gameId}`, file)
+                  }
+                />
+              ) : gameType === 'quiz' ? (
                 <QuizBackgroundPanel
                   config={config}
                   setConfig={setConfig}
@@ -485,9 +496,19 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
             }
             groupsCard={groupsCard}
             singleColumn={singleColumn}
-            evenColumns={gameType === 'quiz'}
+            evenColumns={gameType === 'quiz' || gameType === 'music_bingo'}
             below={
-              gameType === 'quiz' ? (
+              gameType === 'music_bingo' ? (
+                <MusicBingoEditor
+                  config={config}
+                  setConfig={setConfig}
+                  organizationId={organizationId}
+                  coverUrl={coverUrl}
+                  setCoverUrl={setCoverUrl}
+                  gameName={name}
+                  section="tracks"
+                />
+              ) : gameType === 'quiz' ? (
                 <QuizEditor
                   config={config}
                   setConfig={setConfig}
@@ -512,6 +533,17 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
             <Label>Description</Label>
             <RichTextEditor value={description} onChange={setDescription} />
           </div>
+          {gameType === 'music_bingo' ? (
+            <MusicBingoEditor
+              config={config}
+              setConfig={setConfig}
+              organizationId={organizationId}
+              coverUrl={coverUrl}
+              setCoverUrl={setCoverUrl}
+              gameName={name}
+              section="settings"
+            />
+          ) : null}
           {gameType === 'text' || gameType === 'puzzle' ? (
             <>
               <AssetField
@@ -627,16 +659,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
           </Card>
         ) : null}
 
-        {gameType === 'music_bingo' ? (
-          <MusicBingoEditor
-            config={config}
-            setConfig={setConfig}
-            organizationId={organizationId}
-            coverUrl={coverUrl}
-            setCoverUrl={setCoverUrl}
-            gameName={name}
-          />
-        ) : null}
 
 
           </GameFormLayout>
