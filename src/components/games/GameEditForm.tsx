@@ -342,7 +342,7 @@ export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEd
                 No groups yet. Create one from the Games library.
               </p>
             ) : (
-              <div className="border-border max-h-44 space-y-1 overflow-auto rounded-md border p-2">
+              <div className="border-border min-h-32 flex-1 space-y-1 overflow-auto rounded-md border p-2">
                 {gameGroups.map((group) => (
                   <label
                     key={group.id}
@@ -540,7 +540,7 @@ export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEd
             setConfig={setConfig}
             singleColumn={singleColumn}
             groupsCard={
-              <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+              <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-bold">Groups</h3>
           <div className="space-y-2">
             <Label>Groups</Label>

@@ -73,7 +73,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
       className={
         singleColumn
           ? 'space-y-6'
-          : 'grid items-start gap-6 xl:grid-cols-[2fr_1fr]'
+          : 'grid items-stretch gap-6 xl:grid-cols-[2fr_1fr]'
       }
     >
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
@@ -177,7 +177,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
               )}
             </Card>
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
             <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-semibold uppercase tracking-wider">
                 Facilitator only
