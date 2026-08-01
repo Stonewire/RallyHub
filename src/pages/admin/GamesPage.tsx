@@ -485,31 +485,38 @@ export function AdminGamesPage() {
       ) : view === 'bin' ? (
         <>
           <div className="border-border/70 mb-5 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Identical to the Games Library toolbar: same pill styling and
+                height, same filters / search / group order. */}
             <div className="flex flex-wrap gap-2">
               {FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${filter === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}
+                  className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${filter === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
                   onClick={() => setFilter(value)}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+              <div className="relative min-w-52 flex-1">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search deleted games…"
+                  className="bg-card h-9 pl-8 text-xs"
+                />
+              </div>
               <select
                 value={groupFilter}
                 onChange={(event) => setGroupFilter(event.target.value)}
-                className="border-input bg-card h-9 min-w-40 rounded-md border px-3 text-xs font-semibold"
+                className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
               >
                 <option value="all">All Groups</option>
                 {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
               </select>
-              <div className="relative min-w-52">
-                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search deleted games…" className="h-9 pl-8 text-xs" />
-              </div>
             </div>
           </div>
           {purgeError ? (
