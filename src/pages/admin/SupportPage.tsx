@@ -60,7 +60,10 @@ export function AdminSupportPage() {
     try {
       const { ticket } = await createTicket.mutateAsync({
         subject: subject.trim(),
-        body: category ? `Category: ${category}\n\n${body.trim()}` : body.trim(),
+        // Category has its own column now, so it is no longer prefixed into
+        // the body where it polluted the first line and could not be filtered.
+        body: body.trim(),
+        category,
       })
       setSubject('')
       setBody('')

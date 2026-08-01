@@ -95,7 +95,16 @@ export function SupportTicketsWorkspace({
             renderThreadHeader(selected)
           ) : (
             <div>
-              <p className="text-foreground font-semibold">{selected.subject}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-foreground font-semibold">{selected.subject}</p>
+                {/* Now a real column, so support can see and filter on it
+                    instead of reading it off the first line of the body. */}
+                {selected.category ? (
+                  <span className="bg-nm-slate-100 text-nm-slate-700 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                    {selected.category}
+                  </span>
+                ) : null}
+              </div>
               {selected.ticket_number ? (
                 <p className="text-muted-foreground mt-1 font-mono text-xs">
                   {selected.ticket_number}

@@ -41,6 +41,15 @@ Deferred and flagged, not in this phase: ticket file attachments. That needs a t
 
 ## Phase 3: make the fake controls real
 
+**Correction found later:** `profiles` carried SELECT policies only, so the
+client-side `avatar_url` write added here was silently rejected by RLS. The
+profile photo would have looked like it uploaded and then quietly not saved,
+which is the exact failure this phase existed to remove. Migration
+`20260801180000_profile_self_update.sql` adds a narrow self-update policy plus
+a trigger pinning role, organisation, username and must_change_password, so a
+user cannot promote themselves or move organisations through it. Phone uses the
+same path.
+
 1. **Profile photo.** Wire the avatar to a real file input, upload to the new bucket, store `avatar_url`, show it in My Account and in the header avatar with the initials fallback retained.
 2. **Logo dropzone.** Real `onDragOver`/`onDrop`, plus enforcement of the "SVG, PNG or JPG (Max 2MB)" the UI already promises. Reject with a clear message rather than silently accepting.
 

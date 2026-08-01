@@ -248,7 +248,15 @@ export function useCreateSupportTicket(organizationId: string | undefined) {
   const { profile } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ subject, body }: { subject: string; body: string }) => {
+    mutationFn: async ({
+      subject,
+      body,
+      category,
+    }: {
+      subject: string
+      body: string
+      category?: string
+    }) => {
       if (!organizationId) throw new Error('No organization')
       const ticketNumber = generateSupportTicketNumber()
       const trimmedBody = body.trim()
@@ -258,6 +266,7 @@ export function useCreateSupportTicket(organizationId: string | undefined) {
           organization_id: organizationId,
           subject: subject.trim(),
           body: trimmedBody || null,
+          category: category?.trim() || null,
           ticket_number: ticketNumber,
           status: 'open',
         })

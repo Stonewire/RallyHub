@@ -22,6 +22,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   const [lastName, setLastName] = useState(profile?.last_name ?? '')
   const [username, setUsername] = useState(profile?.username ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
+  const [phone, setPhone] = useState(profile?.phone ?? '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [editingName, setEditingName] = useState(false)
@@ -131,6 +132,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
     lastName !== (profile?.last_name ?? '') ||
     username !== (profile?.username ?? '') ||
     email !== (user?.email ?? '') ||
+    phone !== (profile?.phone ?? '') ||
     password ||
     confirmPassword,
   )
@@ -141,6 +143,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
     setLastName(profile?.last_name ?? '')
     setUsername(profile?.username ?? '')
     setEmail(user?.email ?? '')
+    setPhone(profile?.phone ?? '')
     setPassword('')
     setConfirmPassword('')
     setEditingName(false)
@@ -200,6 +203,16 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
         }
         setStatus({ kind: 'error', msg })
         return
+      }
+      if (phone.trim() !== (profile.phone ?? '')) {
+        const { error: phoneError } = await supabase
+          .from('profiles')
+          .update({ phone: phone.trim() || null })
+          .eq('id', profile.id)
+        if (phoneError) {
+          setStatus({ kind: 'error', msg: phoneError.message })
+          return
+        }
       }
       await refreshProfile()
       setPassword('')
@@ -287,6 +300,17 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-email">Email</NeoLabel>
               <NeoInput id="acct-email" type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <NeoLabel htmlFor="acct-phone">Phone</NeoLabel>
+              <NeoInput
+                id="acct-phone"
+                type="tel"
+                value={phone}
+                autoComplete="tel"
+                placeholder="Optional"
+                onChange={(event) => setPhone(event.target.value)}
+              />
             </div>
             {orgName !== undefined ? (
               <div className="grid gap-1.5">
