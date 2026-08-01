@@ -1,3 +1,6 @@
+import { Check } from 'lucide-react'
+import type { ReactNode } from 'react'
+
 import { Card } from '@/components/ui/card'
 import {
   formatBillingPeriodLabel,
@@ -19,6 +22,8 @@ type PlanDetailsCardProps = {
   highlighted?: boolean
   compact?: boolean
   className?: string
+  /** Design's per-card action: "Current plan" or "Upgrade". */
+  action?: ReactNode
 }
 
 export function PlanDetailsCard({
@@ -27,6 +32,7 @@ export function PlanDetailsCard({
   highlighted = false,
   compact = false,
   className,
+  action,
 }: PlanDetailsCardProps) {
   const plan = getPlan(planId)
   const period = normalizeBillingPeriod(billingPeriod)
@@ -63,12 +69,22 @@ export function PlanDetailsCard({
           <p className="text-muted-foreground text-xs">{price.monthlyNote}</p>
         ) : null}
       </div>
-      <ul className="text-muted-foreground space-y-1 text-sm">
-        {!plan.freeSubscription ? <li>{formatPerEventPrice(plan)}</li> : null}
-        <li>{formatEventLimit(plan)}</li>
-        <li>{formatTeamLimit(plan)}</li>
-        {brandingNote ? <li>{brandingNote}</li> : null}
+      <ul className="text-muted-foreground space-y-1.5 text-sm">
+        {[
+          plan.freeSubscription ? null : formatPerEventPrice(plan),
+          formatEventLimit(plan),
+          formatTeamLimit(plan),
+          brandingNote,
+        ]
+          .filter(Boolean)
+          .map((line) => (
+            <li key={String(line)} className="flex items-start gap-2">
+              <Check className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
       </ul>
+      {action ? <div className="pt-1">{action}</div> : null}
     </Card>
   )
 }

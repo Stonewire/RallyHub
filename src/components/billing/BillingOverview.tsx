@@ -117,8 +117,18 @@ export function BillingOverview({
   // Only paid, self-serve plans can start a Paddle subscription from here.
   const canStartSubscription = !plan.hidden && !plan.freeSubscription && !plan.priceOnRequest
 
+  // Client Billing uses the design's two columns: plan management on the left,
+  // money on the right. The super-admin client view stays a single column.
+  const twoColumn = showAvailablePlans
+
   return (
-    <div className={showAvailablePlans ? 'grid items-start gap-4 xl:grid-cols-[minmax(17rem,1fr)_minmax(0,2fr)]' : 'space-y-8'}>
+    <div
+      className={
+        twoColumn
+          ? 'grid items-start gap-4 xl:grid-cols-[minmax(17rem,1fr)_minmax(0,2fr)]'
+          : 'space-y-8'
+      }
+    >
       {showAdminSummary && unpaid.length > 0 ? (
         <Card className="border-border/80 bg-muted/30 px-4 py-3 shadow-sm">
           <p className="text-foreground text-sm font-medium">
@@ -186,6 +196,7 @@ export function BillingOverview({
             showPayIndicator
             onPay={showAvailablePlans ? handlePayInvoice : undefined}
             payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}
+            layout={twoColumn ? 'table' : 'cards'}
           />
         )}
       </section>
@@ -206,6 +217,7 @@ export function BillingOverview({
             emptyMessage="No paid or comped event invoices yet."
             onDownload={handleDownloadInvoice}
             downloadingInvoiceId={downloadingInvoiceId}
+            layout={twoColumn ? 'table' : 'cards'}
           />
         )}
       </section>
@@ -296,7 +308,9 @@ export function BillingOverview({
       {showAvailablePlans ? (
         <section className="space-y-3 xl:col-start-1 xl:row-start-5">
           <div>
-            <h2 className="text-foreground text-lg font-semibold">Compare plans</h2>
+            <h2 className="text-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
+              Available plans
+            </h2>
             <p className="text-muted-foreground text-sm">
               {isDemo
                 ? 'Use Change subscription above to try Pay Per Event, Starter, or Pro.'
@@ -315,6 +329,33 @@ export function BillingOverview({
                 planId={visiblePlan.id}
                 billingPeriod={period}
                 highlighted={visiblePlan.id === planId}
+                action={
+                  visiblePlan.id === planId ? (
+                    <NeoButton variant="surface" size="sm" className="w-full" disabled>
+                      Current plan
+                    </NeoButton>
+                  ) : visiblePlan.priceOnRequest ? (
+                    <NeoButton variant="surface" size="sm" className="w-full" asChild>
+                      <a href="mailto:hello@rallyhub.games?subject=Custom%20plan">Contact us</a>
+                    </NeoButton>
+                  ) : (
+                    // Self-serve switching is gated by the same flag as the
+                    // change form, so this scrolls there instead of implying an
+                    // upgrade path that is not enabled yet.
+                    <NeoButton
+                      variant="accent"
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        document
+                          .querySelector('[data-tour="billing-subscription"]')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
+                    >
+                      Upgrade
+                    </NeoButton>
+                  )
+                }
               />
             ))}
           </div>
