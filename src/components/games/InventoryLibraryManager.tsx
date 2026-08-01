@@ -47,8 +47,6 @@ const EMPTY_FORM: ItemForm = {
 export type InventoryLibraryHandle = {
   openCreate: () => void
   openCreateGroup: () => void
-  exportAll: () => void
-  canExport: boolean
 }
 
 export const InventoryLibraryManager = forwardRef<
@@ -247,15 +245,7 @@ export const InventoryLibraryManager = forwardRef<
     }
   }
 
-  useImperativeHandle(ref, () => ({
-    openCreate,
-    openCreateGroup,
-    // Exports what is on screen: with a group selected that is the group, and
-    // with a search running it is the matches, which is what "download these"
-    // means while looking at them.
-    exportAll: () => void exportPdf(filtered),
-    canExport: filtered.length > 0 && !exporting,
-  }))
+  useImperativeHandle(ref, () => ({ openCreate, openCreateGroup }))
 
   if (itemsQuery.isLoading) return <QueryLoading rows={6} />
   if (itemsQuery.isError) return <QueryError message={itemsQuery.error.message} />
@@ -276,8 +266,22 @@ export const InventoryLibraryManager = forwardRef<
           that tab keeps its type filters, search and the group selector on the
           right, everything h-9. */}
       <div className="border-border/70 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
-        {groups.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Exports exactly the cards below, so it sits with the controls that
+              decide what those are rather than up in the page header. */}
+          <NeoButton
+            type="button"
+            variant="surface"
+            size="sm"
+            className="h-9"
+            disabled={filtered.length === 0 || exporting}
+            onClick={() => void exportPdf(filtered)}
+          >
+            <IconDownload className="size-3.5" aria-hidden />
+            {exporting ? 'Preparing…' : 'Download QR Codes'}
+          </NeoButton>
+          {groups.length > 0 ? (
+            <>
             {renamingGroup ? (
               <>
                 <NeoInput
@@ -342,10 +346,9 @@ export const InventoryLibraryManager = forwardRef<
                 </NeoButton>
               </>
             ) : null}
-          </div>
-        ) : (
-          <span />
-        )}
+            </>
+          ) : null}
+        </div>
 
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
           <div className="relative min-w-52 flex-1">

@@ -81,9 +81,9 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
               }}
               className="border-border hover:border-primary hover:bg-primary/5 bg-background flex flex-col items-center gap-2 rounded-md border p-5 transition-[background-color,border-color,transform] hover:-translate-y-0.5"
             >
-              <span className="bg-nm-slate-100 flex size-11 items-center justify-center rounded-md">
-                <Icon className="text-nm-slate-700 size-7" />
-              </span>
+              {/* Bare icon in the brand yellow. The grey tile it used to sit in
+                  put a second shape inside a card that is already a shape. */}
+              <Icon className="text-nm-yellow size-8" />
               <span className="text-foreground text-sm font-semibold">{label}</span>
             </button>
           ))}

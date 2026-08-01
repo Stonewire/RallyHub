@@ -522,9 +522,6 @@ export function AdminGamesPage() {
             Upload Music
           </NeoButton>
         </> : view === 'inventory' && !isPlatformLibrary ? <>
-          <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.exportAll()}>
-            Download All
-          </NeoButton>
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.openCreateGroup()}>
             New Group
           </NeoButton>
