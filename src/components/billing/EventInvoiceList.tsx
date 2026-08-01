@@ -161,9 +161,15 @@ export function EventInvoiceList({
             <tr className="text-muted-foreground border-border border-b text-[10px] font-semibold tracking-[0.08em] uppercase">
               <th className="py-2 pr-3 text-left font-semibold">Date</th>
               <th className="py-2 pr-3 text-left font-semibold">Event name</th>
-              {/* Deliberately "Total", not the design's "Total (incl. VAT)":
-                  the app states prices exclude VAT in three other places. */}
-              <th className="py-2 pr-3 text-right font-semibold">Total</th>
+              {/* Not the design's "Total (incl. VAT)". This number is
+                  invoices.amount_due, computed by activate_event from the plan
+                  price minus any promo discount; VAT is never part of that
+                  calculation. Paddle is Merchant of Record and applies VAT at
+                  checkout, so the VAT-inclusive figure exists only on Paddle's
+                  own PDF, reachable from the Invoice button on each row.
+                  Saying "excl." rather than nothing keeps the two numbers from
+                  looking like a discrepancy once VAT is actually charged. */}
+              <th className="py-2 pr-3 text-right font-semibold">Total (excl. VAT)</th>
               <th className="py-2 pr-3 text-left font-semibold">Status</th>
               <th className="py-2 text-right font-semibold">
                 <span className="sr-only">Actions</span>

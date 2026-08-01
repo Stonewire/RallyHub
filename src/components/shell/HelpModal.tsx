@@ -1,30 +1,21 @@
-import { Search, X } from 'lucide-react'
-import { useState } from 'react'
+import { LifeBuoy, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-
-type HelpArticle = { id: string; title: string; snippet: string }
-
-// No help-content system exists yet. Add entries here when copy is ready;
-// until then the modal correctly shows its empty state.
-const HELP_ARTICLES: HelpArticle[] = []
 
 type HelpModalProps = {
   open: boolean
   onClose: () => void
 }
 
-/** Searchable help centre. Renders nothing when closed. */
+/**
+ * Help centre placeholder. Renders nothing when closed.
+ *
+ * ponytail: no article list or search box until the articles themselves exist.
+ * Searching an empty array looked like a broken feature rather than an unfinished
+ * one, so this says plainly that it is coming and routes people to support, which
+ * is where they would have ended up anyway.
+ */
 export function HelpModal({ open, onClose }: HelpModalProps) {
-  const [query, setQuery] = useState('')
-
   if (!open) return null
-
-  const trimmed = query.trim().toLowerCase()
-  const matches = HELP_ARTICLES.filter(
-    (article) =>
-      article.title.toLowerCase().includes(trimmed) ||
-      article.snippet.toLowerCase().includes(trimmed),
-  )
 
   return (
     <div
@@ -35,7 +26,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-nm-surface border-border rounded-nm-lg flex max-h-[80vh] w-[520px] max-w-[92vw] flex-col border p-4 shadow-lg"
+        className="bg-nm-surface border-border rounded-nm-lg w-[420px] max-w-[92vw] border p-4 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -50,47 +41,23 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
           </button>
         </div>
 
-        <div className="relative mb-3">
-          <Search
-            className="text-nm-neutral-600 pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
-            strokeWidth={2}
-          />
-          <input
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search help articles…"
-            aria-label="Search help articles"
-            className="border-input bg-nm-surface rounded-nm-md h-9 w-full border pr-3 pl-8 text-sm"
-          />
-        </div>
-
-        {matches.length > 0 ? (
-          <ul className="flex min-h-0 flex-col overflow-y-auto">
-            {matches.map((article) => (
-              <li
-                key={article.id}
-                className="border-border border-b py-2 last:border-b-0"
-              >
-                <p className="text-sm font-semibold">{article.title}</p>
-                <p className="text-nm-neutral-500 text-xs">{article.snippet}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-center">
-            <p className="text-nm-neutral-500 mb-3 text-xs">
-              No help articles match that yet. Our team can help directly.
-            </p>
-            <Link
-              to="/admin/support"
-              onClick={onClose}
-              className="bg-nm-yellow text-nm-charcoal rounded-nm-md inline-flex h-8 items-center px-3 text-xs font-semibold"
-            >
-              Open a support ticket
-            </Link>
+        <div className="py-4 text-center">
+          <div className="bg-muted mx-auto mb-3 flex size-11 items-center justify-center rounded-full">
+            <LifeBuoy className="text-nm-neutral-600 size-5" strokeWidth={2} />
           </div>
-        )}
+          <p className="mb-1 text-sm font-semibold">Coming soon</p>
+          <p className="text-nm-neutral-500 mb-4 text-xs">
+            Guides and answers are on the way. Until then our team can help you
+            directly.
+          </p>
+          <Link
+            to="/admin/support"
+            onClick={onClose}
+            className="bg-nm-yellow text-nm-charcoal rounded-nm-md inline-flex h-8 items-center px-3 text-xs font-semibold"
+          >
+            Contact support
+          </Link>
+        </div>
       </div>
     </div>
   )

@@ -268,19 +268,29 @@ Rules while running unattended:
 
 ### Answered by assumption so far
 
-**1. Billing "Upgrade" button target.**
+**1. Billing "Upgrade" button target. CONFIRMED by Rumen 1 Aug 2026.**
 Question: the design shows Upgrade on each plan card, but self-serve plan
 switching is gated behind `PLAN_CHANGES_ENABLED` and is currently off.
 Assumption: Upgrade scrolls to the existing Change subscription form rather
 than starting its own checkout, so the button never silently does nothing.
 Reverse by: pointing it at a real upgrade flow once plan changes are enabled.
 
-**2. Invoice total column wording.**
-Question: the design's column reads "Total (incl. VAT)", but the app states
-"All prices exclude VAT" in three places.
-Assumption: the column says "Total", trusting the code per the locked pricing
-decision. Reverse by: changing the label if prices really are VAT-inclusive,
-which would also mean correcting the three disclaimers.
+**2. Invoice total column wording. RESOLVED 1 Aug 2026.**
+Rumen asked whether Paddle generates the invoice. It does, and that settles it.
+
+Paddle is Merchant of Record, so the legally-valid invoice is Paddle's PDF,
+opened from the Invoice button on each row. Our own table shows
+`invoices.amount_due`, which `activate_event` computes from the plan price
+minus any promo discount. VAT is never part of that calculation, and nothing
+in the app reads a VAT figure back from Paddle.
+
+So "Total (incl. VAT)" would have been false. The column now reads
+**"Total (excl. VAT)"** rather than a bare "Total": once VAT is actually
+charged, the row and Paddle's PDF will show different numbers, and the label
+explains why instead of looking like a bug.
+
+Reverse by: consuming Paddle's tax totals through a webhook and storing them,
+which is backend work rather than a design change.
 
 **3. Country storage format.**
 Question: store the country as an ISO code or a display name.
@@ -304,7 +314,7 @@ Assumption: it lives in the editor header instead, because only photo and
 video render that card, so following the design would hide Preview from four
 of the six game types. Reverse by: moving it once every type has that card.
 
-**6. Background Designer swatch count.**
+**6. Background Designer swatch count. CONFIRMED by Rumen 1 Aug 2026 (three is fine).**
 Question: the design shows four colour swatches; `GameConfig` carries three
 (primary, secondary, accent) and nothing reads a fourth.
 Assumption: ship three rather than invent a field no surface consumes.
@@ -318,6 +328,23 @@ disagree with the data. Consequence: switching to Colours clears the image
 rather than remembering it. Reverse by: adding a stored mode flag if people
 want to toggle back and forth without losing the upload.
 
-## Open question for Rumen
+## Pricing: settled 1 Aug 2026
 
-`subscription-plans.ts` prices Pro at **EUR 200/month** against Starter at EUR 20/month, while the design shows EUR 25. The per-event prices (199 / 149 / 99) match the design exactly, so only the Pro monthly figure looks anomalous. Worth confirming it is not a typo before it goes in front of customers.
+`subscription-plans.ts` was queried because it prices Pro at EUR 200/month
+against Starter at EUR 20/month, while the design showed EUR 25.
+
+Rumen confirmed the code is right and the design is a stale note he never
+bothered to correct. Starter is EUR 20/month, Pro is EUR 200/month, annual
+billing is cheaper, and there is no free plan any more: what used to be called
+Free is now pay-per-event. No change needed, and the design's pricing is not a
+source of truth for this app.
+
+## Help Centre: placeholder shipped 1 Aug 2026
+
+Articles are far off and Rumen is happy to ship without them. The modal no
+longer carries a search box over an empty array, which read as a broken
+feature rather than an unfinished one. It now says "Coming soon" and offers
+Contact support, which routes to `/admin/support`.
+
+The search and article list return when there is real content, and that will
+want a proper content system rather than the hardcoded array that was there.
