@@ -220,8 +220,8 @@ expected on this branch and is not a bug to chase.
   corrected the global New Game shortcut, and added skip-navigation, semantic main
   content and a useful 404 recovery action. Production build and lint are clean;
   all 153 tests pass. Still intentionally absent: profile
-  photo, log-out-all-devices and per-user account deletion, because the database
-  and auth backend do not provide those capabilities. Permanent deletion of games
+  photo. (Log-out-all-devices and per-user account deletion were absent for the
+  same reason but have since been built, see ND-5.) Permanent deletion of games
   is also not exposed because no safe game-deletion backend exists. Puzzle
   gameplay/scoring was deliberately preserved; only its editor presentation was
   redesigned. The branch still requires Rumen's overall staging/sign-off before
@@ -430,3 +430,35 @@ expected on this branch and is not a bug to chase.
 - [~] **HERMIT-ENCODE** Correction to CAPTURE-2026-07-30: the Hermit shutter fix (V2.20.27, camera release before encode) was confirmed on one good round but the stall is INTERMITTENT, so that confirmation was a lucky streak, not a fix. Rumen's on-screen stage data (31 Jul 2026) pins it precisely: frame grab is ~15ms every time; the JPEG encode intermittently stalls at a near-constant ~13.1s (five sightings at 13.1-13.2s plus 7.3s/8.7s outliers), content-independent, first-shot-of-a-game biased, retakes instant. That constancy is a timeout inside Hermit's WebView encoder, outside our code. V2.20.35 restructures around it: the captured canvas IS the preview (shutter feels instant always), the JPEG encodes in the background during human review, and Submit shows "Preparing" only if tapped before a stalled encode finishes. On-screen stats stay (draw ms, then encode ms when it lands). True root cause would need chrome://inspect on the tablet with Hermit's WebView debugging enabled; only worth it if the background-encode approach still bothers real events.
 
 - [ ] **COMPANION-APP** RallyHub companion app for the App Store and Play Store: our own Hermit-style wrapper shell (Capacitor recommended) with a native camera bridge, controlled caching, kiosk mode, and QR/tablet-code entry, so events never depend on a third-party WebView again. Idea doc with the full reasoning and phasing: `docs/IDEA-COMPANION-APP.md` (born from the 30-31 Jul 2026 capture investigation).
+
+- [~] **ND-5** New design: merged `main` into `feature/new-design`, plus the two
+  My Account Danger Zone actions that had been shipped as disabled placeholders.
+  The branch had drifted 54 commits behind `main` (branched at the V2.19.1
+  hotfix, missing all V2.20.x Hermit/camera work and V2.21.0's event media
+  export). Merged on Rumen's instruction, six conflicts, all resolved as "keep
+  the redesign's structure, carry main's demo guard into it": the demo's
+  sign-out suppression moved onto the header Exit button, since the redesign
+  moved sign-out out of the sidebar; the Organisation Danger Zone is swapped for
+  a non-destructive explainer card on demo orgs; promo codes keep both the new
+  grid wrapper and `!isDemo`. V2.21.0's export progress reporting (file counts,
+  MB, missing-file warning, error surfacing) was ported into the redesign's
+  Danger Zone download row rather than dropped. Branch is now 0 behind `main`;
+  build and lint clean, 180/180 tests.
+  **Log out of all devices** now calls `supabase.auth.signOut({ scope: 'global' })`,
+  revoking every refresh token. No backend was needed.
+  **Delete my account** adds `delete_own_account()`
+  (`supabase/migrations/20260801120000_delete_own_account.sql`).
+  `remove_organization_user` already deletes an auth account fully but
+  deliberately refuses self-deletion, being the org-admin path for removing
+  someone else, so this is the self-service sibling. Guards: super_admin refused
+  (staff removed manually), demo orgs refused, and the last remaining
+  client_admin refused so an org cannot be orphaned with nobody able to
+  administer or delete it. Deleting the whole organisation stays a separate
+  action on the Organisation page.
+  **The migration is deliberately NOT applied to production.** It ships with the
+  redesign at release, per the branch workflow. Consequence: until it is applied,
+  Delete my account will fail with a missing-function error, so the RPC must be
+  applied as part of releasing this branch. The destructive paths are also
+  unverified end to end, because exercising them would delete Rumen's own live
+  account; the confirm dialog, its Cancel path and both buttons' rendering were
+  verified, the RPC itself was not.
