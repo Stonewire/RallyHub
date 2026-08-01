@@ -630,6 +630,7 @@ type QuestStageGamesProps = {
 /** Quest stage games: ordered draggable list (= players' display order) + quick add. */
 function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGamesProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [selectedInStage, setSelectedInStage] = useState<Set<string>>(new Set())
   const [groupFilter, setGroupFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState<QuestTypeFilter>(null)
   // Checked-but-unsaved picks. The design stages a selection and commits it on
@@ -709,9 +710,46 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
     <div className="space-y-3">
       {inStage.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-muted-foreground text-xs">
-            Drag to reorder — this is the order players see the challenges in.
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs font-medium">
+              <input
+                type="checkbox"
+                checked={inStage.every((g) => selectedInStage.has(g.id))}
+                ref={(el) => {
+                  if (el)
+                    el.indeterminate =
+                      selectedInStage.size > 0 &&
+                      !inStage.every((g) => selectedInStage.has(g.id))
+                }}
+                onChange={() =>
+                  setSelectedInStage((current) =>
+                    inStage.every((g) => current.has(g.id))
+                      ? new Set()
+                      : new Set(inStage.map((g) => g.id)),
+                  )
+                }
+              />
+              Select all ({inStage.length})
+            </label>
+            <p className="text-muted-foreground mr-auto text-xs">
+              Drag to reorder — this is the order players see the challenges in.
+            </p>
+            {selectedInStage.size > 0 ? (
+              <NeoButton
+                type="button"
+                variant="surface"
+                size="sm"
+                className="text-destructive"
+                onClick={() => {
+                  setStageIds(ids.filter((id) => !selectedInStage.has(id)))
+                  setSelectedInStage(new Set())
+                }}
+              >
+                <IconTrash className="size-3.5" />
+                Remove {selectedInStage.size}
+              </NeoButton>
+            ) : null}
+          </div>
           <ul className="space-y-1.5">
             {inStage.map((g, index) => (
               <li
@@ -737,6 +775,22 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   dragIndex === index ? 'opacity-50' : '',
                 )}
               >
+                <input
+                  type="checkbox"
+                  className="shrink-0"
+                  aria-label={`Select ${g.name}`}
+                  checked={selectedInStage.has(g.id)}
+                  // Stops the row's drag handler claiming the click.
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={() =>
+                    setSelectedInStage((current) => {
+                      const next = new Set(current)
+                      if (next.has(g.id)) next.delete(g.id)
+                      else next.add(g.id)
+                      return next
+                    })
+                  }
+                />
                 <IconGrip className="text-muted-foreground size-4 shrink-0" />
                 <span className="text-muted-foreground w-5 shrink-0 text-xs tabular-nums">
                   {index + 1}.
@@ -748,7 +802,14 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                 <button
                   type="button"
                   title="Remove from stage"
-                  onClick={() => setStageIds(ids.filter((id) => id !== g.id))}
+                  onClick={() => {
+                    setStageIds(ids.filter((id) => id !== g.id))
+                    setSelectedInStage((current) => {
+                      const next = new Set(current)
+                      next.delete(g.id)
+                      return next
+                    })
+                  }}
                 >
                   <IconTrash className="size-3.5" />
                 </button>
