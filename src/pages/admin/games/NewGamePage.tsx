@@ -1,14 +1,14 @@
-import {
-  Camera,
-  Clapperboard,
-  FileText,
-  HelpCircle,
-  Music2,
-  Puzzle,
-} from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import {
+  IconMusicBingo,
+  IconPhoto,
+  IconPuzzle,
+  IconQuiz,
+  IconText,
+  IconVideo,
+} from '@/components/icons'
 import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
@@ -35,15 +35,15 @@ import type { GameConfig, QuizQuestion } from '@/types/game-config'
 const TYPES: {
   type: GameType
   label: string
-  icon: typeof Camera
+  icon: typeof IconPhoto
   description: string
 }[] = [
-  { type: 'photo', label: 'Photo', icon: Camera, description: 'Image-based challenge' },
-  { type: 'video', label: 'Video', icon: Clapperboard, description: 'Video challenge with example clip' },
-  { type: 'text', label: 'Text', icon: FileText, description: 'Typed or multiple-choice text answers' },
-  { type: 'quiz', label: 'Quiz', icon: HelpCircle, description: 'Timed questions and optional rounds' },
-  { type: 'music_bingo', label: 'Music Bingo', icon: Music2, description: 'Songs and a live bingo card' },
-  { type: 'puzzle', label: 'Puzzle', icon: Puzzle, description: 'Wordle, matching, and upcoming puzzle formats' },
+  { type: 'photo', label: 'Photo', icon: IconPhoto, description: 'Image-based challenge' },
+  { type: 'video', label: 'Video', icon: IconVideo, description: 'Video challenge with example clip' },
+  { type: 'text', label: 'Text', icon: IconText, description: 'Typed or multiple-choice text answers' },
+  { type: 'quiz', label: 'Quiz', icon: IconQuiz, description: 'Timed questions and optional rounds' },
+  { type: 'music_bingo', label: 'Music Bingo', icon: IconMusicBingo, description: 'Songs and a live bingo card' },
+  { type: 'puzzle', label: 'Puzzle', icon: IconPuzzle, description: 'Wordle, matching, and upcoming puzzle formats' },
 ]
 
 function emptyQuestion(): QuizQuestion {

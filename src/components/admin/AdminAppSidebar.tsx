@@ -1,15 +1,17 @@
 import {
-  Building2,
-  Calendar,
-  CreditCard,
-  Gamepad2,
-  LayoutDashboard,
-  LifeBuoy,
   UserCircle,
   Users,
 } from 'lucide-react'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
+import {
+  IconBilling,
+  IconDashboard,
+  IconEvents,
+  IconGames,
+  IconOrganisation,
+  IconSupport,
+} from '@/components/icons'
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import {
   Sidebar,
@@ -35,9 +37,9 @@ import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
 const mainNav = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true, tourId: 'nav-dashboard' },
-  { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false, tourId: 'nav-games' },
-  { to: '/admin/events', label: 'Events', icon: Calendar, end: false, tourId: 'nav-events' },
+  { to: '/admin', label: 'Dashboard', icon: IconDashboard, end: true, tourId: 'nav-dashboard' },
+  { to: '/admin/games', label: 'Games', icon: IconGames, end: false, tourId: 'nav-games' },
+  { to: '/admin/events', label: 'Events', icon: IconEvents, end: false, tourId: 'nav-events' },
 ] as const
 
 // The new design shows Organisation and Billing as flat top-level items rather
@@ -48,14 +50,14 @@ const orgNav = [
     to: '/admin/settings',
     search: '',
     label: 'Organisation',
-    icon: Building2,
+    icon: IconOrganisation,
     tourId: 'nav-org-settings',
   },
   {
     to: '/admin/settings',
     search: '?tab=billing',
     label: 'Billing',
-    icon: CreditCard,
+    icon: IconBilling,
     tourId: 'nav-billing',
   },
 ] as const
@@ -215,8 +217,8 @@ export function AdminAppSidebar() {
                 isActive={isAdminNavActive(pathname, '/admin/support', true)}
                 className="text-sidebar-foreground"
               >
-                <NavLink to="/admin/support" data-tour="nav-support">
-                  <LifeBuoy className="shrink-0" strokeWidth={1.75} />
+                <NavLink to="/admin/support" data-tour="nav-support" className="justify-center">
+                  <IconSupport className="size-4" />
                   <span className="font-medium">Support</span>
                 </NavLink>
               </SidebarMenuButton>

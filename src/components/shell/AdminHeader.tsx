@@ -1,7 +1,14 @@
-import { ChevronLeft, DoorOpen, HelpCircle, Moon, Plus, Sun } from 'lucide-react'
+import { DoorOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import {
+  IconChevronLeft,
+  IconHelp,
+  IconMoon,
+  IconPlus,
+  IconSun,
+} from '@/components/icons'
 import { LoggedOutScreen } from '@/components/auth/LoggedOutScreen'
 import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
 import { HeaderSearch } from '@/components/shell/HeaderSearch'
@@ -13,13 +20,13 @@ import { useTheme } from '@/contexts/theme-context'
 import { isFacilitatorOnlyRole } from '@/lib/auth-routes'
 
 const ICON_BUTTON =
-  'hover:bg-muted rounded-nm-md flex size-[26px] items-center justify-center'
+  'hover:bg-muted rounded-nm-md flex size-8 items-center justify-center'
 
 function Divider() {
-  return <div className="bg-border h-[18px] w-px shrink-0" aria-hidden />
+  return <div className="bg-border h-5 w-px shrink-0" aria-hidden />
 }
 
-/** The 40px admin header. Composition only, owns no data of its own. */
+/** The admin header. Composition only, owns no data of its own. */
 export function AdminHeader() {
   const navigate = useNavigate()
   const { toggleSidebar, state } = useSidebar()
@@ -47,16 +54,15 @@ export function AdminHeader() {
 
   return (
     <>
-      <header className="border-border bg-background flex h-10 shrink-0 items-center gap-3 border-b px-4">
+      <header className="border-border bg-background flex h-14 shrink-0 items-center gap-3 border-b px-4">
         <button
           type="button"
           onClick={toggleSidebar}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={`${ICON_BUTTON} opacity-70 hover:opacity-100`}
         >
-          <ChevronLeft
-            className={`size-3.5 transition-transform ${collapsed ? 'rotate-180' : ''}`}
-            strokeWidth={2}
+          <IconChevronLeft
+            className={`size-4 transition-transform ${collapsed ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -72,14 +78,14 @@ export function AdminHeader() {
                 to="/admin/games/new"
                 className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-[26px] shrink-0 items-center gap-1.5 border px-2.5 text-xs font-semibold whitespace-nowrap"
               >
-                <Plus className="size-3" strokeWidth={2} />
+                <IconPlus className="size-3.5" />
                 New Game
               </Link>
               <Link
                 to="/admin/events/new"
                 className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-[26px] shrink-0 items-center gap-1.5 px-2.5 text-xs font-semibold whitespace-nowrap"
               >
-                <Plus className="size-3" strokeWidth={2} />
+                <IconPlus className="size-3.5" />
                 New Event
               </Link>
             </>
@@ -97,9 +103,9 @@ export function AdminHeader() {
             {/* Icon reflects the CURRENT theme, per the design. The label
                 still describes the action, which is what screen readers need. */}
             {resolvedTheme === 'dark' ? (
-              <Moon className="size-3.5" strokeWidth={2} />
+              <IconMoon className="size-4" />
             ) : (
-              <Sun className="size-3.5" strokeWidth={2} />
+              <IconSun className="size-4" />
             )}
           </button>
           <button
@@ -108,7 +114,7 @@ export function AdminHeader() {
             aria-label="Help"
             className={ICON_BUTTON}
           >
-            <HelpCircle className="size-3.5" strokeWidth={2} />
+            <IconHelp className="size-4" />
           </button>
           {/* The public demo has no real session to end, so it hides Exit,
               matching how the demo suppresses sign-out elsewhere. */}

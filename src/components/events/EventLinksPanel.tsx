@@ -1,7 +1,13 @@
-import { Check, Copy, Download, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import {
+  IconCheck,
+  IconCopy,
+  IconDownload,
+  IconExternal,
+  IconQr,
+} from '@/components/icons'
 import { NeoButton } from '@/components/neo-minimal'
 import { Label } from '@/components/ui/label'
 import {
@@ -54,11 +60,11 @@ export function EventLinksPanel({
 
   return (
     <div className="space-y-6">
-      <div className={compact ? 'space-y-4' : 'grid gap-6 sm:grid-cols-3'}>
+      <div className={compact ? 'space-y-4' : 'grid items-stretch gap-6 sm:grid-cols-3'}>
         {EVENT_LINK_ORDER.map((key) => (
           // No card around each link: these already sit inside a panel or a
           // modal, so the extra border and shadow was a box inside a box.
-          <div key={key} className="space-y-3">
+          <div key={key} className="flex flex-col gap-3">
             <Label className="text-foreground block text-center text-sm font-bold">
               {EVENT_LINK_LABELS[key]}
             </Label>
@@ -69,7 +75,9 @@ export function EventLinksPanel({
               height={200}
               className="mx-auto rounded-lg bg-white p-2"
             />
-            <p className="text-muted-foreground break-all font-mono text-xs">
+            {/* Grows to fill, so a longer URL does not shove the buttons of one
+                column below the others. */}
+            <p className="text-muted-foreground min-h-8 flex-1 break-all font-mono text-xs">
               {links[key]}
             </p>
             {/* Three equal columns rather than wrapping flex: the labels are
@@ -83,15 +91,15 @@ export function EventLinksPanel({
                 onClick={() => void handleCopy(key)}
               >
                 {copied === key ? (
-                  <Check className="size-3.5" />
+                  <IconCheck className="size-3.5" />
                 ) : (
-                  <Copy className="size-3.5" />
+                  <IconCopy className="size-3.5" />
                 )}
                 Copy
               </NeoButton>
               <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center px-0" asChild>
                 <Link to={links[key]} target="_blank" rel="noreferrer">
-                  <ExternalLink className="size-3.5" />
+                  <IconExternal className="size-3.5" />
                   Open
                 </Link>
               </NeoButton>
@@ -105,7 +113,7 @@ export function EventLinksPanel({
                   void downloadQrPng(links[key], `rallyhub-${key}-${eventId}.png`)
                 }
               >
-                <Download className="size-3.5" />
+                <IconQr className="size-3.5" />
                 QR
               </NeoButton>
             </div>
@@ -124,7 +132,7 @@ export function EventLinksPanel({
             )
           }}
         >
-          <Download className="size-4" />
+          <IconDownload className="size-4" />
           {downloadingAll ? 'Building PDF…' : 'Download all QR codes (PDF)'}
         </NeoButton>
       )}
