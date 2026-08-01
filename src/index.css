@@ -98,7 +98,7 @@
 
     --rh-surface-app: #FAF7F2;           /* Warm Ivory */
     --rh-surface-elevated: #FFFDF9;
-    --rh-surface-sidebar: #FFFDF9;       /* Light mode: sidebar matches the app, not charcoal */
+    --rh-surface-sidebar: #FFFFFF;       /* Light mode: white, so it reads as a panel against the ivory app */
 
     --rh-border-subtle: rgb(51 51 51 / 0.1);
 
