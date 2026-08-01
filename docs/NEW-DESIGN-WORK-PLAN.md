@@ -153,6 +153,26 @@ direction is meaningless before a cell is picked, and reworking it would
 change puzzle authoring behaviour Rumen said he wants to walk through.
 Reverse by: reworking the crossword editor's interaction model deliberately.
 
+**5. Preview button placement.**
+Question: the design puts Preview inside the Facilitator Only card.
+Assumption: it lives in the editor header instead, because only photo and
+video render that card, so following the design would hide Preview from four
+of the six game types. Reverse by: moving it once every type has that card.
+
+**6. Background Designer swatch count.**
+Question: the design shows four colour swatches; `GameConfig` carries three
+(primary, secondary, accent) and nothing reads a fourth.
+Assumption: ship three rather than invent a field no surface consumes.
+Reverse by: adding the fourth colour to GameConfig and to whatever renders
+the background, then to this component.
+
+**7. Background image vs colours mode.**
+Question: store the chosen mode, or derive it.
+Assumption: derived from whether `background_url` is set, so the mode cannot
+disagree with the data. Consequence: switching to Colours clears the image
+rather than remembering it. Reverse by: adding a stored mode flag if people
+want to toggle back and forth without losing the upload.
+
 ## Open question for Rumen
 
 `subscription-plans.ts` prices Pro at **EUR 200/month** against Starter at EUR 20/month, while the design shows EUR 25. The per-event prices (199 / 149 / 99) match the design exactly, so only the Pro monthly figure looks anomalous. Worth confirming it is not a typo before it goes in front of customers.
