@@ -1,7 +1,7 @@
 import { Check, GripVertical, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { NeoButton } from '@/components/neo-minimal'
+import { FlipSwitch, NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -499,18 +499,15 @@ export function EventForm({
                 <Trash2 className="size-4" />
               </Button>
             </div>
-            <div className="bg-nm-slate-800 grid grid-cols-4 gap-1 rounded-full p-1">
-              {STAGE_TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`rounded-full px-2 py-1.5 text-xs font-semibold transition-colors ${stage.type === option.value ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
-                  onClick={() => setStageType(stage.id, option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <SegmentedPill
+              aria-label="Stage type"
+              options={STAGE_TYPE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+              value={stage.type}
+              onChange={(next) => setStageType(stage.id, next)}
+            />
             {stage.type === 'break' ? (
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-end">
                 <label className="space-y-1.5 text-xs font-medium">
@@ -742,6 +739,7 @@ export function EventForm({
   )
 }
 
+/** Two-state control, rendered as the design's sliding flip switch. */
 function TogglePair({
   label,
   leftLabel,
@@ -756,27 +754,15 @@ function TogglePair({
   onChange: (rightSelected: boolean) => void
 }) {
   return (
-    <div className="space-y-1.5">
-      <p className="text-foreground text-xs font-semibold">{label}</p>
-      <div className="bg-nm-slate-800 grid grid-cols-2 gap-1 rounded-full p-1">
-        <button
-          type="button"
-          aria-pressed={!rightSelected}
-          className={`rounded-full px-2 py-1.5 text-[11px] font-semibold transition-colors ${!rightSelected ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
-          onClick={() => onChange(false)}
-        >
-          {leftLabel}
-        </button>
-        <button
-          type="button"
-          aria-pressed={rightSelected}
-          className={`rounded-full px-2 py-1.5 text-[11px] font-semibold transition-colors ${rightSelected ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
-          onClick={() => onChange(true)}
-        >
-          {rightLabel}
-        </button>
-      </div>
-    </div>
+    <FlipSwitch
+      caption={label}
+      offValue="left"
+      onValue="right"
+      offLabel={leftLabel}
+      onLabel={rightLabel}
+      value={rightSelected ? 'right' : 'left'}
+      onChange={(next) => onChange(next === 'right')}
+    />
   )
 }
 

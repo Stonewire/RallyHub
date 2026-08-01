@@ -2,6 +2,7 @@ import { Grid3X3, Plus, Puzzle, Rows3, Trash2 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { CrosswordEditor } from '@/components/games/CrosswordEditor'
+import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -67,33 +68,16 @@ export function PuzzleEditor({
           <h3 className="text-foreground text-base font-bold">Puzzle designer</h3>
           <p className="text-muted-foreground mt-1 text-xs">Choose a format and configure the player challenge.</p>
         </div>
-        <div className="bg-nm-slate-800 grid grid-cols-3 gap-1 rounded-full p-1">
-          {SUBTYPES.map(({ type, name, description, icon: Icon, upcoming }) => {
-            const active = selected === type && !upcoming
-            return (
-              <button
-                key={type}
-                type="button"
-                disabled={upcoming}
-                onClick={() => selectSubtype(type)}
-                title={description}
-                className={`relative flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-nm-slate-200 hover:text-white'
-                } disabled:cursor-not-allowed disabled:opacity-65`}
-              >
-                {upcoming ? (
-                  <span className="absolute -top-2 right-1 rounded bg-muted px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide">
-                    Upcoming
-                  </span>
-                ) : null}
-                <Icon className="size-3.5" />
-                <span>{name}</span>
-              </button>
-            )
-          })}
-        </div>
+        <SegmentedPill
+          aria-label="Puzzle style"
+          options={SUBTYPES.map(({ type, name, upcoming }) => ({
+            value: type,
+            label: name,
+            disabled: upcoming,
+          }))}
+          value={selected}
+          onChange={(next) => selectSubtype(next)}
+        />
       </div>
 
       {selected === 'wordle' || selected === 'crossword' ? (

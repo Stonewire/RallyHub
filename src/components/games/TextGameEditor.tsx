@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 
+import { FlipSwitch } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -45,26 +46,16 @@ export function TextGameEditor({
 
   return (
     <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
-      <div className="space-y-2">
-        <Label>Answer type</Label>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === 'type_text' ? 'secondary' : 'outline'}
-            onClick={() => setMode('type_text')}
-          >
-            Type text
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === 'choose_answer' ? 'secondary' : 'outline'}
-            onClick={() => setMode('choose_answer')}
-          >
-            Choose answer
-          </Button>
-        </div>
+      <div className="flex justify-start">
+        <FlipSwitch
+          caption="Game style"
+          offValue="type_text"
+          onValue="choose_answer"
+          offLabel="Type"
+          onLabel="Choose"
+          value={mode}
+          onChange={(next) => setMode(next)}
+        />
       </div>
 
       {mode === 'type_text' ? (

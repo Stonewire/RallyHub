@@ -10,7 +10,7 @@ import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
-import { NeoButton } from '@/components/neo-minimal'
+import { FlipSwitch, NeoButton } from '@/components/neo-minimal'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -510,19 +510,16 @@ function PointsEditor({
 }) {
   return (
     <div className="space-y-3">
-      <Label>Points</Label>
-      <div className="flex gap-2">
-        {(['static', 'range'] as const).map((t) => (
-          <Button
-            key={t}
-            type="button"
-            size="sm"
-            variant={pointsType === t ? 'secondary' : 'outline'}
-            onClick={() => setPointsType(t)}
-          >
-            {t === 'static' ? 'Static' : 'Range'}
-          </Button>
-        ))}
+      <div className="flex justify-start">
+        <FlipSwitch
+          caption="Points"
+          offValue="static"
+          onValue="range"
+          offLabel="Static"
+          onLabel="Range"
+          value={pointsType}
+          onChange={(next) => setPointsType(next)}
+        />
       </div>
       {pointsType === 'static' ? (
         <Input
