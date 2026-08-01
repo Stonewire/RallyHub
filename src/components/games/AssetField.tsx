@@ -79,14 +79,14 @@ export function AssetField({
             className="bg-background min-w-0 flex-1"
           />
         ) : null}
-        {inlinePreview ? (
-          <span className="border-border bg-muted/40 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border">
-            {preview ? (
-              <img src={preview} alt="" className="size-full object-contain" />
-            ) : (
-              <IconUpload className="text-muted-foreground size-3.5" />
-            )}
-          </span>
+        {/* Only once there is something to show: an empty bordered square
+            beside the upload button reads as a second button. */}
+        {inlinePreview && preview ? (
+          <img
+            src={preview}
+            alt=""
+            className="border-border size-9 shrink-0 rounded-md border object-contain"
+          />
         ) : null}
       </div>
 
