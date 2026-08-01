@@ -128,7 +128,7 @@ export function MusicBingoEditor({
             <Label className="shrink-0">Clip length</Label>
             <SegmentedPill
               size="sm"
-              className="w-44"
+              className="min-w-32 flex-1"
               aria-label="Clip length"
               options={BINGO_CLIP_LENGTHS.map((len) => ({
                 value: String(len),
@@ -144,8 +144,9 @@ export function MusicBingoEditor({
             {staleClips.length > 0 ? (
               <NeoButton
                 type="button"
-                variant="surface"
+                variant="accent"
                 size="sm"
+                className="shrink-0"
                 disabled={clipBusy}
                 onClick={() => void generateClips(staleClips, clipLen)}
               >
