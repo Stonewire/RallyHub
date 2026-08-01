@@ -10,6 +10,7 @@ import {
   IconVideo,
 } from '@/components/icons'
 import { AssetField } from '@/components/games/AssetField'
+import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
 import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
@@ -286,115 +287,42 @@ export function AdminGamesNewPage() {
         )}
 
         {isPhotoVideo && (
-          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-            <div className="space-y-2">
-              <Label>Game name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <RichTextEditor value={description} onChange={setDescription} />
-            </div>
-            <AssetField
-              label="Cover image"
-              onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
-              onUrl={setCoverUrl}
-              preview={coverUrl}
-              showPreviewPanel
-            />
-            <PointsEditor
-              pointsType={pointsType}
-              setPointsType={setPointsType}
-              pointsStatic={pointsStatic}
-              setPointsStatic={setPointsStatic}
-              pointsMin={pointsMin}
-              setPointsMin={setPointsMin}
-              pointsMax={pointsMax}
-              setPointsMax={setPointsMax}
-            />
-            {gameType === 'video' && (
-              <div className="space-y-2">
-                <Label>Max video duration</Label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={videoMaxMinutes}
-                      onChange={(e) =>
-                        setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
-                      }
-                      className="bg-background w-20"
-                    />
-                    <span className="text-muted-foreground text-sm">min</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={videoMaxSeconds}
-                      onChange={(e) =>
-                        setVideoMaxSeconds(
-                          Math.min(59, Math.max(0, Number(e.target.value) || 0)),
-                        )
-                      }
-                      className="bg-background w-20"
-                    />
-                    <span className="text-muted-foreground text-sm">sec</span>
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Stored as{' '}
-                  {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds total
-                </p>
-              </div>
-            )}
-            <AssetField
-              label={
-                gameType === 'video'
-                  ? 'Example video (visible to participants)'
-                  : 'Example / instructional video (optional, visible to participants)'
-              }
-              accept="video/*"
-              onFile={(f) =>
-                void handleFile(f, setExampleVideoUrl, `videos/${newGameId()}`)
-              }
-              onUrl={setExampleVideoUrl}
-              urlPlaceholder="or paste a YouTube link…"
-              preview={exampleVideoUrl}
-            />
-            <p className="text-muted-foreground -mt-2 text-xs">
-              A YouTube link works here as well as an upload. Unlisted is fine;
-              private videos will not play for participants.
-            </p>
-          </Card>
-        )}
-
-        {isPhotoVideo && (
-          <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
-            <h3 className="text-foreground text-sm font-semibold uppercase tracking-wider">
-              Facilitator only
-            </h3>
-            <div className="space-y-2">
-              <Label>Solution description</Label>
-              <textarea
-                value={solutionDescription}
-                onChange={(e) => setSolutionDescription(e.target.value)}
-                rows={3}
-                className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <AssetField
-              label="Solution image"
-              onFile={(f) =>
-                void handleFile(f, setSolutionImageUrl, `solutions/${newGameId()}`)
-              }
-              preview={solutionImageUrl}
-            />
-            <ReadOnlyMembershipPanel />
-          </Card>
+          /* Same component the editor uses. These two screens had drifted into
+             separate copies of the same form, which is how creating a game
+             ended up with a raw file input and no two-column layout. */
+          <PhotoVideoFields
+            gameType={gameType}
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            coverUrl={coverUrl}
+            setCoverUrl={setCoverUrl}
+            onUploadCover={(file) => uploadGameFile(organizationId!, `covers/${newGameId()}`, file)}
+            pointsType={pointsType}
+            setPointsType={setPointsType}
+            pointsStatic={pointsStatic}
+            setPointsStatic={setPointsStatic}
+            pointsMin={pointsMin}
+            setPointsMin={setPointsMin}
+            pointsMax={pointsMax}
+            setPointsMax={setPointsMax}
+            exampleVideoUrl={exampleVideoUrl}
+            setExampleVideoUrl={setExampleVideoUrl}
+            onUploadVideo={(file) => uploadGameFile(organizationId!, `videos/${newGameId()}`, file)}
+            videoMaxMinutes={videoMaxMinutes}
+            setVideoMaxMinutes={setVideoMaxMinutes}
+            videoMaxSeconds={videoMaxSeconds}
+            setVideoMaxSeconds={setVideoMaxSeconds}
+            solutionDescription={solutionDescription}
+            setSolutionDescription={setSolutionDescription}
+            solutionImageUrl={solutionImageUrl}
+            setSolutionImageUrl={setSolutionImageUrl}
+            onUploadSolution={(file) => uploadGameFile(organizationId!, `solutions/${newGameId()}`, file)}
+            config={config}
+            setConfig={setConfig}
+            groupsCard={<ReadOnlyMembershipPanel />}
+          />
         )}
 
         {isText && (
@@ -635,14 +563,12 @@ function ColorPickers({
 
 function ReadOnlyMembershipPanel() {
   return (
-    <div className="border-border/60 bg-background rounded-lg border p-4">
-      <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-        Groups & events
-      </p>
+    <Card className="border-border/80 space-y-2 bg-card p-6 shadow-sm xl:col-start-2">
+      <h3 className="text-foreground text-sm font-bold">Groups</h3>
       <p className="text-muted-foreground mt-2 text-sm">
-        This game is not in any groups or events yet. Add it from the Games list
-        or when creating an event.
+        A game has to exist before it can join a group. Save this one, then pick
+        its groups from the editor or the Games list.
       </p>
-    </div>
+    </Card>
   )
 }

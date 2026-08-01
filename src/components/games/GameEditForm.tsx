@@ -7,6 +7,8 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
+import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
+import { PointsEditor } from '@/components/games/PointsEditor'
 import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
 import { GamePreviewModal } from '@/components/games/GamePreviewModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
@@ -14,7 +16,7 @@ import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
-import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
+import { NeoButton } from '@/components/neo-minimal'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -142,15 +144,6 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
     setHydrated(true)
   }, [gameQuery.data, hydrated])
 
-  async function handleFile(
-    file: File | undefined,
-    setter: (url: string) => void,
-    path: string,
-  ) {
-    if (!file || !organizationId) return
-    const url = await uploadGameFile(organizationId, path, file)
-    setter(url)
-  }
 
   if (orgLoading || gameQuery.isLoading || !hydrated) {
     return children({
@@ -512,157 +505,40 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         ) : null}
 
         {gameType === 'photo' || gameType === 'video' ? (
-          <div className="grid items-start gap-6 xl:grid-cols-[2fr_1fr]">
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
-          <div className="space-y-2">
-            <Label>Game name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
-          </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <RichTextEditor value={description} onChange={setDescription} />
-          </div>
-              <AssetField
-                label="Cover image"
-                preview={coverUrl}
-                onFile={async (file) => {
-                  if (!file) return
-                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
-                  setCoverUrl(url)
-                }}
-                onUrl={setCoverUrl}
-                showPreviewPanel
-              />
-              <PointsEditor
-                pointsType={pointsType}
-                setPointsType={setPointsType}
-                pointsStatic={pointsStatic}
-                setPointsStatic={setPointsStatic}
-                pointsMin={pointsMin}
-                setPointsMin={setPointsMin}
-                pointsMax={pointsMax}
-                setPointsMax={setPointsMax}
-              />
-              {gameType === 'video' ? (
-                <div className="space-y-2">
-                  <Label>Max video duration</Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxMinutes}
-                        onChange={(e) =>
-                          setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">min</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxSeconds}
-                        onChange={(e) =>
-                          setVideoMaxSeconds(
-                            Math.min(59, Math.max(0, Number(e.target.value) || 0)),
-                          )
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">sec</span>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    Stored as {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds
-                    total
-                  </p>
-                </div>
-              ) : null}
-              {gameType === 'video' ? (
-                <AssetField
-                  label="Example video (visible to participants)"
-                  accept="video/*"
-                  preview={exampleVideoUrl}
-                  onFile={(file) =>
-                    void handleFile(file, setExampleVideoUrl, `videos/${newGameId()}`)
-                  }
-                  onUrl={setExampleVideoUrl}
-                  urlPlaceholder="or paste a YouTube link…"
-                />
-              ) : (
-                /* Link only on a photo game: the field is for pointing at a
-                   YouTube video, and an upload control invites a file that has
-                   nowhere useful to go. */
-                <div className="space-y-2">
-                  <Label>Instructional video link (optional, visible to participants)</Label>
-                  <Input
-                    value={exampleVideoUrl ?? ''}
-                    placeholder="https://youtube.com/…"
-                    onChange={(event) => setExampleVideoUrl(event.target.value.trim() || null)}
-                    className="bg-background"
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    YouTube link. Unlisted is fine; private videos will not play
-                    for participants.
-                  </p>
-                </div>
-              )}
-            </Card>
-
-            <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
-              <h3 className="text-foreground text-sm font-semibold uppercase tracking-wider">
-                Facilitator only
-              </h3>
-              <div className="space-y-2">
-                <Label>Solution description</Label>
-                <textarea
-                  value={solutionDescription}
-                  onChange={(e) => setSolutionDescription(e.target.value)}
-                  rows={3}
-                  className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </div>
-              {gameType === 'video' ? (
-                <div className="space-y-2">
-                  <Label>Solution video link</Label>
-                  <Input
-                    value={config.solution_video_url ?? ''}
-                    placeholder="https://…"
-                    onChange={(event) =>
-                      setConfig((c) => ({
-                        ...c,
-                        solution_video_url: event.target.value.trim() || null,
-                      }))
-                    }
-                    className="bg-background"
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    Facilitators only. Stripped from the live payload, so
-                    players never receive it.
-                  </p>
-                </div>
-              ) : null}
-              <AssetField
-                label="Solution image"
-                preview={solutionImageUrl}
-                onFile={(file) =>
-                  void handleFile(file, setSolutionImageUrl, `solutions/${newGameId()}`)
-                }
-                onUrl={setSolutionImageUrl}
-                showPreviewPanel
-                previewLabel="Solution preview"
-              />
-            </Card>
-
-            {/* Under Facilitator Only rather than in with the name, so the right
-                column carries its share and Primary settings stays about the
-                game itself. */}
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm xl:col-start-2">
+          <PhotoVideoFields
+            gameType={gameType}
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            coverUrl={coverUrl}
+            setCoverUrl={setCoverUrl}
+            onUploadCover={(file) => uploadGameFile(organizationId, `covers/${gameId}`, file)}
+            pointsType={pointsType}
+            setPointsType={setPointsType}
+            pointsStatic={pointsStatic}
+            setPointsStatic={setPointsStatic}
+            pointsMin={pointsMin}
+            setPointsMin={setPointsMin}
+            pointsMax={pointsMax}
+            setPointsMax={setPointsMax}
+            exampleVideoUrl={exampleVideoUrl}
+            setExampleVideoUrl={setExampleVideoUrl}
+            onUploadVideo={(file) => uploadGameFile(organizationId, `videos/${newGameId()}`, file)}
+            videoMaxMinutes={videoMaxMinutes}
+            setVideoMaxMinutes={setVideoMaxMinutes}
+            videoMaxSeconds={videoMaxSeconds}
+            setVideoMaxSeconds={setVideoMaxSeconds}
+            solutionDescription={solutionDescription}
+            setSolutionDescription={setSolutionDescription}
+            solutionImageUrl={solutionImageUrl}
+            setSolutionImageUrl={setSolutionImageUrl}
+            onUploadSolution={(file) => uploadGameFile(organizationId, `solutions/${newGameId()}`, file)}
+            config={config}
+            setConfig={setConfig}
+            // Groups is edit-only: a game must exist before it can join one.
+            groupsCard={
+              <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm xl:col-start-2">
               <h3 className="text-foreground text-sm font-bold">Groups</h3>
           <div className="space-y-2">
             <Label>Groups</Label>
@@ -698,7 +574,8 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
             )}
           </div>
             </Card>
-          </div>
+            }
+          />
         ) : null}
       </div>
 
@@ -718,72 +595,3 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
   })
 }
 
-function PointsEditor({
-  pointsType,
-  setPointsType,
-  pointsStatic,
-  setPointsStatic,
-  pointsMin,
-  setPointsMin,
-  pointsMax,
-  setPointsMax,
-}: {
-  pointsType: PointsType
-  setPointsType: (v: PointsType) => void
-  pointsStatic: number
-  setPointsStatic: (v: number) => void
-  pointsMin: number
-  setPointsMin: (v: number) => void
-  pointsMax: number
-  setPointsMax: (v: number) => void
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>Points</Label>
-      {/* Pill plus the value on one line: the mode and the number it applies to
-          belong together, and this matches the segmented controls used
-          elsewhere rather than the flip switch, which read as on/off. */}
-      <div className="flex flex-wrap items-center gap-3">
-        <SegmentedPill
-          size="sm"
-          aria-label="Points type"
-          options={[
-            { value: 'static', label: 'Static' },
-            { value: 'range', label: 'Range' },
-          ]}
-          value={pointsType}
-          onChange={(next) => setPointsType(next as PointsType)}
-        />
-        {pointsType === 'static' ? (
-          <Input
-            type="number"
-            aria-label="Points"
-            value={pointsStatic}
-            onChange={(e) => setPointsStatic(Number(e.target.value))}
-            className="bg-background w-24"
-          />
-        ) : (
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Min"
-              aria-label="Minimum points"
-              value={pointsMin}
-              onChange={(e) => setPointsMin(Number(e.target.value))}
-              className="bg-background w-24"
-            />
-            <span className="text-muted-foreground text-sm">to</span>
-            <Input
-              type="number"
-              placeholder="Max"
-              aria-label="Maximum points"
-              value={pointsMax}
-              onChange={(e) => setPointsMax(Number(e.target.value))}
-              className="bg-background w-24"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
