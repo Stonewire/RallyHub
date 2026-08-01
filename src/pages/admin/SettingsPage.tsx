@@ -185,6 +185,16 @@ export function AdminSettingsPage() {
 
   async function handleRequestDeletion() {
     setDeletionMessage(null)
+    // The demo walks the whole flow, including this confirmation, but stops
+    // here. The guard is deliberately before the mutation rather than hiding
+    // the button, so there is one place to be sure the RPC is never reached.
+    if (isDemo) {
+      setDeleteConfirmOpen(false)
+      setDeletionMessage(
+        'This account cannot be deleted: it is the public demo, and it resets itself every 30 minutes.',
+      )
+      return
+    }
     try {
       const result = await requestDeletion.mutateAsync()
       setDeleteConfirmOpen(false)
@@ -224,6 +234,12 @@ export function AdminSettingsPage() {
 
   async function handleDownloadData() {
     if (!organizationId) return
+    if (isDemo) {
+      setSaveMessage(
+        'Exporting is disabled in the public demo. On a real account this downloads every game, event, submission and uploaded file.',
+      )
+      return
+    }
     setSaveMessage(null)
     setExportingData(true)
     try {
@@ -555,21 +571,9 @@ export function AdminSettingsPage() {
             <TabletInstallGuide onClose={() => setInstallGuideOpen(false)} />
           ) : null}
 
-          {/* The public demo must never expose destructive account actions, but it
-              should still show the section, so the demo matches what a real
-              client sees rather than hiding a whole card. */}
-          {isDemo ? (
-            <DangerZone
-              rows={[]}
-              notice={
-                <p className="text-muted-foreground">
-                  Deleting the account and exporting its data are disabled in the
-                  public demo. Use Reset now in the demo bar to restore the
-                  original showcase instead.
-                </p>
-              }
-            />
-          ) : (
+          {/* The demo shows the same rows a client sees, so nothing is hidden
+              from a prospect. Both actions are stopped inside their handlers,
+              before any mutation, rather than by removing the buttons. */}
           <DangerZone
             notice={
               <>
@@ -641,7 +645,6 @@ export function AdminSettingsPage() {
               },
             ]}
           />
-          )}
         </div>
       )}
 
@@ -673,7 +676,7 @@ export function AdminSettingsPage() {
         </div>
       ) : null}
 
-      {deleteConfirmOpen && !isDemo ? (
+      {deleteConfirmOpen ? (
         <div
           role="dialog"
           aria-modal="true"
