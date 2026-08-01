@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Users, Monitor, Shield, Cpu, RefreshCw, Download } from 'lucide-react'
+import { IconChip, IconDisplay, IconDownload, IconRefresh, IconShield, IconUsers } from '@/components/icons'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Button } from '@/components/ui/button'
@@ -20,10 +20,10 @@ const ACTOR_TYPE_LABELS: Record<ActivityLogRow['actor_type'], string> = {
 
 function actorIcon(actorType: ActivityLogRow['actor_type']) {
   switch (actorType) {
-    case 'team': return <Users className="size-4 text-blue-500" />
-    case 'facilitator': return <Monitor className="size-4 text-purple-500" />
-    case 'admin': return <Shield className="size-4 text-orange-500" />
-    case 'system': return <Cpu className="size-4 text-muted-foreground" />
+    case 'team': return <IconUsers className="size-4 text-blue-500" />
+    case 'facilitator': return <IconDisplay className="size-4 text-purple-500" />
+    case 'admin': return <IconShield className="size-4 text-orange-500" />
+    case 'system': return <IconChip className="size-4 text-muted-foreground" />
   }
 }
 
@@ -108,7 +108,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             disabled={filteredRows.length === 0}
             onClick={handleDownload}
           >
-            <Download className="mr-1.5 size-3.5" />
+            <IconDownload className="mr-1.5 size-3.5" />
             Download CSV
           </Button>
           <Button
@@ -117,7 +117,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             disabled={query.isFetching}
             onClick={() => void query.refetch()}
           >
-            <RefreshCw className={`mr-1.5 size-3.5 ${query.isFetching ? 'animate-spin' : ''}`} />
+            <IconRefresh className={`mr-1.5 size-3.5 ${query.isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>

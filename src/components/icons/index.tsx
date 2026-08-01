@@ -432,3 +432,188 @@ export function IconAttachment(props: RhIconProps) {
     </RhIcon>
   )
 }
+
+// ─── Second pass: the rest of the admin panel ─────────────────────────────
+
+export function IconChevronRight(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="m9.5 6 6 6-6 6" />
+    </RhIcon>
+  )
+}
+
+export function IconChevronUp(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="m6 14.5 6-6 6 6" />
+    </RhIcon>
+  )
+}
+
+export function IconArrowUp(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M12 19.5v-15M6.2 10.3 12 4.5l5.8 5.8" />
+    </RhIcon>
+  )
+}
+
+export function IconArrowDown(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M12 4.5v15M6.2 13.7 12 19.5l5.8-5.8" />
+    </RhIcon>
+  )
+}
+
+export function IconSend(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M20.5 3.5 10.8 13.2" />
+      <path d="M20.5 3.5 14.3 20.5l-3.5-7.3-7.3-3.5Z" />
+    </RhIcon>
+  )
+}
+
+export function IconSparkle(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M11 3.5 12.7 8l4.5 1.7-4.5 1.7L11 15.9 9.3 11.4 4.8 9.7l4.5-1.7Z" />
+      <path d="M17.5 15.5 18.3 17.7l2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" />
+    </RhIcon>
+  )
+}
+
+export function IconAlert(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M10.3 4.3 2.6 17.6A2 2 0 0 0 4.3 20.6h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9.5v4" />
+      <circle cx="12" cy="16.8" r="1" />
+    </RhIcon>
+  )
+}
+
+export function IconExpand(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M14.5 4.5H19a.5.5 0 0 1 .5.5v4.5" />
+      <path d="M9.5 19.5H5a.5.5 0 0 1-.5-.5v-4.5" />
+      <path d="M19.5 5 14 10.5M4.5 19 10 13.5" />
+    </RhIcon>
+  )
+}
+
+export function IconFileUp(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M13.5 3.5H7.3A2.3 2.3 0 0 0 5 5.8v12.4a2.3 2.3 0 0 0 2.3 2.3h9.4a2.3 2.3 0 0 0 2.3-2.3V9Z" />
+      <path d="M13.5 3.5V9H19" />
+      <path d="M12 17v-5M9.8 14.2 12 12l2.2 2.2" />
+    </RhIcon>
+  )
+}
+
+export function IconGrid(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17" />
+    </RhIcon>
+  )
+}
+
+export function IconRows(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <path d="M3.5 9.2h17M3.5 14.8h17" />
+    </RhIcon>
+  )
+}
+
+export function IconDisplay(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <rect x="2.5" y="4" width="19" height="13" rx="3" />
+      <path d="M8.5 20.5h7M12 17v3.5" />
+    </RhIcon>
+  )
+}
+
+export function IconShield(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M12 3 4.5 6v6c0 4.6 3.2 7.9 7.5 9.2 4.3-1.3 7.5-4.6 7.5-9.2V6Z" />
+      <path d="m9 12 2.2 2.2L15.4 10" />
+    </RhIcon>
+  )
+}
+
+export function IconChip(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <rect x="6.5" y="6.5" width="11" height="11" rx="2.5" />
+      <path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3" />
+    </RhIcon>
+  )
+}
+
+export function IconRefresh(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M20 11a8 8 0 0 0-14.3-4.7" />
+      <path d="M4 13a8 8 0 0 0 14.3 4.7" />
+      <path d="M20.5 4.5V10H15M3.5 19.5V14H9" />
+    </RhIcon>
+  )
+}
+
+export function IconLayers(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="m12 3 8.5 4.4L12 11.8 3.5 7.4Z" />
+      <path d="m3.5 12 8.5 4.4 8.5-4.4" />
+      <path d="m3.5 16.6 8.5 4.4 8.5-4.4" />
+    </RhIcon>
+  )
+}
+
+export function IconLive(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4" />
+      <path d="M4.9 19.1a10 10 0 0 1 0-14.2M19.1 4.9a10 10 0 0 1 0 14.2" />
+    </RhIcon>
+  )
+}
+
+export function IconBolt(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M13.5 2.5 4.8 13.3a.6.6 0 0 0 .5 1h5.2l-.5 7.2 8.7-10.8a.6.6 0 0 0-.5-1h-5.2Z" />
+    </RhIcon>
+  )
+}
+
+export function IconSignOut(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M15.5 7.5V5.8A2.3 2.3 0 0 0 13.2 3.5H5.8A2.3 2.3 0 0 0 3.5 5.8v12.4a2.3 2.3 0 0 0 2.3 2.3h7.4a2.3 2.3 0 0 0 2.3-2.3v-1.7" />
+      <path d="M20.5 12H9.5M17.3 8.8 20.5 12l-3.2 3.2" />
+    </RhIcon>
+  )
+}
+
+/** Sidebar collapse: a panel with its rail shown separately. */
+export function IconPanelLeft(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <rect x="3" y="4.5" width="18" height="15" rx="3" />
+      <path d="M9.5 4.5v15" />
+      <path d="M5.8 9.5h1.5M5.8 12h1.5M5.8 14.5h1.5" />
+    </RhIcon>
+  )
+}

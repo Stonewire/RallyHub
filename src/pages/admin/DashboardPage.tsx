@@ -1,4 +1,4 @@
-import { Calendar, Layers, Radio, Zap } from 'lucide-react'
+import { IconBolt, IconEvents, IconLayers, IconLive } from '@/components/icons'
 
 import {
   NoOrganizationMessage,
@@ -17,10 +17,10 @@ import { useDashboardStats, useRecentEvents } from '@/hooks/use-dashboard'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 
 const STAT_META = [
-  { key: 'totalGames' as const, label: 'Total Games', icon: Layers },
-  { key: 'totalEvents' as const, label: 'Total Events', icon: Zap },
-  { key: 'activeEvents' as const, label: 'Active Events', icon: Radio },
-  { key: 'upcomingEvents' as const, label: 'Upcoming Events', icon: Calendar },
+  { key: 'totalGames' as const, label: 'Total Games', icon: IconLayers },
+  { key: 'totalEvents' as const, label: 'Total Events', icon: IconBolt },
+  { key: 'activeEvents' as const, label: 'Active Events', icon: IconLive },
+  { key: 'upcomingEvents' as const, label: 'Upcoming Events', icon: IconEvents },
 ]
 
 function formatEventDate(iso: string | null) {

@@ -1,4 +1,4 @@
-import { GripVertical, Plus, Trash2 } from 'lucide-react'
+import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -53,11 +53,11 @@ function QuestionCard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
-          {dragProps ? <GripVertical className="size-4 shrink-0 cursor-grab" /> : null}
+          {dragProps ? <IconGrip className="size-4 shrink-0 cursor-grab" /> : null}
           Question {index + 1}
         </div>
         <Button type="button" variant="ghost" size="icon-sm" onClick={onRemove}>
-          <Trash2 className="size-4" />
+          <IconTrash className="size-4" />
         </Button>
       </div>
       <Input
@@ -310,7 +310,7 @@ export function QuizEditor({
             className="w-full"
             onClick={() => addQuestion(roundId)}
           >
-            <Plus className="size-4" />
+            <IconPlus className="size-4" />
             New question
           </Button>
         </div>
@@ -348,7 +348,7 @@ export function QuizEditor({
         <div className="space-y-8">
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={addRound}>
-              <Plus className="size-4" />
+              <IconPlus className="size-4" />
               Add round
             </Button>
           </div>

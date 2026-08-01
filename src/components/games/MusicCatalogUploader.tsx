@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-react'
+import { IconUpload } from '@/components/icons'
 import { useState } from 'react'
 
 import { AccentButton } from '@/components/admin/AccentButton'
@@ -137,7 +137,7 @@ export function MusicCatalogUploader({
       </label>
 
       <label className="border-border/80 hover:bg-muted/30 flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed p-6">
-        <Upload className="text-muted-foreground size-8" />
+        <IconUpload className="text-muted-foreground size-8" />
         <span className="text-sm font-medium">Drop MP3 files or click to browse</span>
         <input
           type="file"

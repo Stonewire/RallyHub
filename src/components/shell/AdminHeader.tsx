@@ -1,12 +1,13 @@
-import { DoorOpen } from 'lucide-react'
+import { IconSignOut } from '@/components/icons'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import {
-  IconChevronLeft,
+  IconEvents,
+  IconGames,
   IconHelp,
+  IconPanelLeft,
   IconMoon,
-  IconPlus,
   IconSun,
 } from '@/components/icons'
 import { LoggedOutScreen } from '@/components/auth/LoggedOutScreen'
@@ -61,9 +62,9 @@ export function AdminHeader() {
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={`${ICON_BUTTON} opacity-70 hover:opacity-100`}
         >
-          <IconChevronLeft
-            className={`size-4 transition-transform ${collapsed ? 'rotate-180' : ''}`}
-          />
+          {/* A panel glyph rather than an arrow: it says what the control acts
+              on, not just which way it moves. */}
+          <IconPanelLeft className="size-4" />
         </button>
 
         <div className="flex-1" />
@@ -76,16 +77,16 @@ export function AdminHeader() {
               <Divider />
               <Link
                 to="/admin/games/new"
-                className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-[26px] shrink-0 items-center gap-1.5 border px-2.5 text-xs font-semibold whitespace-nowrap"
+                className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-3 text-xs font-semibold whitespace-nowrap"
               >
-                <IconPlus className="size-3.5" />
+                <IconGames className="size-4" />
                 New Game
               </Link>
               <Link
                 to="/admin/events/new"
-                className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-[26px] shrink-0 items-center gap-1.5 px-2.5 text-xs font-semibold whitespace-nowrap"
+                className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
               >
-                <IconPlus className="size-3.5" />
+                <IconEvents className="size-4" />
                 New Event
               </Link>
             </>
@@ -125,7 +126,7 @@ export function AdminHeader() {
               aria-label="Exit"
               className={ICON_BUTTON}
             >
-              <DoorOpen className="size-3.5" strokeWidth={2} />
+              <IconSignOut className="size-3.5" />
             </button>
           ) : null}
 

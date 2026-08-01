@@ -1,4 +1,4 @@
-import { GripVertical, Plus, Trash2 } from 'lucide-react'
+import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
 import { useMemo, useState } from 'react'
 
 import { FlipSwitch, NeoButton, SegmentedPill } from '@/components/neo-minimal'
@@ -410,7 +410,7 @@ export function EventForm({
                     }))
                   }
                 >
-                  <Trash2 className="size-4" />
+                  <IconTrash className="size-4" />
                 </Button>
               ) : null}
             </li>
@@ -430,7 +430,7 @@ export function EventForm({
             size="sm"
             onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
           >
-            <Plus className="size-4" />
+            <IconPlus className="size-4" />
             Add stage
           </Button>
         </div>
@@ -462,7 +462,7 @@ export function EventForm({
                   }))
                 }
               >
-                <Trash2 className="size-4" />
+                <IconTrash className="size-4" />
               </Button>
             </div>
             <SegmentedPill
@@ -588,7 +588,7 @@ export function EventForm({
           className="w-full"
           onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
         >
-          <Plus className="size-4" />
+          <IconPlus className="size-4" />
           Add stage
         </Button>
       </Card>
@@ -752,7 +752,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   dragIndex === index ? 'opacity-50' : '',
                 )}
               >
-                <GripVertical className="text-muted-foreground size-4 shrink-0" />
+                <IconGrip className="text-muted-foreground size-4 shrink-0" />
                 <span className="text-muted-foreground w-5 shrink-0 text-xs tabular-nums">
                   {index + 1}.
                 </span>
@@ -765,7 +765,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   title="Remove from stage"
                   onClick={() => setStageIds(ids.filter((id) => id !== g.id))}
                 >
-                  <Trash2 className="size-3.5" />
+                  <IconTrash className="size-3.5" />
                 </button>
               </li>
             ))}
@@ -779,7 +779,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
 
       {inStage.length > 0 && !pickerOpen && available.length > 0 ? (
         <NeoButton type="button" variant="surface" size="sm" onClick={() => setPickerOpen(true)}>
-          <Plus className="size-3.5" />
+          <IconPlus className="size-3.5" />
           Add More
         </NeoButton>
       ) : null}

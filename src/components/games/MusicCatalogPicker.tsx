@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { IconTrash } from '@/components/icons'
 import { useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -262,7 +262,7 @@ export function MusicCatalogPicker({
                     setPendingDelete(row)
                   }}
                 >
-                  <Trash2 className="size-4" />
+                  <IconTrash className="size-4" />
                 </Button>
               </div>
             </li>

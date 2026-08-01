@@ -1,7 +1,5 @@
-import {
-  UserCircle,
-  Users,
-} from 'lucide-react'
+import { UserCircle } from 'lucide-react'
+import { IconUsers } from '@/components/icons'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
 import {
@@ -164,7 +162,7 @@ export function AdminAppSidebar() {
                     className="text-sidebar-foreground"
                   >
                     <NavLink to="/admin/team">
-                      <Users className="shrink-0" strokeWidth={1.75} />
+                      <IconUsers className="shrink-0" />
                       <span className="font-medium">Team</span>
                     </NavLink>
                   </SidebarMenuButton>

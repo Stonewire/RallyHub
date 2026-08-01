@@ -1,4 +1,4 @@
-import { Download, Send } from 'lucide-react'
+import { IconDownload, IconSend } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -91,7 +91,7 @@ export function SupportTicketThread({
           disabled={!messages?.length}
           onClick={handleExport}
         >
-          <Download className="size-3.5" aria-hidden />
+          <IconDownload className="size-3.5" aria-hidden />
           Export
         </NeoButton>
       </div>
@@ -163,7 +163,7 @@ export function SupportTicketThread({
           disabled={!draft.trim() || sendMessage.isPending}
           onClick={() => void handleSend()}
         >
-          <Send className="size-3.5" />
+          <IconSend className="size-3.5" />
           {sendMessage.isPending ? 'Sending…' : 'Send'}
         </NeoButton>
         </div>

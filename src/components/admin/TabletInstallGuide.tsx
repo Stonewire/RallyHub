@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { IconClose } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -72,7 +72,7 @@ export function TabletInstallGuide({ onClose }: { onClose: () => void }) {
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
-            <X className="size-4" />
+            <IconClose className="size-4" />
           </Button>
         </div>
 

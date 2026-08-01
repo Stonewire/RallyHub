@@ -1,4 +1,4 @@
-import { Download, Link2, X } from 'lucide-react'
+import { IconClose, IconDownload, IconLink } from '@/components/icons'
 import { useState } from 'react'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -34,7 +34,7 @@ export function EventLinksModal({
             already names it, and it pushed the links down for nothing. */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Link2 className="text-foreground size-5" />
+            <IconLink className="text-foreground size-5" />
             <h2 className="text-foreground text-lg font-semibold">Event Links</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -56,11 +56,11 @@ export function EventLinksModal({
                 ).finally(() => setDownloadingAll(false))
               }}
             >
-              <Download className="size-3.5" />
+              <IconDownload className="size-3.5" />
               {downloadingAll ? 'Building PDF…' : 'Download all QR codes'}
             </NeoButton>
             <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
-              <X className="size-4" />
+              <IconClose className="size-4" />
             </Button>
           </div>
         </div>

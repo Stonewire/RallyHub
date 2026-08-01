@@ -1,4 +1,4 @@
-import { Music2, Pause, Pencil, Play, Plus, SkipBack, SkipForward, Trash2, Upload, X } from 'lucide-react'
+import { IconClose, IconEdit, IconMusic, IconPause, IconPlay, IconPlus, IconSkipBack, IconSkipForward, IconTrash, IconUpload } from '@/components/icons'
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
@@ -323,7 +323,7 @@ export const MusicCatalogManager = forwardRef<
                 void deletePlaylist.mutateAsync(pl.id).catch((e) => setError(String(e)))
               }}
             >
-              <X className="size-3" />
+              <IconClose className="size-3" />
             </button>
           </span>
         ))}
@@ -335,7 +335,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={openCreatePlaylistDialog}
           >
-            <Plus className="size-3.5" />
+            <IconPlus className="size-3.5" />
             New playlist
           </NeoButton>
           <NeoButton
@@ -344,7 +344,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={() => setUploadOpen(true)}
           >
-            <Upload className="size-3.5" />
+            <IconUpload className="size-3.5" />
             Upload music
           </NeoButton>
         </div>
@@ -361,7 +361,7 @@ export const MusicCatalogManager = forwardRef<
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 items-center gap-3 sm:w-64">
             <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
-              <Music2 className="size-4" />
+              <IconMusic className="size-4" />
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold tracking-[0.1em] text-white/55 uppercase">
@@ -384,7 +384,7 @@ export const MusicCatalogManager = forwardRef<
               onClick={() => stepTrack(-1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
             >
-              <SkipBack className="size-4" />
+              <IconSkipBack className="size-4" />
             </button>
             <button
               type="button"
@@ -393,7 +393,7 @@ export const MusicCatalogManager = forwardRef<
               onClick={togglePlay}
               className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-full disabled:opacity-30"
             >
-              {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+              {isPlaying ? <IconPause className="size-4" /> : <IconPlay className="size-4" />}
             </button>
             <button
               type="button"
@@ -402,14 +402,14 @@ export const MusicCatalogManager = forwardRef<
               onClick={() => stepTrack(1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
             >
-              <SkipForward className="size-4" />
+              <IconSkipForward className="size-4" />
             </button>
           </div>
 
           {/* Artwork slot. Nothing stores cover art yet, so this is a tile rather
               than an image; see the note in the work plan. */}
           <span className="hidden size-14 shrink-0 items-center justify-center rounded-md bg-white/10 sm:flex">
-            <Music2 className="size-5 text-white/40" />
+            <IconMusic className="size-5 text-white/40" />
           </span>
         </div>
 
@@ -591,7 +591,7 @@ export const MusicCatalogManager = forwardRef<
                   aria-label={`Preview ${row.title} by ${row.artist}`}
                 >
                   <span className="text-foreground flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold">
-                    <Play className="text-primary size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
+                    <IconPlay className="text-primary size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
                     <span className="truncate">{row.title}</span>
                   </span>
                   <span className="text-muted-foreground block truncate pl-[18px] text-[11px]">{row.artist}</span>
@@ -604,7 +604,7 @@ export const MusicCatalogManager = forwardRef<
                 <span className="text-muted-foreground hidden text-xs tabular-nums xl:block">{formatDuration(row.duration_seconds)}</span>
                 <span className="flex justify-end">
                 <Button type="button" size="icon-sm" variant="ghost" onClick={() => startEdit(row)}>
-                  <Pencil className="size-4" />
+                  <IconEdit className="size-4" />
                 </Button>
                 <Button
                   type="button"
@@ -614,7 +614,7 @@ export const MusicCatalogManager = forwardRef<
                   disabled={deleteCatalog.isPending}
                   onClick={() => void deleteCatalog.mutateAsync(row).catch((e) => setError(String(e)))}
                 >
-                  <Trash2 className="size-4" />
+                  <IconTrash className="size-4" />
                 </Button>
                 </span>
               </li>
@@ -694,7 +694,7 @@ export const MusicCatalogManager = forwardRef<
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-foreground font-semibold">Upload music</h3>
               <Button type="button" size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setUploadOpen(false)}>
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </Button>
             </div>
             <MusicCatalogUploader

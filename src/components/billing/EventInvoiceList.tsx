@@ -1,4 +1,4 @@
-import { CreditCard, Download } from 'lucide-react'
+import { IconBilling, IconDownload } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { StatusIndicator } from '@/components/ui/status-indicator'
@@ -86,7 +86,7 @@ export function EventInvoiceRow({
             onClick={() => onDownload?.(invoice.id)}
             disabled={downloadingInvoiceId === invoice.id}
           >
-            <Download className="size-3.5" aria-hidden />
+            <IconDownload className="size-3.5" aria-hidden />
             {downloadingInvoiceId === invoice.id ? 'Opening…' : 'Invoice'}
           </NeoButton>
         ) : null}
@@ -98,7 +98,7 @@ export function EventInvoiceRow({
               onClick={() => onPay(invoice.id)}
               disabled={payingInvoiceId === invoice.id}
             >
-              <CreditCard className="size-3.5" aria-hidden />
+              <IconBilling className="size-3.5" aria-hidden />
               {payingInvoiceId === invoice.id ? 'Opening checkout…' : 'Pay now'}
             </NeoButton>
           ) : (
@@ -108,7 +108,7 @@ export function EventInvoiceRow({
                 'border border-primary text-primary bg-transparent',
               )}
             >
-              <CreditCard className="size-3" aria-hidden />
+              <IconBilling className="size-3" aria-hidden />
               Payment required
             </span>
           )
@@ -213,7 +213,7 @@ export function EventInvoiceList({
                         onClick={() => onPay(invoice.id)}
                         disabled={payingInvoiceId === invoice.id}
                       >
-                        <CreditCard className="size-3.5" aria-hidden />
+                        <IconBilling className="size-3.5" aria-hidden />
                         {payingInvoiceId === invoice.id ? 'Opening…' : 'Pay now'}
                       </NeoButton>
                     ) : canDownload ? (
@@ -224,7 +224,7 @@ export function EventInvoiceList({
                         aria-label={`Download invoice for ${invoice.event?.name ?? 'event'}`}
                         className="text-primary hover:bg-muted inline-flex size-7 items-center justify-center rounded-md disabled:opacity-50"
                       >
-                        <Download className="size-4" aria-hidden />
+                        <IconDownload className="size-4" aria-hidden />
                       </button>
                     ) : null}
                   </td>

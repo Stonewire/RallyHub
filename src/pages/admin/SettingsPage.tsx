@@ -1,4 +1,4 @@
-import { CreditCard, Download, ExternalLink, Smartphone, Upload } from 'lucide-react'
+import { IconBilling, IconDevice, IconDownload, IconExternal, IconUpload } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 
@@ -400,7 +400,7 @@ export function AdminSettingsPage() {
                   {form.logo_url ? (
                     <img src={form.logo_url} alt="Organization logo" className="max-h-20 max-w-48 object-contain" />
                   ) : (
-                    <Upload className="size-5" />
+                    <IconUpload className="size-5" />
                   )}
                   <span>
                     {logoUploading
@@ -515,9 +515,9 @@ export function AdminSettingsPage() {
                 </div>
                 <Button type="button" variant="outline" className="w-full" asChild>
                   <Link to="/admin/settings?tab=billing">
-                    <CreditCard className="size-4" />
+                    <IconBilling className="size-4" />
                     Manage Payment Details
-                    <ExternalLink className="size-3.5" />
+                    <IconExternal className="size-3.5" />
                   </Link>
                 </Button>
               </Card>
@@ -553,7 +553,7 @@ export function AdminSettingsPage() {
                   size="sm"
                   onClick={() => setInstallGuideOpen(true)}
                 >
-                  <Smartphone className="size-3.5" />
+                  <IconDevice className="size-3.5" />
                   Instructions on how to install RallyHub on your device
                 </NeoButton>
                 {tabletDirty ? (
@@ -598,7 +598,7 @@ export function AdminSettingsPage() {
                 description: 'Export every game, event, submission, payment record and uploaded file tied to this account.',
                 action: (
                   <NeoButton type="button" variant="surface" disabled={exportingData} onClick={() => void handleDownloadData()}>
-                    <Download className="size-3.5" />
+                    <IconDownload className="size-3.5" />
                     {exportingData ? 'Preparing…' : 'Download All Data'}
                   </NeoButton>
                 ),

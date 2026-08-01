@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { IconCheck, IconChevronDown, IconChevronUp, IconSparkle } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
@@ -131,7 +131,7 @@ export function OnboardingChecklist() {
     <>
       {minimized && activeStep ? (
         <div className="fixed right-4 bottom-4 z-[80] flex items-center gap-2 rounded-full border border-border/80 bg-card py-1.5 pr-1.5 pl-3 shadow-xl">
-          <Sparkles className="text-accent size-4 shrink-0" />
+          <IconSparkle className="text-accent size-4 shrink-0" />
           <span className="text-foreground max-w-56 truncate text-xs font-medium">
             {completed.length + 1}/{steps.length} · {activeStep.title}
           </span>
@@ -149,7 +149,7 @@ export function OnboardingChecklist() {
             className="hover:bg-muted/50 rounded-full p-1.5"
             onClick={() => setManualExpand(true)}
           >
-            <ChevronUp className="size-4" />
+            <IconChevronUp className="size-4" />
           </button>
         </div>
       ) : (
@@ -173,7 +173,7 @@ export function OnboardingChecklist() {
               className="hover:bg-muted/50 rounded-full p-1.5"
               onClick={() => setManualExpand(false)}
             >
-              <ChevronDown className="size-4" />
+              <IconChevronDown className="size-4" />
             </button>
           </div>
           <div className="mt-2 mb-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -206,7 +206,7 @@ export function OnboardingChecklist() {
                           done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-border/80',
                         )}
                       >
-                        {done ? <Check className="size-2.5" /> : null}
+                        {done ? <IconCheck className="size-2.5" /> : null}
                       </span>
                       {done ? (
                         // Completed steps stay clickable: jump back to that page

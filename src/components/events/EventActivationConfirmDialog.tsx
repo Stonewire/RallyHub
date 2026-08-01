@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react'
+import { IconAlert } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -29,7 +29,7 @@ export function EventActivationConfirmDialog({
     >
       <Card className="border-border/80 w-full max-w-lg space-y-4 bg-card p-6 shadow-lg">
         <div className="flex items-start gap-3">
-          <AlertTriangle
+          <IconAlert
             className="text-primary mt-0.5 size-5 shrink-0"
             aria-hidden
           />

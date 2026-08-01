@@ -1,4 +1,4 @@
-import { CreditCard } from 'lucide-react'
+import { IconBilling } from '@/components/icons'
 import { useState } from 'react'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
@@ -232,7 +232,7 @@ export function BillingOverview({
                 onClick={() => void handleOpenPortal()}
                 disabled={openingPortal}
               >
-                <CreditCard className="size-4" aria-hidden />
+                <IconBilling className="size-4" aria-hidden />
                 {openingPortal ? 'Opening…' : 'Manage billing details'}
               </NeoButton>
               {/* Gold: comparing plans is the action worth drawing the eye to

@@ -1,4 +1,4 @@
-import { Download, GripVertical, Trash2 } from 'lucide-react'
+import { IconDownload, IconGrip, IconTrash } from '@/components/icons'
 import { useRef, useState } from 'react'
 
 import { createPortal } from 'react-dom'
@@ -136,9 +136,9 @@ export function DraggableGamesGrid({
                 onDelete(game)
               }}
             >
-              <Trash2 className="size-3" />
+              <IconTrash className="size-3" />
             </button>
-            <GripVertical
+            <IconGrip
               className="absolute bottom-1.5 left-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
               aria-hidden
             />
@@ -171,7 +171,7 @@ export function DraggableGamesGrid({
                   onInstall(game)
                 }}
               >
-                <Download className="size-3" />
+                <IconDownload className="size-3" />
               </NeoButton>
             ) : null}
           </div>

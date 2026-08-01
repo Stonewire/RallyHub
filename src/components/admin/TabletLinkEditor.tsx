@@ -1,4 +1,4 @@
-import { Check, Copy, Download, ExternalLink } from 'lucide-react'
+import { IconCheck, IconCopy, IconDownload, IconExternal } from '@/components/icons'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -36,25 +36,25 @@ export function TabletLinkEditor({ subdomain, disabled = false }: TabletLinkEdit
         <p className="text-muted-foreground truncate text-[11px]" title={fullLink}>{fullLink}</p>
         <div className="flex gap-1.5">
           <Button type="button" variant="ghost" size="icon-sm" disabled={disabled} onClick={() => void copyLink()} aria-label="Copy tablet link">
-            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? <IconCheck className="size-3.5" /> : <IconCopy className="size-3.5" />}
           </Button>
           {disabled ? (
             <Button type="button" variant="ghost" size="icon-sm" disabled aria-label="Open tablet link">
-              <ExternalLink className="size-3.5" />
+              <IconExternal className="size-3.5" />
             </Button>
           ) : (
             <Button type="button" variant="ghost" size="icon-sm" asChild>
               <a href={fullLink} target="_blank" rel="noreferrer" aria-label="Open tablet link">
-                <ExternalLink className="size-3.5" />
+                <IconExternal className="size-3.5" />
               </a>
             </Button>
           )}
           <Button type="button" variant="ghost" size="icon-sm" disabled={disabled} asChild={!disabled}>
             {disabled ? (
-              <span aria-label="Download tablet QR code"><Download className="size-3.5" /></span>
+              <span aria-label="Download tablet QR code"><IconDownload className="size-3.5" /></span>
             ) : (
               <a href={qrCodeUrl(fullLink, 1024)} download="rallyhub-tablet-qr.png" aria-label="Download tablet QR code">
-                <Download className="size-3.5" />
+                <IconDownload className="size-3.5" />
               </a>
             )}
           </Button>

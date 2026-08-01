@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { IconSearch } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -39,9 +39,8 @@ export function HeaderSearch() {
 
   return (
     <div ref={boxRef} className="relative w-60">
-      <Search
+      <IconSearch
         className="text-nm-neutral-600 pointer-events-none absolute top-1/2 left-2.5 size-3 -translate-y-1/2"
-        strokeWidth={2}
       />
       <input
         value={query}

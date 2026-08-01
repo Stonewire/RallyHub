@@ -1,4 +1,4 @@
-import { Eye } from 'lucide-react'
+import { IconEye } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { AssetField } from '@/components/games/AssetField'
@@ -157,7 +157,7 @@ export function BackgroundDesigner({
           className="w-full"
           onClick={onOpenPreview}
         >
-          <Eye className="size-3.5" aria-hidden />
+          <IconEye className="size-3.5" aria-hidden />
           Click to preview
         </NeoButton>
       ) : null}

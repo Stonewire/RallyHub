@@ -1,14 +1,5 @@
-import {
-  Check,
-  Copy,
-  Download,
-  ImagePlus,
-  PackageOpen,
-  Pencil,
-  Search,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
+import { IconCheck, IconClose, IconCopy, IconDownload, IconEdit, IconInventory, IconSearch, IconTrash } from '@/components/icons'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -172,8 +163,8 @@ export const InventoryLibraryManager = forwardRef<
     <div className={editing !== undefined ? "space-y-5 xl:pr-[36rem]" : "space-y-5"}>
       {message ? (
         <div className="border-border bg-card flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
-          <span className="flex items-center gap-2"><Check className="size-4 text-emerald-600" />{message}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setMessage(null)}><X className="size-4" /></button>
+          <span className="flex items-center gap-2"><IconCheck className="size-4 text-emerald-600" />{message}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setMessage(null)}><IconClose className="size-4" /></button>
         </div>
       ) : null}
       {error && editing === undefined && !pendingDelete ? (
@@ -183,7 +174,7 @@ export const InventoryLibraryManager = forwardRef<
       {/* Same shape as the Games Library toolbar: one h-9 search, nothing else. */}
       <div className="border-border/70 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <NeoInput
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -195,7 +186,7 @@ export const InventoryLibraryManager = forwardRef<
 
       {items.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center gap-3 px-6 py-16 text-center">
-          <PackageOpen className="text-muted-foreground size-11" />
+          <IconInventory className="text-muted-foreground size-11" />
           <h3 className="font-semibold">No inventory items yet</h3>
           <p className="text-muted-foreground max-w-md text-sm">
             Add your first physical item. Its reusable purchase link and QR code are created automatically.
@@ -222,7 +213,7 @@ export const InventoryLibraryManager = forwardRef<
                     <img src={item.image_url} alt="" className="size-full object-cover" />
                   ) : (
                     <div className="text-muted-foreground flex size-full items-center justify-center">
-                      <PackageOpen className="size-7" />
+                      <IconInventory className="size-7" />
                     </div>
                   )}
                   <img
@@ -251,7 +242,7 @@ export const InventoryLibraryManager = forwardRef<
                           .catch(() => setError('Could not copy the item link.'))
                       }}
                     >
-                      <Copy className="size-3.5" />
+                      <IconCopy className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -263,7 +254,7 @@ export const InventoryLibraryManager = forwardRef<
                         void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))
                       }}
                     >
-                      <Download className="size-3.5" />
+                      <IconDownload className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -275,7 +266,7 @@ export const InventoryLibraryManager = forwardRef<
                         openEdit(item)
                       }}
                     >
-                      <Pencil className="size-3.5" />
+                      <IconEdit className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -288,7 +279,7 @@ export const InventoryLibraryManager = forwardRef<
                         setPendingDelete(item)
                       }}
                     >
-                      <Trash2 className="size-3.5" />
+                      <IconTrash className="size-3.5" />
                     </button>
                   </div>
                 </div>
@@ -313,7 +304,7 @@ export const InventoryLibraryManager = forwardRef<
                 <p className="text-muted-foreground mt-1 text-sm">The QR code will always use the current name, description, and point cost.</p>
               </div>
               <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={() => setEditing(undefined)}>
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </Button>
             </div>
             <div className="space-y-2">
@@ -358,7 +349,7 @@ export const InventoryLibraryManager = forwardRef<
                     variant="surface"
                     onClick={() => void downloadInventoryQrPng(editing).catch((reason) => setError(String(reason)))}
                   >
-                    <Download className="size-4" />
+                    <IconDownload className="size-4" />
                     Download QR PNG
                   </NeoButton>
                 </div>

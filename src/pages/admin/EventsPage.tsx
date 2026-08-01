@@ -1,4 +1,4 @@
-import { Calendar, Gamepad2, Plus, Search } from 'lucide-react'
+import { IconEvents, IconGames, IconPlus, IconSearch } from '@/components/icons'
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
@@ -266,19 +266,19 @@ export function AdminEventsPage() {
         <>
           <NeoButton variant="surface" asChild>
             <Link to="/admin/games">
-              <Gamepad2 className="size-3.5" />
+              <IconGames className="size-3.5" />
               Games
             </Link>
           </NeoButton>
           {suspended ? (
             <NeoButton variant="accent" disabled>
-              <Plus className="size-3.5" />
+              <IconPlus className="size-3.5" />
               Event
             </NeoButton>
           ) : (
             <NeoButton variant="accent" asChild>
               <Link to="/admin/events/new" data-tour="new-event-button">
-                <Plus className="size-3.5" />
+                <IconPlus className="size-3.5" />
                 Event
               </Link>
             </NeoButton>
@@ -324,7 +324,7 @@ export function AdminEventsPage() {
         {view === 'events' ? (
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <div className="relative min-w-52 flex-1">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -340,7 +340,7 @@ export function AdminEventsPage() {
               variant="accent"
               onClick={() => setDatePickerOpen((open) => !open)}
             >
-              <Calendar className="size-3.5" />
+              <IconEvents className="size-3.5" />
               {dateFrom || dateTo ? 'Date applied' : 'Date'}
             </NeoButton>
             {datePickerOpen ? (
@@ -436,7 +436,7 @@ export function AdminEventsPage() {
         <QueryError message={eventsQuery.error.message} />
       ) : visibleEvents.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
-          <Calendar className="text-muted-foreground size-10 opacity-60" />
+          <IconEvents className="text-muted-foreground size-10 opacity-60" />
           <p className="text-foreground font-medium">No events yet</p>
           <p className="text-muted-foreground max-w-sm text-sm">
             {events.length === 0

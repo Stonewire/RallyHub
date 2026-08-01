@@ -1,4 +1,4 @@
-import { Check, Copy } from 'lucide-react'
+import { IconCheck, IconCopy } from '@/components/icons'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -176,7 +176,7 @@ export function AdminEventsNewPage() {
               <div className="flex flex-wrap items-start gap-3">
                 <Input readOnly value={url} className="bg-background flex-1 font-mono text-xs" />
                 <Button type="button" variant="outline" onClick={() => void copyLink(key, url)}>
-                  {copied === key ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  {copied === key ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
                   Copy
                 </Button>
                 <img src={qrCodeUrl(url, 120)} alt="" width={96} height={96} className="rounded border" />

@@ -1,4 +1,4 @@
-import { Grid3X3, Plus, Puzzle, Rows3, Trash2 } from 'lucide-react'
+import { IconGrid, IconPlus, IconPuzzle, IconRows, IconTrash } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { CrosswordEditor } from '@/components/games/CrosswordEditor'
@@ -14,26 +14,26 @@ const SUBTYPES: {
   type: PuzzleType
   name: string
   description: string
-  icon: typeof Grid3X3
+  icon: typeof IconGrid
   upcoming?: boolean
 }[] = [
   {
     type: 'wordle',
     name: 'Wordle',
     description: 'Teams guess your word. Fewer guesses earn more points.',
-    icon: Grid3X3,
+    icon: IconGrid,
   },
   {
     type: 'matching',
     name: 'Matching',
     description: 'Teams connect related values from two shuffled columns.',
-    icon: Rows3,
+    icon: IconRows,
   },
   {
     type: 'crossword',
     name: 'Crossword',
     description: 'Build a 6x6 crossword. Faster solves earn more points.',
-    icon: Puzzle,
+    icon: IconPuzzle,
   },
 ]
 
@@ -180,7 +180,7 @@ export function PuzzleEditor({
                   }))
                 }
               >
-                <Plus className="mr-1 size-4" /> Add pair
+                <IconPlus className="mr-1 size-4" /> Add pair
               </Button>
             ) : null}
           </div>
@@ -236,7 +236,7 @@ export function PuzzleEditor({
                     }))
                   }
                 >
-                  <Trash2 className="size-4" />
+                  <IconTrash className="size-4" />
                 </Button>
               </div>
             ))}

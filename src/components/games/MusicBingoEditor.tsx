@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { IconPlus } from '@/components/icons'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -221,7 +221,7 @@ export function MusicBingoEditor({
               }))
             }
           >
-            <Plus className="size-4" />
+            <IconPlus className="size-4" />
             Add track
           </Button>
         </div>

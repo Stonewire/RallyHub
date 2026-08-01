@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, ChevronDown, Copy, Eye, GripVertical, Link2, MapPin, Trash2 } from 'lucide-react'
+import { IconArchive, IconChevronDown, IconCopy, IconEvents, IconEye, IconGrip, IconLink, IconLocation, IconTrash } from '@/components/icons'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -127,7 +127,7 @@ export function DraggableEventsGrid({
         tabIndex={0}
       >
         <div className="flex items-start gap-2">
-          <GripVertical className="text-muted-foreground mt-1 size-4 shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing" aria-hidden />
+          <IconGrip className="text-muted-foreground mt-1 size-4 shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-2" onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
               <h3 className={`${compact ? 'text-base' : 'min-h-11 text-lg'} text-foreground line-clamp-2 min-w-0 flex-1 font-bold leading-tight`}>
@@ -145,7 +145,7 @@ export function DraggableEventsGrid({
                 className={`shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 ${isLive ? 'text-primary hover:bg-primary/10' : 'text-destructive hover:bg-destructive/10'}`}
                 onClick={() => onDelete(event)}
               >
-                {isLive ? <Archive className="size-3.5" /> : <Trash2 className="size-3.5" />}
+                {isLive ? <IconArchive className="size-3.5" /> : <IconTrash className="size-3.5" />}
               </button>
               <EventStatusMenu
                 status={event.status as EventStatus}
@@ -155,10 +155,10 @@ export function DraggableEventsGrid({
               />
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatEventDate(event.event_date)}</p>
+              <p className="flex items-center gap-1.5"><IconEvents className="size-3.5" />{formatEventDate(event.event_date)}</p>
               {event.location ? (
                 <p className="flex min-w-0 items-center gap-1.5">
-                  <MapPin className="size-3.5 shrink-0" />
+                  <IconLocation className="size-3.5 shrink-0" />
                   <span className="truncate">{event.location}</span>
                 </p>
               ) : null}
@@ -193,19 +193,19 @@ export function DraggableEventsGrid({
           {archivedEvent ? (
             <>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={`/admin/events/${event.id}`}><Eye className="size-3" />View</Link>
+                <Link to={`/admin/events/${event.id}`}><IconEye className="size-3" />View</Link>
               </NeoButton>
               <NeoButton type="button" variant="surface" size="sm" className="flex-1" disabled={duplicating} onClick={() => onDuplicate(event)}>
-                <Copy className="size-3" />{duplicating ? 'Duplicating…' : 'Duplicate'}
+                <IconCopy className="size-3" />{duplicating ? 'Duplicating…' : 'Duplicate'}
               </NeoButton>
             </>
           ) : (
             <>
               <NeoButton type="button" variant="surface" size="sm" className="flex-1" onClick={() => onViewLinks(event)}>
-                <Link2 className="size-3" />Event Links
+                <IconLink className="size-3" />Event Links
               </NeoButton>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={`/admin/events/${event.id}`}><Eye className="size-3" />View</Link>
+                <Link to={`/admin/events/${event.id}`}><IconEye className="size-3" />View</Link>
               </NeoButton>
             </>
           )}
@@ -227,7 +227,7 @@ export function DraggableEventsGrid({
         aria-expanded={!collapsed}
         className="text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-[0.1em] uppercase"
       >
-        <ChevronDown
+        <IconChevronDown
           className={`size-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
         />
         {label}

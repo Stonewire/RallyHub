@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Paperclip } from 'lucide-react'
+import { IconAttachment } from '@/components/icons'
 
 import {
   ALLOWED_ATTACHMENT_UPLOAD_TYPES,
@@ -176,7 +176,7 @@ export function AdminSupportPage() {
                   variant="ghost"
                   onClick={() => attachInput.current?.click()}
                 >
-                  <Paperclip className="size-4" />
+                  <IconAttachment className="size-4" />
                   Upload a File
                 </NeoButton>
                 <input

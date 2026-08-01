@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { IconClose } from '@/components/icons'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { NeoButton } from '@/components/neo-minimal'
@@ -38,7 +38,7 @@ export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModal
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
-            <X className="size-4" />
+            <IconClose className="size-4" />
           </Button>
         </div>
 

@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { IconPlus, IconTrash } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { FlipSwitch } from '@/components/neo-minimal'
@@ -111,7 +111,7 @@ export function TextGameEditor({
                   })
                 }
               >
-                <Trash2 className="size-4" />
+                <IconTrash className="size-4" />
               </Button>
             </div>
           ))}
@@ -126,7 +126,7 @@ export function TextGameEditor({
               }))
             }
           >
-            <Plus className="mr-1 size-4" />
+            <IconPlus className="mr-1 size-4" />
             Add answer
           </Button>
         </div>
@@ -184,7 +184,7 @@ export function TextGameEditor({
                   })
                 }
               >
-                <Trash2 className="size-4" />
+                <IconTrash className="size-4" />
               </Button>
             </div>
           ))}
@@ -203,7 +203,7 @@ export function TextGameEditor({
                 }))
               }
             >
-              <Plus className="mr-1 size-4" />
+              <IconPlus className="mr-1 size-4" />
               Add option
             </Button>
           ) : null}

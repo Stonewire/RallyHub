@@ -1,4 +1,4 @@
-import { LifeBuoy, X } from 'lucide-react'
+import { IconClose, IconSupport } from '@/components/icons'
 import { Link } from 'react-router-dom'
 
 type HelpModalProps = {
@@ -37,13 +37,13 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
             aria-label="Close"
             className="hover:bg-muted rounded-nm-md flex size-[26px] items-center justify-center"
           >
-            <X className="size-3.5" strokeWidth={2} />
+            <IconClose className="size-3.5" />
           </button>
         </div>
 
         <div className="py-4 text-center">
           <div className="bg-muted mx-auto mb-3 flex size-11 items-center justify-center rounded-full">
-            <LifeBuoy className="text-nm-neutral-600 size-5" strokeWidth={2} />
+            <IconSupport className="text-nm-neutral-600 size-5" />
           </div>
           <p className="mb-1 text-sm font-semibold">Coming soon</p>
           <p className="text-nm-neutral-500 mb-4 text-xs">

@@ -1,4 +1,4 @@
-import { Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { IconCheck, IconClose, IconCopy, IconEdit, IconPlus, IconTrash } from '@/components/icons'
 import { useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -313,7 +313,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       title="Edit"
                       onClick={() => openEditModal(user)}
                     >
-                      <Pencil className="size-4" />
+                      <IconEdit className="size-4" />
                     </Button>
                   ) : null}
                   {canRemoveUser(user) ? (
@@ -326,7 +326,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       disabled={removeUser.isPending}
                       onClick={() => setUserToRemove(user)}
                     >
-                      <Trash2 className="size-4" />
+                      <IconTrash className="size-4" />
                     </Button>
                   ) : null}
                 </div>
@@ -344,7 +344,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             onClick={openUserModal}
             data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
           >
-            <Plus className="size-4" />
+            <IconPlus className="size-4" />
             {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
           </NeoButton>
         </div>
@@ -364,7 +364,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     : 'Add user'}
               </h3>
               <Button type="button" variant="ghost" size="icon-sm" onClick={closeUserModal}>
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </Button>
             </div>
 
@@ -392,7 +392,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => void handleCopyCredentials()}>
-                    {credentialsCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    {credentialsCopied ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
                     Copy credentials
                   </Button>
                   <NeoButton type="button" variant="primary" onClick={closeUserModal}>
@@ -519,7 +519,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 Edit {editUser.id === currentUserId ? 'your details' : displayUserName(editUser)}
               </h3>
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => setEditUser(null)}>
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </Button>
             </div>
 

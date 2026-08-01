@@ -1,4 +1,4 @@
-import { Check, Trash2, X } from 'lucide-react'
+import { IconCheck, IconClose, IconTrash } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
@@ -371,10 +371,10 @@ export function CrosswordEditor({
             }
           />
           <Button type="button" size="sm" disabled={draftChars.length < 2} onClick={confirmWord}>
-            <Check className="mr-1 size-4" /> Confirm
+            <IconCheck className="mr-1 size-4" /> Confirm
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
-            <X className="mr-1 size-4" /> Cancel
+            <IconClose className="mr-1 size-4" /> Cancel
           </Button>
         </div>
       ) : null}
@@ -441,7 +441,7 @@ export function CrosswordEditor({
                   aria-label={`Remove ${word.answer}`}
                   onClick={() => removeWord(word)}
                 >
-                  <Trash2 className="size-4" />
+                  <IconTrash className="size-4" />
                 </Button>
               </div>
             )

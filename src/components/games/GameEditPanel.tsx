@@ -1,4 +1,4 @@
-import { Maximize2, X } from 'lucide-react'
+import { IconClose, IconExpand } from '@/components/icons'
 import { Link } from 'react-router-dom'
 
 import { GameEditForm } from '@/components/games/GameEditForm'
@@ -31,11 +31,11 @@ export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
                 {headerActions}
                 <Button type="button" variant="ghost" size="icon-sm" asChild title="Open full screen">
                   <Link to={`/admin/games/${gameId}`}>
-                    <Maximize2 className="size-4" />
+                    <IconExpand className="size-4" />
                   </Link>
                 </Button>
                 <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
-                  <X className="size-4" />
+                  <IconClose className="size-4" />
                 </Button>
               </div>
             </div>

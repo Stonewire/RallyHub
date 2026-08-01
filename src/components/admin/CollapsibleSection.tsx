@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { IconChevronDown, IconChevronRight } from '@/components/icons'
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -58,9 +58,9 @@ export function CollapsibleSection({
           onClick={onToggle}
         >
           {collapsed ? (
-            <ChevronRight className="size-4 shrink-0" />
+            <IconChevronRight className="size-4 shrink-0" />
           ) : (
-            <ChevronDown className="size-4 shrink-0" />
+            <IconChevronDown className="size-4 shrink-0" />
           )}
           <span className="truncate">{title}</span>
           <span

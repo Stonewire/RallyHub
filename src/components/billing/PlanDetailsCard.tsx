@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { IconCheck } from '@/components/icons'
 import type { ReactNode } from 'react'
 
 import { Card } from '@/components/ui/card'
@@ -79,7 +79,7 @@ export function PlanDetailsCard({
           .filter(Boolean)
           .map((line) => (
             <li key={String(line)} className="flex items-start gap-2">
-              <Check className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <IconCheck className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
               <span>{line}</span>
             </li>
           ))}

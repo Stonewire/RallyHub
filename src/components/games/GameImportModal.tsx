@@ -1,4 +1,4 @@
-import { Download, FileUp, X } from 'lucide-react'
+import { IconClose, IconDownload, IconFileUp } from '@/components/icons'
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -128,7 +128,7 @@ export function GameImportModal({
             Import games
           </h3>
           <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="size-4" />
+            <IconClose className="size-4" />
           </Button>
         </div>
 
@@ -147,7 +147,7 @@ export function GameImportModal({
               size="sm"
               onClick={() => downloadCsv('rallyhub-games-template', buildGameImportTemplate())}
             >
-              <Download className="size-4" />
+              <IconDownload className="size-4" />
               Download template (CSV)
             </NeoButton>
             <NeoButton
@@ -156,7 +156,7 @@ export function GameImportModal({
               size="sm"
               onClick={() => fileRef.current?.click()}
             >
-              <FileUp className="size-4" />
+              <IconFileUp className="size-4" />
               Upload filled template
             </NeoButton>
             <input

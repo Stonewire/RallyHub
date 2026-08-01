@@ -1,4 +1,4 @@
-import { Paperclip } from 'lucide-react'
+import { IconAttachment } from '@/components/icons'
 import { useState } from 'react'
 
 import { signedAttachmentUrl } from '@/lib/storage'
@@ -49,7 +49,7 @@ export function SupportTicketAttachments({
               onClick={() => open(attachment)}
               className="text-foreground hover:text-nm-yellow flex items-center gap-1.5 text-xs underline-offset-2 hover:underline"
             >
-              <Paperclip className="size-3.5 shrink-0" />
+              <IconAttachment className="size-3.5 shrink-0" />
               <span className="max-w-64 truncate">{attachment.name}</span>
               <span className="text-muted-foreground">{formatSize(attachment.size)}</span>
             </button>

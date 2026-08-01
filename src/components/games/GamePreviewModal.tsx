@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { IconClose } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
 import type { GameConfig } from '@/types/game-config'
@@ -97,7 +97,7 @@ export function GamePreviewModal({
             aria-label="Close preview"
             className="hover:bg-muted rounded-nm-md flex size-7 shrink-0 items-center justify-center"
           >
-            <X className="size-4" strokeWidth={2} />
+            <IconClose className="size-4" />
           </button>
         </div>
         <p className="text-muted-foreground mb-4 text-xs">

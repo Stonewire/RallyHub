@@ -1,4 +1,4 @@
-import { Eye } from 'lucide-react'
+import { IconEye } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import {
@@ -292,7 +292,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       {/* Available for every game type, unlike the design which tucks Preview
           into the Facilitator Only card that photo and video alone render. */}
       <NeoButton type="button" variant="surface" onClick={() => setPreviewOpen(true)}>
-        <Eye className="size-3.5" aria-hidden />
+        <IconEye className="size-3.5" aria-hidden />
         Preview
       </NeoButton>
       {isPlatformLibrary && gameQuery.data.is_platform_template ? (

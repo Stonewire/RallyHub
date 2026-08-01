@@ -1,4 +1,4 @@
-import { RotateCcw, Trash2 } from 'lucide-react'
+import { IconRestore, IconTrash } from '@/components/icons'
 import { useState } from 'react'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -64,7 +64,7 @@ export function BinPanel({
   if (items.length === 0) {
     return (
       <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
-        <Trash2 className="text-muted-foreground size-10 opacity-60" />
+        <IconTrash className="text-muted-foreground size-10 opacity-60" />
         <p className="text-foreground font-medium">{emptyLabel}</p>
       </Card>
     )
@@ -140,7 +140,7 @@ export function BinPanel({
         </label>
         {selectedCount > 0 ? (
           <NeoButton type="button" variant="surface" size="sm" disabled={restoringBulk} onClick={() => void restoreSelected()}>
-            <RotateCcw className="mr-1.5 size-3.5" />
+            <IconRestore className="mr-1.5 size-3.5" />
             {restoringBulk ? 'Restoring…' : `Restore ${selectedCount} selected`}
           </NeoButton>
         ) : null}
@@ -152,7 +152,7 @@ export function BinPanel({
             disabled={deletingBulk || restoringBulk}
             onClick={() => void deleteSelectedPermanently()}
           >
-            <Trash2 className="mr-1.5 size-3.5" />
+            <IconTrash className="mr-1.5 size-3.5" />
             {deletingBulk ? 'Deleting…' : `Delete ${selectedCount} permanently`}
           </NeoButton>
         ) : null}
@@ -233,7 +233,7 @@ export function BinPanel({
                 disabled={restoringId === item.id || remaining <= 0}
                 onClick={() => void onRestore(item.id)}
               >
-                <RotateCcw className="mr-1.5 size-3.5" />
+                <IconRestore className="mr-1.5 size-3.5" />
                 Restore
               </NeoButton>
               {onDeletePermanently ? (
@@ -244,7 +244,7 @@ export function BinPanel({
                   disabled={deletingId === item.id}
                   onClick={() => onDeletePermanently(item.id)}
                 >
-                  <Trash2 className="mr-1.5 size-3.5" />
+                  <IconTrash className="mr-1.5 size-3.5" />
                   {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
                 </NeoButton>
               ) : null}

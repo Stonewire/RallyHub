@@ -1,4 +1,4 @@
-import { Check, Copy, ExternalLink, QrCode } from 'lucide-react'
+import { IconCheck, IconCopy, IconExternal, IconQr } from '@/components/icons'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -92,22 +92,22 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
         <NeoButton variant="primary" size="sm" asChild>
           <Link to={`/facilitator/${event.id}`}>
             Open facilitator
-            <ExternalLink className="size-4" aria-hidden />
+            <IconExternal className="size-4" aria-hidden />
           </Link>
         </NeoButton>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <NeoButton variant="surface" size="sm" onClick={() => void copy('facilitator', links.facilitator)}>
-          {copied === 'facilitator' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+          {copied === 'facilitator' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
           Facilitator link
         </NeoButton>
         <NeoButton variant="surface" size="sm" onClick={() => void copy('display', links.display)}>
-          {copied === 'display' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+          {copied === 'display' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
           Display link
         </NeoButton>
         <NeoButton variant="surface" size="sm" onClick={() => void copy('join', links.join)}>
-          {copied === 'join' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+          {copied === 'join' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
           Teams link
         </NeoButton>
         <NeoButton
@@ -116,7 +116,7 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
           onClick={() => setShowQr((v) => !v)}
           aria-expanded={showQr}
         >
-          <QrCode className="size-4" aria-hidden />
+          <IconQr className="size-4" aria-hidden />
           {showQr ? 'Hide QR' : 'Teams QR'}
         </NeoButton>
       </div>
