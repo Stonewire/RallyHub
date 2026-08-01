@@ -36,7 +36,8 @@ import {
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
-import { countryOptions, postcodeExample, validatePostcode } from '@/lib/countries'
+import { Combobox } from '@/components/admin/Combobox'
+import { COUNTRIES, postcodeExample, validatePostcode } from '@/lib/countries'
 import { downloadClientPackage } from '@/lib/client-export'
 import {
   ALLOWED_IMAGE_UPLOAD_LABEL,
@@ -436,39 +437,36 @@ export function AdminSettingsPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="address-city">City</Label>
-                    {/* Same control shape as Country, but with no options to
-                        offer yet: there is no city list in the app and no
-                        sensible static one to ship. Logged in the work plan as
-                        needing a places API before it can suggest anything. */}
-                    <Input
+                    {/* Same control as Country, with nothing to suggest yet:
+                        there is no city list in the app and no honest static one
+                        to ship. Work plan covers what it would take. */}
+                    <Combobox
                       id="address-city"
-                      list="address-city-options"
                       value={form.address_city}
-                      onChange={(event) => setForm({ ...form, address_city: event.target.value })}
+                      onChange={(value) => setForm({ ...form, address_city: value })}
+                      options={[]}
                       placeholder="Valletta"
                       autoComplete="address-level2"
                     />
-                    <datalist id="address-city-options" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="address-country">Country</Label>
-                    {/* Input plus datalist rather than a select: the list is
-                        still there to pick from, but typing filters it, which is
-                        faster than scrolling forty countries. Native, so it
-                        keeps the browser's keyboard behaviour. */}
-                    <Input
+                    {/* Our own combobox rather than a native datalist, whose
+                        popup the browser styles and positions itself. Typing
+                        filters; free text is still accepted. */}
+                    <Combobox
                       id="address-country"
-                      list="address-country-options"
                       value={form.address_country}
-                      onChange={(event) => setForm({ ...form, address_country: event.target.value })}
+                      onChange={(value) => setForm({ ...form, address_country: value })}
+                      // COUNTRIES, not countryOptions: that helper prepends the
+                      // current value so a select could not blank an unknown
+                      // saved country. A free-text combobox keeps the value
+                      // anyway, and prepending made half-typed text appear as a
+                      // suggestion of itself.
+                      options={COUNTRIES}
                       placeholder="Start typing or pick from the list"
                       autoComplete="country-name"
                     />
-                    <datalist id="address-country-options">
-                      {countryOptions(form.address_country).map((country) => (
-                        <option key={country} value={country} />
-                      ))}
-                    </datalist>
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
