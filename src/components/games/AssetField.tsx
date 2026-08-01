@@ -81,14 +81,14 @@ export function AssetField({
       {showPreviewPanel ? (
         <div
           className={cn(
-            'bg-muted/40 text-muted-foreground flex min-h-32 items-center justify-center overflow-hidden rounded-md text-[10px] font-semibold tracking-wider uppercase',
+            'bg-muted/40 text-muted-foreground flex min-h-56 items-center justify-center overflow-hidden rounded-md p-2 text-[10px] font-semibold tracking-wider uppercase',
           )}
         >
           {preview ? (
             isVideo ? (
-              <video src={preview} className="max-h-40" controls />
+              <video src={preview} className="max-h-72" controls />
             ) : (
-              <img src={preview} alt="" className="max-h-40 object-contain" />
+              <img src={preview} alt="" className="max-h-72 object-contain" />
             )
           ) : (
             previewLabel

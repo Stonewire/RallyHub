@@ -45,6 +45,8 @@ export type GameEditFormRender = {
 
 type GameEditFormProps = {
   gameId: string
+  /** True in the side panel, which is far narrower than the viewport. */
+  singleColumn?: boolean
   /** Called after a successful save. Route usage navigates away; panel usage can stay open. */
   onSaved?: () => void
   children: (render: GameEditFormRender) => ReactNode
@@ -60,7 +62,7 @@ function snapshot(values: Record<string, unknown>): string {
   return JSON.stringify(values)
 }
 
-export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
+export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEditFormProps) {
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const gameQuery = useGame(gameId)
@@ -536,9 +538,9 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
             onUploadSolution={(file) => uploadGameFile(organizationId, `solutions/${newGameId()}`, file)}
             config={config}
             setConfig={setConfig}
-            // Groups is edit-only: a game must exist before it can join one.
+            singleColumn={singleColumn}
             groupsCard={
-              <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm xl:col-start-2">
+              <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-bold">Groups</h3>
           <div className="space-y-2">
             <Label>Groups</Label>

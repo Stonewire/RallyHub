@@ -23,15 +23,15 @@ export function PointsEditor({
   pointsMax: number
   setPointsMax: (v: number) => void
 }) {
+  // Label, mode and value on a single line. Points is one small setting and
+  // was taking three rows of height to say so.
   return (
-    <div className="space-y-2">
-      <Label>Points</Label>
-      {/* Pill plus the value on one line: the mode and the number it applies to
-          belong together, and this matches the segmented controls used
-          elsewhere rather than the flip switch, which read as on/off. */}
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex w-full items-center gap-3">
+      <Label className="shrink-0">Points</Label>
+      <div className="flex flex-1 items-center gap-2">
         <SegmentedPill
           size="sm"
+          className="flex-1"
           aria-label="Points type"
           options={[
             { value: 'static', label: 'Static' },
@@ -46,17 +46,17 @@ export function PointsEditor({
             aria-label="Points"
             value={pointsStatic}
             onChange={(e) => setPointsStatic(Number(e.target.value))}
-            className="bg-background w-24"
+            className="bg-background h-8 w-24 shrink-0"
           />
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Input
               type="number"
               placeholder="Min"
               aria-label="Minimum points"
               value={pointsMin}
               onChange={(e) => setPointsMin(Number(e.target.value))}
-              className="bg-background w-24"
+              className="bg-background h-8 w-24 shrink-0"
             />
             <span className="text-muted-foreground text-sm">to</span>
             <Input
@@ -65,7 +65,7 @@ export function PointsEditor({
               aria-label="Maximum points"
               value={pointsMax}
               onChange={(e) => setPointsMax(Number(e.target.value))}
-              className="bg-background w-24"
+              className="bg-background h-8 w-24 shrink-0"
             />
           </div>
         )}

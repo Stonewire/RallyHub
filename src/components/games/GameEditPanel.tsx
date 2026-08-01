@@ -17,7 +17,7 @@ type GameEditPanelProps = {
 export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
   return (
     <div className="border-nm-slate-800 bg-background fixed inset-y-0 right-0 z-40 flex w-full max-w-[35rem] flex-col border-l-2 shadow-2xl">
-      <GameEditForm key={gameId} gameId={gameId}>
+      <GameEditForm key={gameId} gameId={gameId} singleColumn>
         {({ headerTitle, headerSubtitle, headerActions, body }) => (
           <>
             <div className="border-border/60 bg-card flex items-start justify-between gap-3 border-b p-4">

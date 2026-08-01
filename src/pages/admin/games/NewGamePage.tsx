@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -9,6 +9,7 @@ import {
   IconText,
   IconVideo,
 } from '@/components/icons'
+import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
 import { AssetField } from '@/components/games/AssetField'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
 import { NeoButton } from '@/components/neo-minimal'
@@ -67,6 +68,10 @@ export function AdminGamesNewPage() {
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const createGame = useCreateGame(organizationId)
+  const gameGroupsQuery = useGameGroups(organizationId)
+  const setGameGroups = useSetGameGroups(organizationId)
+  const availableGroups = useMemo(() => gameGroupsQuery.data ?? [], [gameGroupsQuery.data])
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set())
 
   const [step, setStep] = useState<'type' | 'editor'>('type')
   const [gameType, setGameType] = useState<GameType | null>(null)
@@ -169,7 +174,7 @@ export function AdminGamesNewPage() {
     setSaving(true)
     setError(null)
     try {
-      await createGame.mutateAsync({
+      const created = await createGame.mutateAsync({
         organization_id: organizationId,
         name: name.trim(),
         type: gameType,
@@ -207,6 +212,21 @@ export function AdminGamesNewPage() {
             : {}),
         },
       })
+      // Groups are applied after the insert because a membership row needs the
+      // game's id. Failing here must not read as "the game was not created", so
+      // it reports separately and leaves the game in place.
+      if (created?.id && selectedGroupIds.size > 0) {
+        try {
+          await setGameGroups.mutateAsync({
+            gameId: created.id,
+            groupIds: [...selectedGroupIds],
+          })
+        } catch {
+          setError('Game saved, but its groups could not be set. Add them from the editor.')
+          setSaving(false)
+          return
+        }
+      }
       navigate('/admin/games', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save game')
@@ -321,7 +341,42 @@ export function AdminGamesNewPage() {
             onUploadSolution={(file) => uploadGameFile(organizationId!, `solutions/${newGameId()}`, file)}
             config={config}
             setConfig={setConfig}
-            groupsCard={<ReadOnlyMembershipPanel />}
+            groupsCard={
+              <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+                <h3 className="text-foreground text-sm font-bold">Groups</h3>
+                {availableGroups.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No groups yet. Create one from the Games library.
+                  </p>
+                ) : (
+                  <div className="border-border max-h-56 space-y-1 overflow-auto rounded-md border p-2">
+                    {availableGroups.map((group) => (
+                      <label
+                        key={group.id}
+                        className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupIds.has(group.id)}
+                          onChange={() =>
+                            setSelectedGroupIds((current) => {
+                              const next = new Set(current)
+                              if (next.has(group.id)) next.delete(group.id)
+                              else next.add(group.id)
+                              return next
+                            })
+                          }
+                        />
+                        <span className="min-w-0 flex-1 truncate">{group.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <p className="text-muted-foreground text-xs">
+                  Applied when you save the game.
+                </p>
+              </Card>
+            }
           />
         )}
 
@@ -561,14 +616,4 @@ function ColorPickers({
   )
 }
 
-function ReadOnlyMembershipPanel() {
-  return (
-    <Card className="border-border/80 space-y-2 bg-card p-6 shadow-sm xl:col-start-2">
-      <h3 className="text-foreground text-sm font-bold">Groups</h3>
-      <p className="text-muted-foreground mt-2 text-sm">
-        A game has to exist before it can join a group. Save this one, then pick
-        its groups from the editor or the Games list.
-      </p>
-    </Card>
-  )
-}
+

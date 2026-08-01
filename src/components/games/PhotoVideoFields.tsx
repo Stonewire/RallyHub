@@ -38,8 +38,13 @@ export type PhotoVideoFieldsProps = {
   onUploadSolution: (file: File) => Promise<string>
   config: GameConfig
   setConfig: React.Dispatch<React.SetStateAction<GameConfig>>
-  /** Edit only: a game must exist before it can join a group. */
   groupsCard?: React.ReactNode
+  /**
+   * Forces one column. The side panel is ~35rem wide but xl: keys off the
+   * viewport, so on a wide screen the panel was splitting into two columns
+   * inside its own narrow box.
+   */
+  singleColumn?: boolean
 }
 
 /**
@@ -60,11 +65,17 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
     videoMaxMinutes, setVideoMaxMinutes, videoMaxSeconds, setVideoMaxSeconds,
     solutionDescription, setSolutionDescription,
     solutionImageUrl, setSolutionImageUrl, onUploadSolution,
-    config, setConfig, groupsCard,
+    config, setConfig, groupsCard, singleColumn,
   } = props
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[2fr_1fr]">
+    <div
+      className={
+        singleColumn
+          ? 'space-y-6'
+          : 'grid items-start gap-6 xl:grid-cols-[2fr_1fr]'
+      }
+    >
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
           <div className="space-y-2">
@@ -166,6 +177,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
               )}
             </Card>
 
+            <div className="space-y-6">
             <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-semibold uppercase tracking-wider">
                 Facilitator only
@@ -211,7 +223,8 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                 previewLabel="Solution preview"
               />
             </Card>
-      {groupsCard}
+              {groupsCard}
+            </div>
     </div>
   )
 }
