@@ -12,6 +12,7 @@ import {
 import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
 import { GameFormLayout } from '@/components/games/GameFormLayout'
 import { AssetField } from '@/components/games/AssetField'
+import { PointsEditor } from '@/components/games/PointsEditor'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
 import { NeoButton } from '@/components/neo-minimal'
 import { QueryLoading } from '@/components/admin/QueryState'
@@ -20,7 +21,6 @@ import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEdi
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -367,6 +367,21 @@ export function AdminGamesNewPage() {
         )}
         {!isPhotoVideo && (
           <GameFormLayout
+            facilitatorCard={
+              isText ? (
+                <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+                  <h3 className="text-foreground text-sm font-bold">Game designer</h3>
+                  <TextGameEditor
+                    config={config}
+                    setConfig={setConfig}
+                    judged={pointsType === 'range'}
+                    section="designer"
+                  />
+                </Card>
+              ) : isPuzzle ? (
+                <PuzzleEditor config={config} setConfig={setConfig} section="designer" />
+              ) : null
+            }
             groupsCard={
             <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-bold">Groups</h3>
@@ -403,79 +418,70 @@ export function AdminGamesNewPage() {
           >
 
         {isText && (
-          <>
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
             <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
-              <div className="space-y-2">
-                <Label>Game name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </div>
-              <AssetField
-                label="Cover image"
-                onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
-                preview={coverUrl}
-              />
-              <PointsEditor
-                pointsType={pointsType}
-                setPointsType={setPointsType}
-                pointsStatic={pointsStatic}
-                setPointsStatic={setPointsStatic}
-                pointsMin={pointsMin}
-                setPointsMin={setPointsMin}
-                pointsMax={pointsMax}
-                setPointsMax={setPointsMax}
-              />
-            </Card>
-            <TextGameEditor
-              config={config}
-              setConfig={setConfig}
-              judged={pointsType === 'range'}
+            <div className="space-y-2">
+              <Label>Game name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <RichTextEditor value={description} onChange={setDescription} />
+            </div>
+            <AssetField
+              label="Cover image"
+              onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
+              onUrl={setCoverUrl}
+              preview={coverUrl}
+              showPreviewPanel
             />
-          </>
+            <PointsEditor
+              pointsType={pointsType}
+              setPointsType={setPointsType}
+              pointsStatic={pointsStatic}
+              setPointsStatic={setPointsStatic}
+              pointsMin={pointsMin}
+              setPointsMin={setPointsMin}
+              pointsMax={pointsMax}
+              setPointsMax={setPointsMax}
+            />
+            <TextGameEditor config={config} setConfig={setConfig} section="settings" />
+          </Card>
         )}
 
         {isPuzzle && (
-          <>
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
             <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
-              <div className="space-y-2">
-                <Label>Game name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <RichTextEditor value={description} onChange={setDescription} />
-              </div>
-              <AssetField
-                label="Cover image"
-                onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
-                preview={coverUrl}
+            <div className="space-y-2">
+              <Label>Game name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <RichTextEditor value={description} onChange={setDescription} />
+            </div>
+            <AssetField
+              label="Cover image"
+              onFile={(f) => void handleFile(f, setCoverUrl, `covers/${newGameId()}`)}
+              onUrl={setCoverUrl}
+              preview={coverUrl}
+              showPreviewPanel
+            />
+            <div className="flex w-full items-center gap-3">
+              <Label className="shrink-0">Maximum points</Label>
+              <Input
+                type="number"
+                min={1}
+                value={pointsStatic}
+                onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
+                className="bg-background h-8 w-24"
               />
-              <div className="space-y-2">
-                <Label>Maximum points</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={pointsStatic}
-                  onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
-                  className="max-w-[8rem] bg-background"
-                />
-                <p className="text-muted-foreground text-xs">
-                  The puzzle scoring rule reduces this amount based on guesses or mistakes.
-                </p>
-              </div>
-            </Card>
-            <PuzzleEditor config={config} setConfig={setConfig} />
-          </>
+              <span className="text-muted-foreground text-xs">
+                Reduced by the puzzle scoring rule.
+              </span>
+            </div>
+            <PuzzleEditor config={config} setConfig={setConfig} section="settings" />
+          </Card>
         )}
 
         {gameType === 'quiz' && (
@@ -555,69 +561,6 @@ export function AdminGamesNewPage() {
   )
 }
 
-function PointsEditor({
-  pointsType,
-  setPointsType,
-  pointsStatic,
-  setPointsStatic,
-  pointsMin,
-  setPointsMin,
-  pointsMax,
-  setPointsMax,
-}: {
-  pointsType: PointsType
-  setPointsType: (v: PointsType) => void
-  pointsStatic: number
-  setPointsStatic: (v: number) => void
-  pointsMin: number
-  setPointsMin: (v: number) => void
-  pointsMax: number
-  setPointsMax: (v: number) => void
-}) {
-  return (
-    <div className="space-y-3">
-      <Label>Points</Label>
-      <div className="flex gap-2">
-        {(['static', 'range'] as const).map((t) => (
-          <Button
-            key={t}
-            type="button"
-            size="sm"
-            variant={pointsType === t ? 'secondary' : 'outline'}
-            onClick={() => setPointsType(t)}
-          >
-            {t === 'static' ? 'Static' : 'Range'}
-          </Button>
-        ))}
-      </div>
-      {pointsType === 'static' ? (
-        <Input
-          type="number"
-          value={pointsStatic}
-          onChange={(e) => setPointsStatic(Number(e.target.value))}
-          className="bg-background max-w-[8rem]"
-        />
-      ) : (
-        <div className="flex gap-3">
-          <Input
-            type="number"
-            placeholder="Min"
-            value={pointsMin}
-            onChange={(e) => setPointsMin(Number(e.target.value))}
-            className="bg-background max-w-[8rem]"
-          />
-          <Input
-            type="number"
-            placeholder="Max"
-            value={pointsMax}
-            onChange={(e) => setPointsMax(Number(e.target.value))}
-            className="bg-background max-w-[8rem]"
-          />
-        </div>
-      )}
-    </div>
-  )
-}
 
 function ColorPickers({
   config,
