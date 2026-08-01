@@ -203,6 +203,11 @@ export function CrosswordEditor({
       return
     }
     if (blockedSet.has(key)) return
+    // Clicking away from a part-typed word saves it rather than losing it. A
+    // clash stops here so the click does not quietly discard the letters.
+    if (dir && start && draftChars.length > 0) {
+      if (!confirmWord()) return
+    }
     // The pill already carries the direction, so a click both picks the start
     // cell and commits the direction. Checked here rather than left to a
     // disabled button, because there is no longer a second step to disable.
@@ -216,10 +221,10 @@ export function CrosswordEditor({
     window.setTimeout(() => draftInput.current?.focus(), 0)
   }
 
-  function confirmWord() {
+  function confirmWord(): boolean {
     if (!dir || !start || draftChars.length < 1) {
       setMessage('Words need at least 2 letters.')
-      return
+      return false
     }
     let lastFilled = -1
     slots.forEach((slot, index) => {
@@ -228,7 +233,7 @@ export function CrosswordEditor({
     const wordSlots = slots.slice(0, lastFilled + 1)
     if (wordSlots.some((slot) => !slot.letter)) {
       setMessage('Fill every square up to the end of the word.')
-      return
+      return false
     }
     const next = { ...placed }
     for (const slot of wordSlots) {
@@ -236,7 +241,7 @@ export function CrosswordEditor({
       const existing = next[slot.key]
       if (existing && existing !== letter) {
         setMessage('That letter clashes with a crossing word.')
-        return
+        return false
       }
       next[slot.key] = letter
     }
@@ -246,6 +251,7 @@ export function CrosswordEditor({
     setDir(null)
     setDraft('')
     openClue(key)
+    return true
   }
 
   function openClue(key: string) {
@@ -412,8 +418,17 @@ export function CrosswordEditor({
             maxLength={freeCount}
             autoComplete="off"
             spellCheck={false}
-            placeholder="Type the word"
-            className="w-40 bg-background font-bold uppercase tracking-[0.15em]"
+            aria-label="Type the word"
+            /* Off screen rather than hidden: it still takes the keystrokes and
+               stays reachable by a screen reader, but the letters appear in the
+               grid instead of in a second box saying the same thing. */
+            className="sr-only"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                confirmWord()
+              }
+            }}
             onChange={(event) =>
               setDraft(
                 event.target.value
