@@ -336,15 +336,21 @@ not exist yet.
 
 **Background.** A pill choosing Photo or Colours.
 - Photo: upload or paste a link, with a preview. Same control as elsewhere.
-- Colours: **four** colours, forming a corner-to-corner gradient behind the
-  quiz, one colour pinned to each corner like a slide.
+- Colours: **four** background colours, forming a corner-to-corner gradient
+  behind the quiz, one pinned to each corner like a slide. These are their own
+  thing, NOT primary/secondary/accent. Brand colours come from the event; these
+  only paint this quiz's background.
 - Either way the panel previews how the quiz will look.
 
 **Rounds.** Typing a number on the left generates that many rounds, collapsed.
 Each round is its own full-width card with an editable name, shown to players
-when that round starts, and a delete button. Deleting a round updates the number
-on the left, and so does adding one. There is no add-round button down here:
-rounds come from the number, and only leave from the card.
+when that round starts, and a delete button. The two stay in step: deleting a
+card lowers the number, and lowering the number removes rounds.
+
+Confirmed with Rumen that lowering the number does remove rounds, so it can
+destroy questions. It therefore asks first when the rounds being removed are not
+empty, and says how many questions go with them. There is no add-round button
+down here; rounds are added from the number.
 
 **Questions.** Inside a round: the question text, four answers, and a way to
 mark the correct one. Every question has text; alongside it a pill chooses what
@@ -360,9 +366,13 @@ An "Add another question" button sits at the bottom of each round.
 - A fourth background colour. GameConfig carries primary, secondary and accent;
   a fourth was deliberately not invented earlier because nothing consumed one.
   The corner gradient is the consumer, so it can be added now.
-- Per-question media: a kind (none/photo/video/audio) and a URL. Today a
-  question has only `photoUrl`, so photo has to migrate onto the new shape
-  without breaking the questions that already use it.
+- Per-question media: a kind, defaulting to **none**, then photo, video or
+  audio. Photo and audio are uploaded; video is a YouTube link. All three still
+  resolve to a stored URL, since an upload produces one, so a single mediaUrl
+  covers every case and only the way it is filled in differs.
+  Today a question has only `photoUrl`, so existing photo questions have to keep
+  working: read the old field when the new one is absent rather than migrating
+  data.
 - Nothing here changes scoring, so `points_static` stays the per-correct award.
 
 **Deferred by Rumen:** how the media behaves during a live quiz, when the video

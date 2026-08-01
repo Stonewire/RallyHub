@@ -44,12 +44,22 @@ export type CrosswordLayout = {
   clues: CrosswordClue[]
 }
 
+/** What a question carries besides its text. Defaults to nothing. */
+export type QuizMediaKind = 'none' | 'photo' | 'video' | 'audio'
+
 export type QuizQuestion = {
   id: string
   text: string
   answers: QuizAnswer[]
   correctAnswerId: string
+  /** @deprecated superseded by mediaKind/mediaUrl; still read for old questions. */
   photoUrl?: string | null
+  /**
+   * Photo and audio are uploaded, video is a YouTube link, but all three end up
+   * as a URL, so one field covers them and only the way it is filled differs.
+   */
+  mediaKind?: QuizMediaKind
+  mediaUrl?: string | null
   roundId?: string | null
 }
 
@@ -93,6 +103,12 @@ export type GameConfig = {
   primary_color?: string
   secondary_color?: string
   accent_color?: string
+  /**
+   * Quiz background only: four colours, one per corner, blended into a gradient
+   * behind the quiz. Deliberately separate from the three above, which are brand
+   * colours and will come from the event.
+   */
+  quiz_background_colors?: [string, string, string, string]
   timer_seconds?: number
   questions?: QuizQuestion[]
   rounds_enabled?: boolean
