@@ -148,6 +148,40 @@ bundled into a design batch.
 - Ticket file attachments.
 - Stat card week-over-week deltas (needs historical data that is not currently recorded).
 
+## BLOCKING: the branch cannot run against the live database
+
+Verified 1 Aug 2026 against production from the dev server. Every column added
+in Phase 2 is missing, because those migrations are committed but deliberately
+unapplied:
+
+| Column | Probe result |
+|---|---|
+| `events.location` | 42703 does not exist |
+| `support_tickets.category` | 42703 does not exist |
+| `games.deleted_by` | 42703 does not exist |
+| `games.deleted_by_name` | 42703 does not exist |
+| `profiles.phone` | 42703 does not exist |
+| `profiles.avatar_url` | 42703 does not exist |
+
+The code writes all of them, so these operations fail outright on this branch:
+
+- **Creating or saving an event** ("Failed to save event")
+- **Creating a support ticket**
+- **Deleting a game** (the soft-delete writes deleted_by)
+- **Saving My Account** (phone) and **uploading a profile photo** (avatar_url,
+  which also needs the unapplied self-update RLS policy)
+
+This is not a styling issue. Until the seven migrations are applied, the branch
+cannot be smoke-tested at all, which also blocks every Phase 7 item.
+
+**Decision needed from Rumen.** All seven are additive: add column, add policy,
+add bucket, add function. None drops or rewrites data, and each can be reverted.
+Applying them to the live database is the normal way to make a feature branch
+testable, but it is a production change, so it is not something to do
+unattended. The alternative is making each write defensive so the branch runs
+against either schema, which is throwaway complexity that would then need
+removing.
+
 ## Phase 8: questions parked for Rumen
 
 Rumen is away and cannot approve anything, so nothing in this file blocks on
