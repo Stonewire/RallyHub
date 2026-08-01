@@ -348,9 +348,13 @@ when that round starts, and a delete button. The two stay in step: deleting a
 card lowers the number, and lowering the number removes rounds.
 
 Confirmed with Rumen that lowering the number does remove rounds, so it can
-destroy questions. It therefore asks first when the rounds being removed are not
-empty, and says how many questions go with them. There is no add-round button
-down here; rounds are added from the number.
+destroy questions. When a round being removed is not empty, a dialog says how
+many questions go with it and offers a dropdown of the other rounds to move
+them to. Choosing a round reassigns them; choosing nothing deletes them with the
+round. There is no add-round button down here; rounds are added from the number.
+
+Logic and tests already landed in components/games/quiz-round-edits.ts; only
+the dialog remains.
 
 **Questions.** Inside a round: the question text, four answers, and a way to
 mark the correct one. Every question has text; alongside it a pill chooses what
