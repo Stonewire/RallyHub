@@ -68,6 +68,31 @@ These stay functionally as they are; only their presentation changes.
 
 The design's Preview modal (TV mock plus phone mock side by side) and the Quiz and Music Bingo Background Designer with live previews. Largest single unbuilt piece; deliberately last because it depends on the control primitives and the restyled editors.
 
+## Phase 7: live-path work, after the design is finished
+
+These change behaviour that runs during a live event. Per TRACKER's rules they
+land one at a time, each with a live smoke test on a throwaway event, and never
+bundled into a design batch.
+
+1. **Text approval mode.** Today approval is derived from `points_type ===
+   'range'`: choosing range points forces facilitator review, and static points
+   forces automatic scoring. The design treats Game Style, Approval and Points
+   as three independent switches. Splitting them needs a `text_approval_mode`
+   config field, the server-side approval path updated to read it, and a
+   fallback to the current inference so existing text games are unaffected.
+   The field was drafted and then removed rather than ship a control that
+   nothing enforces.
+
+2. **Quiz points verification.** Quiz now writes `games.points_static`, which
+   `score_current_quiz_question` reads as the per-correct-answer award. Before
+   this, quiz games never wrote that column at all, so scoring fell back to its
+   hardcoded 10. The editor change is in, but it alters live scoring, so it
+   needs a real quiz round smoke-tested end to end: set a non-default value,
+   run a question, confirm the awarded score matches.
+
+3. **Bingo clip length 60 seconds.** The design offers 30/60/90; the type and
+   the clip generator permit 30 and 90 only. Adding 60 touches clip extraction.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.
