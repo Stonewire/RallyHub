@@ -40,9 +40,12 @@ const SUBTYPES: {
 export function PuzzleEditor({
   config,
   setConfig,
+  section = 'designer',
 }: {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
+  /** 'settings' renders the type picker; 'designer' renders the builder. */
+  section?: 'settings' | 'designer'
 }) {
   const selected = puzzleType(config)
   const pairs = config.puzzle_matching_pairs ?? [
@@ -61,13 +64,12 @@ export function PuzzleEditor({
     }))
   }
 
-  return (
-    <Card className="border-border/80 space-y-6 bg-card p-5 shadow-sm sm:p-6">
-      <div className="border-border border-b pb-5">
-        <div className="mb-3">
-          <h3 className="text-foreground text-base font-bold">Puzzle designer</h3>
-          <p className="text-muted-foreground mt-1 text-xs">Choose a format and configure the player challenge.</p>
-        </div>
+  // The style picker sits in Primary settings, so the choice is made with the
+  // rest of the game's basics; the designer for that choice lives on the right.
+  if (section === 'settings') {
+    return (
+      <div className="space-y-2">
+        <Label>Puzzle type</Label>
         <SegmentedPill
           aria-label="Puzzle style"
           options={SUBTYPES.map(({ type, name, upcoming }) => ({
@@ -79,6 +81,12 @@ export function PuzzleEditor({
           onChange={(next) => selectSubtype(next)}
         />
       </div>
+    )
+  }
+
+  return (
+    <Card className="border-border/80 space-y-6 bg-card p-5 shadow-sm sm:p-6">
+      <h3 className="text-foreground text-sm font-bold">Puzzle designer</h3>
 
       {selected === 'wordle' || selected === 'crossword' ? (
         <div className="flex flex-wrap items-center justify-between gap-3">

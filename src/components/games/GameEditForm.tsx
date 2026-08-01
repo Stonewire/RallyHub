@@ -352,6 +352,21 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     </Card>
   )
 
+  const designerCard =
+    gameType === 'text' ? (
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <h3 className="text-foreground text-sm font-bold">Game designer</h3>
+        <TextGameEditor
+          config={config}
+          setConfig={setConfig}
+          judged={pointsType === 'range'}
+          section="designer"
+        />
+      </Card>
+    ) : gameType === 'puzzle' ? (
+      <PuzzleEditor config={config} setConfig={setConfig} section="designer" />
+    ) : null
+
   const body = (
     <>
       <GamePreviewModal
@@ -407,7 +422,11 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         ) : null}
 
         {gameType === 'photo' || gameType === 'video' ? null : (
-          <GameFormLayout groupsCard={groupsCard} singleColumn={singleColumn}>
+          <GameFormLayout
+            facilitatorCard={designerCard}
+            groupsCard={groupsCard}
+            singleColumn={singleColumn}
+          >
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
           <div className="space-y-2">
@@ -418,6 +437,52 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
             <Label>Description</Label>
             <RichTextEditor value={description} onChange={setDescription} />
           </div>
+          {gameType === 'text' || gameType === 'puzzle' ? (
+            <>
+              <AssetField
+                label="Cover image"
+                preview={coverUrl}
+                onFile={async (file) => {
+                  if (!file) return
+                  setCoverUrl(await uploadGameFile(organizationId, `covers/${gameId}`, file))
+                }}
+                onUrl={setCoverUrl}
+                showPreviewPanel
+              />
+              {gameType === 'text' ? (
+                <>
+                  <PointsEditor
+                    pointsType={pointsType}
+                    setPointsType={setPointsType}
+                    pointsStatic={pointsStatic}
+                    setPointsStatic={setPointsStatic}
+                    pointsMin={pointsMin}
+                    setPointsMin={setPointsMin}
+                    pointsMax={pointsMax}
+                    setPointsMax={setPointsMax}
+                  />
+                  <TextGameEditor config={config} setConfig={setConfig} section="settings" />
+                </>
+              ) : (
+                <>
+                  <div className="flex w-full items-center gap-3">
+                    <Label className="shrink-0">Maximum points</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={pointsStatic}
+                      onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
+                      className="bg-background h-8 w-24"
+                    />
+                    <span className="text-muted-foreground text-xs">
+                      Reduced by the puzzle scoring rule.
+                    </span>
+                  </div>
+                  <PuzzleEditor config={config} setConfig={setConfig} section="settings" />
+                </>
+              )}
+            </>
+          ) : null}
         </Card>
 
         {gameType === 'quiz' ? (
@@ -490,70 +555,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
           />
         ) : null}
 
-        {gameType === 'text' ? (
-          <>
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <AssetField
-                label="Cover image"
-                preview={coverUrl}
-                onFile={async (file) => {
-                  if (!file) return
-                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
-                  setCoverUrl(url)
-                }}
-                onUrl={setCoverUrl}
-                showPreviewPanel
-              />
-              <PointsEditor
-                pointsType={pointsType}
-                setPointsType={setPointsType}
-                pointsStatic={pointsStatic}
-                setPointsStatic={setPointsStatic}
-                pointsMin={pointsMin}
-                setPointsMin={setPointsMin}
-                pointsMax={pointsMax}
-                setPointsMax={setPointsMax}
-              />
-            </Card>
-            <TextGameEditor
-              config={config}
-              setConfig={setConfig}
-              judged={pointsType === 'range'}
-            />
-          </>
-        ) : null}
-
-        {gameType === 'puzzle' ? (
-          <>
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <AssetField
-                label="Cover image"
-                preview={coverUrl}
-                onFile={async (file) => {
-                  if (!file) return
-                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
-                  setCoverUrl(url)
-                }}
-                onUrl={setCoverUrl}
-                showPreviewPanel
-              />
-              <div className="space-y-2">
-                <Label>Maximum points</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={pointsStatic}
-                  onChange={(e) => setPointsStatic(Math.max(1, Number(e.target.value) || 1))}
-                  className="max-w-[8rem] bg-background"
-                />
-                <p className="text-muted-foreground text-xs">
-                  The puzzle scoring rule reduces this amount based on guesses or mistakes.
-                </p>
-              </div>
-            </Card>
-            <PuzzleEditor config={config} setConfig={setConfig} />
-          </>
-        ) : null}
 
           </GameFormLayout>
         )}

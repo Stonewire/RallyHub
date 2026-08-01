@@ -107,42 +107,34 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                 setPointsMax={setPointsMax}
               />
               {gameType === 'video' ? (
-                <div className="space-y-2">
-                  <Label>Max video duration</Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxMinutes}
-                        onChange={(e) =>
-                          setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">min</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={videoMaxSeconds}
-                        onChange={(e) =>
-                          setVideoMaxSeconds(
-                            Math.min(59, Math.max(0, Number(e.target.value) || 0)),
-                          )
-                        }
-                        className="bg-background w-20"
-                      />
-                      <span className="text-muted-foreground text-sm">sec</span>
-                    </div>
+                /* Label and both boxes on one line, like Points. The total in
+                   seconds was restating the two numbers above it. */
+                <div className="flex w-full flex-wrap items-center gap-3">
+                  <Label className="shrink-0">Max video duration</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      aria-label="Minutes"
+                      value={videoMaxMinutes}
+                      onChange={(e) => setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))}
+                      className="bg-background h-8 w-20"
+                    />
+                    <span className="text-muted-foreground text-sm">min</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      aria-label="Seconds"
+                      value={videoMaxSeconds}
+                      onChange={(e) =>
+                        setVideoMaxSeconds(Math.min(59, Math.max(0, Number(e.target.value) || 0)))
+                      }
+                      className="bg-background h-8 w-20"
+                    />
+                    <span className="text-muted-foreground text-sm">sec</span>
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    Stored as {Math.max(1, videoMaxMinutes * 60 + videoMaxSeconds)} seconds
-                    total
-                  </p>
                 </div>
               ) : null}
               {gameType === 'video' ? (

@@ -3,27 +3,30 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { newGameId } from '@/lib/game-upload'
 import type { GameConfig, QuizAnswer, TextAnswerMode } from '@/types/game-config'
 
+/** Four to start; the editor caps additions at MAX_OPTIONS. */
 function defaultOptions(): QuizAnswer[] {
-  const a1 = { id: newGameId(), text: 'Answer 1' }
-  const a2 = { id: newGameId(), text: 'Answer 2' }
-  return [a1, a2]
+  return [1, 2, 3, 4].map((n) => ({ id: newGameId(), text: `Answer ${n}` }))
 }
+
+const MAX_OPTIONS = 6
 
 export function TextGameEditor({
   config,
   setConfig,
   judged = false,
+  section = 'designer',
 }: {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
   /** Range points mean a facilitator scores the answer, so nothing is required. */
   judged?: boolean
+  /** 'settings' renders the mode pills; 'designer' renders the answer editor. */
+  section?: 'settings' | 'designer'
 }) {
   const mode: TextAnswerMode = config.text_answer_mode ?? 'type_text'
   const correctAnswers = config.text_correct_answers ?? ['']
@@ -44,27 +47,26 @@ export function TextGameEditor({
     })
   }
 
-  return (
-    <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
-      {/* Pills, not flip switches: each is a choice between two named modes
-          rather than an on/off, and the label sits on the same line to save a
-          row apiece. */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex items-center gap-3">
+  // Rendered in two pieces: the mode pills sit in Primary settings on the left,
+  // the answer editor in the Game designer card on the right.
+  if (section === 'settings') {
+    return (
+      <div className="space-y-3">
+        <div className="flex w-full items-center gap-3">
           <Label className="shrink-0">Game style</Label>
           <SegmentedPill
             size="sm"
             className="flex-1"
             aria-label="Game style"
             options={[
-              { value: 'type_text', label: 'Type' },
-              { value: 'choose_answer', label: 'Choose' },
+              { value: 'type_text', label: 'Typing' },
+              { value: 'choose_answer', label: 'Selection' },
             ]}
             value={mode}
             onChange={(next) => setMode(next as typeof mode)}
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3">
           <Label className="shrink-0">Approval</Label>
           <SegmentedPill
             size="sm"
@@ -80,13 +82,17 @@ export function TextGameEditor({
             }
           />
         </div>
+        <p className="text-muted-foreground text-xs">
+          {config.text_approval_mode === 'auto'
+            ? 'Auto: answers are checked and scored the moment a team submits. An exact match scores the full points, anything else scores zero.'
+            : 'Review: every answer waits for a facilitator to score it.'}
+        </p>
       </div>
-      <p className="text-muted-foreground text-xs">
-        {config.text_approval_mode === 'auto'
-          ? 'Auto: answers are checked and scored the moment a team submits. An exact match scores the full points, anything else scores zero.'
-          : 'Review: every answer waits for a facilitator to score it.'}
-      </p>
+    )
+  }
 
+  return (
+    <>
       {mode === 'type_text' ? (
         <div className="space-y-3">
           <div>
@@ -201,7 +207,7 @@ export function TextGameEditor({
               </Button>
             </div>
           ))}
-          {options.length < 6 ? (
+          {options.length < MAX_OPTIONS ? (
             <Button
               type="button"
               variant="outline"
@@ -222,7 +228,7 @@ export function TextGameEditor({
           ) : null}
         </div>
       )}
-    </Card>
+    </>
   )
 }
 
