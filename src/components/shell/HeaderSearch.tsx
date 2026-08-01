@@ -40,7 +40,7 @@ export function HeaderSearch() {
   return (
     <div ref={boxRef} className="relative w-60">
       <IconSearch
-        className="text-nm-neutral-600 pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
+        className="text-nm-neutral-600 pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
       />
       <input
         value={query}
@@ -51,11 +51,11 @@ export function HeaderSearch() {
         onFocus={() => setOpen(true)}
         placeholder="Search…"
         aria-label="Search"
-        className="border-input bg-nm-surface rounded-nm-md h-[26px] w-full border pr-2 pl-7 text-xs"
+        className="border-input bg-nm-surface rounded-nm-md h-8 w-full border pr-3 pl-8 text-xs"
       />
 
       {showDropdown ? (
-        <div className="border-border bg-nm-surface rounded-nm-md absolute top-[30px] left-0 z-60 w-80 overflow-hidden border shadow-lg">
+        <div className="border-border bg-nm-surface rounded-nm-md absolute top-[36px] left-0 z-60 w-80 overflow-hidden border shadow-lg">
           {hasResults ? (
             results.map((result) => (
               <button

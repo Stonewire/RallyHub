@@ -20,7 +20,7 @@ export function HeaderAvatar() {
       to="/admin/settings?tab=account"
       title="My Account"
       aria-label="My Account"
-      className="bg-nm-slate-500 flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold text-white"
+      className="bg-nm-slate-500 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white"
     >
       {profile?.avatar_url ? (
         <img src={profile.avatar_url} alt="" className="size-full object-cover" />
