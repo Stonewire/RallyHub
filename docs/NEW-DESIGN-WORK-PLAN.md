@@ -44,7 +44,7 @@ Deferred and flagged, not in this phase: ticket file attachments. That needs a t
 1. **Profile photo.** Wire the avatar to a real file input, upload to the new bucket, store `avatar_url`, show it in My Account and in the header avatar with the initials fallback retained.
 2. **Logo dropzone.** Real `onDragOver`/`onDrop`, plus enforcement of the "SVG, PNG or JPG (Max 2MB)" the UI already promises. Reject with a clear message rather than silently accepting.
 
-## Phase 4: fields and behaviour from the design
+## Phase 4: fields and behaviour from the design (DONE)
 
 - Event: location field and card row, 40-character name cap, minimum 5 teams, break stage seconds, status editable inside the editor.
 - Events list: date filter by specific date, month and year alongside the existing range.
@@ -53,6 +53,13 @@ Deferred and flagged, not in this phase: ticket file attachments. That needs a t
 - Games: cover and solution "paste a URL" inputs, solution video link, quiz points per correct, text approval mode, Deleted Games columns (Cover, Type, Groups, Deleted By), bulk permanent delete, Add Group source-group selector, game editor dirty-check on Save.
 - Quest stage picker: switch to the design's checkbox list with Select All and an explicit Save, with pending selections auto-committing on stage or group change.
 - Music Library: mini player transport controls.
+
+All of the above landed. Two items were deliberately not built and moved to
+Phase 7, because they change live-event behaviour: quiz points needed the
+scoring column rather than a config key (the editor half is in, the smoke test
+is not), and text approval mode alters how submissions are approved mid-event.
+Bulk permanent delete is wired for Events only; Games has no safe
+permanent-delete backend and inventing one is not a design task.
 
 ## Phase 5: restyle the kept features into the design language
 
