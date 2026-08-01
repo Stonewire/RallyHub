@@ -558,6 +558,15 @@ export function AdminGamesPage() {
               id: g.id,
               name: g.name,
               deletedAt: g.deleted_at!,
+              coverUrl: g.cover_url,
+              typeLabel: FILTERS.find((f) => f.value === g.type)?.label ?? g.type,
+              groups: groups
+                .filter((group) => group.items.some((i) => i.game_id === g.id))
+                .map((group) => group.name),
+              deletedByName: g.deleted_by_name,
+              // The FK is nulled when the account goes, but the snapshot
+              // remains, which is exactly how we know they were removed.
+              deletedByRemoved: Boolean(g.deleted_by_name) && !g.deleted_by,
             }))}
             emptyLabel={(trashedGamesQuery.data ?? []).length === 0 ? 'No deleted games.' : 'No deleted games match these filters.'}
             restoringId={restoreGame.isPending ? restoreGame.variables : undefined}

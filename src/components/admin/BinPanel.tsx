@@ -9,6 +9,16 @@ export type BinItem = {
   id: string
   name: string
   deletedAt: string
+  /** Optional cover thumbnail, shown for games. */
+  coverUrl?: string | null
+  /** Game type label, e.g. "Photo". */
+  typeLabel?: string | null
+  /** Group names this item belonged to. */
+  groups?: string[]
+  /** Live display name of whoever deleted it. */
+  deletedByName?: string | null
+  /** True when the deleting account no longer exists. */
+  deletedByRemoved?: boolean
 }
 
 function formatDeletedDate(value: string) {
@@ -28,12 +38,13 @@ export function BinPanel({
   emptyLabel: string
   onRestore: (id: string) => Promise<void>
   onOpen: (id: string) => void
-  onDeletePermanently?: (id: string) => void
+  onDeletePermanently?: (id: string) => void | Promise<void>
   restoringId?: string
   deletingId?: string
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [restoringBulk, setRestoringBulk] = useState(false)
+  const [deletingBulk, setDeletingBulk] = useState(false)
 
   if (items.length === 0) {
     return (
@@ -60,6 +71,31 @@ export function BinPanel({
 
   function toggleAll() {
     setSelected(allRestorableSelected ? new Set() : new Set(restorableItems.map((item) => item.id)))
+  }
+
+  /**
+   * Permanent bulk delete. Confirmed once for the whole batch rather than per
+   * item, because a per-item prompt for twenty games trains people to click
+   * through without reading.
+   */
+  async function deleteSelectedPermanently() {
+    if (!onDeletePermanently) return
+    const ids = items.filter((item) => selected.has(item.id)).map((item) => item.id)
+    if (ids.length === 0) return
+    if (
+      !window.confirm(
+        `Permanently delete ${ids.length} item${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
+      )
+    ) {
+      return
+    }
+    setDeletingBulk(true)
+    try {
+      for (const id of ids) await onDeletePermanently(id)
+      setSelected(new Set())
+    } finally {
+      setDeletingBulk(false)
+    }
   }
 
   async function restoreSelected() {
@@ -89,12 +125,28 @@ export function BinPanel({
             {restoringBulk ? 'Restoring…' : `Restore ${selectedCount} selected`}
           </NeoButton>
         ) : null}
+        {selectedCount > 0 && onDeletePermanently ? (
+          <NeoButton
+            type="button"
+            variant="destructive"
+            size="sm"
+            disabled={deletingBulk || restoringBulk}
+            onClick={() => void deleteSelectedPermanently()}
+          >
+            <Trash2 className="mr-1.5 size-3.5" />
+            {deletingBulk ? 'Deleting…' : `Delete ${selectedCount} permanently`}
+          </NeoButton>
+        ) : null}
       </div>
-      <div className="text-muted-foreground border-border hidden grid-cols-[28px_minmax(0,1fr)_130px_110px_250px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
+      <div className="text-muted-foreground border-border hidden grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_190px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
         <span />
+        <span>Cover</span>
         <span>Name</span>
+        <span>Type</span>
+        <span>Groups</span>
+        <span>Deleted by</span>
         <span>Deleted on</span>
-        <span>Delete in</span>
+        <span>Restore in</span>
         <span className="text-right">Actions</span>
       </div>
       {items.map((item) => {
@@ -102,7 +154,7 @@ export function BinPanel({
         return (
           <div
             key={item.id}
-            className="border-border/70 grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[28px_minmax(0,1fr)_130px_110px_250px] md:items-center"
+            className="border-border/70 grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_190px] md:items-center"
           >
             <input
               type="checkbox"
@@ -111,6 +163,17 @@ export function BinPanel({
               onChange={() => toggleSelected(item.id)}
               aria-label={`Select ${item.name}`}
             />
+            <div className="hidden md:block">
+              {item.coverUrl ? (
+                <img
+                  src={item.coverUrl}
+                  alt=""
+                  className="size-9 rounded object-cover"
+                />
+              ) : (
+                <div className="bg-muted size-9 rounded" aria-hidden />
+              )}
+            </div>
             <div className="min-w-0">
               <button
                 type="button"
@@ -121,6 +184,21 @@ export function BinPanel({
               </button>
               <p className="text-muted-foreground mt-0.5 text-xs md:hidden">Deleted {formatDeletedDate(item.deletedAt)}</p>
             </div>
+            <p className="text-muted-foreground hidden truncate text-xs md:block">
+              {item.typeLabel ?? '—'}
+            </p>
+            <p className="text-muted-foreground hidden truncate text-xs md:block">
+              {item.groups?.length ? item.groups.join(', ') : 'Ungrouped'}
+            </p>
+            <p className="text-muted-foreground hidden truncate text-xs md:block">
+              {/* Attribution survives the account being deleted via the
+                  deleted_by_name snapshot; only pre-column rows are unknown. */}
+              {item.deletedByName
+                ? item.deletedByRemoved
+                  ? `${item.deletedByName} (account removed)`
+                  : item.deletedByName
+                : 'Unknown'}
+            </p>
             <p className="text-muted-foreground hidden text-xs md:block">{formatDeletedDate(item.deletedAt)}</p>
             <p className="text-muted-foreground text-xs">
               {remaining > 0 ? `${remaining} day${remaining === 1 ? '' : 's'}` : 'Deleting soon'}
