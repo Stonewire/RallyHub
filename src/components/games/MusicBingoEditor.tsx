@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
 import { MusicCatalogPicker } from '@/components/games/MusicCatalogPicker'
 import { Button } from '@/components/ui/button'
+import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +28,8 @@ type MusicBingoEditorProps = {
   organizationId: string
   coverUrl: string | null
   setCoverUrl: (v: string | null) => void
+  /** Shown in the Background Designer's live preview. */
+  gameName?: string
 }
 
 export function MusicBingoEditor({
@@ -35,6 +38,7 @@ export function MusicBingoEditor({
   organizationId,
   coverUrl,
   setCoverUrl,
+  gameName = '',
 }: MusicBingoEditorProps) {
   const tracks = useMemo(() => config.tracks ?? [], [config.tracks])
   const [clipBusy, setClipBusy] = useState(false)
@@ -145,16 +149,15 @@ export function MusicBingoEditor({
         }}
         preview={coverUrl}
       />
-      <FileField
-        label="Background image (optional)"
-        onFile={async (f) => {
-          if (!f) return
-          const url = await uploadGameFile(organizationId, `bingo/bg-${newGameId()}`, f)
-          setConfig((c) => ({ ...c, background_url: url }))
-        }}
-        preview={config.background_url ?? null}
+      <BackgroundDesigner
+        config={config}
+        setConfig={setConfig}
+        gameName={gameName}
+        previewSubtitle="Listen and mark your card"
+        onUploadBackground={(file) =>
+          uploadGameFile(organizationId, `bingo/bg-${newGameId()}`, file)
+        }
       />
-      <ColorPickers config={config} setConfig={setConfig} />
 
       <div className="space-y-2">
         <Label>Clip length for live bingo</Label>
@@ -400,31 +403,3 @@ function FileField({
   )
 }
 
-function ColorPickers({
-  config,
-  setConfig,
-}: {
-  config: GameConfig
-  setConfig: Dispatch<SetStateAction<GameConfig>>
-}) {
-  const fields = [
-    ['primary_color', 'Primary'],
-    ['secondary_color', 'Secondary'],
-    ['accent_color', 'Accent'],
-  ] as const
-  return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      {fields.map(([key, label]) => (
-        <div key={key} className="space-y-2">
-          <Label>{label} (optional)</Label>
-          <input
-            type="color"
-            value={config[key] ?? '#3E3D3E'}
-            onChange={(e) => setConfig((c) => ({ ...c, [key]: e.target.value }))}
-            className="size-10 w-full cursor-pointer rounded border"
-          />
-        </div>
-      ))}
-    </div>
-  )
-}

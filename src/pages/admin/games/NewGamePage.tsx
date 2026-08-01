@@ -498,6 +498,7 @@ export function AdminGamesNewPage() {
             organizationId={organizationId}
             coverUrl={coverUrl}
             setCoverUrl={setCoverUrl}
+            gameName={name}
           />
         )}
       </div>

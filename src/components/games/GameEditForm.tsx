@@ -7,6 +7,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
+import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
 import { GamePreviewModal } from '@/components/games/GamePreviewModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
@@ -323,6 +324,16 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
               }))
             }}
             />
+            <BackgroundDesigner
+              config={config}
+              setConfig={setConfig}
+              gameName={name}
+              previewSubtitle={(config.questions ?? [])[0]?.text}
+              onOpenPreview={() => setPreviewOpen(true)}
+              onUploadBackground={(file) =>
+                uploadGameFile(organizationId, `backgrounds/${gameId}`, file)
+              }
+            />
           </>
         ) : null}
 
@@ -333,6 +344,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
             organizationId={organizationId}
             coverUrl={coverUrl}
             setCoverUrl={setCoverUrl}
+            gameName={name}
           />
         ) : null}
 
