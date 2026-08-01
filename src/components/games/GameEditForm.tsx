@@ -1,5 +1,5 @@
 import { Eye } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import {
   NoOrganizationMessage,
@@ -48,6 +48,15 @@ type GameEditFormProps = {
 }
 
 /** Shared game-edit logic/fields, rendered by both the standalone edit page and the side panel. */
+/**
+ * Stable string form of everything the editor can change, for the dirty check.
+ * JSON key order is insertion order, and every field is written here in a fixed
+ * order, so the same values always produce the same string.
+ */
+function snapshot(values: Record<string, unknown>): string {
+  return JSON.stringify(values)
+}
+
 export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
@@ -72,6 +81,9 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
   const [pointsMax, setPointsMax] = useState(100)
   const [solutionDescription, setSolutionDescription] = useState('')
   const [previewOpen, setPreviewOpen] = useState(false)
+  // Snapshot of the game as loaded, so Save can be disabled until something
+  // actually changes. The design's editor only offers Save when dirty.
+  const baselineRef = useRef<string>('')
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null)
   const [exampleVideoUrl, setExampleVideoUrl] = useState<string | null>(null)
   const [videoMaxMinutes, setVideoMaxMinutes] = useState(2)
@@ -96,6 +108,21 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
     const totalSeconds = c.max_video_duration_seconds ?? 30
     setVideoMaxMinutes(Math.floor(totalSeconds / 60))
     setVideoMaxSeconds(totalSeconds % 60)
+    baselineRef.current = snapshot({
+      name: g.name,
+      description: g.description ?? '',
+      coverUrl: g.cover_url,
+      config: c,
+      pointsType: g.points_type,
+      pointsStatic: g.points_static ?? 50,
+      pointsMin: g.points_min ?? 10,
+      pointsMax: g.points_max ?? 100,
+      solutionDescription: g.solution_description ?? '',
+      solutionImageUrl: g.solution_image_url,
+      exampleVideoUrl: c.example_video_url ?? null,
+      videoMaxMinutes: Math.floor(totalSeconds / 60),
+      videoMaxSeconds: totalSeconds % 60,
+    })
     setHydrated(true)
   }, [gameQuery.data, hydrated])
 
@@ -226,6 +253,24 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
     }
   }
 
+  const current = snapshot({
+    name,
+    description,
+    coverUrl,
+    config,
+    pointsType,
+    pointsStatic,
+    pointsMin,
+    pointsMax,
+    solutionDescription,
+    solutionImageUrl,
+    exampleVideoUrl,
+    videoMaxMinutes,
+    videoMaxSeconds,
+  })
+  // eslint-disable-next-line react-hooks/refs -- baselineRef is only written in the hydrate effect; comparing during render is the intended dirty check
+  const dirty = hydrated && current !== baselineRef.current
+
   const headerActions = (
     <>
       {/* Available for every game type, unlike the design which tucks Preview
@@ -242,7 +287,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       <NeoButton
         type="button"
         variant="primary"
-        disabled={saving}
+        disabled={saving || !dirty}
         onClick={() => void handleSave()}
       >
         {saving ? 'Saving…' : 'Save changes'}
@@ -518,7 +563,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
         ) : null}
       </div>
 
-      <FormSaveFooter onSave={() => void handleSave()} saving={saving} label="Save changes" />
+      <FormSaveFooter onSave={() => void handleSave()} saving={saving} label="Save changes" dirty={dirty} />
 
       {installOpen && gameQuery.data ? (
         <InstallGameModal game={gameQuery.data} onClose={() => setInstallOpen(false)} />

@@ -35,7 +35,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-nm-surface border-border rounded-nm-lg w-[420px] max-w-[92vw] border p-4 shadow-lg"
+        className="bg-nm-surface border-border rounded-nm-lg flex max-h-[80vh] w-[520px] max-w-[92vw] flex-col border p-4 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -66,7 +66,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
         </div>
 
         {matches.length > 0 ? (
-          <ul className="flex flex-col">
+          <ul className="flex min-h-0 flex-col overflow-y-auto">
             {matches.map((article) => (
               <li
                 key={article.id}

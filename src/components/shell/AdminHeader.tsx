@@ -89,13 +89,17 @@ export function AdminHeader() {
           <button
             type="button"
             onClick={toggleTheme}
-            aria-label={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+            aria-label={
+              resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+            }
             className={ICON_BUTTON}
           >
+            {/* Icon reflects the CURRENT theme, per the design. The label
+                still describes the action, which is what screen readers need. */}
             {resolvedTheme === 'dark' ? (
-              <Sun className="size-3.5" strokeWidth={2} />
-            ) : (
               <Moon className="size-3.5" strokeWidth={2} />
+            ) : (
+              <Sun className="size-3.5" strokeWidth={2} />
             )}
           </button>
           <button

@@ -10,8 +10,10 @@ type FormSaveFooterProps = {
   className?: string
   /**
    * Optional dirty flag. When provided, the button shows "Saved!" after a
-   * successful save and reverts to `label` as soon as the form is dirty again.
-   * When omitted, "Saved!" auto-reverts after a short delay.
+   * successful save, reverts to `label` as soon as the form is dirty again,
+   * and is disabled while there is nothing to save. When omitted, "Saved!"
+   * auto-reverts after a short delay and the button is always enabled, so
+   * callers that do not track dirtiness are unaffected.
    */
   dirty?: boolean
 }
@@ -57,7 +59,7 @@ export function FormSaveFooter({
         <NeoButton
           type="button"
           variant="primary"
-          disabled={saving}
+          disabled={saving || dirty === false}
           onClick={onSave}
           data-tour="form-save-button"
         >
