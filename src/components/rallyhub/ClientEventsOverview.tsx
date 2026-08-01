@@ -17,9 +17,14 @@ const CLIENT_EVENTS_COLLAPSED_STORAGE_KEY = 'rallyhub-client-events-collapsed-v1
 type ClientEventsOverviewProps = {
   events: ClientEventRow[]
   clientPlan: string | null | undefined
+  hideInvoiceState?: boolean
 }
 
-export function ClientEventsOverview({ events, clientPlan }: ClientEventsOverviewProps) {
+export function ClientEventsOverview({
+  events,
+  clientPlan,
+  hideInvoiceState,
+}: ClientEventsOverviewProps) {
   const groups = useMemo(() => groupClientEventsForOverview(events), [events])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     loadCollapsedState(CLIENT_EVENTS_COLLAPSED_STORAGE_KEY),
@@ -66,6 +71,7 @@ export function ClientEventsOverview({ events, clientPlan }: ClientEventsOvervie
                       key={event.id}
                       event={event}
                       clientPlan={clientPlan}
+                      hideInvoiceState={hideInvoiceState}
                     />
                   ))}
                 </div>

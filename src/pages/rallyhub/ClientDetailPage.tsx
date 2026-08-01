@@ -894,7 +894,11 @@ export function RallyHubClientDetailPage() {
       ) : null}
 
       {activeTab === 'events' && showBillingAndEvents && data ? (
-        <ClientEventsOverview events={data.events} clientPlan={billingPlan} />
+        <ClientEventsOverview
+          events={data.events}
+          clientPlan={billingPlan}
+          hideInvoiceState={isDemoClient}
+        />
       ) : null}
 
       {activeTab === 'info' ? (

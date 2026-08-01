@@ -1,8 +1,9 @@
-import { CheckCircle2, X } from 'lucide-react'
+import { IconCheck, IconClose } from '@/components/icons'
 import { useEffect, useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { NeoButton, NeoCard } from '@/components/neo-minimal'
+import { NeoButton } from '@/components/neo-minimal'
+import { Card } from '@/components/ui/card'
 import type { GameRow } from '@/hooks/use-games'
 import {
   useGameClientInstallStatus,
@@ -75,12 +76,12 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
 
   return (
     <div
-      className="neo-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="install-game-title"
     >
-      <NeoCard className="neo-modal-panel flex max-h-[min(32rem,90vh)] w-full max-w-md flex-col overflow-hidden p-0">
+      <Card className="border-border/80 bg-card shadow-2xl flex max-h-[min(32rem,90vh)] w-full max-w-md flex-col overflow-hidden p-0">
         <div className="flex items-start justify-between gap-3 border-b p-4">
           <div className="min-w-0">
             <h3 id="install-game-title" className="text-foreground font-semibold">
@@ -89,7 +90,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             <p className="text-muted-foreground mt-0.5 truncate text-sm">{game.name}</p>
           </div>
           <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onClose}>
-            <X className="size-4" />
+            <IconClose className="size-4" />
           </NeoButton>
         </div>
 
@@ -182,7 +183,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
         ) : (
           <div className="space-y-4 p-4">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="text-primary mt-0.5 size-5 shrink-0" />
+              <IconCheck className="text-primary mt-0.5 size-5 shrink-0" />
               <div>
                 <p className="text-foreground font-medium">
                   Installed to {successCount} client{successCount === 1 ? '' : 's'}.
@@ -222,7 +223,7 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
             </div>
           </div>
         )}
-      </NeoCard>
+      </Card>
     </div>
   )
 }

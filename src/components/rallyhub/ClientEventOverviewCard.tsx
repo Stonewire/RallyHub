@@ -10,14 +10,20 @@ import { NeoStatusBadge } from '@/components/neo-minimal'
 type ClientEventOverviewCardProps = {
   event: ClientEventRow
   clientPlan: string | null | undefined
+  /** Demo organisations bill nobody, so their invoice badges are noise. */
+  hideInvoiceState?: boolean
 }
 
-export function ClientEventOverviewCard({ event, clientPlan }: ClientEventOverviewCardProps) {
+export function ClientEventOverviewCard({
+  event,
+  clientPlan,
+  hideInvoiceState = false,
+}: ClientEventOverviewCardProps) {
   const isDemo = isEventDemoStatus(event.status)
   const invoicePaid = isEventInvoicePaid(event, clientPlan)
 
   return (
-    <article className="neo-card flex flex-col gap-2 p-3">
+    <article className="border-border/80 bg-card flex flex-col gap-2 rounded-lg border p-3 shadow-sm">
       <div className="min-w-0">
         <p className="text-foreground line-clamp-2 text-sm font-medium leading-snug">
           {event.name}
@@ -30,7 +36,7 @@ export function ClientEventOverviewCard({ event, clientPlan }: ClientEventOvervi
       </div>
       {isDemo ? (
         <NeoStatusBadge tone="demo-event">Demo</NeoStatusBadge>
-      ) : event.invoiced_at ? (
+      ) : hideInvoiceState ? null : event.invoiced_at ? (
         <NeoStatusBadge tone={invoicePaid ? 'paid' : 'unpaid'}>
           Invoice {invoicePaid ? 'Paid' : 'Unpaid'}
         </NeoStatusBadge>
