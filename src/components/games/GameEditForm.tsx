@@ -1,3 +1,4 @@
+import { Eye } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 
 import {
@@ -6,6 +7,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
+import { GamePreviewModal } from '@/components/games/GamePreviewModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
@@ -68,6 +70,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
   const [pointsMin, setPointsMin] = useState(10)
   const [pointsMax, setPointsMax] = useState(100)
   const [solutionDescription, setSolutionDescription] = useState('')
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null)
   const [exampleVideoUrl, setExampleVideoUrl] = useState<string | null>(null)
   const [videoMaxMinutes, setVideoMaxMinutes] = useState(2)
@@ -224,6 +227,12 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
 
   const headerActions = (
     <>
+      {/* Available for every game type, unlike the design which tucks Preview
+          into the Facilitator Only card that photo and video alone render. */}
+      <NeoButton type="button" variant="surface" onClick={() => setPreviewOpen(true)}>
+        <Eye className="size-3.5" aria-hidden />
+        Preview
+      </NeoButton>
       {isPlatformLibrary && gameQuery.data.is_platform_template ? (
         <Button type="button" variant="outline" onClick={() => setInstallOpen(true)}>
           Install to clients
@@ -242,6 +251,14 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
 
   const body = (
     <>
+      <GamePreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        gameType={gameType}
+        name={name}
+        coverUrl={coverUrl}
+        config={config}
+      />
       {error ? (
         <p className="text-destructive mb-4 text-sm" role="alert">
           {error}
