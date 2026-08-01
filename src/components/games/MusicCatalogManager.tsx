@@ -134,6 +134,18 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
     else audio.pause()
   }
 
+  async function setInPoint(row: MusicCatalogRow, seconds: number | null) {
+    setError(null)
+    try {
+      await updateCatalog.mutateAsync({
+        id: row.id,
+        clip_in_point_seconds: seconds == null ? null : Math.max(0, Math.floor(seconds)),
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the in point')
+    }
+  }
+
   function seekTo(seconds: number) {
     const audio = audioRef.current
     if (!audio) return
@@ -411,10 +423,41 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
           </span>
         </div>
 
+        {playingTrack ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+            <button
+              type="button"
+              onClick={() => void setInPoint(playingTrack, currentTime)}
+              className="rounded-full bg-white/10 px-2.5 py-1 font-semibold text-white hover:bg-white/20"
+            >
+              Set in point ({formatDuration(Math.floor(currentTime))})
+            </button>
+            {playingTrack.clip_in_point_seconds == null ? (
+              <span>No in point yet, so game clips start where we pick.</span>
+            ) : (
+              <>
+                <span>
+                  Game clips start at{' '}
+                  {formatDuration(Math.floor(Number(playingTrack.clip_in_point_seconds)))}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void setInPoint(playingTrack, null)}
+                  className="underline hover:text-white"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
+
         <audio
           ref={audioRef}
           key={playingTrack?.id ?? 'none'}
-          src={playingTrack ? (playingTrack.clip_url ?? playingTrack.audio_url) : undefined}
+          // The library auditions the FULL upload. Short clips are a per-game
+          // concern, generated from the in point below.
+          src={playingTrack ? (playingTrack.audio_url ?? playingTrack.clip_url) : undefined}
           autoPlay
           preload="metadata"
           className="hidden"
@@ -641,7 +684,6 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
             </div>
             <MusicCatalogUploader
               organizationId={organizationId}
-              clipLengthSeconds={30}
               onTracksReady={() => {
                 /* manager view — uploads land in the catalog, not a specific game */
               }}

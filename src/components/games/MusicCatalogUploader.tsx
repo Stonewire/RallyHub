@@ -7,12 +7,9 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
 import { useInsertMusicCatalog } from '@/hooks/use-music-catalog'
-import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
-import { extractAudioClip } from '@/lib/extract-audio-clip'
-import type { BingoClipLength } from '@/lib/music-track-clips'
+import { readAudioDuration } from '@/lib/audio-metadata'
 import { parseAudioFilename } from '@/lib/parse-audio-filename'
 import { uploadAsset } from '@/lib/storage'
-import { audioStorageFilename } from '@/lib/storage-path'
 import type { MusicTrack } from '@/types/game-config'
 
 type PendingTrack = {
@@ -26,13 +23,11 @@ type PendingTrack = {
 
 type MusicCatalogUploaderProps = {
   organizationId: string
-  clipLengthSeconds: BingoClipLength | null
   onTracksReady: (tracks: MusicTrack[]) => void
 }
 
 export function MusicCatalogUploader({
   organizationId,
-  clipLengthSeconds,
   onTracksReady,
 }: MusicCatalogUploaderProps) {
   const { user } = useAuth()
@@ -72,15 +67,10 @@ export function MusicCatalogUploader({
 
   const uploadBlockers: string[] = []
   if (!licenseOk) uploadBlockers.push('confirm usage rights')
-  if (!clipLengthSeconds) uploadBlockers.push('select clip length above')
 
   async function confirmUpload() {
     if (!licenseOk) {
       setError('Confirm you have rights to use these recordings.')
-      return
-    }
-    if (!clipLengthSeconds) {
-      setError('Select a clip length before uploading.')
       return
     }
     if (pending.length === 0) return
@@ -90,32 +80,18 @@ export function MusicCatalogUploader({
     try {
       for (const item of pending) {
         const duration = await readAudioDuration(item.file).catch(() => 0)
-        const clipStart = suggestClipStart(duration)
-        const clipDuration = clipLengthSeconds
+        // The library stores the full track. Clips are cut per game, from the
+        // organiser's in point if they set one, so nothing is generated here.
         const audioUrl = await uploadAsset(
           'game-assets',
           `${organizationId}/catalog/${crypto.randomUUID()}-full-${item.file.name}`,
           item.file,
-        )
-        const extracted = await extractAudioClip(item.file, clipDuration, clipStart)
-        const clipFilename = audioStorageFilename(
-          `clip-${clipDuration}s-${item.file.name}`,
-          extracted.extension,
-        )
-        const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
-        const clipUrl = await uploadAsset(
-          'game-assets',
-          `${organizationId}/catalog/${crypto.randomUUID()}-${clipFilename}`,
-          clipFile,
         )
         const row = await insertCatalog.mutateAsync({
           organization_id: organizationId,
           artist: item.artist.trim() || 'Unknown',
           title: item.title.trim() || item.file.name,
           audio_url: audioUrl,
-          clip_url: clipUrl,
-          clip_start_seconds: 0,
-          clip_duration_seconds: clipDuration,
           duration_seconds: duration || null,
           source_filename: item.file.name,
           parse_confidence: item.confidence,
@@ -127,9 +103,7 @@ export function MusicCatalogUploader({
           title: row.title,
           artist: row.artist,
           audioUrl: row.audio_url,
-          clipUrl: row.clip_url ?? clipUrl,
-          clipStartSeconds: 0,
-          clipDurationSeconds: clipDuration,
+          clipUrl: row.clip_url,
         })
       }
       onTracksReady(gameTracks)
@@ -144,10 +118,10 @@ export function MusicCatalogUploader({
   return (
     <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
       <div>
-        <h3 className="text-foreground font-semibold">Upload playlist (MP3)</h3>
+        <h3 className="text-foreground font-semibold">Upload music</h3>
         <p className="text-muted-foreground text-sm">
           We match filenames like &quot;Artist - Title.mp3&quot;. Low-confidence rows need a quick
-          review. Each track gets a dedicated MP3 clip for live bingo (length set above).
+          review. Full tracks are stored here; each game cuts its own clip later.
         </p>
       </div>
 

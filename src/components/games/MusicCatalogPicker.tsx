@@ -24,6 +24,8 @@ function rowToTrack(row: MusicCatalogRow): MusicTrack {
     clipUrl: row.clip_url ?? undefined,
     clipStartSeconds: Number(row.clip_start_seconds) || 0,
     clipDurationSeconds: row.clip_duration_seconds ?? 30,
+    clipInPointSeconds:
+      row.clip_in_point_seconds == null ? null : Number(row.clip_in_point_seconds),
   }
 }
 
@@ -239,6 +241,8 @@ export function MusicCatalogPicker({
                           clipUrl: row.clip_url ?? undefined,
                           clipStartSeconds: Number(row.clip_start_seconds) || 0,
                           clipDurationSeconds: row.clip_duration_seconds ?? 30,
+                          clipInPointSeconds:
+                            row.clip_in_point_seconds == null ? null : Number(row.clip_in_point_seconds),
                         },
                       ])
                     }
@@ -280,6 +284,8 @@ export function MusicCatalogPicker({
                 clipUrl: row.clip_url ?? undefined,
                 clipStartSeconds: Number(row.clip_start_seconds) || 0,
                 clipDurationSeconds: row.clip_duration_seconds ?? 30,
+                clipInPointSeconds:
+                  row.clip_in_point_seconds == null ? null : Number(row.clip_in_point_seconds),
               })),
             )
           }

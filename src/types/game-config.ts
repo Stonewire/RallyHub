@@ -68,6 +68,8 @@ export type MusicTrack = {
   clipUrl?: string | null
   clipStartSeconds?: number
   clipDurationSeconds?: number
+  /** Organiser's marked clip start from the music library. Undefined = unmarked. */
+  clipInPointSeconds?: number | null
 }
 
 export type GameConfig = {

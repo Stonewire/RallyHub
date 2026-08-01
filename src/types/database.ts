@@ -811,6 +811,7 @@ export type Database = {
           audio_url: string
           clip_url: string | null
           clip_start_seconds: number
+          clip_in_point_seconds: number | null
           clip_duration_seconds: number
           duration_seconds: number | null
           source_filename: string | null
@@ -829,6 +830,7 @@ export type Database = {
           audio_url: string
           clip_url?: string | null
           clip_start_seconds?: number
+          clip_in_point_seconds?: number | null
           clip_duration_seconds?: number
           duration_seconds?: number | null
           source_filename?: string | null
@@ -843,6 +845,7 @@ export type Database = {
           audio_url?: string
           clip_url?: string | null
           clip_start_seconds?: number
+          clip_in_point_seconds?: number | null
           clip_duration_seconds?: number
           duration_seconds?: number | null
           genre?: string | null

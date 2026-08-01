@@ -42,10 +42,15 @@ export async function generateClipForAudioUrl(
   audioUrl: string,
   label: string,
   clipLengthSeconds: BingoClipLength,
+  /** Organiser's marked in point. null/undefined falls back to the suggestion. */
+  inPointSeconds?: number | null,
 ): Promise<{ clipUrl: string; clipStartSeconds: number; clipDurationSeconds: number }> {
   const file = await fetchAudioFile(audioUrl, audioStorageFilename(label, 'mp3'))
   const duration = await readAudioDuration(file).catch(() => 0)
-  const clipStart = suggestClipStart(duration)
+  const clipStart =
+    typeof inPointSeconds === 'number' && inPointSeconds >= 0
+      ? inPointSeconds
+      : suggestClipStart(duration)
   const extracted = await extractAudioClip(file, clipLengthSeconds, clipStart)
   const clipFilename = audioStorageFilename(`clip-${label}`, extracted.extension)
   const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
@@ -79,6 +84,7 @@ export async function ensureMusicTrackClip(
     track.audioUrl,
     `${track.artist}-${track.title}`,
     clipLengthSeconds,
+    track.clipInPointSeconds,
   )
 
   const { data: catalogRow } = await supabase
