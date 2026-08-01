@@ -83,11 +83,12 @@ export function AdminAppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="admin-shell-sidebar neo-minimal-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal"
+      className="admin-shell-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal"
       style={{ color: 'var(--sidebar-foreground)' }}
     >
       <SidebarHeader className="border-sidebar-border shrink-0 border-b px-5 py-6">
-        {/* Sidebar is always charcoal, so client light logo, else Ivory+Yellow. */}
+        {/* Sidebar follows the theme now, so the logo does too: charcoal art on
+            the light sidebar, ivory on the dark one. */}
         <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           {clientLogo ? (
             <img
@@ -98,7 +99,6 @@ export function AdminAppSidebar() {
           ) : (
             <RallyLogo
               mark="full"
-              theme="dark"
               className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
             />
           )}
@@ -111,7 +111,6 @@ export function AdminAppSidebar() {
           ) : (
             <RallyLogo
               mark="profile"
-              theme="dark"
               className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
             />
           )}

@@ -487,38 +487,6 @@
     font-weight: 500;
   }
 
-  /* ─── Sidebar shell (RallyHub pilot) ─── */
-  .neo-minimal-sidebar.admin-shell-sidebar {
-    background: var(--nm-bg-surface);
-    border-color: var(--nm-border);
-    box-shadow: var(--nm-shadow-soft);
-  }
-
-  .neo-minimal-sidebar [data-slot='sidebar-menu-button']:not([data-active='true']) {
-    border-radius: var(--nm-radius-md);
-    transition:
-      box-shadow var(--nm-transition),
-      transform var(--nm-transition),
-      background-color var(--nm-transition);
-  }
-
-  .neo-minimal-sidebar [data-slot='sidebar-menu-button']:hover:not([data-active='true']) {
-    background: var(--nm-bg-elevated);
-    box-shadow: var(--nm-shadow-soft);
-    transform: translateX(2px);
-  }
-
-  .neo-minimal-sidebar [data-slot='sidebar-menu-button'][data-active='true'] {
-    background: var(--nm-bg-elevated) !important;
-    color: var(--nm-charcoal) !important;
-    box-shadow: var(--nm-shadow-raised);
-    font-weight: 600;
-    border: 1px solid var(--nm-border);
-    box-shadow:
-      var(--nm-shadow-raised),
-      inset 3px 0 0 var(--nm-yellow);
-  }
-
   /* ─── Top bar ─── */
   .neo-minimal-scope .neo-topbar {
     background-color: var(--nm-bg-surface);

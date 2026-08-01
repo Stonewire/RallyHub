@@ -59,7 +59,7 @@ export function RallyHubAppSidebar() {
     <Sidebar
       collapsible="icon"
       className={cn(
-        'admin-shell-sidebar neo-minimal-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal',
+        'admin-shell-sidebar border-border/70 text-sidebar-foreground [&_*]:tracking-normal',
       )}
       style={{ color: 'var(--sidebar-foreground)' }}
     >

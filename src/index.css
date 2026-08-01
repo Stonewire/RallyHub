@@ -98,12 +98,12 @@
 
     --rh-surface-app: #FAF7F2;           /* Warm Ivory */
     --rh-surface-elevated: #FFFDF9;
-    --rh-surface-sidebar: #2B2B2B;       /* Always charcoal — gold selection in both themes */
+    --rh-surface-sidebar: #FFFDF9;       /* Light mode: sidebar matches the app, not charcoal */
 
     --rh-border-subtle: rgb(51 51 51 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(250 247 242 / 0.07);
-    /* Sidebar always charcoal: selected row = Gold block with dark text */
+    --rh-sidebar-row-hover-bg: rgb(51 51 51 / 0.06);
+    /* Selected row = Gold block with dark text, which reads on either surface */
     --rh-sidebar-row-active-bg: var(--rh-accent);
     --rh-sidebar-row-active-fg: #1a1a1a;
 
@@ -145,12 +145,12 @@
     --radius: 0.625rem;
 
     --sidebar: var(--rh-surface-sidebar);
-    --sidebar-foreground: #FAF7F2;
+    --sidebar-foreground: var(--rh-text-primary);
     --sidebar-primary: var(--rh-accent);
     --sidebar-primary-foreground: #1a1a1a;
     --sidebar-accent: var(--rh-sidebar-row-hover-bg);
-    --sidebar-accent-foreground: #FAF7F2;
-    --sidebar-border: rgb(250 247 242 / 0.1);
+    --sidebar-accent-foreground: var(--rh-text-primary);
+    --sidebar-border: rgb(51 51 51 / 0.1);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 40%, transparent);
 }
 
