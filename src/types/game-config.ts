@@ -72,6 +72,12 @@ export type MusicTrack = {
 
 export type GameConfig = {
   example_video_url?: string | null
+  /**
+   * Facilitator-only worked answer for video games. Stripped from every live
+   * payload by redact_game_config_for_live, unconditionally and for every game
+   * type, so it genuinely never reaches a participant.
+   */
+  solution_video_url?: string | null
   max_video_duration_seconds?: number
   background_url?: string | null
   primary_color?: string

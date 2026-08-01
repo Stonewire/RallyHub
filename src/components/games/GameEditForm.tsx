@@ -548,6 +548,26 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   className="border-input bg-background w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
+              {gameType === 'video' ? (
+                <div className="space-y-2">
+                  <Label>Solution video link</Label>
+                  <Input
+                    value={config.solution_video_url ?? ''}
+                    placeholder="https://…"
+                    onChange={(event) =>
+                      setConfig((c) => ({
+                        ...c,
+                        solution_video_url: event.target.value.trim() || null,
+                      }))
+                    }
+                    className="bg-background"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    Facilitators only. Stripped from the live payload, so
+                    players never receive it.
+                  </p>
+                </div>
+              ) : null}
               <AssetField
                 label="Solution image"
                 preview={solutionImageUrl}
