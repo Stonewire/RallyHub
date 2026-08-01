@@ -1,6 +1,7 @@
 import { Download, GripVertical, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
+import { HoverTooltip } from '@/components/admin/HoverTooltip'
 import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { NeoButton } from '@/components/neo-minimal'
 import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
@@ -132,12 +133,12 @@ export function DraggableGamesGrid({
               control for the same action. Truncated with the full list on
               hover, since a game can sit in several groups. */}
           <div className="border-border/60 mt-auto flex items-center gap-1 border-t px-1.5 py-1.5">
-            <p
+            <HoverTooltip
+              label={gameGroupNames.join(', ')}
               className="text-muted-foreground min-w-0 flex-1 truncate text-[10px]"
-              title={gameGroupNames.length > 0 ? gameGroupNames.join(', ') : undefined}
             >
               {gameGroupNames.length > 0 ? gameGroupNames.join(', ') : 'No group'}
-            </p>
+            </HoverTooltip>
             {onInstall ? (
               <NeoButton
                 type="button"

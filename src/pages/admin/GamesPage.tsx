@@ -218,6 +218,10 @@ export function AdminGamesPage() {
   // existing one, rather than hunting the whole library each time.
   const [createGroupSource, setCreateGroupSource] = useState('all')
   const [createGroupSearch, setCreateGroupSearch] = useState('')
+  const [addToGroupOpen, setAddToGroupOpen] = useState(false)
+  const [addToGroupSelection, setAddToGroupSelection] = useState<Set<string>>(new Set())
+  const [addToGroupType, setAddToGroupType] = useState<'all' | GameType>('all')
+  const [addToGroupSearch, setAddToGroupSearch] = useState('')
   const [dialogError, setDialogError] = useState<string | null>(null)
 
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data])
@@ -243,6 +247,18 @@ export function AdminGamesPage() {
     }
     return map
   }, [groups])
+
+  // Only meaningful when a single group is selected; that is the one place the
+  // "add games to this group" action is offered.
+  const activeGroup = groups.find((group) => group.id === groupFilter) ?? null
+  const addToGroupCandidates = useMemo(() => {
+    const q = addToGroupSearch.trim().toLowerCase()
+    return allGames.filter((game) => {
+      if (gameToGroupId.get(game.id) === groupFilter) return false
+      if (addToGroupType !== 'all' && game.type !== addToGroupType) return false
+      return !q || game.name.toLowerCase().includes(q)
+    })
+  }, [allGames, gameToGroupId, groupFilter, addToGroupType, addToGroupSearch])
 
   const filtered = useMemo(() => {
     const list = gamesQuery.data ?? []
@@ -346,6 +362,51 @@ export function AdminGamesPage() {
       }
       return next
     })
+  }
+
+  function openAddToGroupDialog() {
+    setDialogError(null)
+    setAddToGroupSelection(new Set())
+    setAddToGroupType('all')
+    setAddToGroupSearch('')
+    setAddToGroupOpen(true)
+  }
+
+  function toggleAddToGroupGame(gameId: string) {
+    setAddToGroupSelection((current) => {
+      const next = new Set(current)
+      if (next.has(gameId)) next.delete(gameId)
+      else next.add(gameId)
+      return next
+    })
+  }
+
+  function toggleAllAddToGroupGames() {
+    setAddToGroupSelection((current) => {
+      const allVisibleSelected =
+        addToGroupCandidates.length > 0 &&
+        addToGroupCandidates.every((game) => current.has(game.id))
+      const next = new Set(current)
+      for (const game of addToGroupCandidates) {
+        if (allVisibleSelected) next.delete(game.id)
+        else next.add(game.id)
+      }
+      return next
+    })
+  }
+
+  async function confirmAddToGroup() {
+    if (!activeGroup || addToGroupSelection.size === 0) return
+    setDialogError(null)
+    try {
+      for (const gameId of addToGroupSelection) {
+        await assignGroup.mutateAsync({ gameId, groupId: activeGroup.id })
+      }
+      setAddToGroupOpen(false)
+      setAddToGroupSelection(new Set())
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Could not add games to group')
+    }
   }
 
   async function confirmDeleteGame() {
@@ -491,6 +552,14 @@ export function AdminGamesPage() {
             Delete Selected{binSelected.size ? ` (${binSelected.size})` : ''}
           </NeoButton>
         ) : view === 'games' ? <>
+          {/* Only when one group is selected: in the All Groups view there is no
+              single target to add to. */}
+          {activeGroup ? (
+            <NeoButton type="button" variant="surface" onClick={openAddToGroupDialog}>
+              <Plus className="size-3.5" />
+              Add Games to Group
+            </NeoButton>
+          ) : null}
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
             <Upload className="size-3.5" />
             Import
@@ -943,6 +1012,111 @@ export function AdminGamesPage() {
         </div>
       ) : null}
 
+
+      {addToGroupOpen && activeGroup ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-games-to-group-title"
+        >
+          <Card className="border-nm-slate-800 flex max-h-[min(720px,90vh)] w-full max-w-2xl flex-col overflow-hidden border-2 bg-card shadow-lg">
+            <div className="border-border border-b p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 id="add-games-to-group-title" className="text-foreground font-semibold">
+                    Add games to {activeGroup.name}
+                  </h3>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    A game can belong to one group. Games already grouped will move here.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="text-muted-foreground hover:text-foreground rounded-md p-1"
+                  onClick={() => setAddToGroupOpen(false)}
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <div className="flex flex-wrap gap-1.5">
+                  {FILTERS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${addToGroupType === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setAddToGroupType(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative min-w-48 flex-1">
+                  <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                  <Input
+                    value={addToGroupSearch}
+                    onChange={(event) => setAddToGroupSearch(event.target.value)}
+                    placeholder="Search games…"
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <label className="mb-3 flex items-center gap-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={
+                    addToGroupCandidates.length > 0 &&
+                    addToGroupCandidates.every((game) => addToGroupSelection.has(game.id))
+                  }
+                  onChange={toggleAllAddToGroupGames}
+                />
+                Select all visible ({addToGroupCandidates.length})
+              </label>
+              <div className="divide-border overflow-hidden rounded-md border">
+                {addToGroupCandidates.map((game) => {
+                  const currentGroup = groups.find((group) => group.id === gameToGroupId.get(game.id))
+                  return (
+                    <label key={game.id} className="hover:bg-muted/30 flex cursor-pointer items-center gap-3 border-b px-3 py-3 last:border-b-0">
+                      <input
+                        type="checkbox"
+                        checked={addToGroupSelection.has(game.id)}
+                        onChange={() => toggleAddToGroupGame(game.id)}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="text-foreground block truncate text-sm font-semibold">{game.name}</span>
+                        <span className="text-muted-foreground block text-xs">
+                          {FILTERS.find((item) => item.value === game.type)?.label ?? game.type}
+                          {currentGroup ? ` · Currently in ${currentGroup.name}` : ' · Ungrouped'}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+                {addToGroupCandidates.length === 0 ? (
+                  <p className="text-muted-foreground px-4 py-10 text-center text-sm">
+                    No games match these filters.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="border-border flex items-center justify-between gap-3 border-t p-5">
+              <p className="text-muted-foreground text-xs">{addToGroupSelection.size} selected</p>
+              <div className="flex gap-2">
+                <NeoButton type="button" variant="surface" disabled={assignGroup.isPending} onClick={() => setAddToGroupOpen(false)}>
+                  Cancel
+                </NeoButton>
+                <NeoButton type="button" variant="primary" disabled={addToGroupSelection.size === 0 || assignGroup.isPending} onClick={() => void confirmAddToGroup()}>
+                  {assignGroup.isPending ? 'Adding…' : `Add ${addToGroupSelection.size || ''} game${addToGroupSelection.size === 1 ? '' : 's'}`}
+                </NeoButton>
+              </div>
+            </div>
+          </Card>
+        </div>
+      ) : null}
 
       {pendingDeleteGame ? (
         <div
