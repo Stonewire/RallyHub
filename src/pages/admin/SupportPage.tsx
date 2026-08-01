@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Paperclip } from 'lucide-react'
+
+import {
+  ALLOWED_ATTACHMENT_UPLOAD_TYPES,
+  validateAttachmentUpload,
+} from '@/lib/upload-limits'
 
 import {
   NoOrganizationMessage,
@@ -34,6 +39,8 @@ export function AdminSupportPage() {
   const [body, setBody] = useState('')
   const [category, setCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const attachInput = useRef<HTMLInputElement>(null)
   // A ?ticket= id (from global search) selects that ticket and opens the
   // My Tickets view, so a search hit lands on the conversation itself rather
   // than on an empty New Ticket form.
@@ -64,10 +71,12 @@ export function AdminSupportPage() {
         // the body where it polluted the first line and could not be filtered.
         body: body.trim(),
         category,
+        files,
       })
       setSubject('')
       setBody('')
       setCategory('')
+      setFiles([])
       setShowNewForm(false)
       setSelectedId(ticket.id)
     } catch (err) {
@@ -161,10 +170,59 @@ export function AdminSupportPage() {
               />
             </div>
             <div className="flex items-center justify-between gap-3">
-              <NeoButton type="button" variant="ghost" disabled title="Ticket attachments are not available yet">
-                <Paperclip className="size-4" />
-                Upload a File
-              </NeoButton>
+              <div className="min-w-0">
+                <NeoButton
+                  type="button"
+                  variant="ghost"
+                  onClick={() => attachInput.current?.click()}
+                >
+                  <Paperclip className="size-4" />
+                  Upload a File
+                </NeoButton>
+                <input
+                  ref={attachInput}
+                  type="file"
+                  multiple
+                  hidden
+                  accept={ALLOWED_ATTACHMENT_UPLOAD_TYPES.join(',')}
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files ?? [])
+                    // Checked here as well as by the bucket so an oversized or
+                    // unsupported file is refused before anything is uploaded.
+                    const rejected = picked
+                      .map((file) => validateAttachmentUpload(file))
+                      .find(Boolean)
+                    if (rejected) {
+                      setError(rejected)
+                    } else {
+                      setError(null)
+                      setFiles((current) => [...current, ...picked])
+                    }
+                    e.target.value = ''
+                  }}
+                />
+                {files.length > 0 ? (
+                  <ul className="mt-2 space-y-1">
+                    {files.map((file, index) => (
+                      <li
+                        key={`${file.name}-${index}`}
+                        className="text-muted-foreground flex items-center gap-2 text-xs"
+                      >
+                        <span className="max-w-52 truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          className="hover:text-foreground underline"
+                          onClick={() =>
+                            setFiles((current) => current.filter((_, i) => i !== index))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <NeoButton type="submit" variant="primary" disabled={createTicket.isPending}>
                 {createTicket.isPending ? 'Submitting…' : 'Submit'}
               </NeoButton>

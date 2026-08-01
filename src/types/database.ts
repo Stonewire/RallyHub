@@ -1,5 +1,14 @@
 import type { Json } from '@/types/json'
 
+/** One file attached to a support ticket. Stored as jsonb on the ticket row. */
+export type SupportTicketAttachment = {
+  /** Object key in the PRIVATE support-attachments bucket. Never a URL. */
+  path: string
+  name: string
+  size: number
+  type: string
+}
+
 export type AppRole = 'super_admin' | 'client_admin' | 'event_manager' | 'facilitator'
 
 export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text' | 'puzzle'
@@ -269,6 +278,7 @@ export type Database = {
           category: string | null
           status: string
           ticket_number: string | null
+          attachments: SupportTicketAttachment[]
           created_at: string
           updated_at: string
         }
@@ -280,6 +290,7 @@ export type Database = {
           category?: string | null
           status?: string
           ticket_number?: string | null
+          attachments?: SupportTicketAttachment[]
         }
         Update: {
           subject?: string

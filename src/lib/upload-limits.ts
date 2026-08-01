@@ -3,8 +3,9 @@ export const UPLOAD_MAX_VIDEO_BYTES = 250 * 1024 * 1024
 export const UPLOAD_MAX_AUDIO_BYTES = 50 * 1024 * 1024
 /** Matches the file_size_limit on the user-avatars bucket. */
 export const UPLOAD_MAX_AVATAR_BYTES = 2 * 1024 * 1024
+export const UPLOAD_MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 
-export type UploadMediaKind = 'photo' | 'video' | 'audio' | 'logo' | 'avatar'
+export type UploadMediaKind = 'photo' | 'video' | 'audio' | 'logo' | 'avatar' | 'attachment'
 
 /**
  * Image types accepted for logos and avatars.
@@ -48,6 +49,8 @@ export function maxBytesForUploadKind(kind: UploadMediaKind): number {
       return UPLOAD_MAX_PHOTO_BYTES
     case 'avatar':
       return UPLOAD_MAX_AVATAR_BYTES
+    case 'attachment':
+      return UPLOAD_MAX_ATTACHMENT_BYTES
     case 'video':
       return UPLOAD_MAX_VIDEO_BYTES
     case 'audio':
@@ -76,7 +79,9 @@ export function uploadSizeErrorMessage(kind: UploadMediaKind): string {
         ? 'Audio file'
         : kind === 'avatar'
           ? 'Profile photo'
-          : 'Image'
+          : kind === 'attachment'
+            ? 'Attachment'
+            : 'Image'
   return `${label} must be ${formatUploadMaxLabel(maxBytesForUploadKind(kind))} or smaller`
 }
 
@@ -87,4 +92,24 @@ export function isUploadWithinSizeLimit(file: File, kind: UploadMediaKind): bool
 export function validateUploadFileSize(file: File, kind: UploadMediaKind): string | null {
   if (isUploadWithinSizeLimit(file, kind)) return null
   return uploadSizeErrorMessage(kind)
+}
+
+/** Types the private support-attachments bucket accepts. Mirrors the migration. */
+export const ALLOWED_ATTACHMENT_UPLOAD_TYPES = [
+  ...ALLOWED_IMAGE_UPLOAD_TYPES,
+  'application/pdf',
+  'text/plain',
+] as const
+
+export const ALLOWED_ATTACHMENT_UPLOAD_LABEL = 'PNG, JPG, WEBP, AVIF, PDF or TXT'
+
+/**
+ * Rejects on the client what the bucket would reject anyway, so someone who
+ * picks a 40MB video is told immediately rather than after the upload fails.
+ */
+export function validateAttachmentUpload(file: File): string | null {
+  if (!ALLOWED_ATTACHMENT_UPLOAD_TYPES.includes(file.type as never)) {
+    return `${file.name} is not a supported file type. Use ${ALLOWED_ATTACHMENT_UPLOAD_LABEL}.`
+  }
+  return validateUploadFileSize(file, 'attachment')
 }

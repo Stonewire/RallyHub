@@ -7,6 +7,7 @@ import {
   appendSupportMessageToCache,
   subscribeSupportRealtime,
 } from '@/lib/support-realtime'
+import { uploadSupportAttachment } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
@@ -252,12 +253,19 @@ export function useCreateSupportTicket(organizationId: string | undefined) {
       subject,
       body,
       category,
+      files,
     }: {
       subject: string
       body: string
       category?: string
+      files?: File[]
     }) => {
       if (!organizationId) throw new Error('No organization')
+      // Uploaded before the row is inserted so a storage failure means no
+      // ticket at all, rather than a ticket claiming attachments it never got.
+      const attachments = files?.length
+        ? await Promise.all(files.map((file) => uploadSupportAttachment(organizationId, file)))
+        : []
       const ticketNumber = generateSupportTicketNumber()
       const trimmedBody = body.trim()
       const { data: ticket, error } = await supabase
@@ -269,6 +277,7 @@ export function useCreateSupportTicket(organizationId: string | undefined) {
           category: category?.trim() || null,
           ticket_number: ticketNumber,
           status: 'open',
+          attachments,
         })
         .select()
         .single()

@@ -1,10 +1,12 @@
 import {
   inferUploadMediaKind,
   type UploadMediaKind,
+  validateAttachmentUpload,
   validateUploadFileSize,
 } from '@/lib/upload-limits'
 import { sanitizeStoragePath } from '@/lib/storage-path'
 import { supabase } from '@/lib/supabase'
+import type { SupportTicketAttachment } from '@/types/database'
 
 export async function uploadAsset(
   bucket: 'game-assets' | 'organization-logos' | 'user-avatars',
@@ -141,4 +143,36 @@ export async function deleteStorageObjects(
   if (paths.length === 0) return
   const { error } = await supabase.storage.from(bucket).remove(paths)
   if (error) throw error
+}
+
+/**
+ * Uploads a support ticket attachment and returns its metadata.
+ *
+ * Returns the object path rather than a URL, because the bucket is private:
+ * there is no public URL, and a signed one would be stale by the time anyone
+ * opened the ticket. Call `signedAttachmentUrl` at read time instead.
+ */
+export async function uploadSupportAttachment(
+  organizationId: string,
+  file: File,
+): Promise<SupportTicketAttachment> {
+  const sizeError = validateAttachmentUpload(file)
+  if (sizeError) throw new Error(sizeError)
+
+  const path = sanitizeStoragePath(`${organizationId}/${crypto.randomUUID()}-${file.name}`)
+  const { error } = await supabase.storage
+    .from('support-attachments')
+    .upload(path, file, { upsert: false, contentType: file.type || undefined })
+  if (error) throw error
+
+  return { path, name: file.name, size: file.size, type: file.type }
+}
+
+/** Short-lived read URL for a private attachment. */
+export async function signedAttachmentUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('support-attachments')
+    .createSignedUrl(path, 60 * 5)
+  if (error) throw error
+  return data.signedUrl
 }

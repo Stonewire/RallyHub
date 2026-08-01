@@ -1,3 +1,4 @@
+import { SupportTicketAttachments } from '@/components/admin/SupportTicketAttachments'
 import { useMemo, useState } from 'react'
 
 import {
@@ -112,6 +113,7 @@ export function SupportTicketsWorkspace({
               ) : null}
             </div>
           )}
+          <SupportTicketAttachments attachments={selected.attachments} />
           <SupportTicketThread ticket={selected} senderRole={senderRole} />
         </Card>
       ) : (
