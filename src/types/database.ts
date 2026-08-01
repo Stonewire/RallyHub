@@ -46,6 +46,12 @@ type OrgRow = {
   brand_heading_font_url: string | null
   brand_body_font_url: string | null
   internal_notes: string | null
+  is_demo: boolean
+  demo_reset_at: string | null
+  demo_last_reset_at: string | null
+  demo_reset_interval_minutes: number
+  demo_generation: number
+  demo_user_id: string | null
   created_at: string
   updated_at: string
 }
@@ -647,6 +653,36 @@ export type Database = {
           media_type?: string | null
           status?: string
           points_awarded?: number | null
+        }
+        Relationships: []
+      }
+      client_diagnostics: {
+        Row: {
+          id: string
+          created_at: string
+          event_id: string | null
+          team_id: string | null
+          context: string
+          platform: string
+          message: string
+          detail: Json | null
+        }
+        Insert: {
+          id?: string
+          event_id?: string | null
+          team_id?: string | null
+          context: string
+          platform: string
+          message: string
+          detail?: Json | null
+        }
+        Update: {
+          event_id?: string | null
+          team_id?: string | null
+          context?: string
+          platform?: string
+          message?: string
+          detail?: Json | null
         }
         Relationships: []
       }

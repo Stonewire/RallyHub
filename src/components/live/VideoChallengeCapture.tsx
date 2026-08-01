@@ -6,13 +6,14 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CLASS,
+  CHALLENGE_CAPTURE_FRAME_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
   getChallengeCameraStream,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
+import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
 import {
   formatVideoDurationLabel,
   getMaxVideoDurationSeconds,
@@ -20,6 +21,7 @@ import {
 import { playVideoStartSound, playVideoStopSound } from '@/lib/sounds'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import {
+  computeVideoBitsPerSecond,
   createVideoRecorder,
   videoFileExtension,
   videoMimeForRecorder,
@@ -30,6 +32,7 @@ type VideoChallengeCaptureProps = {
   config: GameConfig | null | undefined
   accentColor: string
   disabled?: boolean
+  eventId: string
   onClose: () => void
   onFileReady: (file: File) => void
 }
@@ -38,6 +41,7 @@ export function VideoChallengeCapture({
   config,
   accentColor,
   disabled,
+  eventId,
   onClose,
   onFileReady,
 }: VideoChallengeCaptureProps) {
@@ -97,11 +101,52 @@ export function VideoChallengeCapture({
     void el.play().catch(() => {})
   }, [previewReady, recording, recordedFile, quarterTurn, facingMode])
 
+  // Choppiness investigation: count real preview frames while recording via
+  // requestVideoFrameCallback, so "very choppy" becomes a measured fps instead
+  // of an adjective. Finished (idempotently) before the stream is torn down.
+  const frameStatsRef = useRef<{ frames: number; startedAt: number; stop: (() => void) | null }>({
+    frames: 0,
+    startedAt: 0,
+    stop: null,
+  })
+  const measuredFpsRef = useRef<number | null>(null)
+
+  function startPreviewFrameCount() {
+    const el = previewRef.current as
+      | (HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number })
+      | null
+    measuredFpsRef.current = null
+    if (!el?.requestVideoFrameCallback) {
+      frameStatsRef.current = { frames: 0, startedAt: 0, stop: null }
+      return
+    }
+    let live = true
+    frameStatsRef.current = { frames: 0, startedAt: nowMs(), stop: () => (live = false) }
+    const tick = () => {
+      if (!live) return
+      frameStatsRef.current.frames += 1
+      el.requestVideoFrameCallback!(tick)
+    }
+    el.requestVideoFrameCallback(tick)
+  }
+
+  function finishPreviewFrameCount(): number | null {
+    const stats = frameStatsRef.current
+    if (!stats.stop) return measuredFpsRef.current
+    stats.stop()
+    stats.stop = null
+    const elapsed = nowMs() - stats.startedAt
+    measuredFpsRef.current =
+      elapsed >= 500 && stats.frames > 0 ? Math.round((stats.frames / elapsed) * 1000) : null
+    return measuredFpsRef.current
+  }
+
   function stopStream() {
     if (tickRef.current != null) {
       window.clearInterval(tickRef.current)
       tickRef.current = undefined
     }
+    finishPreviewFrameCount()
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
     if (previewRef.current) previewRef.current.srcObject = null
@@ -172,6 +217,11 @@ export function VideoChallengeCapture({
       return
     }
     try {
+      // Snapshot what the camera actually negotiated while the track is live;
+      // after stopStream() getSettings() comes back empty.
+      const trackSettings = streamRef.current.getVideoTracks()[0]?.getSettings() ?? {}
+      const recStartedAt = nowMs()
+
       const recorder = createVideoRecorder(streamRef.current, maxSec)
       const mime = videoMimeForRecorder(recorder)
       recorderRef.current = recorder
@@ -183,7 +233,37 @@ export function VideoChallengeCapture({
         playVideoStopSound()
         const blob = new Blob(chunksRef.current, { type: mime })
         chunksRef.current = []
+        const measuredFps = finishPreviewFrameCount()
         stopStream()
+
+        const durationMs = Math.round(nowMs() - recStartedAt)
+        const trackArea = (trackSettings.width ?? 0) * (trackSettings.height ?? 0)
+        const choppy = measuredFps !== null && measuredFps < 24
+        const overSized = trackArea > 2_400_000 // beyond 1080x1920
+        if (durationMs >= 1500 && (choppy || overSized || measuredFps === null)) {
+          reportClientTiming(
+            'record-timing',
+            `video preview ${measuredFps ?? '?'}fps at ${trackSettings.width ?? '?'}x${trackSettings.height ?? '?'}`,
+            {
+              eventId,
+              extra: {
+                measuredFps,
+                trackWidth: trackSettings.width ?? null,
+                trackHeight: trackSettings.height ?? null,
+                trackFps: trackSettings.frameRate ?? null,
+                mime,
+                requestedBps: computeVideoBitsPerSecond(
+                  trackSettings.width ?? 1920,
+                  trackSettings.height ?? 1080,
+                  maxSec,
+                ),
+                durationMs,
+                blobBytes: blob.size,
+              },
+            },
+          )
+        }
+
         if (blob.size > 0) {
           const ext = videoFileExtension(mime)
           void queueForReview(
@@ -196,6 +276,7 @@ export function VideoChallengeCapture({
       recorder.start(200)
       playVideoStartSound()
       setRecording(true)
+      startPreviewFrameCount()
       const started = Date.now()
       tickRef.current = window.setInterval(() => {
         const elapsed = Math.floor((Date.now() - started) / 1000)
@@ -203,8 +284,9 @@ export function VideoChallengeCapture({
         setRemaining(left)
         if (left <= 0) recorderRef.current?.stop()
       }, 200)
-    } catch {
-      notify('Could not start recording')
+    } catch (err) {
+      const detail = reportClientIssue('video-record', err, { eventId })
+      notify(`Could not start recording (${detail})`)
     }
   }
 
@@ -253,8 +335,8 @@ export function VideoChallengeCapture({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <div className={CHALLENGE_VIDEO_FRAME_CLASS}>
+      <div className="flex min-h-0 flex-1">
+        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
@@ -262,7 +344,7 @@ export function VideoChallengeCapture({
               controls
               playsInline
               preload="auto"
-              className={CHALLENGE_VIDEO_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
             >
               <source src={reviewUrl} type={recordedFile.type || undefined} />
             </video>
@@ -273,7 +355,7 @@ export function VideoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_MEDIA_CLASS}
+                className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (
@@ -307,7 +389,7 @@ export function VideoChallengeCapture({
       </div>
 
       <div
-        className="shrink-0 space-y-3 px-4 pt-3"
+        className="flex shrink-0 flex-col items-center space-y-3 px-4 pt-3"
         style={{
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}

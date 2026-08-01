@@ -5,6 +5,7 @@ import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { useAcceptLegalDocuments, useOutstandingLegalDocuments } from '@/hooks/use-legal-acceptance'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 /**
  * Blocks the admin panel until the signed-in user has accepted the current legal
@@ -20,6 +21,7 @@ import { useOrganizationId } from '@/hooks/use-organization-id'
  */
 export function LegalAcceptanceGate({ children }: { children: React.ReactNode }) {
   const organizationId = useOrganizationId()
+  const tenant = useOptionalTenant()
   const { outstanding, isReady } = useOutstandingLegalDocuments()
   const accept = useAcceptLegalDocuments(organizationId)
   const [checked, setChecked] = useState(false)
@@ -27,7 +29,9 @@ export function LegalAcceptanceGate({ children }: { children: React.ReactNode })
 
   // Wait until we actually know. Never flash the gate at someone whose
   // acceptances are still loading.
-  if (!isReady || outstanding.length === 0) return <>{children}</>
+  if (tenant?.tenantOrg?.is_demo || !isReady || outstanding.length === 0) {
+    return <>{children}</>
+  }
 
   async function handleAccept() {
     setError(null)

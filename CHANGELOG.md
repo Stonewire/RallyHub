@@ -5,6 +5,642 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V2.20.36 - 2026-07-31 (remove the on-screen shutter stats line)
+
+- Rumen confirmed the instant-shutter flow on device: any residual wait now
+  lives inside the normal submission step instead of freezing the photo, and
+  the diagnostic stats line under the snapshot has done its job. Removed.
+- The silent instrumentation stays: background encodes slower than 600ms
+  still write timing rows (visible from Chrome traffic), and the corner
+  version stamp on live pages remains for support.
+
+## V2.20.35 - 2026-07-31 (the shutter is instant even when Hermit's encoder stalls)
+
+- Rumen's on-screen stage readings settled the deep investigation: the frame
+  grab is ~15ms on every single shot, and the delay is the JPEG encode
+  intermittently stalling at a near-constant ~13.1 seconds (five sightings at
+  13.1-13.2s across different sessions, plus 7.3s and 8.7s outliers). The
+  repetition of the same number is a timeout inside Hermit's WebView encoder;
+  scene content, lighting, and focus are irrelevant, out-of-focus shots
+  included, and retakes in the same game are instant while the first shot of
+  a newly opened game is the one that stalls. Earlier "confirmed fixed"
+  rounds were lucky streaks through an intermittent fault, V2.20.27's
+  included.
+- The app no longer waits for that encoder. Pressing the shutter now puts
+  the captured frame on screen immediately as the snapshot (showing pixels
+  needs no JPEG), the camera is released at once, and the JPEG conversion
+  runs in the background while the participant reviews the shot. Submit
+  waits only for whatever encode time is still outstanding, showing
+  "Preparing" if tapped early; in the common case the human review gap
+  absorbs the entire stall, worst case included.
+- The on-screen stats line now shows the draw time instantly and fills in
+  the encode time when it completes, so the background stall stays
+  observable without ever being felt. This flow is shared by all platforms;
+  on Chrome and iPhone the encode is fast and Submit is simply never gated.
+
+## V2.20.34 - 2026-07-31 (restore the exact build Rumen confirmed, stats line included)
+
+- Rollback target corrected per Rumen: the build he signed off on device was
+  V2.20.27, which still had the on-screen timing line under each snapshot;
+  V2.20.28 removed that line, and every delay report since came after that
+  removal. The entire src tree is now byte-identical to V2.20.27 (verified:
+  empty diff), with only the version string changed so the corner stamp can
+  confirm the deploy. The on-screen shutter stats line is therefore back.
+
+## V2.20.33 - 2026-07-31 (roll back to the confirmed-good V2.20.28 code)
+
+- Rumen reported delays back on the Hermit tablets and called for a rollback
+  to the last confirmed-good state. The code is now byte-identical to
+  V2.20.28, the build he signed off on device ("that's it") after the Hermit
+  shutter fix: the only live code difference since then was V2.20.29's
+  tap-measurement wrapper (the iPhone-freeze hunt's other two changes were
+  iOS-gated and already reverted in V2.20.32), and it is removed.
+- If delays still appear in Hermit on this build, they cannot be caused by
+  anything shipped since the sign-off; check the corner version stamp reads
+  V2.20.33 before judging, since Hermit has already been caught serving
+  stale cached bundles once tonight.
+
+## V2.20.32 - 2026-07-31 (iOS freeze: experiments reverted, page-level causes exhausted)
+
+- Both remaining candidate fixes were disproven on device (V2.20.30 toast
+  blur removal, V2.20.31 submit-sound skip) and are reverted: the sound and
+  the frosted toast are back exactly as before, on all platforms.
+- The night's instrumentation record now amounts to a proof: across every
+  reproduction of the iPhone's post-submit freeze, submit close, repaint,
+  tap queuing (hardware timestamps), and render all measured fast, and not
+  one iOS diagnostic row crossed a threshold. The multi-second stall exists
+  between iOS and the page, in Safari's own input and display pipeline, not
+  in the app, which is why no page-level change could touch it.
+- Parked in TRACKER.md as IOS-FREEZE with the decisive next step: a short
+  wired Web Inspector session (iPhone via cable to the Mac), whose timeline
+  can see the system layers that in-page instrumentation cannot. Not
+  event-blocking: the tablets are the event platform, and the iPhone flow
+  works correctly aside from the post-submit sluggishness.
+
+## V2.20.31 - 2026-07-31 (test: skip the submit sound on iOS)
+
+- The toast blur was acquitted: V2.20.30 changed nothing on the iPhone. The
+  decisive new observation is that the post-submit freeze is a
+  constant-length delay that lands in different places (sometimes before the
+  game list appears, sometimes on the next tap after it), which points at a
+  fixed-duration system-level operation rather than rendering or app code.
+  The one such operation at every submission is the submit sound: starting
+  audio playback on iOS activates the system audio session, and after a
+  session has used the camera it renegotiates the audio route, a well-known
+  OS-level UI stall of one to two seconds that no in-page timer can see.
+- Test change, iOS only: the participant submit sound is skipped on iOS.
+  Android keeps its sound and is untouched, per Rumen's constraint. If the
+  freezes vanish with it, the sound is the confirmed cause and can be
+  brought back properly through the already-running Web Audio context
+  instead of HTMLAudio playback.
+
+## V2.20.30 - 2026-07-31 (drop the toast blur on iOS: the post-submit freeze fix)
+
+- The iPhone's whole post-submit symptom family (text screen frozen for
+  seconds after submitting, next game slow to open right after a submission,
+  approvals appearing late) finally cohered: every timer says the phone is
+  idle during the freeze (JS fast, repaint callback within 30ms, taps
+  processed instantly), so the stall is in iOS Safari's renderer, not the
+  app. The one thing that appears at exactly that moment in every case is
+  the "Submitted" toast, whose frosted-glass backdrop blur is a known
+  multi-second compositor stall on iOS Safari. It also explains why the
+  instrumentation stayed silent: the freeze lives below everything the app
+  can measure.
+- On iOS only, the toast drops the backdrop blur and uses a slightly darker
+  flat background instead (visually near-identical, fully readable). Android
+  and desktop keep the exact same blurred toast as before; per Rumen's
+  instruction, nothing that could affect Android behavior was touched.
+- Verification on device: submit a text challenge; the screen should switch
+  instantly, and a game tapped right after a photo submission should open
+  without the lag.
+
+## V2.20.29 - 2026-07-31 (measure the iPhone's post-submit tap lag)
+
+- Diagnostic-only. On iPhone, tapping the next game right after any
+  submission (text included) takes a couple of seconds to open. The
+  submit-timing rows already show the phone repainting within ~30ms of
+  submitting, so the delay lives in one of two places: the tap sitting in
+  the browser's queue before the app processes it, or the game view taking
+  long to render after.
+- Game-card taps now measure both halves separately (using the browser's
+  hardware timestamp for the true moment of touch) and report any open
+  slower than 400ms. The split names the culprit: queued tap points at
+  something blocking input after submission; slow render points at the
+  game view itself.
+
+## V2.20.28 - 2026-07-31 (investigation closed, debug line removed)
+
+- Rumen confirmed the Hermit shutter fix on device: releasing the camera
+  before the JPEG encode ended the 8-13 second stalls. The temporary on-screen
+  stats line under the snapshot is removed now that its verification job is
+  done; the permanent pieces stay (threshold-gated timing rows, the version
+  stamp under the Powered by RallyHub badge).
+- TRACKER.md records the full investigation outcome and the two parked items:
+  the iPhone in-app video orientation retest, and the fact that Hermit's
+  WebView never delivered a diagnostics insert while Chrome on the same
+  tablet did.
+
+## V2.20.27 - 2026-07-31 (release the camera before encoding: the Hermit shutter fix)
+
+- Rumen's on-screen stats and his own sharp observation solved it together:
+  the photo IS captured instantly (the frame he framed), then the WebView
+  stalls 8-13 seconds turning it into a JPEG while the camera keeps running.
+  One shot showed encode at 8705ms of an 8747ms total; the live preview kept
+  moving throughout because it is composited by the GPU while the encoder
+  starves against the active camera pipeline. Chrome tolerates that
+  contention; Hermit's system WebView does not.
+- The capture now draws the frame to the canvas (instant), releases the
+  camera, and only then encodes. With the camera off, the encoder has the
+  hardware to itself.
+- The on-screen stats line stays for this verification round: the encode
+  number on the next Hermit shot is the verdict.
+
+## V2.20.26 - 2026-07-31 (shutter timing shown on the snapshot itself)
+
+- Hermit provably runs the current build (the on-screen V2.20.25 stamp
+  confirmed it) yet its slow shots still write no diagnostic rows, so the
+  network channel from inside Hermit cannot be relied on for this
+  investigation. The measurement now bypasses it entirely: after each photo,
+  a small line under the snapshot shows the shutter time, its setup / draw /
+  encode split, and the build number, readable straight off the device.
+- If the on-screen number is small while the wait feels long, the delay sits
+  before the shutter handler even runs (the WebView delaying input), which
+  is a different chase than a slow capture pipeline. Either way the next
+  Hermit round produces a definitive number without trusting the network.
+
+## V2.20.25 - 2026-07-31 (visible build stamp on live pages)
+
+- Hermit still feels slow after a cache clear, yet the diagnostics table
+  stays empty, which is impossible on a current build (slow shots write
+  rows). The only consistent explanation is that Hermit's WebView is still
+  serving a bundle from before the instrumentation existed. There is no
+  service worker in the app, so it is plain WebView page caching.
+- The Powered by RallyHub badge on live pages now carries a tiny version
+  stamp, so the RUNNING build can be read straight off any device. This
+  settles every "which version is this device actually on" question in
+  seconds, for this investigation and for future support.
+
+## V2.20.24 - 2026-07-31 (every diagnostic row names its build; photo timing measures to first paint)
+
+- Rumen's latest Hermit round felt slower than ever yet wrote no timing rows,
+  and the user-agent data shows Hermit disguises itself as Chrome, so a stale
+  cached build inside Hermit cannot be told apart from the live deploy by
+  fingerprint. Every diagnostic row now records the APP_VERSION that wrote
+  it: if Hermit is serving an old cached bundle, the next row says so
+  outright.
+- Photo capture timing now measures from shutter press to the preview
+  actually appearing on screen (not just the internal capture call), with
+  the reporting threshold lowered to 600ms, so a felt delay that lives in
+  rendering rather than capture is caught too.
+
+## V2.20.23 - 2026-07-31 (name the stage that owns Hermit's 13-second shutter)
+
+- Diagnostic-only. Photo capture inside the Hermit app is erratically slow:
+  the timing rows show three real shots at 13.2 seconds almost to the
+  millisecond (13172, 13157, 13198ms) with a 1.4 second outlier. Numbers
+  that identical are a hidden timeout or forced fallback inside the WebView,
+  not random load, and the current measurement only sees the capture step as
+  one block.
+- The capture step's timing is now split into its parts (setup, canvas draw,
+  JPEG encode) and attached to the same capture-timing rows, so the next
+  slow Hermit shot names the exact operation that owns the 13 seconds. Fast
+  shots keep writing nothing.
+
+## V2.20.22 - 2026-07-31 (join photo uses the in-app camera on tablets)
+
+- The last open item from the original five: the join screen's Take Photo on
+  Android tablets opened a file browser, because tablet browsers turn the
+  camera-input attribute into a plain file picker. Take Photo now opens the
+  same in-app camera the challenges use (full view, edge to edge, fast
+  shutter) everywhere except iOS, which keeps its native camera per Rumen's
+  verdict that it is perfect there.
+- An explicit "Or upload a photo" link keeps the file picker available as a
+  deliberate choice on the in-app-camera platforms.
+- Photos from the in-app camera arrive already sized for upload; the upload
+  path itself is unchanged.
+
+## V2.20.21 - 2026-07-31 (iPhone video records vertical again)
+
+- iPhone video quality recovered in V2.20.20 but the view stayed horizontal:
+  iOS Safari ignores polite portrait hints at camera open and stays in its
+  landscape mode. The old max-resolution reconfigure removed in V2.20.13 had
+  been flipping it to portrait as a side effect, which is why iPhone video
+  was vertical before today's tablet work.
+- iOS now gets a firm portrait demand after the camera opens (an exact
+  width/height swap), with the polite fallback kept if a device genuinely
+  cannot. Android is untouched: its drivers either honour the polite hints
+  or deliver upright wide frames where forcing portrait would be wrong.
+- Also checked from the timing rows: the photo submit delay Rumen flagged is
+  honest upload time on the network (photo submits stayed under the 1.5
+  second reporting threshold; the video submits that crossed it spent the
+  whole time in the file transfer). The instrumentation keeps watching it.
+
+## V2.20.20 - 2026-07-30 (full 1080p video on iPhone and iPad, 720p stays Android-only)
+
+- The 720p recording request shipped in V2.20.14 was calibrated on the
+  Android event tablet but applied everywhere. On iPhone it made Safari pick
+  a wide, low-resolution camera mode: a horizontal preview and visibly lower
+  quality on hardware that handles 1080p without breaking a sweat.
+- Video recording now asks for the full 1080x1920 portrait stream everywhere
+  EXCEPT Android, which keeps the measured 720p floor: the event tablet
+  needed it to stay smooth (9fps at 1080p, measured), and Android event
+  devices are unknown hardware in general. iPhones and iPads are known-good
+  cameras, per Rumen's explicit call.
+- Photo capture is unchanged (1080p everywhere already). The record-timing
+  instrumentation stays armed: if any device still records choppy or
+  oversized, it writes a row showing what the camera negotiated.
+
+## V2.20.19 - 2026-07-30 (centre the capture buttons on wide screens)
+
+- On the tablet's wide screen the Take photo / Record video / Submit buttons
+  sat left of centre: the button component is inline-flex, which ignores the
+  auto-margin centring the layout relied on. The capture footers are now
+  flex columns that centre their children, so the buttons sit centred on
+  every screen width. Phones were already visually centred and are
+  unchanged.
+
+## V2.20.18 - 2026-07-30 (capture view goes edge to edge)
+
+- With the zoom crop gone, the tablet's wide camera view was rendering inside
+  a narrow phone-shaped column and came out too small to frame a shot with.
+  The photo and video capture screens now use the whole screen for the
+  camera: the full view renders as large as the display allows on every
+  device, letterboxed only where the sensor's shape demands it.
+- Embedded review surfaces (submission viewer, pre-submit review card) keep
+  their compact framed layout; only the live capture screens go full bleed.
+- Context for the record, from Rumen's question: the tablet's camera cannot
+  deliver a true vertical full-frame picture because its sensor is
+  physically landscape-mounted. Tablet native camera apps that show
+  "portrait" are crop-zooming the same wide sensor. Full field of view on
+  this hardware is inherently a wide picture; phones with portrait sensors
+  are unaffected and stay fully vertical.
+
+## V2.20.17 - 2026-07-30 (full camera view, no zoom crop, on every capture screen)
+
+- The vertical capture window was centre-cropping the camera image, which on
+  the tablets looked like heavy zoom and cost real quality (a slice of the
+  frame blown up to fill the window). Root cause is physical: the tablet's
+  camera sensor is landscape-mounted, so its full field of view is a wide
+  picture, and locking the tablet vertical cannot change the sensor's shape.
+- Per Rumen's call, full field of view wins: capture screens now show the
+  WHOLE camera frame inside the vertical window, letterboxed on black where
+  the sensor is wider than the screen. Saved photos are the full frame at
+  upload size, with no crop and no upscaling. Phones with portrait sensors
+  still fill the window edge to edge and are unaffected.
+- Video recording itself was never cropped (the recorded file always
+  contained the full frame); only its on-screen preview and review windows
+  were cropping, and those now show the full frame too. The recording
+  pipeline is untouched.
+- The same full-view treatment applies to the participant's pre-submit
+  review and the facilitator's submission viewer, so media is never shown
+  cropped anywhere in the flow.
+
+## V2.20.16 - 2026-07-30 (photo capture matches the video capture's vertical window)
+
+- V2.20.15's rotation fix was the wrong diagnosis and is reverted: the
+  tablet delivers upright content in wide frames, so rotating produced
+  sideways photos and a broken-looking, flipped preview. The report that
+  video capture looks perfect was the clue, since video applies no rotation
+  at all.
+- Photo capture now works exactly like video capture: a fixed vertical 9:16
+  window shows the camera with the sides cropped away, and the saved photo
+  is the same centre crop at upload size. What the participant frames on
+  screen is what gets submitted. No rotation logic remains in the photo
+  path.
+- Video capture is untouched, per Rumen's explicit instruction, as it works.
+
+## V2.20.15 - 2026-07-30 (photos upright when the tablet is held upright)
+
+- Photos taken with the tablet held upright came out horizontal. The rotate
+  decision trusted the orientation the camera driver reported when the
+  stream opened, and this tablet's driver reports one orientation while
+  delivering another.
+- Both the saved photo and the live preview now decide rotation from the
+  actual frame at the moment it is used: device upright plus a
+  wider-than-tall frame means rotate. Driver reports are no longer consulted
+  for photo orientation.
+- Video preview rotation is unchanged in this release; recorded video file
+  orientation on landscape-sensor devices remains a known follow-up.
+
+## V2.20.14 - 2026-07-30 (record at 720p: frame rate over resolution)
+
+- After V2.20.13 the tablet's recording preview improved from 3fps to a
+  measured 9fps at the negotiated 1920x1080, still short of smooth. Per
+  Rumen's explicit call, frame rate now wins over resolution: video
+  recording requests 720p (about 2.3x fewer pixels per frame), which budget
+  tablet hardware encodes at full rate. Photos keep the sharper 1080p
+  stream, since a single still cannot be choppy.
+- The hard `min` resolution constraints were also dropped from the camera
+  request as part of the same edit: `min` is a hard requirement that fails
+  camera open outright (OverconstrainedError) on cameras that cannot meet
+  it, which is what broke desktop and laptop webcams this morning. Ideal
+  values degrade gracefully instead of failing.
+- Verification unchanged: a smooth recording writes no record-timing row;
+  any row that appears shows the negotiated size and measured fps.
+
+## V2.20.13 - 2026-07-30 (choppy tablet video fixed from measured evidence)
+
+- V2.20.12's record-timing rows caught the choppiness red-handed: the camera
+  opened at the requested 1080x1920 but was then reconfigured to the sensor's
+  maximum, 3120x2448 (7.6 megapixels per frame), and the recording preview
+  dropped to a measured 3fps while the hardware mp4 encoder collapsed trying
+  to eat 18Mbps of those frames.
+- The max-resolution reconfigure is removed. Video now records the stream at
+  its negotiated ~1080x1920 size, and the bitrate is computed from the real
+  track dimensions (~5Mbps at 1080p), comfortably within what the tablet's
+  hardware encoder handles. Recorded files also get meaningfully smaller.
+- Verification is the instrumentation: a smooth next recording (over 24fps,
+  at or under 1080x1920) writes no record-timing row. Any row that still
+  appears shows exactly what the camera negotiated instead.
+
+## V2.20.12 - 2026-07-30 (measure the choppy tablet video before fixing it)
+
+- Diagnostic-only release for the last big open item: video recording on the
+  Android tablet is visibly choppy while recording. "Choppy" is low frames
+  per second, and that is measurable, so this release measures it instead of
+  guessing between the three suspects (sensor pushed to maximum resolution,
+  the hardware mp4 encoder, the requested bitrate).
+- While recording, the preview's real frame rate is counted from actual
+  rendered frames. When a recording of at least 1.5 seconds ends with a
+  preview under 24fps, a track resolution beyond 1080x1920, or an
+  unmeasurable frame rate, a `record-timing` row captures: measured fps, the
+  resolution and frame rate the camera actually negotiated, the recorder
+  format chosen, the requested bitrate, recording duration, and file size.
+- Smooth recordings write nothing. The next tablet recording session gives
+  the numbers that pick the fix.
+
+## V2.20.11 - 2026-07-30 (tablet photo shutter fixed from measured evidence)
+
+- V2.20.10's capture-timing rows nailed the tablet's slow shutter with hard
+  numbers: the full-resolution `ImageCapture.takePhoto()` call took between
+  2.2 and 23.4 seconds per shot across six captures, returning a 3-4MB still
+  that was then shrunk to ~130KB anyway, with the shrink costing a further
+  ~1.1 seconds per shot.
+- Photos are now grabbed from the live preview frame in a single canvas pass
+  that rotates (for landscape sensors on upright devices) and scales to the
+  1600px upload size together. Both measured costs are gone; the remaining
+  work per shot is one JPEG encode.
+- The `ImageCapture` and rotate-after-the-fact code paths are removed
+  entirely. Video recording is untouched.
+- The capture-timing instrumentation stays in place and is the verification:
+  if any shutter still takes over a second on the tablet, it writes a row.
+  No rows means fixed.
+- Also confirmed from the same evidence run: the tablet now reports itself as
+  Android (desktop mode is genuinely off), and the iPhone's earlier lingering
+  submit screens did not reproduce in a fresh event; its one slow submit was
+  2.6 seconds of legitimate video upload time. If the lingering returns in a
+  long-running event, the permanent submit-timing instrumentation will
+  capture it.
+
+## V2.20.10 - 2026-07-30 (timing instrumentation for the two remaining slowdowns)
+
+- Diagnostic-only release, no behavior changes. Two timing captures added to
+  `client_diagnostics`, reported only when a threshold is exceeded so normal
+  runs write nothing:
+- `capture-timing`: when a photo takes over a second from shutter press to
+  ready, records the camera-open, still-capture, and downscale stage
+  durations, whether the ImageCapture API was used, and the image sizes. This
+  is for the Android tablet's ~3 second shutter lag; the earlier "fixed"
+  build still showed 4-5 seconds there, so this time the fix will be chosen
+  from measured stages instead of re-landed on faith.
+- `submit-timing`: when a challenge submit takes over 1.5 seconds to close
+  (or the screen takes over 400ms to repaint after closing), records the
+  upload, state-flush, sound/notify, and repaint-delay durations. This is for
+  the iPhone's 4-5 second lingering submit screens; the repaint measurement
+  distinguishes a blocked main thread from a compositor stall, which point at
+  different culprits.
+
+## V2.20.9 - 2026-07-30 (re-land the x-team-token fix, now confirmed by device evidence)
+
+- Phase 2 of the investigation ran: Rumen reproduced the failures on a real
+  iPhone and the Android tablet with V2.20.8's diagnostics live. All six
+  captured failures, on both platforms, were the same transport-level error
+  ("Failed to send a request to the Edge Function") on the upload
+  authorization call, while every REST request (name-only join, text
+  submissions, the diagnostics themselves) went through fine.
+- That is exactly the `x-team-token` CORS behavior V2.20.2 fixed: REST
+  accepts the header, Edge Functions' preflight does not, so the browser
+  refuses to send only the Edge Function requests. The fix is now re-landed
+  with real-device evidence behind it instead of inference: the header is
+  sent only on `/rest/v1/` calls, where Postgres actually reads it.
+  Server-side enforcement is unchanged, and the `supabase.test.ts` tests
+  covering the header gating are restored with it.
+- Also learned from the evidence, for the remaining open items: the Android
+  tablet's Chrome is running in desktop mode (its user agent reports desktop
+  Linux), which explains the join screen opening a file browser instead of a
+  camera (desktop browsers ignore the camera-capture input attribute). And
+  the iPhone text-submit delay produced no error row at all while the
+  submission demonstrably arrived instantly, so the close-path stall is a
+  timing issue needing its own instrumentation, not an exception.
+
+## V2.20.8 - 2026-07-30 (real-error capture for the camera/upload mysteries)
+
+- Following the V2.20.7 revert, added a permanent `client_diagnostics` table
+  and a small `reportClientIssue` utility, wired into every currently
+  mysterious failure point: the join-team-photo upload, in-game photo/video
+  submission upload, photo capture, video recording, and the text-submit
+  close-on-submit timing.
+- Each failure now shows its real error detail on screen (instead of a
+  generic message) and is saved server-side, queryable by event/team/context/
+  platform, so the next reproduction on a real device gives actual evidence
+  instead of another guess.
+- RLS on the new table mirrors the existing `submissions` anon-write pattern
+  (join-token gated INSERT, no anon SELECT), reusing established precedent
+  rather than inventing new access rules in an area (anon writes) that has
+  already caused real incidents in this codebase.
+- No root causes are fixed yet. Next step: reproduce bugs 1-4 from
+  `docs/superpowers/specs/2026-07-30-media-capture-investigation-design.md`
+  on the real iPhone and Android tablet with this logging live, then diagnose
+  from what comes back.
+
+## V2.20.7 - 2026-07-30 (revert today's camera/upload changes, restart investigation properly)
+
+- Six commits today (V2.20.1 through V2.20.6) chased camera and upload bugs
+  one guess at a time, each verified only in a sandboxed desktop browser.
+  On real hardware, five distinct problems remained or worsened, including
+  the core issue: photo/video submissions failing on both iPhone and Android
+  with "fail to send a request to the edge function."
+- Reverted `main` to `a4fa36a` (V2.20.0), the state before any of today's six
+  commits. This is a deliberate, explicit tradeoff, not a clean win:
+  - Removed (regressions from today, correctly undone): the black-screen
+    Android video-record bug and the ~15-second live-track-reconfigure photo
+    slowdown.
+  - Reintroduced (the original problems from before today, now back): the
+    hard `min` resolution constraint that fails camera open outright on
+    desktop and some tablets, the original ~5 second full-resolution
+    `ImageCapture` photo path, AND the `x-team-token` CORS-preflight bug
+    fixed in V2.20.2 (`68bcfb9`); that fix was production-verified, not
+    guessed, but is deliberately left reverted so Phase 2 reproduces the
+    original "fail to send a request to the edge function" failure
+    unmodified. This is the direct cause of bugs 1 and 3 in the spec, and it
+    is EXPECTED to keep happening until Phase 3 re-lands that fix. It is not
+    something the V2.20.8 diagnostics work below resolves.
+- No server-side changes (migrations, Edge Functions) were touched by any of
+  today's six commits, so this is a pure client rollback with no data or
+  schema impact.
+- Next: a permanent diagnostic-logging mechanism ships next (see
+  `docs/superpowers/specs/2026-07-30-media-capture-investigation-design.md`)
+  so the real root causes get diagnosed from evidence instead of guessed at
+  again. No further camera/upload fixes ship until that evidence exists.
+
+## V2.20.6 - 2026-07-30 (removed the second live-camera reconfigure causing Android lag)
+
+- Photo capture regressed to ~15 seconds and video preview lagged continuously
+  after V2.20.4/5. Root cause: a second call left over from the same bug class
+  fixed in V2.20.4. `tryPortraitConstraints()` called `track.applyConstraints()`
+  on the already-open camera track, on every photo and video open, whenever the
+  sensor reported landscape. That is a live-track reconfigure exactly like
+  applyMaxVideoTrackQuality, which V2.20.4 removed for photo but this second
+  call site was missed. `applyConstraints()` on an active getUserMedia track is
+  unreliable on some Android hardware: it can stall for seconds or leave the
+  camera pipeline degraded for the rest of the session, which also explains the
+  "goes straight to files" report — that was the black-preview fallback message
+  added in V2.20.4 firing because this same reconfigure was stalling the track.
+- The manual browser test that showed capture as "instant" never exercised this
+  code path: the stubbed test camera was already portrait, so the
+  landscape-only branch that triggers the reconfigure never ran. It was
+  confirmed this time with a stubbed landscape (1920x1080) sensor stream, the
+  actual shape of the bug.
+- The reconfigure call is now removed entirely. Preview and photo orientation
+  are unaffected: both already correct sensor orientation in software
+  (CSS rotation for the live preview, a canvas rotate baked into every captured
+  still) regardless of what the raw track reports, and that was verified against
+  a stubbed landscape stream with zero `applyConstraints` calls and a
+  correctly-rotated output image.
+- Open risk, flagged rather than hidden: recorded VIDEO FILES are the one output
+  not corrected this way — MediaRecorder encodes the raw track, not the rotated
+  preview — so a landscape-sensor device could record a sideways video file. If
+  that turns up on the tablet, the fix is recording through a canvas (the same
+  frames already drawn correctly for stills) instead of the raw track, not
+  bringing back this reconfigure.
+
+## V2.20.5 - 2026-07-30 (Android video recording no longer goes black on Record)
+
+- V2.20.4 fixed a black camera preview on Android tablets. A different bug
+  remained: the preview showed fine, but pressing Record turned it black and
+  flickering, with no video produced. iPhone was unaffected — but iPhone video
+  challenges always use the OS camera app instead of this in-app recorder, so
+  it never exercised this code at all. Android tablets always go through it,
+  which is why only they showed it.
+- The recorder tried `video/mp4` first everywhere. On Android, MediaRecorder
+  hands that to a hardware H.264 encoder that shares the camera pipeline with
+  the live preview; attaching it while the preview is already running is a
+  known way to get exactly this: a black, flickering preview and no output the
+  instant recording starts.
+- Android now records `vp9`/`vp8` first, a software encoder that never touches
+  the camera hardware. Every other platform is unchanged — desktop and iOS
+  Safari need `mp4` first, since they have no `vp8`/`vp9` MediaRecorder support
+  at all.
+- Not reproducible without an affected Android tablet. This is the fix the
+  symptom (works until Record specifically) points to, added test pins the
+  platform-specific ordering; the tablet itself is the real test.
+
+## V2.20.4 - 2026-07-30 (video capture on Android tablets)
+
+- Video challenges showed a black screen on Android tablets while working on
+  iPhone. Photo capture on the same tablets started working in V2.20.3, and the
+  only remaining difference between the two paths was that video still pushed the
+  camera to its maximum sensor resolution immediately after opening it. Some
+  Android camera stacks respond to that by handing back a track that is live but
+  never paints a frame.
+- Video now uses the negotiated portrait 1080x1920 stream, the same as photo. The
+  recording bitrate is calculated from the real track size, so it adapts and
+  quality at 1080p is unaffected. Recordings are also smaller, which helps them
+  stay under the upload limit.
+- A black preview can no longer be silent: if no frame arrives within three
+  seconds, the participant is told to record with their camera app and upload it,
+  and the Upload video button is already on that screen.
+- Honest caveat: the black screen itself cannot be reproduced without the
+  affected tablet, so this is the fix indicated by the photo/video difference
+  rather than one confirmed on the device. Needs a check on the tablet.
+
+## V2.20.3 - 2026-07-30 (taking a photo is instant instead of a five-second wait)
+
+- Pressing "Take photo" on an Android tablet stalled for around five seconds
+  before the shot appeared. The app was doing a lot of expensive work and then
+  throwing the result away.
+- Every photo was captured at the sensor's full resolution: the camera was
+  reconfigured to its largest frame when the camera opened, a full-resolution
+  still was requested from the sensor, that image was rotated at full resolution,
+  and only then was it shrunk to 1600px for upload. Four heavy steps, on a
+  12-megapixel image, to produce a 1600px photo.
+- Stills now come from the frame already on screen and are rotated and scaled to
+  final size in a single pass. The camera is no longer pushed to full resolution
+  for photos, and the second shrink pass is gone. Video recording still uses full
+  resolution, where it pairs with the high bitrate and is wanted.
+- Photo quality is unchanged in practice: the preview is a portrait 1080x1920 and
+  the saved photo is 1600px on its long edge, exactly as before.
+- Measured on a stubbed camera: time from tap to preview halved, with the
+  remaining cost being a single JPEG encode. The full-sensor delay that dominated
+  on the tablet cannot be reproduced off-device, so the real gain there should be
+  larger.
+
+## V2.20.2 - 2026-07-30 (photo and video submissions reach the server again)
+
+- Teams could take a photo or video, hit Submit, watch the loading screen, and
+  end up with nothing: no submission on their phone, nothing for the facilitator.
+  Uploads had been failing since V2.19.0 on 29 July. Only two photo/video
+  submissions existed in the database, both from 13 July.
+- V2.19.0 started attaching the `x-team-token` header, which proves a phone owns
+  the team it claims to be, to every participant request. Only Postgres reads
+  that header. Edge Functions and Storage answer the CORS preflight with a fixed
+  list of allowed headers that does not include it, so the browser passed the
+  preflight and then silently refused to send the real request. The upload
+  authorization call died there, and with it every photo and video submission and
+  every team join photo.
+- The header is now sent only on REST and RPC calls, the only place it is read.
+  No change to what the server enforces.
+- Verified against production from a real participant session: upload
+  authorization and the storage upload now go out without the header, a
+  submission insert carrying it returns 201, and the same insert without it is
+  still rejected with "This phone is not authorized for that team", so the
+  V2.19.x ownership guard is untouched. Test rows removed afterwards.
+
+## V2.20.1 - 2026-07-30 (participant camera capture fixed on every platform)
+
+- Photo and video capture was dead for teams: the camera screen opened onto a
+  black frame on computers, and on tablets the very first team photo opened a
+  file picker instead of a camera. Two separate faults, both silently swallowed
+  into an empty stream.
+- Capture asked for `width: { min: 720 }` and `height: { min: 1280 }`. `min` is
+  a hard requirement, so the camera request was rejected outright on any camera
+  that cannot produce a 720x1280 portrait frame, which covers every 720p
+  landscape laptop webcam and many tablets. Resolution is now a preference, with
+  one plain-video retry for drivers that reject size hints altogether.
+- Capture was also gated behind a stored "permission granted" flag, set by a
+  camera request fired on page load with no user tap, behind the privacy notice,
+  and needing microphone as well as camera. Browsers suppress prompts like that,
+  and one suppressed prompt left capture dead for the whole event. Permission is
+  now requested when the participant taps the capture button.
+- Failures now say what went wrong (blocked, no camera, camera in use) instead
+  of a generic "not granted", and the next attempt falls back to the device
+  camera app or a file upload.
+- The team photo on the join screen used a bare file input, so desktop only ever
+  offered a file dialog. It now opens the in-app camera where one exists, with
+  an explicit upload option underneath.
+
+## V2.20.0 - 2026-07-30 (public self-resetting demo account)
+
+- Added the passwordless `demo.rallyhub.games` tenant with normal client-admin,
+  facilitator, display, join, scoring, upload, inventory, and event behavior.
+- The shared sandbox automatically restores every 30 minutes and can also be
+  reset manually from its countdown control. Demo storage is cleaned safely as
+  part of each reset.
+- Each reset installs all 159 active platform games and refreshes their current
+  names, configuration, cover images, group names, group order, and group
+  memberships. All seven platform groups are preserved, and the demo-only
+  Music Bingo game has its own group with no ungrouped games remaining.
+- Added 14 populated events across roughly one year of activity, with different
+  game sets, teams, scores, submissions, invoices, activity logs, inventory,
+  and subscription history.
+- The ready `RallyHub Product Showcase` includes runnable Quest, Quiz, Break,
+  and Music Bingo stages. Bingo uses 25 locally hosted 30-second CC0 music
+  clips with their original source recorded for provenance.
+- Upgrade, downgrade, subscription, and event-payment flows are simulated
+  inside the demo and never call Paddle or create real charges.
+- Supabase migrations and Edge Functions were deployed and verified before the
+  web release. The full app lint, 146-test suite, and production build pass.
+
 ## V2.19.1 - 2026-07-29 (team-ownership enforcement live, hotfix included)
 
 - Migration `20260719130000_team_owned_participant_writes.sql` applied to

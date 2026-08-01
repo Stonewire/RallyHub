@@ -8,6 +8,7 @@ import { HeaderSearch } from '@/components/shell/HeaderSearch'
 import { HelpModal } from '@/components/shell/HelpModal'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
+import { useTenant } from '@/contexts/tenant-context'
 import { useTheme } from '@/contexts/theme-context'
 import { isFacilitatorOnlyRole } from '@/lib/auth-routes'
 
@@ -24,6 +25,7 @@ export function AdminHeader() {
   const { toggleSidebar, state } = useSidebar()
   const { resolvedTheme, toggleTheme } = useTheme()
   const { role, signOut } = useAuth()
+  const { tenantOrg } = useTenant()
   const [helpOpen, setHelpOpen] = useState(false)
   const [loggedOut, setLoggedOut] = useState(false)
 
@@ -104,14 +106,18 @@ export function AdminHeader() {
           >
             <HelpCircle className="size-3.5" strokeWidth={2} />
           </button>
-          <button
-            type="button"
-            onClick={() => void handleExit()}
-            aria-label="Exit"
-            className={ICON_BUTTON}
-          >
-            <DoorOpen className="size-3.5" strokeWidth={2} />
-          </button>
+          {/* The public demo has no real session to end, so it hides Exit,
+              matching how the demo suppresses sign-out elsewhere. */}
+          {!tenantOrg?.is_demo ? (
+            <button
+              type="button"
+              onClick={() => void handleExit()}
+              aria-label="Exit"
+              className={ICON_BUTTON}
+            >
+              <DoorOpen className="size-3.5" strokeWidth={2} />
+            </button>
+          ) : null}
 
           <Divider />
           <HeaderAvatar />

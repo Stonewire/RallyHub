@@ -40,7 +40,11 @@ export function RequireTenantAccess({ children }: { children: ReactNode }) {
 
   if (!user) {
     return (
-      <Navigate to="/login" replace state={{ from: `${pathname}${search}` }} />
+      <Navigate
+        to={{ pathname: '/login', search }}
+        replace
+        state={{ from: `${pathname}${search}` }}
+      />
     )
   }
 

@@ -200,6 +200,7 @@ export function AdminSettingsPage() {
 
   const profileLoading = orgQuery.isLoading
   const profileReady = orgQuery.isFetched
+  const isDemo = orgQuery.data?.is_demo === true
 
   // The new design navigates these from the sidebar (Organisation, Billing) and
   // the header avatar (My Account), so the page carries no tab strip and titles
@@ -259,7 +260,17 @@ export function AdminSettingsPage() {
           showAvailablePlans
         />
       ) : tab === 'account' ? (
-        <MyAccountPanel />
+        isDemo ? (
+          <Card className="border-border/80 space-y-2 bg-muted/20 p-6 shadow-sm">
+            <h2 className="text-foreground text-lg font-semibold">Shared demo identity</h2>
+            <p className="text-muted-foreground text-sm">
+              Email and password changes are disabled for the shared public demo. All
+              organization, event, team, game, and billing features remain available.
+            </p>
+          </Card>
+        ) : (
+          <MyAccountPanel />
+        )
       ) : (
         <div className="space-y-8">
           {!orgQuery.data ? (
@@ -433,6 +444,16 @@ export function AdminSettingsPage() {
             </div>
           </div>
 
+          {/* The public demo must never expose destructive account actions. */}
+          {isDemo ? (
+            <Card className="border-border/80 bg-muted/20 space-y-2 p-6 shadow-sm">
+              <h2 className="text-foreground text-lg font-semibold">Account deletion</h2>
+              <p className="text-muted-foreground text-sm">
+                Account deletion is disabled in the public demo. Use Reset now in the
+                demo bar to restore the original showcase instead.
+              </p>
+            </Card>
+          ) : (
           <DangerZone
             notice={
               <>
@@ -504,6 +525,7 @@ export function AdminSettingsPage() {
               },
             ]}
           />
+          )}
         </div>
       )}
 
@@ -535,7 +557,7 @@ export function AdminSettingsPage() {
         </div>
       ) : null}
 
-      {deleteConfirmOpen ? (
+      {deleteConfirmOpen && !isDemo ? (
         <div
           role="dialog"
           aria-modal="true"

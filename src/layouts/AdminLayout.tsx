@@ -8,6 +8,7 @@ import { AdminHeader } from '@/components/shell/AdminHeader'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { cn } from '@/lib/utils'
+import { DemoSandboxBar } from '@/components/demo/DemoSandboxBar'
 
 export function AdminLayout() {
   useDocumentTitle('Admin')
@@ -38,6 +39,7 @@ export function AdminLayout() {
         {/* The sidebar collapse control lives in the header now. */}
         <AdminHeader />
         <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          <DemoSandboxBar />
           <main id="admin-main" className="flex-1" tabIndex={-1}>
             <Outlet />
           </main>

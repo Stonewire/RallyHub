@@ -13,6 +13,7 @@ import { useOrgPromoRedemptions } from '@/hooks/use-promo-codes'
 import { autoChargeEventInvoice } from '@/lib/paddle'
 import { queryKeys } from '@/lib/query-keys'
 import type { EventStatus } from '@/types/database'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 type PendingActivation = {
   eventId: string
@@ -38,6 +39,7 @@ export function useEventActivationFlow({
   const [pending, setPending] = useState<PendingActivation | null>(null)
   const [confirming, setConfirming] = useState(false)
   const qc = useQueryClient()
+  const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const redemptionsQuery = useOrgPromoRedemptions(organizationId)
   const bestEventDiscount = (redemptionsQuery.data ?? [])
     .filter((r) => r.purpose === 'event' && r.status === 'active')
@@ -84,7 +86,7 @@ export function useEventActivationFlow({
       // Strictly fire-and-forget: an unpaid invoice is recoverable, a disrupted
       // live event is not.
       if (organizationId) {
-        void autoChargeEventInvoice(organizationId, pending.eventId).then(() => {
+        void autoChargeEventInvoice(organizationId, pending.eventId, isDemo).then(() => {
           void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
         })
         void qc.invalidateQueries({ queryKey: queryKeys.organizationInvoices(organizationId) })
@@ -92,7 +94,7 @@ export function useEventActivationFlow({
     } finally {
       setConfirming(false)
     }
-  }, [pending, organizationId, qc, onValidationError])
+  }, [pending, organizationId, qc, onValidationError, isDemo])
 
   const requestStatusChange = useCallback(
     (

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 
+import { isIOSOrIPadOS } from '@/lib/capture-platform'
 import { getTeamMediaStream } from '@/lib/media-permissions'
 
 export type ChallengeFacingMode = 'environment' | 'user'
@@ -8,25 +9,26 @@ export type ChallengeFacingMode = 'environment' | 'user'
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
 
-/** Fixed 9:16 portrait frame for video capture and review. */
+/** Fixed 9:16 portrait frame for embedded review surfaces (modals, cards). */
 export const CHALLENGE_VIDEO_FRAME_CLASS =
   'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
 
-/** Fill the 9:16 frame; minor edge crop if sensor aspect differs slightly. */
-export const CHALLENGE_VIDEO_MEDIA_CLASS = 'size-full object-cover'
+/**
+ * Full-bleed capture container: the live camera uses the whole available
+ * screen, so a landscape-sensor tablet's letterboxed wide view renders as
+ * large as the display allows instead of inside a narrow phone-shaped column
+ * (too-small-to-frame report, 30 Jul 2026).
+ */
+export const CHALLENGE_CAPTURE_FRAME_CLASS =
+  'relative size-full overflow-hidden bg-black'
 
-type ImageCaptureInstance = {
-  takePhoto: (settings?: PhotoSettings) => Promise<Blob>
-  getPhotoCapabilities?: () => Promise<PhotoCapabilities>
-}
-
-type ImageCaptureConstructor = new (track: MediaStreamTrack) => ImageCaptureInstance
-
-function imageCaptureCtor(): ImageCaptureConstructor | null {
-  if (typeof window === 'undefined') return null
-  const ctor = (window as Window & { ImageCapture?: ImageCaptureConstructor }).ImageCapture
-  return ctor ?? null
-}
+/**
+ * Show the WHOLE frame inside the 9:16 window, letterboxed on black where the
+ * sensor is wider than the window. Used by photo and video capture so a
+ * landscape-sensor tablet is not zoom-cropped (full field of view, no quality
+ * loss from blowing up a slice).
+ */
+export const CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS = 'size-full object-contain'
 
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
@@ -53,14 +55,29 @@ export function previewVideoStyle(
   return { transform: parts.join(' ') }
 }
 
+/**
+ * Recording (withAudio) runs camera, preview, and encoder at once. The 720p
+ * recording request is ANDROID-ONLY, calibrated by device evidence
+ * (record-timing, 30 Jul 2026): the event tablet's preview measured 9fps even
+ * at 1080p, and unknown Android hardware gets the same safe floor. iPhones
+ * and iPads are known-good camera hardware and asking them for 720x1280 made
+ * Safari pick a wide low-resolution mode (horizontal, soft preview reported
+ * 30 Jul 2026), so iOS keeps the full 1080x1920 portrait request. Photo opens
+ * without audio and grabs one still, so it uses 1080p everywhere.
+ *
+ * Ideal-only sizes: `min` is a HARD requirement that rejects with
+ * OverconstrainedError on cameras that cannot meet it (every 720p landscape
+ * laptop webcam), killing capture outright. Ideals degrade instead of failing.
+ */
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
 ): MediaStreamConstraints {
+  const lowPowerRecording = withAudio && isAndroid()
   const video: MediaTrackConstraints & { focusMode?: string } = {
     facingMode,
-    width: { ideal: 1080, min: 720 },
-    height: { ideal: 1920, min: 1280 },
+    width: { ideal: lowPowerRecording ? 720 : 1080 },
+    height: { ideal: lowPowerRecording ? 1280 : 1920 },
     aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',
@@ -72,37 +89,32 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-/** Request the highest resolution the device exposes (portrait-oriented when applicable). */
-export async function applyMaxVideoTrackQuality(track: MediaStreamTrack): Promise<void> {
-  const caps = track.getCapabilities?.()
-  if (!caps) return
-
-  const maxW = caps.width?.max
-  const maxH = caps.height?.max
-  if (!maxW || !maxH) return
-
-  let targetWidth = maxW
-  let targetHeight = maxH
-  if (isPortraitDevice() && maxW > maxH) {
-    targetWidth = maxH
-    targetHeight = maxW
-  }
-
-  try {
-    await track.applyConstraints({
-      width: { ideal: targetWidth },
-      height: { ideal: targetHeight },
-      aspectRatio: { ideal: 9 / 16 },
-      frameRate: { ideal: 30 },
-    })
-  } catch {
-    // Keep negotiated stream settings.
-  }
+function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
 async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   const { width = 0, height = 0 } = track.getSettings()
   if (!width || !height || width <= height) return
+
+  // iOS Safari ignores ideal-only portrait hints and stays in its landscape
+  // camera mode (horizontal iPhone video, reported 30 Jul 2026 after the old
+  // post-open reconfigure was removed for the Android tablet's sake). An
+  // `exact` demand flips it; if the device truly cannot, the catch keeps the
+  // stream as-is. Android stays on ideals: its drivers either honour them or
+  // deliver upright-content wide frames where forcing would be wrong.
+  if (isIOSOrIPadOS()) {
+    try {
+      await track.applyConstraints({
+        width: { exact: Math.min(width, height) },
+        height: { exact: Math.max(width, height) },
+      })
+      return
+    } catch {
+      // Fall through to the polite attempt below.
+    }
+  }
+
   try {
     await track.applyConstraints({
       width: { ideal: Math.min(width, height) },
@@ -114,6 +126,15 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   }
 }
 
+/**
+ * The negotiated stream is used at its requested ~1080x1920 size, deliberately
+ * NOT reconfigured to the sensor's maximum. Device evidence (record-timing,
+ * 30 Jul 2026): the max-resolution reconfigure pushed the event tablet's track
+ * to 3120x2448 and the recording preview to a measured 3fps, with the hardware
+ * mp4 encoder collapsing under 18Mbps of 7.6MP frames. At the negotiated size
+ * the bitrate computed from real track dimensions (~5Mbps at 1080p) is well
+ * within what the hardware handles.
+ */
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
@@ -122,84 +143,56 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
-  if (track) {
-    await applyMaxVideoTrackQuality(track)
-    if (isPortraitDevice()) {
-      await tryPortraitConstraints(track)
-    }
+  if (track && isPortraitDevice()) {
+    await tryPortraitConstraints(track)
   }
 
   return stream
 }
 
-async function captureWithImageCapture(track: MediaStreamTrack): Promise<Blob> {
-  const ctor = imageCaptureCtor()
-  if (!ctor) throw new Error('ImageCapture unavailable')
+/** Upload size for stills. Matches downscalePhoto()'s target for file uploads. */
+const PHOTO_MAX_DIM = 1600
+const PHOTO_QUALITY = 0.8
 
-  const capture = new ctor(track)
-  const photoSettings: PhotoSettings = {}
-
-  if (capture.getPhotoCapabilities) {
-    try {
-      const caps = await capture.getPhotoCapabilities()
-      if (caps.imageWidth?.max) photoSettings.imageWidth = caps.imageWidth.max
-      if (caps.imageHeight?.max) photoSettings.imageHeight = caps.imageHeight.max
-    } catch {
-      // Use defaults from takePhoto()
-    }
-  }
-
-  const settings = track.getSettings()
-  if (!photoSettings.imageWidth && settings.width) {
-    photoSettings.imageWidth = settings.width
-  }
-  if (!photoSettings.imageHeight && settings.height) {
-    photoSettings.imageHeight = settings.height
-  }
-
-  return capture.takePhoto(photoSettings)
-}
-
+/**
+ * Scale the FULL live frame to upload size in one canvas pass. No cropping
+ * and no rotation: the event tablet's sensor is landscape-mounted and
+ * delivers upright content in wide frames, and Rumen's call (30 Jul 2026) is
+ * to keep the whole field of view rather than zoom-crop it to portrait.
+ * Phones with portrait sensors deliver portrait frames and are unaffected.
+ */
 function drawVideoFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
-  quarterTurn: boolean,
 ): void {
   const vw = video.videoWidth
   const vh = video.videoHeight
+
+  const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(vw, vh))
+  canvas.width = Math.round(vw * scale)
+  canvas.height = Math.round(vh * scale)
+
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-  if (quarterTurn && vw > vh) {
-    canvas.width = vh
-    canvas.height = vw
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    ctx.rotate(Math.PI / 2)
-    ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh)
-    return
-  }
-
-  canvas.width = vw
-  canvas.height = vh
-  ctx.drawImage(video, 0, 0, vw, vh)
+  ctx.drawImage(video, 0, 0, vw, vh, 0, 0, canvas.width, canvas.height)
 }
 
-async function captureWithCanvas(
-  stream: MediaStream,
-  videoEl: HTMLVideoElement | null,
-  quarterTurn: boolean,
-): Promise<Blob> {
-  const video = videoEl ?? document.createElement('video')
-  const ownsVideo = !videoEl
-
-  if (ownsVideo) {
-    video.muted = true
-    video.playsInline = true
-    video.srcObject = stream
-    await video.play()
-    await waitForVideoFrame(video)
-  }
-
+/**
+ * Grab the current live frame into a ready-to-display canvas, synchronously.
+ *
+ * Split from the JPEG encode on purpose: Hermit's WebView intermittently
+ * stalls canvas.toBlob for a near-constant ~13s (measured five times at
+ * 13.1-13.2s on 30-31 Jul 2026, independent of scene content), while the
+ * frame grab itself is ~15ms every single time. Callers show this canvas as
+ * the snapshot preview immediately and run encodeCanvasToJpeg in the
+ * background, so a stalled encode costs review-time nobody notices instead
+ * of shutter-time everybody does.
+ *
+ * Deliberately NOT ImageCapture.takePhoto(): that measured 2-23s per shot on
+ * the event tablets (capture-timing, 30 Jul 2026). Front-camera preview
+ * mirroring stays CSS-only; the saved image matches the sensor.
+ */
+export function captureStillFrame(video: HTMLVideoElement): HTMLCanvasElement {
   const w = video.videoWidth
   const h = video.videoHeight
   if (!w || !h) throw new Error('Camera frame not ready')
@@ -208,96 +201,19 @@ async function captureWithCanvas(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
-  drawVideoFrameToCanvas(ctx, canvas, video, quarterTurn)
+  drawVideoFrameToCanvas(ctx, canvas, video)
+  return canvas
+}
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
+/** The upload-size JPEG for a captured frame. May stall in Hermit; see above. */
+export function encodeCanvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
       'image/jpeg',
-      0.95,
+      PHOTO_QUALITY,
     )
   })
-
-  if (ownsVideo) {
-    video.srcObject = null
-  }
-
-  return blob
-}
-
-function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
-  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-    return Promise.resolve()
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error('Camera frame timeout')), 5000)
-    video.onloadedmetadata = () => {
-      window.clearTimeout(timeout)
-      resolve()
-    }
-    video.onerror = () => {
-      window.clearTimeout(timeout)
-      reject(new Error('Camera frame error'))
-    }
-  })
-}
-
-/**
- * Capture a full-resolution still from the live camera stream.
- * Preview mirroring for front camera is CSS-only; saved image matches sensor output.
- */
-export async function captureStillPhoto(
-  stream: MediaStream,
-  videoEl?: HTMLVideoElement | null,
-  options?: { quarterTurn?: boolean },
-): Promise<Blob> {
-  const track = stream.getVideoTracks()[0]
-  if (!track) throw new Error('No camera track')
-
-  const quarterTurn = options?.quarterTurn ?? streamNeedsQuarterTurn(stream)
-
-  if (imageCaptureCtor()) {
-    try {
-      const blob = await captureWithImageCapture(track)
-      if (!quarterTurn) return blob
-      // ImageCapture may still return landscape on some Android devices — rotate via canvas.
-      return await rotatePhotoBlob(blob, true)
-    } catch {
-      // Fall back to canvas capture.
-    }
-  }
-
-  return captureWithCanvas(stream, videoEl ?? null, quarterTurn)
-}
-
-async function rotatePhotoBlob(blob: Blob, quarterTurn: boolean): Promise<Blob> {
-  if (!quarterTurn) return blob
-  const url = URL.createObjectURL(blob)
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image()
-      el.onload = () => resolve(el)
-      el.onerror = () => reject(new Error('Could not decode photo'))
-      el.src = url
-    })
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas unavailable')
-    canvas.width = img.height
-    canvas.height = img.width
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    ctx.rotate(Math.PI / 2)
-    ctx.drawImage(img, -img.width / 2, -img.height / 2)
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Could not encode photo'))),
-        'image/jpeg',
-        0.95,
-      )
-    })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
 }
 
 /**

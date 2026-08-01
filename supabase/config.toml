@@ -3,3 +3,12 @@ verify_jwt = false
 
 [functions.data-lifecycle]
 verify_jwt = false
+
+[functions.demo-session]
+verify_jwt = true
+
+[functions.demo-reset]
+verify_jwt = true
+
+[functions.demo-billing]
+verify_jwt = true

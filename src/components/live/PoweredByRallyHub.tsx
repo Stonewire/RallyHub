@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { APP_VERSION } from '@/lib/version'
 
 type Props = {
   hidden?: boolean
@@ -27,6 +28,16 @@ export function PoweredByRallyHub({ hidden, position = 'bottom-right', className
         alt="Powered by RallyHub"
         className="h-6 w-auto"
       />
+      {/* Tiny build stamp: lets anyone read the RUNNING version off a device,
+          which is how a stale WebView cache (Hermit) gets caught in seconds. */}
+      <span
+        className={cn(
+          'absolute -bottom-3 right-0 text-[9px] leading-none',
+          theme === 'light' ? 'text-black/35' : 'text-white/35',
+        )}
+      >
+        {APP_VERSION}
+      </span>
     </div>
   )
 }

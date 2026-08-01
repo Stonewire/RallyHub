@@ -39,7 +39,28 @@ async function edgeFunctionError(error: unknown, fallback: string): Promise<stri
 export async function openInvoicePdf(
   organizationId: string,
   invoiceId: string,
+  demo = false,
 ): Promise<void> {
+  if (demo) {
+    const { data: demoInvoice, error: demoInvoiceError } = await supabase
+      .from('invoices')
+      .select('amount_due')
+      .eq('id', invoiceId)
+      .eq('organization_id', organizationId)
+      .single()
+    if (demoInvoiceError || !demoInvoice) throw new Error('Could not fetch the demo invoice.')
+    const total = new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+    }).format(Number(demoInvoice.amount_due))
+    const invoice = window.open('', '_blank')
+    if (!invoice) throw new Error('Allow pop-ups to open the demo invoice.')
+    invoice.opener = null
+    invoice.document.write(`<!doctype html><html><head><title>Demo invoice</title><style>body{font-family:Inter,system-ui,sans-serif;max-width:760px;margin:64px auto;padding:0 32px;color:#252525}header{display:flex;justify-content:space-between;border-bottom:2px solid #252525;padding-bottom:24px}h1{font-size:28px}table{width:100%;border-collapse:collapse;margin-top:40px}td{padding:14px 0;border-bottom:1px solid #ddd}.muted{color:#6f6f6f}.total{text-align:right;font-size:24px;font-weight:700;margin-top:28px}.badge{display:inline-block;background:#e5f7ea;color:#18713a;border-radius:999px;padding:5px 10px;font-size:12px}</style></head><body><header><div><strong>RallyHub</strong><p class="muted">Demo invoice</p></div><div><span class="badge">PAID · DEMO</span><p class="muted">#${invoiceId.slice(0, 8).toUpperCase()}</p></div></header><h1>Event activation</h1><p class="muted">This document demonstrates the payment record. It is not a tax invoice and no payment was taken.</p><table><tr><td>Event activation and additional teams</td><td style="text-align:right">${total}</td></tr><tr><td>VAT</td><td style="text-align:right">€0.00</td></tr></table><p class="total">Total ${total}</p></body></html>`)
+    invoice.document.close()
+    return
+  }
   const { data, error } = await supabase.functions.invoke('paddle-checkout', {
     body: { organizationId, kind: 'invoice_pdf', invoiceId },
   })
@@ -65,7 +86,16 @@ export async function openInvoicePdf(
  * Opened in a new tab, never an iframe: Paddle explicitly requires this, and
  * embedding a payment surface in an iframe invites clickjacking.
  */
-export async function openBillingPortal(organizationId: string): Promise<void> {
+export async function openBillingPortal(organizationId: string, demo = false): Promise<void> {
+  if (demo) {
+    await openDemoOverlay({
+      title: 'Billing details',
+      body: 'This is a simulated customer portal. The demo uses Visa •••• 4242, expiring 12/30. No card is stored and no payment can be taken.',
+      confirmLabel: 'Done',
+      allowCancel: false,
+    })
+    return
+  }
   const { data, error } = await supabase.functions.invoke('paddle-checkout', {
     body: { organizationId, kind: 'portal' },
   })
@@ -92,6 +122,7 @@ export async function openBillingPortal(organizationId: string): Promise<void> {
 export async function autoChargeEventInvoice(
   organizationId: string | null | undefined,
   eventId: string,
+  demo = false,
 ): Promise<void> {
   if (!organizationId) return
   try {
@@ -102,6 +133,18 @@ export async function autoChargeEventInvoice(
       .maybeSingle()
 
     if (!invoice || invoice.status !== 'unpaid' || Number(invoice.amount_due) <= 0) return
+
+    if (demo) {
+      const prepared = await supabase.functions.invoke('demo-billing', {
+        body: { organizationId, kind: 'event', invoiceId: invoice.id },
+      })
+      const transactionId = (prepared.data as { transactionId?: string } | null)?.transactionId
+      if (prepared.error || !transactionId) return
+      await supabase.functions.invoke('demo-billing', {
+        body: { organizationId, kind: 'event_complete', invoiceId: invoice.id, transactionId },
+      })
+      return
+    }
 
     await supabase.functions.invoke('paddle-checkout', {
       body: { organizationId, kind: 'event_auto', invoiceId: invoice.id },
@@ -176,6 +219,71 @@ async function ensurePaddleInitialized(): Promise<void> {
 
 export type PaddleCheckoutResult = 'completed' | 'closed' | 'error'
 
+function openDemoOverlay({
+  title,
+  body,
+  confirmLabel,
+  allowCancel = true,
+}: {
+  title: string
+  body: string
+  confirmLabel: string
+  allowCancel?: boolean
+}): Promise<PaddleCheckoutResult> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/65 p-4'
+
+    const panel = document.createElement('div')
+    panel.className = 'w-full max-w-md rounded-xl border border-white/10 bg-[#171717] p-6 text-white shadow-2xl'
+    panel.setAttribute('role', 'dialog')
+    panel.setAttribute('aria-modal', 'true')
+
+    const eyebrow = document.createElement('p')
+    eyebrow.className = 'mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffcb03]'
+    eyebrow.textContent = 'Demo · no real charge'
+
+    const heading = document.createElement('h2')
+    heading.className = 'text-xl font-semibold'
+    heading.textContent = title
+
+    const copy = document.createElement('p')
+    copy.className = 'mt-3 text-sm leading-6 text-white/65'
+    copy.textContent = body
+
+    const secure = document.createElement('div')
+    secure.className = 'mt-5 rounded-lg border border-white/10 bg-white/5 p-4 text-sm'
+    secure.textContent = 'Visa  •••• 4242   ·   Demo card'
+
+    const actions = document.createElement('div')
+    actions.className = 'mt-6 flex justify-end gap-2'
+
+    const finish = (result: PaddleCheckoutResult) => {
+      overlay.remove()
+      resolve(result)
+    }
+
+    if (allowCancel) {
+      const cancel = document.createElement('button')
+      cancel.className = 'rounded-md px-4 py-2 text-sm text-white/70 hover:bg-white/10'
+      cancel.textContent = 'Cancel'
+      cancel.onclick = () => finish('closed')
+      actions.append(cancel)
+    }
+
+    const confirm = document.createElement('button')
+    confirm.className = 'rounded-md bg-[#ffcb03] px-4 py-2 text-sm font-semibold text-[#171717] hover:bg-[#ffd633]'
+    confirm.textContent = confirmLabel
+    confirm.onclick = () => finish('completed')
+    actions.append(confirm)
+
+    panel.append(eyebrow, heading, copy, secure, actions)
+    overlay.append(panel)
+    document.body.append(overlay)
+    confirm.focus()
+  })
+}
+
 /**
  * Opens the Paddle overlay checkout for a transaction already created
  * server-side, and resolves once the customer completes, closes, or the
@@ -184,6 +292,13 @@ export type PaddleCheckoutResult = 'completed' | 'closed' | 'error'
  * actually marking things paid; this is just for immediate UI feedback).
  */
 export async function payWithPaddle(transactionId: string): Promise<PaddleCheckoutResult> {
+  if (transactionId.startsWith('demo_')) {
+    return openDemoOverlay({
+      title: 'Secure checkout preview',
+      body: 'Complete this simulated checkout to see how RallyHub updates the plan or invoice after a successful Paddle payment.',
+      confirmLabel: 'Complete demo payment',
+    })
+  }
   await ensurePaddleInitialized()
   if (!window.Paddle) throw new Error('Paddle failed to load.')
 

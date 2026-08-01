@@ -1,4 +1,4 @@
-import { Link, Navigate, createBrowserRouter } from 'react-router-dom'
+import { Link, Navigate, createBrowserRouter, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { RouteErrorBoundary } from '@/components/errors/RouteErrorBoundary'
@@ -50,9 +50,10 @@ import { isPlatformHost } from '@/lib/tenant'
 // eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
 function RootPage() {
   const { user, role, loading, profileLoading } = useAuth()
+  const { search } = useLocation()
 
   if (!isPlatformHost()) {
-    return <Navigate to="/admin" replace />
+    return <Navigate to={{ pathname: '/admin', search }} replace />
   }
 
   // admin.rallyhub.games is for super-admins — skip the marketing page.

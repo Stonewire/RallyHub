@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { RichText } from '@/components/ui/rich-text'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CLASS,
+  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
 } from '@/lib/challenge-camera'
 import { gamePointsDisplay, textOnAccent } from '@/lib/live-event'
 import { textSubmissionDisplayLabel } from '@/lib/text-game'
@@ -85,7 +85,7 @@ export function OpenGameChallengeReview({
               src={submission.media_url}
               controls
               playsInline
-              className={CHALLENGE_VIDEO_MEDIA_CLASS}
+              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
             />
           </div>
         ) : submission.media_type === 'photo' ? (

@@ -33,6 +33,12 @@ import {
 } from '@/contexts/notification-context'
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
+import {
+  DiagnosticReportedError,
+  nowMs,
+  reportClientIssue,
+  reportClientTiming,
+} from '@/lib/client-diagnostics'
 import { queryKeys } from '@/lib/query-keys'
 import { bingoCellDisplay } from '@/lib/bingo-engine'
 import {
@@ -545,17 +551,50 @@ export function JoinGameView({
     })
   }
 
-  function finishOpenSubmitOptimistically() {
+  function finishOpenSubmitOptimistically(timing?: {
+    submitPressedAt: number
+    mediaType: 'text' | 'photo' | 'video'
+    gameId: string
+    uploadMs?: number
+  }) {
     // Leave the loading screen before doing confirmation UI/audio work. On
     // mobile Safari this makes the local transition independent of delivery of
     // the Supabase INSERT response.
+    const beforeFlush = nowMs()
     flushSync(() => {
       setSelectedGame(null)
       setCaptureActive(false)
       setSubmitting(false)
     })
+    const afterFlush = nowMs()
     playSubmitSound()
     notify('Submitted — waiting for approval')
+    if (!timing) return
+
+    // The iOS mystery is the screen visibly lingering AFTER this function has
+    // run. requestAnimationFrame measures how long the main thread takes to
+    // come back to us: a blocked thread (long paintDelayMs) and an instant
+    // callback with a still-frozen screen point at different culprits.
+    const afterSideEffects = nowMs()
+    requestAnimationFrame(() => {
+      const paintDelayMs = Math.round(nowMs() - afterSideEffects)
+      const totalMs = Math.round(nowMs() - timing.submitPressedAt)
+      if (totalMs <= 1500 && paintDelayMs <= 400) return
+      reportClientTiming('submit-timing', `slow submit close: ${totalMs}ms (paint +${paintDelayMs}ms)`, {
+        eventId: event.id,
+        teamId,
+        extra: {
+          mediaType: timing.mediaType,
+          gameId: timing.gameId,
+          uploadMs: timing.uploadMs ?? null,
+          preFinishMs: Math.round(beforeFlush - timing.submitPressedAt),
+          flushMs: Math.round(afterFlush - beforeFlush),
+          soundNotifyMs: Math.round(afterSideEffects - afterFlush),
+          paintDelayMs,
+          totalMs,
+        },
+      })
+    })
   }
 
   function optimisticOpenSubmission(
@@ -595,6 +634,7 @@ export function JoinGameView({
       notify('Enter or choose an answer first')
       return
     }
+    const submitPressedAt = nowMs()
     beginOpenSubmit()
     let optimistic: Tables<'submissions'> | null = null
     try {
@@ -619,7 +659,16 @@ export function JoinGameView({
 
       setOpenSubmissionWrite(optimistic.id, true)
       mergeOwnSubmission('INSERT', optimistic)
-      finishOpenSubmitOptimistically()
+      try {
+        finishOpenSubmitOptimistically({ submitPressedAt, mediaType: 'text', gameId: game.id })
+      } catch (err) {
+        const detail = reportClientIssue('text-submit', err, {
+          eventId: event.id,
+          teamId,
+          extra: { gameId: game.id },
+        })
+        throw new DiagnosticReportedError(`Could not finish submitting (${detail})`, { cause: err })
+      }
 
       const { data, error } = await write
       setOpenSubmissionWrite(optimistic.id, false)
@@ -630,13 +679,21 @@ export function JoinGameView({
         mergeOwnSubmission('UPDATE', data)
         void publishSubmissionChange(event.id, 'INSERT', data)
       }
-    } catch {
+    } catch (err) {
       if (optimistic) {
         setOpenSubmissionWrite(optimistic.id, false)
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
-      notify("Couldn't submit — tap to retry")
+      const msg =
+        err instanceof DiagnosticReportedError
+          ? err.message
+          : `Couldn't submit (${reportClientIssue('text-submit', err, {
+              eventId: event.id,
+              teamId,
+              extra: { gameId: game.id },
+            })}) — tap to retry`
+      notify(msg)
       setSubmitting(false)
     }
   }
@@ -647,6 +704,7 @@ export function JoinGameView({
       notify('This event is now closed')
       return
     }
+    const submitPressedAt = nowMs()
     beginOpenSubmit()
     let optimistic: Tables<'submissions'> | null = null
     try {
@@ -657,14 +715,25 @@ export function JoinGameView({
       openUploadPrefetchRef.current = null
       const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
 
-      const url = minted
-        ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
-        : await uploadParticipantAsset(
-            event.id,
-            `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
-            file,
-            { mediaKind: kind },
-          )
+      const uploadStartedAt = nowMs()
+      let url: string
+      try {
+        url = minted
+          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
+          : await uploadParticipantAsset(
+              event.id,
+              `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
+              file,
+              { mediaKind: kind },
+            )
+      } catch (err) {
+        const detail = reportClientIssue('submission-upload', err, {
+          eventId: event.id,
+          teamId,
+          extra: { gameId: game.id, mediaType: kind },
+        })
+        throw new DiagnosticReportedError(`Could not upload submission (${detail})`, { cause: err })
+      }
       const mediaType = game.type === 'video' ? 'video' : 'photo'
       optimistic = optimisticOpenSubmission(game, url, mediaType)
       const write = supabase
@@ -684,7 +753,12 @@ export function JoinGameView({
 
       setOpenSubmissionWrite(optimistic.id, true)
       mergeOwnSubmission('INSERT', optimistic)
-      finishOpenSubmitOptimistically()
+      finishOpenSubmitOptimistically({
+        submitPressedAt,
+        mediaType,
+        gameId: game.id,
+        uploadMs: Math.round(nowMs() - uploadStartedAt),
+      })
 
       const { data, error } = await write
       setOpenSubmissionWrite(optimistic.id, false)
@@ -702,7 +776,13 @@ export function JoinGameView({
       const msg =
         err instanceof Error && err.message.includes('must be')
           ? err.message
-          : "Couldn't submit — tap to retry"
+          : err instanceof DiagnosticReportedError
+            ? err.message
+            : `Couldn't submit (${reportClientIssue('submission-upload', err, {
+                eventId: event.id,
+                teamId,
+                extra: { gameId: game.id },
+              })}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
@@ -1105,6 +1185,7 @@ export function JoinGameView({
               mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
               config={activeOpenGame.config as GameConfig}
               disabled={submitting}
+              eventId={event.id}
               onCaptureActiveChange={setCaptureActive}
               onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}
             />
