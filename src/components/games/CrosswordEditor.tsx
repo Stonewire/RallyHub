@@ -411,7 +411,7 @@ export function CrosswordEditor({
       {/* Inline typing. The direction came from the pill, so there is no
           direction step between picking a cell and typing. */}
       {tool !== 'block' && start ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-2">
           <Input
             ref={draftInput}
             value={draft}
@@ -419,10 +419,12 @@ export function CrosswordEditor({
             autoComplete="off"
             spellCheck={false}
             aria-label="Type the word"
-            /* Off screen rather than hidden: it still takes the keystrokes and
-               stays reachable by a screen reader, but the letters appear in the
-               grid instead of in a second box saying the same thing. */
-            className="sr-only"
+            /* Invisible but still in normal flow, right where it sits in the
+               layout. sr-only positions it off screen, so focusing it made the
+               browser scroll sideways to reach it and the page jumped. Zero
+               size keeps the keystrokes without moving anything. */
+            className="pointer-events-none absolute size-0 border-0 p-0 opacity-0"
+            style={{ height: 0, width: 0, minHeight: 0 }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault()
