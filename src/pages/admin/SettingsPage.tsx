@@ -64,7 +64,15 @@ function SettingsCardHeader({
   return (
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-foreground text-sm font-bold">{title}</h2>
-      <span className="bg-nm-slate-100 text-nm-slate-600 rounded px-2 py-1 text-[10px] font-semibold">
+      {/* Red for Public, green for Private: the colour is a warning about who
+          can see the fields, not decoration. Public means participants see it. */}
+      <span
+        className={`rounded px-2 py-1 text-[10px] font-semibold ${
+          visibility === 'Public'
+            ? 'bg-[#f6dede] text-[#8a2b2b] dark:bg-[#4a2020] dark:text-[#f0b9b9]'
+            : 'bg-[#d9efe3] text-[#1f6b48] dark:bg-[#1d3d2d] dark:text-[#a6dcc0]'
+        }`}
+      >
         {visibility}
       </span>
     </div>

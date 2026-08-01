@@ -246,21 +246,13 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             <h2 className="text-foreground text-base font-bold">{title}</h2>
             <p className="text-muted-foreground mt-1 text-xs">{subtitle}</p>
           </div>
-          <div className="flex items-center gap-2">
-            {!facilitatorsOnly ? (
-              <span className="bg-nm-slate-100 text-nm-slate-600 rounded px-2 py-1 text-[10px] font-semibold">Private</span>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={openUserModal}
-              data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
-            >
-              <Plus className="size-4" />
-              {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
-            </Button>
-          </div>
+          {/* Badge only, so it lines up with the Public/Private badges on the
+              other settings cards. Adding a user happens under the list. */}
+          {!facilitatorsOnly ? (
+            <span className="rounded bg-[#d9efe3] px-2 py-1 text-[10px] font-semibold text-[#1f6b48] dark:bg-[#1d3d2d] dark:text-[#a6dcc0]">
+              Private
+            </span>
+          ) : null}
         </div>
         {usersQuery.isLoading ? (
           <div className="p-5"><QueryLoading rows={2} /></div>
@@ -343,6 +335,19 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
           </ul>
           </div>
         )}
+        {/* Sits under the last row, so adding reads as continuing the list. */}
+        <div className="border-border border-t px-4 py-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openUserModal}
+            data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
+          >
+            <Plus className="size-4" />
+            {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
+          </Button>
+        </div>
       </Card>
 
       {userModalOpen ? (

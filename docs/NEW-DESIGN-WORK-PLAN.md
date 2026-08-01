@@ -200,6 +200,32 @@ bundled into a design batch.
    the live bundle, so it lands here with a smoke test rather than in a design
    batch. Then the Solution Video Link can be added truthfully.
 
+## Support seat: specified 1 Aug 2026, deliberately not built
+
+Rumen described this while reviewing Organisation and was explicit that it is
+for a later stage, not part of the design pass. Recorded here so the design
+does not drift away from it.
+
+**Shape.** An organisation has a maximum of **5 users plus 1 support seat**.
+The support seat is us, helping the client run their events. A client admin
+opts in per organisation ("allow support user"), which unlocks that one seat.
+
+**What the support user may do:** prepare games, build and prepare events,
+troubleshoot, and move an event between draft and demo states.
+
+**What it must NOT do, and this is the part that needs enforcing in the
+backend rather than the UI:**
+- **Activate an event.** Activation raises an invoice, so a support user
+  triggering it would spend a client's money.
+- **Archive an event.**
+- Billing actions are restricted; exact scope to be settled when built.
+
+**Why nothing shipped now.** The toggle without the backing role would be a
+control that does nothing, and the restrictions are the whole point of the
+feature. It needs a role or flag on the membership, RLS that blocks activation
+and archiving for it, a seat cap, and a billing decision. That is a feature, not
+a design task.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.
