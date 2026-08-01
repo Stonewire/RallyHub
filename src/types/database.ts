@@ -66,6 +66,8 @@ export type Database = {
           full_name: string | null
           first_name: string | null
           last_name: string | null
+          phone: string | null
+          avatar_url: string | null
           role: AppRole
           organization_id: string | null
           must_change_password: boolean
@@ -80,6 +82,8 @@ export type Database = {
           full_name?: string | null
           first_name?: string | null
           last_name?: string | null
+          phone?: string | null
+          avatar_url?: string | null
           role?: AppRole
           organization_id?: string | null
           must_change_password?: boolean
@@ -89,6 +93,8 @@ export type Database = {
           full_name?: string | null
           first_name?: string | null
           last_name?: string | null
+          phone?: string | null
+          avatar_url?: string | null
           role?: AppRole
           organization_id?: string | null
           must_change_password?: boolean
@@ -205,6 +211,7 @@ export type Database = {
           source_template_id: string | null
           list_order: number
           deleted_at: string | null
+          deleted_by: string | null
           created_at: string
         }
         Insert: {
@@ -227,6 +234,7 @@ export type Database = {
           source_template_id?: string | null
           list_order?: number
           deleted_at?: string | null
+          deleted_by?: string | null
         }
         Update: {
           name?: string
@@ -245,6 +253,7 @@ export type Database = {
           is_platform_template?: boolean
           list_order?: number
           deleted_at?: string | null
+          deleted_by?: string | null
         }
         Relationships: []
       }
@@ -254,6 +263,7 @@ export type Database = {
           organization_id: string
           subject: string
           body: string | null
+          category: string | null
           status: string
           ticket_number: string | null
           created_at: string
@@ -264,12 +274,14 @@ export type Database = {
           organization_id: string
           subject: string
           body?: string | null
+          category?: string | null
           status?: string
           ticket_number?: string | null
         }
         Update: {
           subject?: string
           body?: string | null
+          category?: string | null
           status?: string
           updated_at?: string
         }
@@ -341,6 +353,7 @@ export type Database = {
           name: string
           slug: string | null
           event_date: string | null
+          location: string | null
           status: string
           team_count: number
           branding_enabled: boolean
@@ -367,6 +380,7 @@ export type Database = {
           organization_id: string
           name: string
           event_date?: string | null
+          location?: string | null
           status?: string
           team_count?: number
           branding_enabled?: boolean
@@ -386,6 +400,7 @@ export type Database = {
         Update: {
           name?: string
           event_date?: string | null
+          location?: string | null
           status?: string
           team_count?: number
           branding_enabled?: boolean

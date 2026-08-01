@@ -78,6 +78,8 @@ export type GameConfig = {
   secondary_color?: string
   accent_color?: string
   timer_seconds?: number
+  /** Quiz: points awarded per correct answer. Design's "Points / Correct". */
+  quiz_points_per_correct?: number
   questions?: QuizQuestion[]
   rounds_enabled?: boolean
   rounds?: QuizRound[]
@@ -96,6 +98,14 @@ export type GameConfig = {
   bingo_points_per_correct?: number
   /** Open-stage text game: typed exact-match answers or multiple choice. */
   text_answer_mode?: TextAnswerMode
+  /**
+   * Text game approval: 'auto' scores on exact match, 'review' sends every
+   * submission to the facilitator. Previously inferred from points_type ===
+   * 'range', which conflated scoring shape with approval policy and made it
+   * impossible to have range points with automatic approval, or static points
+   * with review. Absent means fall back to that legacy inference.
+   */
+  text_approval_mode?: 'auto' | 'review'
   /** type_text: accepted answers (case and symbols must match exactly). */
   text_correct_answers?: string[]
   /** choose_answer: 2–6 options shown to teams. */
