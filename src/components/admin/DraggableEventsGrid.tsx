@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Archive, CalendarDays, ChevronDown, Copy, Eye, GripVertical, Link2, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -51,6 +51,10 @@ export function DraggableEventsGrid({
 }: DraggableEventsGridProps) {
   const navigate = useNavigate()
   const [dragId, setDragId] = useState<string | null>(null)
+  const [upcomingCollapsed, setUpcomingCollapsed] = useState(false)
+  // Past events start collapsed: they accumulate forever and push the events
+  // people actually care about off the screen.
+  const [archivedCollapsed, setArchivedCollapsed] = useState(true)
 
   const sorted = [...events].sort((a, b) => {
     if (a.list_order !== b.list_order) return a.list_order - b.list_order
@@ -211,18 +215,48 @@ export function DraggableEventsGrid({
     )
   }
 
+  function sectionHeader(
+    label: string,
+    count: number,
+    collapsed: boolean,
+    onToggle: () => void,
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+        className="text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-[0.1em] uppercase"
+      >
+        <ChevronDown
+          className={`size-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+        />
+        {label}
+        <span className="text-muted-foreground/70">({count})</span>
+      </button>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {upcoming.length > 0 ? (
         <section>
-          <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Upcoming Events</p>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">{upcoming.map((event) => eventCard(event))}</div>
+          {sectionHeader('Upcoming Events', upcoming.length, upcomingCollapsed, () =>
+            setUpcomingCollapsed((value) => !value),
+          )}
+          {!upcomingCollapsed ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">{upcoming.map((event) => eventCard(event))}</div>
+          ) : null}
         </section>
       ) : null}
       {archived.length > 0 ? (
         <section>
-          <p className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-[0.1em]">Past / Archived Events</p>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(14.5rem,1fr))] gap-4">{archived.map((event) => eventCard(event, true))}</div>
+          {sectionHeader('Past / Archived Events', archived.length, archivedCollapsed, () =>
+            setArchivedCollapsed((value) => !value),
+          )}
+          {!archivedCollapsed ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(14.5rem,1fr))] gap-4">{archived.map((event) => eventCard(event, true))}</div>
+          ) : null}
         </section>
       ) : null}
     </div>

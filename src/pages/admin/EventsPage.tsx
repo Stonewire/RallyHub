@@ -1,4 +1,4 @@
-import { Calendar, Gamepad2, Plus } from 'lucide-react'
+import { Calendar, Gamepad2, Plus, Search } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ import {
 } from '@/components/admin/QueryState'
 import { EventLinksModal } from '@/components/events/EventLinksModal'
 import { OrgSuspendedBanner } from '@/components/admin/OrgSuspendedBanner'
+import { Input } from '@/components/ui/input'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,7 @@ export function AdminEventsPage() {
     useState<EventRow | null>(null)
   const [view, setView] = useState<'events' | 'bin'>('events')
   const [statusFilter, setStatusFilter] = useState<'all' | EventStatus>('all')
+  const [search, setSearch] = useState('')
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -244,8 +246,10 @@ export function AdminEventsPage() {
   }
 
   const events = eventsQuery.data ?? []
+  const searchQuery = search.trim().toLowerCase()
   const visibleEvents = events.filter((event) => {
     if (statusFilter !== 'all' && event.status !== statusFilter) return false
+    if (searchQuery && !event.name.toLowerCase().includes(searchQuery)) return false
     if (!event.event_date) return !dateFrom && !dateTo
     const date = event.event_date.slice(0, 10)
     if (dateFrom && date < dateFrom) return false
@@ -288,7 +292,7 @@ export function AdminEventsPage() {
         <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === 'all' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
+          className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === 'all' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
           onClick={() => {
             setView('events')
             setStatusFilter('all')
@@ -300,7 +304,7 @@ export function AdminEventsPage() {
           <button
             key={item.value}
             type="button"
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === item.value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
+            className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === item.value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
             onClick={() => {
               setView('events')
               setStatusFilter(item.value)
@@ -311,18 +315,29 @@ export function AdminEventsPage() {
         ))}
         <button
           type="button"
-          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${view === 'bin' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
+          className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${view === 'bin' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
           onClick={() => setView('bin')}
         >
           Deleted {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
         </button>
         </div>
         {view === 'events' ? (
-          <div className="relative">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative min-w-52 flex-1">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search events…"
+                className="bg-card h-9 pl-8 text-xs"
+              />
+            </div>
+            <div className="relative">
+            {/* Always gold, like the Games group selector, with the label
+                carrying whether a range is applied. */}
             <NeoButton
               type="button"
-              size="sm"
-              variant={dateFrom || dateTo ? 'accent' : 'surface'}
+              variant="accent"
               onClick={() => setDatePickerOpen((open) => !open)}
             >
               <Calendar className="size-3.5" />
@@ -389,6 +404,7 @@ export function AdminEventsPage() {
                 </div>
               </div>
             ) : null}
+            </div>
           </div>
         ) : null}
       </div>
