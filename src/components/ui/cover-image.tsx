@@ -1,4 +1,4 @@
-import { ImageIcon } from 'lucide-react'
+import { IconPhoto } from '@/components/icons'
 
 import { resolveAssetUrl } from '@/lib/images'
 import { cn } from '@/lib/utils'
@@ -22,7 +22,7 @@ export function CoverImage({
           className,
         )}
       >
-        <ImageIcon className="size-10 opacity-40" />
+        <IconPhoto className="size-10 opacity-40" />
       </div>
     )
   }

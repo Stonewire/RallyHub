@@ -97,7 +97,7 @@ export function TourSpotlight({
         className="absolute flex max-w-56 items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-lg"
         style={{ top: calloutTop, left: calloutLeft }}
       >
-        {placeAbove ? <IconArrowDown className="size-3.5 shrink-0" /> : <IconArrowUp className="size-3.5 shrink-0" />}
+        {placeAbove ? <IconArrowDown className="size-3.5.5 shrink-0" /> : <IconArrowUp className="size-3.5.5 shrink-0" />}
         {label}
       </div>
     </div>,

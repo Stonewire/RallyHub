@@ -617,3 +617,46 @@ export function IconPanelLeft(props: RhIconProps) {
     </RhIcon>
   )
 }
+
+export function IconClock(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7v5.2l3.2 2" />
+    </RhIcon>
+  )
+}
+
+export function IconArrowLeft(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M19.5 12h-15M10.3 6.2 4.5 12l5.8 5.8" />
+    </RhIcon>
+  )
+}
+
+export function IconBold(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M7 4.5h5.8a3.75 3.75 0 0 1 0 7.5H7Z" />
+      <path d="M7 12h6.6a3.75 3.75 0 0 1 0 7.5H7Z" />
+    </RhIcon>
+  )
+}
+
+export function IconItalic(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M15.5 4.5h-6M14.5 19.5h-6M13.8 4.5l-3.6 15" />
+    </RhIcon>
+  )
+}
+
+export function IconUnderline(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M6.5 4v6.5a5.5 5.5 0 0 0 11 0V4" />
+      <path d="M5 20.5h14" />
+    </RhIcon>
+  )
+}

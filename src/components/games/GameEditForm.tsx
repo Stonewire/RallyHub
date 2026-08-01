@@ -292,7 +292,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       {/* Available for every game type, unlike the design which tucks Preview
           into the Facilitator Only card that photo and video alone render. */}
       <NeoButton type="button" variant="surface" onClick={() => setPreviewOpen(true)}>
-        <IconEye className="size-3.5" aria-hidden />
+        <IconEye className="size-3.5.5" aria-hidden />
         Preview
       </NeoButton>
       {isPlatformLibrary && gameQuery.data.is_platform_template ? (

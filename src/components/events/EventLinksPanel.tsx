@@ -91,15 +91,15 @@ export function EventLinksPanel({
                 onClick={() => void handleCopy(key)}
               >
                 {copied === key ? (
-                  <IconCheck className="size-3.5" />
+                  <IconCheck className="size-3.5.5" />
                 ) : (
-                  <IconCopy className="size-3.5" />
+                  <IconCopy className="size-3.5.5" />
                 )}
                 Copy
               </NeoButton>
               <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center px-0" asChild>
                 <Link to={links[key]} target="_blank" rel="noreferrer">
-                  <IconExternal className="size-3.5" />
+                  <IconExternal className="size-3.5.5" />
                   Open
                 </Link>
               </NeoButton>
@@ -113,7 +113,7 @@ export function EventLinksPanel({
                   void downloadQrPng(links[key], `rallyhub-${key}-${eventId}.png`)
                 }
               >
-                <IconQr className="size-3.5" />
+                <IconQr className="size-3.5.5" />
                 QR
               </NeoButton>
             </div>

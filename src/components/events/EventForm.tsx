@@ -765,7 +765,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   title="Remove from stage"
                   onClick={() => setStageIds(ids.filter((id) => id !== g.id))}
                 >
-                  <IconTrash className="size-3.5" />
+                  <IconTrash className="size-3.5.5" />
                 </button>
               </li>
             ))}
@@ -779,7 +779,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
 
       {inStage.length > 0 && !pickerOpen && available.length > 0 ? (
         <NeoButton type="button" variant="surface" size="sm" onClick={() => setPickerOpen(true)}>
-          <IconPlus className="size-3.5" />
+          <IconPlus className="size-3.5.5" />
           Add More
         </NeoButton>
       ) : null}

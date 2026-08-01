@@ -1,4 +1,4 @@
-import { Bold, Italic, Underline } from 'lucide-react'
+import { IconBold, IconItalic, IconUnderline } from '@/components/icons'
 import { useEffect, useRef } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -91,13 +91,13 @@ export function RichTextEditor({
     <div className={cn('border-input bg-background rounded-lg border', className)}>
       <div className="border-input flex flex-wrap items-center gap-1 border-b px-2 py-1.5">
         <ToolbarButton label="Bold" onRun={() => run('bold')}>
-          <Bold className="size-4" />
+          <IconBold className="size-4" />
         </ToolbarButton>
         <ToolbarButton label="Italic" onRun={() => run('italic')}>
-          <Italic className="size-4" />
+          <IconItalic className="size-4" />
         </ToolbarButton>
         <ToolbarButton label="Underline" onRun={() => run('underline')}>
-          <Underline className="size-4" />
+          <IconUnderline className="size-4" />
         </ToolbarButton>
         <div className="bg-border mx-1 h-5 w-px" />
         <ToolbarButton

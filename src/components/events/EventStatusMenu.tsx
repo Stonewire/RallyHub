@@ -62,7 +62,7 @@ export function EventStatusMenu({
               label. Both used to render, which read as "Ready Ready". */}
           <span className="text-xs font-semibold">{EVENT_STATUS_LABELS[status]}</span>
           {allowedStatuses.length > 0 ? (
-            <IconChevronDown className="size-3.5 opacity-60" />
+            <IconChevronDown className="size-3.5.5 opacity-60" />
           ) : null}
         </Button>
       </DropdownMenuTrigger>

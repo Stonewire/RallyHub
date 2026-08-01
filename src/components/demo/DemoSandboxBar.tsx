@@ -1,4 +1,4 @@
-import { RotateCcw, TimerReset } from 'lucide-react'
+import { IconClock, IconRestore } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -92,7 +92,7 @@ export function DemoSandboxBar() {
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <span className="text-muted-foreground flex items-center gap-1.5 text-xs tabular-nums">
-          <TimerReset className="size-3.5" aria-hidden />
+          <IconClock className="size-3.5" aria-hidden />
           {resetting
             ? 'Restoring…'
             : nextResetAt
@@ -108,7 +108,7 @@ export function DemoSandboxBar() {
           onClick={() => void handleManualReset()}
           title="Restore the original demo data"
         >
-          <RotateCcw className="size-3.5" aria-hidden />
+          <IconRestore className="size-3.5" aria-hidden />
           <span className="hidden md:inline">Reset now</span>
         </NeoButton>
       </div>

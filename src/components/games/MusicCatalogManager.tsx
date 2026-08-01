@@ -323,7 +323,7 @@ export const MusicCatalogManager = forwardRef<
                 void deletePlaylist.mutateAsync(pl.id).catch((e) => setError(String(e)))
               }}
             >
-              <IconClose className="size-3" />
+              <IconClose className="size-3.5" />
             </button>
           </span>
         ))}
@@ -335,7 +335,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={openCreatePlaylistDialog}
           >
-            <IconPlus className="size-3.5" />
+            <IconPlus className="size-3.5.5" />
             New playlist
           </NeoButton>
           <NeoButton
@@ -344,7 +344,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={() => setUploadOpen(true)}
           >
-            <IconUpload className="size-3.5" />
+            <IconUpload className="size-3.5.5" />
             Upload music
           </NeoButton>
         </div>
@@ -591,7 +591,7 @@ export const MusicCatalogManager = forwardRef<
                   aria-label={`Preview ${row.title} by ${row.artist}`}
                 >
                   <span className="text-foreground flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold">
-                    <IconPlay className="text-primary size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
+                    <IconPlay className="text-primary size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
                     <span className="truncate">{row.title}</span>
                   </span>
                   <span className="text-muted-foreground block truncate pl-[18px] text-[11px]">{row.artist}</span>

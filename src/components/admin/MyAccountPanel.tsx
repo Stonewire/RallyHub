@@ -269,7 +269,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
                   </div>
                 )}
                 <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110">
-                  <IconUpload className="size-3.5" />
+                  <IconUpload className="size-3.5.5" />
                 </span>
               </label>
               <div className="min-w-0 flex-1">
@@ -282,7 +282,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
                   <div className="flex items-center gap-2">
                     <p className="text-foreground truncate text-xl font-bold">{displayName}</p>
                     <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName(true)}>
-                      <IconEdit className="size-3.5" />
+                      <IconEdit className="size-3.5.5" />
                     </button>
                   </div>
                 )}

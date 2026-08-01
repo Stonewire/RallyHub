@@ -126,7 +126,7 @@ export function AdminHeader() {
               aria-label="Exit"
               className={ICON_BUTTON}
             >
-              <IconSignOut className="size-3.5" />
+              <IconSignOut className="size-3.5.5" />
             </button>
           ) : null}
 

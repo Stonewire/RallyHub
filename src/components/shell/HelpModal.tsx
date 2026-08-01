@@ -37,7 +37,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
             aria-label="Close"
             className="hover:bg-muted rounded-nm-md flex size-[26px] items-center justify-center"
           >
-            <IconClose className="size-3.5" />
+            <IconClose className="size-3.5.5" />
           </button>
         </div>
 

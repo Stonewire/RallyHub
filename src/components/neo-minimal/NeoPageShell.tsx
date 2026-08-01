@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { IconArrowLeft } from '@/components/icons'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -33,7 +33,7 @@ export function NeoPageShell({
         {backTo ? (
           <NeoButton variant="ghost" size="sm" className="-ml-1 mb-4" asChild>
             <Link to={backTo}>
-              <ArrowLeft className="size-4" aria-hidden />
+              <IconArrowLeft className="size-4" aria-hidden />
               {backLabel}
             </Link>
           </NeoButton>

@@ -108,7 +108,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             disabled={filteredRows.length === 0}
             onClick={handleDownload}
           >
-            <IconDownload className="mr-1.5 size-3.5" />
+            <IconDownload className="mr-1.5 size-3.5.5" />
             Download CSV
           </Button>
           <Button

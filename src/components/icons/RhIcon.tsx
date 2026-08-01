@@ -12,8 +12,11 @@ export type RhIconProps = SVGProps<SVGSVGElement>
  * path is the whole point: the weight cannot drift icon by icon, which is what
  * happened with the mixed 1.75 / 1.8 / 2 strokes this set replaces.
  *
- * Sizing is left to the caller via className (size-4 in buttons, size-5 in nav),
- * so the icons inherit the same scale rules as the rest of the layout.
+ * Sizing is left to the caller via className, on a two-step scale:
+ *   size-4    normal buttons, nav rows, anything with a text label beside it
+ *   size-3.5  compact icon-only buttons inside cards and table rows
+ * Anything larger (size-8 and up) is an illustration, not an icon: empty
+ * states and feature tiles. Stick to those and the panel stays even.
  */
 export function RhIcon({ className, children, ...props }: RhIconProps) {
   return (

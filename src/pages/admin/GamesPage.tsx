@@ -1,4 +1,4 @@
-import { IconCheck, IconChevronDown, IconChevronRight, IconClose, IconDownload, IconPhoto, IconPlus, IconSearch, IconTrash, IconUpload } from '@/components/icons'
+import { IconCheck, IconChevronDown, IconChevronRight, IconClose, IconPhoto, IconSearch, IconTrash } from '@/components/icons'
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -514,21 +514,17 @@ export function AdminGamesPage() {
       actions={
         view === 'catalog' ? <>
           <NeoButton type="button" variant="surface" onClick={() => musicRef.current?.openCreatePlaylist()}>
-            <IconPlus className="size-3.5" />
-            Add Playlist
+            New Playlist
           </NeoButton>
           <NeoButton type="button" variant="accent" onClick={() => musicRef.current?.openUpload()}>
-            <IconUpload className="size-3.5" />
             Upload Music
           </NeoButton>
         </> : view === 'inventory' && !isPlatformLibrary ? <>
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.exportAll()}>
-            <IconDownload className="size-3.5" />
             Export All
           </NeoButton>
           <NeoButton type="button" variant="accent" onClick={() => inventoryRef.current?.openCreate()}>
-            <IconPlus className="size-3.5" />
-            Add Item
+            New Item
           </NeoButton>
         </> : view === 'bin' ? (
           <NeoButton
@@ -537,7 +533,6 @@ export function AdminGamesPage() {
             disabled={binSelected.size === 0}
             onClick={() => void purgeSelectedGames()}
           >
-            <IconTrash className="size-3.5" />
             Delete Selected{binSelected.size ? ` (${binSelected.size})` : ''}
           </NeoButton>
         ) : view === 'games' ? <>
@@ -545,22 +540,18 @@ export function AdminGamesPage() {
               single target to add to. */}
           {activeGroup ? (
             <NeoButton type="button" variant="surface" onClick={openAddToGroupDialog}>
-              <IconPlus className="size-3.5" />
-              Add Games to Group
+              New Games in Group
             </NeoButton>
           ) : null}
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
-            <IconUpload className="size-3.5" />
             Import
           </NeoButton>
           <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
-            <IconPlus className="size-3.5" />
-            Add Group
+            New Group
           </NeoButton>
           <NeoButton variant="accent" asChild>
             <Link to="/admin/games/new" data-tour="new-game-button">
-              <IconPlus className="size-3.5" />
-              Add Game
+              New Game
             </Link>
           </NeoButton>
         </> : undefined
@@ -638,7 +629,7 @@ export function AdminGamesPage() {
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
               <div className="relative min-w-52 flex-1">
-                <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -713,7 +704,7 @@ export function AdminGamesPage() {
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
           <div className="relative min-w-52 flex-1">
-            <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+            <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -918,7 +909,7 @@ export function AdminGamesPage() {
                     ))}
                   </div>
                   <div className="relative min-w-48 flex-1">
-                    <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                    <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
                     <Input
                       value={createGroupSearch}
                       onChange={(event) => setCreateGroupSearch(event.target.value)}
@@ -1043,7 +1034,7 @@ export function AdminGamesPage() {
                   ))}
                 </div>
                 <div className="relative min-w-48 flex-1">
-                  <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                  <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
                   <Input
                     value={addToGroupSearch}
                     onChange={(event) => setAddToGroupSearch(event.target.value)}

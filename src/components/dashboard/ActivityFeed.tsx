@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react'
+import { IconClock } from '@/components/icons'
 import { Link } from 'react-router-dom'
 
 import { NeoCard } from '@/components/neo-minimal'
@@ -65,7 +65,7 @@ export function ActivityFeed({ events, isLoading }: ActivityFeedProps) {
               className="border-border flex gap-2.5 border-t py-2"
             >
               <span className="bg-nm-yellow/20 text-nm-charcoal flex size-[30px] shrink-0 items-center justify-center rounded-full">
-                <Clock className="size-3.5" strokeWidth={2} />
+                <IconClock className="size-3.5" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
                 <Link

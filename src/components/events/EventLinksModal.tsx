@@ -56,7 +56,7 @@ export function EventLinksModal({
                 ).finally(() => setDownloadingAll(false))
               }}
             >
-              <IconDownload className="size-3.5" />
+              <IconDownload className="size-3.5.5" />
               {downloadingAll ? 'Building PDF…' : 'Download all QR codes'}
             </NeoButton>
             <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>

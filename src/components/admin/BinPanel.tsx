@@ -140,7 +140,7 @@ export function BinPanel({
         </label>
         {selectedCount > 0 ? (
           <NeoButton type="button" variant="surface" size="sm" disabled={restoringBulk} onClick={() => void restoreSelected()}>
-            <IconRestore className="mr-1.5 size-3.5" />
+            <IconRestore className="mr-1.5 size-3.5.5" />
             {restoringBulk ? 'Restoring…' : `Restore ${selectedCount} selected`}
           </NeoButton>
         ) : null}
@@ -152,7 +152,7 @@ export function BinPanel({
             disabled={deletingBulk || restoringBulk}
             onClick={() => void deleteSelectedPermanently()}
           >
-            <IconTrash className="mr-1.5 size-3.5" />
+            <IconTrash className="mr-1.5 size-3.5.5" />
             {deletingBulk ? 'Deleting…' : `Delete ${selectedCount} permanently`}
           </NeoButton>
         ) : null}
@@ -233,7 +233,7 @@ export function BinPanel({
                 disabled={restoringId === item.id || remaining <= 0}
                 onClick={() => void onRestore(item.id)}
               >
-                <IconRestore className="mr-1.5 size-3.5" />
+                <IconRestore className="mr-1.5 size-3.5.5" />
                 Restore
               </NeoButton>
               {onDeletePermanently ? (
@@ -244,7 +244,7 @@ export function BinPanel({
                   disabled={deletingId === item.id}
                   onClick={() => onDeletePermanently(item.id)}
                 >
-                  <IconTrash className="mr-1.5 size-3.5" />
+                  <IconTrash className="mr-1.5 size-3.5.5" />
                   {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
                 </NeoButton>
               ) : null}

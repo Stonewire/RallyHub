@@ -206,7 +206,7 @@ export function OnboardingChecklist() {
                           done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-border/80',
                         )}
                       >
-                        {done ? <IconCheck className="size-2.5" /> : null}
+                        {done ? <IconCheck className="size-3.5" /> : null}
                       </span>
                       {done ? (
                         // Completed steps stay clickable: jump back to that page
