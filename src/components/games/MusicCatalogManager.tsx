@@ -1,5 +1,5 @@
 import { Music2, Pause, Pencil, Play, Plus, SkipBack, SkipForward, Trash2, Upload, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -38,7 +38,15 @@ function formatAddedDate(value: string) {
  * genre), search, sort, playlists (many-to-many), and bulk delete. The single
  * source of truth for music; bingo games pick from here.
  */
-export function MusicCatalogManager({ organizationId }: { organizationId: string }) {
+export type MusicCatalogHandle = {
+  openUpload: () => void
+  openCreatePlaylist: () => void
+}
+
+export const MusicCatalogManager = forwardRef<
+  MusicCatalogHandle,
+  { organizationId: string }
+>(function MusicCatalogManager({ organizationId }, ref) {
   const catalogQuery = useMusicCatalog(organizationId)
   const deleteCatalog = useDeleteMusicCatalog(organizationId)
   const updateCatalog = useUpdateMusicCatalog(organizationId)
@@ -133,6 +141,18 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
     if (audio.paused) void audio.play()
     else audio.pause()
   }
+
+  function openCreatePlaylistDialog() {
+    setNewPlaylistName('')
+    setPlaylistPicks(new Set())
+    setPlaylistPickSearch('')
+    setCreatePlaylistOpen(true)
+  }
+
+  useImperativeHandle(ref, () => ({
+    openUpload: () => setUploadOpen(true),
+    openCreatePlaylist: openCreatePlaylistDialog,
+  }))
 
   async function setInPoint(row: MusicCatalogRow, seconds: number | null) {
     setError(null)
@@ -313,12 +333,7 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
             type="button"
             variant="surface"
             className="w-full justify-center text-xs"
-            onClick={() => {
-              setNewPlaylistName('')
-              setPlaylistPicks(new Set())
-              setPlaylistPickSearch('')
-              setCreatePlaylistOpen(true)
-            }}
+            onClick={openCreatePlaylistDialog}
           >
             <Plus className="size-3.5" />
             New playlist
@@ -739,4 +754,4 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
       ) : null}
     </div>
   )
-}
+})

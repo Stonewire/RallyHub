@@ -5,12 +5,11 @@ import {
   ImagePlus,
   PackageOpen,
   Pencil,
-  Plus,
   Search,
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
@@ -46,7 +45,16 @@ const EMPTY_FORM: ItemForm = {
   removeImage: false,
 }
 
-export function InventoryLibraryManager({ organizationId }: { organizationId: string }) {
+export type InventoryLibraryHandle = {
+  openCreate: () => void
+  exportAll: () => void
+  canExport: boolean
+}
+
+export const InventoryLibraryManager = forwardRef<
+  InventoryLibraryHandle,
+  { organizationId: string }
+>(function InventoryLibraryManager({ organizationId }, ref) {
   const itemsQuery = useInventoryItems(organizationId)
   const organizationQuery = useOrganization(organizationId)
   const saveItem = useSaveInventoryItem(organizationId)
@@ -151,35 +159,17 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
     }
   }
 
+  useImperativeHandle(ref, () => ({
+    openCreate,
+    exportAll: () => void exportPdf(items),
+    canExport: items.length > 0 && !exporting,
+  }))
+
   if (itemsQuery.isLoading) return <QueryLoading rows={6} />
   if (itemsQuery.isError) return <QueryError message={itemsQuery.error.message} />
 
   return (
     <div className={editing !== undefined ? "space-y-5 xl:pr-[36rem]" : "space-y-5"}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold">Inventory Library</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Create physical items that teams can buy with their event points.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <NeoButton
-            type="button"
-            variant="surface"
-            disabled={items.length === 0 || exporting}
-            onClick={() => void exportPdf(items)}
-          >
-            <Download className="size-4" />
-            Export all
-          </NeoButton>
-          <NeoButton type="button" variant="accent" onClick={openCreate}>
-            <Plus className="size-4" />
-            Add item
-          </NeoButton>
-        </div>
-      </div>
-
       {message ? (
         <div className="border-border bg-card flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
           <span className="flex items-center gap-2"><Check className="size-4 text-emerald-600" />{message}</span>
@@ -398,4 +388,4 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
       ) : null}
     </div>
   )
-}
+})

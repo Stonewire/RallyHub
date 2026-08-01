@@ -33,6 +33,8 @@ export function BinPanel({
   onDeletePermanently,
   restoringId,
   deletingId,
+  selectedIds,
+  onSelectedIdsChange,
 }: {
   items: BinItem[]
   emptyLabel: string
@@ -41,8 +43,21 @@ export function BinPanel({
   onDeletePermanently?: (id: string) => void | Promise<void>
   restoringId?: string
   deletingId?: string
+  /**
+   * Controlled selection. When provided, the parent owns the set and renders the
+   * bulk delete itself (Games puts it in the page header), so the panel drops
+   * its own delete button to avoid two controls doing the same job.
+   */
+  selectedIds?: Set<string>
+  onSelectedIdsChange?: (next: Set<string>) => void
 }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [internalSelected, setInternalSelected] = useState<Set<string>>(new Set())
+  const controlled = selectedIds !== undefined
+  const selected = selectedIds ?? internalSelected
+  const setSelected = (updater: (current: Set<string>) => Set<string>) => {
+    if (controlled) onSelectedIdsChange?.(updater(selected))
+    else setInternalSelected(updater)
+  }
   const [restoringBulk, setRestoringBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
 
@@ -70,7 +85,11 @@ export function BinPanel({
   }
 
   function toggleAll() {
-    setSelected(allRestorableSelected ? new Set() : new Set(restorableItems.map((item) => item.id)))
+    setSelected(() =>
+      allRestorableSelected
+        ? new Set<string>()
+        : new Set(restorableItems.map((item) => item.id)),
+    )
   }
 
   /**
@@ -92,7 +111,7 @@ export function BinPanel({
     setDeletingBulk(true)
     try {
       for (const id of ids) await onDeletePermanently(id)
-      setSelected(new Set())
+      setSelected(() => new Set<string>())
     } finally {
       setDeletingBulk(false)
     }
@@ -106,7 +125,7 @@ export function BinPanel({
           await onRestore(item.id)
         }
       }
-      setSelected(new Set())
+      setSelected(() => new Set<string>())
     } finally {
       setRestoringBulk(false)
     }
@@ -125,7 +144,7 @@ export function BinPanel({
             {restoringBulk ? 'Restoring…' : `Restore ${selectedCount} selected`}
           </NeoButton>
         ) : null}
-        {selectedCount > 0 && onDeletePermanently ? (
+        {selectedCount > 0 && onDeletePermanently && !controlled ? (
           <NeoButton
             type="button"
             variant="destructive"

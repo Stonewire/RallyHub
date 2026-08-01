@@ -1,4 +1,5 @@
 import {
+  Download,
   Check,
   ChevronDown,
   ChevronRight,
@@ -9,7 +10,7 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { BinPanel } from '@/components/admin/BinPanel'
@@ -25,8 +26,14 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { MusicCatalogManager } from '@/components/games/MusicCatalogManager'
-import { InventoryLibraryManager } from '@/components/games/InventoryLibraryManager'
+import {
+  MusicCatalogManager,
+  type MusicCatalogHandle,
+} from '@/components/games/MusicCatalogManager'
+import {
+  InventoryLibraryManager,
+  type InventoryLibraryHandle,
+} from '@/components/games/InventoryLibraryManager'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -183,6 +190,11 @@ export function AdminGamesPage() {
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
+  const musicRef = useRef<MusicCatalogHandle>(null)
+  const inventoryRef = useRef<InventoryLibraryHandle>(null)
+  // Bin selection lives here so the page header can act on it, the same way
+  // every other tab's primary actions sit in the header.
+  const [binSelected, setBinSelected] = useState<Set<string>>(new Set())
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [installGame, setInstallGame] = useState<GameRow | null>(null)
@@ -388,6 +400,35 @@ export function AdminGamesPage() {
     )
   }
 
+  /**
+   * Bulk permanent delete for the bin. One confirm for the whole set, not one
+   * per game: a prompt per item trains people to click through without reading.
+   * The RPC refuses anything still carrying submissions or event links, so a
+   * partial failure is reported rather than swallowed.
+   */
+  async function purgeSelectedGames() {
+    const ids = [...binSelected]
+    if (ids.length === 0) return
+    if (
+      !window.confirm(
+        `Permanently delete ${ids.length} game${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
+      )
+    ) {
+      return
+    }
+    setPurgeError(null)
+    const failures: string[] = []
+    for (const id of ids) {
+      try {
+        await permanentlyDeleteGame.mutateAsync(id)
+      } catch (err) {
+        failures.push(err instanceof Error ? err.message : 'Could not delete a game.')
+      }
+    }
+    setBinSelected(new Set())
+    if (failures.length > 0) setPurgeError(failures[0])
+  }
+
   const isLoading = gamesQuery.isLoading || groupsQuery.isLoading
 
   function handleReorder(gameId: string, index: number) {
@@ -408,10 +449,38 @@ export function AdminGamesPage() {
       subtitle={
         isPlatformLibrary
           ? 'Platform game templates for all clients.'
-          : 'List and manage game templates and configurations.'
+          : 'Build and organise your game templates, upload music for bingo, create inventory items teams can buy with points, and restore anything you have deleted.'
       }
       actions={
-        view === 'games' ? <>
+        view === 'catalog' ? <>
+          <NeoButton type="button" variant="surface" onClick={() => musicRef.current?.openCreatePlaylist()}>
+            <Plus className="size-3.5" />
+            Add Playlist
+          </NeoButton>
+          <NeoButton type="button" variant="accent" onClick={() => musicRef.current?.openUpload()}>
+            <Upload className="size-3.5" />
+            Upload Music
+          </NeoButton>
+        </> : view === 'inventory' && !isPlatformLibrary ? <>
+          <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.exportAll()}>
+            <Download className="size-3.5" />
+            Export All
+          </NeoButton>
+          <NeoButton type="button" variant="accent" onClick={() => inventoryRef.current?.openCreate()}>
+            <Plus className="size-3.5" />
+            Add Item
+          </NeoButton>
+        </> : view === 'bin' ? (
+          <NeoButton
+            type="button"
+            variant="destructive"
+            disabled={binSelected.size === 0}
+            onClick={() => void purgeSelectedGames()}
+          >
+            <Trash2 className="size-3.5" />
+            Delete Selected{binSelected.size ? ` (${binSelected.size})` : ''}
+          </NeoButton>
+        ) : view === 'games' ? <>
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
             <Upload className="size-3.5" />
             Import
@@ -479,9 +548,9 @@ export function AdminGamesPage() {
       ) : null}
 
       {view === 'catalog' && organizationId ? (
-        <MusicCatalogManager organizationId={organizationId} />
+        <MusicCatalogManager ref={musicRef} organizationId={organizationId} />
       ) : view === 'inventory' && organizationId && !isPlatformLibrary ? (
-        <InventoryLibraryManager organizationId={organizationId} />
+        <InventoryLibraryManager ref={inventoryRef} organizationId={organizationId} />
       ) : view === 'bin' ? (
         <>
           <div className="border-border/70 mb-5 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
@@ -542,6 +611,8 @@ export function AdminGamesPage() {
             emptyLabel={(trashedGamesQuery.data ?? []).length === 0 ? 'No deleted games.' : 'No deleted games match these filters.'}
             restoringId={restoreGame.isPending ? restoreGame.variables : undefined}
             deletingId={permanentlyDeleteGame.isPending ? permanentlyDeleteGame.variables : undefined}
+            selectedIds={binSelected}
+            onSelectedIdsChange={setBinSelected}
             onRestore={(id) => restoreGame.mutateAsync(id)}
             onDeletePermanently={async (id) => {
               setPurgeError(null)
