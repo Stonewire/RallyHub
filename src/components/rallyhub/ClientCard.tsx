@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 
-import { NeoButton, NeoCard } from '@/components/neo-minimal'
+import { IconExternal, IconSend } from '@/components/icons'
+
+import { NeoButton } from '@/components/neo-minimal'
+import { Card } from '@/components/ui/card'
 import {
   formatBillingPeriodLabel,
   formatClientPlanLabel,
@@ -50,9 +53,9 @@ export function ClientCard({ client, className }: ClientCardProps) {
   const trial = trialLabel(client)
 
   return (
-    <NeoCard
+    <Card
       className={cn(
-        'flex h-full min-h-[11rem] flex-col gap-3 p-4',
+        'border-border/80 bg-card flex h-full min-h-[11rem] flex-col gap-3 p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-nm-slate-400 hover:shadow-md',
         className,
       )}
     >
@@ -77,17 +80,17 @@ export function ClientCard({ client, className }: ClientCardProps) {
               {client.name}
             </p>
             {(client.unpaidInvoiceCount ?? 0) > 0 ? (
-              <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+              <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 uppercase dark:text-amber-300">
                 {client.unpaidInvoiceCount} unpaid
               </span>
             ) : null}
             {trial ? (
-              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              <span className="bg-nm-yellow/40 text-nm-charcoal dark:text-nm-yellow shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
                 {trial}
               </span>
             ) : null}
             {client.trial_review_needed ? (
-              <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+              <span className="text-destructive shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
                 Review
               </span>
             ) : null}
@@ -116,18 +119,25 @@ export function ClientCard({ client, className }: ClientCardProps) {
 
       <div className="mt-auto flex flex-wrap gap-2">
         {email ? (
-          <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-            <a href={`mailto:${encodeURIComponent(email)}`}>Contact</a>
+          <NeoButton variant="surface" size="sm" className="flex-1 justify-center" asChild>
+            <a href={`mailto:${encodeURIComponent(email)}`}>
+              <IconSend className="size-3.5" aria-hidden />
+              Contact
+            </a>
           </NeoButton>
         ) : (
-          <NeoButton variant="surface" size="sm" className="flex-1" disabled>
+          <NeoButton variant="surface" size="sm" className="flex-1 justify-center" disabled>
+            <IconSend className="size-3.5" aria-hidden />
             Contact
           </NeoButton>
         )}
-        <NeoButton variant="primary" size="sm" className="flex-1" asChild>
-          <Link to={`/admin/clients/${client.id}`}>View</Link>
+        <NeoButton variant="accent" size="sm" className="flex-1 justify-center" asChild>
+          <Link to={`/admin/clients/${client.id}`}>
+            <IconExternal className="size-3.5" aria-hidden />
+            View
+          </Link>
         </NeoButton>
       </div>
-    </NeoCard>
+    </Card>
   )
 }
