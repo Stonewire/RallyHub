@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { GameConfig, QuizQuestion, QuizRound } from '@/types/game-config'
+import { SegmentedPill } from '@/components/neo-minimal'
+import { mediaAccept, questionMedia } from '@/lib/quiz-media'
+import type { GameConfig, QuizQuestion, QuizRound, QuizMediaKind } from '@/types/game-config'
 
 function newId() {
   return crypto.randomUUID()
@@ -30,14 +32,14 @@ function QuestionCard({
   index,
   onUpdate,
   onRemove,
-  onUploadPhoto,
+  onUploadMedia,
   dragProps,
 }: {
   q: QuizQuestion
   index: number
   onUpdate: (patch: Partial<QuizQuestion>) => void
   onRemove: () => void
-  onUploadPhoto: (file: File) => void
+  onUploadMedia: (file: File) => Promise<string>
   dragProps?: {
     draggable: boolean
     onDragStart: () => void
@@ -88,29 +90,106 @@ function QuestionCard({
           />
         </div>
       ))}
-      <div className="space-y-2">
-        <Label className="text-xs">Question photo (optional)</Label>
-        {q.photoUrl ? (
-          <img src={q.photoUrl} alt="" className="size-20 rounded-lg object-cover" />
-        ) : null}
-        <Input
-          type="file"
-          accept="image/*"
-          className="max-w-xs"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) onUploadPhoto(file)
-          }}
+      <QuestionMedia q={q} onUpdate={onUpdate} onUploadMedia={onUploadMedia} />
+    </Card>
+  )
+}
+
+
+/**
+ * What a question carries besides its text.
+ *
+ * Photo and audio are uploaded, video is a YouTube link, but all three end up as
+ * a URL, so the pill only changes how the field is filled in. Switching kind
+ * clears the old URL, since an image link is not an audio clip.
+ */
+function QuestionMedia({
+  q,
+  onUpdate,
+  onUploadMedia,
+}: {
+  q: QuizQuestion
+  onUpdate: (patch: Partial<QuizQuestion>) => void
+  onUploadMedia: (file: File) => Promise<string>
+}) {
+  const { kind, url } = questionMedia(q)
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <Label className="shrink-0 text-xs">Attach</Label>
+        <SegmentedPill
+          size="sm"
+          className="w-64"
+          aria-label={`Media for question ${q.text || 'question'}`}
+          options={[
+            { value: 'none', label: 'None' },
+            { value: 'photo', label: 'Photo' },
+            { value: 'video', label: 'Video' },
+            { value: 'audio', label: 'Audio' },
+          ]}
+          value={kind}
+          onChange={(next) =>
+            onUpdate({
+              mediaKind: next as QuizMediaKind,
+              mediaUrl: null,
+              // photoUrl is the legacy field; clearing it stops an old image
+              // reappearing once the kind changes.
+              photoUrl: null,
+            })
+          }
         />
       </div>
-    </Card>
+
+      {kind === 'video' ? (
+        <Input
+          value={url ?? ''}
+          placeholder="https://youtube.com/…"
+          className="bg-background"
+          onChange={(event) => onUpdate({ mediaUrl: event.target.value.trim() || null })}
+        />
+      ) : kind !== 'none' ? (
+        <Input
+          type="file"
+          accept={mediaAccept(kind)}
+          disabled={busy}
+          className="max-w-xs"
+          onChange={async (event) => {
+            const file = event.target.files?.[0]
+            if (!file) return
+            setBusy(true)
+            try {
+              onUpdate({ mediaUrl: await onUploadMedia(file) })
+            } finally {
+              setBusy(false)
+            }
+          }}
+        />
+      ) : null}
+
+      {url && kind === 'photo' ? (
+        <img src={url} alt="" className="max-h-32 rounded-lg object-contain" />
+      ) : null}
+      {url && kind === 'audio' ? <audio src={url} controls className="h-8 w-full max-w-xs" /> : null}
+      {url && kind === 'video' ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary block text-xs underline"
+        >
+          Open the video to check it
+        </a>
+      ) : null}
+    </div>
   )
 }
 
 type QuizEditorProps = {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
-  onUploadQuestionPhoto: (questionId: string, file: File) => Promise<void>
+  onUploadQuestionPhoto: (questionId: string, file: File) => Promise<string>
   /**
    * Raised by a round's delete button. The parent decides what happens to the
    * questions first, so this component never destroys them itself.
@@ -291,13 +370,29 @@ export function QuizEditor({
         {list.map((q, i) => (
           <div
             key={q.id}
+            /* The list parts as a question passes: the row being dragged fades
+               and a gap opens where it would land, so the destination is
+               visible before the drop rather than only after it. */
+            className={[
+              'transition-[margin,opacity] duration-150',
+              dragQuestionId === q.id ? 'opacity-40' : '',
+              dropTarget?.roundId === roundId && dropTarget.index === i && dragQuestionId !== q.id
+                ? 'mt-10'
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             onDragOver={(e) => {
               e.preventDefault()
-              setDropTarget({ roundId, index: i })
+              // Past the halfway line the gap belongs after this row, which is
+              // what makes dragging downwards land where the pointer is.
+              const box = e.currentTarget.getBoundingClientRect()
+              const after = e.clientY - box.top > box.height / 2
+              setDropTarget({ roundId, index: after ? i + 1 : i })
             }}
             onDrop={(e) => {
               e.preventDefault()
-              handleDrop(roundId, i)
+              handleDrop(roundId, dropTarget?.index ?? i)
             }}
           >
             <label className="mb-1 flex items-center gap-2 text-xs">
@@ -321,7 +416,7 @@ export function QuizEditor({
                 }))
               }
               onRemove={() => removeQuestion(q.id)}
-              onUploadPhoto={(file) => void onUploadQuestionPhoto(q.id, file)}
+              onUploadMedia={(file) => onUploadQuestionPhoto(q.id, file)}
               dragProps={{
                 draggable: true,
                 onDragStart: () => setDragQuestionId(q.id),

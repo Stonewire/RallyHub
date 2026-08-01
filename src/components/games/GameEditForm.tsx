@@ -104,7 +104,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   const [pointsMax, setPointsMax] = useState(100)
   const [solutionDescription, setSolutionDescription] = useState('')
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [roundError, setRoundError] = useState<string | null>(null)
   const [deleteRoundId, setDeleteRoundId] = useState<string | null>(null)
   const [moveTargetId, setMoveTargetId] = useState<string>('')
   // Snapshot of the game as loaded, so Save can be disabled until something
@@ -378,7 +377,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
    */
   function setRoundCount(next: number) {
     const target = Math.max(1, Math.min(20, next))
-    setRoundError(null)
     setConfig((current) => {
       const rounds = current.rounds ?? []
       if (target === rounds.length) return current
@@ -391,13 +389,14 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         return { ...current, rounds_enabled: true, rounds: [...rounds, ...added] }
       }
       const doomed = rounds.slice(target)
-      const withQuestions = doomed.filter((round) =>
+      const firstWithQuestions = doomed.find((round) =>
         (current.questions ?? []).some((q) => q.roundId === round.id),
       )
-      if (withQuestions.length > 0) {
-        setRoundError(
-          `${withQuestions.map((r) => r.name).join(', ')} still ${withQuestions.length === 1 ? 'has' : 'have'} questions. Delete from the round itself to choose what happens to them.`,
-        )
+      // A round holding questions goes through the same dialog as its own
+      // delete button, so the questions can be rehomed rather than vanishing
+      // because a number was typed. Empty rounds just go.
+      if (firstWithQuestions) {
+        setDeleteRoundId(firstWithQuestions.id)
         return current
       }
       return { ...current, rounds_enabled: true, rounds: rounds.slice(0, target) }
@@ -412,7 +411,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     setConfig((current) => removeRound(current, deleteRoundId, moveTargetId || null))
     setDeleteRoundId(null)
     setMoveTargetId('')
-    setRoundError(null)
   }
 
   const body = (
@@ -494,15 +492,11 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
                   config={config}
                   setConfig={setConfig}
                   onDeleteRound={(roundId) => setDeleteRoundId(roundId)}
-                  onUploadQuestionPhoto={async (questionId, file) => {
-                    const url = await uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
-                    setConfig((c) => ({
-                      ...c,
-                      questions: (c.questions ?? []).map((q) =>
-                        q.id === questionId ? { ...q, photoUrl: url } : q,
-                      ),
-                    }))
-                  }}
+                  // Returns the URL; QuestionMedia writes it to the right field
+                  // for the kind that is selected.
+                  onUploadQuestionPhoto={(questionId, file) =>
+                    uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
+                  }
                 />
               ) : null
             }
@@ -630,11 +624,6 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
                 />
               </div>
             </div>
-            {roundError ? (
-              <p className="text-destructive text-xs" role="alert">
-                {roundError}
-              </p>
-            ) : null}
           </Card>
         ) : null}
 

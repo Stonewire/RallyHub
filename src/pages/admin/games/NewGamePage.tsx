@@ -516,19 +516,9 @@ export function AdminGamesNewPage() {
             <QuizEditor
               config={config}
               setConfig={setConfig}
-              onUploadQuestionPhoto={async (questionId, file) => {
-                const url = await uploadGameFile(
-                  organizationId,
-                  `quiz/q-${questionId}`,
-                  file,
-                )
-                setConfig((c) => ({
-                  ...c,
-                  questions: (c.questions ?? []).map((q) =>
-                    q.id === questionId ? { ...q, photoUrl: url } : q,
-                  ),
-                }))
-              }}
+              onUploadQuestionPhoto={(questionId, file) =>
+                uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
+              }
             />
           </Card>
         )}
