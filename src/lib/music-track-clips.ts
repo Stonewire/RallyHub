@@ -36,14 +36,21 @@ export async function generateClipForAudioUrl(
   clipLengthSeconds: BingoClipLength,
   /** Organiser's marked in point. null/undefined falls back to the suggestion. */
   inPointSeconds?: number | null,
+  /**
+   * Fires at each real step (download, cut, upload) so a caller can draw a fill
+   * that actually tracks the work rather than an invented percentage.
+   */
+  onProgress?: (fraction: number) => void,
 ): Promise<{ clipUrl: string; clipStartSeconds: number; clipDurationSeconds: number }> {
   const file = await fetchAudioFile(audioUrl, audioStorageFilename(label, 'mp3'))
+  onProgress?.(0.2)
   const duration = await readAudioDuration(file).catch(() => 0)
   const clipStart =
     typeof inPointSeconds === 'number' && inPointSeconds >= 0
       ? inPointSeconds
       : suggestClipStart(duration)
   const extracted = await extractAudioClip(file, clipLengthSeconds, clipStart)
+  onProgress?.(0.7)
   const clipFilename = audioStorageFilename(`clip-${label}`, extracted.extension)
   const clipFile = new File([extracted.blob], clipFilename, { type: extracted.mimeType })
   const clipUrl = await uploadAsset(
@@ -51,6 +58,7 @@ export async function generateClipForAudioUrl(
     `${organizationId}/catalog/${crypto.randomUUID()}-clip-${clipLengthSeconds}s-${clipFilename}`,
     clipFile,
   )
+  onProgress?.(1)
   return {
     clipUrl,
     clipStartSeconds: extracted.startSeconds,
@@ -58,10 +66,19 @@ export async function generateClipForAudioUrl(
   }
 }
 
+/**
+ * Cuts the clip this game needs for a track.
+ *
+ * Clips belong to the game, not to the catalog: a game running 60s must not
+ * overwrite the catalog's 30s clip and change what every other game plays.
+ * The catalog is only read here, for the organiser's marked in point, which
+ * always wins over the automatic suggestion.
+ */
 export async function ensureMusicTrackClip(
   track: MusicTrack,
   organizationId: string,
   clipLengthSeconds: BingoClipLength,
+  onProgress?: (fraction: number) => void,
 ): Promise<MusicTrack> {
   if (
     track.clipUrl?.trim() &&
@@ -71,31 +88,28 @@ export async function ensureMusicTrackClip(
   }
   if (!track.audioUrl?.trim()) throw new Error(`"${track.title}" has no audio file`)
 
+  // Read live rather than trusting the copy taken when the track was added, so
+  // an in point marked in the library since then is the one that is used.
+  const { data: catalogRow } = await supabase
+    .from('music_catalog')
+    .select('clip_in_point_seconds')
+    .eq('id', track.id)
+    .eq('organization_id', organizationId)
+    .maybeSingle()
+
+  const inPoint =
+    catalogRow?.clip_in_point_seconds == null
+      ? track.clipInPointSeconds
+      : Number(catalogRow.clip_in_point_seconds)
+
   const clip = await generateClipForAudioUrl(
     organizationId,
     track.audioUrl,
     `${track.artist}-${track.title}`,
     clipLengthSeconds,
-    track.clipInPointSeconds,
+    inPoint,
+    onProgress,
   )
-
-  const { data: catalogRow } = await supabase
-    .from('music_catalog')
-    .select('id')
-    .eq('id', track.id)
-    .eq('organization_id', organizationId)
-    .maybeSingle()
-
-  if (catalogRow) {
-    await supabase
-      .from('music_catalog')
-      .update({
-        clip_url: clip.clipUrl,
-        clip_start_seconds: clip.clipStartSeconds,
-        clip_duration_seconds: clip.clipDurationSeconds,
-      })
-      .eq('id', track.id)
-  }
 
   return {
     ...track,
