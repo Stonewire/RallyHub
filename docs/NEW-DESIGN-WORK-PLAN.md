@@ -106,6 +106,26 @@ bundled into a design batch.
 - Ticket file attachments.
 - Stat card week-over-week deltas (needs historical data that is not currently recorded).
 
+## Phase 8: questions parked for Rumen
+
+Rumen is away and cannot approve anything, so nothing in this file blocks on
+him. Whenever a judgement call comes up that would normally be a question, the
+work continues under a stated assumption and the question is appended here
+with the assumption made, so he can overturn any of them in one pass on
+return.
+
+Rules while running unattended:
+- Never push to `main`, and never apply a migration to production.
+- Never invent a destructive backend capability that does not already exist.
+- If a design element cannot be built truthfully, leave it out and record it
+  here rather than shipping a control that does nothing.
+- Commit after every self-contained chunk so an interrupted run loses nothing.
+
+### Answered by assumption so far
+
+Nothing yet. Entries get appended below as they arise, each as:
+question, assumption taken, and how to reverse it.
+
 ## Open question for Rumen
 
 `subscription-plans.ts` prices Pro at **EUR 200/month** against Starter at EUR 20/month, while the design shows EUR 25. The per-event prices (199 / 149 / 99) match the design exactly, so only the Pro monthly figure looks anomalous. Worth confirming it is not a typo before it goes in front of customers.
