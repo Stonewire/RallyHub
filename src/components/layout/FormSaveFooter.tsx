@@ -18,7 +18,13 @@ type FormSaveFooterProps = {
   dirty?: boolean
 }
 
-/** Sticky save bar visible at the bottom of long forms. */
+/**
+ * Floating save button that rides the bottom-right of long forms.
+ *
+ * It used to be a full-width bar with its own border and blurred backdrop,
+ * which read as another section of the page. A button that simply follows the
+ * scroll is the same reach with none of the furniture.
+ */
 export function FormSaveFooter({
   onSave,
   saving = false,
@@ -51,21 +57,22 @@ export function FormSaveFooter({
   return (
     <div
       className={cn(
-        'border-border/80 bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-20 -mx-6 mt-10 border-t px-6 py-4 backdrop-blur sm:-mx-10 sm:px-10 lg:-mx-14 lg:px-14',
+        // pointer-events-none so the strip never swallows clicks on the form
+        // it floats over; the button itself takes them back.
+        'pointer-events-none sticky bottom-6 z-20 mt-10 flex justify-end',
         className,
       )}
     >
-      <div className="flex justify-end">
-        <NeoButton
-          type="button"
-          variant="primary"
-          disabled={saving || dirty === false}
-          onClick={onSave}
-          data-tour="form-save-button"
-        >
-          {saving ? 'Saving…' : saved ? 'Saved!' : label}
-        </NeoButton>
-      </div>
+      <NeoButton
+        type="button"
+        variant="primary"
+        className="pointer-events-auto shadow-lg"
+        disabled={saving || dirty === false}
+        onClick={onSave}
+        data-tour="form-save-button"
+      >
+        {saving ? 'Saving…' : saved ? 'Saved!' : label}
+      </NeoButton>
     </div>
   )
 }

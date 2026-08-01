@@ -21,6 +21,8 @@ type AssetFieldProps = {
   /** Shows the large dashed preview panel from the design. */
   showPreviewPanel?: boolean
   previewLabel?: string
+  /** Puts the thumbnail beside the upload button instead of under it. */
+  inlinePreview?: boolean
 }
 
 /**
@@ -40,6 +42,7 @@ export function AssetField({
   urlPlaceholder = 'or paste an image link…',
   showPreviewPanel = false,
   previewLabel = 'Cover preview',
+  inlinePreview = false,
 }: AssetFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -76,6 +79,15 @@ export function AssetField({
             className="bg-background min-w-0 flex-1"
           />
         ) : null}
+        {inlinePreview ? (
+          <span className="border-border bg-muted/40 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+            {preview ? (
+              <img src={preview} alt="" className="size-full object-contain" />
+            ) : (
+              <IconUpload className="text-muted-foreground size-3.5" />
+            )}
+          </span>
+        ) : null}
       </div>
 
       {showPreviewPanel ? (
@@ -94,7 +106,7 @@ export function AssetField({
             previewLabel
           )}
         </div>
-      ) : preview ? (
+      ) : preview && !inlinePreview ? (
         isVideo ? (
           <video src={preview} className="max-h-24 rounded-lg" controls />
         ) : (

@@ -1,12 +1,15 @@
 import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
 import { useMemo, useState } from 'react'
 
-import { FlipSwitch, NeoButton, SegmentedPill } from '@/components/neo-minimal'
+import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
+import { AssetField } from '@/components/games/AssetField'
+import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
+import { EventPreviewModal } from '@/components/events/EventPreviewModal'
+import { IconEye } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useNotification } from '@/contexts/notification-context'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
 import type { OrganizationRow } from '@/hooks/use-organization-settings'
@@ -68,11 +71,11 @@ export function EventForm({
   // Demo events are capped below the normal allowance, so the floor has to
   // give way rather than fight the cap.
   const minTeamCount = Math.min(INCLUDED_TEAMS_PER_EVENT, maxTeamCount)
-  const { notify } = useNotification()
   // New-event forms do not have a database id yet. Keep one stable upload
   // folder for the lifetime of the form so superseded logo uploads can still
   // be removed together when that event is permanently deleted.
   const [newEventStorageKey] = useState(() => crypto.randomUUID())
+  const [previewOpen, setPreviewOpen] = useState(false)
   const brandingStorageKey = storageKey ?? newEventStorageKey
   const teamCharge = additionalTeamCharge(values.teamCount)
 
@@ -136,177 +139,159 @@ export function EventForm({
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/80 bg-card p-5 shadow-sm sm:p-6">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:gap-10">
-          <div className="space-y-4">
-            <div className="border-border border-b pb-2">
-              <h2 className="text-foreground text-base font-bold">Primary</h2>
-              <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
-            </div>
-            <div className="space-y-2">
-              <Label>
-                Event name{' '}
-                <span className="text-muted-foreground font-normal">
-                  (max {EVENT_NAME_MAX_LENGTH} characters)
-                </span>
-              </Label>
-              <Input
-                value={name}
-                maxLength={EVENT_NAME_MAX_LENGTH}
-                onChange={(e) => set({ name: e.target.value })}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Event date & time</Label>
-              <Input
-                type="datetime-local"
-                value={eventDate}
-                onChange={(e) => set({ eventDate: e.target.value })}
-                className="bg-background max-w-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input
-                value={values.location}
-                onChange={(e) => set({ location: e.target.value })}
-                placeholder="e.g. Valletta, MT"
-                className="bg-background"
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <TogglePair
-                label="Display"
-                leftLabel="Rank list"
-                rightLabel="Orbit"
-                rightSelected={values.displayLayout === 'orbit_view'}
-                onChange={(rightSelected) => set({ displayLayout: rightSelected ? 'orbit_view' : 'rank_list' })}
-              />
-              <TogglePair
-                label="UI colour"
-                leftLabel="White"
-                rightLabel="Black"
-                rightSelected={values.displayTextColor === 'black'}
-                onChange={(rightSelected) => set({ displayTextColor: rightSelected ? 'black' : 'white' })}
-              />
-              <TogglePair
-                label="Purchase items"
-                leftLabel="Off"
-                rightLabel="On"
-                rightSelected={inventoryEnabled}
-                onChange={(rightSelected) => set({ inventoryEnabled: rightSelected })}
-              />
-            </div>
-            <p className="text-muted-foreground text-xs leading-relaxed">
-              Display and colour settings apply to the live host, audience, and player surfaces.
-            </p>
+      <EventPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        name={name}
+        logoUrl={logoUrl}
+        brandColors={brandColors}
+        brandingEnabled={brandingEnabled}
+        displayLayout={values.displayLayout}
+        displayTextColor={values.displayTextColor}
+        teams={teams}
+      />
+      {/* Two cards side by side, matching the game editors: settings on the
+          left, the look of the event on the right. */}
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+        <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
+          <div className="border-border border-b pb-2">
+            <h2 className="text-foreground text-base font-bold">Primary</h2>
+            <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
           </div>
+          <div className="space-y-2">
+            <Label>
+              Event name{' '}
+              <span className="text-muted-foreground font-normal">
+                (max {EVENT_NAME_MAX_LENGTH} characters)
+              </span>
+            </Label>
+            <Input
+              value={name}
+              maxLength={EVENT_NAME_MAX_LENGTH}
+              onChange={(e) => set({ name: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Event date & time</Label>
+            <Input
+              type="datetime-local"
+              value={eventDate}
+              onChange={(e) => set({ eventDate: e.target.value })}
+              className="bg-background max-w-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <Input
+              value={values.location}
+              onChange={(e) => set({ location: e.target.value })}
+              placeholder="e.g. Valletta, MT"
+              className="bg-background"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PillPair
+              label="Display"
+              leftLabel="Rank list"
+              rightLabel="Orbit"
+              rightSelected={values.displayLayout === 'orbit_view'}
+              onChange={(rightSelected) => set({ displayLayout: rightSelected ? 'orbit_view' : 'rank_list' })}
+            />
+            <PillPair
+              label="UI colour"
+              leftLabel="White"
+              rightLabel="Black"
+              rightSelected={values.displayTextColor === 'black'}
+              onChange={(rightSelected) => set({ displayTextColor: rightSelected ? 'black' : 'white' })}
+            />
+            <PillPair
+              label="Purchase items"
+              leftLabel="Off"
+              rightLabel="On"
+              rightSelected={inventoryEnabled}
+              onChange={(rightSelected) => set({ inventoryEnabled: rightSelected })}
+            />
+          </div>
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            Display and colour settings apply to the live host, audience, and player surfaces.
+          </p>
+        </Card>
 
-          <div className="space-y-4">
-            <div className="border-border border-b pb-2">
+        <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
+          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b pb-2">
+            <div>
               <h2 className="text-foreground text-base font-bold">Branding</h2>
               <p className="text-muted-foreground mt-1 text-xs">Optional visual overrides for this event.</p>
             </div>
-            <TogglePair
-              label="Custom event branding"
+            <PillPair
+              label="Custom branding"
               leftLabel="Off"
               rightLabel="On"
               rightSelected={brandingEnabled}
               onChange={(rightSelected) => set({ brandingEnabled: rightSelected })}
             />
-            {brandingEnabled ? (
-              <>
-                <p className="text-muted-foreground text-sm">
-                  Override your organization profile for this event only.
-                </p>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="max-w-xs"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    void uploadAsset(
-                      'organization-logos',
-                      `${organizationId}/events/${brandingStorageKey}/${crypto.randomUUID()}`,
-                      file,
-                      { mediaKind: 'logo' },
-                    )
-                      .then((url) => set({ logoUrl: url }))
-                      .catch((err) =>
-                        notify(
-                          err instanceof Error ? err.message : 'Could not upload logo',
-                        ),
-                      )
-                  }}
-                />
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt="Event logo"
-                    className="border-border/80 size-16 rounded-lg border object-contain"
-                  />
-                ) : null}
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {brandColors.map((c, i) => (
-                    <div key={BRAND_LABELS[i]} className="space-y-1.5 text-center">
-                      <Label>{BRAND_LABELS[i]}</Label>
-                      <input
-                        type="color"
-                        value={c}
-                        aria-label={`${BRAND_LABELS[i]} colour`}
-                        onChange={(e) => {
-                          const next = [...brandColors] as [string, string, string]
-                          next[i] = e.target.value
-                          set({ brandColors: next })
-                        }}
-                        className="mx-auto block size-9 cursor-pointer rounded-full border-0 bg-transparent p-0"
-                      />
-                      <Input
-                        value={c}
-                        maxLength={7}
-                        aria-label={`${BRAND_LABELS[i]} hex value`}
-                        onChange={(e) => {
-                          const next = [...brandColors] as [string, string, string]
-                          next[i] = e.target.value
-                          set({ brandColors: next })
-                        }}
-                        className="bg-background h-7 px-1 text-center font-mono text-[10px] uppercase"
-                      />
-                      <p className="sr-only">{BRAND_COLOR_HELP[BRAND_LABELS[i]]}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-end justify-center gap-4 pt-1">
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className="border-border flex aspect-video items-center justify-center overflow-hidden rounded-md border"
-                      style={{ background: `linear-gradient(135deg, ${brandColors[0]}, ${brandColors[1]} 55%, ${brandColors[2]})` }}
-                    >
-                      {logoUrl ? <img src={logoUrl} alt="" className="max-h-10 max-w-24 object-contain" /> : <span className="px-2 text-center text-xs font-bold text-white drop-shadow">{name || 'Event preview'}</span>}
-                    </div>
-                    <p className="text-muted-foreground mt-1 text-center text-[10px]">Host / TV</p>
-                  </div>
-                  <div className="w-16 shrink-0">
-                    <div
-                      className="border-border flex aspect-[9/16] items-center justify-center overflow-hidden rounded-md border"
-                      style={{ background: `linear-gradient(160deg, ${brandColors[0]}, ${brandColors[1]} 55%, ${brandColors[2]})` }}
-                    >
-                      <span className="px-1 text-center text-[8px] font-bold text-white drop-shadow">{name || 'Event'}</span>
-                    </div>
-                    <p className="text-muted-foreground mt-1 text-center text-[10px]">Player</p>
-                  </div>
-                </div>
-              </>
-            ) : orgDefaults ? (
-              <p className="text-muted-foreground text-sm">
-                Using organization logo and colors from Settings.
-              </p>
-            ) : null}
           </div>
-        </div>
-      </Card>
+          {brandingEnabled ? (
+            <>
+              {/* Upload only, with the logo shown beside the button: a logo is
+                  a file the organiser has, never a URL they type. */}
+              <AssetField
+                label="Event logo"
+                inlinePreview
+                preview={logoUrl}
+                onFile={async (file) => {
+                  if (!file) return
+                  const url = await uploadAsset(
+                    'organization-logos',
+                    `${organizationId}/events/${brandingStorageKey}/${crypto.randomUUID()}`,
+                    file,
+                    { mediaKind: 'logo' },
+                  )
+                  set({ logoUrl: url })
+                }}
+              />
+              {/* Each colour says what it actually paints, because "secondary"
+                  means nothing until you know it is the base behind the blobs. */}
+              <div className="space-y-3">
+                {brandColors.map((c, i) => (
+                  <div key={BRAND_LABELS[i]} className="flex items-center gap-3">
+                    <div className="w-20 shrink-0">
+                      <BrandColourPicker
+                        id={`event-brand-${i}`}
+                        label={BRAND_LABELS[i]}
+                        value={c}
+                        onChange={(hex) => {
+                          const next = [...brandColors] as [string, string, string]
+                          next[i] = hex
+                          set({ brandColors: next })
+                        }}
+                      />
+                    </div>
+                    <p className="text-muted-foreground min-w-0 flex-1 text-xs leading-relaxed">
+                      {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : orgDefaults ? (
+            <p className="text-muted-foreground text-sm">
+              Using organization logo and colors from Settings.
+            </p>
+          ) : null}
+          <NeoButton
+            type="button"
+            variant="surface"
+            size="sm"
+            className="mt-auto w-full justify-center"
+            onClick={() => setPreviewOpen(true)}
+          >
+            <IconEye className="size-3.5" aria-hidden />
+            Preview event
+          </NeoButton>
+        </Card>
+      </div>
 
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="border-border flex flex-wrap items-end gap-4 border-b pb-3">
@@ -352,15 +337,15 @@ export function EventForm({
             </p>
           )
         ) : null}
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {teams.map((team) => (
-            <li
-              key={team.id}
-              className="border-border/80 bg-background flex items-center gap-3 rounded-md border p-3"
-            >
+        {/* One team per line, full width: a colour, a name with room to be a
+            real name, and the join code where the eye ends up. */}
+        <ul className="divide-border/60 divide-y">
+          {teams.map((team, index) => (
+            <li key={team.id} className="flex items-center gap-3 py-2">
               <input
                 type="color"
                 value={team.color}
+                aria-label={`${team.name || `Team ${index + 1}`} colour`}
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
@@ -369,10 +354,11 @@ export function EventForm({
                     ),
                   }))
                 }
-                className="size-10 shrink-0 cursor-pointer rounded border"
+                className="size-7 shrink-0 cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
               />
               <Input
                 value={team.name}
+                placeholder={`Team ${index + 1}`}
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
@@ -381,20 +367,13 @@ export function EventForm({
                     ),
                   }))
                 }
-                className="bg-background flex-1"
+                className="bg-background h-8 min-w-0 flex-1"
               />
-              <Input
-                value={team.color}
-                onChange={(e) =>
-                  onChange((prev) => ({
-                    ...prev,
-                    teams: prev.teams.map((x) =>
-                      x.id === team.id ? { ...x, color: e.target.value } : x,
-                    ),
-                  }))
-                }
-                className="bg-background w-24 font-mono text-xs"
-              />
+              {/* Slot, not a join code: teams share one event join link and
+                  claim a slot, so there is no per-team code to show. */}
+              <span className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">
+                #{index + 1}
+              </span>
               {teams.length > 1 ? (
                 <Button
                   type="button"
@@ -597,8 +576,8 @@ export function EventForm({
   )
 }
 
-/** Two-state control, rendered as the design's sliding flip switch. */
-function TogglePair({
+/** Two-state control, rendered as a pill like every other choice in the app. */
+function PillPair({
   label,
   leftLabel,
   rightLabel,
@@ -612,15 +591,21 @@ function TogglePair({
   onChange: (rightSelected: boolean) => void
 }) {
   return (
-    <FlipSwitch
-      caption={label}
-      offValue="left"
-      onValue="right"
-      offLabel={leftLabel}
-      onLabel={rightLabel}
-      value={rightSelected ? 'right' : 'left'}
-      onChange={(next) => onChange(next === 'right')}
-    />
+    <div className="space-y-1.5">
+      <span className="text-nm-neutral-500 block text-[10px] font-semibold tracking-wider uppercase">
+        {label}
+      </span>
+      <SegmentedPill
+        size="sm"
+        aria-label={label}
+        options={[
+          { value: 'left', label: leftLabel },
+          { value: 'right', label: rightLabel },
+        ]}
+        value={rightSelected ? 'right' : 'left'}
+        onChange={(next) => onChange(next === 'right')}
+      />
+    </div>
   )
 }
 
@@ -843,7 +828,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
 
           {filteredAvailable.length > 0 ? (
             <>
-              <ul className="border-border/70 max-h-64 divide-y overflow-y-auto rounded-md border">
+              <ul className="border-border/70 divide-y rounded-md border">
                 {filteredAvailable.map((g) => (
                   <li key={g.id}>
                     <label className="hover:bg-muted/40 flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm">

@@ -34,6 +34,40 @@ type EventLinksPanelProps = {
   hideDownloadAll?: boolean
 }
 
+/** The PDF export, so a page can host it in a card header instead. */
+export function EventQrDownloadButton({
+  eventId,
+  eventName,
+  eventSlug,
+  organization,
+  branding,
+}: Pick<
+  EventLinksPanelProps,
+  'eventId' | 'eventName' | 'eventSlug' | 'organization' | 'branding'
+>) {
+  const [downloading, setDownloading] = useState(false)
+  const links = getEventLinks(eventId, {
+    clientSlug: organization?.subdomain,
+    eventSlug,
+  })
+  return (
+    <NeoButton
+      type="button"
+      variant="accent"
+      disabled={downloading}
+      onClick={() => {
+        setDownloading(true)
+        void downloadAllEventQrsPdf(links, branding ?? { eventName }).finally(() =>
+          setDownloading(false),
+        )
+      }}
+    >
+      <IconDownload className="size-4" />
+      {downloading ? 'Building PDF…' : 'Download all QR codes (PDF)'}
+    </NeoButton>
+  )
+}
+
 export function EventLinksPanel({
   eventId,
   eventName,

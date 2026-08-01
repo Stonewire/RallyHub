@@ -10,7 +10,7 @@ import {
 import { EventActivityLog } from '@/components/admin/EventActivityLog'
 import { DangerZone } from '@/components/admin/DangerZone'
 import { EventForm } from '@/components/events/EventForm'
-import { EventLinksPanel } from '@/components/events/EventLinksPanel'
+import { EventLinksPanel, EventQrDownloadButton } from '@/components/events/EventLinksPanel'
 import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDialog'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
@@ -336,15 +336,32 @@ export function AdminEventEditPage() {
 
               {eventId && eventQuery.data ? (
                 <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h2 className="text-foreground text-lg font-semibold">Event links</h2>
                       <p className="text-muted-foreground text-sm">
                         QR codes and URLs for facilitator, display, and team join.
                       </p>
                     </div>
+                    {/* Top right and yellow: this is the one thing an organiser
+                        takes off this card and into the room. */}
+                    <EventQrDownloadButton
+                      eventId={eventId}
+                      eventName={eventQuery.data.name}
+                      eventSlug={eventQuery.data.slug}
+                      organization={
+                        orgQuery.data
+                          ? {
+                              subdomain: orgQuery.data.subdomain,
+                              custom_domain: orgQuery.data.custom_domain,
+                            }
+                          : null
+                      }
+                      branding={{ eventName: eventQuery.data.name }}
+                    />
                   </div>
                   <EventLinksPanel
+                    hideDownloadAll
                     eventId={eventId}
                     eventName={eventQuery.data.name}
                     eventSlug={eventQuery.data.slug}

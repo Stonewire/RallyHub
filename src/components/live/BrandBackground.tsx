@@ -10,6 +10,12 @@ type BrandBackgroundProps = {
   variant?: 'default' | 'disco' | 'relaxed'
   children: ReactNode
   className?: string
+  /**
+   * Confines the backdrop to this element instead of the viewport, for the
+   * preview frames in the event editor. Live surfaces keep the fixed backdrop,
+   * which fills the screen without inflating scroll height.
+   */
+  contained?: boolean
 }
 
 export function BrandBackground({
@@ -18,6 +24,7 @@ export function BrandBackground({
   variant = 'default',
   children,
   className,
+  contained = false,
 }: BrandBackgroundProps) {
   const { base, primary, accent } = brandBlobColors(event, organization)
   const opacity = variant === 'relaxed' ? 0.4 : variant === 'disco' ? 0.6 : 0.55
@@ -27,26 +34,31 @@ export function BrandBackground({
     <div className={`experience-scope relative ${textTone} ${className ?? ''}`}>
       {/* Fixed backdrop — fills viewport without inflating scroll height. */}
       <div
-        className="pointer-events-none fixed inset-0 -z-10"
+        // Contained frames sit on an opaque card, so the backdrop stays at z-0
+        // inside the frame rather than behind it, where -z-10 would hide it.
+        className={`pointer-events-none inset-0 ${contained ? 'absolute z-0' : 'fixed -z-10'}`}
         style={{ backgroundColor: base }}
         aria-hidden
       >
+        {/* Contained frames are a few hundred pixels wide, so the blobs are
+            sized to the frame and the blur scaled down with them; vmax and a
+            120px blur would wash the whole frame to one flat colour. */}
         <div className="absolute inset-0 overflow-hidden">
           <div
-            className="animate-blob absolute -left-[20%] top-[-10%] size-[70vmax] rounded-full blur-[120px]"
+            className={`animate-blob absolute -left-[20%] top-[-10%] rounded-full ${contained ? 'size-[90%] blur-[28px]' : 'size-[70vmax] blur-[120px]'}`}
             style={{ background: primary, opacity }}
           />
           <div
-            className="animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] size-[65vmax] rounded-full blur-[120px]"
+            className={`animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] rounded-full ${contained ? 'size-[80%] blur-[28px]' : 'size-[65vmax] blur-[120px]'}`}
             style={{ background: accent, opacity }}
           />
           <div
-            className="animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] size-[60vmax] rounded-full blur-[120px]"
+            className={`animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] rounded-full ${contained ? 'size-[75%] blur-[28px]' : 'size-[60vmax] blur-[120px]'}`}
             style={{ background: primary, opacity: opacity * 0.85 }}
           />
         </div>
       </div>
-      <div className="relative">{children}</div>
+      <div className={contained ? 'relative z-10 h-full' : 'relative'}>{children}</div>
       <style>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }
