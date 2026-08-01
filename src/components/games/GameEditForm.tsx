@@ -14,7 +14,7 @@ import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
 import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEditor'
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
-import { FlipSwitch, NeoButton } from '@/components/neo-minimal'
+import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -328,6 +328,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
       ) : null}
 
       <div className="space-y-8">
+        {gameType === 'photo' || gameType === 'video' ? null : (
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <div className="space-y-2">
             <Label>Game name</Label>
@@ -373,6 +374,7 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
             )}
           </div>
         </Card>
+        )}
 
         {gameType === 'quiz' ? (
           <>
@@ -513,6 +515,14 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
           <div className="grid items-start gap-6 xl:grid-cols-[2fr_1fr]">
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+          <div className="space-y-2">
+            <Label>Game name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <RichTextEditor value={description} onChange={setDescription} />
+          </div>
               <AssetField
                 label="Cover image"
                 preview={coverUrl}
@@ -573,24 +583,35 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                   </p>
                 </div>
               ) : null}
-              <AssetField
-                label={
-                  gameType === 'video'
-                    ? 'Example video (visible to participants)'
-                    : 'Example / instructional video (optional, visible to participants)'
-                }
-                accept="video/*"
-                preview={exampleVideoUrl}
-                onFile={(file) =>
-                  void handleFile(file, setExampleVideoUrl, `videos/${newGameId()}`)
-                }
-                onUrl={setExampleVideoUrl}
-                urlPlaceholder="or paste a YouTube link…"
-              />
-              <p className="text-muted-foreground -mt-2 text-xs">
-                A YouTube link works here as well as an upload. Unlisted is fine;
-                private videos will not play for participants.
-              </p>
+              {gameType === 'video' ? (
+                <AssetField
+                  label="Example video (visible to participants)"
+                  accept="video/*"
+                  preview={exampleVideoUrl}
+                  onFile={(file) =>
+                    void handleFile(file, setExampleVideoUrl, `videos/${newGameId()}`)
+                  }
+                  onUrl={setExampleVideoUrl}
+                  urlPlaceholder="or paste a YouTube link…"
+                />
+              ) : (
+                /* Link only on a photo game: the field is for pointing at a
+                   YouTube video, and an upload control invites a file that has
+                   nowhere useful to go. */
+                <div className="space-y-2">
+                  <Label>Instructional video link (optional, visible to participants)</Label>
+                  <Input
+                    value={exampleVideoUrl ?? ''}
+                    placeholder="https://youtube.com/…"
+                    onChange={(event) => setExampleVideoUrl(event.target.value.trim() || null)}
+                    className="bg-background"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    YouTube link. Unlisted is fine; private videos will not play
+                    for participants.
+                  </p>
+                </div>
+              )}
             </Card>
 
             <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
@@ -637,6 +658,46 @@ export function GameEditForm({ gameId, onSaved, children }: GameEditFormProps) {
                 previewLabel="Solution preview"
               />
             </Card>
+
+            {/* Under Facilitator Only rather than in with the name, so the right
+                column carries its share and Primary settings stays about the
+                game itself. */}
+            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm xl:col-start-2">
+              <h3 className="text-foreground text-sm font-bold">Groups</h3>
+          <div className="space-y-2">
+            <Label>Groups</Label>
+            {gameGroups.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No groups yet. Create one from the Games library.
+              </p>
+            ) : (
+              <div className="border-border max-h-44 space-y-1 overflow-auto rounded-md border p-2">
+                {gameGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.has(group.id)}
+                      onChange={() => {
+                        const next = new Set(selectedGroupIds)
+                        if (next.has(group.id)) next.delete(group.id)
+                        else next.add(group.id)
+                        void setGameGroups
+                          .mutateAsync({ gameId, groupIds: [...next] })
+                          .catch((err) =>
+                            setError(err instanceof Error ? err.message : 'Could not update groups'),
+                          )
+                      }}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{group.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+            </Card>
           </div>
         ) : null}
       </div>
@@ -677,43 +738,52 @@ function PointsEditor({
   setPointsMax: (v: number) => void
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex justify-start">
-        <FlipSwitch
-          caption="Points"
-          offValue="static"
-          onValue="range"
-          offLabel="Static"
-          onLabel="Range"
+    <div className="space-y-2">
+      <Label>Points</Label>
+      {/* Pill plus the value on one line: the mode and the number it applies to
+          belong together, and this matches the segmented controls used
+          elsewhere rather than the flip switch, which read as on/off. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <SegmentedPill
+          size="sm"
+          aria-label="Points type"
+          options={[
+            { value: 'static', label: 'Static' },
+            { value: 'range', label: 'Range' },
+          ]}
           value={pointsType}
-          onChange={(next) => setPointsType(next)}
+          onChange={(next) => setPointsType(next as PointsType)}
         />
+        {pointsType === 'static' ? (
+          <Input
+            type="number"
+            aria-label="Points"
+            value={pointsStatic}
+            onChange={(e) => setPointsStatic(Number(e.target.value))}
+            className="bg-background w-24"
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              placeholder="Min"
+              aria-label="Minimum points"
+              value={pointsMin}
+              onChange={(e) => setPointsMin(Number(e.target.value))}
+              className="bg-background w-24"
+            />
+            <span className="text-muted-foreground text-sm">to</span>
+            <Input
+              type="number"
+              placeholder="Max"
+              aria-label="Maximum points"
+              value={pointsMax}
+              onChange={(e) => setPointsMax(Number(e.target.value))}
+              className="bg-background w-24"
+            />
+          </div>
+        )}
       </div>
-      {pointsType === 'static' ? (
-        <Input
-          type="number"
-          value={pointsStatic}
-          onChange={(e) => setPointsStatic(Number(e.target.value))}
-          className="bg-background max-w-[8rem]"
-        />
-      ) : (
-        <div className="flex gap-3">
-          <Input
-            type="number"
-            placeholder="Min"
-            value={pointsMin}
-            onChange={(e) => setPointsMin(Number(e.target.value))}
-            className="bg-background max-w-[8rem]"
-          />
-          <Input
-            type="number"
-            placeholder="Max"
-            value={pointsMax}
-            onChange={(e) => setPointsMax(Number(e.target.value))}
-            className="bg-background max-w-[8rem]"
-          />
-        </div>
-      )}
     </div>
   )
 }
