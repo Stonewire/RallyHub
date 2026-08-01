@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { StatusIndicator } from '@/components/ui/status-indicator'
-import { EVENT_STATUS_LABELS } from '@/hooks/use-events'
+import { EVENT_STATUS_LABELS, EVENT_STATUS_PILL_CLASS } from '@/hooks/use-events'
 import { getAllowedEventStatuses } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -53,13 +53,15 @@ export function EventStatusMenu({
           size={size}
           disabled={menuDisabled}
           data-tour="event-status-menu"
-          className={cn('gap-1.5', size === 'sm' && 'h-8 px-2')}
+          className={cn(
+            'gap-1.5 rounded-full',
+            EVENT_STATUS_PILL_CLASS[status],
+            size === 'sm' && 'h-8 px-3',
+          )}
         >
-          {/* Dot only: the label beside it is the domain wording from
-              EVENT_STATUS_LABELS, and StatusIndicator renders its own label by
-              default, which showed every status twice ("Ready Ready"). */}
-          <StatusIndicator status={status} label="" />
-          <span className="text-xs font-medium">{EVENT_STATUS_LABELS[status]}</span>
+          {/* Solid coloured pill carries the status, so no dot and no second
+              label. Both used to render, which read as "Ready Ready". */}
+          <span className="text-xs font-semibold">{EVENT_STATUS_LABELS[status]}</span>
           {allowedStatuses.length > 0 ? (
             <ChevronDown className="size-3.5 opacity-60" />
           ) : null}

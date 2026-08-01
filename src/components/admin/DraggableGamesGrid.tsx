@@ -1,7 +1,8 @@
 import { Download, GripVertical, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
-import { HoverTooltip } from '@/components/admin/HoverTooltip'
+import { createPortal } from 'react-dom'
+
 import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { NeoButton } from '@/components/neo-minimal'
 import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
@@ -27,6 +28,26 @@ export function DraggableGamesGrid({
   onInstall,
 }: DraggableGamesGridProps) {
   const [dragId, setDragId] = useState<string | null>(null)
+  // Hovering anywhere on a card reveals its full group list after a beat. Held
+  // at grid level so there is one floating label rather than one per card.
+  const [groupTip, setGroupTip] = useState<{ label: string; x: number; y: number } | null>(null)
+  const tipTimer = useRef<number | null>(null)
+
+  function showGroupTip(element: HTMLElement, label: string) {
+    if (tipTimer.current) window.clearTimeout(tipTimer.current)
+    if (!label.trim()) return
+    tipTimer.current = window.setTimeout(() => {
+      const rect = element.getBoundingClientRect()
+      setGroupTip({ label, x: rect.left + rect.width / 2, y: rect.top })
+    }, 450)
+  }
+
+  function hideGroupTip() {
+    if (tipTimer.current) window.clearTimeout(tipTimer.current)
+    tipTimer.current = null
+    setGroupTip(null)
+  }
+
 
   const sorted = [...games].sort((a, b) => {
     if (a.list_order !== b.list_order) return a.list_order - b.list_order
@@ -76,6 +97,8 @@ export function DraggableGamesGrid({
             e.dataTransfer.setData('text/plain', game.id)
           }}
           onDragEnd={() => setDragId(null)}
+          onMouseEnter={(e) => showGroupTip(e.currentTarget, gameGroupNames.join(', '))}
+          onMouseLeave={hideGroupTip}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault()
@@ -133,12 +156,9 @@ export function DraggableGamesGrid({
               control for the same action. Truncated with the full list on
               hover, since a game can sit in several groups. */}
           <div className="border-border/60 mt-auto flex items-center gap-1 border-t px-1.5 py-1.5">
-            <HoverTooltip
-              label={gameGroupNames.join(', ')}
-              className="text-muted-foreground min-w-0 flex-1 truncate text-[10px]"
-            >
+            <p className="text-muted-foreground min-w-0 flex-1 truncate text-[10px]">
               {gameGroupNames.length > 0 ? gameGroupNames.join(', ') : 'No group'}
-            </HoverTooltip>
+            </p>
             {onInstall ? (
               <NeoButton
                 type="button"
@@ -158,6 +178,18 @@ export function DraggableGamesGrid({
         </article>
         )
       })}
+      {groupTip
+        ? createPortal(
+            <span
+              role="tooltip"
+              className="bg-nm-slate-900 pointer-events-none fixed z-[100] max-w-64 -translate-x-1/2 -translate-y-full rounded-md px-2 py-1 text-[11px] leading-snug text-white shadow-lg"
+              style={{ left: groupTip.x, top: groupTip.y - 6 }}
+            >
+              {groupTip.label}
+            </span>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }

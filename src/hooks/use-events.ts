@@ -23,6 +23,19 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   archived: 'Archived',
 }
 
+/**
+ * Solid pill per status, from the design: the whole pill carries the colour
+ * rather than a dot beside a neutral chip. Fixed colours, not theme tokens,
+ * because the meaning of green/blue/yellow must not flip between light and dark.
+ */
+export const EVENT_STATUS_PILL_CLASS: Record<EventStatus, string> = {
+  active: 'bg-[#2f9e6e] text-white border-transparent',
+  demo: 'bg-[#bfe0f5] text-[#1c3d52] border-transparent',
+  ready: 'bg-[#ffc107] text-[#3a2f00] border-transparent',
+  draft: 'bg-[#dcdcdf] text-[#3a3a3f] border-transparent',
+  archived: 'bg-[#4a4a4f] text-white border-transparent',
+}
+
 export function groupEventsByStatus(events: EventRow[]) {
   return STATUS_ORDER.map((status) => ({
     status,

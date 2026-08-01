@@ -133,12 +133,6 @@ export function DraggableEventsGrid({
               <h3 className={`${compact ? 'text-base' : 'min-h-11 text-lg'} text-foreground line-clamp-2 min-w-0 flex-1 font-bold leading-tight`}>
                 {event.name}
               </h3>
-              <EventStatusMenu
-                status={event.status as EventStatus}
-                activatedAt={event.activated_at}
-                disabled={statusPending}
-                onSelect={(status) => onStatusChange(event.id, status)}
-              />
               {/* Icon only, and only on hover, so the footer is free for the
                   actions people actually reach for. A live event is archived
                   rather than deleted: same soft-delete either way, but the
@@ -153,6 +147,12 @@ export function DraggableEventsGrid({
               >
                 {isLive ? <Archive className="size-3.5" /> : <Trash2 className="size-3.5" />}
               </button>
+              <EventStatusMenu
+                status={event.status as EventStatus}
+                activatedAt={event.activated_at}
+                disabled={statusPending}
+                onSelect={(status) => onStatusChange(event.id, status)}
+              />
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
               <p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatEventDate(event.event_date)}</p>
