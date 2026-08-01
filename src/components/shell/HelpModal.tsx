@@ -43,7 +43,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
 
         <div className="py-4 text-center">
           <div className="bg-muted mx-auto mb-3 flex size-11 items-center justify-center rounded-full">
-            <IconSupport className="text-nm-neutral-600 size-5" />
+            <IconSupport className="text-nm-neutral-600 size-6" />
           </div>
           <p className="mb-1 text-sm font-semibold">Coming soon</p>
           <p className="text-nm-neutral-500 mb-4 text-xs">

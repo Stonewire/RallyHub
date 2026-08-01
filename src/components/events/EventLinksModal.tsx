@@ -34,7 +34,7 @@ export function EventLinksModal({
             already names it, and it pushed the links down for nothing. */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <IconLink className="text-foreground size-5" />
+            <IconLink className="text-foreground size-4" />
             <h2 className="text-foreground text-lg font-semibold">Event Links</h2>
           </div>
           <div className="flex items-center gap-2">

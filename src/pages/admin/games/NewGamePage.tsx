@@ -235,7 +235,7 @@ export function AdminGamesNewPage() {
               className="border-border hover:border-primary hover:bg-primary/5 bg-background text-left rounded-md border p-4 transition-[background-color,border-color,transform] hover:-translate-y-0.5"
             >
               <span className="bg-nm-slate-100 mb-3 flex size-9 items-center justify-center rounded-md">
-                <Icon className="text-nm-slate-700 size-5" strokeWidth={1.8} />
+                <Icon className="text-nm-slate-700 size-8" />
               </span>
               <h3 className="text-foreground text-sm font-semibold">{label}</h3>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{description}</p>
