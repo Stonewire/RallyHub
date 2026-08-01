@@ -56,7 +56,7 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
       onClick={onClose}
     >
       <div
-        className="border-nm-slate-800 bg-card w-full max-w-2xl rounded-lg border-2 p-4 shadow-2xl"
+        className="bg-card w-full max-w-2xl rounded-lg p-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -79,12 +79,10 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
                 onClose()
                 navigate(`/admin/games/new?type=${type}`)
               }}
-              className="border-border hover:border-primary hover:bg-primary/5 bg-background flex flex-col items-center gap-2 rounded-md border p-5 transition-[background-color,border-color,transform] hover:-translate-y-0.5"
+              className="bg-nm-yellow text-nm-charcoal flex flex-col items-center gap-2 rounded-md p-5 transition-[filter,transform] hover:-translate-y-0.5 hover:brightness-95"
             >
-              {/* Bare icon in the brand yellow. The grey tile it used to sit in
-                  put a second shape inside a card that is already a shape. */}
-              <Icon className="text-nm-yellow size-8" />
-              <span className="text-foreground text-sm font-semibold">{label}</span>
+              <Icon className="size-8" />
+              <span className="text-sm font-semibold">{label}</span>
             </button>
           ))}
         </div>
