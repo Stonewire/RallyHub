@@ -250,8 +250,11 @@ export const InventoryLibraryManager = forwardRef<
   useImperativeHandle(ref, () => ({
     openCreate,
     openCreateGroup,
-    exportAll: () => void exportPdf(items),
-    canExport: items.length > 0 && !exporting,
+    // Exports what is on screen: with a group selected that is the group, and
+    // with a search running it is the matches, which is what "download these"
+    // means while looking at them.
+    exportAll: () => void exportPdf(filtered),
+    canExport: filtered.length > 0 && !exporting,
   }))
 
   if (itemsQuery.isLoading) return <QueryLoading rows={6} />
@@ -269,20 +272,35 @@ export const InventoryLibraryManager = forwardRef<
         <p className="text-destructive text-sm" role="alert">{error}</p>
       ) : null}
 
-      {/* Same shape as the Games Library toolbar: one h-9 search, then the
-          group filter. */}
-      <div className="border-border/70 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-sm">
-          <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+      {/* Search and group filter are the Games Library controls, same classes,
+          so the two tabs are the same toolbar. */}
+      <div className="border-border/70 flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-center">
+        <div className="relative min-w-52 sm:max-w-sm sm:flex-1">
+          <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
           <NeoInput
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search inventory…"
-            className="h-9 pl-9 text-xs"
+            className="bg-card h-9 pl-8 text-xs"
           />
         </div>
+        <select
+          aria-label="Filter by group"
+          value={activeGroup ?? 'all'}
+          onChange={(event) =>
+            setActiveGroup(event.target.value === 'all' ? null : event.target.value)
+          }
+          className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
+        >
+          <option value="all">All Groups</option>
+          {groups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </select>
         {groups.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-2">
             {renamingGroup ? (
               <>
                 <NeoInput
@@ -323,49 +341,30 @@ export const InventoryLibraryManager = forwardRef<
                   Cancel
                 </NeoButton>
               </>
-            ) : (
+            ) : activeGroup ? (
               <>
-                <select
-                  aria-label="Filter by group"
-                  value={activeGroup ?? 'all'}
-                  onChange={(event) =>
-                    setActiveGroup(event.target.value === 'all' ? null : event.target.value)
-                  }
-                  className="border-input bg-background h-9 rounded-md border px-2 text-xs"
+                <NeoButton
+                  type="button"
+                  variant="surface"
+                  size="sm"
+                  onClick={() => {
+                    setRenameValue(groups.find((g) => g.id === activeGroup)?.name ?? '')
+                    setRenamingGroup(activeGroup)
+                  }}
                 >
-                  <option value="all">All groups ({items.length})</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name} ({group.itemIds.length})
-                    </option>
-                  ))}
-                </select>
-                {activeGroup ? (
-                  <>
-                    <NeoButton
-                      type="button"
-                      variant="surface"
-                      size="sm"
-                      onClick={() => {
-                        setRenameValue(groups.find((g) => g.id === activeGroup)?.name ?? '')
-                        setRenamingGroup(activeGroup)
-                      }}
-                    >
-                      Rename
-                    </NeoButton>
-                    <NeoButton
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => setPendingGroupDelete(activeGroup)}
-                    >
-                      Delete group
-                    </NeoButton>
-                  </>
-                ) : null}
+                  Rename
+                </NeoButton>
+                <NeoButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => setPendingGroupDelete(activeGroup)}
+                >
+                  Delete group
+                </NeoButton>
               </>
-            )}
+            ) : null}
           </div>
         ) : null}
       </div>

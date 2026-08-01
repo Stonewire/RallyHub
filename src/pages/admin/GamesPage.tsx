@@ -521,7 +521,7 @@ export function AdminGamesPage() {
           </NeoButton>
         </> : view === 'inventory' && !isPlatformLibrary ? <>
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.exportAll()}>
-            Export All
+            Download All
           </NeoButton>
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.openCreateGroup()}>
             New Group
