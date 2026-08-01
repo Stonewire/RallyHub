@@ -12,6 +12,10 @@ type GameFormLayoutProps = {
    * the viewport, so without this a wide screen splits the panel in two.
    */
   singleColumn?: boolean
+  /** Quiz splits evenly: its designer needs as much room as its settings. */
+  evenColumns?: boolean
+  /** Full-width content below both columns, e.g. the quiz's rounds. */
+  below?: ReactNode
 }
 
 /**
@@ -26,6 +30,8 @@ export function GameFormLayout({
   facilitatorCard,
   groupsCard,
   singleColumn,
+  evenColumns,
+  below,
 }: GameFormLayoutProps) {
   const hasSide = Boolean(facilitatorCard || groupsCard)
 
@@ -35,17 +41,27 @@ export function GameFormLayout({
         {children}
         {facilitatorCard}
         {groupsCard}
+        {below}
       </div>
     )
   }
 
   return (
-    <div className="grid items-stretch gap-6 xl:grid-cols-[2fr_1fr]">
-      <div className="space-y-6">{children}</div>
-      <div className="flex flex-col gap-6">
-        {facilitatorCard}
-        {groupsCard}
+    <div className="space-y-6">
+      <div
+        className={
+          evenColumns
+            ? 'grid items-stretch gap-6 xl:grid-cols-2'
+            : 'grid items-stretch gap-6 xl:grid-cols-[2fr_1fr]'
+        }
+      >
+        <div className="space-y-6">{children}</div>
+        <div className="flex flex-col gap-6">
+          {facilitatorCard}
+          {groupsCard}
+        </div>
       </div>
+      {below}
     </div>
   )
 }

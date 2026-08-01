@@ -8,9 +8,9 @@ import {
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
 import { GameFormLayout } from '@/components/games/GameFormLayout'
+import { QuizBackgroundPanel } from '@/components/games/QuizBackgroundPanel'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
 import { PointsEditor } from '@/components/games/PointsEditor'
-import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
 import { GamePreviewModal } from '@/components/games/GamePreviewModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
 import { MusicBingoEditor } from '@/components/games/MusicBingoEditor'
@@ -423,10 +423,42 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
 
         {gameType === 'photo' || gameType === 'video' ? null : (
           <GameFormLayout
-            facilitatorCard={designerCard}
+            facilitatorCard={
+              gameType === 'quiz' ? (
+                <QuizBackgroundPanel
+                  config={config}
+                  setConfig={setConfig}
+                  quizName={name}
+                  onUploadBackground={(file) =>
+                    uploadGameFile(organizationId, `backgrounds/${gameId}`, file)
+                  }
+                />
+              ) : (
+                designerCard
+              )
+            }
             groupsCard={groupsCard}
             singleColumn={singleColumn}
+            evenColumns={gameType === 'quiz'}
+            below={
+              gameType === 'quiz' ? (
+                <QuizEditor
+                  config={config}
+                  setConfig={setConfig}
+                  onUploadQuestionPhoto={async (questionId, file) => {
+                    const url = await uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
+                    setConfig((c) => ({
+                      ...c,
+                      questions: (c.questions ?? []).map((q) =>
+                        q.id === questionId ? { ...q, photoUrl: url } : q,
+                      ),
+                    }))
+                  }}
+                />
+              ) : null
+            }
           >
+        {gameType === 'quiz' ? null : (
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
           <div className="space-y-2">
@@ -484,64 +516,56 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
             </>
           ) : null}
         </Card>
+        )}
 
         {gameType === 'quiz' ? (
-          <>
-            <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <AssetField
-                label="Cover image"
-                preview={coverUrl}
-                onFile={async (file) => {
-                  if (!file) return
-                  const url = await uploadGameFile(organizationId, `covers/${gameId}`, file)
-                  setCoverUrl(url)
-                }}
-                onUrl={setCoverUrl}
-                showPreviewPanel
+          <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+            <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+            <div className="space-y-2">
+              <Label>Quiz name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <RichTextEditor value={description} onChange={setDescription} />
+            </div>
+            <AssetField
+              label="Cover image"
+              preview={coverUrl}
+              onFile={async (file) => {
+                if (!file) return
+                setCoverUrl(await uploadGameFile(organizationId, `covers/${gameId}`, file))
+              }}
+              onUrl={setCoverUrl}
+              showPreviewPanel
+            />
+            <div className="flex w-full items-center gap-3">
+              <Label className="w-40 shrink-0">Points / correct</Label>
+              <Input
+                type="number"
+                min={0}
+                value={pointsStatic}
+                onChange={(e) => setPointsStatic(Math.max(0, Number(e.target.value) || 0))}
+                className="bg-background h-8 w-24"
               />
-              <div className="space-y-2">
-                <Label>Points / correct</Label>
-                {/* Written to games.points_static, which is what the
-                    score_current_quiz_question RPC reads. A config field here
-                    would never be consulted by scoring. */}
-                <Input
-                  type="number"
-                  min={0}
-                  value={pointsStatic}
-                  onChange={(e) =>
-                    setPointsStatic(Math.max(0, Number(e.target.value) || 0))
-                  }
-                  className="bg-background max-w-[8rem]"
-                />
-                <p className="text-muted-foreground text-xs">
-                  Awarded to each team that answers a question correctly.
-                </p>
-              </div>
-            </Card>
-            <QuizEditor
-            config={config}
-            setConfig={setConfig}
-            onUploadQuestionPhoto={async (questionId, file) => {
-              const url = await uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
-              setConfig((c) => ({
-                ...c,
-                questions: (c.questions ?? []).map((q) =>
-                  q.id === questionId ? { ...q, photoUrl: url } : q,
-                ),
-              }))
-            }}
-            />
-            <BackgroundDesigner
-              config={config}
-              setConfig={setConfig}
-              gameName={name}
-              previewSubtitle={(config.questions ?? [])[0]?.text}
-              onOpenPreview={() => setPreviewOpen(true)}
-              onUploadBackground={(file) =>
-                uploadGameFile(organizationId, `backgrounds/${gameId}`, file)
-              }
-            />
-          </>
+            </div>
+            <div className="flex w-full items-center gap-3">
+              <Label className="w-40 shrink-0">Time / question</Label>
+              <Input
+                type="number"
+                min={5}
+                value={config.timer_seconds ?? 20}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    timer_seconds: Math.max(5, Number(e.target.value) || 5),
+                  }))
+                }
+                className="bg-background h-8 w-24"
+              />
+              <span className="text-muted-foreground text-xs">seconds</span>
+            </div>
+          </Card>
         ) : null}
 
         {gameType === 'music_bingo' ? (
