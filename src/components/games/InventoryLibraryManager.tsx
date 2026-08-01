@@ -224,7 +224,8 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
             return (
               <Card
                 key={item.id}
-                className="border-border/80 flex flex-col overflow-hidden p-0 shadow-sm"
+                onClick={() => openEdit(item)}
+                className="border-border/80 group flex cursor-pointer flex-col overflow-hidden p-0 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-nm-slate-400 hover:shadow-md"
               >
                 <div className="bg-muted relative aspect-[4/3] w-full shrink-0">
                   {item.image_url ? (
@@ -242,16 +243,23 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1 p-2">
                   <h3 className="truncate text-xs font-semibold">{item.name}</h3>
-                  <span className="text-primary text-xs font-bold">{item.points_cost} pts</span>
+                  {/* Red, and labelled Cost, because this DEDUCTS a team's points.
+                      Shares the destructive colour deliberately. */}
+                  <span className="text-destructive text-xs font-bold">
+                    Cost {item.points_cost} pts
+                  </span>
                   <div className="mt-auto flex items-center justify-between pt-1">
                     <button
                       type="button"
                       title="Copy item link"
                       aria-label={`Copy link for ${item.name}`}
                       className="text-muted-foreground hover:text-foreground p-1"
-                      onClick={() => void navigator.clipboard.writeText(link)
-                        .then(() => setMessage('Item link copied.'))
-                        .catch(() => setError('Could not copy the item link.'))}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void navigator.clipboard.writeText(link)
+                          .then(() => setMessage('Item link copied.'))
+                          .catch(() => setError('Could not copy the item link.'))
+                      }}
                     >
                       <Copy className="size-3.5" />
                     </button>
@@ -260,7 +268,10 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
                       title="Download QR PNG"
                       aria-label={`Download QR code for ${item.name}`}
                       className="text-muted-foreground hover:text-foreground p-1"
-                      onClick={() => void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))
+                      }}
                     >
                       <Download className="size-3.5" />
                     </button>
@@ -269,7 +280,10 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
                       title="Edit item"
                       aria-label={`Edit ${item.name}`}
                       className="text-muted-foreground hover:text-foreground p-1"
-                      onClick={() => openEdit(item)}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openEdit(item)
+                      }}
                     >
                       <Pencil className="size-3.5" />
                     </button>
@@ -278,7 +292,11 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
                       title="Delete item"
                       aria-label={`Delete ${item.name}`}
                       className="text-destructive p-1 hover:opacity-70"
-                      onClick={() => { setError(null); setPendingDelete(item) }}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setError(null)
+                        setPendingDelete(item)
+                      }}
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -334,6 +352,28 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
                 </div>
               ) : null}
             </div>
+            {/* Only for a saved item: a new one has no public_code yet, so there
+                is no link to encode and nothing to download. */}
+            {editing ? (
+              <div className="border-border space-y-2 border-t pt-4">
+                <NeoLabel>QR code</NeoLabel>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={qrCodeUrl(getInventoryItemLink(editing.public_code), 220)}
+                    alt={`QR code for ${editing.name}`}
+                    className="size-28 rounded border bg-white p-1"
+                  />
+                  <NeoButton
+                    type="button"
+                    variant="surface"
+                    onClick={() => void downloadInventoryQrPng(editing).catch((reason) => setError(String(reason)))}
+                  >
+                    <Download className="size-4" />
+                    Download QR PNG
+                  </NeoButton>
+                </div>
+              </div>
+            ) : null}
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
             <div className="flex justify-end gap-2">
               <NeoButton type="button" variant="surface" disabled={saveItem.isPending} onClick={() => setEditing(undefined)}>Cancel</NeoButton>
