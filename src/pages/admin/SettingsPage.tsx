@@ -555,15 +555,20 @@ export function AdminSettingsPage() {
             <TabletInstallGuide onClose={() => setInstallGuideOpen(false)} />
           ) : null}
 
-          {/* The public demo must never expose destructive account actions. */}
+          {/* The public demo must never expose destructive account actions, but it
+              should still show the section, so the demo matches what a real
+              client sees rather than hiding a whole card. */}
           {isDemo ? (
-            <Card className="border-border/80 bg-muted/20 space-y-2 p-6 shadow-sm">
-              <h2 className="text-foreground text-lg font-semibold">Account deletion</h2>
-              <p className="text-muted-foreground text-sm">
-                Account deletion is disabled in the public demo. Use Reset now in the
-                demo bar to restore the original showcase instead.
-              </p>
-            </Card>
+            <DangerZone
+              rows={[]}
+              notice={
+                <p className="text-muted-foreground">
+                  Deleting the account and exporting its data are disabled in the
+                  public demo. Use Reset now in the demo bar to restore the
+                  original showcase instead.
+                </p>
+              }
+            />
           ) : (
           <DangerZone
             notice={
