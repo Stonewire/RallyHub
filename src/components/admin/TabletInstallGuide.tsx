@@ -25,6 +25,23 @@ const STEPS: { platform: string; steps: string[] }[] = [
       'The iPad now has a RallyHub icon that opens straight to the score screen.',
     ],
   },
+  {
+    platform: 'Mac (Safari)',
+    steps: [
+      'Open the link in Safari.',
+      'Choose File, then "Add to Dock".',
+      'RallyHub opens from the Dock in its own window.',
+    ],
+  },
+  {
+    platform: 'Windows or Mac (Chrome)',
+    steps: [
+      'Open the link in Chrome.',
+      'Open the three dots menu, then "Cast, save and share", then "Install page as app".',
+      'If that option is missing, use the install icon in the address bar.',
+      'RallyHub opens from the desktop or taskbar in its own window.',
+    ],
+  },
 ]
 
 /**
@@ -46,11 +63,12 @@ export function TabletInstallGuide({ onClose }: { onClose: () => void }) {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-foreground text-lg font-semibold">
-              Put the tablet link on a device
+              Install RallyHub on your device
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Adds a RallyHub icon to the home screen so staff do not have to find
-              the link each time.
+              Adds a RallyHub icon to the home screen, Dock or desktop, so staff do
+              not have to find the link each time. Chrome and Safari are the
+              recommended browsers.
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>

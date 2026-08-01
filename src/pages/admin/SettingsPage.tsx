@@ -538,7 +538,7 @@ export function AdminSettingsPage() {
                   onClick={() => setInstallGuideOpen(true)}
                 >
                   <Smartphone className="size-3.5" />
-                  Instructions on how to install RallyHub on a mobile device
+                  Instructions on how to install RallyHub on your device
                 </NeoButton>
                 {tabletDirty ? (
                   <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
