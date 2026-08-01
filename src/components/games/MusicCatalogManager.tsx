@@ -1,5 +1,5 @@
-import { Music2, Pencil, Play, SkipBack, SkipForward, Trash2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Music2, Pause, Pencil, Play, Plus, SkipBack, SkipForward, Trash2, Upload, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -61,6 +61,10 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
   const [sortBy, setSortBy] = useState<SortBy>('date')
   const [activePlaylist, setActivePlaylist] = useState<string | null>(null)
   const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false)
+  const [playlistPicks, setPlaylistPicks] = useState<Set<string>>(new Set())
+  const [playlistPickSearch, setPlaylistPickSearch] = useState('')
+  const [uploadOpen, setUploadOpen] = useState(false)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
 
@@ -118,6 +122,24 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
   const selectedRows = allRows.filter((r) => selected.has(r.id))
   const playingTrack = allRows.find((row) => row.id === playingTrackId) ?? null
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  function togglePlay() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) void audio.play()
+    else audio.pause()
+  }
+
+  function seekTo(seconds: number) {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.currentTime = seconds
+    setCurrentTime(seconds)
+  }
 
   // Transport steps through the list as currently filtered and sorted, which
   // is what the organiser can actually see, rather than the whole library.
@@ -185,12 +207,32 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
     if (!name) return
     setError(null)
     try {
-      await createPlaylist.mutateAsync(name)
+      // Created first, then seeded, so the playlist still exists (empty) if the
+      // track insert fails rather than the whole action silently doing nothing.
+      const playlist = await createPlaylist.mutateAsync(name)
+      if (playlistPicks.size > 0 && playlist?.id) {
+        await addToPlaylist.mutateAsync({
+          playlistId: playlist.id,
+          trackIds: [...playlistPicks],
+        })
+      }
       setNewPlaylistName('')
+      setPlaylistPicks(new Set())
+      setPlaylistPickSearch('')
+      setCreatePlaylistOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create playlist')
     }
   }
+
+  const playlistPickRows = useMemo(() => {
+    const q = playlistPickSearch.trim().toLowerCase()
+    if (!q) return allRows
+    return allRows.filter(
+      (row) =>
+        row.title.toLowerCase().includes(q) || row.artist.toLowerCase().includes(q),
+    )
+  }, [allRows, playlistPickSearch])
 
   async function handleAddToPlaylist(playlistId: string) {
     setError(null)
@@ -205,17 +247,9 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
 
   return (
     <div className="space-y-6">
-      <MusicCatalogUploader
-        organizationId={organizationId}
-        clipLengthSeconds={30}
-        onTracksReady={() => {
-          /* manager view — uploads land in the catalog, not a specific game */
-        }}
-      />
-
       {error ? <QueryError message={error} /> : null}
 
-      <div className="border-nm-slate-800 bg-card min-h-[35rem] overflow-hidden rounded-lg border-2 lg:grid lg:grid-cols-[150px_minmax(0,1fr)_130px]">
+      <div className="border-nm-slate-800 bg-card min-h-[35rem] overflow-hidden rounded-lg border-2 lg:grid lg:grid-cols-[190px_minmax(0,1fr)]">
       {/* Playlist rail */}
       <aside className="border-border bg-card flex flex-col border-b p-3 lg:min-h-[34rem] lg:border-b-0 lg:border-r">
         <div className="mb-3">
@@ -262,78 +296,136 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
           </span>
         ))}
         </div>
-        <span className="mt-3 flex items-center gap-1">
-          <Input
-            value={newPlaylistName}
-            onChange={(e) => setNewPlaylistName(e.target.value)}
-            placeholder="New playlist"
-            className="h-8 min-w-0 flex-1 text-xs"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleCreatePlaylist()
-            }}
-          />
-          <Button
+        <div className="mt-3 space-y-2">
+          <NeoButton
             type="button"
-            size="icon-sm"
-            variant="default"
-            disabled={!newPlaylistName.trim() || createPlaylist.isPending}
-            onClick={() => void handleCreatePlaylist()}
-            aria-label="Add playlist"
+            variant="surface"
+            className="w-full justify-center text-xs"
+            onClick={() => {
+              setNewPlaylistName('')
+              setPlaylistPicks(new Set())
+              setPlaylistPickSearch('')
+              setCreatePlaylistOpen(true)
+            }}
           >
-            +
-          </Button>
-        </span>
+            <Plus className="size-3.5" />
+            New playlist
+          </NeoButton>
+          <NeoButton
+            type="button"
+            variant="primary"
+            className="w-full justify-center text-xs"
+            onClick={() => setUploadOpen(true)}
+          >
+            <Upload className="size-3.5" />
+            Upload music
+          </NeoButton>
+        </div>
       </aside>
 
       <div className="min-w-0 p-4">
 
-      <div className="bg-nm-slate-900 text-white mb-4 flex flex-col gap-3 rounded-lg px-4 py-3 sm:flex-row sm:items-center">
-        <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
-          <Music2 className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold tracking-[0.1em] text-white/55 uppercase">Preview player</p>
-          <p className="truncate text-sm font-semibold">
-            {playingTrack ? playingTrack.title : 'Choose a track to preview'}
-          </p>
-          {playingTrack ? <p className="truncate text-xs text-white/60">{playingTrack.artist}</p> : null}
-        </div>
-        {playingTrack ? (
-          <div className="flex w-full max-w-md items-center gap-2">
+      {/* Preview player. One black band: identity on the left, transport centred
+          in the space that remains, artwork square on the right, and the seek bar
+          running the full width underneath. The native <audio controls> pill was
+          removed because it dropped a second, differently-styled player into the
+          middle of the bar. */}
+      <div className="bg-nm-slate-900 text-white mb-4 rounded-lg px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3 sm:w-64">
+            <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
+              <Music2 className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold tracking-[0.1em] text-white/55 uppercase">
+                Preview player
+              </p>
+              <p className="truncate text-sm font-semibold">
+                {playingTrack ? playingTrack.title : 'Choose a track to preview'}
+              </p>
+              {playingTrack ? (
+                <p className="truncate text-xs text-white/60">{playingTrack.artist}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center gap-2">
             <button
               type="button"
               aria-label="Previous track"
-              disabled={!hasPrev}
+              disabled={!playingTrack || !hasPrev}
               onClick={() => stepTrack(-1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
             >
               <SkipBack className="size-4" />
             </button>
-            <audio
-              key={playingTrack.id}
-              src={playingTrack.clip_url ?? playingTrack.audio_url}
-              controls
-              autoPlay
-              preload="metadata"
-              // Rolling straight into the next track matches how the organiser
-              // auditions a playlist, and mirrors the design's transport bar.
-              onEnded={() => stepTrack(1)}
-              className="h-8 min-w-0 flex-1"
-              aria-label={`Preview ${playingTrack.title} by ${playingTrack.artist}`}
-            />
+            <button
+              type="button"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              disabled={!playingTrack}
+              onClick={togglePlay}
+              className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-full disabled:opacity-30"
+            >
+              {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+            </button>
             <button
               type="button"
               aria-label="Next track"
-              disabled={!hasNext}
+              disabled={!playingTrack || !hasNext}
               onClick={() => stepTrack(1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
             >
               <SkipForward className="size-4" />
             </button>
           </div>
-        ) : (
-          <p className="text-xs text-white/55">Use the play button beside any song.</p>
-        )}
+
+          {/* Artwork slot. Nothing stores cover art yet, so this is a tile rather
+              than an image; see the note in the work plan. */}
+          <span className="hidden size-14 shrink-0 items-center justify-center rounded-md bg-white/10 sm:flex">
+            <Music2 className="size-5 text-white/40" />
+          </span>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-white/55">
+            {formatDuration(Math.floor(currentTime))}
+          </span>
+          <button
+            type="button"
+            aria-label="Seek"
+            disabled={!playingTrack || !duration}
+            onClick={(event) => {
+              const bar = event.currentTarget.getBoundingClientRect()
+              const ratio = (event.clientX - bar.left) / bar.width
+              seekTo(Math.min(Math.max(ratio, 0), 1) * duration)
+            }}
+            className="group relative h-1.5 flex-1 cursor-pointer rounded-full bg-white/15 disabled:cursor-default"
+          >
+            <span
+              className="bg-primary absolute inset-y-0 left-0 rounded-full"
+              style={{ width: duration ? `${(currentTime / duration) * 100}%` : '0%' }}
+            />
+          </button>
+          <span className="w-10 shrink-0 text-[11px] tabular-nums text-white/55">
+            {formatDuration(Math.floor(duration))}
+          </span>
+        </div>
+
+        <audio
+          ref={audioRef}
+          key={playingTrack?.id ?? 'none'}
+          src={playingTrack ? (playingTrack.clip_url ?? playingTrack.audio_url) : undefined}
+          autoPlay
+          preload="metadata"
+          className="hidden"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+          // Rolling straight into the next track matches how the organiser
+          // auditions a playlist, and mirrors the design's transport bar.
+          onEnded={() => stepTrack(1)}
+        />
       </div>
 
       {/* Search + sort */}
@@ -476,15 +568,87 @@ export function MusicCatalogManager({ organizationId }: { organizationId: string
         </div>
       )}
       </div>
-      <aside className="bg-nm-slate-800 hidden min-h-[35rem] flex-col lg:flex">
-        <div className="bg-primary text-primary-foreground flex flex-1 items-center justify-center px-3 text-center text-[11px] font-bold tracking-[0.08em] uppercase">
-          Album Cover
-        </div>
-        <p className="px-3 py-3 text-center text-xs font-bold text-white">
-          {activePlaylist ? playlists.find((playlist) => playlist.id === activePlaylist)?.name : 'Full Library'}
-        </p>
-      </aside>
       </div>
+
+      {createPlaylistOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="border-border/80 flex max-h-[80vh] w-full max-w-lg flex-col gap-3 bg-card p-6 shadow-lg">
+            <h3 className="text-foreground font-semibold">New playlist</h3>
+            <Input
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              placeholder="Playlist name"
+              autoFocus
+            />
+            <Input
+              value={playlistPickSearch}
+              onChange={(e) => setPlaylistPickSearch(e.target.value)}
+              placeholder="Search the library…"
+              className="h-9 text-sm"
+            />
+            <ul className="border-border min-h-0 flex-1 space-y-1 overflow-auto rounded-md border p-2">
+              {playlistPickRows.map((row) => (
+                <li key={row.id}>
+                  <label className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={playlistPicks.has(row.id)}
+                      onChange={() =>
+                        setPlaylistPicks((current) => {
+                          const next = new Set(current)
+                          if (next.has(row.id)) next.delete(row.id)
+                          else next.add(row.id)
+                          return next
+                        })
+                      }
+                    />
+                    <span className="min-w-0 flex-1 truncate">{row.title}</span>
+                    <span className="text-muted-foreground truncate text-xs">{row.artist}</span>
+                  </label>
+                </li>
+              ))}
+              {playlistPickRows.length === 0 ? (
+                <li className="text-muted-foreground px-2 py-1.5 text-sm">No tracks match.</li>
+              ) : null}
+            </ul>
+            <div className="flex items-center justify-between">
+              <p className="text-muted-foreground text-xs">{playlistPicks.size} selected</p>
+              <div className="flex gap-2">
+                <NeoButton variant="surface" onClick={() => setCreatePlaylistOpen(false)}>
+                  Cancel
+                </NeoButton>
+                <NeoButton
+                  variant="primary"
+                  disabled={!newPlaylistName.trim() || createPlaylist.isPending}
+                  onClick={() => void handleCreatePlaylist()}
+                >
+                  {createPlaylist.isPending ? 'Creating…' : 'Create playlist'}
+                </NeoButton>
+              </div>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {uploadOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="border-border/80 max-h-[85vh] w-full max-w-2xl overflow-auto bg-card p-6 shadow-lg">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-foreground font-semibold">Upload music</h3>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setUploadOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+            <MusicCatalogUploader
+              organizationId={organizationId}
+              clipLengthSeconds={30}
+              onTracksReady={() => {
+                /* manager view — uploads land in the catalog, not a specific game */
+              }}
+            />
+          </Card>
+        </div>
+      ) : null}
 
       {editing ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
