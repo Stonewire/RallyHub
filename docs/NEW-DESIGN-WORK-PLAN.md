@@ -356,6 +356,21 @@ round. There is no add-round button down here; rounds are added from the number.
 Logic and tests already landed in components/games/quiz-round-edits.ts; only
 the dialog remains.
 
+**Round card header.** One line: `Round 1` as fixed text, not editable, then the
+name box beside it. The box carries the whole instruction as its placeholder,
+"Enter a name for this round", so there is no separate label. Edit controls sit
+to the right, delete among them. The card is collapsible, and rounds start
+collapsed.
+
+**Selecting questions.** Each question has a checkbox, plus a select-all for the
+round. With a selection the round header grows bulk actions: delete the selected
+questions, or duplicate them. Duplicate, not copy: a copy needs new ids and its
+own place in the order.
+
+**Reordering.** Questions can be dragged up and down within a round, and the
+list must part as the dragged question passes, showing where it will land before
+it is dropped, rather than only reordering on release.
+
 **Questions.** Inside a round: the question text, four answers, and a way to
 mark the correct one. Every question has text; alongside it a pill chooses what
 else the question carries: **None, Photo, Video, Audio**.
