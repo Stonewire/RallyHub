@@ -1249,6 +1249,11 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: undefined
       }
+      /** Self-service account deletion. Refuses super_admin, demo orgs, and the last client_admin of an org. */
+      delete_own_account: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
       get_organization_tenant_public: {
         Args: { p_org_id: string }
         Returns: Database['public']['Views']['organization_tenant_public']['Row'][]

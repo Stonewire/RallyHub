@@ -25,6 +25,53 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
   const [editingName, setEditingName] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; msg: string } | null>(null)
+  const [loggingOutAll, setLoggingOutAll] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+
+  /** Revokes every refresh token for this user, on every device. */
+  async function handleLogOutAllDevices() {
+    if (loggingOutAll) return
+    if (
+      !window.confirm(
+        'Log out of every device? You will need to sign in again everywhere, including here.',
+      )
+    ) {
+      return
+    }
+    setLoggingOutAll(true)
+    setStatus(null)
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'global' })
+      if (error) throw error
+      // The local session is gone too, so the auth guard bounces to /login.
+    } catch (err) {
+      setStatus({
+        kind: 'error',
+        msg: err instanceof Error ? err.message : 'Could not log out of all devices.',
+      })
+      setLoggingOutAll(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleting) return
+    setDeleting(true)
+    setStatus(null)
+    try {
+      const { error } = await supabase.rpc('delete_own_account')
+      if (error) throw error
+      // The auth row is gone, so drop the now-orphaned local session.
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (err) {
+      setDeleteConfirmOpen(false)
+      setStatus({
+        kind: 'error',
+        msg: err instanceof Error ? err.message : 'Could not delete your account.',
+      })
+      setDeleting(false)
+    }
+  }
 
   const displayName = [firstName, lastName].filter(Boolean).join(' ') || username || 'My account'
   const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || username.slice(0, 2).toUpperCase()
@@ -203,14 +250,34 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
               {
                 id: 'logout-all-devices',
                 label: 'Log out of all devices',
-                description: 'Ends every other active session. Secure session revocation is not enabled yet.',
-                action: <NeoButton type="button" variant="surface" disabled>Log Out All</NeoButton>,
+                description:
+                  'Ends every active session, including this one. Use this if you have signed in somewhere you no longer trust.',
+                action: (
+                  <NeoButton
+                    type="button"
+                    variant="surface"
+                    disabled={loggingOutAll}
+                    onClick={() => void handleLogOutAllDevices()}
+                  >
+                    {loggingOutAll ? 'Logging out…' : 'Log Out All'}
+                  </NeoButton>
+                ),
               },
               {
                 id: 'delete-personal-account',
                 label: 'Delete my account',
-                description: 'Permanently removes your personal access. Organisation data is unaffected.',
-                action: <NeoButton type="button" variant="destructive" disabled>Delete</NeoButton>,
+                description:
+                  'Permanently removes your personal login. Your organisation and its events, games and media are unaffected. This cannot be undone.',
+                action: (
+                  <NeoButton
+                    type="button"
+                    variant="destructive"
+                    disabled={deleting}
+                    onClick={() => setDeleteConfirmOpen(true)}
+                  >
+                    Delete
+                  </NeoButton>
+                ),
               },
             ]}
           />
@@ -221,6 +288,46 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
         <p role={status.kind === 'error' ? 'alert' : 'status'} className={`mt-4 text-sm font-medium ${status.kind === 'error' ? 'text-[#c0574f]' : 'text-[#1f9d55]'}`}>
           {status.msg}
         </p>
+      ) : null}
+
+      {deleteConfirmOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-own-account-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
+            <div className="space-y-2">
+              <h2 id="delete-own-account-title" className="text-foreground font-semibold">
+                Delete your account?
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                This permanently deletes your personal login and cannot be undone. Your
+                organisation and all of its events, games and media stay exactly as they
+                are. You will be signed out immediately.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                type="button"
+                variant="surface"
+                disabled={deleting}
+                onClick={() => setDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="destructive"
+                disabled={deleting}
+                onClick={() => void handleDeleteAccount()}
+              >
+                {deleting ? 'Deleting…' : 'Delete my account'}
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </div>
       ) : null}
     </form>
   )
