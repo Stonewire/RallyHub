@@ -177,7 +177,10 @@ export function AdminGamesNewPage() {
           gameType === 'quiz' || gameType === 'music_bingo' || gameType === 'puzzle'
             ? 'static'
             : pointsType,
-        points_static: gameType === 'puzzle' || pointsType === 'static' ? pointsStatic : null,
+        points_static:
+          gameType === 'puzzle' || gameType === 'quiz' || pointsType === 'static'
+            ? pointsStatic
+            : null,
         points_min: gameType !== 'puzzle' && pointsType === 'range' ? pointsMin : null,
         points_max: gameType !== 'puzzle' && pointsType === 'range' ? pointsMax : null,
         solution_description:
@@ -470,6 +473,22 @@ export function AdminGamesNewPage() {
               onFile={(f) => void handleFile(f, setCoverUrl, `quiz/cover-${newGameId()}`)}
               preview={coverUrl}
             />
+            <div className="space-y-2">
+              <Label>Points / correct</Label>
+              {/* Quizzes always wrote points_static, but nothing exposed it, so
+                  every new quiz silently scored at the default. The scoring RPC
+                  reads this column directly. */}
+              <Input
+                type="number"
+                min={0}
+                value={pointsStatic}
+                onChange={(e) => setPointsStatic(Math.max(0, Number(e.target.value) || 0))}
+                className="bg-background max-w-[8rem]"
+              />
+              <p className="text-muted-foreground text-xs">
+                Awarded to each team that answers a question correctly.
+              </p>
+            </div>
             <ColorPickers config={config} setConfig={setConfig} />
             <QuizEditor
               config={config}
