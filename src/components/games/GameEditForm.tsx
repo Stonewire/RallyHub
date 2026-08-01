@@ -7,6 +7,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
+import { moveTargets, questionsInRound, removeRound } from '@/components/games/quiz-round-edits'
 import { GameFormLayout } from '@/components/games/GameFormLayout'
 import { QuizBackgroundPanel } from '@/components/games/QuizBackgroundPanel'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
@@ -104,6 +105,8 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   const [solutionDescription, setSolutionDescription] = useState('')
   const [previewOpen, setPreviewOpen] = useState(false)
   const [roundError, setRoundError] = useState<string | null>(null)
+  const [deleteRoundId, setDeleteRoundId] = useState<string | null>(null)
+  const [moveTargetId, setMoveTargetId] = useState<string>('')
   // Snapshot of the game as loaded, so Save can be disabled until something
   // actually changes. The design's editor only offers Save when dirty.
   const baselineRef = useRef<string>('')
@@ -401,6 +404,17 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     })
   }
 
+  const roundBeingDeleted = (config.rounds ?? []).find((r) => r.id === deleteRoundId) ?? null
+  const doomedQuestions = deleteRoundId ? questionsInRound(config, deleteRoundId) : []
+
+  function confirmDeleteRound() {
+    if (!deleteRoundId) return
+    setConfig((current) => removeRound(current, deleteRoundId, moveTargetId || null))
+    setDeleteRoundId(null)
+    setMoveTargetId('')
+    setRoundError(null)
+  }
+
   const body = (
     <>
       <GamePreviewModal
@@ -479,6 +493,7 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
                 <QuizEditor
                   config={config}
                   setConfig={setConfig}
+                  onDeleteRound={(roundId) => setDeleteRoundId(roundId)}
                   onUploadQuestionPhoto={async (questionId, file) => {
                     const url = await uploadGameFile(organizationId, `quiz/q-${questionId}`, file)
                     setConfig((c) => ({
@@ -639,6 +654,53 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         )}
       </div>
 
+
+      {roundBeingDeleted ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="alertdialog" aria-modal="true">
+          <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-xl">
+            <h3 className="text-foreground font-semibold">
+              Delete {roundBeingDeleted.name || 'this round'}?
+            </h3>
+            {doomedQuestions.length > 0 ? (
+              <>
+                <p className="text-muted-foreground text-sm">
+                  It holds {doomedQuestions.length} question
+                  {doomedQuestions.length === 1 ? '' : 's'}. Move them to another
+                  round, or leave this blank to delete them with it.
+                </p>
+                <select
+                  value={moveTargetId}
+                  onChange={(event) => setMoveTargetId(event.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  <option value="">Delete the questions</option>
+                  {moveTargets(config, roundBeingDeleted.id).map((round) => (
+                    <option key={round.id} value={round.id}>
+                      Move to {round.name || 'unnamed round'}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">This round is empty.</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <NeoButton
+                variant="surface"
+                onClick={() => {
+                  setDeleteRoundId(null)
+                  setMoveTargetId('')
+                }}
+              >
+                Cancel
+              </NeoButton>
+              <NeoButton variant="destructive" onClick={confirmDeleteRound}>
+                Delete round
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
 
       {installOpen && gameQuery.data ? (
         <InstallGameModal game={gameQuery.data} onClose={() => setInstallOpen(false)} />

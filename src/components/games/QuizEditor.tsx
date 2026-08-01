@@ -1,4 +1,4 @@
-import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
+import { IconChevronDown, IconGrip, IconPlus, IconTrash } from '@/components/icons'
 import { useState, type Dispatch, type SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -111,29 +111,29 @@ type QuizEditorProps = {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
   onUploadQuestionPhoto: (questionId: string, file: File) => Promise<void>
+  /**
+   * Raised by a round's delete button. The parent decides what happens to the
+   * questions first, so this component never destroys them itself.
+   */
+  onDeleteRound?: (roundId: string) => void
 }
 
 export function QuizEditor({
   config,
   setConfig,
   onUploadQuestionPhoto,
+  onDeleteRound,
 }: QuizEditorProps) {
   const questions = config.questions ?? []
   const rounds = config.rounds ?? []
+  // Rounds start closed: a quiz with several rounds is unreadable otherwise.
+  const [collapsedRounds, setCollapsedRounds] = useState<Record<string, boolean>>({})
   const [dragQuestionId, setDragQuestionId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{
     roundId: string | null
     index: number
   } | null>(null)
 
-  function addRound() {
-    const id = newId()
-    const name = `Round ${(rounds.length || 0) + 1}`
-    setConfig((c) => ({
-      ...c,
-      rounds: [...(c.rounds ?? []), { id, name, questionIds: [] }],
-    }))
-  }
 
   function addQuestion(roundId: string | null) {
     const q = emptyQuestion(roundId ?? undefined)
@@ -300,34 +300,66 @@ export function QuizEditor({
 
       {config.rounds_enabled ? (
         <div className="space-y-8">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={addRound}>
-              <IconPlus className="size-4" />
-              Add round
-            </Button>
-          </div>
+          {/* No Add round button: rounds come from the count in Primary
+              settings, so there is one place that decides how many there are. */}
           {(rounds.length ? rounds : [{ id: newId(), name: 'Round 1', questionIds: [] }]).map(
-            (round) => (
-              <Card key={round.id} className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
-                <div className="space-y-2">
-                  <Label>Round name</Label>
-                  <Input
-                    value={round.name}
-                    onChange={(e) =>
-                      setConfig((c) => ({
-                        ...c,
-                        rounds: (c.rounds ?? []).map((r) =>
-                          r.id === round.id ? { ...r, name: e.target.value } : r,
-                        ),
-                      }))
-                    }
-                    placeholder="Round 1: Warm-up"
-                    className="bg-background max-w-md font-semibold"
-                  />
-                </div>
-                {renderQuestionList(round.id, undefined)}
-              </Card>
-            ),
+            (round, roundIndex) => {
+              const collapsed = collapsedRounds[round.id] ?? true
+              const count = questions.filter((q) => q.roundId === round.id).length
+              return (
+                <Card key={round.id} className="border-border/80 space-y-4 bg-card p-5 shadow-sm">
+                  {/* One line: which round it is, what it is called, what you can
+                      do to it. The placeholder carries the instruction, so the
+                      row needs no label of its own. */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      aria-expanded={!collapsed}
+                      aria-label={`${collapsed ? 'Expand' : 'Collapse'} round ${roundIndex + 1}`}
+                      onClick={() =>
+                        setCollapsedRounds((current) => ({
+                          ...current,
+                          [round.id]: !collapsed,
+                        }))
+                      }
+                      className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-sm font-bold"
+                    >
+                      <IconChevronDown
+                        className={`size-4 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+                      />
+                      Round {roundIndex + 1}
+                    </button>
+                    <Input
+                      value={round.name}
+                      onChange={(e) =>
+                        setConfig((c) => ({
+                          ...c,
+                          rounds: (c.rounds ?? []).map((r) =>
+                            r.id === round.id ? { ...r, name: e.target.value } : r,
+                          ),
+                        }))
+                      }
+                      placeholder="Enter a name for this round"
+                      className="bg-background h-9 min-w-0 flex-1"
+                    />
+                    <span className="text-muted-foreground shrink-0 text-xs">
+                      {count} question{count === 1 ? '' : 's'}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-destructive shrink-0"
+                      aria-label={`Delete round ${roundIndex + 1}`}
+                      onClick={() => onDeleteRound?.(round.id)}
+                    >
+                      <IconTrash className="size-4" />
+                    </Button>
+                  </div>
+                  {collapsed ? null : renderQuestionList(round.id, undefined)}
+                </Card>
+              )
+            },
           )}
         </div>
       ) : (
