@@ -19,7 +19,6 @@ import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEdi
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -277,14 +276,12 @@ export function AdminGamesNewPage() {
     <AdminPageShell
       title={`New ${TYPES.find((t) => t.type === gameType)?.label ?? 'game'}`}
       subtitle="Configure your game and save when ready."
-      backTo="/admin/games"
-      backLabel="Back to games"
       actions={
         <>
-          <Button type="button" variant="outline" onClick={() => setStep('type')}>
-            Back
-          </Button>
-          <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>
+          <NeoButton type="button" variant="surface" onClick={() => navigate('/admin/games')}>
+            Cancel
+          </NeoButton>
+          <NeoButton type="button" variant="accent" disabled={saving} onClick={() => void handleSave()}>
             {saving ? 'Saving…' : 'Save game'}
           </NeoButton>
         </>
@@ -511,11 +508,6 @@ export function AdminGamesNewPage() {
         )}
       </div>
 
-      <FormSaveFooter
-        onSave={() => void handleSave()}
-        saving={saving}
-        label="Save game"
-      />
     </AdminPageShell>
   )
 }

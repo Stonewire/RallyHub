@@ -17,7 +17,6 @@ import { PuzzleEditor, validatePuzzleConfig } from '@/components/games/PuzzleEdi
 import { QuizEditor } from '@/components/games/QuizEditor'
 import { TextGameEditor, validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { NeoButton } from '@/components/neo-minimal'
-import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -47,6 +46,8 @@ type GameEditFormProps = {
   gameId: string
   /** True in the side panel, which is far narrower than the viewport. */
   singleColumn?: boolean
+  /** Shown as Cancel in the header. Omitted in the panel, which has a close. */
+  onCancel?: () => void
   /** Called after a successful save. Route usage navigates away; panel usage can stay open. */
   onSaved?: () => void
   children: (render: GameEditFormRender) => ReactNode
@@ -62,7 +63,7 @@ function snapshot(values: Record<string, unknown>): string {
   return JSON.stringify(values)
 }
 
-export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEditFormProps) {
+export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children }: GameEditFormProps) {
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const gameQuery = useGame(gameId)
@@ -295,9 +296,14 @@ export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEd
           Install to clients
         </Button>
       ) : null}
+      {onCancel ? (
+        <NeoButton type="button" variant="surface" onClick={onCancel}>
+          Cancel
+        </NeoButton>
+      ) : null}
       <NeoButton
         type="button"
-        variant="primary"
+        variant="accent"
         disabled={saving || !dirty}
         onClick={() => void handleSave()}
       >
@@ -581,7 +587,6 @@ export function GameEditForm({ gameId, onSaved, singleColumn, children }: GameEd
         ) : null}
       </div>
 
-      <FormSaveFooter onSave={() => void handleSave()} saving={saving} label="Save changes" dirty={dirty} />
 
       {installOpen && gameQuery.data ? (
         <InstallGameModal game={gameQuery.data} onClose={() => setInstallOpen(false)} />

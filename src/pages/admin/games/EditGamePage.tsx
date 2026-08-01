@@ -10,13 +10,15 @@ export function AdminGameEditPage() {
   if (!gameId) return null
 
   return (
-    <GameEditForm gameId={gameId} onSaved={() => navigate('/admin/games', { replace: true })}>
+    <GameEditForm
+      gameId={gameId}
+      onSaved={() => navigate('/admin/games', { replace: true })}
+      onCancel={() => navigate('/admin/games')}
+    >
       {({ headerTitle, headerSubtitle, headerActions, body }) => (
         <AdminPageShell
           title={headerTitle}
           subtitle={headerSubtitle}
-          backTo="/admin/games"
-          backLabel="Back to games"
           actions={headerActions}
         >
           {body}
