@@ -1,15 +1,13 @@
+import { NavLink, useLocation } from 'react-router-dom'
+
 import {
-  Building2,
-  CreditCard,
-  Gamepad2,
-  LayoutDashboard,
-  LifeBuoy,
-  LogOut,
-  Moon,
-  Sun,
-  Ticket,
-} from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+  IconBilling,
+  IconDashboard,
+  IconGames,
+  IconOrganisation,
+  IconSupport,
+  IconTicket,
+} from '@/components/icons'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import {
@@ -24,36 +22,24 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useAuth } from '@/contexts/auth-context'
-import { useTheme } from '@/contexts/theme-context'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
+import { APP_BUILD_LABEL } from '@/lib/version'
 import { cn } from '@/lib/utils'
 
+// Support lives in the footer, as on the client sidebar, so the top group is
+// only the places a super-admin works in.
 const mainNav = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/clients', label: 'Clients', icon: Building2, end: false },
-  { to: '/admin/games', label: 'Games', icon: Gamepad2, end: false },
-  { to: '/admin/payments', label: 'Payments', icon: CreditCard, end: false },
-  { to: '/admin/promo-codes', label: 'Promo Codes', icon: Ticket, end: false },
-  { to: '/admin/support', label: 'Support', icon: LifeBuoy, end: true },
+  { to: '/admin', label: 'Dashboard', icon: IconDashboard, end: true },
+  { to: '/admin/clients', label: 'Clients', icon: IconOrganisation, end: false },
+  { to: '/admin/games', label: 'Games', icon: IconGames, end: false },
+  { to: '/admin/payments', label: 'Payments', icon: IconBilling, end: false },
+  { to: '/admin/promo-codes', label: 'Promo Codes', icon: IconTicket, end: false },
 ] as const
 
 export function RallyHubAppSidebar() {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { signOut } = useAuth()
-  const { resolvedTheme, toggleTheme } = useTheme()
   const { data: supportUnread = 0 } = useSupportUnreadCount('support')
-
-  async function handleSignOut() {
-    try {
-      await signOut()
-      navigate('/login', { replace: true })
-    } catch (err) {
-      console.error('[RallyHub] Sign out failed', err)
-    }
-  }
 
   return (
     <Sidebar
@@ -96,11 +82,6 @@ export function RallyHubAppSidebar() {
                       <span className="font-medium">{label}</span>
                     </NavLink>
                   </SidebarMenuButton>
-                  {to === '/admin/support' && supportUnread > 0 ? (
-                    <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
-                      {supportUnread > 9 ? '9+' : supportUnread}
-                    </SidebarMenuBadge>
-                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -108,35 +89,32 @@ export function RallyHubAppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Theme toggle and sign-out live in the header, as on the client
+          sidebar; the footer carries Support and the build label. */}
       <SidebarFooter className="border-sidebar-border mt-auto shrink-0 border-t p-2">
         <SidebarMenu className="gap-px">
           <SidebarMenuItem>
             <SidebarMenuButton
-              type="button"
+              asChild
+              tooltip="Support"
+              isActive={isAdminNavActive(pathname, '/admin/support', true)}
               className="text-sidebar-foreground"
-              tooltip={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-              onClick={toggleTheme}
             >
-              {resolvedTheme === 'dark'
-                ? <Sun className="shrink-0" strokeWidth={1.75} />
-                : <Moon className="shrink-0" strokeWidth={1.75} />}
-              <span className="font-medium">
-                {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-              </span>
+              <NavLink to="/admin/support" className="justify-center">
+                <IconSupport className="size-4" />
+                <span className="font-medium">Support</span>
+              </NavLink>
             </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              type="button"
-              className="text-sidebar-foreground"
-              tooltip="Sign out"
-              onClick={() => void handleSignOut()}
-            >
-              <LogOut className="shrink-0" strokeWidth={1.75} />
-              <span className="font-medium">Sign out</span>
-            </SidebarMenuButton>
+            {supportUnread > 0 ? (
+              <SidebarMenuBadge className="bg-red-600 text-[10px] font-bold text-white">
+                {supportUnread > 9 ? '9+' : supportUnread}
+              </SidebarMenuBadge>
+            ) : null}
           </SidebarMenuItem>
         </SidebarMenu>
+        <p className="text-sidebar-foreground/40 px-2 pt-1 text-[10px] tracking-wide">
+          {APP_BUILD_LABEL}
+        </p>
       </SidebarFooter>
     </Sidebar>
   )

@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
+import { IconBilling, IconBolt, IconEvents, IconLive, IconOrganisation } from '@/components/icons'
+
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { NeoCard, NeoPageShell } from '@/components/neo-minimal'
+import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { NeoButton } from '@/components/neo-minimal'
 import { StatusIndicator, type RallyStatusTone } from '@/components/ui/status-indicator'
 import { useExpireOverdueTrials, useRallyHubDashboard } from '@/hooks/use-rallyhub'
 import { formatEur } from '@/lib/subscription-plans'
-import { cn } from '@/lib/utils'
 
 const STATUS_ORDER = ['active', 'ready', 'demo', 'draft', 'archived'] as const
 
@@ -30,9 +33,14 @@ export function RallyHubOverviewPage() {
   }, [])
 
   return (
-    <NeoPageShell
+    <AdminPageShell
       title="Dashboard"
       subtitle="Platform-wide overview for RallyHub super admins."
+      actions={
+        <NeoButton variant="surface" asChild>
+          <Link to="/admin/clients">View clients</Link>
+        </NeoButton>
+      }
     >
       {isLoading ? (
         <QueryLoading rows={4} />
@@ -40,57 +48,64 @@ export function RallyHubOverviewPage() {
         <QueryError message={error?.message} />
       ) : (
         <div className="space-y-8">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Clients" value={data?.clientCount ?? 0} />
-            <StatTile label="Active events" value={data?.activeEvents ?? 0} />
-            <StatTile label="Upcoming events" value={data?.upcomingEvents ?? 0} />
-            <StatTile label="Total events" value={data?.totalEvents ?? 0} />
-          </div>
+          {/* Same stat card as the client dashboard: label and icon on one
+              row, the number underneath. */}
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatTile label="Clients" value={data?.clientCount ?? 0} icon={IconOrganisation} />
+            <StatTile label="Active events" value={data?.activeEvents ?? 0} icon={IconLive} />
+            <StatTile label="Upcoming events" value={data?.upcomingEvents ?? 0} icon={IconEvents} />
+            <StatTile label="Total events" value={data?.totalEvents ?? 0} icon={IconBolt} />
+          </section>
 
           <section className="space-y-3">
-            <h2 className="text-foreground text-lg font-semibold">Revenue</h2>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <h2 className="text-foreground text-xl font-semibold tracking-tight">Revenue</h2>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatTile
                 label="Outstanding"
                 value={formatEur(data?.revenue.outstanding ?? 0)}
                 hint="Unpaid event invoices"
+                icon={IconBilling}
               />
               <StatTile
                 label="Collected"
                 value={formatEur(data?.revenue.collected ?? 0)}
                 hint="Paid event invoices"
+                icon={IconBilling}
               />
             </div>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-foreground text-lg font-semibold">Events by status</h2>
+            <h2 className="text-foreground text-xl font-semibold tracking-tight">
+              Events by status
+            </h2>
             <div className="flex flex-wrap gap-2">
               {STATUS_ORDER.map((status) => {
                 const count = data?.statusBreakdown?.[status] ?? 0
                 return (
-                  <NeoCard key={status} className="flex items-center gap-2 px-4 py-2">
+                  <span
+                    key={status}
+                    className="border-border/80 bg-card text-muted-foreground flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium capitalize shadow-sm"
+                  >
                     <StatusIndicator status={status} />
-                    <span className="text-foreground font-semibold tabular-nums">{count}</span>
-                  </NeoCard>
+                    {status}
+                    <span className="text-foreground font-bold tabular-nums">{count}</span>
+                  </span>
                 )
               })}
             </div>
           </section>
 
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-foreground text-lg font-semibold">Recent events</h2>
-              <Link to="/admin/clients" className="text-muted-foreground text-sm hover:underline">
-                View clients
-              </Link>
-            </div>
+            <h2 className="text-foreground text-xl font-semibold tracking-tight">
+              Recent events
+            </h2>
             {(data?.recentEvents.length ?? 0) === 0 ? (
-              <NeoCard className="px-5 py-8">
+              <Card className="border-border/80 bg-card px-5 py-8 shadow-sm">
                 <p className="text-muted-foreground text-sm">No events across clients yet.</p>
-              </NeoCard>
+              </Card>
             ) : (
-              <NeoCard className="overflow-hidden p-0">
+              <Card className="border-border/80 overflow-hidden p-0 shadow-sm">
                 <ul className="divide-border divide-y">
                   {data?.recentEvents.map((event) => (
                     <li
@@ -109,12 +124,12 @@ export function RallyHubOverviewPage() {
                     </li>
                   ))}
                 </ul>
-              </NeoCard>
+              </Card>
             )}
           </section>
         </div>
       )}
-    </NeoPageShell>
+    </AdminPageShell>
   )
 }
 
@@ -122,16 +137,27 @@ function StatTile({
   label,
   value,
   hint,
+  icon: Icon,
 }: {
   label: string
   value: number | string
   hint?: string
+  icon: typeof IconBolt
 }) {
   return (
-    <NeoCard className={cn('p-6', hint ? 'pb-5' : undefined)}>
-      <p className="neo-stat-label">{label}</p>
-      <p className="neo-stat-value mt-3">{value}</p>
-      {hint ? <p className="neo-stat-hint mt-2">{hint}</p> : null}
-    </NeoCard>
+    <Card className="neo-card border-border/80 bg-card text-card-foreground shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="neo-stat-label text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          {label}
+        </CardTitle>
+        <Icon aria-hidden className="text-muted-foreground size-5 opacity-75" />
+      </CardHeader>
+      <CardContent>
+        <p className="neo-stat-value text-foreground text-[1.75rem] leading-none font-bold tracking-tight tabular-nums sm:text-[2rem]">
+          {value}
+        </p>
+        {hint ? <p className="text-muted-foreground mt-2 text-xs">{hint}</p> : null}
+      </CardContent>
+    </Card>
   )
 }

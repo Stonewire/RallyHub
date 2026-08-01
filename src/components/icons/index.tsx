@@ -70,6 +70,16 @@ export function IconBilling(props: RhIconProps) {
   )
 }
 
+/** A torn-edge ticket: promo codes. The notches make it read as one. */
+export function IconTicket(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M3 8.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1.2a2.3 2.3 0 0 0 0 4.6v1.2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1.2a2.3 2.3 0 0 0 0-4.6Z" />
+      <path d="M14.5 8.5v1.8M14.5 13.7v1.8" />
+    </RhIcon>
+  )
+}
+
 /** Ring buoy: support. */
 export function IconSupport(props: RhIconProps) {
   return (
