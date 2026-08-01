@@ -1,5 +1,5 @@
 import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -125,29 +125,6 @@ export function QuizEditor({
     roundId: string | null
     index: number
   } | null>(null)
-
-  const enableRounds = useCallback(
-    (enabled: boolean) => {
-      if (!enabled) {
-        setConfig((c) => ({
-          ...c,
-          rounds_enabled: false,
-          questions: (c.questions ?? []).map((q) => ({ ...q, roundId: null })),
-        }))
-        return
-      }
-
-      const round1Id = newId()
-      const qs = (config.questions ?? []).map((q) => ({ ...q, roundId: round1Id }))
-      setConfig((c) => ({
-        ...c,
-        rounds_enabled: true,
-        rounds: [{ id: round1Id, name: 'Round 1', questionIds: qs.map((q) => q.id) }],
-        questions: qs,
-      }))
-    },
-    [config.questions, setConfig],
-  )
 
   function addRound() {
     const id = newId()
@@ -320,29 +297,6 @@ export function QuizEditor({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Time / question (sec)</Label>
-          <Input
-            type="number"
-            min={1}
-            value={config.timer_seconds ?? 20}
-            onChange={(e) =>
-              setConfig((c) => ({ ...c, timer_seconds: Number(e.target.value) }))
-            }
-            className="bg-background"
-          />
-        </div>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          type="checkbox"
-          checked={Boolean(config.rounds_enabled)}
-          onChange={(e) => enableRounds(e.target.checked)}
-        />
-        Enable rounds
-      </label>
 
       {config.rounds_enabled ? (
         <div className="space-y-8">

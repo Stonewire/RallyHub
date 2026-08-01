@@ -103,6 +103,7 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   const [pointsMax, setPointsMax] = useState(100)
   const [solutionDescription, setSolutionDescription] = useState('')
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [roundError, setRoundError] = useState<string | null>(null)
   // Snapshot of the game as loaded, so Save can be disabled until something
   // actually changes. The design's editor only offers Save when dirty.
   const baselineRef = useRef<string>('')
@@ -317,13 +318,12 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
       <h3 className="text-foreground text-sm font-bold">Groups</h3>
           <div className="space-y-2">
-            <Label>Groups</Label>
             {gameGroups.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No groups yet. Create one from the Games library.
               </p>
             ) : (
-              <div className="border-border min-h-32 flex-1 space-y-1 overflow-auto rounded-md border p-2">
+              <div className="min-h-[17rem] flex-1 space-y-0.5 overflow-auto">
                 {gameGroups.map((group) => (
                   <label
                     key={group.id}
@@ -366,6 +366,40 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     ) : gameType === 'puzzle' ? (
       <PuzzleEditor config={config} setConfig={setConfig} section="designer" />
     ) : null
+
+  /**
+   * Rounds follow this number. Adding appends empty rounds; reducing removes
+   * from the end, but only empty ones. A round holding questions has to be
+   * deleted from its own card, where the questions can be moved somewhere else
+   * first, so a typo here can never destroy work.
+   */
+  function setRoundCount(next: number) {
+    const target = Math.max(1, Math.min(20, next))
+    setRoundError(null)
+    setConfig((current) => {
+      const rounds = current.rounds ?? []
+      if (target === rounds.length) return current
+      if (target > rounds.length) {
+        const added = Array.from({ length: target - rounds.length }, (_, i) => ({
+          id: newGameId(),
+          name: `Round ${rounds.length + i + 1}`,
+          questionIds: [],
+        }))
+        return { ...current, rounds_enabled: true, rounds: [...rounds, ...added] }
+      }
+      const doomed = rounds.slice(target)
+      const withQuestions = doomed.filter((round) =>
+        (current.questions ?? []).some((q) => q.roundId === round.id),
+      )
+      if (withQuestions.length > 0) {
+        setRoundError(
+          `${withQuestions.map((r) => r.name).join(', ')} still ${withQuestions.length === 1 ? 'has' : 'have'} questions. Delete from the round itself to choose what happens to them.`,
+        )
+        return current
+      }
+      return { ...current, rounds_enabled: true, rounds: rounds.slice(0, target) }
+    })
+  }
 
   const body = (
     <>
@@ -539,32 +573,53 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
               onUrl={setCoverUrl}
               showPreviewPanel
             />
-            <div className="flex w-full items-center gap-3">
-              <Label className="w-40 shrink-0">Points / correct</Label>
-              <Input
-                type="number"
-                min={0}
-                value={pointsStatic}
-                onChange={(e) => setPointsStatic(Math.max(0, Number(e.target.value) || 0))}
-                className="bg-background h-8 w-24"
-              />
+            {/* Side by side with the label above each: two short numbers do not
+                need a row apiece. */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="quiz-points">Points / correct</Label>
+                <Input
+                  id="quiz-points"
+                  type="number"
+                  min={0}
+                  value={pointsStatic}
+                  onChange={(e) => setPointsStatic(Math.max(0, Number(e.target.value) || 0))}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="quiz-timer">Time / question (sec)</Label>
+                <Input
+                  id="quiz-timer"
+                  type="number"
+                  min={5}
+                  value={config.timer_seconds ?? 20}
+                  onChange={(e) =>
+                    setConfig((c) => ({
+                      ...c,
+                      timer_seconds: Math.max(5, Number(e.target.value) || 5),
+                    }))
+                  }
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="quiz-rounds">Rounds</Label>
+                <Input
+                  id="quiz-rounds"
+                  type="number"
+                  min={1}
+                  value={(config.rounds ?? []).length || 1}
+                  onChange={(e) => setRoundCount(Number(e.target.value) || 1)}
+                  className="bg-background"
+                />
+              </div>
             </div>
-            <div className="flex w-full items-center gap-3">
-              <Label className="w-40 shrink-0">Time / question</Label>
-              <Input
-                type="number"
-                min={5}
-                value={config.timer_seconds ?? 20}
-                onChange={(e) =>
-                  setConfig((c) => ({
-                    ...c,
-                    timer_seconds: Math.max(5, Number(e.target.value) || 5),
-                  }))
-                }
-                className="bg-background h-8 w-24"
-              />
-              <span className="text-muted-foreground text-xs">seconds</span>
-            </div>
+            {roundError ? (
+              <p className="text-destructive text-xs" role="alert">
+                {roundError}
+              </p>
+            ) : null}
           </Card>
         ) : null}
 

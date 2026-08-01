@@ -338,7 +338,7 @@ export function AdminGamesNewPage() {
                     No groups yet. Create one from the Games library.
                   </p>
                 ) : (
-                  <div className="border-border min-h-32 flex-1 space-y-1 overflow-auto rounded-md border p-2">
+                  <div className="min-h-[17rem] flex-1 space-y-0.5 overflow-auto">
                     {availableGroups.map((group) => (
                       <label
                         key={group.id}
@@ -390,7 +390,7 @@ export function AdminGamesNewPage() {
                   No groups yet. Create one from the Games library.
                 </p>
               ) : (
-                <div className="border-border min-h-32 flex-1 space-y-1 overflow-auto rounded-md border p-2">
+                <div className="min-h-[17rem] flex-1 space-y-0.5 overflow-auto">
                   {availableGroups.map((group) => (
                     <label
                       key={group.id}
