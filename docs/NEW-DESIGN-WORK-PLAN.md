@@ -126,7 +126,22 @@ bundled into a design batch.
 3. **Bingo clip length 60 seconds.** The design offers 30/60/90; the type and
    the clip generator permit 30 and 90 only. Adding 60 touches clip extraction.
 
-4. **Solution fields reach participants, hidden only by the UI.** Found while
+4. **FIXED and verified 1 Aug 2026.** `get_live_event_games` now returns
+   `solution_description` and `solution_image_url` only when
+   `caller_may_see_event_solutions()` is true, meaning an authenticated member
+   of that organisation or platform staff. Participants join anonymously, so
+   they receive nulls.
+   Verified three ways rather than assumed. At SQL level by impersonating each
+   case: anonymous false, own-org member true, other-org member false, so it
+   does not leak across organisations either. Then end to end in the running
+   app, by temporarily setting a probe solution on a game in a live demo
+   event: the facilitator received it, the participant received null for the
+   same game in the same event. The probe was reverted.
+   Consequence: the design's Solution Video Link can now be built truthfully,
+   because a facilitator-only field will actually stay facilitator-only.
+   The original finding is kept below for the record.
+
+   **(original finding)** Solution fields reach participants, hidden only by the UI. Found while
    building the design's "Solution Video Link". `get_live_event_games` returns
    `solution_description`, `solution_image_url` and, for video games, an
    unredacted `config` to anyone holding a join token.
