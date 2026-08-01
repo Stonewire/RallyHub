@@ -36,6 +36,7 @@ import {
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
+import { countryOptions } from '@/lib/countries'
 import { downloadClientPackage } from '@/lib/client-export'
 import {
   ALLOWED_IMAGE_UPLOAD_LABEL,
@@ -103,6 +104,13 @@ export function AdminSettingsPage() {
   // F10: warn before leaving Settings with unsaved profile changes.
   const dirty = orgQuery.data
     ? JSON.stringify(form) !== JSON.stringify(orgToForm(orgQuery.data))
+    : false
+  // Tablet Access has its own Save, so it tracks only its own fields. Using the
+  // page-wide dirty flag made that button appear after editing an unrelated
+  // field like the organisation name, implying it saved only the PIN.
+  const tabletDirty = orgQuery.data
+    ? form.tablet_password !== orgToForm(orgQuery.data).tablet_password ||
+      form.tablet_slug !== orgToForm(orgQuery.data).tablet_slug
     : false
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
@@ -423,7 +431,19 @@ export function AdminSettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="address-country">Country</Label>
-                    <Input id="address-country" value={form.address_country} onChange={(event) => setForm({ ...form, address_country: event.target.value })} placeholder="Malta" />
+                    <select
+                      id="address-country"
+                      value={form.address_country}
+                      onChange={(event) => setForm({ ...form, address_country: event.target.value })}
+                      className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                    >
+                      <option value="">Select a country…</option>
+                      {countryOptions(form.address_country).map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -470,7 +490,7 @@ export function AdminSettingsPage() {
                     </p>
                   ) : null}
                 </div>
-                {dirty ? (
+                {tabletDirty ? (
                   <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
                     {saveOrg.isPending ? 'Saving…' : 'Save'}
                   </NeoButton>
