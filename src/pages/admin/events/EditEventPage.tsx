@@ -38,7 +38,7 @@ import {
 } from '@/lib/event-form-utils'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { publishLiveBundleReload } from '@/lib/live-broadcast'
-import { downloadEventPackage } from '@/lib/event-export'
+import { downloadEventPackage, formatMb } from '@/lib/event-export'
 import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
 import { isEventActivated, canResetEventData } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, brandColorsFromOrg, logoForEvent } from '@/lib/live-event'
@@ -70,6 +70,9 @@ export function AdminEventEditPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  // Large events take minutes to export; a silent disabled button reads as
+  // broken (562 MB client event, 31 Jul 2026), so progress is shown throughout.
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'settings' | 'log'>('settings')
 
@@ -325,19 +328,55 @@ export function AdminEventEditPage() {
                         QR codes and URLs for facilitator, display, and team join.
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={downloading}
-                      onClick={() => {
-                        setDownloading(true)
-                        void downloadEventPackage(eventId).finally(() =>
-                          setDownloading(false),
-                        )
-                      }}
-                    >
-                      {downloading ? 'Preparing…' : 'Download media & PDF'}
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={downloading}
+                        onClick={() => {
+                          setDownloading(true)
+                          setDownloadStatus(null)
+                          setError(null)
+                          downloadEventPackage(
+                            eventId,
+                            eventQuery.data?.name ?? 'event',
+                            (p) =>
+                              setDownloadStatus(
+                                p.phase === 'downloading'
+                                  ? `Downloading ${p.done} of ${p.total} files (${formatMb(p.bytes)})`
+                                  : `Saving archive… ${p.done}%`,
+                              ),
+                          )
+                            .then((result) => {
+                              if (!result.saved) {
+                                setDownloadStatus(null)
+                                return
+                              }
+                              setDownloadStatus(
+                                result.missing.length > 0
+                                  ? `Saved, but ${result.missing.length} file(s) could not be downloaded — see MISSING-FILES.txt in the archive`
+                                  : 'Saved',
+                              )
+                            })
+                            .catch((err: unknown) => {
+                              setDownloadStatus(null)
+                              setError(
+                                err instanceof Error
+                                  ? `Export failed: ${err.message}`
+                                  : 'Export failed',
+                              )
+                            })
+                            .finally(() => setDownloading(false))
+                        }}
+                      >
+                        {downloading ? 'Exporting…' : 'Download media & PDF'}
+                      </Button>
+                      {downloadStatus ? (
+                        <p className="text-muted-foreground text-xs" aria-live="polite">
+                          {downloadStatus}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                   <EventLinksPanel
                     eventId={eventId}
