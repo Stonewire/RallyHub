@@ -9,20 +9,47 @@ import { supabase } from '@/lib/supabase'
 import { ALLOWED_IMAGE_UPLOAD_TYPES, validateImageUpload } from '@/lib/upload-limits'
 
 /**
+ * Stand-in identity for the public demo, where everyone shares one login.
+ * Showing a filled-in account is how a prospect sees what the screen is for;
+ * real values are the demo team's, and editing them would change the shared
+ * account for every visitor at once.
+ */
+const SAMPLE_ACCOUNT = {
+  firstName: 'John',
+  lastName: 'Doe',
+  username: 'johndoe',
+  email: 'john.doe@example.com',
+  phone: '+356 2100 0000',
+}
+
+/**
  * Personal account settings (name, username, email, password) for the
  * signed-in user. Backed by the update-org-user Edge Function, which already
  * allows self-service edits for any role (client_admin, event_manager,
  * facilitator) without requiring org-admin privileges.
  */
-export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
+export function MyAccountPanel({
+  orgName,
+  sample = false,
+}: {
+  orgName?: string | null
+  /** Read-only sample identity, for the shared public demo. */
+  sample?: boolean
+}) {
   const { user, profile, refreshProfile } = useAuth()
   const orgId = profile?.organization_id ?? null
 
-  const [firstName, setFirstName] = useState(profile?.first_name ?? '')
-  const [lastName, setLastName] = useState(profile?.last_name ?? '')
-  const [username, setUsername] = useState(profile?.username ?? '')
-  const [email, setEmail] = useState(user?.email ?? '')
-  const [phone, setPhone] = useState(profile?.phone ?? '')
+  const [firstName, setFirstName] = useState(
+    sample ? SAMPLE_ACCOUNT.firstName : (profile?.first_name ?? ''),
+  )
+  const [lastName, setLastName] = useState(
+    sample ? SAMPLE_ACCOUNT.lastName : (profile?.last_name ?? ''),
+  )
+  const [username, setUsername] = useState(
+    sample ? SAMPLE_ACCOUNT.username : (profile?.username ?? ''),
+  )
+  const [email, setEmail] = useState(sample ? SAMPLE_ACCOUNT.email : (user?.email ?? ''))
+  const [phone, setPhone] = useState(sample ? SAMPLE_ACCOUNT.phone : (profile?.phone ?? ''))
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [editingName, setEditingName] = useState(false)
@@ -127,7 +154,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
 
   const displayName = [firstName, lastName].filter(Boolean).join(' ') || username || 'My account'
   const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || username.slice(0, 2).toUpperCase()
-  const dirty = Boolean(
+  const dirty = !sample && Boolean(
     firstName !== (profile?.first_name ?? '') ||
     lastName !== (profile?.last_name ?? '') ||
     username !== (profile?.username ?? '') ||
@@ -152,7 +179,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (saving || !profile || !orgId || !user) return
+    if (sample || saving || !profile || !orgId || !user) return
 
     if (!firstName.trim() || !lastName.trim()) {
       setStatus({ kind: 'error', msg: 'Please enter your first and last name.' })
@@ -243,14 +270,14 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
             <div className="flex items-center gap-4">
               {/* The whole circle is the file picker, as in the design. */}
               <label
-                className="group relative shrink-0 cursor-pointer"
-                title={avatarUploading ? 'Uploading…' : 'Change profile photo'}
+                className={`group relative shrink-0 ${sample ? '' : 'cursor-pointer'}`}
+                title={sample ? undefined : avatarUploading ? 'Uploading…' : 'Change profile photo'}
               >
                 <input
                   type="file"
                   accept={ALLOWED_IMAGE_UPLOAD_TYPES.join(',')}
                   className="sr-only"
-                  disabled={avatarUploading}
+                  disabled={sample || avatarUploading}
                   onChange={(event) => {
                     const file = event.target.files?.[0]
                     event.target.value = ''
@@ -268,22 +295,28 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
                     {initials}
                   </div>
                 )}
-                <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110">
-                  <IconUpload className="size-3.5" />
-                </span>
+                {/* No upload badge in sample mode: the picker is off, and a
+                    button that cannot be pressed is worse than none. */}
+                {sample ? null : (
+                  <span className="bg-primary text-primary-foreground border-card absolute -right-0.5 -bottom-0.5 flex size-7 items-center justify-center rounded-full border-2 transition-transform group-hover:scale-110">
+                    <IconUpload className="size-3.5" />
+                  </span>
+                )}
               </label>
               <div className="min-w-0 flex-1">
                 {editingName ? (
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <NeoInput id="acct-first" value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} aria-label="First name" autoFocus />
-                    <NeoInput id="acct-last" value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} aria-label="Last name" onBlur={() => setEditingName(false)} />
+                    <NeoInput id="acct-first" disabled={sample} value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} aria-label="First name" autoFocus />
+                    <NeoInput id="acct-last" disabled={sample} value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} aria-label="Last name" onBlur={() => setEditingName(false)} />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <p className="text-foreground truncate text-xl font-bold">{displayName}</p>
-                    <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName(true)}>
-                      <IconEdit className="size-3.5" />
-                    </button>
+                    {sample ? null : (
+                      <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName(true)}>
+                        <IconEdit className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
                 <p className="text-muted-foreground mt-1 truncate text-xs">@{username}</p>
@@ -295,16 +328,17 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
             <h2 className="text-foreground text-sm font-bold">Personal Details</h2>
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-username">Username</NeoLabel>
-              <NeoInput id="acct-username" value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
+              <NeoInput id="acct-username" disabled={sample} value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-email">Email</NeoLabel>
-              <NeoInput id="acct-email" type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+              <NeoInput id="acct-email" disabled={sample} type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-phone">Phone</NeoLabel>
               <NeoInput
                 id="acct-phone"
+                disabled={sample}
                 type="tel"
                 value={phone}
                 autoComplete="tel"
@@ -329,20 +363,21 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
             </div>
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-password">New Password</NeoLabel>
-              <NeoInput id="acct-password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+              <NeoInput id="acct-password" disabled={sample} type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <NeoLabel htmlFor="acct-password-confirm">Confirm New Password</NeoLabel>
-              <NeoInput id="acct-password-confirm" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+              <NeoInput id="acct-password-confirm" disabled={sample} type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
             </div>
             {!passwordsMatch && confirmPassword ? (
               <p className="text-destructive text-xs font-medium" role="alert">Passwords do not match.</p>
             ) : null}
-            <NeoButton variant="primary" type="submit" size="sm" className="w-fit" disabled={!password || password.length < 8 || !passwordsMatch || saving}>
+            <NeoButton variant="primary" type="submit" size="sm" className="w-fit" disabled={sample || !password || password.length < 8 || !passwordsMatch || saving}>
               {saving ? 'Updating…' : 'Update Password'}
             </NeoButton>
           </NeoCard>
 
+          {sample ? null : (
           <DangerZone
             rows={[
               {
@@ -379,6 +414,7 @@ export function MyAccountPanel({ orgName }: { orgName?: string | null }) {
               },
             ]}
           />
+          )}
         </div>
       </div>
 

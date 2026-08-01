@@ -314,13 +314,17 @@ export function AdminSettingsPage() {
         />
       ) : tab === 'account' ? (
         isDemo ? (
-          <Card className="border-border/80 space-y-2 bg-muted/20 p-6 shadow-sm">
-            <h2 className="text-foreground text-lg font-semibold">Shared demo identity</h2>
-            <p className="text-muted-foreground text-sm">
-              Email and password changes are disabled for the shared public demo. All
-              organization, event, team, game, and billing features remain available.
-            </p>
-          </Card>
+          // A filled-in sample account rather than an explanatory card: the
+          // demo is what a prospect is shown, and an empty screen shows nothing.
+          <div className="space-y-4">
+            <Card className="border-border/80 bg-muted/20 px-4 py-3 shadow-sm">
+              <p className="text-muted-foreground text-sm">
+                Sample account for the public demo. Everyone shares one login here, so
+                changes are switched off; on your own account every field is editable.
+              </p>
+            </Card>
+            <MyAccountPanel sample />
+          </div>
         ) : (
           <MyAccountPanel />
         )
