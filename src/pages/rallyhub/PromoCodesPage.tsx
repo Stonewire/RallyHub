@@ -1,13 +1,19 @@
-import { ChevronDown, ChevronUp, Pencil, Trash2, X } from 'lucide-react'
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconClose,
+  IconEdit,
+  IconTrash,
+} from '@/components/icons'
 import { useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { Card } from '@/components/ui/card'
+import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import {
   NeoButton,
-  NeoCard,
   NeoInput,
   NeoLabel,
-  NeoPageShell,
 } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import {
@@ -188,12 +194,12 @@ export function RallyHubPromoCodesPage() {
   }
 
   return (
-    <NeoPageShell
+    <AdminPageShell
       title="Promo Codes"
       subtitle="Create discount codes clients redeem in their billing panel."
     >
-      <NeoCard className="mb-8 max-w-2xl space-y-4 p-6">
-        <h3 className="text-foreground font-semibold">New promo code</h3>
+      <Card className="border-border/80 bg-card mb-8 max-w-2xl space-y-4 p-6 shadow-sm">
+        <h3 className="text-foreground text-sm font-bold">New promo code</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <NeoLabel htmlFor="pc-code">Code</NeoLabel>
@@ -276,7 +282,7 @@ export function RallyHubPromoCodesPage() {
             {createCode.isPending ? 'Creating…' : 'Create code'}
           </NeoButton>
         </div>
-      </NeoCard>
+      </Card>
 
       {codesQuery.isLoading ? (
         <QueryLoading rows={4} />
@@ -293,16 +299,16 @@ export function RallyHubPromoCodesPage() {
                 : `${code.redemption_count}/${code.max_redemptions} used`
             const isExpanded = expandedId === code.id
             return (
-              <NeoCard key={code.id} className="p-4">
+              <Card key={code.id} className="border-border/80 bg-card p-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-foreground font-mono font-semibold">{code.code}</span>
-                      <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs capitalize">
+                      <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
                         {code.purpose}
                       </span>
                       {!code.is_active ? (
-                        <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs text-red-700">
+                        <span className="text-destructive rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
                           Inactive
                         </span>
                       ) : null}
@@ -323,7 +329,7 @@ export function RallyHubPromoCodesPage() {
                       size="sm"
                       onClick={() => setExpandedId(isExpanded ? null : code.id)}
                     >
-                      {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                      {isExpanded ? <IconChevronUp className="size-3.5" /> : <IconChevronDown className="size-3.5" />}
                       Usage
                     </NeoButton>
                     <NeoButton
@@ -332,7 +338,7 @@ export function RallyHubPromoCodesPage() {
                       size="sm"
                       onClick={() => openEdit(code)}
                     >
-                      <Pencil className="size-3.5" />
+                      <IconEdit className="size-3.5" />
                       Edit
                     </NeoButton>
                     <NeoButton
@@ -351,7 +357,7 @@ export function RallyHubPromoCodesPage() {
                       disabled={deleteCode.isPending}
                       onClick={() => setDeletingCode(code)}
                     >
-                      <Trash2 className="size-3.5" />
+                      <IconTrash className="size-3.5" />
                     </NeoButton>
                   </div>
                 </div>
@@ -360,7 +366,7 @@ export function RallyHubPromoCodesPage() {
                     <RedemptionList codeId={code.id} />
                   </div>
                 ) : null}
-              </NeoCard>
+              </Card>
             )
           })}
         </div>
@@ -368,12 +374,12 @@ export function RallyHubPromoCodesPage() {
 
       {/* Edit modal */}
       {editingCode ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <NeoCard className="w-full max-w-md space-y-4 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <Card className="border-border/80 bg-card w-full max-w-md space-y-4 p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="text-foreground font-semibold">Edit {editingCode.code}</h3>
               <NeoButton type="button" variant="ghost" size="sm" onClick={closeEdit}>
-                <X className="size-4" />
+                <IconClose className="size-4" />
               </NeoButton>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -435,14 +441,14 @@ export function RallyHubPromoCodesPage() {
                 {updateCode.isPending ? 'Saving…' : 'Save'}
               </NeoButton>
             </div>
-          </NeoCard>
+          </Card>
         </div>
       ) : null}
 
       {/* Delete confirm */}
       {deletingCode ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <NeoCard className="w-full max-w-sm space-y-4 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <Card className="border-border/80 bg-card w-full max-w-sm space-y-4 p-6 shadow-xl">
             <h3 className="text-foreground font-semibold">Delete {deletingCode.code}?</h3>
             <p className="text-muted-foreground text-sm">
               This will permanently remove the code. Existing redemptions are not affected.
@@ -458,9 +464,9 @@ export function RallyHubPromoCodesPage() {
                 {deleteCode.isPending ? 'Deleting…' : 'Delete'}
               </NeoButton>
             </div>
-          </NeoCard>
+          </Card>
         </div>
       ) : null}
-    </NeoPageShell>
+    </AdminPageShell>
   )
 }
