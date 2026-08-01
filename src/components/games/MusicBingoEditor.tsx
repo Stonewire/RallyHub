@@ -1,6 +1,5 @@
-import { IconPlus } from '@/components/icons'
+import { IconPlus, IconRefresh } from '@/components/icons'
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
-import { createPortal } from 'react-dom'
 
 import { AssetField } from '@/components/games/AssetField'
 import { BingoWinningComboEditor } from '@/components/games/BingoWinningComboEditor'
@@ -15,11 +14,12 @@ import { newGameId, uploadGameFile } from '@/lib/game-upload'
 import {
   BINGO_CLIP_LENGTHS,
   bingoClipLength,
-  clearAllTrackClips,
   downloadUrl,
   ensureMusicTrackClip,
   parseBingoClipLength,
+  type BingoClipLength,
 } from '@/lib/music-track-clips'
+import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
 import { audioStorageFilename } from '@/lib/storage-path'
@@ -46,57 +46,37 @@ export function MusicBingoEditor({
   section = 'tracks',
 }: MusicBingoEditorProps) {
   const tracks = useMemo(() => config.tracks ?? [], [config.tracks])
-  const [clipBusy, setClipBusy] = useState(false)
+  const [clipProgress, setClipProgress] = useState<{ done: number; total: number } | null>(null)
   const [clipError, setClipError] = useState<string | null>(null)
-  const [clipLengthIntent, setClipLengthIntent] = useState<string | null>(null)
   const existingTrackIds = useMemo(() => new Set(tracks.map((t) => t.id)), [tracks])
   const clipLen = bingoClipLength(config)
-  const missingClips = tracks.filter(
+  const clipBusy = clipProgress !== null
+  // Clips are per game, so a track carrying a clip at a different length counts
+  // as stale and has to be cut again.
+  const staleClips = tracks.filter(
     (t) =>
       t.audioUrl?.trim() &&
       (!t.clipUrl?.trim() || t.clipDurationSeconds !== clipLen),
   )
 
-  function applyClipLengthChange(value: string) {
-    setConfig((c) => ({
-      ...clearAllTrackClips(c),
-      bingo_clip_length: parseBingoClipLength(value),
-    }))
-    setClipLengthIntent(null)
-  }
-
-  function onClipLengthChange(value: string) {
-    const next = parseBingoClipLength(value)
-    if (next === clipLen) return
-    const hadClips = tracks.some((t) => t.clipUrl)
-    if (hadClips) {
-      setClipLengthIntent(value)
-      return
-    }
-    applyClipLengthChange(value)
-  }
-
-  async function generateMissingClips() {
-    if (!clipLen) {
-      setClipError('Select a clip length first.')
-      return
-    }
-    if (missingClips.length === 0) return
-    setClipBusy(true)
+  /** Cuts clips one at a time, saving each as it lands so a failure keeps the rest. */
+  async function generateClips(list: MusicTrack[], length: BingoClipLength) {
+    if (list.length === 0) return
     setClipError(null)
+    setClipProgress({ done: 0, total: list.length })
     try {
-      const updated = new Map<string, MusicTrack>()
-      for (const track of missingClips) {
-        updated.set(track.id, await ensureMusicTrackClip(track, organizationId, clipLen))
+      for (const [index, track] of list.entries()) {
+        const next = await ensureMusicTrackClip(track, organizationId, length)
+        setConfig((c) => ({
+          ...c,
+          tracks: (c.tracks ?? []).map((t) => (t.id === next.id ? next : t)),
+        }))
+        setClipProgress({ done: index + 1, total: list.length })
       }
-      setConfig((c) => ({
-        ...c,
-        tracks: (c.tracks ?? []).map((t) => updated.get(t.id) ?? t),
-      }))
     } catch (err) {
       setClipError(err instanceof Error ? err.message : 'Clip generation failed')
     } finally {
-      setClipBusy(false)
+      setClipProgress(null)
     }
   }
 
@@ -127,24 +107,6 @@ export function MusicBingoEditor({
     }))
   }
 
-  async function generateOneClip(track: MusicTrack) {
-    if (!clipLen) {
-      setClipError('Select clip length first.')
-      return
-    }
-    setClipBusy(true)
-    try {
-      const next = await ensureMusicTrackClip(track, organizationId, clipLen)
-      setConfig((c) => ({
-        ...c,
-        tracks: (c.tracks ?? []).map((t) => (t.id === track.id ? next : t)),
-      }))
-    } catch (err) {
-      setClipError(err instanceof Error ? err.message : 'Failed')
-    } finally {
-      setClipBusy(false)
-    }
-  }
 
   // 'settings' fills Primary settings, 'designer' the right-hand card, and
   // 'tracks' the full-width area below, matching the other game types.
@@ -161,20 +123,44 @@ export function MusicBingoEditor({
           preview={coverUrl}
           showPreviewPanel
         />
-        <div className="flex w-full items-center gap-3">
-          <Label className="shrink-0">Clip length</Label>
-          <select
-            value={config.bingo_clip_length == null ? '' : String(config.bingo_clip_length)}
-            onChange={(e) => onClipLengthChange(e.target.value)}
-            className="border-input bg-background h-8 rounded-md border px-2 text-sm"
-          >
-            <option value="">Select length</option>
-            {BINGO_CLIP_LENGTHS.map((len) => (
-              <option key={len} value={len}>
-                {len} seconds
-              </option>
-            ))}
-          </select>
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-3">
+            <Label className="shrink-0">Clip length</Label>
+            <SegmentedPill
+              size="sm"
+              className="w-44"
+              aria-label="Clip length"
+              options={BINGO_CLIP_LENGTHS.map((len) => ({
+                value: String(len),
+                label: `${len}s`,
+              }))}
+              value={String(clipLen)}
+              onChange={(next) =>
+                setConfig((c) => ({ ...c, bingo_clip_length: parseBingoClipLength(next) }))
+              }
+            />
+            {/* Changing the length leaves the old clips in place until this
+                runs, so nothing is lost by trying a different length. */}
+            {staleClips.length > 0 ? (
+              <NeoButton
+                type="button"
+                variant="surface"
+                size="sm"
+                disabled={clipBusy}
+                onClick={() => void generateClips(staleClips, clipLen)}
+              >
+                <IconRefresh className="size-3.5" aria-hidden />
+                {clipBusy
+                  ? `Cutting ${clipProgress?.done ?? 0}/${clipProgress?.total ?? 0}`
+                  : `Regenerate ${staleClips.length} clip${staleClips.length === 1 ? '' : 's'}`}
+              </NeoButton>
+            ) : null}
+          </div>
+          {clipError ? (
+            <p className="text-destructive text-xs" role="alert">
+              {clipError}
+            </p>
+          ) : null}
         </div>
         <BingoWinningComboEditor
           config={{
@@ -211,12 +197,18 @@ export function MusicBingoEditor({
       <MusicCatalogPicker
         organizationId={organizationId}
         existingTrackIds={existingTrackIds}
-        onAdd={(newTracks) =>
+        onAdd={(newTracks) => {
           setConfig((c) => ({
             ...c,
             tracks: [...(c.tracks ?? []), ...newTracks],
           }))
-        }
+          // Clips belong to the game, so anything arriving at a different
+          // length is cut straight away rather than waiting for a button.
+          void generateClips(
+            newTracks.filter((t) => t.audioUrl && t.clipDurationSeconds !== clipLen),
+            clipLen,
+          )
+        }}
       />
       <p className="text-muted-foreground text-xs">
         Need more songs? Upload them in <strong>Games → Music Catalog</strong>, then add
@@ -248,29 +240,34 @@ export function MusicBingoEditor({
             Add at least 5 tracks for bingo (25+ recommended for larger events).
           </p>
         ) : null}
-        {missingClips.length > 0 ? (
+        {clipBusy ? (
+          <p className="text-muted-foreground mb-3 text-sm">
+            Cutting {clipLen}s clips… {clipProgress?.done ?? 0}/{clipProgress?.total ?? 0}
+          </p>
+        ) : staleClips.length > 0 ? (
           <div className="mb-3 space-y-2">
             <p className="text-amber-700 text-sm">
-              {missingClips.length} track{missingClips.length === 1 ? '' : 's'} need a{' '}
-              {clipLen ?? '…'}s clip before live bingo.
+              {staleClips.length} track{staleClips.length === 1 ? '' : 's'} need a {clipLen}s clip
+              before live bingo.
             </p>
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              disabled={clipBusy || !clipLen}
-              onClick={() => void generateMissingClips()}
+              onClick={() => void generateClips(staleClips, clipLen)}
             >
-              {clipBusy ? 'Generating clips…' : `Generate all clips (${missingClips.length})`}
+              Generate {staleClips.length} clip{staleClips.length === 1 ? '' : 's'}
             </Button>
-            {clipError ? (
-              <p className="text-destructive text-sm" role="alert">
-                {clipError}
-              </p>
-            ) : null}
           </div>
         ) : tracks.some((t) => t.audioUrl) ? (
-          <p className="text-muted-foreground mb-3 text-sm">All tracks have 30s clips ready.</p>
+          <p className="text-muted-foreground mb-3 text-sm">
+            All tracks have {clipLen}s clips ready.
+          </p>
+        ) : null}
+        {clipError ? (
+          <p className="text-destructive mb-3 text-sm" role="alert">
+            {clipError}
+          </p>
         ) : null}
         {tracks.map((t) => (
           <Card key={t.id} className="border-border/80 mb-3 space-y-2 p-4">
@@ -326,8 +323,8 @@ export function MusicBingoEditor({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  disabled={clipBusy || !clipLen}
-                  onClick={() => void generateOneClip(t)}
+                  disabled={clipBusy}
+                  onClick={() => void generateClips([t], clipLen)}
                 >
                   Generate clip
                 </Button>
@@ -371,26 +368,6 @@ export function MusicBingoEditor({
           </Card>
         ))}
       </div>
-      {clipLengthIntent ? createPortal(
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="clip-length-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-        >
-          <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
-            <h2 id="clip-length-title" className="text-foreground mb-2 font-semibold">Change clip length?</h2>
-            <p className="text-muted-foreground mb-5 text-sm">
-              Existing generated clips will be cleared. You'll need to re-generate them.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setClipLengthIntent(null)}>Cancel</Button>
-              <Button size="sm" onClick={() => applyClipLengthChange(clipLengthIntent)}>Continue</Button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      ) : null}
     </Card>
   )
 }

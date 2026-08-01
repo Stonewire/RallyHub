@@ -9,25 +9,17 @@ export const BINGO_CLIP_LENGTHS = [30, 60, 90] as const
 
 export type BingoClipLength = (typeof BINGO_CLIP_LENGTHS)[number]
 
-export function bingoClipLength(config: GameConfig): BingoClipLength | null {
-  return parseBingoClipLength(config.bingo_clip_length)
+/**
+ * Clip length for a game, defaulting to 30s. The music catalog already stores
+ * its clips at 30s, so an unset game matches the clips it would be given.
+ */
+export function bingoClipLength(config: GameConfig): BingoClipLength {
+  return parseBingoClipLength(config.bingo_clip_length) ?? 30
 }
 
 export function parseBingoClipLength(value: unknown): BingoClipLength | null {
   const n = Number(value)
   return BINGO_CLIP_LENGTHS.find((len) => len === n) ?? null
-}
-
-export function clearAllTrackClips(config: GameConfig): GameConfig {
-  return {
-    ...config,
-    tracks: (config.tracks ?? []).map((t) => ({
-      ...t,
-      clipUrl: null,
-      clipStartSeconds: 0,
-      clipDurationSeconds: undefined,
-    })),
-  }
 }
 
 async function fetchAudioFile(url: string, filename: string): Promise<File> {
