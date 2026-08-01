@@ -1,9 +1,12 @@
-import { Upload } from 'lucide-react'
+import { IconUpload } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { DangerZone } from '@/components/admin/DangerZone'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
+import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { Card } from '@/components/ui/card'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
@@ -14,10 +17,8 @@ import {
 import { ClientEventsOverview } from '@/components/rallyhub/ClientEventsOverview'
 import {
   NeoButton,
-  NeoCard,
   NeoInput,
   NeoLabel,
-  NeoPageShell,
   NeoTextarea,
 } from '@/components/neo-minimal'
 import {
@@ -321,17 +322,17 @@ export function RallyHubClientDetailPage() {
 
   if (!isCreateMode && isLoading) {
     return (
-      <NeoPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
+      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryLoading rows={4} />
-      </NeoPageShell>
+      </AdminPageShell>
     )
   }
 
   if (!isCreateMode && (isError || !data)) {
     return (
-      <NeoPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
+      <AdminPageShell title="Client" backTo="/admin/clients" backLabel="Back to clients">
         <QueryError message={error?.message ?? 'Not found'} />
-      </NeoPageShell>
+      </AdminPageShell>
     )
   }
 
@@ -346,6 +347,7 @@ export function RallyHubClientDetailPage() {
       })
   const eventCounts = data ? countClientEvents(data.events) : null
   const displayName = orgName.trim() || (isCreateMode ? 'New client' : org!.name)
+  const isDemoClient = org?.is_demo === true
   const initials = organizationInitials(displayName)
   const contactEmail = email.trim() || (org ? clientEmail(org) : '')
   const displayLogo = logoPreview || logoUrl
@@ -353,7 +355,7 @@ export function RallyHubClientDetailPage() {
 
   const clientInfoTab = (
     <div className="space-y-6">
-      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-5">
           <div className="space-y-3">
             {displayLogo ? (
@@ -381,7 +383,7 @@ export function RallyHubClientDetailPage() {
               disabled={saving}
               onClick={() => fileRef.current?.click()}
             >
-              <Upload className="size-4" />
+              <IconUpload className="size-4" />
               {logoUploading ? 'Uploading…' : 'Upload logo'}
             </NeoButton>
           </div>
@@ -397,10 +399,21 @@ export function RallyHubClientDetailPage() {
                 placeholder="Acme Events"
               />
             </div>
-            <p className="text-muted-foreground text-sm">
-              Plan: {formatClientPlanLabel(billingPlan)} (
-              {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
-            </p>
+            {/* A demo org never bills, so a plan and period here would read
+                as money that is going to be charged. */}
+            {isDemoClient ? (
+              <p className="text-muted-foreground text-sm">
+                <span className="bg-muted text-muted-foreground mr-2 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+                  Demo
+                </span>
+                Demo account · no billing
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Plan: {formatClientPlanLabel(billingPlan)} (
+                {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
+              </p>
+            )}
             <p className="text-muted-foreground text-sm capitalize">
               Status: {accountStatus}
             </p>
@@ -423,10 +436,10 @@ export function RallyHubClientDetailPage() {
             </div>
           </div>
         ) : null}
-      </NeoCard>
+      </Card>
 
       {isCreateMode ? (
-        <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground font-semibold">Admin login</h3>
           <p className="text-muted-foreground text-sm">
             Creates the client&apos;s first admin user account.
@@ -457,9 +470,9 @@ export function RallyHubClientDetailPage() {
               />
             </div>
           </div>
-        </NeoCard>
+        </Card>
       ) : data ? (
-        <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <h3 className="text-foreground font-semibold">Admin login</h3>
           <p className="text-muted-foreground text-sm">
             The email address the client uses to sign in to their admin account.
@@ -489,10 +502,10 @@ export function RallyHubClientDetailPage() {
           >
             {adminResetSending ? 'Sending…' : 'Send Password Reset'}
           </NeoButton>
-        </NeoCard>
+        </Card>
       ) : null}
 
-      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
         <div>
           <NeoLabel htmlFor="tenant-url">Tenant URL</NeoLabel>
@@ -550,7 +563,7 @@ export function RallyHubClientDetailPage() {
               id="billing-plan"
               value={billingPlan}
               onChange={(e) => setBillingPlan(e.target.value)}
-              className="neo-field w-full px-3 py-2 text-sm"
+              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
             >
               {getAdminAssignablePlans().map((plan) => (
                 <option key={plan.id} value={plan.id}>
@@ -566,7 +579,7 @@ export function RallyHubClientDetailPage() {
               id="billing-period"
               value={billingPeriod}
               onChange={(e) => setBillingPeriod(e.target.value)}
-              className="neo-field w-full px-3 py-2 text-sm"
+              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
             >
               {BILLING_PERIODS.map((period) => (
                 <option key={period} value={period}>
@@ -584,7 +597,7 @@ export function RallyHubClientDetailPage() {
                 setAccountStatus(e.target.value)
                 if (e.target.value !== 'trial') setTrialEndsAt('')
               }}
-              className="neo-field w-full px-3 py-2 text-sm"
+              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -599,7 +612,7 @@ export function RallyHubClientDetailPage() {
               id="educational-status"
               value={educationalStatus}
               onChange={(e) => setEducationalStatus(e.target.value)}
-              className="neo-field w-full px-3 py-2 text-sm"
+              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
             >
               <option value="none">Not educational</option>
               <option value="pending">Pending review (requested)</option>
@@ -663,9 +676,9 @@ export function RallyHubClientDetailPage() {
             <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
           </span>
         </label>
-      </NeoCard>
+      </Card>
 
-      <NeoCard className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
         <h3 className="text-foreground text-lg font-semibold">Company details</h3>
         <div className="space-y-2">
           <NeoLabel htmlFor="vat">VAT number</NeoLabel>
@@ -725,10 +738,10 @@ export function RallyHubClientDetailPage() {
             />
           </div>
         </div>
-      </NeoCard>
+      </Card>
 
       {!isCreateMode && data ? (
-        <NeoCard className="border-border/80 bg-card p-6 shadow-sm">
+        <Card className="border-border/80 bg-card p-6 shadow-sm">
           <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
           {orgUsersQuery.isLoading ? (
             <p className="text-muted-foreground text-sm">Loading users…</p>
@@ -762,10 +775,10 @@ export function RallyHubClientDetailPage() {
               })}
             </ul>
           )}
-        </NeoCard>
+        </Card>
       ) : null}
 
-      <NeoCard className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
+      <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
         <NeoLabel htmlFor="internal-notes">Internal notes</NeoLabel>
         <NeoTextarea
           id="internal-notes"
@@ -774,52 +787,66 @@ export function RallyHubClientDetailPage() {
           rows={5}
           className="w-full px-3 py-2 text-sm"
         />
-      </NeoCard>
+      </Card>
 
       {!isCreateMode && clientId ? (
-        <NeoCard className="space-y-4 border-red-300/60 bg-card p-6 shadow-sm dark:border-red-900/60">
-          <div className="space-y-1">
-            <h3 className="text-foreground font-semibold">Danger zone</h3>
-            <p className="text-muted-foreground text-sm">
-              Download a full data export before deleting. Deleting a client permanently
-              removes its organisation, events, teams, submissions, media, and user accounts
-              from Supabase. This cannot be undone.
-            </p>
-            {deletionRequestQuery.data ? (
-              <p className="text-destructive text-sm font-medium">
-                The client requested account deletion. Automatic cleanup is scheduled for{' '}
-                {new Intl.DateTimeFormat('en-GB', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }).format(new Date(deletionRequestQuery.data.scheduled_for))}.
-              </p>
-            ) : null}
-          </div>
-          {dangerError ? <QueryError message={dangerError} /> : null}
-          <div className="flex flex-wrap gap-2">
-            <NeoButton
-              variant="surface"
-              disabled={downloading}
-              onClick={() => void handleDownloadData()}
-            >
-              {downloading ? 'Preparing…' : 'Download data'}
-            </NeoButton>
-            <NeoButton
-              variant="destructive"
-              disabled={deleteClient.isPending}
-              onClick={() => setDeleteOpen(true)}
-            >
-              Delete client
-            </NeoButton>
-          </div>
-        </NeoCard>
+        // The shared Danger Zone, so this reads the same as Organisation,
+        // My Account and the event editor.
+        <DangerZone
+          notice={
+            <>
+              {deletionRequestQuery.data ? (
+                <p className="text-destructive text-sm font-medium">
+                  The client requested account deletion. Automatic cleanup is scheduled for{' '}
+                  {new Intl.DateTimeFormat('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  }).format(new Date(deletionRequestQuery.data.scheduled_for))}.
+                </p>
+              ) : null}
+              {dangerError ? <QueryError message={dangerError} /> : null}
+            </>
+          }
+          rows={[
+            {
+              id: 'download-client-data',
+              label: 'Download client data',
+              description:
+                'A full export of the organisation, its events, teams, submissions and media. Take one before deleting.',
+              action: (
+                <NeoButton
+                  variant="surface"
+                  disabled={downloading}
+                  onClick={() => void handleDownloadData()}
+                >
+                  {downloading ? 'Preparing…' : 'Download'}
+                </NeoButton>
+              ),
+            },
+            {
+              id: 'delete-client',
+              label: 'Delete this client',
+              description:
+                'Permanently removes the organisation, its events, teams, submissions, media and user accounts. This cannot be undone.',
+              action: (
+                <NeoButton
+                  variant="destructive"
+                  disabled={deleteClient.isPending}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Delete
+                </NeoButton>
+              ),
+            },
+          ]}
+        />
       ) : null}
     </div>
   )
 
   return (
-    <NeoPageShell
+    <AdminPageShell
       title={displayName}
       subtitle={
         isCreateMode
@@ -843,13 +870,27 @@ export function RallyHubClientDetailPage() {
       {activeTab === 'info' ? clientInfoTab : null}
 
       {activeTab === 'billing' && showBillingAndEvents && data && clientId ? (
-        <BillingOverview
-          organizationId={clientId}
-          billingPlan={billingPlan}
-          billingPeriod={billingPeriod}
-          paddleSubscriptionId={data.org.paddle_subscription_id}
-          showAdminSummary
-        />
+        // A demo org's invoices are seeded so its own billing screen has
+        // something in it. Showing them here would put imaginary money in
+        // front of whoever is reviewing the account.
+        isDemoClient ? (
+          <Card className="border-border/80 bg-card space-y-2 p-6 shadow-sm">
+            <h3 className="text-foreground text-sm font-bold">Demo account</h3>
+            <p className="text-muted-foreground text-sm">
+              Nothing here is charged. This organisation runs the public demo, and the
+              invoices on its own billing screen are sample data so the screen is not
+              empty. It is excluded from Payments and from platform revenue.
+            </p>
+          </Card>
+        ) : (
+          <BillingOverview
+            organizationId={clientId}
+            billingPlan={billingPlan}
+            billingPeriod={billingPeriod}
+            paddleSubscriptionId={data.org.paddle_subscription_id}
+            showAdminSummary
+          />
+        )
       ) : null}
 
       {activeTab === 'events' && showBillingAndEvents && data ? (
@@ -923,6 +964,6 @@ export function RallyHubClientDetailPage() {
         </div>,
         document.body,
       ) : null}
-    </NeoPageShell>
+    </AdminPageShell>
   )
 }

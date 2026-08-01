@@ -36,16 +36,25 @@ export function ClientDetailTabs({
 
   if (visibleTabs.length <= 1) return null
 
+  // The tab strip used across the admin panel: centred, underlined, no pills.
   return (
-    <div className="neo-tabs mb-8 flex border-b">
+    <div
+      className="border-border mb-6 flex items-center justify-center gap-6 border-b"
+      role="tablist"
+      aria-label="Client sections"
+    >
       {visibleTabs.map(({ id, label }) => (
         <button
           key={id}
           type="button"
+          role="tab"
+          aria-selected={activeTab === id}
           onClick={() => onTabChange(id)}
           className={cn(
-            'neo-tab -mb-px px-4 py-2 text-sm',
-            activeTab === id ? 'neo-tab-active' : undefined,
+            'relative px-1 pb-3 text-sm font-semibold transition-colors',
+            activeTab === id
+              ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5'
+              : 'text-muted-foreground hover:text-foreground',
           )}
         >
           {label}
