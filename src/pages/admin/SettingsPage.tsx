@@ -36,7 +36,7 @@ import {
 import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
-import { countryOptions } from '@/lib/countries'
+import { countryOptions, postcodeExample, validatePostcode } from '@/lib/countries'
 import { downloadClientPackage } from '@/lib/client-export'
 import {
   ALLOWED_IMAGE_UPLOAD_LABEL,
@@ -95,6 +95,7 @@ export function AdminSettingsPage() {
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
+  const postcodeError = validatePostcode(form.address_country, form.address_postal)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -435,23 +436,39 @@ export function AdminSettingsPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="address-city">City</Label>
-                    <Input id="address-city" value={form.address_city} onChange={(event) => setForm({ ...form, address_city: event.target.value })} placeholder="Valletta" />
+                    {/* Same control shape as Country, but with no options to
+                        offer yet: there is no city list in the app and no
+                        sensible static one to ship. Logged in the work plan as
+                        needing a places API before it can suggest anything. */}
+                    <Input
+                      id="address-city"
+                      list="address-city-options"
+                      value={form.address_city}
+                      onChange={(event) => setForm({ ...form, address_city: event.target.value })}
+                      placeholder="Valletta"
+                      autoComplete="address-level2"
+                    />
+                    <datalist id="address-city-options" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="address-country">Country</Label>
-                    <select
+                    {/* Input plus datalist rather than a select: the list is
+                        still there to pick from, but typing filters it, which is
+                        faster than scrolling forty countries. Native, so it
+                        keeps the browser's keyboard behaviour. */}
+                    <Input
                       id="address-country"
+                      list="address-country-options"
                       value={form.address_country}
                       onChange={(event) => setForm({ ...form, address_country: event.target.value })}
-                      className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                    >
-                      <option value="">Select a country…</option>
+                      placeholder="Start typing or pick from the list"
+                      autoComplete="country-name"
+                    />
+                    <datalist id="address-country-options">
                       {countryOptions(form.address_country).map((country) => (
-                        <option key={country} value={country}>
-                          {country}
-                        </option>
+                        <option key={country} value={country} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -461,7 +478,22 @@ export function AdminSettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="address-postal">Post Code</Label>
-                    <Input id="address-postal" value={form.address_postal} onChange={(event) => setForm({ ...form, address_postal: event.target.value })} placeholder="VLT 1234" />
+                    {/* Format checked against the chosen country. Advisory, not
+                        blocking: it catches a UK code typed into a German
+                        address, but a real postcode lookup is a separate job. */}
+                    <Input
+                      id="address-postal"
+                      value={form.address_postal}
+                      onChange={(event) => setForm({ ...form, address_postal: event.target.value })}
+                      placeholder={postcodeExample(form.address_country) || 'VLT 1234'}
+                      aria-invalid={postcodeError ? true : undefined}
+                      aria-describedby={postcodeError ? 'address-postal-error' : undefined}
+                    />
+                    {postcodeError ? (
+                      <p id="address-postal-error" className="text-destructive text-xs">
+                        {postcodeError}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <Button type="button" variant="outline" className="w-full" asChild>

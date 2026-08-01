@@ -226,6 +226,27 @@ feature. It needs a role or flag on the membership, RLS that blocks activation
 and archiving for it, a seat cap, and a billing decision. That is a feature, not
 a design task.
 
+## City suggestions: needs a data source, 1 Aug 2026
+
+Rumen asked for City to be a dropdown like Country. Country became an input
+with a datalist, so it can be typed or picked. City uses the same control but
+offers nothing, because there is no list to offer.
+
+There is no honest static city list to ship. Even limited to the 40 countries
+the app supports, that is tens of thousands of names, and any subset we picked
+would omit the town a given client is actually in, which is worse than a plain
+text field because it implies the list is complete.
+
+To make it suggest, it needs a places API (Google Places, Mapbox, or similar)
+queried per keystroke and filtered by the chosen country. That is a key, a
+network dependency, a cost per lookup and a debounce. Worth doing, but a feature
+rather than a design change.
+
+Postcode format validation landed instead, in `src/lib/countries.ts`, covering
+all 40 countries with a per-country pattern and example. It is advisory: it
+catches a UK code typed into a German address, but a string can match the
+pattern and still not exist. Real verification is the same places API job.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.

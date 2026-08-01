@@ -337,16 +337,16 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
         )}
         {/* Sits under the last row, so adding reads as continuing the list. */}
         <div className="border-border border-t px-4 py-3">
-          <Button
+          <NeoButton
             type="button"
-            variant="outline"
+            variant="accent"
             size="sm"
             onClick={openUserModal}
             data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
           >
             <Plus className="size-4" />
             {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
-          </Button>
+          </NeoButton>
         </div>
       </Card>
 
