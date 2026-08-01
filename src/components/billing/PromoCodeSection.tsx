@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { QueryError } from '@/components/admin/QueryState'
-import { Button } from '@/components/ui/button'
+import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useNotification } from '@/contexts/notification-context'
@@ -79,13 +79,14 @@ export function PromoCodeSection({ organizationId, allowAdd = false }: PromoCode
                 }}
               />
             </div>
-            <Button
+            <NeoButton
               type="button"
+              variant="accent"
               disabled={redeem.isPending || !code.trim()}
               onClick={() => void handleAdd()}
             >
               {redeem.isPending ? 'Adding…' : 'Add code'}
-            </Button>
+            </NeoButton>
           </div>
         ) : null}
 

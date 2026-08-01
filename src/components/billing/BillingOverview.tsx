@@ -215,7 +215,7 @@ export function BillingOverview({
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
 
           {showAvailablePlans ? (
-            <div className="border-border flex flex-wrap gap-2 border-t pt-3">
+            <div className="border-border flex flex-wrap justify-center gap-2 border-t pt-3">
               {!paddleSubscriptionId && canStartSubscription ? (
                 <NeoButton
                   variant="accent"
@@ -235,7 +235,9 @@ export function BillingOverview({
                 <CreditCard className="size-4" aria-hidden />
                 {openingPortal ? 'Opening…' : 'Manage billing details'}
               </NeoButton>
-              <NeoButton variant="surface" size="sm" onClick={() => setPlansOpen(true)}>
+              {/* Gold: comparing plans is the action worth drawing the eye to
+                  on this card. */}
+              <NeoButton variant="accent" size="sm" onClick={() => setPlansOpen(true)}>
                 View other plans
               </NeoButton>
             </div>
