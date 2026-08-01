@@ -312,18 +312,10 @@
     background: var(--nm-charcoal);
     color: #faf7f3;
     border-color: color-mix(in srgb, var(--nm-charcoal) 88%, black);
-    box-shadow: var(--nm-shadow-raised);
   }
 
   .neo-minimal-scope .neo-btn-primary:hover:not(:disabled) {
     background: color-mix(in srgb, var(--nm-charcoal) 92%, black);
-    box-shadow: var(--nm-shadow-raised);
-    transform: translateY(-1px);
-  }
-
-  .neo-minimal-scope .neo-btn-primary:active:not(:disabled) {
-    box-shadow: var(--nm-shadow-pressed);
-    transform: translateY(0);
   }
 
   /* Accent — sparing yellow hero CTA (one per screen) */
@@ -331,36 +323,18 @@
     background: color-mix(in srgb, var(--nm-yellow) 88%, white);
     color: var(--nm-charcoal);
     border-color: color-mix(in srgb, var(--nm-yellow) 55%, var(--nm-border));
-    box-shadow: var(--nm-shadow-raised);
   }
 
   .neo-minimal-scope .neo-btn-accent:hover:not(:disabled) {
     background: var(--nm-yellow);
-    box-shadow: var(--nm-shadow-accent);
-    transform: translateY(-1px);
-  }
-
-  .neo-minimal-scope .neo-btn-accent:active:not(:disabled) {
-    box-shadow: var(--nm-shadow-pressed);
-    transform: translateY(0);
   }
 
   .neo-minimal-scope .neo-btn-surface {
     background: var(--nm-bg-elevated);
     color: var(--nm-text-primary);
     border-color: var(--nm-border);
-    box-shadow: var(--nm-shadow-soft);
   }
 
-  .neo-minimal-scope .neo-btn-surface:hover:not(:disabled) {
-    box-shadow: var(--nm-shadow-raised);
-    transform: translateY(-1px);
-  }
-
-  .neo-minimal-scope .neo-btn-surface:active:not(:disabled) {
-    box-shadow: var(--nm-shadow-pressed);
-    transform: translateY(0);
-  }
 
   .neo-minimal-scope .neo-btn-ghost {
     background: transparent;
@@ -378,18 +352,10 @@
     background: var(--nm-bg-elevated);
     color: #9b4444;
     border-color: color-mix(in srgb, #9b4444 22%, var(--nm-border));
-    box-shadow: var(--nm-shadow-soft);
   }
 
   .neo-minimal-scope .neo-btn-destructive:hover:not(:disabled) {
     background: color-mix(in srgb, #9b4444 8%, var(--nm-bg-elevated));
-    box-shadow: var(--nm-shadow-raised);
-    transform: translateY(-1px);
-  }
-
-  .neo-minimal-scope .neo-btn-destructive:active:not(:disabled) {
-    box-shadow: var(--nm-shadow-pressed);
-    transform: translateY(0);
   }
 
   .neo-minimal-scope .neo-btn-sm {
