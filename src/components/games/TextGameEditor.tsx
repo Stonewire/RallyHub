@@ -1,7 +1,7 @@
 import { IconPlus, IconTrash } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
 
-import { FlipSwitch } from '@/components/neo-minimal'
+import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -46,27 +46,40 @@ export function TextGameEditor({
 
   return (
     <Card className="border-border/80 space-y-5 bg-card p-6 shadow-sm">
-      <div className="flex flex-wrap items-start gap-8">
-        <FlipSwitch
-          caption="Game style"
-          offValue="type_text"
-          onValue="choose_answer"
-          offLabel="Type"
-          onLabel="Choose"
-          value={mode}
-          onChange={(next) => setMode(next)}
-        />
-        <FlipSwitch
-          caption="Approval"
-          offValue="auto"
-          onValue="review"
-          offLabel="Auto"
-          onLabel="Review"
-          value={config.text_approval_mode === 'auto' ? 'auto' : 'review'}
-          onChange={(next) =>
-            setConfig((c) => ({ ...c, text_approval_mode: next }))
-          }
-        />
+      {/* Pills, not flip switches: each is a choice between two named modes
+          rather than an on/off, and the label sits on the same line to save a
+          row apiece. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex items-center gap-3">
+          <Label className="shrink-0">Game style</Label>
+          <SegmentedPill
+            size="sm"
+            className="flex-1"
+            aria-label="Game style"
+            options={[
+              { value: 'type_text', label: 'Type' },
+              { value: 'choose_answer', label: 'Choose' },
+            ]}
+            value={mode}
+            onChange={(next) => setMode(next as typeof mode)}
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <Label className="shrink-0">Approval</Label>
+          <SegmentedPill
+            size="sm"
+            className="flex-1"
+            aria-label="Approval"
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'review', label: 'Review' },
+            ]}
+            value={config.text_approval_mode === 'auto' ? 'auto' : 'review'}
+            onChange={(next) =>
+              setConfig((c) => ({ ...c, text_approval_mode: next as 'auto' | 'review' }))
+            }
+          />
+        </div>
       </div>
       <p className="text-muted-foreground text-xs">
         {config.text_approval_mode === 'auto'

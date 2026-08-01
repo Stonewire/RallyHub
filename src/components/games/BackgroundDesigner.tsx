@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { AssetField } from '@/components/games/AssetField'
 import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
-import { FlipSwitch, NeoButton } from '@/components/neo-minimal'
+import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import type { GameConfig } from '@/types/game-config'
 
@@ -77,16 +77,19 @@ export function BackgroundDesigner({
     <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-foreground text-sm font-bold">Background Designer</h3>
-        <FlipSwitch
-          offValue="image"
-          onValue="colours"
-          offLabel="Image"
-          onLabel="Colours"
+        <SegmentedPill
+          size="sm"
+          className="w-44"
+          aria-label="Background type"
+          options={[
+            { value: 'image', label: 'Image' },
+            { value: 'colours', label: 'Colours' },
+          ]}
           value={usingImage ? 'image' : 'colours'}
           onChange={(next) =>
             // The upload survives the switch, so the organiser can compare the
             // two and settle on one without having to re-upload the image.
-            setConfig((c) => ({ ...c, background_mode: next }))
+            setConfig((c) => ({ ...c, background_mode: next as 'image' | 'colours' }))
           }
         />
       </div>

@@ -7,6 +7,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { AssetField } from '@/components/games/AssetField'
+import { GameFormLayout } from '@/components/games/GameFormLayout'
 import { PhotoVideoFields } from '@/components/games/PhotoVideoFields'
 import { PointsEditor } from '@/components/games/PointsEditor'
 import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
@@ -312,35 +313,9 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
     </>
   )
 
-  const body = (
-    <>
-      <GamePreviewModal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        gameType={gameType}
-        name={name}
-        coverUrl={coverUrl}
-        config={config}
-      />
-      {error ? (
-        <p className="text-destructive mb-4 text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      <div className="space-y-8">
-        {gameType === 'photo' || gameType === 'video' ? null : (
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <div className="space-y-2">
-            <Label>Game name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
-          </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <RichTextEditor value={description} onChange={setDescription} />
-          </div>
-          {/* Group membership lives here now that the card footer shows groups
-              as read-only text. Many-to-many, which the table always allowed. */}
+  const groupsCard = (
+    <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
+      <h3 className="text-foreground text-sm font-bold">Groups</h3>
           <div className="space-y-2">
             <Label>Groups</Label>
             {gameGroups.length === 0 ? (
@@ -374,8 +349,76 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
               </div>
             )}
           </div>
+    </Card>
+  )
+
+  const body = (
+    <>
+      <GamePreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        gameType={gameType}
+        name={name}
+        coverUrl={coverUrl}
+        config={config}
+      />
+      {error ? (
+        <p className="text-destructive mb-4 text-sm" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="space-y-8">
+        {gameType === 'photo' || gameType === 'video' ? (
+          <PhotoVideoFields
+            gameType={gameType}
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            coverUrl={coverUrl}
+            setCoverUrl={setCoverUrl}
+            onUploadCover={(file) => uploadGameFile(organizationId, `covers/${gameId}`, file)}
+            pointsType={pointsType}
+            setPointsType={setPointsType}
+            pointsStatic={pointsStatic}
+            setPointsStatic={setPointsStatic}
+            pointsMin={pointsMin}
+            setPointsMin={setPointsMin}
+            pointsMax={pointsMax}
+            setPointsMax={setPointsMax}
+            exampleVideoUrl={exampleVideoUrl}
+            setExampleVideoUrl={setExampleVideoUrl}
+            onUploadVideo={(file) => uploadGameFile(organizationId, `videos/${newGameId()}`, file)}
+            videoMaxMinutes={videoMaxMinutes}
+            setVideoMaxMinutes={setVideoMaxMinutes}
+            videoMaxSeconds={videoMaxSeconds}
+            setVideoMaxSeconds={setVideoMaxSeconds}
+            solutionDescription={solutionDescription}
+            setSolutionDescription={setSolutionDescription}
+            solutionImageUrl={solutionImageUrl}
+            setSolutionImageUrl={setSolutionImageUrl}
+            onUploadSolution={(file) => uploadGameFile(organizationId, `solutions/${newGameId()}`, file)}
+            config={config}
+            setConfig={setConfig}
+            singleColumn={singleColumn}
+            groupsCard={groupsCard}
+          />
+        ) : null}
+
+        {gameType === 'photo' || gameType === 'video' ? null : (
+          <GameFormLayout groupsCard={groupsCard} singleColumn={singleColumn}>
+        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
+          <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+          <div className="space-y-2">
+            <Label>Game name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <RichTextEditor value={description} onChange={setDescription} />
+          </div>
         </Card>
-        )}
 
         {gameType === 'quiz' ? (
           <>
@@ -512,79 +555,8 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
           </>
         ) : null}
 
-        {gameType === 'photo' || gameType === 'video' ? (
-          <PhotoVideoFields
-            gameType={gameType}
-            name={name}
-            setName={setName}
-            description={description}
-            setDescription={setDescription}
-            coverUrl={coverUrl}
-            setCoverUrl={setCoverUrl}
-            onUploadCover={(file) => uploadGameFile(organizationId, `covers/${gameId}`, file)}
-            pointsType={pointsType}
-            setPointsType={setPointsType}
-            pointsStatic={pointsStatic}
-            setPointsStatic={setPointsStatic}
-            pointsMin={pointsMin}
-            setPointsMin={setPointsMin}
-            pointsMax={pointsMax}
-            setPointsMax={setPointsMax}
-            exampleVideoUrl={exampleVideoUrl}
-            setExampleVideoUrl={setExampleVideoUrl}
-            onUploadVideo={(file) => uploadGameFile(organizationId, `videos/${newGameId()}`, file)}
-            videoMaxMinutes={videoMaxMinutes}
-            setVideoMaxMinutes={setVideoMaxMinutes}
-            videoMaxSeconds={videoMaxSeconds}
-            setVideoMaxSeconds={setVideoMaxSeconds}
-            solutionDescription={solutionDescription}
-            setSolutionDescription={setSolutionDescription}
-            solutionImageUrl={solutionImageUrl}
-            setSolutionImageUrl={setSolutionImageUrl}
-            onUploadSolution={(file) => uploadGameFile(organizationId, `solutions/${newGameId()}`, file)}
-            config={config}
-            setConfig={setConfig}
-            singleColumn={singleColumn}
-            groupsCard={
-              <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
-              <h3 className="text-foreground text-sm font-bold">Groups</h3>
-          <div className="space-y-2">
-            <Label>Groups</Label>
-            {gameGroups.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No groups yet. Create one from the Games library.
-              </p>
-            ) : (
-              <div className="border-border max-h-44 space-y-1 overflow-auto rounded-md border p-2">
-                {gameGroups.map((group) => (
-                  <label
-                    key={group.id}
-                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGroupIds.has(group.id)}
-                      onChange={() => {
-                        const next = new Set(selectedGroupIds)
-                        if (next.has(group.id)) next.delete(group.id)
-                        else next.add(group.id)
-                        void setGameGroups
-                          .mutateAsync({ gameId, groupIds: [...next] })
-                          .catch((err) =>
-                            setError(err instanceof Error ? err.message : 'Could not update groups'),
-                          )
-                      }}
-                    />
-                    <span className="min-w-0 flex-1 truncate">{group.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-            </Card>
-            }
-          />
-        ) : null}
+          </GameFormLayout>
+        )}
       </div>
 
 
