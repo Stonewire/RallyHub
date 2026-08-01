@@ -2,7 +2,6 @@ import {
   Check,
   Copy,
   Download,
-  FileDown,
   ImagePlus,
   PackageOpen,
   Pencil,
@@ -15,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   type InventoryItem,
@@ -52,7 +52,6 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
   const saveItem = useSaveInventoryItem(organizationId)
   const deleteItem = useDeleteInventoryItem(organizationId)
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<InventoryItem | null | undefined>(undefined)
   const [pendingDelete, setPendingDelete] = useState<InventoryItem | null>(null)
   const [form, setForm] = useState<ItemForm>(EMPTY_FORM)
@@ -70,7 +69,6 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
         item.description?.toLowerCase().includes(query),
     )
   }, [items, search])
-  const selectedItems = items.filter((item) => selected.has(item.id))
 
   const preview = useMemo(
     () => (form.image ? URL.createObjectURL(form.image) : null),
@@ -130,11 +128,6 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
     setError(null)
     try {
       await deleteItem.mutateAsync(pendingDelete)
-      setSelected((current) => {
-        const next = new Set(current)
-        next.delete(pendingDelete.id)
-        return next
-      })
       setPendingDelete(null)
       setMessage('Item deleted. Existing purchase records remain in the event history.')
     } catch (reason) {
@@ -158,20 +151,11 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
     }
   }
 
-  function toggleSelected(id: string) {
-    setSelected((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
   if (itemsQuery.isLoading) return <QueryLoading rows={6} />
   if (itemsQuery.isError) return <QueryError message={itemsQuery.error.message} />
 
   return (
-    <div className="space-y-5">
+    <div className={editing !== undefined ? "space-y-5 xl:pr-[36rem]" : "space-y-5"}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-foreground text-lg font-semibold">Inventory Library</h2>
@@ -180,15 +164,6 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <NeoButton
-            type="button"
-            variant="surface"
-            disabled={selectedItems.length === 0 || exporting}
-            onClick={() => void exportPdf(selectedItems)}
-          >
-            <FileDown className="size-4" />
-            Export selected {selectedItems.length ? `(${selectedItems.length})` : ''}
-          </NeoButton>
           <NeoButton
             type="button"
             variant="surface"
@@ -215,36 +190,17 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
         <p className="text-destructive text-sm" role="alert">{error}</p>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Same shape as the Games Library toolbar: one h-9 search, nothing else. */}
+      <div className="border-border/70 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <NeoInput
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search inventory…"
-            className="pl-9"
+            className="h-9 pl-9 text-xs"
           />
         </div>
-        {filtered.length > 0 ? (
-          <label className="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={filtered.every((item) => selected.has(item.id))}
-              onChange={(event) => {
-                setSelected((current) => {
-                  const next = new Set(current)
-                  for (const item of filtered) {
-                    if (event.target.checked) next.add(item.id)
-                    else next.delete(item.id)
-                  }
-                  return next
-                })
-              }}
-              className="size-4 accent-amber-400"
-            />
-            Select visible
-          </label>
-        ) : null}
       </div>
 
       {items.length === 0 ? (
@@ -259,59 +215,74 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center"><p className="text-muted-foreground text-sm">No matching items.</p></Card>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        // Same grid as the Games Library so the two tabs read as one system.
+        // Actions are icons for the same reason a game card uses icons: four
+        // labelled buttons cannot fit a 9rem card.
+        <div className="grid auto-rows-fr grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
           {filtered.map((item) => {
             const link = getInventoryItemLink(item.public_code)
             return (
-              <Card key={item.id} className="border-border/80 p-4 shadow-sm">
-                <div className="flex gap-4">
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${item.name}`}
-                    checked={selected.has(item.id)}
-                    onChange={() => toggleSelected(item.id)}
-                    className="mt-1 size-4 shrink-0 accent-amber-400"
-                  />
+              <Card
+                key={item.id}
+                className="border-border/80 flex flex-col overflow-hidden p-0 shadow-sm"
+              >
+                <div className="bg-muted relative aspect-[4/3] w-full shrink-0">
                   {item.image_url ? (
-                    <img src={item.image_url} alt="" className="size-24 shrink-0 rounded-lg object-cover" />
+                    <img src={item.image_url} alt="" className="size-full object-cover" />
                   ) : (
-                    <div className="bg-muted text-muted-foreground flex size-24 shrink-0 items-center justify-center rounded-lg">
-                      <PackageOpen className="size-8" />
+                    <div className="text-muted-foreground flex size-full items-center justify-center">
+                      <PackageOpen className="size-7" />
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="truncate font-semibold">{item.name}</h3>
-                        <span className="mt-1 inline-block rounded-full bg-amber-300 px-2.5 py-1 text-xs font-bold text-neutral-900">
-                          {item.points_cost} points
-                        </span>
-                      </div>
-                      <img src={qrCodeUrl(link, 160)} alt={`QR code for ${item.name}`} className="size-20 rounded border bg-white p-1" />
-                    </div>
-                    {item.description ? <p className="text-muted-foreground mt-2 line-clamp-2 text-sm">{item.description}</p> : null}
-                  </div>
+                  <img
+                    src={qrCodeUrl(link, 120)}
+                    alt={`QR code for ${item.name}`}
+                    className="absolute right-1 bottom-1 size-9 rounded border bg-white p-0.5"
+                  />
                 </div>
-                <div className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3">
-                  <NeoButton
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void navigator.clipboard.writeText(link)
-                      .then(() => setMessage('Item link copied.'))
-                      .catch(() => setError('Could not copy the item link.'))}
-                  >
-                    <Copy className="size-4" /> Copy link
-                  </NeoButton>
-                  <NeoButton type="button" size="sm" variant="surface" onClick={() => void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))}>
-                    <Download className="size-4" /> QR PNG
-                  </NeoButton>
-                  <NeoButton type="button" size="sm" variant="surface" onClick={() => openEdit(item)}>
-                    <Pencil className="size-4" /> Edit
-                  </NeoButton>
-                  <NeoButton type="button" size="sm" variant="destructive" onClick={() => { setError(null); setPendingDelete(item) }}>
-                    <Trash2 className="size-4" /> Delete
-                  </NeoButton>
+                <div className="flex min-w-0 flex-1 flex-col gap-1 p-2">
+                  <h3 className="truncate text-xs font-semibold">{item.name}</h3>
+                  <span className="text-primary text-xs font-bold">{item.points_cost} pts</span>
+                  <div className="mt-auto flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      title="Copy item link"
+                      aria-label={`Copy link for ${item.name}`}
+                      className="text-muted-foreground hover:text-foreground p-1"
+                      onClick={() => void navigator.clipboard.writeText(link)
+                        .then(() => setMessage('Item link copied.'))
+                        .catch(() => setError('Could not copy the item link.'))}
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Download QR PNG"
+                      aria-label={`Download QR code for ${item.name}`}
+                      className="text-muted-foreground hover:text-foreground p-1"
+                      onClick={() => void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))}
+                    >
+                      <Download className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Edit item"
+                      aria-label={`Edit ${item.name}`}
+                      className="text-muted-foreground hover:text-foreground p-1"
+                      onClick={() => openEdit(item)}
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete item"
+                      aria-label={`Delete ${item.name}`}
+                      className="text-destructive p-1 hover:opacity-70"
+                      onClick={() => { setError(null); setPendingDelete(item) }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
               </Card>
             )
@@ -319,12 +290,23 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
         </div>
       )}
 
+      {/* Side panel, not a modal, matching GameEditPanel: the list stays visible
+          and clicking another item just swaps the panel contents. */}
       {editing !== undefined ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title">
-          <Card className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto p-6 shadow-xl">
-            <div>
-              <h3 id="inventory-item-title" className="text-lg font-semibold">{editing ? 'Edit item' : 'Add inventory item'}</h3>
-              <p className="text-muted-foreground mt-1 text-sm">The QR code will always use the current name, description, and point cost.</p>
+        <div
+          className="border-nm-slate-800 bg-background fixed inset-y-0 right-0 z-40 flex w-full max-w-[35rem] flex-col overflow-y-auto border-l-2 p-6 shadow-2xl"
+          role="dialog"
+          aria-labelledby="inventory-item-title"
+        >
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 id="inventory-item-title" className="text-lg font-semibold">{editing ? 'Edit item' : 'Add inventory item'}</h3>
+                <p className="text-muted-foreground mt-1 text-sm">The QR code will always use the current name, description, and point cost.</p>
+              </div>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={() => setEditing(undefined)}>
+                <X className="size-4" />
+              </Button>
             </div>
             <div className="space-y-2">
               <NeoLabel htmlFor="inventory-name">Name *</NeoLabel>
@@ -357,7 +339,7 @@ export function InventoryLibraryManager({ organizationId }: { organizationId: st
               <NeoButton type="button" variant="surface" disabled={saveItem.isPending} onClick={() => setEditing(undefined)}>Cancel</NeoButton>
               <NeoButton type="button" variant="primary" disabled={saveItem.isPending} onClick={() => void submit()}>{saveItem.isPending ? 'Saving…' : 'Save item'}</NeoButton>
             </div>
-          </Card>
+          </div>
         </div>
       ) : null}
 
