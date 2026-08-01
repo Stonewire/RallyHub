@@ -123,8 +123,35 @@ Rules while running unattended:
 
 ### Answered by assumption so far
 
-Nothing yet. Entries get appended below as they arise, each as:
-question, assumption taken, and how to reverse it.
+**1. Billing "Upgrade" button target.**
+Question: the design shows Upgrade on each plan card, but self-serve plan
+switching is gated behind `PLAN_CHANGES_ENABLED` and is currently off.
+Assumption: Upgrade scrolls to the existing Change subscription form rather
+than starting its own checkout, so the button never silently does nothing.
+Reverse by: pointing it at a real upgrade flow once plan changes are enabled.
+
+**2. Invoice total column wording.**
+Question: the design's column reads "Total (incl. VAT)", but the app states
+"All prices exclude VAT" in three places.
+Assumption: the column says "Total", trusting the code per the locked pricing
+decision. Reverse by: changing the label if prices really are VAT-inclusive,
+which would also mean correcting the three disclaimers.
+
+**3. Country storage format.**
+Question: store the country as an ISO code or a display name.
+Assumption: names, because that is what `address_country` already holds and
+what invoice exports print, so codes would need a data migration for no
+visible gain. Values not on the list are preserved rather than blanked.
+Reverse by: a migration mapping names to codes.
+
+**4. Crossword direction control.**
+Question: the design shows one Across/Down/Block pill; the editor uses a
+Word/Block tool plus a contextual Across/Down step that only appears once a
+run exists.
+Assumption: keep the two-step model and only unify its styling, because
+direction is meaningless before a cell is picked, and reworking it would
+change puzzle authoring behaviour Rumen said he wants to walk through.
+Reverse by: reworking the crossword editor's interaction model deliberately.
 
 ## Open question for Rumen
 

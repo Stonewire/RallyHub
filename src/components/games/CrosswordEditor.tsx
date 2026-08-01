@@ -1,7 +1,8 @@
-import { ArrowDown, ArrowRight, Check, Eraser, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, Check, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
+import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -285,23 +286,24 @@ export function CrosswordEditor({
         </p>
       </div>
 
-      <div className="flex gap-1">
-        <Button
-          type="button"
+      {/* Design shows a single Across/Down/Block pill. The editor keeps its
+          two-step model (pick a tool, then a direction once a run exists),
+          because direction is only meaningful after a cell is chosen. Logged
+          in the work plan as a deliberate interaction difference. */}
+      <div className="mx-auto w-fit min-w-64">
+        <SegmentedPill
           size="sm"
-          variant={tool === 'word' ? 'default' : 'outline'}
-          onClick={() => { setTool('word'); cancelDraft() }}
-        >
-          <Pencil className="mr-1 size-4" /> Word
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={tool === 'block' ? 'default' : 'outline'}
-          onClick={() => { setTool('block'); cancelDraft() }}
-        >
-          <Eraser className="mr-1 size-4" /> Block
-        </Button>
+          aria-label="Crossword tool"
+          options={[
+            { value: 'word', label: 'Word' },
+            { value: 'block', label: 'Block' },
+          ]}
+          value={tool}
+          onChange={(next) => {
+            setTool(next)
+            cancelDraft()
+          }}
+        />
       </div>
 
       <div className="mx-auto grid w-fit grid-cols-6 gap-1">

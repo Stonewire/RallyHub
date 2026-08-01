@@ -9,7 +9,14 @@ import {
 import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
 import { SupportTicketThread } from '@/components/admin/SupportTicketThread'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { NeoButton, NeoCard, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
+import {
+  NeoButton,
+  NeoCard,
+  NeoInput,
+  NeoLabel,
+  NeoTextarea,
+  SegmentedPill,
+} from '@/components/neo-minimal'
 import {
   useCreateSupportTicket,
   useSupportTickets,
@@ -72,27 +79,27 @@ export function AdminSupportPage() {
       subtitle="If you have any issues or questions, our support team will get back to you within 24 hours."
       centeredHeader
     >
-      <div className="mx-auto mb-6 grid w-fit grid-cols-2 rounded-full bg-nm-slate-800 p-1">
-        <button
-          type="button"
-          className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${showNewForm ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
-          onClick={() => {
-            setShowNewForm(true)
-            setSelectedId(null)
-          }}
-        >
-          New Ticket
-        </button>
-        <button
-          type="button"
-          className={`rounded-full px-5 py-2 text-xs font-semibold transition-colors ${!showNewForm ? 'bg-primary text-primary-foreground' : 'text-nm-slate-200 hover:text-white'}`}
-          onClick={() => {
+      <div className="mx-auto mb-6 w-fit min-w-72">
+        <SegmentedPill
+          aria-label="Support view"
+          options={[
+            { value: 'new', label: 'New Ticket' },
+            {
+              value: 'mine',
+              label: `My Tickets${tickets.length > 0 ? ` (${tickets.length})` : ''}`,
+            },
+          ]}
+          value={showNewForm ? 'new' : 'mine'}
+          onChange={(next) => {
+            if (next === 'new') {
+              setShowNewForm(true)
+              setSelectedId(null)
+              return
+            }
             setShowNewForm(false)
             if (!selectedId && tickets[0]) setSelectedId(tickets[0].id)
           }}
-        >
-          My Tickets{tickets.length > 0 ? ` (${tickets.length})` : ''}
-        </button>
+        />
       </div>
 
       <div className="mx-auto w-full max-w-[1100px]">
