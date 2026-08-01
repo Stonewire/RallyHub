@@ -86,7 +86,7 @@ export function EventInvoiceRow({
             onClick={() => onDownload?.(invoice.id)}
             disabled={downloadingInvoiceId === invoice.id}
           >
-            <IconDownload className="size-3.5.5" aria-hidden />
+            <IconDownload className="size-3.5" aria-hidden />
             {downloadingInvoiceId === invoice.id ? 'Opening…' : 'Invoice'}
           </NeoButton>
         ) : null}
@@ -98,7 +98,7 @@ export function EventInvoiceRow({
               onClick={() => onPay(invoice.id)}
               disabled={payingInvoiceId === invoice.id}
             >
-              <IconBilling className="size-3.5.5" aria-hidden />
+              <IconBilling className="size-3.5" aria-hidden />
               {payingInvoiceId === invoice.id ? 'Opening checkout…' : 'Pay now'}
             </NeoButton>
           ) : (
@@ -213,7 +213,7 @@ export function EventInvoiceList({
                         onClick={() => onPay(invoice.id)}
                         disabled={payingInvoiceId === invoice.id}
                       >
-                        <IconBilling className="size-3.5.5" aria-hidden />
+                        <IconBilling className="size-3.5" aria-hidden />
                         {payingInvoiceId === invoice.id ? 'Opening…' : 'Pay now'}
                       </NeoButton>
                     ) : canDownload ? (

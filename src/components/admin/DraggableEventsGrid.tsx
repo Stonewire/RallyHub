@@ -145,7 +145,7 @@ export function DraggableEventsGrid({
                 className={`shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 ${isLive ? 'text-primary hover:bg-primary/10' : 'text-destructive hover:bg-destructive/10'}`}
                 onClick={() => onDelete(event)}
               >
-                {isLive ? <IconArchive className="size-3.5.5" /> : <IconTrash className="size-3.5.5" />}
+                {isLive ? <IconArchive className="size-3.5" /> : <IconTrash className="size-3.5" />}
               </button>
               <EventStatusMenu
                 status={event.status as EventStatus}
@@ -155,10 +155,10 @@ export function DraggableEventsGrid({
               />
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <p className="flex items-center gap-1.5"><IconEvents className="size-3.5.5" />{formatEventDate(event.event_date)}</p>
+              <p className="flex items-center gap-1.5"><IconEvents className="size-3.5" />{formatEventDate(event.event_date)}</p>
               {event.location ? (
                 <p className="flex min-w-0 items-center gap-1.5">
-                  <IconLocation className="size-3.5.5 shrink-0" />
+                  <IconLocation className="size-3.5 shrink-0" />
                   <span className="truncate">{event.location}</span>
                 </p>
               ) : null}

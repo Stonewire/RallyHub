@@ -276,7 +276,7 @@ export function AdminEventsPage() {
           ) : (
             <NeoButton variant="accent" asChild>
               <Link to="/admin/events/new" data-tour="new-event-button">
-                <IconPlus className="size-3.5.5" />
+                <IconPlus className="size-3.5" />
                 Event
               </Link>
             </NeoButton>
@@ -322,7 +322,7 @@ export function AdminEventsPage() {
         {view === 'events' ? (
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <div className="relative min-w-52 flex-1">
-              <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
+              <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -338,7 +338,7 @@ export function AdminEventsPage() {
               variant="accent"
               onClick={() => setDatePickerOpen((open) => !open)}
             >
-              <IconEvents className="size-3.5.5" />
+              <IconEvents className="size-3.5" />
               {dateFrom || dateTo ? 'Date applied' : 'Date'}
             </NeoButton>
             {datePickerOpen ? (

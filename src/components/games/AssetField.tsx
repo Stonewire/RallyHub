@@ -65,7 +65,7 @@ export function AssetField({
           onClick={() => inputRef.current?.click()}
           className="border-input bg-background hover:bg-muted flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold"
         >
-          <IconUpload className="size-3.5.5" />
+          <IconUpload className="size-3.5" />
           <span className="max-w-40 truncate">{fileName ?? 'No File'}</span>
         </button>
         {onUrl ? (

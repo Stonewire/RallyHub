@@ -335,7 +335,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={openCreatePlaylistDialog}
           >
-            <IconPlus className="size-3.5.5" />
+            <IconPlus className="size-3.5" />
             New playlist
           </NeoButton>
           <NeoButton
@@ -344,7 +344,7 @@ export const MusicCatalogManager = forwardRef<
             className="w-full justify-center text-xs"
             onClick={() => setUploadOpen(true)}
           >
-            <IconUpload className="size-3.5.5" />
+            <IconUpload className="size-3.5" />
             Upload music
           </NeoButton>
         </div>

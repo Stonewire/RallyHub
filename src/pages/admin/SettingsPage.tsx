@@ -517,7 +517,7 @@ export function AdminSettingsPage() {
                   <Link to="/admin/settings?tab=billing">
                     <IconBilling className="size-4" />
                     Manage Payment Details
-                    <IconExternal className="size-3.5.5" />
+                    <IconExternal className="size-3.5" />
                   </Link>
                 </Button>
               </Card>
@@ -553,7 +553,7 @@ export function AdminSettingsPage() {
                   size="sm"
                   onClick={() => setInstallGuideOpen(true)}
                 >
-                  <IconDevice className="size-3.5.5" />
+                  <IconDevice className="size-3.5" />
                   Instructions on how to install RallyHub on your device
                 </NeoButton>
                 {tabletDirty ? (
@@ -598,7 +598,7 @@ export function AdminSettingsPage() {
                 description: 'Export every game, event, submission, payment record and uploaded file tied to this account.',
                 action: (
                   <NeoButton type="button" variant="surface" disabled={exportingData} onClick={() => void handleDownloadData()}>
-                    <IconDownload className="size-3.5.5" />
+                    <IconDownload className="size-3.5" />
                     {exportingData ? 'Preparing…' : 'Download All Data'}
                   </NeoButton>
                 ),

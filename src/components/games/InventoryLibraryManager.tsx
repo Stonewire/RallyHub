@@ -242,7 +242,7 @@ export const InventoryLibraryManager = forwardRef<
                           .catch(() => setError('Could not copy the item link.'))
                       }}
                     >
-                      <IconCopy className="size-3.5.5" />
+                      <IconCopy className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -254,7 +254,7 @@ export const InventoryLibraryManager = forwardRef<
                         void downloadInventoryQrPng(item).catch((reason) => setError(String(reason)))
                       }}
                     >
-                      <IconDownload className="size-3.5.5" />
+                      <IconDownload className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -266,7 +266,7 @@ export const InventoryLibraryManager = forwardRef<
                         openEdit(item)
                       }}
                     >
-                      <IconEdit className="size-3.5.5" />
+                      <IconEdit className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -279,7 +279,7 @@ export const InventoryLibraryManager = forwardRef<
                         setPendingDelete(item)
                       }}
                     >
-                      <IconTrash className="size-3.5.5" />
+                      <IconTrash className="size-3.5" />
                     </button>
                   </div>
                 </div>

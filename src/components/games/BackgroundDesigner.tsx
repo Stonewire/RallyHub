@@ -157,7 +157,7 @@ export function BackgroundDesigner({
           className="w-full"
           onClick={onOpenPreview}
         >
-          <IconEye className="size-3.5.5" aria-hidden />
+          <IconEye className="size-3.5" aria-hidden />
           Click to preview
         </NeoButton>
       ) : null}

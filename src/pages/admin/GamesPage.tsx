@@ -629,7 +629,7 @@ export function AdminGamesPage() {
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
               <div className="relative min-w-52 flex-1">
-                <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
+                <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -704,7 +704,7 @@ export function AdminGamesPage() {
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
           <div className="relative min-w-52 flex-1">
-            <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
+            <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -909,7 +909,7 @@ export function AdminGamesPage() {
                     ))}
                   </div>
                   <div className="relative min-w-48 flex-1">
-                    <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
+                    <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                     <Input
                       value={createGroupSearch}
                       onChange={(event) => setCreateGroupSearch(event.target.value)}
@@ -1034,7 +1034,7 @@ export function AdminGamesPage() {
                   ))}
                 </div>
                 <div className="relative min-w-48 flex-1">
-                  <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5.5 -translate-y-1/2" />
+                  <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                   <Input
                     value={addToGroupSearch}
                     onChange={(event) => setAddToGroupSearch(event.target.value)}
