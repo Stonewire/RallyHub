@@ -247,6 +247,31 @@ all 40 countries with a per-country pattern and example. It is advisory: it
 catches a UK code typed into a German address, but a string can match the
 pattern and still not exist. Real verification is the same places API job.
 
+## Installable tablet app (PWA): not built, 1 Aug 2026
+
+Rumen asked for a button on Tablet Access explaining how to install the tablet
+link as an app, opening a PDF to be written later, and said a dead button was
+acceptable for now.
+
+Shipped a dialog with the actual steps instead: Android Chrome via the three
+dots then Add to Home screen, iPad and iPhone via Safari's Share then Add to
+Home Screen, including the warning that this does not work in Chrome on iOS.
+That is useful today, and the PDF can replace or supplement it later without
+moving the button.
+
+**The gap Rumen correctly identified.** The app has no web manifest at all,
+checked at the time of writing: no manifest.json, no link tag, no
+apple-mobile-web-app meta. So a pinned link opens inside the browser with its
+address bar rather than as a standalone app. The steps above still work and
+still save staff from hunting for the link, but it is a bookmark, not an app.
+
+To make it a real installable app: a web manifest with name, icons (192 and 512
+at minimum), start_url pointing at the tablet route, display: standalone and a
+theme colour; apple-touch-icon and apple-mobile-web-app-capable for iOS; and a
+service worker if it should survive a patchy venue connection. The offline
+question is the interesting one for a tablet at an event, and it is a real
+piece of work rather than a design change.
+
 ## Later, not now
 
 - Write the Help Centre articles, then wire the modal's list and make the rows clickable.

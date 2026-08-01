@@ -1,4 +1,4 @@
-import { CreditCard, Download, ExternalLink, Upload } from 'lucide-react'
+import { CreditCard, Download, ExternalLink, Smartphone, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 
@@ -37,6 +37,7 @@ import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 import { Combobox } from '@/components/admin/Combobox'
+import { TabletInstallGuide } from '@/components/admin/TabletInstallGuide'
 import { COUNTRIES, postcodeExample, validatePostcode } from '@/lib/countries'
 import { downloadClientPackage } from '@/lib/client-export'
 import {
@@ -96,6 +97,7 @@ export function AdminSettingsPage() {
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
+  const [installGuideOpen, setInstallGuideOpen] = useState(false)
   const postcodeError = validatePostcode(form.address_country, form.address_postal)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
@@ -528,6 +530,15 @@ export function AdminSettingsPage() {
                     </p>
                   ) : null}
                 </div>
+                <NeoButton
+                  type="button"
+                  variant="surface"
+                  size="sm"
+                  onClick={() => setInstallGuideOpen(true)}
+                >
+                  <Smartphone className="size-3.5" />
+                  How to install this on a device
+                </NeoButton>
                 {tabletDirty ? (
                   <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
                     {saveOrg.isPending ? 'Saving…' : 'Save'}
@@ -538,6 +549,10 @@ export function AdminSettingsPage() {
               <TeamUsersPanel />
             </div>
           </div>
+
+          {installGuideOpen ? (
+            <TabletInstallGuide onClose={() => setInstallGuideOpen(false)} />
+          ) : null}
 
           {/* The public demo must never expose destructive account actions. */}
           {isDemo ? (
