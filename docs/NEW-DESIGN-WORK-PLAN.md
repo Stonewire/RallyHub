@@ -1,5 +1,36 @@
 # New design: remaining work plan
 
+## Where this stands, 1 Aug 2026
+
+Branch `feature/new-design`, 116 commits ahead of main, tree clean, build and
+lint clean, 220 tests passing.
+
+**Done.** Phases 1 to 7. Then a long panel-by-panel review with Rumen covering
+the shell, Games, Events, Organisation, Billing, Support, a custom icon set
+drawn from scratch across the whole admin panel, and every one of the six game
+designers rebuilt onto one template: Primary settings on the left, the
+type-specific designer and Groups on the right, type-specific content full
+width below. Create and edit share components now, which is what stopped the
+two drifting apart.
+
+**Working rules established with Rumen.**
+- Quickfire: he calls items panel by panel; his word beats the design files.
+- Challenge inconsistency out loud before building.
+- Never ship a control that does nothing.
+- Verify in the browser and commit after each self-contained chunk.
+
+**Next, in the order it was left.**
+1. Matching and crossword puzzle views: the changes compile and lint but were
+   never seen on screen, because the style pill would not switch under
+   automation. Worth opening manually.
+2. Per-track audio uploads in the bingo track list are still raw file inputs,
+   the last place that pattern survives.
+3. The live surfaces: facilitator console, display screen, participant join and
+   tablet. Entirely on the old design and the old icon set, so there is a
+   visible seam the moment one is opened. Roughly the same size as the admin
+   work just completed.
+
+
 Date: 2026-08-01
 Branch: `feature/new-design`
 Source: Rumen's decisions on the gap audit (`docs/NEW-DESIGN-GAP-AUDIT.md`) plus the annotated screenshots in `~/Desktop/SCREENSHOTS/`.
