@@ -105,14 +105,40 @@ These change behaviour that runs during a live event. Per TRACKER's rules they
 land one at a time, each with a live smoke test on a throwaway event, and never
 bundled into a design batch.
 
-1. **Text approval mode.** Today approval is derived from `points_type ===
+1. **Text approval mode. DONE, verified 1 Aug 2026.**
+
+   Correction to how this item was originally written below: there was no
+   inference to split. Tracing the code showed every text submission was
+   inserted as `pending` and waited for a facilitator, whatever `points_type`
+   said. So Auto is a new capability, not an untangling of an existing one.
+
+   Opt-in per game via `config.text_approval_mode`. Absent or `review` keeps
+   today's behaviour exactly, so existing text games are untouched. A match
+   awards `points_static`, a miss awards 0 and is still approved, so a team is
+   never left waiting on a decision that will not come. Confirmed with Rumen
+   that Auto means auto: a wrong answer scores zero with no facilitator
+   recourse, matching how quiz already behaves.
+
+   Two bugs surfaced only by running real inserts, neither visible to the
+   build or the type checker:
+   - Trigger order. Postgres fires same-timing triggers alphabetically, and
+     the original name sorted before `submissions_guard_participant_write`,
+     which raises "Participants cannot set points". As first written it would
+     have rejected every text submission. Renamed `zz_` so the guard sees the
+     insert unchanged and the award lands after it passes.
+   - `increment_team_score` requires `auth.uid()` and facilitator access,
+     which a submitting participant has neither of. `teams.score` is updated
+     directly instead, safe here because the award is computed from the game's
+     own config and never from participant input.
+
+   Verified: auto + correct approved at 25 with team score 25, auto + wrong
+   approved at 0 with score unchanged, review mode still pending with null
+   points. Probe data removed.
+
+   **(original framing)** Today approval is derived from `points_type ===
    'range'`: choosing range points forces facilitator review, and static points
    forces automatic scoring. The design treats Game Style, Approval and Points
-   as three independent switches. Splitting them needs a `text_approval_mode`
-   config field, the server-side approval path updated to read it, and a
-   fallback to the current inference so existing text games are unaffected.
-   The field was drafted and then removed rather than ship a control that
-   nothing enforces.
+   as three independent switches.
 
 2. **Quiz points verification. DONE, passed 1 Aug 2026.** Smoke-tested end to
    end against the live database: a quiz configured at 37 points per correct
@@ -123,8 +149,23 @@ bundled into a design batch.
    an event through the stage picker alone with no add-to-event step.
    Test data was archived and soft-deleted afterwards.
 
-3. **Bingo clip length 60 seconds.** The design offers 30/60/90; the type and
-   the clip generator permit 30 and 90 only. Adding 60 touches clip extraction.
+3. **Bingo clip length 60 seconds. DONE, verified 1 Aug 2026.** The design
+   offers 30/60/90; the type and the clip generator permitted 30 and 90 only.
+
+   The clip extraction worry turned out to be unfounded. `extractAudioClip`
+   already takes an arbitrary `durationSeconds` and passes it to ffmpeg's
+   `-t`, which truncates naturally at the end of a short track, and the WAV
+   fallback is duration-agnostic too. `music_catalog.clip_duration_seconds`
+   has no check constraint, so 60 stores without a migration. The real
+   constraint was only the `30 | 90` union repeated in four places, now one
+   `BINGO_CLIP_LENGTHS` list that the picker renders from, so a future length
+   is a one-line change.
+
+   Verified in the running app on a 25-track bingo game: the picker offers
+   30/60/90, an existing game still reads 30, choosing 60 raises the existing
+   "clips will be cleared" warning rather than silently wiping them, and after
+   confirming, the editor reports "25 tracks need a 60s clip before live
+   bingo". Left unsaved.
 
 4. **FIXED and verified 1 Aug 2026.** `get_live_event_games` now returns
    `solution_description` and `solution_image_url` only when

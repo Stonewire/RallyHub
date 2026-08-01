@@ -88,8 +88,8 @@ export type GameConfig = {
   rounds_enabled?: boolean
   rounds?: QuizRound[]
   tracks?: MusicTrack[]
-  /** null = not chosen yet; 30 or 90 sec clips to generate. */
-  bingo_clip_length?: 30 | 90 | null
+  /** null = not chosen yet; length in seconds of the clips to generate. */
+  bingo_clip_length?: 30 | 60 | 90 | null
   /** Win condition mode. 'lines' = complete N lines; 'full_house' = all 25 cells. */
   bingo_win_mode?: 'lines' | 'full_house'
   /** How many complete lines are required to win in 'lines' mode (1–12). */

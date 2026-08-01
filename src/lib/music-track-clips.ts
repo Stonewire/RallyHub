@@ -5,11 +5,17 @@ import { audioStorageFilename } from '@/lib/storage-path'
 import { supabase } from '@/lib/supabase'
 import type { GameConfig, MusicTrack } from '@/types/game-config'
 
-export function bingoClipLength(config: GameConfig): 30 | 90 | null {
-  const n = Number(config.bingo_clip_length)
-  if (n === 30) return 30
-  if (n === 90) return 90
-  return null
+export const BINGO_CLIP_LENGTHS = [30, 60, 90] as const
+
+export type BingoClipLength = (typeof BINGO_CLIP_LENGTHS)[number]
+
+export function bingoClipLength(config: GameConfig): BingoClipLength | null {
+  return parseBingoClipLength(config.bingo_clip_length)
+}
+
+export function parseBingoClipLength(value: unknown): BingoClipLength | null {
+  const n = Number(value)
+  return BINGO_CLIP_LENGTHS.find((len) => len === n) ?? null
 }
 
 export function clearAllTrackClips(config: GameConfig): GameConfig {
@@ -35,7 +41,7 @@ export async function generateClipForAudioUrl(
   organizationId: string,
   audioUrl: string,
   label: string,
-  clipLengthSeconds: 30 | 90,
+  clipLengthSeconds: BingoClipLength,
 ): Promise<{ clipUrl: string; clipStartSeconds: number; clipDurationSeconds: number }> {
   const file = await fetchAudioFile(audioUrl, audioStorageFilename(label, 'mp3'))
   const duration = await readAudioDuration(file).catch(() => 0)
@@ -58,7 +64,7 @@ export async function generateClipForAudioUrl(
 export async function ensureMusicTrackClip(
   track: MusicTrack,
   organizationId: string,
-  clipLengthSeconds: 30 | 90,
+  clipLengthSeconds: BingoClipLength,
 ): Promise<MusicTrack> {
   if (
     track.clipUrl?.trim() &&

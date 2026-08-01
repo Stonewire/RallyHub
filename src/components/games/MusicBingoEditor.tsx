@@ -12,10 +12,12 @@ import { Label } from '@/components/ui/label'
 import { extractAudioClip } from '@/lib/extract-audio-clip'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
 import {
+  BINGO_CLIP_LENGTHS,
   bingoClipLength,
   clearAllTrackClips,
   downloadUrl,
   ensureMusicTrackClip,
+  parseBingoClipLength,
 } from '@/lib/music-track-clips'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { uploadAsset } from '@/lib/storage'
@@ -53,13 +55,15 @@ export function MusicBingoEditor({
   )
 
   function applyClipLengthChange(value: string) {
-    const next = value === '30' ? 30 : value === '90' ? 90 : null
-    setConfig((c) => ({ ...clearAllTrackClips(c), bingo_clip_length: next }))
+    setConfig((c) => ({
+      ...clearAllTrackClips(c),
+      bingo_clip_length: parseBingoClipLength(value),
+    }))
     setClipLengthIntent(null)
   }
 
   function onClipLengthChange(value: string) {
-    const next = value === '30' ? 30 : value === '90' ? 90 : null
+    const next = parseBingoClipLength(value)
     if (next === clipLen) return
     const hadClips = tracks.some((t) => t.clipUrl)
     if (hadClips) {
@@ -71,7 +75,7 @@ export function MusicBingoEditor({
 
   async function generateMissingClips() {
     if (!clipLen) {
-      setClipError('Select clip length (30 or 90 sec) first.')
+      setClipError('Select a clip length first.')
       return
     }
     if (missingClips.length === 0) return
@@ -167,8 +171,11 @@ export function MusicBingoEditor({
           className="border-input bg-background max-w-xs rounded-lg border px-3 py-2 text-sm"
         >
           <option value="">Select length</option>
-          <option value="30">30 seconds</option>
-          <option value="90">90 seconds</option>
+          {BINGO_CLIP_LENGTHS.map((len) => (
+            <option key={len} value={len}>
+              {len} seconds
+            </option>
+          ))}
         </select>
       </div>
 

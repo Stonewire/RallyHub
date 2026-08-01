@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useInsertMusicCatalog } from '@/hooks/use-music-catalog'
 import { readAudioDuration, suggestClipStart } from '@/lib/audio-metadata'
 import { extractAudioClip } from '@/lib/extract-audio-clip'
+import type { BingoClipLength } from '@/lib/music-track-clips'
 import { parseAudioFilename } from '@/lib/parse-audio-filename'
 import { uploadAsset } from '@/lib/storage'
 import { audioStorageFilename } from '@/lib/storage-path'
@@ -25,7 +26,7 @@ type PendingTrack = {
 
 type MusicCatalogUploaderProps = {
   organizationId: string
-  clipLengthSeconds: 30 | 90 | null
+  clipLengthSeconds: BingoClipLength | null
   onTracksReady: (tracks: MusicTrack[]) => void
 }
 
@@ -79,7 +80,7 @@ export function MusicCatalogUploader({
       return
     }
     if (!clipLengthSeconds) {
-      setError('Select clip length (30 or 90 sec) before uploading.')
+      setError('Select a clip length before uploading.')
       return
     }
     if (pending.length === 0) return
