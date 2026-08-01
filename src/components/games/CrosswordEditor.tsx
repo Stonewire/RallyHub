@@ -152,11 +152,34 @@ export function CrosswordEditor({
   const activeRun = dir === 'across' ? acrossRun : dir === 'down' ? downRun : []
   const draftChars = Array.from(draft)
 
+  /**
+   * Walks the active run pairing cells with letters. A cell that already holds a
+   * letter from a crossing word is locked: it keeps that letter and consumes no
+   * typing, so with A fixed in the third square, typing T, E, M spells TEAM.
+   */
+  const runSlots = activeRun.map((cell) => {
+    const key = `${cell.row}-${cell.col}`
+    return { cell, key, locked: Boolean(placed[key]), lockedLetter: placed[key] }
+  })
+  let typedIndex = 0
+  const slots = runSlots.map((slot) => {
+    if (slot.locked) return { ...slot, letter: slot.lockedLetter ?? '' }
+    const letter = draftChars[typedIndex] ?? ''
+    typedIndex += 1
+    return { ...slot, letter }
+  })
+  const freeCount = runSlots.filter((slot) => !slot.locked).length
+  // Where the next keystroke lands, for the caret.
+  const caretKey =
+    slots.find((slot) => !slot.locked && !slot.letter)?.key ?? null
+
   const draftByCell = new Map<string, string>()
+  const lockedInRun = new Set<string>()
   if (dir) {
-    activeRun.forEach((cell, i) => {
-      if (draftChars[i]) draftByCell.set(`${cell.row}-${cell.col}`, draftChars[i])
-    })
+    for (const slot of slots) {
+      if (slot.letter) draftByCell.set(slot.key, slot.letter)
+      if (slot.locked) lockedInRun.add(slot.key)
+    }
   }
 
   function cancelDraft() {
@@ -194,21 +217,28 @@ export function CrosswordEditor({
   }
 
   function confirmWord() {
-    if (!dir || !start || draftChars.length < 2) {
+    if (!dir || !start || draftChars.length < 1) {
       setMessage('Words need at least 2 letters.')
       return
     }
-    const cells = activeRun.slice(0, draftChars.length)
+    let lastFilled = -1
+    slots.forEach((slot, index) => {
+      if (slot.letter) lastFilled = index
+    })
+    const wordSlots = slots.slice(0, lastFilled + 1)
+    if (wordSlots.some((slot) => !slot.letter)) {
+      setMessage('Fill every square up to the end of the word.')
+      return
+    }
     const next = { ...placed }
-    for (let i = 0; i < cells.length; i++) {
-      const key = `${cells[i].row}-${cells[i].col}`
-      const letter = draftChars[i].toLocaleLowerCase()
-      const existing = next[key]
+    for (const slot of wordSlots) {
+      const letter = slot.letter.toLocaleLowerCase()
+      const existing = next[slot.key]
       if (existing && existing !== letter) {
         setMessage('That letter clashes with a crossing word.')
         return
       }
-      next[key] = letter
+      next[slot.key] = letter
     }
     setPlaced(next)
     const key = runKeyOf(start.row, start.col, dir)
@@ -301,7 +331,16 @@ export function CrosswordEditor({
           value={tool}
           onChange={(next) => {
             setTool(next)
-            cancelDraft()
+            setMessage(null)
+            // Keep the selected cell when swapping across for down, so the
+            // choice can be corrected without starting again.
+            if (next !== 'block' && start && runCells(start, next).length >= 2) {
+              setDir(next)
+              setDraft('')
+              window.setTimeout(() => draftInput.current?.focus(), 0)
+            } else {
+              cancelDraft()
+            }
           }}
         />
       </div>
@@ -321,16 +360,24 @@ export function CrosswordEditor({
             : false
           const isStart = start?.row === row && start.col === col
           const needsClueCell = needsClueCellKeys.has(key)
+          // Squares already filled by a crossing word, and the one the next
+          // keystroke will land in.
+          const isLocked = lockedInRun.has(key)
+          const isCaret = caretKey === key
           return (
             <button
               key={key}
               type="button"
               aria-label={`Cell row ${row + 1}, column ${colLetter(col)}`}
               onClick={() => onCellClick({ row, col })}
-              className={`flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
+              className={`relative flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
                 isBlocked
                   ? 'border-[#FFC107] bg-[#FFC107] text-transparent'
-                  : isStart
+                  : isLocked
+                    ? 'border-[#FFC107] bg-[#FFC107]/55'
+                    : isCaret
+                      ? 'border-[#FFC107] bg-[#FFC107]/15 ring-2 ring-[#FFC107]'
+                      : isStart
                     ? 'border-[#FFC107] bg-[#FFC107]/40'
                     : inActive
                       ? 'border-[#FFC107] bg-[#FFC107]/25'
@@ -344,6 +391,12 @@ export function CrosswordEditor({
               }`}
             >
               {letter?.toLocaleUpperCase() ?? ''}
+              {isCaret ? (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-2 left-1/2 w-0.5 animate-pulse bg-[#c79100]"
+                />
+              ) : null}
             </button>
           )
         })}
@@ -356,7 +409,7 @@ export function CrosswordEditor({
           <Input
             ref={draftInput}
             value={draft}
-            maxLength={activeRun.length}
+            maxLength={freeCount}
             autoComplete="off"
             spellCheck={false}
             placeholder="Type the word"
@@ -365,7 +418,7 @@ export function CrosswordEditor({
               setDraft(
                 event.target.value
                   .replace(/[^\p{L}]/gu, '')
-                  .slice(0, activeRun.length)
+                  .slice(0, freeCount)
                   .toLocaleUpperCase(),
               )
             }

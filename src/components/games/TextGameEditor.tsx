@@ -51,9 +51,9 @@ export function TextGameEditor({
   // the answer editor in the Game designer card on the right.
   if (section === 'settings') {
     return (
-      <div className="space-y-3">
+      <div className="border-border mt-2 space-y-4 border-t pt-4">
         <div className="flex w-full items-center gap-3">
-          <Label className="shrink-0">Game style</Label>
+          <Label className="w-24 shrink-0">Game style</Label>
           <SegmentedPill
             size="sm"
             className="flex-1"
@@ -67,7 +67,7 @@ export function TextGameEditor({
           />
         </div>
         <div className="flex w-full items-center gap-3">
-          <Label className="shrink-0">Approval</Label>
+          <Label className="w-24 shrink-0">Approval</Label>
           <SegmentedPill
             size="sm"
             className="flex-1"
