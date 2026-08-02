@@ -1571,7 +1571,7 @@ export function JoinGameView({
             // Marking is briefly locked while the previous song is scored and
             // revealed. Explain the momentary no-op instead of making a tap
             // look as though the app failed to register it.
-            <p className="xp-glass-panel shrink-0 animate-pulse rounded-full bg-black/30 px-3 py-1 text-xs font-medium">
+            <p className="shrink-0 animate-pulse text-xs font-bold sm:text-sm">
               Locking answers…
             </p>
           ) : null}
