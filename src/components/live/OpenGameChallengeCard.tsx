@@ -1,5 +1,6 @@
 import { Camera, FileText, Puzzle, Video, type LucideIcon } from 'lucide-react'
 
+import { contrastRatio, readableTextOn } from '@/lib/hex-color'
 import { gamePointsDisplay } from '@/lib/live-event'
 import { isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
@@ -58,7 +59,12 @@ function cardAppearance(
   }
   return {
     backgroundColor: accentColor,
-    color: textColor,
+    // Keep the event's own text colour, which is the point of the prop: an
+    // untouched tile should read like the rest of the screen. Only override it
+    // when it is genuinely unreadable on this accent. A white text colour on
+    // the default yellow measured 1.52:1, on the tiles a player has to read to
+    // choose a challenge, and that is not a look worth preserving.
+    color: contrastRatio(textColor, accentColor) >= 4.5 ? textColor : readableTextOn(accentColor),
     statusLabel: null,
   }
 }
