@@ -40,10 +40,21 @@ function puzzleErrorMessage(reason: unknown): string {
   return 'Could not update the puzzle. Please try again.'
 }
 
+/**
+ * Space the fixed keyboard takes from the bottom of the screen: its own height
+ * plus the gap it leaves for the chat, exit and RallyHub badge beneath it.
+ */
+const KEYBOARD_CLEARANCE_PX = 320
+
+/** Green for a placed letter, RallyHub yellow for one in the word elsewhere. */
 function feedbackColor(state: WordleCellState): string {
   if (state === 'correct') return '#16A34A'
-  if (state === 'present') return '#D97706'
+  if (state === 'present') return '#FFC107'
   return '#4B5563'
+}
+
+function feedbackTextColor(state: WordleCellState): string {
+  return state === 'present' ? '#1C1917' : '#FFFFFF'
 }
 
 export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) {
@@ -103,12 +114,15 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
     [eventId, game.id, loadProgress, teamId],
   )
 
-  // Once the guesses outgrow the screen, keep the row being typed in view above
-  // the keyboard instead of making the player scroll after every guess.
+  // The board grows downwards, so after each guess the row being typed can end
+  // up behind the keyboard. Scroll it back into the clear, but only when it is
+  // actually covered — on the first guess it already sits under the brief.
   const guessCount = progress?.guesses.length ?? 0
   useEffect(() => {
-    if (guessCount === 0) return
-    activeRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    const row = activeRowRef.current
+    if (!row) return
+    const covered = row.getBoundingClientRect().bottom > window.innerHeight - KEYBOARD_CLEARANCE_PX
+    if (covered) row.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [guessCount])
 
   async function submitWordleGuess() {
@@ -227,28 +241,28 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
           </p>
         </div>
       ) : type === 'wordle' ? (
-        <div className="space-y-4">
-          {/* min-h keeps the sticky keyboard pinned to the bottom of the screen
-              even on the first guess; justify-end keeps the row being typed
-              directly above the keyboard as older guesses stack upwards. */}
-          <div
-            className="flex min-h-[38vh] flex-col justify-end space-y-2"
-            aria-label="Word guesses"
-          >
+        <div className="space-y-4 pb-[20rem]">
+          {/* The board starts under the brief and grows downwards: each guess
+              adds a row beneath the last, and the row being typed is always
+              the bottom one, scrolled into view. */}
+          <div className="flex flex-col space-y-2" aria-label="Word guesses">
             {(progress?.guesses ?? []).map((row, rowIndex) => (
               <div key={`${row.word}-${rowIndex}`} className="flex justify-center gap-1.5">
                 {Array.from(row.word.toLocaleUpperCase()).map((letter, index) => (
                   <span
                     key={`${index}-${letter}`}
-                    className="flex size-11 items-center justify-center rounded-md text-lg font-black text-white shadow-sm"
-                    style={{ backgroundColor: feedbackColor(row.feedback[index] ?? 'absent') }}
+                    className="flex size-11 items-center justify-center rounded-md text-lg font-black shadow-sm"
+                    style={{
+                      backgroundColor: feedbackColor(row.feedback[index] ?? 'absent'),
+                      color: feedbackTextColor(row.feedback[index] ?? 'absent'),
+                    }}
                   >
                     {letter}
                   </span>
                 ))}
               </div>
             ))}
-            <div ref={activeRowRef} className="flex scroll-mb-64 justify-center gap-1.5">
+            <div ref={activeRowRef} className="flex scroll-mb-[20rem] justify-center gap-1.5">
               {Array.from({ length: wordLength }, (_, index) => (
                 <span
                   key={index}

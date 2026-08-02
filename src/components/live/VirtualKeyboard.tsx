@@ -20,15 +20,24 @@ const CYRILLIC_ROWS = [
   ['Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ь', 'Ю', 'Я'],
 ]
 
+/** Matches the guess tiles: green for placed, RallyHub yellow for present. */
 const STATE_COLOR: Record<WordleCellState, string> = {
   correct: '#16A34A',
-  present: '#D97706',
+  present: '#FFC107',
   // Darker than an untouched key, so a ruled-out letter reads as struck off
   // rather than as the next one to press.
-  absent: '#252A33',
+  absent: '#4B5563',
 }
 
-const UNUSED_KEY_COLOR = 'rgba(255,255,255,0.26)'
+const STATE_TEXT: Record<WordleCellState, string> = {
+  correct: '#FFFFFF',
+  present: '#1C1917',
+  absent: '#FFFFFF',
+}
+
+/** Untouched keys are white: a struck-off grey then reads as clearly spent. */
+const UNUSED_KEY_COLOR = '#FFFFFF'
+const UNUSED_KEY_TEXT = '#1C1917'
 
 /**
  * Every key is the same width regardless of how many sit in its row, so short
@@ -65,11 +74,11 @@ export function VirtualKeyboard({
   const submitInactive = disabled || submitDisabled
 
   return (
-    // Sticky so a tall grid can never push Delete/Submit off the bottom of the
-    // phone. pb-10 clears the fixed "Powered by RallyHub" badge underneath it.
-    // -mx-3 cancels the participant page's gutter so the panel runs edge to edge.
-    <div className="sticky bottom-0 z-30 -mx-3 bg-black/55 pt-2.5 pb-10 backdrop-blur-sm select-none">
-      <div className="mx-auto w-full max-w-md space-y-1.5 px-3">
+    // Fixed and edge to edge: a tall grid can never push Delete/Submit off the
+    // screen, and the keys get the full width to sit in. It stops above the
+    // chat, exit and RallyHub badge rather than laying its panel over them.
+    <div className="fixed inset-x-0 bottom-[4.5rem] z-[9997] bg-black/55 py-2.5 backdrop-blur-sm select-none">
+      <div className="w-full space-y-1.5 px-2">
         {rows.map((row, i) => (
           <div key={i} className="flex justify-center gap-1">
             {row.map((letter) => {
@@ -86,10 +95,11 @@ export function VirtualKeyboard({
                   style={{
                     ...keyStyle,
                     backgroundColor: state ? STATE_COLOR[state] : UNUSED_KEY_COLOR,
+                    color: state ? STATE_TEXT[state] : UNUSED_KEY_TEXT,
                   }}
                   // Ruled-out keys keep their solid grey instead of fading, so they
                   // still read as "already tried" rather than as a rendering glitch.
-                  className={`flex h-12 items-center justify-center rounded-md text-base font-bold uppercase text-white transition-colors active:scale-95 ${
+                  className={`flex h-12 items-center justify-center rounded-md text-base font-bold uppercase transition-colors active:scale-95 ${
                     disabled && !locked ? 'opacity-40' : ''
                   }`}
                 >
@@ -105,8 +115,8 @@ export function VirtualKeyboard({
             disabled={disabled}
             onClick={onBackspace}
             aria-label="Delete last letter"
-            style={{ width: `calc(${KEY_WIDTH} * 3 + 0.5rem)` }}
-            className="flex h-12 items-center justify-center gap-1.5 rounded-md bg-white/25 text-xs font-bold uppercase text-white active:scale-95 disabled:opacity-40"
+            style={{ width: `calc(${KEY_WIDTH} * 3 + 0.5rem)`, backgroundColor: STATE_COLOR.absent }}
+            className="flex h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40"
           >
             <Delete className="size-4" /> Delete
           </button>
@@ -117,10 +127,12 @@ export function VirtualKeyboard({
               onClick={onSubmit}
               style={{
                 width: `calc(${KEY_WIDTH} * 4 + 0.75rem)`,
-                backgroundColor: submitInactive ? UNUSED_KEY_COLOR : accentColor,
-                color: submitInactive || !accentColor ? '#FFFFFF' : textOnAccent(accentColor),
+                // Keeps the accent even while inactive — it is the key that
+                // sends the guess, and a grey one read as a dead control.
+                backgroundColor: accentColor ?? UNUSED_KEY_COLOR,
+                color: accentColor ? textOnAccent(accentColor) : '#FFFFFF',
               }}
-              className="flex h-12 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40"
+              className="flex h-12 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50"
             >
               {submitLabel}
             </button>
