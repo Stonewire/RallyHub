@@ -16,6 +16,7 @@ import { ParticipantBingoNotice } from '@/components/live/participant/Participan
 import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
+import { questionMedia } from '@/lib/quiz-media'
 import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { quizQuestionSeconds } from '@/lib/quiz-timing'
 import { DevQuizBar } from '@/components/live/DevQuizBar'
@@ -1436,6 +1437,9 @@ export function JoinGameView({
         ? Math.min(100, (quizTimerDisplay / maxSec) * 100)
         : 0
     const timerBarColor = inChangeWindow ? '#EF4444' : accent
+    const questionAttachment = questionMedia(q)
+    const hasQuestionMedia =
+      questionAttachment.kind !== 'none' && Boolean(questionAttachment.url)
 
     if (state.quiz_state === 'results') {
       body = (
@@ -1504,31 +1508,53 @@ export function JoinGameView({
         // The answers sit at the bottom of the screen: on a tablet held in two
         // hands that is where the thumbs already are, and the question above
         // has the room it needs to be read across a table.
-        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-2 pb-2 sm:pt-4">
+        // On a laptop there is width to spend: the answers sit four across
+        // and the media grows, rather than leaving the screen half empty.
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-2 pb-2 sm:pt-4 lg:max-w-5xl">
           <div className="mb-5 h-2 shrink-0 overflow-hidden rounded-full bg-black/30 sm:mb-6">
             <div
               className="h-full transition-all duration-1000"
               style={{ width: `${timerPct}%`, backgroundColor: timerBarColor }}
             />
           </div>
-          {/* Two lines' worth of room whether or not this question needs it,
-              so a long one does not push everything below it. */}
-          <h2 className="flex min-h-[2.5em] shrink-0 items-center justify-center text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance">
-            {q.text}
-          </h2>
-          {/* Whatever the question carries goes in the room between it and the
-              answers, and gives way before the answers do. */}
-          <div className="flex min-h-4 flex-1 items-center justify-center py-3">
-            <QuizQuestionMedia question={q} accentColor={accent} textColor={eventTextColor} />
+          {/* On a laptop a question with media reads side by side: the words
+              on the left, the photo or clip on the right, which buys the media
+              real size without pushing the answers off the screen. Stacked
+              everywhere else. */}
+          <div
+            className={`flex min-h-0 flex-1 flex-col ${
+              hasQuestionMedia ? 'lg:flex-row lg:items-center lg:gap-8' : ''
+            }`}
+          >
+            {/* Two lines' worth of room whether or not this question needs it,
+                so a long one does not push everything below it. */}
+            <h2
+              className={`flex min-h-[2.5em] shrink-0 items-center justify-center text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance ${
+                hasQuestionMedia ? 'lg:flex-1' : ''
+              }`}
+            >
+              {q.text}
+            </h2>
+            {/* Bounded by what the question and the answers leave, never more,
+                so the screen still fits on a laptop. */}
+            <div
+              className={`flex max-h-[34svh] min-h-4 flex-1 items-center justify-center overflow-hidden py-3 ${
+                hasQuestionMedia ? 'lg:max-h-full lg:flex-1' : 'lg:max-h-[40svh]'
+              }`}
+            >
+              <div className="h-full w-full max-w-md lg:max-w-3xl">
+                <QuizQuestionMedia question={q} accentColor={accent} textColor={eventTextColor} />
+              </div>
+            </div>
           </div>
-          <div className="shrink-0 space-y-2.5 sm:space-y-3">
+          <div className="grid shrink-0 grid-cols-1 gap-2.5 sm:gap-3 lg:grid-cols-4">
             {q.answers.map((a) => {
               const selected = (quizMyAnswerId ?? quizAnswer) === a.id
               const faded = quizLocked && !selected
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === quizCorrectAnswerId
               let cls =
-                'xp-quiz-option w-full px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg '
+                'xp-quiz-option flex w-full items-center px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg lg:min-h-24 lg:justify-center lg:text-center '
               let style: CSSProperties | undefined
               // Solid white answers: they are the one thing on this screen to
               // press, and a tinted panel over the event's own background read

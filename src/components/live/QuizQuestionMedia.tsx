@@ -26,7 +26,9 @@ export function QuizQuestionMedia({
   if (!url || kind === 'none') return null
 
   return (
-    <div className="mx-auto aspect-video max-h-full w-full max-w-md">
+    // Height-led rather than width-led: the box takes the room the question
+    // and answers leave and no more, so a laptop never has to scroll.
+    <div className="mx-auto aspect-video h-full max-h-full w-auto max-w-full min-w-0">
       {kind === 'photo' ? (
         <img
           src={url}
