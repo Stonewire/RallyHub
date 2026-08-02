@@ -1459,20 +1459,23 @@ export function JoinGameView({
               let cls =
                 'xp-quiz-option w-full px-5 py-5 text-left text-base font-bold transition-colors md:text-lg '
               let style: CSSProperties | undefined
+              // Solid white answers: they are the one thing on this screen to
+              // press, and a tinted panel over the event's own background read
+              // as decoration rather than as a button.
               if (revealed) {
-                if (isCorrect) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
-                else if (selected) cls += 'bg-red-600/90 text-white'
-                else cls += 'bg-white/10 text-white/50'
+                if (isCorrect) cls += 'bg-green-600 text-white ring-2 ring-green-300'
+                else if (selected) cls += 'bg-red-600 text-white'
+                else cls += 'bg-white/35 text-black/50'
               } else if (selected) {
-                cls += 'ring-2 ring-white/40'
+                cls += 'ring-2 ring-white/60'
                 style = {
                   backgroundColor: STANDBY_ACCENT,
                   color: textOnAccent(STANDBY_ACCENT),
                 }
               } else if (faded) {
-                cls += 'cursor-not-allowed bg-white/10 text-white/40'
+                cls += 'cursor-not-allowed bg-white/45 text-black/45'
               } else {
-                cls += 'bg-white/15 text-white hover:bg-white/25'
+                cls += 'bg-white text-black hover:bg-white/90'
               }
               return (
                 <button
