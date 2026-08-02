@@ -5,6 +5,8 @@ import { useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
+import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
+import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
@@ -28,7 +30,7 @@ import {
   type WinnerSoundSurface,
 } from '@/lib/winner-sound'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
-import { NeoButton, NeoInput, NeoLabel } from '@/components/neo-minimal'
+import { NeoButton, NeoInput } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
@@ -1340,39 +1342,40 @@ export function FacilitatorEventPage() {
 
   return (
     <>
-      <FacilitatorPanelShell
-      title={event.name}
-      titleCentered
-      subtitle={
-        others.length > 0 ? (
-          <span>Also viewing: {others.map((o) => o.name).join(', ')}</span>
-        ) : undefined
-      }
-    >
-      <div className="mb-4 flex items-center justify-center gap-3">
-        <div className="flex items-center">
+      <FacilitatorPanelShell title="">
+      {/* One slim utility row instead of a title, a centred status and a centred
+          button pair. The event's name is already on the display preview a few
+          pixels below, and the console needs the height. */}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* StatusIndicator prints the label itself; the console used to print
+              it a second time alongside, reading "Ready Ready". */}
           <StatusIndicator status={event.status as RallyStatusTone} />
-          <span className="text-muted-foreground ml-2 text-sm capitalize">
-            {event.status === 'demo' ? 'Demo' : event.status}
-          </span>
+          {others.length > 0 ? (
+            <span className="text-muted-foreground truncate text-xs">
+              Also viewing: {others.map((o) => o.name).join(', ')}
+            </span>
+          ) : null}
         </div>
-        <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
-          <ScrollText className="size-4" />
-          View Log
-        </FacilitatorButton>
-        <FacilitatorButton
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            const next = !muted
-            setSoundsMuted(next)
-            setMuted(next)
-          }}
-          aria-pressed={muted}
-        >
-          {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-          {muted ? 'Unmute' : 'Mute'}
-        </FacilitatorButton>
+        <div className="flex shrink-0 items-center gap-2">
+          <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
+            <ScrollText className="size-4" />
+            View Log
+          </FacilitatorButton>
+          <FacilitatorButton
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const next = !muted
+              setSoundsMuted(next)
+              setMuted(next)
+            }}
+            aria-pressed={muted}
+          >
+            {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+            {muted ? 'Unmute' : 'Mute'}
+          </FacilitatorButton>
+        </div>
       </div>
 
       {!controlsLive ? (
@@ -1388,7 +1391,7 @@ export function FacilitatorEventPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          <Card className="neo-card border-border/80 overflow-hidden bg-card shadow-sm">
+          <Card className="neo-card border-border/80 gap-0 overflow-hidden border bg-card p-0 shadow-sm">
             <DisplayPreviewFrame displayUrl={displayUrl} />
           </Card>
 
@@ -1396,23 +1399,24 @@ export function FacilitatorEventPage() {
             disabled={!controlsLive}
             className="min-w-0 space-y-4 border-0 p-0"
           >
-          {/* Compact announcements: label + message row, send buttons on their own row. */}
-          <Card className="neo-card border-border/80 space-y-2 bg-card p-3 shadow-sm">
-            <div className="flex items-center gap-2">
-              <NeoLabel className="shrink-0">Announcement</NeoLabel>
-              <NeoInput
-                value={announcement}
-                onChange={(e) => setAnnouncement(e.target.value)}
-                placeholder="Message… clears after 1 minute"
-                className="bg-background flex-1"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
+          {/* The message is the point, so it gets the full width and the send
+              targets sit under it as one row of buttons rather than a label,
+              a squeezed field and three loose outlines. */}
+          <Card className="neo-card border-border/80 space-y-2.5 bg-card p-4 shadow-sm">
+            <p className="text-sm font-bold">Announcement</p>
+            <NeoInput
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+              placeholder="Message… clears after 1 minute"
+              className="bg-background w-full"
+            />
+            <div className="grid grid-cols-3 gap-2">
               {(['display', 'participants', 'both'] as const).map((t) => (
                 <FacilitatorButton
                   key={t}
                   size="sm"
                   variant="outline"
+                  className="w-full"
                   onClick={() => sendAnnouncement(t)}
                 >
                   {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
@@ -1728,31 +1732,19 @@ export function FacilitatorEventPage() {
           ) : null}
 
           <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-            <p className="mb-2 text-sm font-medium">Stages</p>
-            <div className="flex flex-wrap gap-2">
-              {stages.map((s, i) =>
-                s?.id ? (
-                  <NeoButton
-                    key={s.id}
-                    size="sm"
-                    variant={state.current_stage_index === i ? 'primary' : 'surface'}
-                    // Yellow border marks the selected stage clearly in both themes.
-                    className={
-                      state.current_stage_index === i
-                        ? 'border-2 border-[#FFC107]'
-                        : 'border-2 border-transparent'
-                    }
-                    onClick={() => selectStage(i)}
-                  >
-                    Stage {i + 1}
-                  </NeoButton>
-                ) : null,
-              )}
-            </div>
+            <p className="mb-2.5 text-sm font-bold">Stages</p>
+            <SegmentedPill
+              aria-label="Stage"
+              options={stages
+                .map((s, i) => (s?.id ? { value: String(i), label: `Stage ${i + 1}` } : null))
+                .filter((o): o is { value: string; label: string } => o !== null)}
+              value={String(state.current_stage_index)}
+              onChange={(next) => selectStage(Number(next))}
+            />
           </Card>
 
-          <Card className="neo-card border-border/80 max-h-[40vh] space-y-3 overflow-auto bg-card p-4 shadow-sm">
-            <p className="font-medium">Teams</p>
+          <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
+            <p className="text-sm font-bold">Teams</p>
             <p className="text-muted-foreground text-xs">
               Tap a slot to set name/photo. Scores update when you approve submissions.
             </p>
@@ -1984,33 +1976,22 @@ export function FacilitatorEventPage() {
               ) : null}
             </div>
             {/* UI-2: display toggles side by side, centred at the card bottom. */}
-            <div className="border-border/60 flex flex-wrap items-center justify-center gap-6 border-t pt-3 sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={state.show_timer_on_display}
-                  onChange={(e) =>
-                    void patchState({ show_timer_on_display: e.target.checked })
-                  }
-                />
-                Show timer on display
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={state.show_scores}
-                  onChange={(e) => void patchState({ show_scores: e.target.checked })}
-                />
-                Show scores on display
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={state.hide_team_points}
-                  onChange={(e) => void patchState({ hide_team_points: e.target.checked })}
-                />
-                Hide points for teams
-              </label>
+            <div className="border-border/60 flex flex-col gap-2.5 border-t pt-3 sm:col-span-2">
+              <FacilitatorToggle
+                label="Timer on display"
+                checked={state.show_timer_on_display}
+                onChange={(next) => void patchState({ show_timer_on_display: next })}
+              />
+              <FacilitatorToggle
+                label="Scores on display"
+                checked={state.show_scores}
+                onChange={(next) => void patchState({ show_scores: next })}
+              />
+              <FacilitatorToggle
+                label="Hide points for teams"
+                checked={state.hide_team_points}
+                onChange={(next) => void patchState({ hide_team_points: next })}
+              />
             </div>
           </Card>
 
@@ -2071,18 +2052,19 @@ export function FacilitatorEventPage() {
           {!stage || stage.type === 'open' ? (
             <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <>
-              <div className="mb-3 flex gap-2">
-                {(['all', 'pending', 'approved', 'rejected'] as const).map((t) => (
-                  <Button
-                    key={t}
-                    size="sm"
-                    variant={subTab === t ? 'default' : 'outline'}
-                    className={subTab === t ? 'border-2 border-[#FFC107]' : 'border-2 border-transparent'}
-                    onClick={() => setSubTab(t)}
-                  >
-                    {t}
-                  </Button>
-                ))}
+              <div className="mb-3">
+                <SegmentedPill
+                  aria-label="Filter submissions"
+                  size="sm"
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'approved', label: 'Approved' },
+                    { value: 'rejected', label: 'Rejected' },
+                  ]}
+                  value={subTab}
+                  onChange={setSubTab}
+                />
               </div>
               <ul className="max-h-[70vh] space-y-3 overflow-auto">
                 {filteredSubs
