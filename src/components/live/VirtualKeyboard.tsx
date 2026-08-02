@@ -100,7 +100,7 @@ export function VirtualKeyboard({
                   }}
                   // Ruled-out keys keep their solid grey instead of fading, so they
                   // still read as "already tried" rather than as a rendering glitch.
-                  className={`flex h-12 items-center justify-center rounded-md text-base font-bold uppercase transition-colors active:scale-95 ${
+                  className={`flex aspect-square items-center justify-center rounded-md text-base font-bold uppercase transition-colors active:scale-95 md:aspect-auto md:h-12 ${
                     disabled && !locked ? 'opacity-40' : ''
                   }`}
                 >
@@ -108,16 +108,30 @@ export function VirtualKeyboard({
                 </button>
               )
             })}
+            {/* On a phone Delete sits at the end of the last letter row, so the
+                keyboard costs one row less of the screen. */}
+            {i === rows.length - 1 ? (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={onBackspace}
+                aria-label="Delete last letter"
+                style={{ ...keyStyle, backgroundColor: STATE_COLOR.absent }}
+                className="flex aspect-square items-center justify-center rounded-md text-white active:scale-95 disabled:opacity-40 md:hidden"
+              >
+                <Delete className="size-4" />
+              </button>
+            ) : null}
           </div>
         ))}
-        <div className="flex justify-center gap-1 pt-1">
+        <div className={`justify-center gap-1 pt-1 ${onSubmit ? 'flex' : 'hidden md:flex'}`}>
           <button
             type="button"
             disabled={disabled}
             onClick={onBackspace}
             aria-label="Delete last letter"
             style={{ width: `calc(${KEY_WIDTH} * 3 + 0.5rem)`, backgroundColor: STATE_COLOR.absent }}
-            className="flex h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40"
+            className="hidden h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40 md:flex"
           >
             <Delete className="size-4" /> Delete
           </button>
@@ -127,7 +141,7 @@ export function VirtualKeyboard({
               disabled={submitInactive}
               onClick={onSubmit}
               style={{
-                width: `calc(${KEY_WIDTH} * 4 + 0.75rem)`,
+                width: `calc(${KEY_WIDTH} * 5 + 1rem)`,
                 // Keeps the accent even while inactive — it is the key that
                 // sends the guess, and a grey one read as a dead control.
                 backgroundColor: accentColor ?? UNUSED_KEY_COLOR,

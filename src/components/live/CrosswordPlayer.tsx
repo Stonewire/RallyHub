@@ -388,7 +388,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   return (
     // Bottom room for the fixed keyboard: scrolled all the way down, every
     // clue and cell still sits above it rather than behind it.
-    <div ref={boardRef} className="scroll-mt-3 space-y-4 pb-[20rem]">
+    <div ref={boardRef} className="scroll-mt-3 space-y-4 pb-60 md:pb-[20rem]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className={`text-xl font-black tabular-nums md:text-2xl ${clockColor}`}>{formatClock(remaining)}</p>
@@ -416,28 +416,6 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           keeps the width and only the selected cell's two clues sit under it. */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
         <div className="order-2 min-w-0 flex-1 md:order-1">
-          {/* Which way to answer, asked plainly, rather than by tapping the same
-              cell twice and hoping the direction flipped. */}
-          {cluesHere.length > 0 ? (
-            <div className="flex flex-wrap justify-center gap-2 md:justify-start">
-              {cluesHere.map((clue) => (
-                <button
-                  key={clue.id}
-                  type="button"
-                  onClick={() => selectClue(clue)}
-                  className={`rounded-full px-4 py-2 text-xs font-black uppercase ${
-                    activeClueId === clue.id ? 'text-black' : 'bg-white/15 text-white'
-                  }`}
-                  style={
-                    activeClueId === clue.id ? { backgroundColor: accentColor } : undefined
-                  }
-                >
-                  {clue.direction === 'across' ? 'Across' : 'Down'} {clue.number}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
           <div className="hidden md:block">
             {(['across', 'down'] as const).map((direction) => (
               <div key={direction} className="mb-4">
@@ -507,6 +485,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
             const locked = solved || revealed
             const inActive = activeCells.includes(key)
             const isCursor = inActive && !locked && activeCells[activeIndex] === key
+            const askDirection = panelCell === key && cluesHere.length > 1
             return (
               <span key={key} className="relative">
                 {number ? (
@@ -533,6 +512,27 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                 >
                   {locked ? (progress?.filledCells[key] ?? cells[key] ?? '') : (cells[key] ?? '')}
                 </button>
+                {/* Asked where it was tapped, so the choice is next to the
+                    cell it applies to rather than somewhere off the board. */}
+                {askDirection ? (
+                  <span className="absolute top-full left-1/2 z-30 mt-1 flex -translate-x-1/2 gap-1">
+                    {cluesHere.map((clue) => (
+                      <button
+                        key={clue.id}
+                        type="button"
+                        onClick={() => selectClue(clue)}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-black whitespace-nowrap uppercase shadow-lg md:text-xs ${
+                          activeClueId === clue.id ? 'text-black' : 'bg-black/80 text-white'
+                        }`}
+                        style={
+                          activeClueId === clue.id ? { backgroundColor: accentColor } : undefined
+                        }
+                      >
+                        {clue.direction === 'across' ? 'Across' : 'Down'}
+                      </button>
+                    ))}
+                  </span>
+                ) : null}
               </span>
             )
           }),
