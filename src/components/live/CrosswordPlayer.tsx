@@ -279,6 +279,8 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
 
   function handleKey(letter: string) {
     if (checking || !activeClue) return
+    // Shared keyboard: anything that is not a letter has no meaning in a grid.
+    if (!/^\p{L}$/u.test(letter)) return
     const key = activeCells[activeIndex]
     if (!key || isLocked(key)) return
     const nextCells = { ...cells, [key]: letter.toLocaleUpperCase() }

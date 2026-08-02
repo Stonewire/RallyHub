@@ -175,6 +175,9 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
 
   function handleWordleKey(letter: string) {
     if (saving) return
+    // One keyboard serves every game, so the digits and punctuation it also
+    // carries simply do nothing in a word puzzle.
+    if (!/^\p{L}$/u.test(letter)) return
     setGuess((current) => (Array.from(current).length < wordLength ? current + letter.toLocaleUpperCase() : current))
   }
 

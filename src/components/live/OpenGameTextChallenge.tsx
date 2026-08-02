@@ -70,9 +70,7 @@ export function OpenGameTextChallenge({
             {typed || <span className="text-white/50">Type your answer…</span>}
           </p>
           <VirtualKeyboard
-            alphabet="latin"
-            fullText
-            onKey={(char) => setTyped((current) => current + char)}
+            alphabet="latin"            onKey={(char) => setTyped((current) => current + char)}
             onBackspace={() => setTyped((current) => Array.from(current).slice(0, -1).join(''))}
             onSubmit={() => {
               if (!disabled && canSubmitTyped) onSubmit(typed)

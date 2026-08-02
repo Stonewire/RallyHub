@@ -79,13 +79,6 @@ type Props = {
   accentColor?: string
   keyState?: Record<string, WordleCellState>
   disabled?: boolean
-  /**
-   * Typing an answer needs more than letters, so this lays the board out like
-   * a phone keyboard: shift and delete on the letter row, then number and
-   * character layers, a space bar and the send key. Off for the puzzles, whose
-   * answers are letters only.
-   */
-  fullText?: boolean
 }
 
 export function VirtualKeyboard({
@@ -98,7 +91,6 @@ export function VirtualKeyboard({
   accentColor,
   keyState,
   disabled,
-  fullText = false,
 }: Props) {
   // Answers are compared exactly, so case is the player's to choose. Starts on
   // for the first letter, then releases itself, like a phone keyboard.
@@ -107,20 +99,11 @@ export function VirtualKeyboard({
 
   const letterRows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
   const rows =
-    !fullText || layer === 'letters'
-      ? letterRows
-      : layer === 'numbers'
-        ? NUMBER_ROWS
-        : SYMBOL_ROWS
+    layer === 'letters' ? letterRows : layer === 'numbers' ? NUMBER_ROWS : SYMBOL_ROWS
   const keyStyle: CSSProperties = { width: KEY_WIDTH }
   const submitInactive = disabled || submitDisabled
-  const showModifiers = fullText && layer === 'letters'
 
   function press(char: string) {
-    if (!fullText) {
-      onKey(char)
-      return
-    }
     onKey(layer === 'letters' && !shift ? char.toLocaleLowerCase() : char)
     if (shift) setShift(false)
   }
@@ -144,7 +127,7 @@ export function VirtualKeyboard({
           backgroundColor: active ? UNUSED_KEY_COLOR : MODIFIER_KEY_COLOR,
           color: active ? UNUSED_KEY_TEXT : '#FFFFFF',
         }}
-        className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40"
+        className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40 md:h-12"
       >
         {label}
       </button>
@@ -163,7 +146,7 @@ export function VirtualKeyboard({
           return (
             <div key={i} className="flex justify-center gap-1">
               {/* Shift and delete bracket the last row, as on a phone. */}
-              {showModifiers && lastRow
+              {layer === 'letters' && lastRow
                 ? modifierKey(
                     <ArrowBigUp className={`size-5 ${shift ? 'fill-current' : ''}`} />,
                     () => setShift((on) => !on),
@@ -190,37 +173,22 @@ export function VirtualKeyboard({
                     }}
                     // Ruled-out keys keep their solid grey instead of fading, so they
                     // still read as "already tried" rather than as a rendering glitch.
-                    className={`flex aspect-square items-center justify-center rounded-md text-base font-bold transition-colors active:scale-95 md:aspect-auto md:h-12 ${
-                      fullText && layer === 'letters' && !shift ? 'lowercase' : 'uppercase'
+                    className={`flex h-10 items-center justify-center rounded-md text-base font-bold transition-colors active:scale-95 md:h-12 ${
+                      layer === 'letters' && !shift ? 'lowercase' : 'uppercase'
                     } ${disabled && !locked ? 'opacity-40' : ''}`}
                   >
                     {letter}
                   </button>
                 )
               })}
-              {/* On a phone Delete sits at the end of the last letter row, so the
-                  keyboard costs one row less of the screen. */}
-              {!fullText && lastRow ? (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={onBackspace}
-                  aria-label="Delete last letter"
-                  style={{ ...keyStyle, backgroundColor: STATE_COLOR.absent }}
-                  className="flex aspect-square items-center justify-center rounded-md text-white active:scale-95 disabled:opacity-40 md:hidden"
-                >
-                  <Delete className="size-4" />
-                </button>
-              ) : null}
-              {fullText && lastRow
+              {lastRow
                 ? modifierKey(<Delete className="size-5" />, onBackspace, 1.5, 'Delete last letter')
                 : null}
             </div>
           )
         })}
 
-        {fullText ? (
-          <div className="flex justify-center gap-1 pt-1">
+        <div className="flex justify-center gap-1 pt-1">
             {modifierKey(
               layer === 'letters' ? '123' : 'ABC',
               () => setLayer(layer === 'letters' ? 'numbers' : 'letters'),
@@ -239,11 +207,15 @@ export function VirtualKeyboard({
               onClick={() => onKey(' ')}
               aria-label="Space"
               style={{
-                width: spanWidth(4.5),
+                // Takes whatever the send key leaves, so the row always ends
+                // flush with the letters above it.
+                width: onSubmit ? spanWidth(4.5) : undefined,
                 backgroundColor: UNUSED_KEY_COLOR,
                 color: UNUSED_KEY_TEXT,
               }}
-              className="flex h-12 shrink-0 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40"
+              className={`flex h-10 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40 md:h-12 ${
+                onSubmit ? 'shrink-0' : 'flex-1'
+              }`}
             >
               Space
             </button>
@@ -260,42 +232,13 @@ export function VirtualKeyboard({
                   backgroundColor: accentColor ?? UNUSED_KEY_COLOR,
                   color: accentColor ? textOnAccent(accentColor) : '#FFFFFF',
                 }}
-                className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50"
+                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50 md:h-12"
               >
                 <CornerDownLeft className="size-4" />
                 {submitLabel}
               </button>
             ) : null}
           </div>
-        ) : (
-          <div className={`justify-center gap-1 pt-1 ${onSubmit ? 'flex' : 'hidden md:flex'}`}>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onBackspace}
-              aria-label="Delete last letter"
-              style={{ width: spanWidth(3), backgroundColor: STATE_COLOR.absent }}
-              className="hidden h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40 md:flex"
-            >
-              <Delete className="size-4" /> Delete
-            </button>
-            {onSubmit ? (
-              <button
-                type="button"
-                disabled={submitInactive}
-                onClick={onSubmit}
-                style={{
-                  width: spanWidth(5),
-                  backgroundColor: accentColor ?? UNUSED_KEY_COLOR,
-                  color: accentColor ? textOnAccent(accentColor) : '#FFFFFF',
-                }}
-                className="flex h-12 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50"
-              >
-                {submitLabel}
-              </button>
-            ) : null}
-          </div>
-        )}
       </div>
     </div>
   )
