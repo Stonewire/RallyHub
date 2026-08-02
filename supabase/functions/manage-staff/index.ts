@@ -122,6 +122,52 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
+    if (action === 'update') {
+      const userId = String(body.user_id ?? '').trim()
+      if (!userId) return json({ error: 'user_id is required' }, 400)
+
+      const { data: target } = await admin
+        .from('profiles')
+        .select('role, staff_role')
+        .eq('id', userId)
+        .maybeSingle()
+      if (target?.role !== 'super_admin' || (target.staff_role ?? 'owner') === 'owner') {
+        return json({ error: 'Not an editable staff account.' }, 400)
+      }
+
+      const firstName = body.first_name != null ? String(body.first_name).trim() : undefined
+      const lastName = body.last_name != null ? String(body.last_name).trim() : undefined
+      const username = body.username != null ? String(body.username).trim().toLowerCase() : undefined
+      const email = body.email != null ? String(body.email).trim().toLowerCase() : undefined
+      const password = body.temporary_password != null ? String(body.temporary_password) : undefined
+
+      if (username !== undefined && !USERNAME_PATTERN.test(username)) {
+        return json({ error: 'Username must be 3–32 characters: letters, numbers, underscore.' }, 400)
+      }
+      if (password !== undefined && password.length < 8) {
+        return json({ error: 'Temporary password must be at least 8 characters' }, 400)
+      }
+
+      if (email !== undefined || password !== undefined) {
+        const { error: authUpdateError } = await admin.auth.admin.updateUserById(userId, {
+          ...(email !== undefined ? { email, email_confirm: true } : {}),
+          ...(password !== undefined ? { password } : {}),
+        })
+        if (authUpdateError) return json({ error: authUpdateError.message }, 400)
+      }
+
+      const profilePatch: Record<string, string> = {}
+      if (firstName !== undefined) profilePatch.first_name = firstName
+      if (lastName !== undefined) profilePatch.last_name = lastName
+      if (username !== undefined) profilePatch.username = username
+      if (Object.keys(profilePatch).length > 0) {
+        const { error } = await admin.from('profiles').update(profilePatch).eq('id', userId)
+        if (error) return json({ error: error.message }, 400)
+      }
+
+      return json({ ok: true })
+    }
+
     if (action === 'remove') {
       const userId = String(body.user_id ?? '').trim()
       if (!userId) return json({ error: 'user_id is required' }, 400)

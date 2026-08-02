@@ -81,6 +81,14 @@ export function RallyHubStaffPanel() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendingRemove, setPendingRemove] = useState<StaffProfile | null>(null)
+  const [editing, setEditing] = useState<StaffProfile | null>(null)
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    password: '',
+  })
 
   const act = useMutation({
     mutationFn: invokeManageStaff,
@@ -123,6 +131,39 @@ export function RallyHubStaffPanel() {
       await act.mutateAsync({ action: 'set_role', user_id: member.id, staff_role: staffRole })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not change the role.')
+    }
+  }
+
+  function openEdit(member: StaffProfile) {
+    setEditing(member)
+    setEditForm({
+      firstName: member.first_name ?? '',
+      lastName: member.last_name ?? '',
+      username: member.username,
+      email: '',
+      password: '',
+    })
+    setError(null)
+  }
+
+  async function handleUpdate() {
+    if (!editing) return
+    setError(null)
+    try {
+      await act.mutateAsync({
+        action: 'update',
+        user_id: editing.id,
+        first_name: editForm.firstName,
+        last_name: editForm.lastName,
+        username: editForm.username,
+        // Blank means keep: email and password only travel when typed.
+        ...(editForm.email.trim() ? { email: editForm.email } : {}),
+        ...(editForm.password ? { temporary_password: editForm.password } : {}),
+      })
+      setEditing(null)
+      setMessage('Staff account updated.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update the account.')
     }
   }
 
@@ -200,6 +241,15 @@ export function RallyHubStaffPanel() {
                         </option>
                       ))}
                     </select>
+                    <NeoButton
+                      type="button"
+                      variant="surface"
+                      size="sm"
+                      disabled={act.isPending}
+                      onClick={() => openEdit(member)}
+                    >
+                      Edit
+                    </NeoButton>
                     <NeoButton
                       type="button"
                       variant="destructive"
@@ -304,6 +354,85 @@ export function RallyHubStaffPanel() {
                 onClick={() => void handleCreate()}
               >
                 {act.isPending ? 'Adding…' : 'Add Staff'}
+              </NeoButton>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {editing ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit staff member"
+          onClick={() => setEditing(null)}
+        >
+          <Card
+            className="border-border/80 bg-card w-full max-w-lg space-y-4 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-foreground text-sm font-bold">
+              Edit {[editing.first_name, editing.last_name].filter(Boolean).join(' ') || editing.username}
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="edit-first">First name</NeoLabel>
+                <NeoInput
+                  id="edit-first"
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, firstName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="edit-last">Last name</NeoLabel>
+                <NeoInput
+                  id="edit-last"
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="edit-username">Username</NeoLabel>
+                <NeoInput
+                  id="edit-username"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="edit-email">New email</NeoLabel>
+                <NeoInput
+                  id="edit-email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="Leave blank to keep"
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <NeoLabel htmlFor="edit-password">New temporary password</NeoLabel>
+                <NeoInput
+                  id="edit-password"
+                  type="text"
+                  autoComplete="off"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="Leave blank to keep their current password"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <NeoButton type="button" variant="surface" onClick={() => setEditing(null)}>
+                Cancel
+              </NeoButton>
+              <NeoButton
+                type="button"
+                variant="accent"
+                disabled={act.isPending}
+                onClick={() => void handleUpdate()}
+              >
+                {act.isPending ? 'Saving…' : 'Save'}
               </NeoButton>
             </div>
           </Card>
