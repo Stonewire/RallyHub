@@ -1349,13 +1349,21 @@ export function JoinGameView({
       const intro = round
         ? roundIntroDisplay(round, roundIndexForQuestion(quizGame, q))
         : { title: 'NEXT ROUND', subtitle: '' }
+      // The round's name is what the team is being told; its number is just
+      // where they are in the quiz, so it sits above in small type.
+      const introNameOnly =
+        !intro.subtitle || intro.subtitle.toLocaleUpperCase() === intro.title
       body = (
-        <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="font-sans text-4xl font-bold md:text-5xl">{intro.title}</p>
-          {intro.subtitle ? (
-            <p className="mt-4 text-2xl font-semibold opacity-90 md:text-3xl">{intro.subtitle}</p>
+        <div className="flex min-h-[70svh] flex-col items-center justify-center px-6 text-center">
+          {!introNameOnly ? (
+            <p className="text-sm font-black tracking-[0.28em] uppercase opacity-70 sm:text-base">
+              {intro.title}
+            </p>
           ) : null}
-          <p className="text-muted-foreground mt-8 text-sm text-white/50">
+          <p className="mt-4 text-[clamp(2.25rem,9vw,5rem)] leading-[1.05] font-black text-balance drop-shadow-lg">
+            {introNameOnly ? intro.title : intro.subtitle}
+          </p>
+          <p className="mt-10 animate-pulse text-sm font-semibold opacity-60">
             Waiting for the facilitator to start…
           </p>
         </div>
