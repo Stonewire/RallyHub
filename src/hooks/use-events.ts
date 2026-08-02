@@ -28,12 +28,22 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
  * rather than a dot beside a neutral chip. Fixed colours, not theme tokens,
  * because the meaning of green/blue/yellow must not flip between light and dark.
  */
+/**
+ * A status is a colour, not a surface, so these pills keep the same fill in
+ * both themes. The `dark:` halves are not decoration: the pill renders on
+ * shadcn's outline Button, whose `dark:bg-input/30` otherwise wins in dark
+ * mode and leaves dark label text on a near-transparent dark button.
+ */
 export const EVENT_STATUS_PILL_CLASS: Record<EventStatus, string> = {
-  active: 'bg-[#2f9e6e] text-white border-transparent hover:bg-[#2f9e6e] hover:text-white',
-  demo: 'bg-[#bfe0f5] text-[#1c3d52] border-transparent hover:bg-[#bfe0f5] hover:text-[#1c3d52]',
-  ready: 'bg-[#ffc107] text-[#3a2f00] border-transparent hover:bg-[#ffc107] hover:text-[#3a2f00]',
-  draft: 'bg-[#dcdcdf] text-[#3a3a3f] border-transparent hover:bg-[#dcdcdf] hover:text-[#3a3a3f]',
-  archived: 'bg-[#4a4a4f] text-white border-transparent hover:bg-[#4a4a4f] hover:text-white',
+  active:
+    'bg-[#2f9e6e] text-white border-transparent hover:bg-[#2f9e6e] hover:text-white dark:bg-[#2f9e6e] dark:text-white dark:hover:bg-[#2f9e6e]',
+  demo: 'bg-[#bfe0f5] text-[#1c3d52] border-transparent hover:bg-[#bfe0f5] hover:text-[#1c3d52] dark:bg-[#bfe0f5] dark:text-[#1c3d52] dark:hover:bg-[#bfe0f5]',
+  ready:
+    'bg-[#ffc107] text-[#3a2f00] border-transparent hover:bg-[#ffc107] hover:text-[#3a2f00] dark:bg-[#ffc107] dark:text-[#3a2f00] dark:hover:bg-[#ffc107]',
+  draft:
+    'bg-[#dcdcdf] text-[#3a3a3f] border-transparent hover:bg-[#dcdcdf] hover:text-[#3a3a3f] dark:bg-[#dcdcdf] dark:text-[#3a3a3f] dark:hover:bg-[#dcdcdf]',
+  archived:
+    'bg-[#4a4a4f] text-white border-transparent hover:bg-[#4a4a4f] hover:text-white dark:bg-[#4a4a4f] dark:text-white dark:hover:bg-[#4a4a4f]',
 }
 
 export function groupEventsByStatus(events: EventRow[]) {
