@@ -16,7 +16,9 @@ type OpenGameChallengeCardProps = {
   game: Tables<'games'>
   submissionStatus?: SubmissionStatus | null
   accentColor: string
-  onAccentColor: string
+  /** The event's own text colour, so an untouched tile reads like the rest of
+   *  the screen rather than picking its own contrast against the accent. */
+  textColor: string
   canSubmit: boolean
   onSelect: () => void
 }
@@ -31,7 +33,7 @@ function challengeTypeIcon(game: Tables<'games'>): LucideIcon {
 function cardAppearance(
   status: SubmissionStatus | null | undefined,
   accentColor: string,
-  onAccentColor: string,
+  textColor: string,
 ): { backgroundColor: string; color: string; statusLabel: string | null } {
   if (status === 'approved') {
     return {
@@ -56,7 +58,7 @@ function cardAppearance(
   }
   return {
     backgroundColor: accentColor,
-    color: onAccentColor,
+    color: textColor,
     statusLabel: null,
   }
 }
@@ -65,14 +67,14 @@ export function OpenGameChallengeCard({
   game,
   submissionStatus,
   accentColor,
-  onAccentColor,
+  textColor,
   canSubmit,
   onSelect,
 }: OpenGameChallengeCardProps) {
   const approved = submissionStatus === 'approved'
   const rejected = submissionStatus === 'rejected'
   const locked = approved || rejected
-  const appearance = cardAppearance(submissionStatus, accentColor, onAccentColor)
+  const appearance = cardAppearance(submissionStatus, accentColor, textColor)
   const TypeIcon = challengeTypeIcon(game)
   const isPending = submissionStatus === 'pending'
 
@@ -91,20 +93,20 @@ export function OpenGameChallengeCard({
         if (!locked && canSubmit) onSelect()
       }}
     >
-      {/* Corner-mounted so the middle of the tile stays free for the name and
-          the status chip, which is where the eye goes first. */}
-      <span className="absolute top-2 right-2.5 text-sm leading-none font-black tabular-nums">
-        {gamePointsDisplay(game)}
-      </span>
-
-      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-2">{game.name}</span>
-
+      {/* Corner-mounted: the type is a glance-level cue, so it costs no room
+          in the middle where the name and the points sit. */}
       {/* eslint-disable-next-line react-hooks/static-components -- TypeIcon picks among 3 stable, pre-existing icon components, doesn't create one */}
       <TypeIcon
-        className="size-5 shrink-0 opacity-90"
+        className="absolute top-2 right-2 size-5 shrink-0 opacity-90"
         strokeWidth={1.75}
         aria-hidden
       />
+
+      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-2">{game.name}</span>
+
+      <span className="text-base leading-none font-black tabular-nums">
+        {gamePointsDisplay(game)}
+      </span>
 
       {appearance.statusLabel ? (
         <span

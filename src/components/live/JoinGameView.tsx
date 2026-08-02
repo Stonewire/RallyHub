@@ -60,6 +60,7 @@ import {
   brandColorsForEvent,
   breakDurationSeconds,
   currentStage,
+  displayTextColorForEvent,
   formatBreakTimer,
   formatTimer,
   gamePointsDisplay,
@@ -178,7 +179,9 @@ export function JoinGameView({
 
   const colors = brandColorsForEvent(event, organization)
   const accent = colors[2]
-  const onAccent = textOnAccent(accent)
+  // The event picks one text colour for its whole surface. Anything sitting on
+  // the background rather than inside a filled control follows it.
+  const eventTextColor = displayTextColorForEvent(event) === 'black' ? '#000000' : '#ffffff'
   const logo = logoForEvent(event, organization)
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
@@ -1008,7 +1011,7 @@ export function JoinGameView({
     !selectedGame && state.winner_reveal_stage < 1 && stage?.type !== 'bingo'
 
   const header = showMainHeader ? (
-    <header className="mb-4 flex flex-col items-center gap-1.5 px-2 pt-4 text-center sm:pt-5">
+    <header className="relative mb-4 flex flex-col items-center gap-1.5 px-2 pt-4 text-center sm:pt-5">
       {logo ? (
         <img
           src={logo}
@@ -1030,9 +1033,14 @@ export function JoinGameView({
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null
-      ) : state.hide_team_points ? null : (
-        <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
-          {team.score} points
+      ) : null}
+
+      {/* The running total belongs to the team, not to the screen it happens
+          to be on, so it holds the same corner throughout. */}
+      {state.hide_team_points ? null : (
+        <p className="absolute top-2 right-3 text-lg leading-none font-black tabular-nums drop-shadow-sm sm:top-3">
+          {team.score}
+          <span className="ml-1 text-xs font-bold opacity-70">pts</span>
         </p>
       )}
     </header>
@@ -1127,7 +1135,7 @@ export function JoinGameView({
                 ← Back
               </Button>
               {!captureActive && inventoryEnabled ? (
-                <Button type="button" size="sm" className="gap-2 font-semibold" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
+                <Button type="button" size="sm" className="gap-2 font-semibold" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
                   <QrCode className="size-4" /> Buy Items
                 </Button>
               ) : null}
@@ -1196,11 +1204,13 @@ export function JoinGameView({
       body = (
         <div className="mx-auto max-w-2xl px-4">
           {inventoryEnabled ? (
-            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: onAccent }} onClick={() => setInventoryScannerOpen(true)}>
+            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
               <QrCode className="size-5" /> Buy Items
             </Button>
           ) : null}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Two up on a phone, three on a tablet: at tablet width two tiles
+              stretch into letterboxes, and three keeps them near square. */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             {openGames.map((g) => {
               const sub = activeSubmissionForGame(mySubs, g.id)
               return (
@@ -1209,7 +1219,7 @@ export function JoinGameView({
                   game={g}
                   submissionStatus={sub?.status}
                   accentColor={accent}
-                  onAccentColor={onAccent}
+                  textColor={eventTextColor}
                   canSubmit={canSubmit}
                   onSelect={() => setSelectedGame(g)}
                 />
