@@ -446,7 +446,12 @@ export function AdminGamesPage() {
   }
 
   function toggleGroup(id: string) {
-    setCollapsedGroups((c) => ({ ...c, [id]: !c[id] }))
+    // Flip what is on screen, not the raw map. A group nobody has touched has
+    // no entry, so `!c[id]` read undefined as "expanded" and set it collapsed,
+    // which is what it already looked like: in the All Groups view, where the
+    // default is collapsed, the first click on a header did nothing and you
+    // had to click twice to open it.
+    setCollapsedGroups((c) => ({ ...c, [id]: !(c[id] ?? groupFilter === 'all') }))
   }
 
   function startRename(groupId: string, currentName: string) {
