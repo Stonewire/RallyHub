@@ -736,3 +736,45 @@ In **RallyHub Gaming**, all prefixed so they are obvious: event `ZZ Player
 Preview (throwaway)` with seven `ZZ Preview: …` games and seven teams. Not
 deleted, because deleting is his call. The demo org's `Bubbles` catalog track
 also still carries a 60s clip from pre-fix testing.
+
+## Run notes: 2 Aug 2026, evening
+
+Phases 5 and 6 were already complete, so this run verified them and fixed what
+the verification turned up.
+
+Two claims in this document were stale and are corrected here:
+
+- "Every hand-rolled pill toggle in the admin panel is now FlipSwitch or
+  SegmentedPill." Half true. SegmentedPill is used in twelve files and that part
+  holds. **FlipSwitch is imported by nothing**; it is exported from the
+  neo-minimal index and otherwise dead. It was left in place rather than deleted
+  because its job is real and distinct (it names two states, e.g. Light/Dark,
+  rather than switching one thing on and off) and a future screen may want it.
+  Flagged to Rumen.
+- The gap audit's "search results do not open their target" is closed.
+  `buildSearchResults` deep-links games to `/admin/games/:id` and tickets to
+  `/admin/support?ticket=:id`; both routes exist and SupportPage reads the
+  param.
+
+Fixed this run:
+
+- **Event status pills were illegible in dark mode.** The pill renders on
+  shadcn's outline Button, whose `dark:bg-input/30` beat the status background
+  while the dark label colour survived, so Draft and Ready were dark text on a
+  near-transparent dark button. Measured contrast 1.44 and 1.23; now above 8.
+  Each entry in `EVENT_STATUS_PILL_CLASS` re-asserts its fill in dark.
+- **Auth screens** (login, register, forgot, reset, change password) took the
+  current voice: black headings rather than small semibold, and the single
+  action on each takes the accent.
+
+Assumptions taken without asking, per the run rules:
+
+1. FlipSwitch stays rather than being deleted as dead code (above).
+2. On the auth screens the primary button is the accent. Elsewhere in admin the
+   accent is reserved as a sparing hero CTA, and these pages have exactly one
+   action, so it qualifies.
+3. Marketing pages were left alone: Rumen said on 2 Aug they are being
+   redesigned separately. `src/styles/marketing-home.css` still holds `#faf7f2`
+   as an on-dark text colour, the last ivory left in the codebase.
+
+Not verified this run: the marketing site, and the tablet kiosk surface.
