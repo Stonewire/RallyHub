@@ -1,8 +1,11 @@
+import { Download } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
+import { PageScopedManifest } from '@/components/pwa/PageScopedManifest'
+import { useInstallAction } from '@/components/pwa/use-install-action'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -49,6 +52,7 @@ export function TabletPage() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
+  const install = useInstallAction('tablet')
 
   useDocumentTitle('Tablet', org?.name)
 
@@ -193,6 +197,7 @@ export function TabletPage() {
   if (!authed) {
     return (
       <LivePanelShell title={org?.name ?? 'Tablet'}>
+        <PageScopedManifest />
         {org?.logo_url ? (
           <img
             src={org.logo_url}
@@ -229,6 +234,21 @@ export function TabletPage() {
               {checkingIn ? 'Signing in…' : 'Continue'}
             </AccentButton>
           </form>
+          {/* Offered before the password too: this screen is where a kiosk gets
+              set up, and the person doing it is the one who wants the icon. */}
+          {install.method ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={install.onClick}
+            >
+              <Download className="size-4" />
+              Install on this device
+            </Button>
+          ) : null}
+          {install.guide}
         </Card>
       </LivePanelShell>
     )
@@ -236,11 +256,21 @@ export function TabletPage() {
 
   return (
     <LivePanelShell title={org?.name ?? 'Tablet'}>
-      <div className="mb-4 flex justify-end">
+      {/* A kiosk is a dedicated device, so its icon should reopen this exact
+          tablet link rather than the app root. */}
+      <PageScopedManifest />
+      <div className="mb-4 flex justify-end gap-2">
+        {install.method ? (
+          <Button type="button" variant="outline" size="sm" onClick={install.onClick}>
+            <Download className="size-4" />
+            Install
+          </Button>
+        ) : null}
         <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
           Log out
         </Button>
       </div>
+      {install.guide}
       {org?.logo_url ? (
         <img
           src={org.logo_url}

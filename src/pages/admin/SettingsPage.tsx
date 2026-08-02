@@ -41,7 +41,7 @@ import { BillingOverview } from '@/components/billing/BillingOverview'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 import { Combobox } from '@/components/admin/Combobox'
-import { TabletInstallGuide } from '@/components/admin/TabletInstallGuide'
+import { InstallGuide } from '@/components/pwa/InstallGuide'
 import { COUNTRIES, postcodeExample, validatePostcode } from '@/lib/countries'
 import { downloadClientPackage } from '@/lib/client-export'
 import {
@@ -605,7 +605,7 @@ export function AdminSettingsPage() {
           </div>
 
           {installGuideOpen ? (
-            <TabletInstallGuide onClose={() => setInstallGuideOpen(false)} />
+            <InstallGuide context="tablet" onClose={() => setInstallGuideOpen(false)} />
           ) : null}
 
           {/* The demo shows the same rows a client sees, so nothing is hidden

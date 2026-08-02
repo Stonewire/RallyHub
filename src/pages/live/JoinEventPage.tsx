@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { PageScopedManifest } from '@/components/pwa/PageScopedManifest'
+import { ParticipantInstallButton } from '@/components/pwa/ParticipantInstallButton'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyNotice'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
@@ -352,6 +354,9 @@ export function JoinEventPage() {
       className="flex min-h-svh flex-col px-4 pt-4 pb-24 sm:pt-5"
     >
       <ClientBrandingStyle org={organization} />
+      {/* A player's icon should reopen this event, not the app root, so this
+          page installs itself rather than the default start_url. */}
+      <PageScopedManifest />
       <PoweredByRallyHub
         hidden={organization?.hide_platform_branding}
         position="bottom-center"
@@ -409,6 +414,7 @@ export function JoinEventPage() {
           )
         })}
       </div>
+      <ParticipantInstallButton className="mt-6" />
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto bg-white p-6 text-black">

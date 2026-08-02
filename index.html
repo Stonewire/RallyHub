@@ -2,11 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/brand/icon-yellow.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/brand/icon-yellow.png" />
-    <link rel="apple-touch-icon" href="/brand/icon-yellow.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/pwa/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/brand/pwa/favicon-16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RallyHub</title>
+
+    <!-- Installable app. Chromium reads the manifest; Safari ignores most of it
+         and needs the apple-* tags below to open standalone from the home
+         screen. The status bar is left as `default` so iOS tints it with the
+         page background and follows light and dark mode on its own, rather than
+         `black-translucent`, which would run content under the clock. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/pwa/apple-touch-icon-180.png" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="application-name" content="RallyHub" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="RallyHub" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>
       // Apply stored theme before paint to avoid a flash of the wrong theme.
       (function () {

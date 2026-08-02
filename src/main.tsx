@@ -7,9 +7,12 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { NotificationProvider } from '@/contexts/notification-context'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { queryClient } from '@/lib/query-client'
+import { registerServiceWorker } from '@/lib/register-service-worker'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import './index.css'
+
+registerServiceWorker()
 
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('fakecam')) {
   void import('@/lib/dev-fake-camera').then((m) => m.installFakeCamera())

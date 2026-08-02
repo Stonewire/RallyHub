@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
+import { InstallAppButton } from '@/components/pwa/InstallAppButton'
 import { useAuth } from '@/contexts/auth-context'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { profileDisplayName } from '@/lib/auth-routes'
@@ -38,6 +39,10 @@ export function FacilitatorLandingPage() {
             for a facilitator account or use an admin link instead.
           </p>
         ) : null}
+
+        {/* This page, not the per-event console, is the durable thing to pin:
+            an event link stops working once that event is over. */}
+        <InstallAppButton className="w-full" />
       </NeoCard>
     </AuthPageShell>
   )

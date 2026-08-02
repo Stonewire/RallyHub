@@ -15,6 +15,7 @@ import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
 import { HeaderSearch } from '@/components/shell/HeaderSearch'
 import { HelpModal } from '@/components/shell/HelpModal'
 import { NewGameTypeModal } from '@/components/games/NewGameTypeModal'
+import { InstallAppButton } from '@/components/pwa/InstallAppButton'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
 import { useTenant } from '@/contexts/tenant-context'
@@ -120,6 +121,13 @@ export function AdminHeader() {
           >
             <IconHelp className="size-4" />
           </button>
+          {/* Renders nothing unless this browser can actually install, so the
+              row does not carry a button that would do nothing. */}
+          <InstallAppButton
+            iconOnly
+            label="Install RallyHub as an app"
+            className={ICON_BUTTON}
+          />
           {/* The public demo has no real session to end, so it hides Exit,
               matching how the demo suppresses sign-out elsewhere. */}
           {!tenantOrg?.is_demo ? (

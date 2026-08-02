@@ -1,4 +1,4 @@
-import { Check, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, ShoppingBag, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, Download, MessageCircle, Pause, Play, Plus, Minus, RotateCcw, ScrollText, ShoppingBag, Volume2, VolumeX, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
@@ -34,6 +34,7 @@ import {
 } from '@/lib/winner-sound'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoInput, NeoStatusBadge } from '@/components/neo-minimal'
+import { useInstallAction } from '@/components/pwa/use-install-action'
 import type { NeoStatusBadgeTone } from '@/components/neo-minimal/NeoStatusBadge'
 import { useNotification } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
@@ -155,6 +156,10 @@ export function FacilitatorEventPage() {
   const [resettingTeam, setResettingTeam] = useState(false)
   const [progressTeam, setProgressTeam] = useState<Tables<'teams'> | null>(null)
   const [muted, setMuted] = useState(() => isSoundsMuted())
+  // Installing from here pins the default manifest, whose start_url is `/`, and
+  // the root already sends a facilitator to their event list. So the icon keeps
+  // working after this event ends, unlike the URL it was created from.
+  const install = useInstallAction()
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -1349,6 +1354,12 @@ export function FacilitatorEventPage() {
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {install.method ? (
+            <FacilitatorButton size="sm" variant="outline" onClick={install.onClick}>
+              <Download className="size-4" />
+              Install
+            </FacilitatorButton>
+          ) : null}
           <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
             <ScrollText className="size-4" />
             View Log
@@ -2284,6 +2295,7 @@ export function FacilitatorEventPage() {
       />
 
       <EventLogModal open={logOpen} eventId={eventId} onClose={() => setLogOpen(false)} />
+      {install.guide}
     </FacilitatorPanelShell>
       <DemoOverlay enabled={event.status === 'demo'} />
     </>
