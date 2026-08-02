@@ -1635,7 +1635,9 @@ export function JoinGameView({
               type="button"
               variant="outline"
               size="icon"
-              className="experience-scope fixed right-4 bottom-4 z-[9999] size-10 rounded-lg border-white/35 bg-black/35 text-inherit shadow-md backdrop-blur-sm hover:bg-black/55"
+              // Fixed black-and-yellow, not the event accent: these two are
+              // app furniture, and on a dark accent they used to disappear.
+              className="experience-scope xp-interactive text-nm-yellow fixed right-4 bottom-4 z-[9999] size-12 rounded-full border-none bg-black shadow-lg hover:bg-black hover:brightness-110"
               onClick={() => void handleExitTeam()}
               aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
             >
@@ -1660,9 +1662,8 @@ export function JoinGameView({
             >
               <Button
                 type="button"
-                className="xp-interactive relative size-12 rounded-full shadow-lg hover:brightness-95"
+                className="xp-interactive text-nm-yellow relative size-12 rounded-full bg-black shadow-lg hover:bg-black hover:brightness-110"
                 size="icon"
-                style={{ backgroundColor: accent, color: onAccent }}
                 onClick={() => {
                   setChatOpen(true)
                 }}

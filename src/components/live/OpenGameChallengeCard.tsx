@@ -80,7 +80,7 @@ export function OpenGameChallengeCard({
     <button
       type="button"
       disabled={locked || !canSubmit}
-      className={`xp-game-tile xp-interactive flex min-h-[118px] flex-col items-center justify-center gap-2 p-3.5 text-center disabled:cursor-not-allowed disabled:opacity-100 ${
+      className={`xp-game-tile xp-interactive relative flex min-h-[118px] flex-col items-center justify-center gap-2 p-3.5 text-center disabled:cursor-not-allowed disabled:opacity-100 ${
         locked || !canSubmit ? '' : 'active:scale-[0.98]'
       }`}
       style={{
@@ -91,7 +91,13 @@ export function OpenGameChallengeCard({
         if (!locked && canSubmit) onSelect()
       }}
     >
-      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full">{game.name}</span>
+      {/* Corner-mounted so the middle of the tile stays free for the name and
+          the status chip, which is where the eye goes first. */}
+      <span className="absolute top-2 right-2.5 text-sm leading-none font-black tabular-nums">
+        {gamePointsDisplay(game)}
+      </span>
+
+      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-2">{game.name}</span>
 
       {/* eslint-disable-next-line react-hooks/static-components -- TypeIcon picks among 3 stable, pre-existing icon components, doesn't create one */}
       <TypeIcon
@@ -99,10 +105,6 @@ export function OpenGameChallengeCard({
         strokeWidth={1.75}
         aria-hidden
       />
-
-      <span className="text-base font-bold tabular-nums leading-none">
-        {gamePointsDisplay(game)}
-      </span>
 
       {appearance.statusLabel ? (
         <span
