@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { CookiePreferencesDialog } from '@/components/legal/CookiePreferencesDialog'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import { useCookieConsent } from '@/contexts/cookie-consent-context'
 
 export function CookieConsentBanner() {
-  const { hasDecided, acceptAll, rejectNonEssential, openPreferences, preferencesOpen } =
-    useCookieConsent()
+  const { hasDecided, rejectNonEssential, preferencesOpen } = useCookieConsent()
+  const { pathname } = useLocation()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -22,6 +22,10 @@ export function CookieConsentBanner() {
   }
 
   if (hasDecided) return null
+
+  // A player joining an event gets one card, not two: the join notice says the
+  // same thing about storage and records the same decision.
+  if (pathname.startsWith('/join/')) return null
 
   return (
     <div
@@ -38,40 +42,27 @@ export function CookieConsentBanner() {
           </h2>
           <p id="cookie-consent-description" className="text-muted-foreground text-sm leading-relaxed">
             We use essential cookies and local storage to keep you signed in and remember your
-            choices. Optional analytics and preference cookies are off unless you allow them.{' '}
+            choices. Nothing else. Analytics and preference cookies stay off.{' '}
             <Link to="/cookies" className="text-foreground font-medium underline-offset-4 hover:underline">
               Cookie Policy
             </Link>
             .
           </p>
         </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-          <NeoButton
-            type="button"
-            variant="surface"
-            size="md"
-            className="w-full sm:w-auto"
-            onClick={rejectNonEssential}
-          >
-            Reject non-essential
-          </NeoButton>
-          <NeoButton
-            type="button"
-            variant="surface"
-            size="md"
-            className="w-full sm:w-auto"
-            onClick={openPreferences}
-          >
-            Manage preferences
-          </NeoButton>
+        {/* One button, and it grants nothing beyond what the app cannot run
+            without. Analytics stay off, so there is no "accept all" to press
+            and nothing here for a dark pattern to nudge. Anyone who does want
+            to turn optional cookies on later has Cookie preferences in the
+            footer. */}
+        <div className="shrink-0">
           <NeoButton
             type="button"
             variant="primary"
             size="md"
             className="w-full sm:w-auto"
-            onClick={acceptAll}
+            onClick={rejectNonEssential}
           >
-            Accept all
+            Got it
           </NeoButton>
         </div>
       </NeoCard>
