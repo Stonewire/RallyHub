@@ -6,7 +6,6 @@ import {
   saveCollapsedState,
 } from '@/components/admin/CollapsibleSection'
 import { ClientEventOverviewCard } from '@/components/rallyhub/ClientEventOverviewCard'
-import { NeoCard } from '@/components/neo-minimal'
 import {
   groupClientEventsForOverview,
   type ClientEventRow,
@@ -18,12 +17,14 @@ type ClientEventsOverviewProps = {
   events: ClientEventRow[]
   clientPlan: string | null | undefined
   hideInvoiceState?: boolean
+  clientId?: string
 }
 
 export function ClientEventsOverview({
   events,
   clientPlan,
   hideInvoiceState,
+  clientId,
 }: ClientEventsOverviewProps) {
   const groups = useMemo(() => groupClientEventsForOverview(events), [events])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -38,15 +39,10 @@ export function ClientEventsOverview({
     })
   }
 
+  // Groups sit straight on the page, as on the client's own Events screen,
+  // rather than boxed inside one giant card.
   return (
-    <NeoCard className="space-y-4 p-6">
-      <div>
-        <h3 className="text-foreground font-semibold">Events</h3>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Read-only overview of this client&apos;s events.
-        </p>
-      </div>
-
+    <div className="space-y-5">
       {events.length === 0 ? (
         <p className="text-muted-foreground text-sm">No events yet.</p>
       ) : (
@@ -65,13 +61,14 @@ export function ClientEventsOverview({
                   No {group.title.toLowerCase()} events.
                 </p>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
                   {group.events.map((event) => (
                     <ClientEventOverviewCard
                       key={event.id}
                       event={event}
                       clientPlan={clientPlan}
                       hideInvoiceState={hideInvoiceState}
+                      clientId={clientId}
                     />
                   ))}
                 </div>
@@ -80,6 +77,6 @@ export function ClientEventsOverview({
           ))}
         </div>
       )}
-    </NeoCard>
+    </div>
   )
 }

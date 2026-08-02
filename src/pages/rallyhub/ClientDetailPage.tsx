@@ -872,6 +872,7 @@ export function RallyHubClientDetailPage() {
           events={data.events}
           clientPlan={billingPlan}
           hideInvoiceState={isDemoClient}
+          clientId={clientId}
         />
       ) : null}
 
