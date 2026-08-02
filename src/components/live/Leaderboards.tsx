@@ -21,30 +21,30 @@ type LeaderboardProps = {
  */
 function orbitLayout(teamCount: number) {
   if (teamCount <= 2)
-    return { cols: 2, maxPx: 220, name: 'text-xl', score: 'text-2xl', rank: 40, gapX: 'gap-x-10', gapY: 'gap-y-8', tile: 66, span: 10 }
+    return { cols: 2, maxPx: 220, name: 'text-lg', score: 'text-xl', rank: 36, gapX: 'gap-x-12', gapY: 'gap-y-10', tile: 66, span: 10 }
   if (teamCount <= 4)
-    return { cols: 2, maxPx: 200, name: 'text-lg', score: 'text-xl', rank: 36, gapX: 'gap-x-10', gapY: 'gap-y-8', tile: 64, span: 10 }
+    return { cols: 2, maxPx: 200, name: 'text-base', score: 'text-lg', rank: 32, gapX: 'gap-x-12', gapY: 'gap-y-10', tile: 64, span: 10 }
   if (teamCount <= 6)
-    return { cols: 3, maxPx: 170, name: 'text-lg', score: 'text-xl', rank: 34, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 62, span: 10 }
+    return { cols: 3, maxPx: 170, name: 'text-base', score: 'text-lg', rank: 30, gapX: 'gap-x-10', gapY: 'gap-y-9', tile: 62, span: 10 }
   if (teamCount <= 9)
-    return { cols: 3, maxPx: 150, name: 'text-base', score: 'text-lg', rank: 30, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 60, span: 9 }
+    return { cols: 3, maxPx: 150, name: 'text-sm', score: 'text-base', rank: 27, gapX: 'gap-x-10', gapY: 'gap-y-9', tile: 60, span: 9 }
   if (teamCount <= 12)
-    return { cols: 4, maxPx: 132, name: 'text-sm', score: 'text-base', rank: 26, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 58, span: 9 }
+    return { cols: 4, maxPx: 132, name: 'text-xs', score: 'text-sm', rank: 24, gapX: 'gap-x-9', gapY: 'gap-y-8', tile: 58, span: 9 }
   if (teamCount <= 16)
-    return { cols: 4, maxPx: 118, name: 'text-sm', score: 'text-base', rank: 24, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 56, span: 8 }
+    return { cols: 4, maxPx: 118, name: 'text-xs', score: 'text-sm', rank: 22, gapX: 'gap-x-9', gapY: 'gap-y-8', tile: 56, span: 8 }
   if (teamCount <= 20)
-    return { cols: 5, maxPx: 104, name: 'text-xs', score: 'text-sm', rank: 22, gapX: 'gap-x-6', gapY: 'gap-y-5', tile: 54, span: 8 }
+    return { cols: 5, maxPx: 104, name: 'text-[11px]', score: 'text-xs', rank: 20, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 54, span: 8 }
   if (teamCount <= 25)
-    return { cols: 5, maxPx: 94, name: 'text-xs', score: 'text-sm', rank: 20, gapX: 'gap-x-6', gapY: 'gap-y-5', tile: 52, span: 8 }
+    return { cols: 5, maxPx: 94, name: 'text-[11px]', score: 'text-xs', rank: 19, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 52, span: 8 }
   if (teamCount <= 30)
-    return { cols: 6, maxPx: 86, name: 'text-[11px]', score: 'text-xs', rank: 19, gapX: 'gap-x-5', gapY: 'gap-y-4', tile: 50, span: 7 }
+    return { cols: 6, maxPx: 86, name: 'text-[10px]', score: 'text-[11px]', rank: 17, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 50, span: 7 }
   if (teamCount <= 36)
-    return { cols: 6, maxPx: 78, name: 'text-[11px]', score: 'text-xs', rank: 18, gapX: 'gap-x-5', gapY: 'gap-y-4', tile: 48, span: 7 }
+    return { cols: 6, maxPx: 78, name: 'text-[10px]', score: 'text-[11px]', rank: 16, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 48, span: 7 }
   if (teamCount <= 48)
-    return { cols: 8, maxPx: 68, name: 'text-[10px]', score: 'text-[11px]', rank: 16, gapX: 'gap-x-4', gapY: 'gap-y-4', tile: 46, span: 6 }
+    return { cols: 8, maxPx: 68, name: 'text-[9px]', score: 'text-[10px]', rank: 15, gapX: 'gap-x-6', gapY: 'gap-y-6', tile: 46, span: 6 }
   if (teamCount <= 64)
-    return { cols: 9, maxPx: 60, name: 'text-[9px]', score: 'text-[10px]', rank: 14, gapX: 'gap-x-3', gapY: 'gap-y-3', tile: 44, span: 6 }
-  return { cols: 10, maxPx: 52, name: 'text-[9px]', score: 'text-[9px]', rank: 13, gapX: 'gap-x-3', gapY: 'gap-y-3', tile: 42, span: 5 }
+    return { cols: 9, maxPx: 60, name: 'text-[9px]', score: 'text-[9px]', rank: 13, gapX: 'gap-x-5', gapY: 'gap-y-5', tile: 44, span: 6 }
+  return { cols: 10, maxPx: 52, name: 'text-[8px]', score: 'text-[8px]', rank: 12, gapX: 'gap-x-4', gapY: 'gap-y-4', tile: 42, span: 5 }
 }
 
 /**
