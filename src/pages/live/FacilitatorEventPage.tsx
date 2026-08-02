@@ -1006,8 +1006,9 @@ export function FacilitatorEventPage() {
   const showBingoPlayer = stage?.type === 'bingo'
   const bingoGameId = stage?.type === 'bingo' ? stage.gameId : undefined
   const bingoConfig = bingoGame ? parseBingoGameConfig(bingoGame.config) : {}
-  const bingoMarkedTeams = (() => {
-    if (!bingoGameId) return [] as string[]
+  /** Teams whose mark is in for the song currently playing. */
+  const bingoMarkedTeamIds = (() => {
+    if (!bingoGameId) return new Set<string>()
     const ids = new Set(
       submissions
         .filter(
@@ -1020,9 +1021,7 @@ export function FacilitatorEventPage() {
         )
         .map((s) => s.team_id),
     )
-    return [...ids]
-      .map((id) => teams.find((t) => t.id === id)?.name)
-      .filter(Boolean) as string[]
+    return ids
   })()
 
   async function ensureBingoRunReady(): Promise<BingoRunRow | null> {
@@ -1706,7 +1705,8 @@ export function FacilitatorEventPage() {
               the right, with the glow marking it as the live thing. */}
           {stage && stage.type !== 'open' ? (
             // Green glow marks the live stage controls so the eye lands here.
-            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
+            // `relative` so the bingo stage can corner its Restart button.
+            <Card className="neo-card relative border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
               {stage.type === 'quiz' && question ? (
             <div className="space-y-3">
               {/* Controls first and centred: running the question matters more
@@ -1819,9 +1819,22 @@ export function FacilitatorEventPage() {
                     : 'No bingo run. Switch to this stage to activate one.'}
                 </p>
               ) : null}
-              <p className="text-muted-foreground text-center text-xs font-bold tracking-wide uppercase tabular-nums">
-                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
-              </p>
+              <div className="flex items-center justify-center">
+                <p className="text-muted-foreground text-center text-xs font-bold tracking-wide uppercase tabular-nums">
+                  {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
+                </p>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  className="absolute top-3 right-3"
+                  onClick={() => {
+                    if (!eventId || !stage.gameId) return
+                    setBingoRestartOpen(true)
+                  }}
+                >
+                  Restart
+                </FacilitatorButton>
+              </div>
               {/* One fixed line, always rendered. It used to appear only while a
                   track was playing, so every changeover collapsed the card and
                   pushed everything below it up and back down again. */}
@@ -1878,31 +1891,32 @@ export function FacilitatorEventPage() {
                         : 'Next Song'}
                   </NeoButton>
               </div>
-              {bingoMarkedTeams.length > 0 ? (
-                <div>
-                  <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
-                  <ul className="text-sm">
-                    {bingoMarkedTeams.map((n) => (
-                      <li key={n} className="flex items-center gap-1.5">
-                        <Check className="size-3.5 text-green-600" />
-                        <span>{n}</span>
-                      </li>
-                    ))}
-                  </ul>
+              {/* Who has marked this round, in the same shape the quiz uses for
+                  who has answered: every team present, lit when their mark is
+                  in, so the row never changes length mid-song. */}
+              {namedTeams.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {namedTeams.map((t) => {
+                    const marked = bingoMarkedTeamIds.has(t.id)
+                    return (
+                      <span
+                        key={t.id}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition-opacity ${
+                          marked ? '' : 'opacity-35'
+                        }`}
+                        style={{
+                          backgroundColor: t.color ?? '#666',
+                          color: readableTextOn(t.color ?? '#666666'),
+                        }}
+                      >
+                        {marked ? <Check className="size-3 shrink-0" /> : null}
+                        {t.name}
+                      </span>
+                    )
+                  })}
                 </div>
               ) : null}
-              <div className="flex justify-center">
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (!eventId || !stage.gameId) return
-                    setBingoRestartOpen(true)
-                  }}
-                >
-                  Restart bingo run
-                </FacilitatorButton>
-              </div>
+
               {bingoRestartOpen && stage.gameId && eventId ? (
                 <div
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
