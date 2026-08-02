@@ -226,6 +226,26 @@ export function formatTeamLimit(plan: SubscriptionPlan): string {
 }
 
 /** Branding-removal feature line for the plan card, or null if the plan has none. */
+/**
+ * What a plan gives you, as plain lines. Lives here rather than in the pricing
+ * grid because the signup form shows the same list for the plan being chosen,
+ * and two copies would drift the moment a limit changed.
+ */
+export function planFeatures(plan: SubscriptionPlan): string[] {
+  if (plan.priceOnRequest) {
+    return [
+      'For larger events or when standard plans do not fit',
+      'Contact us for a custom-made plan',
+    ]
+  }
+  const lines = plan.freeSubscription
+    ? [formatEventLimit(plan), formatTeamLimit(plan)]
+    : [formatPerEventPrice(plan), formatEventLimit(plan), formatTeamLimit(plan)]
+  const branding = formatBrandingNote(plan)
+  if (branding) lines.push(branding)
+  return lines
+}
+
 export function formatBrandingNote(plan: SubscriptionPlan): string | null {
   if (plan.brandingRemoval === 'full') return 'Fully removes RallyHub branding'
   if (plan.brandingRemoval === 'per_event_addon') {

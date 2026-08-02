@@ -1,17 +1,19 @@
+import { Check as IconCheck } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
+import { FilterChips } from '@/components/admin/FilterChips'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import {
   formatDualMonthlyPriceLine,
-  formatPerEventPrice,
   getSelfServePlans,
   normalizePlanId,
+  planFeatures,
   VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
 import { recordLegalAcceptanceForCurrentUser } from '@/hooks/use-legal-acceptance'
@@ -33,6 +35,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [plan, setPlan] = useState(requestedPlan)
+  const selectedPlan = PLANS.find((p) => p.id === plan) ?? null
   const [isSchool, setIsSchool] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -152,20 +155,33 @@ export function RegisterPage() {
             <p className="text-muted-foreground text-xs">At least 8 characters.</p>
           </div>
 
-          <div className="space-y-2">
-            <NeoLabel htmlFor="reg-plan">Plan</NeoLabel>
-            <select
-              id="reg-plan"
+          <div className="space-y-2.5">
+            <NeoLabel>Plan</NeoLabel>
+            {/* Pills rather than a dropdown: every plan is worth seeing, and a
+                closed select hides the choice behind a tap. */}
+            <FilterChips
+              aria-label="Plan"
+              options={PLANS.map((p) => ({ value: p.id, label: p.name }))}
               value={plan}
-              onChange={(e) => setPlan(normalizePlanId(e.target.value))}
-              className="border-input bg-background text-foreground focus-visible:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            >
-              {PLANS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {formatDualMonthlyPriceLine(p)} · {formatPerEventPrice(p)}
-                </option>
-              ))}
-            </select>
+              onChange={(next) => setPlan(normalizePlanId(next))}
+            />
+            {/* What the chosen plan actually gives you, from the same list the
+                pricing page shows, so the two cannot drift apart. */}
+            {selectedPlan ? (
+              <div className="border-border/70 bg-muted/40 space-y-2 rounded-xl border p-3.5">
+                <p className="text-sm font-black">
+                  {formatDualMonthlyPriceLine(selectedPlan)}
+                </p>
+                <ul className="space-y-1.5">
+                  {planFeatures(selectedPlan).map((line) => (
+                    <li key={line} className="flex items-start gap-2 text-sm">
+                      <IconCheck className="text-nm-yellow mt-0.5 size-4 shrink-0" />
+                      <span className="text-muted-foreground">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
           </div>
 

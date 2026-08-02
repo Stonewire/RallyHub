@@ -3,11 +3,8 @@ import { Link } from 'react-router-dom'
 
 import { NeoCard } from '@/components/neo-minimal'
 import {
-  formatBrandingNote,
-  formatEventLimit,
-  formatPerEventPrice,
-  formatTeamLimit,
   getVisiblePlans,
+  planFeatures,
   planPriceDisplay,
   VAT_DISCLAIMER,
   type SubscriptionPlan,
@@ -19,21 +16,6 @@ function planCta(plan: SubscriptionPlan): { label: string; to: string } {
   if (plan.priceOnRequest) return { label: 'Contact sales', to: '/contact' }
   if (plan.freeSubscription) return { label: 'Get started', to: `/register?plan=${plan.id}` }
   return { label: `Choose ${plan.name}`, to: `/register?plan=${plan.id}` }
-}
-
-function planFeatures(plan: SubscriptionPlan): string[] {
-  if (plan.priceOnRequest) {
-    return [
-      'For larger events or when standard plans do not fit',
-      'Contact us for a custom-made plan',
-    ]
-  }
-  const lines = plan.freeSubscription
-    ? [formatEventLimit(plan), formatTeamLimit(plan)]
-    : [formatPerEventPrice(plan), formatEventLimit(plan), formatTeamLimit(plan)]
-  const branding = formatBrandingNote(plan)
-  if (branding) lines.push(branding)
-  return lines
 }
 
 export function PricingSection() {
