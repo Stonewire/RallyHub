@@ -15,6 +15,8 @@ import {
 import { ParticipantBingoNotice } from '@/components/live/participant/ParticipantBingoNotice'
 import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
+import { DevQuizBar } from '@/components/live/DevQuizBar'
+import { devQuizSteps } from '@/lib/dev-quiz-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
@@ -306,8 +308,68 @@ export function JoinGameView({
   const quizGame = stage?.type === 'quiz' && stage.gameId
     ? games.find((g) => g.id === stage.gameId)
     : null
-  const quizQs = quizGame ? quizQuestions(quizGame) : []
+  const quizQs = useMemo(() => (quizGame ? quizQuestions(quizGame) : []), [quizGame])
   const currentQuizQ = quizQs[state.current_question_index]
+
+  // Development-only quiz driver (?devbar=1); see DevQuizBar.
+  const devBarOn =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('devbar')
+  const devSteps = useMemo(
+    () => (devBarOn && quizQs.length > 0 ? devQuizSteps(quizQs) : []),
+    [devBarOn, quizQs],
+  )
+  const [devStep, setDevStep] = useState(0)
+
+  const goDevStep = useCallback(
+    (next: number) => {
+      const step = devSteps[Math.max(0, Math.min(next, devSteps.length - 1))]
+      if (!step) return
+      setDevStep(Math.max(0, Math.min(next, devSteps.length - 1)))
+      setBundle((b) =>
+        b
+          ? {
+              ...b,
+              state: {
+                ...b.state,
+                quiz_state: step.quiz_state,
+                current_question_index: step.question_index,
+                quiz_correct_answer_id: step.correct_answer_id,
+                winner_reveal_stage: step.winner_reveal_stage,
+                quiz_timer_running: step.quiz_state === 'active',
+                quiz_timer_seconds: quizTimerSeconds(b.state),
+              },
+            }
+          : b,
+      )
+    },
+    [devSteps, setBundle],
+  )
+
+  const restartDevTimer = useCallback(() => {
+    setBundle((b) =>
+      b
+        ? {
+            ...b,
+            state: {
+              ...b.state,
+              quiz_timer_running: false,
+              quiz_timer_seconds: quizTimerSeconds(b.state),
+            },
+          }
+        : b,
+    )
+    // A tick later, so the countdown restarts from the top rather than
+    // carrying on from where it had got to.
+    window.setTimeout(
+      () =>
+        setBundle((b) =>
+          b ? { ...b, state: { ...b.state, quiz_timer_running: true } } : b,
+        ),
+      50,
+    )
+  }, [setBundle])
 
   useEffect(() => {
     // Reset only when the question (or game) changes — NOT on quiz_state
@@ -1677,6 +1739,14 @@ export function JoinGameView({
             document.body,
           )
         : null}
+      {devBarOn && devSteps.length > 0 ? (
+        <DevQuizBar
+          steps={devSteps}
+          index={devStep}
+          onGo={goDevStep}
+          onRestartTimer={restartDevTimer}
+        />
+      ) : null}
       {header}
       <div className="w-full">{body}</div>
       {inventoryScannerOpen ? (
