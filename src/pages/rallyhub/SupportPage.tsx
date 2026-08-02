@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
+import { supabase } from '@/lib/supabase'
 import {
   TICKET_STATUS_ORDER,
   useSupportTickets,
@@ -17,6 +19,23 @@ export function RallyHubSupportPage() {
 
   const tickets = data ?? []
 
+  // Tickets only carry an organisation id. A truncated uuid tells whoever is
+  // on support nothing, so the names are looked up once and mapped.
+  const orgNamesQuery = useQuery({
+    queryKey: ['rallyhub', 'org-names'],
+    queryFn: async () => {
+      const { data: orgs, error } = await supabase.from('organizations').select('id, name')
+      if (error) throw error
+      return orgs ?? []
+    },
+  })
+  const orgName = useMemo(
+    () => new Map((orgNamesQuery.data ?? []).map((org) => [org.id, org.name])),
+    [orgNamesQuery.data],
+  )
+  const labelForOrg = (organizationId: string) =>
+    orgName.get(organizationId) ?? `Org ${organizationId.slice(0, 8)}…`
+
   return (
     <AdminPageShell title="Support" subtitle="Client support tickets across the platform.">
       {isLoading ? (
@@ -30,7 +49,7 @@ export function RallyHubSupportPage() {
           onSelectTicket={setSelectedId}
           senderRole="support"
           emptyMessage="No support tickets yet."
-          getOrgLabel={(ticket) => `Org ${ticket.organization_id.slice(0, 8)}…`}
+          getOrgLabel={(ticket) => labelForOrg(ticket.organization_id)}
           renderThreadHeader={(ticket) => (
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
@@ -40,12 +59,12 @@ export function RallyHubSupportPage() {
                     <span className="font-mono">{ticket.ticket_number}</span>
                   ) : null}
                   {ticket.ticket_number ? ' · ' : null}
-                  Org {ticket.organization_id.slice(0, 8)}…
+                  {labelForOrg(ticket.organization_id)}
                 </p>
               </div>
               <select
                 value={ticket.status}
-                className="neo-field h-8 px-2 text-sm"
+                className="border-input bg-background h-9 rounded-md border px-2 text-sm"
                 onChange={(e) => {
                   const status = e.target.value as TicketStatus
                   void updateStatus.mutateAsync({

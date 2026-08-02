@@ -275,7 +275,7 @@ export function RallyHubPromoCodesPage() {
         <div className="flex justify-end">
           <NeoButton
             type="button"
-            variant="primary"
+            variant="accent"
             disabled={createCode.isPending}
             onClick={() => void handleCreate()}
           >
