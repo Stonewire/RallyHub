@@ -25,10 +25,15 @@ const WINNER_GREEN = '#22DD62'
  * letterforms stay their own weight rather than thinning.
  */
 const WINNER_OUTLINE = {
-  WebkitTextStroke: '0.14em #ffffff',
-  // Rounds the corners the stroke would otherwise square off.
-  strokeLinejoin: 'round',
+  WebkitTextStroke: '0.2em #ffffff',
   paintOrder: 'stroke fill',
+  // A rounded face, so the heavy outline follows soft corners rather than
+  // sharp ones. Falls back to the app's own sans where it is unavailable.
+  fontFamily:
+    'ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Varela Round", system-ui, sans-serif',
+  // Room for the stroke: without it the outlines of neighbouring letters
+  // merge into each other.
+  paddingInline: '0.09em',
 } as const
 
 /** Split so each letter can land on its own beat, as the bingo win does. */
