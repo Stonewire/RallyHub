@@ -74,7 +74,9 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         variant="outline"
         size="icon-sm"
         title="Copy display link"
-        className="absolute top-2 left-2 border-white/30 bg-black/40 text-white opacity-40 backdrop-blur-sm transition-opacity hover:bg-black/60 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-80"
+        // The app's furniture button: black disc, yellow mark, same as the
+        // chat and exit controls the players see.
+        className="text-nm-yellow hover:text-nm-yellow absolute top-2 left-2 rounded-full border-none bg-black opacity-50 transition-opacity hover:bg-black hover:opacity-100 hover:brightness-110 focus-visible:opacity-100 group-hover:opacity-90"
         onClick={() => {
           void copyToClipboard(displayUrl)
           setCopied(true)

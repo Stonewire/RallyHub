@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
+import { FilterChips } from '@/components/admin/FilterChips'
 import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
 import { DisplayPreviewFrame } from '@/components/live/DisplayPreviewFrame'
@@ -109,6 +110,13 @@ import { uploadAsset } from '@/lib/storage'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const ANNOUNCEMENT_MS = 60_000
+
+/** Team states borrow the events list's badge tones. */
+const TEAM_STATUS_TONE: Record<string, string> = {
+  active: 'active',
+  idle: 'draft',
+  stopped: 'archived',
+}
 
 // UI-1: parse a typed countdown — plain number = minutes, otherwise mm:ss / hh:mm:ss.
 function parseTimerInput(raw: string): number | null {
@@ -1410,17 +1418,18 @@ export function FacilitatorEventPage() {
               placeholder="Message… clears after 1 minute"
               className="bg-background w-full"
             />
-            <div className="grid grid-cols-3 gap-2">
+            {/* Same pill track as the stage selector, though each of these
+                sends rather than selects, so none of them stays lit. */}
+            <div className="bg-nm-slate-800 dark:bg-nm-slate-200 grid grid-cols-3 gap-1 rounded-full p-1">
               {(['display', 'participants', 'both'] as const).map((t) => (
-                <FacilitatorButton
+                <button
                   key={t}
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
+                  type="button"
+                  className="hover:bg-nm-yellow rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:text-black disabled:pointer-events-none dark:text-white"
                   onClick={() => sendAnnouncement(t)}
                 >
                   {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
-                </FacilitatorButton>
+                </button>
               ))}
             </div>
             {state.announcement ? (
@@ -1731,18 +1740,6 @@ export function FacilitatorEventPage() {
             </Card>
           ) : null}
 
-          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-            <p className="mb-2.5 text-sm font-bold">Stages</p>
-            <SegmentedPill
-              aria-label="Stage"
-              options={stages
-                .map((s, i) => (s?.id ? { value: String(i), label: `Stage ${i + 1}` } : null))
-                .filter((o): o is { value: string; label: string } => o !== null)}
-              value={String(state.current_stage_index)}
-              onChange={(next) => selectStage(Number(next))}
-            />
-          </Card>
-
           <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <p className="text-sm font-bold">Teams</p>
             <p className="text-muted-foreground text-xs">
@@ -1810,16 +1807,19 @@ export function FacilitatorEventPage() {
                   >
                     <MessageCircle className="size-4" />
                   </Button>
+                  {/* Still a control, wearing the status badge the events list
+                      uses so a team's state reads the same way an event's does. */}
                   <select
-                    className="border-input bg-background rounded border px-1 text-xs"
+                    className={`neo-status-badge neo-status-badge--${TEAM_STATUS_TONE[team.status] ?? 'draft'} cursor-pointer appearance-none rounded-full border-0 px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase`}
                     value={team.status}
                     onChange={(e) =>
                       void updateTeam(team.id, { status: e.target.value })
                     }
+                    aria-label="Team status"
                   >
-                    <option value="idle">idle</option>
-                    <option value="active">active</option>
-                    <option value="stopped">stopped</option>
+                    <option value="idle">Idle</option>
+                    <option value="active">Active</option>
+                    <option value="stopped">Stopped</option>
                   </select>
                   {prog ? (
                     <div className="flex w-full items-center gap-2 pl-6">
@@ -1992,6 +1992,19 @@ export function FacilitatorEventPage() {
                 checked={state.hide_team_points}
                 onChange={(next) => void patchState({ hide_team_points: next })}
               />
+              {/* Stages sit with the other things that change what the room is
+                  looking at, rather than in a card of their own. */}
+              <div className="border-border/60 mt-1 space-y-2 border-t pt-3">
+                <p className="text-sm font-bold">Stages</p>
+                <SegmentedPill
+                  aria-label="Stage"
+                  options={stages
+                    .map((s, i) => (s?.id ? { value: String(i), label: `Stage ${i + 1}` } : null))
+                    .filter((o): o is { value: string; label: string } => o !== null)}
+                  value={String(state.current_stage_index)}
+                  onChange={(next) => selectStage(Number(next))}
+                />
+              </div>
             </div>
           </Card>
 
@@ -2052,20 +2065,18 @@ export function FacilitatorEventPage() {
           {!stage || stage.type === 'open' ? (
             <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <>
-              <div className="mb-3">
-                <SegmentedPill
-                  aria-label="Filter submissions"
-                  size="sm"
-                  options={[
-                    { value: 'all', label: 'All' },
-                    { value: 'pending', label: 'Pending' },
-                    { value: 'approved', label: 'Approved' },
-                    { value: 'rejected', label: 'Rejected' },
-                  ]}
-                  value={subTab}
-                  onChange={setSubTab}
-                />
-              </div>
+              <FilterChips
+                aria-label="Filter submissions"
+                className="mb-3"
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'rejected', label: 'Rejected' },
+                ]}
+                value={subTab}
+                onChange={setSubTab}
+              />
               <ul className="max-h-[70vh] space-y-3 overflow-auto">
                 {filteredSubs
                   .filter(

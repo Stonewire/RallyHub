@@ -124,7 +124,9 @@ export function FacilitatorChatBubble({
     <FacilitatorButton
       type="button"
       disabled={disabled}
-      className="relative fixed bottom-4 right-4 z-40 size-12 rounded-full p-0 shadow-lg"
+      // Fixed black and yellow, matching the chat and exit buttons on the
+      // players' screens: this is app furniture, not a branded control.
+      className="text-nm-yellow hover:text-nm-yellow relative fixed right-4 bottom-4 z-40 size-12 rounded-full border-none bg-black p-0 shadow-lg hover:bg-black hover:brightness-110"
       onClick={onClick}
       aria-label="Open team chat"
     >
