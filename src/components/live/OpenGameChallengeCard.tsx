@@ -102,7 +102,9 @@ export function OpenGameChallengeCard({
         aria-hidden
       />
 
-      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-2">{game.name}</span>
+      {/* Inset clears the corner icon: a three-line name reaches the top of
+          the tile and used to run underneath it. */}
+      <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-6">{game.name}</span>
 
       <span className="text-base leading-none font-black tabular-nums">
         {gamePointsDisplay(game)}
