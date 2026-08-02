@@ -9,9 +9,6 @@ import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
-import { LivePanelShell } from '@/components/layout/LivePanelShell'
-import { NeoButton } from '@/components/neo-minimal/NeoButton'
-import { NeoInput, NeoLabel } from '@/components/neo-minimal/NeoFormFields'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import {
@@ -140,12 +137,24 @@ export function JoinEventPage() {
   }, [mediaReady])
 
   if (loading || !bundle) {
+    // No event means no brand to dress this in, so it is the plain canvas with
+    // the message at the size of the thing it is telling you: the code you
+    // scanned did not lead anywhere.
     return (
-      <LivePanelShell title="Join" titleCentered className="experience-scope">
-        <p className="text-muted-foreground text-center text-sm">
-          {loading ? 'Loading…' : (error ?? 'Event not found')}
-        </p>
-      </LivePanelShell>
+      <div className="experience-scope flex min-h-svh flex-col items-center justify-center gap-3 px-6 text-center">
+        {loading ? (
+          <p className="text-2xl font-black opacity-70">Loading…</p>
+        ) : (
+          <>
+            <p className="text-[clamp(1.75rem,7vw,3rem)] leading-tight font-black text-balance">
+              {error ?? 'Event not found'}
+            </p>
+            <p className="max-w-sm text-base font-semibold opacity-65">
+              Check the link or the QR code with whoever is running the event.
+            </p>
+          </>
+        )}
+      </div>
     )
   }
 
@@ -169,6 +178,7 @@ export function JoinEventPage() {
   }
 
   const logo = logoForEvent(event, organization, displayTextColorForEvent(event))
+  const accent = brandColorsForEvent(event, organization)[2]
   const joinTeams = isEventDemoStatus(event.status)
     ? demoTeamSlots(bundle.teams)
     : bundle.teams
@@ -400,11 +410,13 @@ export function JoinEventPage() {
         })}
       </div>
       {claimSlot ? (
-        <div className="neo-minimal-scope fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="neo-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto bg-white p-6 text-black">
             <div className="space-y-2">
-              <NeoLabel htmlFor="team-name">Team name</NeoLabel>
-              <NeoInput
+              <label htmlFor="team-name" className="block text-sm font-bold">
+                Team name
+              </label>
+              <input
                 id="team-name"
                 // Opens ready to type, so the keyboard is one tap closer. The
                 // lit state is tracked here rather than left to :focus-visible,
@@ -413,7 +425,15 @@ export function JoinEventPage() {
                 autoFocus
                 onFocus={() => setNameFocused(true)}
                 onBlur={() => setNameFocused(false)}
-                className={nameFocused ? 'neo-field-lit' : undefined}
+                className="w-full rounded-lg border-2 px-3 py-2.5 text-base outline-none"
+                style={
+                  nameFocused
+                    ? {
+                        borderColor: accent,
+                        boxShadow: `0 0 0 3px ${accent}40`,
+                      }
+                    : { borderColor: 'rgba(0,0,0,0.15)' }
+                }
                 placeholder="Your team name"
                 value={claimName}
                 onChange={(e) => setClaimName(e.target.value)}
@@ -448,7 +468,7 @@ export function JoinEventPage() {
                   and once taken the circle becomes the preview. */}
               <button
                 type="button"
-                className="neo-photo-drop mx-auto flex size-28 flex-col items-center justify-center gap-1 overflow-hidden rounded-full"
+                className="mx-auto flex size-28 flex-col items-center justify-center gap-1 overflow-hidden rounded-full border-2 border-dashed border-black/25 bg-black/5 text-black/60 transition-colors hover:bg-black/10"
                 onClick={() => {
                   // iOS opens its native camera (excellent); everywhere else the
                   // in-app camera, because tablet browsers turn the camera-input
@@ -474,8 +494,7 @@ export function JoinEventPage() {
               {!shouldUseNativePhotoCapture() ? (
                 <button
                   type="button"
-                  className="w-full text-center text-xs underline"
-                  style={{ color: 'var(--nm-text-secondary)' }}
+                  className="w-full text-center text-xs text-black/55 underline"
                   onClick={() => photoInputRef.current?.click()}
                 >
                   Or upload a photo
@@ -488,17 +507,25 @@ export function JoinEventPage() {
               </p>
             ) : null}
             <div className="flex gap-2">
-              <NeoButton variant="surface" className="flex-1" onClick={() => setClaimSlot(null)}>
+              <button
+                type="button"
+                className="xp-card flex-1 border border-black/15 bg-white px-4 py-2.5 text-sm font-bold text-black"
+                onClick={() => setClaimSlot(null)}
+              >
                 Cancel
-              </NeoButton>
-              <NeoButton
-                variant="accent"
-                className="flex-1"
+              </button>
+              <button
+                type="button"
+                className="xp-card flex-1 px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+                style={{
+                  backgroundColor: accent,
+                  color: displayTextColorForEvent(event),
+                }}
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void claimTeam()}
               >
                 {uploading ? 'Joining…' : 'Join'}
-              </NeoButton>
+              </button>
             </div>
           </div>
         </div>

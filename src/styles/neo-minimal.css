@@ -9,23 +9,7 @@
   --nm-yellow: #ffc107;
   --nm-yellow-foreground: #333333;
 
-  /* ─── Warm Ivory neutral scale (light) ─── */
-  --nm-bg-base: #faf7f2;
-  --nm-bg-surface: #fdfbf7;
-  --nm-bg-elevated: #fffdf9;
-  --nm-bg-muted: #ece6dd;
-  --nm-bg-inset: #e6e0d6;
-
-  --nm-text-primary: var(--nm-charcoal);
-  --nm-text-secondary: #66625c;
-  --nm-text-muted: #857f77;
-
-  --nm-border: rgb(51 51 51 / 0.08);
-  --nm-border-strong: rgb(51 51 51 / 0.12);
-
-  /* ─── Cool grey surfaces (new design). These deliberately follow the warm
-     ivory values above so they win by cascade order. The ivory tokens stay
-     declared because the marketing pages still read some of them. ─── */
+  /* ─── Neutral scale (light) ─── */
   --nm-bg-base: #f7f7f8;
   --nm-bg-surface: #ffffff;
   --nm-bg-elevated: #ffffff;
@@ -109,20 +93,7 @@
   --nm-yellow: #ffc107;
   --nm-yellow-foreground: #1a1a1a;
 
-  --nm-bg-base: #262626;
-  --nm-bg-surface: #2e2e2e;
-  --nm-bg-elevated: #333333;
-  --nm-bg-muted: #3a3a3a;
-  --nm-bg-inset: #1f1f1f;
-
-  --nm-text-primary: #faf7f2;
-  --nm-text-secondary: #c7c2ba;
-  --nm-text-muted: #9a958d;
-
-  --nm-border: rgb(250 247 242 / 0.1);
-  --nm-border-strong: rgb(250 247 242 / 0.16);
-
-  /* ─── Cool grey dark surfaces (new design). Ramps mirror 100 to 900. ─── */
+  /* ─── Dark surfaces. Ramps mirror 100 to 900. ─── */
   --nm-bg-base: #15161a;
   --nm-bg-surface: #1e2025;
   --nm-bg-elevated: #1e2025;

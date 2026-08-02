@@ -91,18 +91,18 @@
 }
 
 :root {
-    /* ─── RallyHub brand semantics (light = Warm Ivory) ─── */
-    --rh-text-primary: #333333;          /* Charcoal */
+    /* ─── RallyHub brand semantics (light) ─── */
+    --rh-text-primary: #1f2126;          /* Near-black */
     --rh-accent: #FFC107;                /* Gold */
     --rh-accent-foreground: #333333;
 
-    --rh-surface-app: #FAF7F2;           /* Warm Ivory */
+    --rh-surface-app: #f7f7f8;           /* Cool grey canvas */
     --rh-surface-elevated: #FFFFFF;      /* Cards and popovers: white, matching the sidebar */
-    --rh-surface-sidebar: #FFFFFF;       /* Light mode: white, so it reads as a panel against the ivory app */
+    --rh-surface-sidebar: #FFFFFF;       /* Light mode: white, so it reads as a panel against the canvas */
 
-    --rh-border-subtle: rgb(51 51 51 / 0.1);
+    --rh-border-subtle: rgb(31 33 38 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(51 51 51 / 0.06);
+    --rh-sidebar-row-hover-bg: rgb(31 33 38 / 0.06);
     /* Selected row = Gold block with dark text, which reads on either surface */
     --rh-sidebar-row-active-bg: var(--rh-accent);
     --rh-sidebar-row-active-fg: #1a1a1a;
@@ -139,7 +139,7 @@
 
     --destructive: #9b3f3f;
     --border: var(--rh-border-subtle);
-    --input: rgb(51 51 51 / 0.12);
+    --input: rgb(31 33 38 / 0.12);
     --ring: color-mix(in srgb, var(--rh-accent) 45%, transparent);
 
     --radius: 0.625rem;
@@ -150,23 +150,23 @@
     --sidebar-primary-foreground: #1a1a1a;
     --sidebar-accent: var(--rh-sidebar-row-hover-bg);
     --sidebar-accent-foreground: var(--rh-text-primary);
-    --sidebar-border: rgb(51 51 51 / 0.1);
+    --sidebar-border: rgb(31 33 38 / 0.1);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 40%, transparent);
 }
 
 .dark {
-    /* ─── RallyHub brand semantics (dark = Charcoal) ─── */
-    --rh-text-primary: #FAF7F2;          /* Warm Ivory */
+    /* ─── RallyHub brand semantics (dark) ─── */
+    --rh-text-primary: #f1f1f3;          /* Off-white */
     --rh-accent: #FFC107;                /* Gold */
     --rh-accent-foreground: #1a1a1a;
 
-    --rh-surface-app: #262626;           /* deep charcoal base */
-    --rh-surface-elevated: #333333;      /* Charcoal */
-    --rh-surface-sidebar: #2B2B2B;
+    --rh-surface-app: #15161a;           /* darkest canvas */
+    --rh-surface-elevated: #1e2025;      /* lifted blocks */
+    --rh-surface-sidebar: #1e2025;
 
-    --rh-border-subtle: rgb(250 247 242 / 0.1);
+    --rh-border-subtle: rgb(255 255 255 / 0.1);
 
-    --rh-sidebar-row-hover-bg: rgb(250 247 242 / 0.07);
+    --rh-sidebar-row-hover-bg: rgb(255 255 255 / 0.07);
     /* Dark: selected row = Gold block with charcoal text + icon (test look). */
     --rh-sidebar-row-active-bg: var(--rh-accent);
     --rh-sidebar-row-active-fg: #1a1a1a;
@@ -202,7 +202,7 @@
 
     --destructive: #c96b6b;
     --border: var(--rh-border-subtle);
-    --input: rgb(250 247 242 / 0.14);
+    --input: rgb(255 255 255 / 0.14);
 
     --ring: color-mix(in srgb, var(--rh-accent) 45%, transparent);
 
@@ -210,9 +210,9 @@
     --sidebar-foreground: var(--rh-text-primary);
     --sidebar-primary: var(--rh-accent);
     --sidebar-primary-foreground: var(--rh-accent-foreground);
-    --sidebar-accent: rgb(250 247 242 / 0.05);
+    --sidebar-accent: rgb(255 255 255 / 0.05);
     --sidebar-accent-foreground: var(--rh-text-primary);
-    --sidebar-border: rgb(250 247 242 / 0.1);
+    --sidebar-border: rgb(255 255 255 / 0.1);
     --sidebar-ring: color-mix(in srgb, var(--rh-accent) 50%, transparent);
 }
 

@@ -27,8 +27,8 @@ export function EventNotLiveScreen({ event, organization }: EventNotLiveScreenPr
         </p>
         <p className={`mt-4 max-w-md text-base opacity-90 md:text-lg ${textClass}`}>
           {ended
-            ? 'Thanks for joining — this experience is no longer available.'
-            : 'Hang tight — the game will begin once your host starts the event. This screen will update automatically.'}
+            ? 'Thanks for joining. This experience is no longer available.'
+            : 'Hang tight. The game will begin once your host starts the event, and this screen updates on its own.'}
         </p>
       </div>
     </BrandBackground>
