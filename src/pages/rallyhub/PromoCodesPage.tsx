@@ -80,6 +80,7 @@ export function RallyHubPromoCodesPage() {
   const setActive = useSetPromoCodeActive()
 
   const [form, setForm] = useState(EMPTY_FORM)
+  const [createOpen, setCreateOpen] = useState(false)
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null)
   const [editForm, setEditForm] = useState({ discountPercent: '', durationMonths: '1', maxRedemptions: '', notes: '' })
   const [deletingCode, setDeletingCode] = useState<PromoCode | null>(null)
@@ -156,6 +157,7 @@ export function RallyHubPromoCodesPage() {
       await createCode.mutateAsync(input)
       notify(`Promo code ${code.toUpperCase()} created`)
       setForm(EMPTY_FORM)
+      setCreateOpen(false)
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not create promo code')
     }
@@ -197,8 +199,24 @@ export function RallyHubPromoCodesPage() {
     <AdminPageShell
       title="Promo Codes"
       subtitle="Create discount codes clients redeem in their billing panel."
+      actions={
+        <NeoButton variant="accent" onClick={() => setCreateOpen(true)}>
+          New Code
+        </NeoButton>
+      }
     >
-      <Card className="border-border/80 bg-card mb-8 max-w-2xl space-y-4 p-6 shadow-sm">
+      {createOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="New promo code"
+          onClick={() => setCreateOpen(false)}
+        >
+          <Card
+            className="border-border/80 bg-card max-h-[90vh] w-full max-w-2xl space-y-4 overflow-y-auto p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
         <h3 className="text-foreground text-sm font-bold">New promo code</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -273,6 +291,9 @@ export function RallyHubPromoCodesPage() {
           </div>
         </div>
         <div className="flex justify-end">
+          <NeoButton type="button" variant="surface" onClick={() => setCreateOpen(false)}>
+            Cancel
+          </NeoButton>
           <NeoButton
             type="button"
             variant="accent"
@@ -282,7 +303,9 @@ export function RallyHubPromoCodesPage() {
             {createCode.isPending ? 'Creating…' : 'Create code'}
           </NeoButton>
         </div>
-      </Card>
+          </Card>
+        </div>
+      ) : null}
 
       {codesQuery.isLoading ? (
         <QueryLoading rows={4} />
