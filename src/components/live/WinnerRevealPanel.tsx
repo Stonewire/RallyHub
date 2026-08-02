@@ -24,16 +24,25 @@ const WINNER_GREEN = '#22DD62'
  * happens to be behind it. paint-order puts the fill above the stroke, so the
  * letterforms stay their own weight rather than thinning.
  */
+/**
+ * The outline is drawn as copies of the word offset around a circle rather
+ * than with text-stroke. A stroke follows the letterform exactly, so on the
+ * app's own heavy face it came back with hard corners; sampling a circle
+ * rounds every corner by construction, and the face itself is untouched.
+ */
+function roundedOutline(radiusEm: number, steps = 32): string {
+  return Array.from({ length: steps }, (_, i) => {
+    const angle = (i / steps) * Math.PI * 2
+    const x = (Math.cos(angle) * radiusEm).toFixed(4)
+    const y = (Math.sin(angle) * radiusEm).toFixed(4)
+    return `${x}em ${y}em 0 #ffffff`
+  }).join(', ')
+}
+
 const WINNER_OUTLINE = {
-  WebkitTextStroke: '0.2em #ffffff',
-  paintOrder: 'stroke fill',
-  // A rounded face, so the heavy outline follows soft corners rather than
-  // sharp ones. Falls back to the app's own sans where it is unavailable.
-  fontFamily:
-    'ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Varela Round", system-ui, sans-serif',
-  // Room for the stroke: without it the outlines of neighbouring letters
-  // merge into each other.
-  paddingInline: '0.09em',
+  textShadow: `${roundedOutline(0.11)}, 0 0.06em 0.12em rgba(0,0,0,0.45)`,
+  // Room for the outline: without it neighbouring letters merge into one.
+  paddingInline: '0.12em',
 } as const
 
 /** Split so each letter can land on its own beat, as the bingo win does. */
@@ -104,7 +113,7 @@ export function WinnerRevealPanel({
         </p>
         {/* The word the room is waiting for, in the winning green. */}
         <p
-          className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black drop-shadow-lg"
+          className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black"
           style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
         >
           WINNER
@@ -158,7 +167,7 @@ export function WinnerRevealPanel({
                   }}
                 >
                   <motion.span
-                    className="inline-block text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black drop-shadow-lg"
+                    className="inline-block text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black"
                     style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
                     initial={{ scale: 0, rotate: -45, opacity: 0 }}
                     animate={{ scale: [0, 1.3, 1], rotate: [-45, 8, 0], opacity: 1 }}
@@ -173,7 +182,7 @@ export function WinnerRevealPanel({
         </>
       ) : (
         <motion.p
-          className="mt-3 text-[clamp(2.5rem,12vw,7rem)] leading-[0.95] font-black drop-shadow-lg"
+          className="mt-3 text-[clamp(2.5rem,12vw,7rem)] leading-[0.95] font-black"
           style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
