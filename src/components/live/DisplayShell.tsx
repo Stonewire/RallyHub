@@ -28,7 +28,13 @@ export function DisplayShell({
               className="mb-8 max-h-28 max-w-[min(100%,320px)] object-contain drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]"
             />
           ) : null}
-          <h1 className="font-sans max-w-5xl text-4xl font-extrabold tracking-tight drop-shadow-md md:text-6xl lg:text-7xl">
+          {/* Keeps clear of the timer in the corner: without the inset a long
+              event name runs straight under it. */}
+          <h1
+            className={`font-sans max-w-5xl text-4xl font-extrabold tracking-tight drop-shadow-md md:text-6xl lg:text-7xl ${
+              headerRight ? 'px-4 md:px-56' : ''
+            }`}
+          >
             {title}
           </h1>
         </div>

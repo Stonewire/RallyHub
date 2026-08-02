@@ -448,10 +448,13 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     stage?.type !== 'break' &&
     state.winner_reveal_stage < 1
 
+  // The timer is the one number the room checks repeatedly, so it gets the
+  // same badge treatment as the team labels and a size that carries across a
+  // venue rather than sitting quietly in the corner.
   const headerTimer = showHeaderTimer ? (
     <span
-      className={`font-sans text-2xl font-bold tabular-nums md:text-3xl ${
-        textClass === 'text-black' ? 'text-black/80' : 'text-white/90'
+      className={`font-sans rounded-2xl px-5 py-2 text-4xl font-black tabular-nums shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-sm md:text-6xl ${
+        textClass === 'text-black' ? 'bg-white/75 text-black' : 'bg-black/45 text-white'
       }`}
     >
       {formatTimer(timerDisplay)}
