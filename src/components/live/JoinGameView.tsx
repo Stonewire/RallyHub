@@ -16,6 +16,7 @@ import { ParticipantBingoNotice } from '@/components/live/participant/Participan
 import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
+import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { DevQuizBar } from '@/components/live/DevQuizBar'
 import { devQuizSteps } from '@/lib/dev-quiz-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
@@ -338,6 +339,10 @@ export function JoinGameView({
     [devBarOn, quizQs],
   )
   const [devStep, setDevStep] = useState(0)
+  // Scoring is the facilitator's job and the driver has no facilitator, so a
+  // correct answer is credited locally instead. Preview only: nothing is
+  // written, and the set stops a step being paid for twice.
+  const devScoredSteps = useRef<Set<number>>(new Set())
 
   const goDevStep = useCallback(
     // eslint-disable-next-line react-hooks/preserve-manual-memoization -- setState functions are stable; listing them adds nothing
@@ -352,10 +357,22 @@ export function JoinGameView({
         setQuizLocked(false)
         setQuizChangeLeft(null)
       }
+      const awardHere =
+        step.quiz_state === 'revealed' &&
+        step.correct_answer_id != null &&
+        quizMyAnswerId === step.correct_answer_id &&
+        !devScoredSteps.current.has(next)
+      if (awardHere) devScoredSteps.current.add(next)
+      const award = awardHere ? (quizGame?.points_static ?? 0) : 0
       setBundle((b) =>
         b
           ? {
               ...b,
+              teams: award
+                ? b.teams.map((t) =>
+                    t.id === teamId ? { ...t, score: t.score + award } : t,
+                  )
+                : b.teams,
               state: {
                 ...b.state,
                 quiz_state: step.quiz_state,
@@ -369,7 +386,7 @@ export function JoinGameView({
           : b,
       )
     },
-    [devSteps, setBundle],
+    [devSteps, quizGame?.points_static, quizMyAnswerId, setBundle, teamId],
   )
 
   // In a real round the facilitator's console reveals by itself when the timer
@@ -411,6 +428,7 @@ export function JoinGameView({
           : b,
       )
     }
+    devScoredSteps.current.clear()
     quizChangeDeadlineRef.current = null
     setQuizAnswer(null)
     setQuizChangeLeft(null)
@@ -1162,7 +1180,9 @@ export function JoinGameView({
                   : 'Time up'
               : state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked
                 ? `Change answer · ${quizChangeLeft}s`
-                : ''}
+                : state.quiz_state === 'active' && quizRunning
+                  ? formatTimer(quizTimerDisplay)
+                  : ''}
           </p>
         )
       ) : null}
@@ -1386,10 +1406,16 @@ export function JoinGameView({
     const game = quizGame
     const q = currentQuizQ
     const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
-    const timerPct =
-      maxSec > 0
+    // Once an answer is in, the bar stops being the question's clock and
+    // becomes the change window's: back to full, red, and five seconds long.
+    const inChangeWindow =
+      state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked
+    const timerPct = inChangeWindow
+      ? Math.min(100, (quizChangeLeft / QUIZ_ANSWER_CHANGE_SECONDS) * 100)
+      : maxSec > 0
         ? Math.min(100, (quizTimerDisplay / maxSec) * 100)
         : 0
+    const timerBarColor = inChangeWindow ? '#EF4444' : accent
 
     if (state.quiz_state === 'results') {
       body = (
@@ -1462,7 +1488,7 @@ export function JoinGameView({
           <div className="mb-5 h-2 shrink-0 overflow-hidden rounded-full bg-black/30 sm:mb-6">
             <div
               className="h-full transition-all duration-1000"
-              style={{ width: `${timerPct}%`, backgroundColor: accent }}
+              style={{ width: `${timerPct}%`, backgroundColor: timerBarColor }}
             />
           </div>
           {/* Two lines' worth of room whether or not this question needs it,
@@ -1475,19 +1501,6 @@ export function JoinGameView({
           <div className="flex min-h-4 flex-1 items-center justify-center py-3">
             <QuizQuestionMedia question={q} accentColor={accent} textColor={eventTextColor} />
           </div>
-          {/* The countdown sits with the answers, where the eye already is
-              while deciding, and keeps a fixed height so nothing shifts when
-              it empties at reveal. */}
-          <p
-            className="mb-1.5 flex h-5 shrink-0 items-center justify-center text-sm font-black tabular-nums"
-            style={{
-              color: quizTimerDisplay <= 5 && quizRunning ? '#F87171' : accent,
-            }}
-          >
-            {state.quiz_state === 'active' && quizRunning
-              ? formatTimer(quizTimerDisplay)
-              : ''}
-          </p>
           <div className="shrink-0 space-y-2.5 sm:space-y-3">
             {q.answers.map((a) => {
               const selected = (quizMyAnswerId ?? quizAnswer) === a.id
