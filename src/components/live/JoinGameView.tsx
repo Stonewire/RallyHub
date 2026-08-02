@@ -19,8 +19,8 @@ import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
 import { questionMedia } from '@/lib/quiz-media'
 import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { quizQuestionSeconds } from '@/lib/quiz-timing'
-import { DevQuizBar } from '@/components/live/DevQuizBar'
-import { devQuizSteps } from '@/lib/dev-quiz-steps'
+import { DevStageBar } from '@/components/live/DevStageBar'
+import { devBingoSteps, devQuizSteps } from '@/lib/dev-stage-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
@@ -336,10 +336,17 @@ export function JoinGameView({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('devbar')
-  const devSteps = useMemo(
-    () => (devBarOn && quizQs.length > 0 ? devQuizSteps(quizQs) : []),
-    [devBarOn, quizQs],
-  )
+  const devBingoTracks = useMemo(() => {
+    if (!devBarOn || stage?.type !== 'bingo' || !stage.gameId) return []
+    const bingoGame = games.find((g) => g.id === stage.gameId)
+    return bingoGame ? bingoTracks(bingoGame) : []
+  }, [devBarOn, games, stage])
+
+  const devSteps = useMemo(() => {
+    if (!devBarOn) return []
+    if (stage?.type === 'bingo') return devBingoTracks.length > 0 ? devBingoSteps(devBingoTracks) : []
+    return quizQs.length > 0 ? devQuizSteps(quizQs) : []
+  }, [devBarOn, devBingoTracks, quizQs, stage?.type])
   const [devStep, setDevStep] = useState(0)
   // Scoring is the facilitator's job and the driver has no facilitator, so a
   // correct answer is credited locally instead. Preview only: nothing is
@@ -389,6 +396,7 @@ export function JoinGameView({
               state: {
                 ...b.state,
                 quiz_state: step.quiz_state,
+                bingo_state: step.bingo_state ?? b.state.bingo_state,
                 current_question_index: step.question_index,
                 quiz_correct_answer_id: step.correct_answer_id,
                 winner_reveal_stage: step.winner_reveal_stage,
@@ -1845,7 +1853,7 @@ export function JoinGameView({
           )
         : null}
       {devBarOn && devSteps.length > 0 ? (
-        <DevQuizBar
+        <DevStageBar
           steps={devSteps}
           index={devStep}
           onGo={goDevStep}
