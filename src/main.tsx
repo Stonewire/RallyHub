@@ -11,6 +11,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 import './index.css'
 
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('fakecam')) {
+  void import('@/lib/dev-fake-camera').then((m) => m.installFakeCamera())
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
