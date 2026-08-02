@@ -457,17 +457,17 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     <div className="relative inline-flex items-center justify-center">
       <div
         aria-hidden
-        className="absolute inset-0 rounded-[1.4rem] blur-xl"
+        className="absolute inset-0 rounded-[1.15rem] blur-lg"
         style={{ background: timerAccent, opacity: 0.35 }}
       />
       <div
-        className="relative rounded-[1.4rem] p-[3px] shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+        className="relative rounded-[1.15rem] p-[2px] shadow-[0_8px_22px_rgba(0,0,0,0.45)]"
         style={{
           background: `linear-gradient(180deg, ${timerAccent} 0%, rgba(0,0,0,0.35) 140%)`,
         }}
       >
-        <div className="rounded-[1.2rem] bg-black/80 px-7 py-2.5 shadow-[inset_0_2px_0_rgba(255,255,255,0.22),inset_0_-8px_18px_rgba(0,0,0,0.55)]">
-          <span className="font-sans block text-4xl leading-none font-black tracking-[0.06em] text-white tabular-nums drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] md:text-6xl">
+        <div className="rounded-[1rem] bg-black/80 px-4 py-1.5 shadow-[inset_0_2px_0_rgba(255,255,255,0.22),inset_0_-8px_18px_rgba(0,0,0,0.55)]">
+          <span className="font-sans block text-2xl leading-none font-black tracking-[0.06em] text-white tabular-nums drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] md:text-3xl">
             {formatTimer(timerDisplay)}
           </span>
         </div>
@@ -483,7 +483,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       className={embedded ? 'h-screen overflow-hidden' : undefined}
     >
       <ClientBrandingStyle org={organization} />
-      <DisplayShell logo={logo} title={event.name} headerSlot={headerTimer}>
+      <DisplayShell logo={logo} title={event.name} headerCorner={headerTimer}>
         {body}
       </DisplayShell>
       <PoweredByRallyHub
