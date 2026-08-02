@@ -55,6 +55,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const [checking, setChecking] = useState(false)
   const [wrongFlash, setWrongFlash] = useState(false)
   const syncTimer = useRef<number | null>(null)
+  const boardRef = useRef<HTMLDivElement | null>(null)
 
   const clues = useMemo(() => layout?.clues ?? [], [layout])
   const openKeys = useMemo(
@@ -183,6 +184,16 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
       }),
     [applyProgress, eventId, game.id, teamId, teamToken],
   )
+
+  // The board is what the team came here for, so it opens ready to play:
+  // scrolled past the cover and brief, sitting clear above the keyboard. The
+  // cover is still there to scroll back up to.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      boardRef.current?.scrollIntoView({ block: 'start' })
+    }, 120)
+    return () => window.clearTimeout(id)
+  }, [game.id])
 
   // Live clock tick while unsolved.
   useEffect(() => {
@@ -360,7 +371,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     remaining < 0 ? 'text-red-400' : remaining <= 60 ? 'text-amber-300' : 'text-green-400'
 
   return (
-    <div className="space-y-4">
+    // Bottom room for the fixed keyboard: scrolled all the way down, every
+    // clue and cell still sits above it rather than behind it.
+    <div ref={boardRef} className="scroll-mt-3 space-y-4 pb-[20rem]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className={`text-2xl font-black tabular-nums ${clockColor}`}>{formatClock(remaining)}</p>
