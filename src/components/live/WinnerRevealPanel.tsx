@@ -12,12 +12,24 @@ type WinnerRevealPanelProps = {
 }
 
 /**
- * Winning green, the same one a right answer wears through the quiz and a
- * completed line wears on the bingo card. Deliberately not the event accent:
- * on an event whose accent is a soft gold this read as washed out, and green
- * says winner in a way a brand colour cannot.
+ * Winning green: brighter than the green a marked answer wears, because this
+ * one is the celebration rather than a status. Deliberately not the event
+ * accent — on an event whose accent is a soft gold the word washed out, and
+ * green says winner in a way a brand colour cannot.
  */
-const WINNER_GREEN = '#16A34A'
+const WINNER_GREEN = '#22DD62'
+
+/**
+ * A white contour keeps the word readable whatever the event's background
+ * happens to be behind it. paint-order puts the fill above the stroke, so the
+ * letterforms stay their own weight rather than thinning.
+ */
+const WINNER_OUTLINE = {
+  WebkitTextStroke: '0.14em #ffffff',
+  // Rounds the corners the stroke would otherwise square off.
+  strokeLinejoin: 'round',
+  paintOrder: 'stroke fill',
+} as const
 
 /** Split so each letter can land on its own beat, as the bingo win does. */
 const WINNER_LETTERS = ['W', 'I', 'N', 'N', 'E', 'R', '!']
@@ -56,13 +68,18 @@ export function WinnerRevealPanel({
       confetti({ particleCount: 26, angle: 60, spread: 60, origin: { x: 0, y: 0.7 } })
       confetti({ particleCount: 26, angle: 120, spread: 60, origin: { x: 1, y: 0.7 } })
     }, 300)
-    const finale = window.setTimeout(() => {
-      if (reducedMotion) return
-      confetti({ particleCount: 50, spread: 110, startVelocity: 38, origin: { y: 0.6 } })
-    }, 1000)
+    // Keeps firing while the screen is up: this one stays on until the
+    // facilitator moves on, so a single burst would leave it still.
+    const loop = reducedMotion
+      ? null
+      : window.setInterval(() => {
+          confetti({ particleCount: 18, angle: 60, spread: 62, origin: { x: 0, y: 0.75 } })
+          confetti({ particleCount: 18, angle: 120, spread: 62, origin: { x: 1, y: 0.75 } })
+          confetti({ particleCount: 28, spread: 100, startVelocity: 34, origin: { y: 0.45 } })
+        }, 2200)
     return () => {
       window.clearTimeout(sides)
-      window.clearTimeout(finale)
+      if (loop) window.clearInterval(loop)
     }
   }, [stage, isWinner])
 
@@ -83,7 +100,7 @@ export function WinnerRevealPanel({
         {/* The word the room is waiting for, in the winning green. */}
         <p
           className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black drop-shadow-lg"
-          style={{ color: WINNER_GREEN }}
+          style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
         >
           WINNER
         </p>
@@ -94,7 +111,7 @@ export function WinnerRevealPanel({
   const totalPoints = quizPoints ?? mine?.team.score ?? 0
 
   return (
-    <div className="flex min-h-[78svh] flex-col items-center justify-center px-6 text-center">
+    <div className="flex min-h-[80svh] flex-col items-center justify-between px-6 pt-4 pb-2 text-center">
       <motion.p
         className="text-[clamp(0.95rem,3.2vw,1.5rem)] leading-none font-black tracking-[0.3em] uppercase opacity-70"
         initial={{ y: -20, opacity: 0 }}
@@ -105,46 +122,54 @@ export function WinnerRevealPanel({
       </motion.p>
 
       {isWinner ? (
-        <div className="mt-3 flex flex-col items-center">
+        <>
           <motion.p
-            className="text-[clamp(1.4rem,5vw,2.5rem)] leading-none font-black"
+            className="mt-3 text-[clamp(1.4rem,5vw,2.5rem)] leading-none font-black"
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 14 }}
           >
             YOU ARE THE
           </motion.p>
-          {/* Letter by letter, exactly as the bingo win plays it. */}
-          <div className="flex items-end justify-center">
-            {WINNER_LETTERS.map((letter, i) => (
-              <motion.span
-                key={`${letter}-${i}`}
-                className="text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black drop-shadow-lg"
-                style={{ color: WINNER_GREEN }}
-                initial={{ scale: 0, rotate: -45, opacity: 0 }}
-                animate={{
-                  scale: [0, 1.3, 1],
-                  rotate: [-45, 8, 0],
-                  opacity: 1,
-                  y: [0, -10, 0, -14, 0],
-                }}
-                transition={{
-                  delay: 0.3 + i * 0.12,
-                  duration: 1.6,
-                  times: [0, 0.25, 0.45, 0.72, 1],
-                  repeat: Infinity,
-                  repeatDelay: 0.6,
-                }}
-              >
-                {letter}
-              </motion.span>
-            ))}
+
+          {/* The word sits dead centre; the lines above and the total below
+              are pushed out to the ends of the screen. */}
+          <div className="flex flex-1 items-center justify-center">
+            <div className="flex items-end justify-center">
+              {WINNER_LETTERS.map((letter, i) => (
+                // Two layers: the letter lands once, then only the bounce
+                // loops. Repeating the landing made each letter vanish and pop
+                // back, so the word was never whole.
+                <motion.span
+                  key={`${letter}-${i}`}
+                  className="inline-block"
+                  animate={{ y: [0, -10, 0, -14, 0] }}
+                  transition={{
+                    delay: 0.3 + i * 0.12,
+                    duration: 1.6,
+                    times: [0, 0.25, 0.45, 0.72, 1],
+                    repeat: Infinity,
+                    repeatDelay: 0.6,
+                  }}
+                >
+                  <motion.span
+                    className="inline-block text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black drop-shadow-lg"
+                    style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
+                    initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                    animate={{ scale: [0, 1.3, 1], rotate: [-45, 8, 0], opacity: 1 }}
+                    transition={{ delay: 0.3 + i * 0.12, duration: 0.6, times: [0, 0.6, 1] }}
+                  >
+                    {letter}
+                  </motion.span>
+                </motion.span>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       ) : (
         <motion.p
           className="mt-3 text-[clamp(2.5rem,12vw,7rem)] leading-[0.95] font-black drop-shadow-lg"
-          style={{ color: WINNER_GREEN }}
+          style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
@@ -166,7 +191,7 @@ export function WinnerRevealPanel({
 
       {myRank > 0 ? (
         <motion.div
-          className="mt-10 flex flex-col items-center"
+          className="mb-4 flex flex-col items-center"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6, type: 'spring', stiffness: 200, damping: 16 }}

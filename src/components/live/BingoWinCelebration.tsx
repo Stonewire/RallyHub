@@ -95,19 +95,12 @@ export function BingoWinCelebration({
 
         <div className="flex items-center justify-center gap-2 sm:gap-4">
           {LETTERS.map((letter, i) => (
+            // Two layers: the letter lands once, and only the bounce loops.
+            // Repeating the landing made each letter vanish and pop back.
             <motion.span
               key={letter}
-              className="font-sans text-6xl font-black drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)] sm:text-8xl md:text-9xl"
-              style={{ color: accent }}
-              initial={{ scale: 0, rotate: -45, opacity: 0 }}
-              animate={{
-                scale: [0, 1.3, 1],
-                rotate: [-45, 8, 0],
-                opacity: 1,
-                // Lands, then keeps bouncing: the moment should feel like a
-                // room cheering rather than a message that has been delivered.
-                y: [0, -10, 0, -14, 0],
-              }}
+              className="inline-block"
+              animate={{ y: [0, -10, 0, -14, 0] }}
               transition={{
                 delay: 0.15 + i * 0.12,
                 duration: 1.6,
@@ -116,7 +109,15 @@ export function BingoWinCelebration({
                 repeatDelay: 0.6,
               }}
             >
-              {letter}
+              <motion.span
+                className="inline-block font-sans text-6xl font-black drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)] sm:text-8xl md:text-9xl"
+                style={{ color: accent }}
+                initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                animate={{ scale: [0, 1.3, 1], rotate: [-45, 8, 0], opacity: 1 }}
+                transition={{ delay: 0.15 + i * 0.12, duration: 0.6, times: [0, 0.6, 1] }}
+              >
+                {letter}
+              </motion.span>
             </motion.span>
           ))}
         </div>
