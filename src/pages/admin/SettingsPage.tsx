@@ -347,16 +347,22 @@ export function AdminSettingsPage() {
             <MyAccountPanel />
           </>
         ) : isDemo ? (
-          // A filled-in sample account rather than an explanatory card: the
-          // demo is what a prospect is shown, and an empty screen shows nothing.
+          // The demo edits its own real profile. Everyone shares one login, but
+          // the sandbox resets every 30 minutes and the demo signs in by magic
+          // link rather than by password, so a name, photo, phone or password
+          // change harms nothing. Only the email is held back: the sign-in
+          // function looks the account up by it, so changing it would orphan
+          // the login until the next reset.
           <div className="space-y-4">
             <Card className="border-border/80 bg-muted/20 px-4 py-3 shadow-sm">
               <p className="text-muted-foreground text-sm">
-                Sample account for the public demo. Everyone shares one login here, so
-                changes are switched off; on your own account every field is editable.
+                This is a real account and your changes save, so try it. The
+                sandbox resets every 30 minutes. Two things are held back: the
+                email address, because the demo sign-in looks the account up by
+                it, and deleting the login, which everyone here shares.
               </p>
             </Card>
-            <MyAccountPanel sample />
+            <MyAccountPanel demo />
           </div>
         ) : (
           <MyAccountPanel />
