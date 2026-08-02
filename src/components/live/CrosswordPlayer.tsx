@@ -391,23 +391,23 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     <div ref={boardRef} className="scroll-mt-3 space-y-4 pb-60 md:pb-[20rem]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`text-xl font-black tabular-nums md:text-2xl ${clockColor}`}>{formatClock(remaining)}</p>
-          <p className="text-xs text-white/60">Time left</p>
+          <p className={`text-lg font-black tabular-nums md:text-2xl ${clockColor}`}>{formatClock(remaining)}</p>
+          <p className="text-[10px] text-white/60 md:text-xs">Time left</p>
         </div>
         <div className="text-right">
-          <p className="text-xl font-black tabular-nums md:text-2xl" style={{ color: accentColor }}>
+          <p className="text-lg font-black tabular-nums md:text-2xl" style={{ color: accentColor }}>
             {livePoints}
           </p>
-          <p className="text-xs text-white/60">Points if solved now</p>
+          <p className="text-[10px] text-white/60 md:text-xs">Points if solved now</p>
         </div>
         <button
           type="button"
           onClick={useHint}
           disabled={hintsUsed >= 3}
-          className="flex flex-col items-center rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-white disabled:opacity-40"
+          className="flex flex-col items-center rounded-xl border border-white/25 bg-white/10 px-2.5 py-1.5 text-white disabled:opacity-40 md:px-3 md:py-2"
         >
-          <Lightbulb className="size-5" />
-          <span className="mt-0.5 text-xs font-semibold">Hint {3 - hintsUsed}</span>
+          <Lightbulb className="size-4 md:size-5" />
+          <span className="mt-0.5 text-[10px] font-semibold md:text-xs">Hint {3 - hintsUsed}</span>
         </button>
       </div>
 
@@ -416,7 +416,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           keeps the width and only the selected cell's two clues sit under it. */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
         <div className="order-2 min-w-0 flex-1 md:order-1">
-          <div className="hidden md:block">
+          {/* Bounded and scrollable: a long crossword should not stretch the
+              page past the board it belongs to. */}
+          <div className="hidden max-h-[26rem] overflow-y-auto pr-1 md:block">
             {(['across', 'down'] as const).map((direction) => (
               <div key={direction} className="mb-4">
                 <p className="mb-1.5 text-xs font-black tracking-[0.16em] uppercase opacity-70">
@@ -428,17 +430,22 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                     .map((clue) => {
                       const solved = solvedWordIds.has(clue.id)
                       const active = activeClueId === clue.id
+                      // Both clues through the selected cell are marked, so it
+                      // is clear which pair the choice is between.
+                      const atCursor = cluesHere.some((c) => c.id === clue.id)
                       return (
                         <li key={clue.id}>
                           <button
                             type="button"
                             onClick={() => selectClue(clue)}
-                            className={`w-full text-left text-sm leading-snug ${
+                            className={`w-full rounded-md px-2 py-1 text-left text-sm leading-snug ${
                               solved
                                 ? 'text-green-300/80 line-through'
                                 : active
-                                  ? 'font-bold text-white'
-                                  : 'text-white/75'
+                                  ? 'bg-white/20 font-bold text-white'
+                                  : atCursor
+                                    ? 'bg-white/10 text-white'
+                                    : 'text-white/75'
                             }`}
                           >
                             <span className="mr-1.5 font-black tabular-nums">{clue.number}.</span>
@@ -452,11 +459,24 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
             ))}
           </div>
 
-          {activeClue ? (
-            <p className="mt-3 text-sm leading-snug md:hidden">
-              <span className="font-black tabular-nums">{activeClue.number}.</span>{' '}
-              {activeClue.clue}
-            </p>
+          {cluesHere.length > 0 ? (
+            <div className="space-y-1.5 md:hidden">
+              {cluesHere.map((clue) => (
+                <button
+                  key={clue.id}
+                  type="button"
+                  onClick={() => selectClue(clue)}
+                  className={`block w-full rounded-lg px-3 py-2 text-left text-sm leading-snug ${
+                    activeClueId === clue.id ? 'bg-white/20 font-bold' : 'bg-white/5 text-white/75'
+                  }`}
+                >
+                  <span className="font-black tabular-nums">
+                    {clue.number} {clue.direction === 'across' ? 'Across' : 'Down'}
+                  </span>{' '}
+                  {clue.clue}
+                </button>
+              ))}
+            </div>
           ) : (
             <p className="text-center text-xs text-white/60 md:hidden">
               Tap any letter cell to read its clue, then type the answer.
@@ -474,10 +494,10 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           Array.from({ length: GRID_SIZE }, (_, col) => {
             const key = `${row}-${col}`
             if (blockedKeys.has(key)) {
-              return <span key={key} className="size-8 rounded-md bg-[#FFC107] md:size-14" />
+              return <span key={key} className="size-10 rounded-md bg-[#FFC107] md:size-14" />
             }
             if (!openKeys.has(key)) {
-              return <span key={key} className="size-8 rounded-md bg-black/50 md:size-14" />
+              return <span key={key} className="size-10 rounded-md bg-black/50 md:size-14" />
             }
             const number = startNumbers.get(key)
             const solved = solvedCellKeys.has(key)
@@ -498,7 +518,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                   disabled={checking}
                   onClick={() => selectCell(key)}
                   aria-label={`Row ${row + 1} column ${col + 1}`}
-                  className={`size-8 rounded-md border-2 text-center text-sm font-black uppercase md:size-14 md:text-lg ${
+                  className={`size-10 rounded-md border-2 text-center text-base font-black uppercase md:size-14 md:text-lg ${
                     solved
                       ? 'border-green-400/70 bg-green-500/25 text-green-100'
                       : revealed
