@@ -55,6 +55,7 @@ import {
   quizRoundForQuestionIndex,
 } from '@/lib/quiz-rounds'
 import { shouldAutoRevealQuizQuestion } from '@/lib/quiz-auto-reveal'
+import { quizQuestionSeconds } from '@/lib/quiz-timing'
 import {
   bingoSongProgress,
   parseBingoGameConfig,
@@ -809,7 +810,9 @@ export function FacilitatorEventPage() {
   const questions = quizGame ? quizQuestions(quizGame) : []
   const question = questions[liveState.current_question_index]
   const quizConfig = (quizGame?.config ?? {}) as GameConfig
-  const questionSeconds = quizConfig.timer_seconds ?? 20
+  const quizBaseSeconds = quizConfig.timer_seconds ?? 20
+  // A question carrying media runs longer; see quizQuestionSeconds.
+  const questionSeconds = quizQuestionSeconds(quizBaseSeconds, question)
   const namedTeams = teams.filter((t) => t.name?.trim())
   const currentQuizMediaType = question
     ? quizSubmissionMediaType(question.id)
@@ -826,7 +829,8 @@ export function FacilitatorEventPage() {
 
   function startQuizQuestion(index: number) {
     quizAutoRevealKey.current = ''
-    const sec = questionSeconds
+    // The question being started, not the one on screen now.
+    const sec = quizQuestionSeconds(quizBaseSeconds, questions[index])
     void patchState({
       current_question_index: index,
       quiz_state: 'active',
@@ -926,7 +930,7 @@ export function FacilitatorEventPage() {
     await patchState({
       current_question_index: 0,
       quiz_state: 'idle',
-      quiz_timer_seconds: questionSeconds,
+      quiz_timer_seconds: quizQuestionSeconds(quizBaseSeconds, questions[0]),
       quiz_timer_running: false,
     })
     notify('Quiz reset')

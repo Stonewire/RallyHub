@@ -17,6 +17,7 @@ import { InventoryQrScanner } from '@/components/live/participant/InventoryQrSca
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
 import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
+import { quizQuestionSeconds } from '@/lib/quiz-timing'
 import { DevQuizBar } from '@/components/live/DevQuizBar'
 import { devQuizSteps } from '@/lib/dev-quiz-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
@@ -380,13 +381,16 @@ export function JoinGameView({
                 quiz_correct_answer_id: step.correct_answer_id,
                 winner_reveal_stage: step.winner_reveal_stage,
                 quiz_timer_running: step.quiz_state === 'active',
-                quiz_timer_seconds: quizTimerSeconds(b.state),
+                quiz_timer_seconds: quizQuestionSeconds(
+                  (quizGame?.config as GameConfig | undefined)?.timer_seconds ?? 20,
+                  quizQs[step.question_index],
+                ),
               },
             }
           : b,
       )
     },
-    [devSteps, quizGame?.points_static, quizMyAnswerId, setBundle, teamId],
+    [devSteps, quizGame, quizMyAnswerId, quizQs, setBundle, teamId],
   )
 
   // In a real round the facilitator's console reveals by itself when the timer
@@ -1405,7 +1409,12 @@ export function JoinGameView({
   } else if (stage?.type === 'quiz' && stage.gameId) {
     const game = quizGame
     const q = currentQuizQ
-    const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
+    // Matches what the facilitator started the question with, so the bar is
+    // full at the start of a media question rather than already part spent.
+    const maxSec = quizQuestionSeconds(
+      (game?.config as GameConfig)?.timer_seconds ?? 20,
+      q,
+    )
     // Once an answer is in, the bar stops being the question's clock and
     // becomes the change window's: back to full, red, and five seconds long.
     const inChangeWindow =

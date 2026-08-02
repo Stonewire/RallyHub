@@ -115,6 +115,24 @@ function QuestionMedia({
   const { kind, url } = questionMedia(q)
   const [busy, setBusy] = useState(false)
 
+  /** Length of an uploaded clip, so the question's timer can allow for it. */
+  function measureDuration(file: File): Promise<number | null> {
+    return new Promise((resolve) => {
+      const element = document.createElement(kind === 'audio' ? 'audio' : 'video')
+      const objectUrl = URL.createObjectURL(file)
+      element.preload = 'metadata'
+      element.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl)
+        resolve(Number.isFinite(element.duration) ? Math.ceil(element.duration) : null)
+      }
+      element.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        resolve(null)
+      }
+      element.src = objectUrl
+    })
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
@@ -143,12 +161,33 @@ function QuestionMedia({
       </div>
 
       {kind === 'video' ? (
-        <Input
-          value={url ?? ''}
-          placeholder="https://youtube.com/…"
-          className="bg-background"
-          onChange={(event) => onUpdate({ mediaUrl: event.target.value.trim() || null })}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={url ?? ''}
+            placeholder="https://youtube.com/…"
+            className="bg-background min-w-0 flex-1"
+            onChange={(event) => onUpdate({ mediaUrl: event.target.value.trim() || null })}
+          />
+          {/* A linked video cannot be measured from here, and the question's
+              timer adds this on so teams are not watching on their own time. */}
+          <div className="flex items-center gap-2">
+            <Label className="shrink-0 text-xs">Length</Label>
+            <Input
+              type="number"
+              min={0}
+              value={q.mediaDurationSeconds ?? ''}
+              placeholder="sec"
+              className="bg-background w-20"
+              onChange={(event) =>
+                onUpdate({
+                  mediaDurationSeconds: event.target.value
+                    ? Math.max(0, Number(event.target.value))
+                    : null,
+                })
+              }
+            />
+          </div>
+        </div>
       ) : kind !== 'none' ? (
         <Input
           type="file"
@@ -160,7 +199,11 @@ function QuestionMedia({
             if (!file) return
             setBusy(true)
             try {
-              onUpdate({ mediaUrl: await onUploadMedia(file) })
+              const [mediaUrl, mediaDurationSeconds] = await Promise.all([
+                onUploadMedia(file),
+                measureDuration(file),
+              ])
+              onUpdate({ mediaUrl, mediaDurationSeconds })
             } finally {
               setBusy(false)
             }

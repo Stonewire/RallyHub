@@ -60,6 +60,13 @@ export type QuizQuestion = {
    */
   mediaKind?: QuizMediaKind
   mediaUrl?: string | null
+  /**
+   * Length of the attached clip in seconds, measured when it is uploaded (or
+   * typed in for a YouTube link). The question's timer adds it on, so a team
+   * is not spending its thinking time watching. Absent means unknown, which
+   * simply adds nothing.
+   */
+  mediaDurationSeconds?: number | null
   roundId?: string | null
 }
 
