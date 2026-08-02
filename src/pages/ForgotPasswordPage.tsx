@@ -58,7 +58,7 @@ export function ForgotPasswordPage() {
     <AuthPageShell>
       <NeoCard className="w-full max-w-sm space-y-6 p-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-foreground text-xl font-semibold tracking-tight">
+          <h1 className="text-foreground text-2xl font-black tracking-tight">
             Reset password
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -94,7 +94,7 @@ export function ForgotPasswordPage() {
                 {error}
               </p>
             ) : null}
-            <NeoButton type="submit" variant="primary" size="lg" className="w-full" disabled={pending}>
+            <NeoButton type="submit" variant="accent" size="lg" className="w-full" disabled={pending}>
               {pending ? 'Sending…' : 'Send reset link'}
             </NeoButton>
             <NeoButton variant="ghost" size="md" className="w-full" asChild>

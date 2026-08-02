@@ -101,7 +101,7 @@ export function RegisterPage() {
     <AuthPageShell>
       <NeoCard className="w-full max-w-md space-y-6 p-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-foreground text-xl font-semibold tracking-tight">Create your account</h1>
+          <h1 className="text-foreground text-2xl font-black tracking-tight">Create your account</h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
             Start running live team games. Paid plans include a 1-month free trial.
           </p>
@@ -162,7 +162,7 @@ export function RegisterPage() {
             >
               {PLANS.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {formatDualMonthlyPriceLine(p)} · {formatPerEventPrice(p)}
+                  {p.name} · {formatDualMonthlyPriceLine(p)} · {formatPerEventPrice(p)}
                 </option>
               ))}
             </select>
@@ -222,7 +222,7 @@ export function RegisterPage() {
 
           <NeoButton
             type="submit"
-            variant="primary"
+            variant="accent"
             size="lg"
             className="w-full"
             disabled={pending}

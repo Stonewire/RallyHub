@@ -52,7 +52,7 @@ export function LoginPage() {
       <AuthPageShell>
         <NeoCard className="w-full max-w-sm space-y-5 p-8 text-center">
           <div className="space-y-2">
-            <h1 className="text-foreground text-xl font-semibold tracking-tight">
+            <h1 className="text-foreground text-2xl font-black tracking-tight">
               Demo temporarily unavailable
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -84,7 +84,7 @@ export function LoginPage() {
     <AuthPageShell>
       <NeoCard className="w-full max-w-sm space-y-6 p-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-foreground text-xl font-semibold tracking-tight">Sign in</h1>
+          <h1 className="text-foreground text-2xl font-black tracking-tight">Sign in</h1>
           {isPlatformHost() ? (
             <p className="text-muted-foreground text-sm leading-relaxed">
               Sign in with your organization or RallyHub staff account
@@ -138,7 +138,7 @@ export function LoginPage() {
           ) : null}
           <NeoButton
             type="submit"
-            variant="primary"
+            variant="accent"
             size="lg"
             className="w-full"
             disabled={pending || loading}
