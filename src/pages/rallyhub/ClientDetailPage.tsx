@@ -1,4 +1,3 @@
-import { IconUpload } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -8,7 +7,6 @@ import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Card } from '@/components/ui/card'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
-import { BillingOverview } from '@/components/billing/BillingOverview'
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import {
   ClientDetailTabs,
@@ -20,6 +18,7 @@ import {
   NeoInput,
   NeoLabel,
   NeoTextarea,
+  NeoStatusBadge,
 } from '@/components/neo-minimal'
 import {
   useCreateRallyHubClient,
@@ -40,7 +39,6 @@ import {
   normalizeBillingPeriod,
   normalizeClientPlan,
 } from '@/lib/client-plans'
-import { countClientEvents } from '@/lib/client-events'
 import { normalizeEducationalStatus } from '@/lib/educational'
 import { organizationInitials } from '@/lib/org-avatar'
 import { getOrganizationOrigin } from '@/lib/tenant'
@@ -345,7 +343,6 @@ export function RallyHubClientDetailPage() {
         subdomain: org!.subdomain,
         custom_domain: org!.custom_domain,
       })
-  const eventCounts = data ? countClientEvents(data.events) : null
   const displayName = orgName.trim() || (isCreateMode ? 'New client' : org!.name)
   const isDemoClient = org?.is_demo === true
   const initials = organizationInitials(displayName)
@@ -354,43 +351,16 @@ export function RallyHubClientDetailPage() {
   const saving = createClient.isPending || updateClient.isPending || logoUploading
 
   const clientInfoTab = (
-    <div className="space-y-6">
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <div className="flex flex-wrap items-start gap-5">
-          <div className="space-y-3">
-            {displayLogo ? (
-              <img
-                src={displayLogo}
-                alt=""
-                className="border-border/80 size-16 shrink-0 rounded-lg border object-contain"
-              />
-            ) : (
-              <div className="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-lg text-lg font-semibold">
-                {initials}
-              </div>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => void handleLogoChange(e.target.files?.[0])}
-            />
-            <NeoButton
-              type="button"
-              variant="surface"
-              size="sm"
-              disabled={saving}
-              onClick={() => fileRef.current?.click()}
-            >
-              <IconUpload className="size-4" />
-              {logoUploading ? 'Uploading…' : 'Upload logo'}
-            </NeoButton>
-          </div>
-
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="space-y-2">
-              <NeoLabel htmlFor="org-name">Organization name</NeoLabel>
+    <div className="space-y-4">
+      {/* Two-column mirror of the client's own Organisation tab, so a super
+          admin sees the same screen the client manages, with the RallyHub-only
+          controls folded into the right column. */}
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Brand Identity" visibility="Public" />
+            <div className="space-y-1.5">
+              <NeoLabel htmlFor="org-name">Organisation Name</NeoLabel>
               <NeoInput
                 id="org-name"
                 value={orgName}
@@ -399,395 +369,423 @@ export function RallyHubClientDetailPage() {
                 placeholder="Acme Events"
               />
             </div>
-            {/* A demo org never bills, so a plan and period here would read
-                as money that is going to be charged. */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void handleLogoChange(e.target.files?.[0])}
+            />
+            {/* The client page's dashed logo target, click-to-upload. */}
+            <button
+              type="button"
+              disabled={logoUploading || saving}
+              onClick={() => fileRef.current?.click()}
+              className="text-muted-foreground border-border hover:border-nm-slate-400 hover:bg-muted/20 flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed px-4 py-5 text-center text-xs transition-colors"
+            >
+              {displayLogo ? (
+                <img src={displayLogo} alt="" className="max-h-16 max-w-40 object-contain" />
+              ) : (
+                <div className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-lg text-lg font-semibold">
+                  {initials}
+                </div>
+              )}
+              <span>
+                {logoUploading
+                  ? 'Uploading…'
+                  : displayLogo
+                    ? 'Click to replace their logo'
+                    : 'Click to upload their logo'}
+              </span>
+            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {isDemoClient ? (
+                <NeoStatusBadge tone="demo">Demo</NeoStatusBadge>
+              ) : accountStatus === 'active' ? (
+                <NeoStatusBadge tone="active">Active</NeoStatusBadge>
+              ) : accountStatus === 'trial' ? (
+                <NeoStatusBadge tone="ready">Trial</NeoStatusBadge>
+              ) : (
+                <NeoStatusBadge tone="archived">{accountStatus}</NeoStatusBadge>
+              )}
+              <span className="text-muted-foreground text-xs">
+                {isDemoClient
+                  ? 'Demo account · no billing'
+                  : `${formatClientPlanLabel(billingPlan)} · ${formatBillingPeriodLabel(
+                      normalizeBillingPeriod(billingPeriod),
+                    )}`}
+              </span>
+            </div>
+          </Card>
+
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Legal & Billing Details" visibility="Private" />
+            <div className="space-y-1.5">
+              <NeoLabel htmlFor="vat">Tax / VAT ID</NeoLabel>
+              <NeoInput
+                id="vat"
+                value={vatNumber}
+                onChange={(e) => setVatNumber(e.target.value)}
+                className="bg-background"
+                placeholder="MT12341234"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <NeoLabel htmlFor="address-street">Street</NeoLabel>
+              <NeoInput
+                id="address-street"
+                value={addressStreet}
+                onChange={(e) => setAddressStreet(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="address-city">City</NeoLabel>
+                <NeoInput
+                  id="address-city"
+                  value={addressCity}
+                  onChange={(e) => setAddressCity(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="address-country">Country</NeoLabel>
+                <NeoInput
+                  id="address-country"
+                  value={addressCountry}
+                  onChange={(e) => setAddressCountry(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="address-state">State or Region</NeoLabel>
+                <NeoInput
+                  id="address-state"
+                  value={addressState}
+                  onChange={(e) => setAddressState(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="address-postal">Post Code</NeoLabel>
+                <NeoInput
+                  id="address-postal"
+                  value={addressPostal}
+                  onChange={(e) => setAddressPostal(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border-border/80 space-y-3 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Internal Notes" visibility="RallyHub" />
+            <NeoTextarea
+              id="internal-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={5}
+              className="w-full px-3 py-2 text-sm"
+              placeholder="Only RallyHub staff see these."
+            />
+          </Card>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Plan & Account" visibility="RallyHub" />
             {isDemoClient ? (
               <p className="text-muted-foreground text-sm">
-                <span className="bg-muted text-muted-foreground mr-2 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                  Demo
-                </span>
-                Demo account · no billing
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Plan: {formatClientPlanLabel(billingPlan)} (
-                {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))})
-              </p>
-            )}
-            <p className="text-muted-foreground text-sm capitalize">
-              Status: {accountStatus}
-            </p>
-          </div>
-        </div>
-
-        {!isCreateMode && eventCounts ? (
-          <div className="border-border/80 grid gap-4 border-t pt-4 sm:grid-cols-2">
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-foreground text-xl font-semibold tabular-nums">
-                {eventCounts.completedEvents}
-              </p>
-              <p className="text-muted-foreground text-sm">Completed events</p>
-            </div>
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-foreground text-xl font-semibold tabular-nums">
-                {eventCounts.upcomingEvents}
-              </p>
-              <p className="text-muted-foreground text-sm">Upcoming events</p>
-            </div>
-          </div>
-        ) : null}
-      </Card>
-
-      {isCreateMode ? (
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground font-semibold">Admin login</h3>
-          <p className="text-muted-foreground text-sm">
-            Creates the client&apos;s first admin user account.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <NeoLabel htmlFor="login-email">Admin login email</NeoLabel>
-              <NeoInput
-                id="login-email"
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="bg-background"
-                placeholder="admin@company.com"
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-2">
-              <NeoLabel htmlFor="login-password">Admin login password</NeoLabel>
-              <NeoInput
-                id="login-password"
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="bg-background"
-                placeholder="Temporary password"
-                autoComplete="new-password"
-              />
-            </div>
-          </div>
-        </Card>
-      ) : data ? (
-        <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground font-semibold">Admin login</h3>
-          <p className="text-muted-foreground text-sm">
-            The email address the client uses to sign in to their admin account.
-          </p>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="admin-login-email-display">Admin login email</NeoLabel>
-            <p
-              id="admin-login-email-display"
-              className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
-            >
-              {resolveAdminLoginEmail(data.org, data.members) || '—'}
-            </p>
-          </div>
-          {adminResetError ? <QueryError message={adminResetError} /> : null}
-          {adminResetMessage ? (
-            <p className="text-foreground text-sm" role="status">
-              {adminResetMessage}
-            </p>
-          ) : null}
-          <NeoButton
-            type="button"
-            variant="surface"
-            disabled={
-              adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
-            }
-            onClick={() => void handleAdminPasswordReset()}
-          >
-            {adminResetSending ? 'Sending…' : 'Send Password Reset'}
-          </NeoButton>
-        </Card>
-      ) : null}
-
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <h3 className="text-foreground font-semibold">Contact &amp; plan</h3>
-        <div>
-          <NeoLabel htmlFor="tenant-url">Tenant URL</NeoLabel>
-          <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
-            {tenantUrl}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <NeoLabel htmlFor="subdomain">Subdomain</NeoLabel>
-          <NeoInput
-            id="subdomain"
-            value={subdomain}
-            onChange={(e) => setSubdomain(e.target.value)}
-            className="bg-background max-w-xs font-mono"
-            placeholder="afterglow"
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <NeoLabel htmlFor="client-email">Contact email</NeoLabel>
-            <NeoInput
-              id="client-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-background"
-              placeholder="contact@company.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="client-phone">Phone</NeoLabel>
-            <NeoInput
-              id="client-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="bg-background"
-              placeholder="+1 555 0100"
-            />
-          </div>
-        </div>
-        {contactEmail ? (
-          <NeoButton variant="surface" size="sm" asChild>
-            <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
-          </NeoButton>
-        ) : (
-          <p className="text-muted-foreground text-xs">
-            Add a contact email and save to enable contact.
-          </p>
-        )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
-            <select
-              id="billing-plan"
-              value={billingPlan}
-              onChange={(e) => setBillingPlan(e.target.value)}
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-            >
-              {getAdminAssignablePlans().map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name}
-                  {plan.hidden ? ' (hidden)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="billing-period">Billing period</NeoLabel>
-            <select
-              id="billing-period"
-              value={billingPeriod}
-              onChange={(e) => setBillingPeriod(e.target.value)}
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-            >
-              {BILLING_PERIODS.map((period) => (
-                <option key={period} value={period}>
-                  {formatBillingPeriodLabel(period)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="account-status">Account status</NeoLabel>
-            <select
-              id="account-status"
-              value={accountStatus}
-              onChange={(e) => {
-                setAccountStatus(e.target.value)
-                if (e.target.value !== 'trial') setTrialEndsAt('')
-              }}
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-            >
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="educational-status">Educational (school)</NeoLabel>
-            <select
-              id="educational-status"
-              value={educationalStatus}
-              onChange={(e) => setEducationalStatus(e.target.value)}
-              className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-            >
-              <option value="none">Not educational</option>
-              <option value="pending">Pending review (requested)</option>
-              <option value="approved">Approved — 50% off subscriptions & events</option>
-            </select>
-            {educationalStatus === 'pending' ? (
-              <p className="text-muted-foreground text-xs">
-                This account requested educational pricing at signup. Set to “Approved”
-                once you’ve verified them to apply the 50% discount.
+                This organisation runs the public demo. Nothing here is charged, and it is
+                excluded from Payments and platform revenue.
               </p>
             ) : null}
-          </div>
-          {accountStatus === 'trial' ? (
-            <div className="space-y-2">
-              <NeoLabel htmlFor="trial-ends-at">Trial end date</NeoLabel>
-              <NeoInput
-                id="trial-ends-at"
-                type="date"
-                value={trialEndsAt}
-                onChange={(e) => setTrialEndsAt(e.target.value)}
-                className="bg-background"
-              />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
+                <select
+                  id="billing-plan"
+                  value={billingPlan}
+                  onChange={(e) => setBillingPlan(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {getAdminAssignablePlans().map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                      {plan.hidden ? ' (hidden)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="billing-period">Billing period</NeoLabel>
+                <select
+                  id="billing-period"
+                  value={billingPeriod}
+                  onChange={(e) => setBillingPeriod(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {BILLING_PERIODS.map((period) => (
+                    <option key={period} value={period}>
+                      {formatBillingPeriodLabel(period)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="account-status">Account status</NeoLabel>
+                <select
+                  id="account-status"
+                  value={accountStatus}
+                  onChange={(e) => {
+                    setAccountStatus(e.target.value)
+                    if (e.target.value !== 'trial') setTrialEndsAt('')
+                  }}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="educational-status">Educational (school)</NeoLabel>
+                <select
+                  id="educational-status"
+                  value={educationalStatus}
+                  onChange={(e) => setEducationalStatus(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  <option value="none">Not educational</option>
+                  <option value="pending">Pending review (requested)</option>
+                  <option value="approved">Approved — 50% off subscriptions & events</option>
+                </select>
+              </div>
+              {accountStatus === 'trial' ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <NeoLabel htmlFor="trial-ends-at">Trial end date</NeoLabel>
+                  <NeoInput
+                    id="trial-ends-at"
+                    type="date"
+                    value={trialEndsAt}
+                    onChange={(e) => setTrialEndsAt(e.target.value)}
+                    className="bg-background max-w-xs"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    When this date passes, the account is suspended automatically and flagged
+                    for review.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            {educationalStatus === 'pending' ? (
               <p className="text-muted-foreground text-xs">
-                When this date passes, the account will be automatically suspended and flagged
-                for review.
+                This account requested educational pricing at signup. Set to "Approved" once
+                verified to apply the 50% discount.
+              </p>
+            ) : null}
+            {trialReviewNeeded ? (
+              <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm">
+                <p className="font-medium text-orange-800">Trial expired — review needed</p>
+                <p className="mt-0.5 text-xs text-orange-700">
+                  This account was suspended automatically when its trial ended.
+                </p>
+                <button
+                  type="button"
+                  className="mt-1 text-xs text-orange-800 underline"
+                  onClick={() => setTrialReviewNeeded(false)}
+                >
+                  Mark as reviewed (clears flag on save)
+                </button>
+              </div>
+            ) : null}
+            {isDemoClient ? null : (
+              <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
+            )}
+            {getPlan(billingPlan).hidden ? (
+              <p className="text-muted-foreground text-xs">
+                Partner is a fully comped plan and is not shown to clients in public plan
+                lists.
+              </p>
+            ) : null}
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={hidePlatformBranding}
+                onChange={(e) => setHidePlatformBranding(e.target.checked)}
+                className="accent-primary size-4 rounded"
+              />
+              <span className="text-sm">
+                Hide "Powered by RallyHub" watermark on live event surfaces
+                <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
+              </span>
+            </label>
+          </Card>
+
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Contact & Tenant" visibility="Private" />
+            <div>
+              <NeoLabel htmlFor="tenant-url">Tenant URL</NeoLabel>
+              <p id="tenant-url" className="text-foreground mt-1 font-mono text-sm">
+                {tenantUrl}
               </p>
             </div>
-          ) : null}
-          {trialReviewNeeded ? (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm">
-              <p className="text-orange-800 font-medium">Trial expired — review needed</p>
-              <p className="text-orange-700 mt-0.5 text-xs">
-                This account was suspended automatically when its trial ended.
+            <div className="space-y-1.5">
+              <NeoLabel htmlFor="subdomain">Subdomain</NeoLabel>
+              <NeoInput
+                id="subdomain"
+                value={subdomain}
+                onChange={(e) => setSubdomain(e.target.value)}
+                className="bg-background max-w-xs font-mono"
+                placeholder="afterglow"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="client-email">Contact email</NeoLabel>
+                <NeoInput
+                  id="client-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-background"
+                  placeholder="contact@company.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="client-phone">Phone</NeoLabel>
+                <NeoInput
+                  id="client-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="bg-background"
+                  placeholder="+1 555 0100"
+                />
+              </div>
+            </div>
+            {contactEmail ? (
+              <NeoButton variant="surface" size="sm" asChild>
+                <a href={`mailto:${encodeURIComponent(contactEmail)}`}>Contact client</a>
+              </NeoButton>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Add a contact email and save to enable contact.
               </p>
-              <button
+            )}
+          </Card>
+
+          {isCreateMode ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Admin Login" visibility="Private" />
+              <p className="text-muted-foreground text-sm">
+                Creates the client's first admin user account.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <NeoLabel htmlFor="login-email">Admin login email</NeoLabel>
+                  <NeoInput
+                    id="login-email"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="bg-background"
+                    placeholder="admin@company.com"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <NeoLabel htmlFor="login-password">Admin login password</NeoLabel>
+                  <NeoInput
+                    id="login-password"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="bg-background"
+                    placeholder="Temporary password"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+            </Card>
+          ) : data ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Admin Login & Team" visibility="Private" />
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="admin-login-email-display">Admin login email</NeoLabel>
+                <p
+                  id="admin-login-email-display"
+                  className="text-foreground bg-muted/30 rounded-lg px-3 py-2 text-sm"
+                >
+                  {resolveAdminLoginEmail(data.org, data.members) || '—'}
+                </p>
+              </div>
+              {adminResetError ? <QueryError message={adminResetError} /> : null}
+              {adminResetMessage ? (
+                <p className="text-foreground text-sm" role="status">
+                  {adminResetMessage}
+                </p>
+              ) : null}
+              <NeoButton
                 type="button"
-                className="text-orange-800 underline text-xs mt-1"
-                onClick={() => setTrialReviewNeeded(false)}
+                variant="surface"
+                size="sm"
+                disabled={
+                  adminResetSending || !resolveAdminLoginEmail(data.org, data.members)
+                }
+                onClick={() => void handleAdminPasswordReset()}
               >
-                Mark as reviewed (clears flag on save)
-              </button>
-            </div>
+                {adminResetSending ? 'Sending…' : 'Send Password Reset'}
+              </NeoButton>
+              <div className="border-border/70 border-t pt-3">
+                <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wider uppercase">
+                  Team members
+                </p>
+                {orgUsersQuery.isLoading ? (
+                  <p className="text-muted-foreground text-sm">Loading users…</p>
+                ) : (orgUsersQuery.data?.length ?? 0) === 0 ? (
+                  <p className="text-muted-foreground text-sm">No users yet.</p>
+                ) : (
+                  <ul className="divide-border divide-y">
+                    {orgUsersQuery.data?.map((u) => {
+                      const memberName =
+                        [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username
+                      return (
+                        <li
+                          key={u.id}
+                          className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-foreground truncate text-sm font-medium">
+                              {memberName}
+                            </p>
+                            <p className="text-muted-foreground truncate text-xs">
+                              {u.email} · {u.role.replace(/_/g, ' ')}
+                            </p>
+                          </div>
+                          <NeoButton
+                            type="button"
+                            size="sm"
+                            variant="surface"
+                            onClick={() => setAdminResetConfirmEmail(u.email)}
+                          >
+                            Reset password
+                          </NeoButton>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            </Card>
           ) : null}
         </div>
-        <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
-        {getPlan(billingPlan).hidden ? (
-          <p className="text-muted-foreground text-xs">
-            Partner is a fully comped plan and is not shown to clients in public plan
-            lists.
-          </p>
-        ) : null}
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={hidePlatformBranding}
-            onChange={(e) => setHidePlatformBranding(e.target.checked)}
-            className="accent-primary size-4 rounded"
-          />
-          <span className="text-sm">
-            Hide "Powered by RallyHub" watermark on live event surfaces
-            <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
-          </span>
-        </label>
-      </Card>
-
-      <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <h3 className="text-foreground text-lg font-semibold">Company details</h3>
-        <div className="space-y-2">
-          <NeoLabel htmlFor="vat">VAT number</NeoLabel>
-          <NeoInput
-            id="vat"
-            value={vatNumber}
-            onChange={(e) => setVatNumber(e.target.value)}
-            className="bg-background"
-          />
-        </div>
-        <div className="space-y-2">
-          <NeoLabel htmlFor="address-street">Street</NeoLabel>
-          <NeoInput
-            id="address-street"
-            value={addressStreet}
-            onChange={(e) => setAddressStreet(e.target.value)}
-            className="bg-background"
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <NeoLabel htmlFor="address-city">City</NeoLabel>
-            <NeoInput
-              id="address-city"
-              value={addressCity}
-              onChange={(e) => setAddressCity(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="address-state">State / region</NeoLabel>
-            <NeoInput
-              id="address-state"
-              value={addressState}
-              onChange={(e) => setAddressState(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <NeoLabel htmlFor="address-postal">Postal code</NeoLabel>
-            <NeoInput
-              id="address-postal"
-              value={addressPostal}
-              onChange={(e) => setAddressPostal(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-          <div className="space-y-2">
-            <NeoLabel htmlFor="address-country">Country</NeoLabel>
-            <NeoInput
-              id="address-country"
-              value={addressCountry}
-              onChange={(e) => setAddressCountry(e.target.value)}
-              className="bg-background"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {!isCreateMode && data ? (
-        <Card className="border-border/80 bg-card p-6 shadow-sm">
-          <h3 className="text-foreground mb-4 font-semibold">Team members</h3>
-          {orgUsersQuery.isLoading ? (
-            <p className="text-muted-foreground text-sm">Loading users…</p>
-          ) : (orgUsersQuery.data?.length ?? 0) === 0 ? (
-            <p className="text-muted-foreground text-sm">No users yet.</p>
-          ) : (
-            <ul className="divide-border divide-y">
-              {orgUsersQuery.data?.map((u) => {
-                const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username
-                return (
-                  <li
-                    key={u.id}
-                    className="flex flex-wrap items-center justify-between gap-2 py-3"
-                  >
-                    <div>
-                      <p className="text-foreground font-medium">{displayName}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {u.email} · {u.role.replace(/_/g, ' ')}
-                      </p>
-                    </div>
-                    <NeoButton
-                      type="button"
-                      size="sm"
-                      variant="surface"
-                      onClick={() => setAdminResetConfirmEmail(u.email)}
-                    >
-                      Reset password
-                    </NeoButton>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </Card>
-      ) : null}
-
-      <Card className="border-border/80 space-y-3 bg-card p-6 shadow-sm">
-        <NeoLabel htmlFor="internal-notes">Internal notes</NeoLabel>
-        <NeoTextarea
-          id="internal-notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={5}
-          className="w-full px-3 py-2 text-sm"
-        />
-      </Card>
+      </div>
 
       {!isCreateMode && clientId ? (
         // The shared Danger Zone, so this reads the same as Organisation,
@@ -869,30 +867,6 @@ export function RallyHubClientDetailPage() {
 
       {activeTab === 'info' ? clientInfoTab : null}
 
-      {activeTab === 'billing' && showBillingAndEvents && data && clientId ? (
-        // A demo org's invoices are seeded so its own billing screen has
-        // something in it. Showing them here would put imaginary money in
-        // front of whoever is reviewing the account.
-        isDemoClient ? (
-          <Card className="border-border/80 bg-card space-y-2 p-6 shadow-sm">
-            <h3 className="text-foreground text-sm font-bold">Demo account</h3>
-            <p className="text-muted-foreground text-sm">
-              Nothing here is charged. This organisation runs the public demo, and the
-              invoices on its own billing screen are sample data so the screen is not
-              empty. It is excluded from Payments and from platform revenue.
-            </p>
-          </Card>
-        ) : (
-          <BillingOverview
-            organizationId={clientId}
-            billingPlan={billingPlan}
-            billingPeriod={billingPeriod}
-            paddleSubscriptionId={data.org.paddle_subscription_id}
-            showAdminSummary
-          />
-        )
-      ) : null}
-
       {activeTab === 'events' && showBillingAndEvents && data ? (
         <ClientEventsOverview
           events={data.events}
@@ -969,5 +943,33 @@ export function RallyHubClientDetailPage() {
         document.body,
       ) : null}
     </AdminPageShell>
+  )
+}
+
+/**
+ * The client Organisation tab's card header: title plus a visibility chip.
+ * Red warns the fields are public, green says the client keeps them private,
+ * and the neutral RallyHub chip marks controls the client never sees at all.
+ */
+function ClientCardHeader({
+  title,
+  visibility,
+}: {
+  title: string
+  visibility: 'Public' | 'Private' | 'RallyHub'
+}) {
+  const chip =
+    visibility === 'Public'
+      ? 'bg-[#f6dede] text-[#8a2b2b] dark:bg-[#4a2020] dark:text-[#f0b9b9]'
+      : visibility === 'Private'
+        ? 'bg-[#d9efe3] text-[#1f6b48] dark:bg-[#1d3d2d] dark:text-[#a6dcc0]'
+        : 'bg-muted text-muted-foreground'
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-foreground text-sm font-bold">{title}</h2>
+      <span className={`rounded px-2 py-1 text-[10px] font-semibold ${chip}`}>
+        {visibility === 'RallyHub' ? 'RallyHub only' : visibility}
+      </span>
+    </div>
   )
 }

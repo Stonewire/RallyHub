@@ -1,10 +1,11 @@
 import { cn } from '@/lib/utils'
 
-export type ClientDetailTab = 'info' | 'billing' | 'events'
+// Billing is not a tab: RallyHub does not run the client's billing (Paddle
+// does), so plan and payment state live inside Client Info instead.
+export type ClientDetailTab = 'info' | 'events'
 
 const TABS: { id: ClientDetailTab; label: string }[] = [
   { id: 'info', label: 'Client Info' },
-  { id: 'billing', label: 'Billing' },
   { id: 'events', label: 'Events' },
 ]
 
@@ -19,9 +20,7 @@ export function normalizeClientDetailTab(
   value: string | null,
   showBillingAndEvents: boolean,
 ): ClientDetailTab {
-  if (showBillingAndEvents && (value === 'billing' || value === 'events')) {
-    return value
-  }
+  if (showBillingAndEvents && value === 'events') return value
   return 'info'
 }
 
