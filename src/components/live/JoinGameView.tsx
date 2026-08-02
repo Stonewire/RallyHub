@@ -374,6 +374,17 @@ export function JoinGameView({
                     t.id === teamId ? { ...t, score: t.score + award } : t,
                   )
                 : b.teams,
+              // The quiz scoreboard reads points off the submissions, so the
+              // credited answer is marked the way the facilitator would mark
+              // it — otherwise the results screen shows a zero.
+              submissions: awardHere
+                ? b.submissions.map((sub) =>
+                    sub.team_id === teamId &&
+                    sub.media_type === quizSubmissionMediaType(quizQs[step.question_index]?.id ?? '')
+                      ? { ...sub, status: 'approved', points_awarded: award }
+                      : sub,
+                  )
+                : b.submissions,
               state: {
                 ...b.state,
                 quiz_state: step.quiz_state,

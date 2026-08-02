@@ -34,7 +34,7 @@ export function QuizQuestionMedia({
           className="size-full rounded-xl object-cover shadow-lg"
         />
       ) : kind === 'video' ? (
-        <QuizVideoPlayer url={url} accentColor={accentColor} />
+        <QuizVideoPlayer url={url} accentColor={accentColor} textColor={textColor} />
       ) : (
         <QuizAudioPlayer url={url} accentColor={accentColor} textColor={textColor} />
       )}
