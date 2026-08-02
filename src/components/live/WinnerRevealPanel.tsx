@@ -48,10 +48,10 @@ const WINNER_OUTLINE = {
 /** Split so each letter can land on its own beat, as the bingo win does. */
 const WINNER_LETTERS = ['W', 'I', 'N', 'N', 'E', 'R', '!']
 
-const RANK_LABELS: Record<number, string> = {
-  1: '1st place',
-  2: '2nd place',
-  3: '3rd place',
+/** The placing, spelt out so it can land letter by letter like WINNER. */
+function rankLetters(rank: number): string[] {
+  if (rank <= 0) return Array.from('RESULTS')
+  return Array.from(`#${rank}`)
 }
 
 export function WinnerRevealPanel({
@@ -63,6 +63,7 @@ export function WinnerRevealPanel({
   const mine = ranked.find((r) => r.team.id === myTeamId)
   const myRank = mine?.rank ?? 0
   const isWinner = myRank === 1
+  const teamColor = mine?.team.color?.trim() || '#FFFFFF'
 
   useEffect(() => {
     if (stage !== 2 || !isWinner) return
@@ -181,27 +182,49 @@ export function WinnerRevealPanel({
           </div>
         </>
       ) : (
-        <motion.p
-          className="mt-3 text-[clamp(2.5rem,12vw,7rem)] leading-[0.95] font-black"
-          style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
-        >
-          {myRank > 0 ? (RANK_LABELS[myRank] ?? `#${myRank}`) : 'Results'}
-        </motion.p>
-      )}
+        <>
+          <motion.p
+            className="mt-3 text-[clamp(1.4rem,5vw,2.5rem)] leading-none font-black"
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 14 }}
+          >
+            YOU FINISHED
+          </motion.p>
 
-      {!isWinner && myRank > 0 ? (
-        <motion.p
-          className="mt-4 text-[clamp(0.95rem,3.2vw,1.35rem)] font-bold opacity-75"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.75 }}
-          transition={{ delay: 0.5 }}
-        >
-          {myRank <= 3 ? 'So close!' : 'Thanks for playing!'}
-        </motion.p>
-      ) : null}
+          {/* Same shape as the winner's: the placing dead centre, outlined so
+              it reads over any background, in the team's own colour rather
+              than the winning green. */}
+          <div className="flex flex-1 items-center justify-center">
+            <div className="flex items-end justify-center">
+              {rankLetters(myRank).map((letter, i) => (
+                <motion.span
+                  key={`${letter}-${i}`}
+                  className="inline-block"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{
+                    delay: 0.3 + i * 0.12,
+                    duration: 1.8,
+                    times: [0, 0.4, 1],
+                    repeat: Infinity,
+                    repeatDelay: 1.2,
+                  }}
+                >
+                  <motion.span
+                    className="inline-block text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black"
+                    style={{ color: teamColor, ...WINNER_OUTLINE }}
+                    initial={{ scale: 0, rotate: -45, opacity: 0 }}
+                    animate={{ scale: [0, 1.3, 1], rotate: [-45, 8, 0], opacity: 1 }}
+                    transition={{ delay: 0.3 + i * 0.12, duration: 0.6, times: [0, 0.6, 1] }}
+                  >
+                    {letter}
+                  </motion.span>
+                </motion.span>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {myRank > 0 ? (
         <motion.div
