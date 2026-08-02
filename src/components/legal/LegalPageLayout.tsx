@@ -23,12 +23,12 @@ export function LegalPageLayout({ title, description, path, children }: LegalPag
         <div className="mx-auto max-w-3xl">
           <NeoCard className="space-y-8 p-8 sm:p-10">
             <header className="space-y-2 border-b border-[var(--nm-border)] pb-6">
-              <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-foreground text-3xl font-black tracking-tight sm:text-4xl">
                 {title}
               </h1>
               <p className="text-muted-foreground text-sm">Last updated: {LEGAL_LAST_UPDATED}</p>
             </header>
-            <div className="legal-prose space-y-8">{children}</div>
+            <div className="legal-prose space-y-9">{children}</div>
             <footer className="border-t border-[var(--nm-border)] pt-6">
               <p className="text-muted-foreground text-sm">
                 Questions?{' '}
@@ -54,9 +54,9 @@ export function LegalSection({
   children: ReactNode
 }) {
   return (
-    <section className="space-y-3">
-      <h2 className="text-foreground text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="text-muted-foreground space-y-3 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_a]:text-foreground [&_a]:underline-offset-4 [&_a]:hover:underline">
+    <section className="space-y-3.5">
+      <h2 className="text-foreground text-xl font-black tracking-tight">{title}</h2>
+      <div className="space-y-3 text-base leading-relaxed text-[var(--nm-text-secondary)] [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_a]:text-foreground [&_a]:font-semibold [&_a]:underline [&_a]:underline-offset-4">
         {children}
       </div>
     </section>
