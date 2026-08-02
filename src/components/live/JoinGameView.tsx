@@ -1093,7 +1093,7 @@ export function JoinGameView({
         ) : state.quiz_state === 'active' && quizRunning ? (
           // The countdown is the loudest thing on the screen while a question
           // is open, so it carries no chip and stands at full size.
-          <p className="text-[clamp(2rem,7vw,3.5rem)] leading-none font-black tabular-nums drop-shadow-lg">
+          <p className="mt-3 text-[clamp(2rem,7vw,3.5rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-5">
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null
@@ -1440,8 +1440,8 @@ export function JoinGameView({
         // The answers sit at the bottom of the screen: on a tablet held in two
         // hands that is where the thumbs already are, and the question above
         // has the room it needs to be read across a table.
-        <div className="mx-auto flex min-h-[74svh] max-w-lg flex-col px-4">
-          <div className="mb-6 h-2 shrink-0 overflow-hidden rounded-full bg-black/30">
+        <div className="mx-auto flex min-h-[74svh] max-w-lg flex-col px-4 pt-3 pb-20 sm:pt-5">
+          <div className="mb-7 h-2 shrink-0 overflow-hidden rounded-full bg-black/30">
             <div
               className="h-full transition-all duration-1000"
               style={{ width: `${timerPct}%`, backgroundColor: accent }}
@@ -1450,7 +1450,7 @@ export function JoinGameView({
           <h2 className="text-center text-[clamp(1.5rem,4.5vw,2.5rem)] leading-tight font-black text-balance">
             {q.text}
           </h2>
-          <div className="mt-auto space-y-3 pt-8">
+          <div className="mt-auto space-y-3 pt-10">
             {q.answers.map((a) => {
               const selected = quizAnswer === a.id
               const faded = quizLocked && !selected
