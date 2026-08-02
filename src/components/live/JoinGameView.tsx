@@ -1365,11 +1365,19 @@ export function JoinGameView({
       quizGame
     ) {
       body = (
-        <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="text-lg text-white/80">Get ready for</p>
-          <p className="mt-3 text-3xl font-bold text-white">{quizGame.name}</p>
-          <p className="mt-2 text-xl font-semibold text-white">Quiz</p>
-          <p className="text-muted-foreground mt-8 text-sm text-white/50">
+        // Nothing to do on this screen but look at it, so it fills the screen
+        // and reads from across a table rather than sitting in a corner.
+        <div className="flex min-h-[70svh] flex-col items-center justify-center px-6 text-center">
+          <p className="text-sm font-black tracking-[0.28em] uppercase opacity-70 sm:text-base">
+            Get ready for
+          </p>
+          <p className="mt-4 text-[clamp(2.25rem,9vw,5rem)] leading-[1.05] font-black text-balance drop-shadow-lg">
+            {quizGame.name}
+          </p>
+          <p className="mt-5 text-lg font-black tracking-[0.28em] uppercase opacity-80 sm:text-xl">
+            Quiz
+          </p>
+          <p className="mt-10 animate-pulse text-sm font-semibold opacity-60">
             Waiting for the facilitator to start…
           </p>
         </div>
