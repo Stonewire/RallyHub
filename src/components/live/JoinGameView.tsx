@@ -1170,6 +1170,15 @@ export function JoinGameView({
           <div className="w-full">
           {submitting ? (
             <OpenGameSubmittingScreen accentColor={accent} />
+          ) : isPuzzleGame(activeOpenGame) ? (
+            // A solved puzzle keeps its own board and result on screen. The
+            // generic review card would replace all of it with one line.
+            <PuzzleGamePlayer
+              eventId={event.id}
+              teamId={teamId}
+              game={activeOpenGame}
+              accentColor={accent}
+            />
           ) : pending && latestSub ? (
             <OpenGameChallengeReview
               game={activeOpenGame}
@@ -1194,13 +1203,6 @@ export function JoinGameView({
               accentColor={accent}
               disabled={submitting}
               onSubmit={(answer) => void submitTextGame(answer, activeOpenGame)}
-            />
-          ) : isPuzzleGame(activeOpenGame) ? (
-            <PuzzleGamePlayer
-              eventId={event.id}
-              teamId={teamId}
-              game={activeOpenGame}
-              accentColor={accent}
             />
           ) : (
             <ChallengeMediaCaptureFlow

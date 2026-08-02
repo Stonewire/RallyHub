@@ -78,7 +78,8 @@ export function VirtualKeyboard({
     // screen, and the keys get the full width to sit in. It stops above the
     // chat, exit and RallyHub badge rather than laying its panel over them.
     <div className="fixed inset-x-0 bottom-[4.5rem] z-[9997] bg-black/55 py-2.5 backdrop-blur-sm select-none">
-      <div className="w-full space-y-1.5 px-2">
+      {/* The panel runs to the edges, the keys keep a margin from them. */}
+      <div className="mx-auto w-full max-w-2xl space-y-1.5 px-5">
         {rows.map((row, i) => (
           <div key={i} className="flex justify-center gap-1">
             {row.map((letter) => {

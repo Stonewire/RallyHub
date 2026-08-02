@@ -57,6 +57,30 @@ function feedbackTextColor(state: WordleCellState): string {
   return state === 'present' ? '#1C1917' : '#FFFFFF'
 }
 
+/** The guesses so far, shared by the board and the solved summary. */
+function WordleGuessRows({ guesses }: { guesses: PuzzleProgress['guesses'] }) {
+  return (
+    <>
+      {guesses.map((row, rowIndex) => (
+        <div key={`${row.word}-${rowIndex}`} className="flex justify-center gap-1.5">
+          {Array.from(row.word.toLocaleUpperCase()).map((letter, index) => (
+            <span
+              key={`${index}-${letter}`}
+              className="flex size-11 items-center justify-center rounded-md text-lg font-black shadow-sm"
+              style={{
+                backgroundColor: feedbackColor(row.feedback[index] ?? 'absent'),
+                color: feedbackTextColor(row.feedback[index] ?? 'absent'),
+              }}
+            >
+              {letter}
+            </span>
+          ))}
+        </div>
+      ))}
+    </>
+  )
+}
+
 export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) {
   const config = (game.config ?? {}) as GameConfig
   const type = puzzleType(config)
@@ -228,17 +252,26 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
           <Loader2 className="size-5 animate-spin" /> Loading puzzle…
         </div>
       ) : progress?.completed ? (
-        <div className="xp-glass-panel rounded-2xl bg-black/30 p-8">
-          <Check className="mx-auto size-12 text-green-400" />
-          <p className="mt-3 text-2xl font-black">Puzzle complete!</p>
-          <p className="mt-2 text-lg font-semibold" style={{ color: accentColor }}>
-            +{progress.pointsAwarded ?? 0} points
-          </p>
-          <p className="mt-2 text-sm text-white/65">
-            {type === 'wordle'
-              ? `Solved in ${progress.attempts} ${progress.attempts === 1 ? 'guess' : 'guesses'}`
-              : `${progress.wrongMatches} incorrect ${progress.wrongMatches === 1 ? 'match' : 'matches'}`}
-          </p>
+        // The solved board stays on screen under the result: the team wants to
+        // look back at how they got there, and clearing it threw that away.
+        <div className="space-y-5 pb-24">
+          <div className="px-4 py-6">
+            <Check className="mx-auto size-12 text-green-400" />
+            <p className="mt-3 text-2xl font-black">Puzzle complete!</p>
+            <p className="mt-2 text-lg font-semibold" style={{ color: accentColor }}>
+              +{progress.pointsAwarded ?? 0} points
+            </p>
+            <p className="mt-2 text-sm text-white/65">
+              {type === 'wordle'
+                ? `Solved in ${progress.attempts} ${progress.attempts === 1 ? 'guess' : 'guesses'}`
+                : `${progress.wrongMatches} incorrect ${progress.wrongMatches === 1 ? 'match' : 'matches'}`}
+            </p>
+          </div>
+          {type === 'wordle' ? (
+            <div className="flex flex-col space-y-2" aria-label="Word guesses">
+              <WordleGuessRows guesses={progress.guesses} />
+            </div>
+          ) : null}
         </div>
       ) : type === 'wordle' ? (
         <div className="space-y-4 pb-[20rem]">
@@ -246,22 +279,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
               adds a row beneath the last, and the row being typed is always
               the bottom one, scrolled into view. */}
           <div className="flex flex-col space-y-2" aria-label="Word guesses">
-            {(progress?.guesses ?? []).map((row, rowIndex) => (
-              <div key={`${row.word}-${rowIndex}`} className="flex justify-center gap-1.5">
-                {Array.from(row.word.toLocaleUpperCase()).map((letter, index) => (
-                  <span
-                    key={`${index}-${letter}`}
-                    className="flex size-11 items-center justify-center rounded-md text-lg font-black shadow-sm"
-                    style={{
-                      backgroundColor: feedbackColor(row.feedback[index] ?? 'absent'),
-                      color: feedbackTextColor(row.feedback[index] ?? 'absent'),
-                    }}
-                  >
-                    {letter}
-                  </span>
-                ))}
-              </div>
-            ))}
+            <WordleGuessRows guesses={progress?.guesses ?? []} />
             <div ref={activeRowRef} className="flex scroll-mb-[20rem] justify-center gap-1.5">
               {Array.from({ length: wordLength }, (_, index) => (
                 <span
