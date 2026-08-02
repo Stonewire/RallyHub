@@ -22,6 +22,13 @@ export const WINNER_SOUND_SURFACES: {
   },
 ]
 
+/**
+ * What the fanfare does before anyone touches it: the room's screen and the
+ * players' phones. The facilitator's own device stays off, since that one sits
+ * next to the speakers already.
+ */
+export const DEFAULT_WINNER_SOUND_TARGETS: WinnerSoundSurface[] = ['display', 'players']
+
 /** Normalize a stored value into a clean list of known surfaces (or null). */
 export function parseWinnerSoundTargets(raw: unknown): WinnerSoundSurface[] | null {
   if (!Array.isArray(raw)) return null

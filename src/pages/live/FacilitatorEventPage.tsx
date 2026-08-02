@@ -23,11 +23,12 @@ import {
   EventLogModal,
   ResetTeamModal,
   TeamClaimModal,
-  WinnerRoutingModal,
 } from '@/components/live/facilitator/FacilitatorModals'
 import { questGamesForEvent, teamQuestProgress } from '@/lib/quest-progress'
 import {
+  DEFAULT_WINNER_SOUND_TARGETS,
   parseWinnerSoundTargets,
+  WINNER_SOUND_SURFACES,
   winnerSoundEnabled,
   type WinnerSoundSurface,
 } from '@/lib/winner-sound'
@@ -155,11 +156,6 @@ export function FacilitatorEventPage() {
   const [resettingTeam, setResettingTeam] = useState(false)
   const [progressTeam, setProgressTeam] = useState<Tables<'teams'> | null>(null)
   const [muted, setMuted] = useState(() => isSoundsMuted())
-  const [winnerRoutingOpen, setWinnerRoutingOpen] = useState(false)
-  const [winnerRoutingSel, setWinnerRoutingSel] = useState<WinnerSoundSurface[]>([
-    'display',
-    'players',
-  ])
   const [claimName, setClaimName] = useState('')
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -606,14 +602,22 @@ export function FacilitatorEventPage() {
   // Quest (open-stage) games drive the per-team progress fill + "View Quests" modal.
   const questGames = questGamesForEvent(stages, games)
 
-  const winnerTargetsChosen = parseWinnerSoundTargets(liveState.winner_sound_targets) !== null
+  // Where the winner fanfare plays. Unset means the default rather than silence,
+  // which is what the routing modal used to settle on its way out.
+  const winnerSoundTargets =
+    parseWinnerSoundTargets(liveState.winner_sound_targets) ?? DEFAULT_WINNER_SOUND_TARGETS
+
+  function setWinnerSoundTarget(surface: WinnerSoundSurface, on: boolean) {
+    // Toggling 'facilitator' on IS the user gesture that lets this device play
+    // audio later, so prime it here rather than at reveal time.
+    if (surface === 'facilitator' && on) unlockAudioFromUserGesture('full')
+    const next = on
+      ? [...winnerSoundTargets, surface]
+      : winnerSoundTargets.filter((s) => s !== surface)
+    void patchState({ winner_sound_targets: next })
+  }
 
   function handleRevealWinnerClick() {
-    // First reveal forces the facilitator to choose where the sound plays.
-    if (liveState.winner_reveal_stage === 0 && !winnerTargetsChosen) {
-      setWinnerRoutingOpen(true)
-      return
-    }
     if (liveState.winner_reveal_stage === 0 && eventId) {
       void logEventActivity({
         p_event_id: eventId,
@@ -626,28 +630,6 @@ export function FacilitatorEventPage() {
     void patchState({
       winner_reveal_stage: Math.min(2, liveState.winner_reveal_stage + 1),
     })
-  }
-
-  function saveWinnerRoutingAndReveal() {
-    // Prime audio from this click so a 'facilitator' target can play later.
-    if (winnerRoutingSel.includes('facilitator')) unlockAudioFromUserGesture('full')
-    // First time (stage 0) this also starts the reveal; re-opening to change the
-    // routing mid-reveal only updates the targets.
-    const advance = liveState.winner_reveal_stage === 0
-    if (advance && eventId) {
-      void logEventActivity({
-        p_event_id: eventId,
-        p_actor_type: 'facilitator',
-        p_actor_name: name,
-        p_action: 'winner_revealed',
-        p_actor_id: user?.id ?? null,
-      })
-    }
-    void patchState({
-      winner_sound_targets: winnerRoutingSel,
-      ...(advance ? { winner_reveal_stage: 1 } : {}),
-    })
-    setWinnerRoutingOpen(false)
   }
 
   const filteredSubs = submissions.filter((s) => {
@@ -1558,8 +1540,7 @@ export function FacilitatorEventPage() {
 
         <fieldset disabled={!controlsLive} className="min-w-0 space-y-4 border-0 p-0">
           <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-xs">Event countdown on display</p>
+            <div className="flex flex-col items-center gap-2">
               {timerEdit != null ? (
                 // UI-1: type minutes ("45") or mm:ss, then Save.
                 <div className="flex flex-wrap items-center gap-2">
@@ -1609,7 +1590,7 @@ export function FacilitatorEventPage() {
                   type="button"
                   disabled={state.timer_running}
                   title={state.timer_running ? 'Pause to edit' : 'Click to set the countdown'}
-                  className="block font-mono text-3xl tabular-nums disabled:cursor-default"
+                  className="block text-center font-mono text-3xl tabular-nums disabled:cursor-default"
                   onClick={() => setTimerEdit(String(Math.round(state.timer_seconds / 60)))}
                 >
                   {formatTimer(timerDisplay)}
@@ -1650,30 +1631,24 @@ export function FacilitatorEventPage() {
               </div>
             </div>
             <div className="flex flex-col justify-center gap-2">
-              <p className="text-muted-foreground text-xs">
-                Run the winner ceremony on display and team phones
-              </p>
               <FacilitatorButtonLarge className="w-full" onClick={handleRevealWinnerClick}>
                 Reveal Winner ({state.winner_reveal_stage}/2)
               </FacilitatorButtonLarge>
-              {winnerTargetsChosen && state.winner_reveal_stage > 0 ? (
-                <button
-                  type="button"
-                  className="text-muted-foreground text-xs underline-offset-2 hover:underline"
-                  onClick={() => {
-                    setWinnerRoutingSel(
-                      parseWinnerSoundTargets(liveState.winner_sound_targets) ?? ['display', 'players'],
-                    )
-                    setWinnerRoutingOpen(true)
-                  }}
-                >
-                  Sound:{' '}
-                  {(parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).length === 0
-                    ? 'muted'
-                    : (parseWinnerSoundTargets(liveState.winner_sound_targets) ?? []).join(', ')}{' '}
-                  · change
-                </button>
-              ) : null}
+              {/* Where the fanfare plays. These were behind a modal you had to
+                  clear before the first reveal; now the answer is already on
+                  screen and set before anyone presses anything. */}
+              <div className="grid grid-cols-3 gap-1 pt-0.5">
+                {WINNER_SOUND_SURFACES.map((surface) => (
+                  <FacilitatorToggle
+                    key={surface.id}
+                    stacked
+                    icon="sound"
+                    label={surface.label}
+                    checked={winnerSoundTargets.includes(surface.id)}
+                    onChange={(next) => setWinnerSoundTarget(surface.id, next)}
+                  />
+                ))}
+              </div>
               {state.winner_reveal_stage > 0 ? (
                 <FacilitatorButton
                   size="sm"
@@ -1687,22 +1662,27 @@ export function FacilitatorEventPage() {
               ) : null}
             </div>
             {/* UI-2: display toggles side by side, centred at the card bottom. */}
-            <div className="border-border/60 flex flex-col gap-2.5 border-t pt-3 sm:col-span-2">
-              <FacilitatorToggle
-                label="Timer on display"
-                checked={state.show_timer_on_display}
-                onChange={(next) => void patchState({ show_timer_on_display: next })}
-              />
-              <FacilitatorToggle
-                label="Scores on display"
-                checked={state.show_scores}
-                onChange={(next) => void patchState({ show_scores: next })}
-              />
-              <FacilitatorToggle
-                label="Hide points for teams"
-                checked={state.hide_team_points}
-                onChange={(next) => void patchState({ hide_team_points: next })}
-              />
+            <div className="border-border/60 space-y-3 border-t pt-3 sm:col-span-2">
+              <div className="grid grid-cols-3 gap-2">
+                <FacilitatorToggle
+                  stacked
+                  label="Timer on display"
+                  checked={state.show_timer_on_display}
+                  onChange={(next) => void patchState({ show_timer_on_display: next })}
+                />
+                <FacilitatorToggle
+                  stacked
+                  label="Scores on display"
+                  checked={state.show_scores}
+                  onChange={(next) => void patchState({ show_scores: next })}
+                />
+                <FacilitatorToggle
+                  stacked
+                  label="Hide points for teams"
+                  checked={state.hide_team_points}
+                  onChange={(next) => void patchState({ hide_team_points: next })}
+                />
+              </div>
               {/* Stages sit with the other things that change what the room is
                   looking at, rather than in a card of their own. */}
               <div className="border-border/60 mt-1 space-y-2 border-t pt-3">
@@ -2251,15 +2231,6 @@ export function FacilitatorEventPage() {
             )
           })()
         : null}
-
-      <WinnerRoutingModal
-        open={winnerRoutingOpen}
-        selected={winnerRoutingSel}
-        onChange={setWinnerRoutingSel}
-        onCancel={() => setWinnerRoutingOpen(false)}
-        onSave={saveWinnerRoutingAndReveal}
-        saveLabel={liveState.winner_reveal_stage === 0 ? 'Save & reveal' : 'Save'}
-      />
 
       <TeamClaimModal
         slot={claimSlot}
