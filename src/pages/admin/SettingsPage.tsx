@@ -162,10 +162,18 @@ export function AdminSettingsPage() {
 
   async function handleSave(onSaved?: () => void) {
     setSaveMessage(null)
-    const tabletErr = validateTabletCode(form.tablet_slug)
-    if (tabletErr) {
-      setSaveMessage(tabletErr)
-      return
+    // Only judge the tablet code if this save is actually changing it. An org
+    // whose stored code predates the 1-10 character rule, which includes the
+    // demo sandbox and its seeded "northstar-demo", could otherwise never save
+    // anything at all: renaming the organisation would fail on a field the
+    // user had not touched, with an error pointing somewhere else entirely.
+    const tabletCodeChanged = form.tablet_slug !== (orgQuery.data?.tablet_slug ?? '')
+    if (tabletCodeChanged) {
+      const tabletErr = validateTabletCode(form.tablet_slug)
+      if (tabletErr) {
+        setSaveMessage(tabletErr)
+        return
+      }
     }
     try {
       await saveOrg.mutateAsync(form)

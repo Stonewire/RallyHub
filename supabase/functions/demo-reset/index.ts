@@ -59,6 +59,19 @@ Deno.serve(async (req) => {
     })
     if (error) throw error
 
+    // My Account is editable on the demo, so a visitor's phone number and photo
+    // have to go back with everything else. Kept out of reset_demo_sandbox so
+    // this can ship without rewriting that function, and tolerated as a no-op
+    // if the migration adding it has not been applied yet.
+    if (force || resetDue) {
+      const profileReset = await admin.rpc('reset_demo_profile', {
+        p_organization_id: org.id,
+      })
+      if (profileReset.error) {
+        console.warn('[demo-reset] profile reset skipped', profileReset.error.message)
+      }
+    }
+
     const state = Array.isArray(data) ? data[0] : data
     return json({
       organizationId: state.organization_id,
