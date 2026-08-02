@@ -11,6 +11,14 @@ export type SupportTicketAttachment = {
 
 export type AppRole = 'super_admin' | 'client_admin' | 'event_manager' | 'facilitator'
 
+/** Internal RallyHub staff tier; only meaningful on super_admin profiles. */
+export type StaffRole =
+  | 'owner'
+  | 'platform_admin'
+  | 'support_agent'
+  | 'content_manager'
+  | 'finance'
+
 export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text' | 'puzzle'
 export type PointsType = 'static' | 'range'
 export type GameStatus = 'active' | 'draft' | 'archived' | 'ready'
@@ -78,6 +86,7 @@ export type Database = {
           phone: string | null
           avatar_url: string | null
           role: AppRole
+          staff_role: StaffRole | null
           organization_id: string | null
           must_change_password: boolean
           onboarding_completed_tasks: string[]

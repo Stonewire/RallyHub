@@ -9,6 +9,10 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
+import { RallyHubStaffPanel } from '@/components/rallyhub/RallyHubStaffPanel'
+import { useAuth } from '@/contexts/auth-context'
+import { isPlatformOwner } from '@/lib/auth-routes'
+import { isPlatformHost } from '@/lib/tenant'
 import { DangerZone } from '@/components/admin/DangerZone'
 import { MyAccountPanel } from '@/components/admin/MyAccountPanel'
 import { TeamUsersPanel } from '@/components/admin/TeamUsersPanel'
@@ -48,7 +52,7 @@ import {
   validateImageUpload,
 } from '@/lib/upload-limits'
 
-type SettingsTab = 'profile' | 'billing' | 'account'
+type SettingsTab = 'profile' | 'billing' | 'account' | 'team'
 
 const BRAND_COLOUR_COPY = {
   primary_color: 'Buttons, highlights & active states',
@@ -85,8 +89,21 @@ export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
   const [searchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
+  const { role, profile } = useAuth()
+  // The staff tab exists only for the platform owner; anyone else asking for
+  // it lands on their own account instead.
+  const isPlatformSuperAdmin = role === 'super_admin' && isPlatformHost()
+  const canManageStaff = isPlatformSuperAdmin && isPlatformOwner(profile?.staff_role)
+  // Platform staff have no organisation, so the org and billing tabs do not
+  // exist for them; everything coerces to the account side.
   const tab: SettingsTab =
-    tabParam === 'billing' ? 'billing' : tabParam === 'account' ? 'account' : 'profile'
+    tabParam === 'billing' && !isPlatformSuperAdmin
+      ? 'billing'
+      : tabParam === 'team' && canManageStaff
+        ? 'team'
+        : tabParam === 'account' || tabParam === 'team' || isPlatformSuperAdmin
+          ? 'account'
+          : 'profile'
 
   const orgQuery = useOrganization(organizationId)
   const saveOrg = useSaveOrganization(organizationId)
@@ -130,7 +147,9 @@ export function AdminSettingsPage() {
       dirty && currentLocation.pathname !== nextLocation.pathname,
   )
 
-  if (!organizationId) {
+  // Platform staff have no organisation on purpose; their tabs (My Account,
+  // Team) do not need one, so the guard only applies to client admins.
+  if (!organizationId && !isPlatformSuperAdmin) {
     return (
       <AdminPageShell title="Org Settings" subtitle="Manage your organization.">
         <NoOrganizationMessage />
@@ -271,6 +290,10 @@ export function AdminSettingsPage() {
       title: 'My Account',
       subtitle: 'Manage your personal profile and security settings.',
     },
+    team: {
+      title: 'Team',
+      subtitle: 'RallyHub staff and what each of them can do.',
+    },
   }
 
   return (
@@ -312,8 +335,18 @@ export function AdminSettingsPage() {
           paddleSubscriptionId={orgQuery.data?.paddle_subscription_id}
           showAvailablePlans
         />
+      ) : tab === 'team' ? (
+        <>
+          <PlatformSettingsTabs active="team" />
+          <RallyHubStaffPanel />
+        </>
       ) : tab === 'account' ? (
-        isDemo ? (
+        canManageStaff ? (
+          <>
+            <PlatformSettingsTabs active="account" />
+            <MyAccountPanel />
+          </>
+        ) : isDemo ? (
           // A filled-in sample account rather than an explanatory card: the
           // demo is what a prospect is shown, and an empty screen shows nothing.
           <div className="space-y-4">
@@ -720,5 +753,37 @@ export function AdminSettingsPage() {
         </div>
       ) : null}
     </AdminPageShell>
+  )
+}
+
+/** My Account / Team switcher, platform owner only. */
+function PlatformSettingsTabs({ active }: { active: 'account' | 'team' }) {
+  return (
+    <div
+      className="border-border mb-6 flex items-center justify-center gap-6 border-b"
+      role="tablist"
+      aria-label="Settings sections"
+    >
+      {(
+        [
+          ['account', 'My Account', '/admin/settings?tab=account'],
+          ['team', 'Team', '/admin/settings?tab=team'],
+        ] as const
+      ).map(([id, label, to]) => (
+        <Link
+          key={id}
+          to={to}
+          role="tab"
+          aria-selected={active === id}
+          className={
+            active === id
+              ? 'text-foreground after:bg-primary relative px-1 pb-3 text-sm font-semibold after:absolute after:inset-x-0 after:-bottom-px after:h-0.5'
+              : 'text-muted-foreground hover:text-foreground relative px-1 pb-3 text-sm font-semibold transition-colors'
+          }
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
   )
 }

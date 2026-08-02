@@ -15,6 +15,7 @@ import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
+import { staffCanEditClients, staffCanSeePromoCodes } from '@/lib/auth-routes'
 import { useRallyHubClients } from '@/hooks/use-rallyhub'
 
 const ICON_BUTTON = 'hover:bg-muted rounded-nm-md flex size-8 items-center justify-center'
@@ -106,7 +107,8 @@ export function RallyHubHeader() {
   const navigate = useNavigate()
   const { toggleSidebar, state } = useSidebar()
   const { resolvedTheme, toggleTheme } = useTheme()
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
+  const staffRole = profile?.staff_role
   const [loggedOut, setLoggedOut] = useState(false)
   const collapsed = state === 'collapsed'
 
@@ -140,7 +142,9 @@ export function RallyHubHeader() {
           <ClientSearch />
 
           <Divider />
-          {/* The platform's create verbs, reachable from anywhere. */}
+          {/* The platform's create verbs, reachable from anywhere, scoped to
+              the tiers that own them. */}
+          {staffCanSeePromoCodes(staffRole) ? (
           <Link
             to="/admin/promo-codes?new=1"
             className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-3 text-xs font-semibold whitespace-nowrap"
@@ -148,6 +152,8 @@ export function RallyHubHeader() {
             <IconTicket className="size-4" />
             New Code
           </Link>
+          ) : null}
+          {staffCanEditClients(staffRole) ? (
           <Link
             to="/admin/clients/new"
             className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
@@ -155,6 +161,7 @@ export function RallyHubHeader() {
             <IconOrganisation className="size-4" />
             New Client
           </Link>
+          ) : null}
 
           <Divider />
           <button

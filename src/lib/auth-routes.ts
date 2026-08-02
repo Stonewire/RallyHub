@@ -1,4 +1,4 @@
-import type { AppRole } from '@/types/database'
+import type { StaffRole, AppRole } from '@/types/database'
 
 import { isTenantHost } from '@/lib/tenant'
 
@@ -138,4 +138,55 @@ export function profileDisplayName(profile: {
     .filter(Boolean)
     .join(' ')
   return fromParts || profile.full_name?.trim() || profile.username?.trim() || ''
+}
+
+// ─── Internal RallyHub staff scoping ─────────────────────────────────────────
+// Staff are super_admin at the auth layer; staff_role decides what the panel
+// shows them. A null staff_role on a super_admin is the owner (never locked
+// out). The owner-only locks are also enforced in the database and the
+// data-lifecycle / manage-staff functions; these helpers only shape the UI.
+
+export function effectiveStaffRole(staffRole: StaffRole | null | undefined): StaffRole {
+  return staffRole ?? 'owner'
+}
+
+export function isPlatformOwner(staffRole: StaffRole | null | undefined): boolean {
+  return effectiveStaffRole(staffRole) === 'owner'
+}
+
+export function staffCanSeeClients(staffRole: StaffRole | null | undefined): boolean {
+  return effectiveStaffRole(staffRole) !== 'content_manager'
+}
+
+export function staffCanEditClients(staffRole: StaffRole | null | undefined): boolean {
+  const role = effectiveStaffRole(staffRole)
+  return role === 'owner' || role === 'platform_admin'
+}
+
+export function staffCanSeePayments(staffRole: StaffRole | null | undefined): boolean {
+  const role = effectiveStaffRole(staffRole)
+  return role === 'owner' || role === 'platform_admin' || role === 'finance'
+}
+
+export function staffCanSeePromoCodes(staffRole: StaffRole | null | undefined): boolean {
+  const role = effectiveStaffRole(staffRole)
+  return role === 'owner' || role === 'platform_admin' || role === 'finance'
+}
+
+export function staffCanSeePlatformGames(staffRole: StaffRole | null | undefined): boolean {
+  const role = effectiveStaffRole(staffRole)
+  return role === 'owner' || role === 'platform_admin' || role === 'content_manager'
+}
+
+export function staffCanSeeSupport(staffRole: StaffRole | null | undefined): boolean {
+  const role = effectiveStaffRole(staffRole)
+  return role === 'owner' || role === 'platform_admin' || role === 'support_agent'
+}
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  owner: 'Owner',
+  platform_admin: 'Platform Admin',
+  support_agent: 'Support Agent',
+  content_manager: 'Content Manager',
+  finance: 'Finance',
 }

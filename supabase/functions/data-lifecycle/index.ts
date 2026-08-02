@@ -279,14 +279,15 @@ async function cancelPaddleImmediately(subscriptionId: string): Promise<void> {
   }
 }
 
-async function isSuperAdmin(admin: AdminClient, userId: string): Promise<boolean> {
+/** The platform owner: super_admin whose staff_role is owner (or unset). */
+async function isPlatformOwner(admin: AdminClient, userId: string): Promise<boolean> {
   const { data, error } = await admin
     .from('profiles')
-    .select('role')
+    .select('role, staff_role')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw error
-  return data?.role === 'super_admin'
+  return data?.role === 'super_admin' && (data.staff_role ?? 'owner') === 'owner'
 }
 
 async function purgeEvent(
@@ -673,8 +674,9 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'purge_organization') {
       if (!organizationId) return json({ error: 'organizationId is required' }, 400)
-      if (!(await isSuperAdmin(admin, auth.user.id))) {
-        return json({ error: 'Forbidden' }, 403)
+      // Deleting a client is owner-only, not merely staff.
+      if (!(await isPlatformOwner(admin, auth.user.id))) {
+        return json({ error: 'Only the owner can delete a client.' }, 403)
       }
       return json(await purgeOrganization(admin, organizationId, null))
     }

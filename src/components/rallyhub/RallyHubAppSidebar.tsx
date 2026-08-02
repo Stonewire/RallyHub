@@ -23,6 +23,14 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
+import { useAuth } from '@/contexts/auth-context'
+import {
+  staffCanSeeClients,
+  staffCanSeePayments,
+  staffCanSeePlatformGames,
+  staffCanSeePromoCodes,
+  staffCanSeeSupport,
+} from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 import { cn } from '@/lib/utils'
@@ -39,7 +47,18 @@ const mainNav = [
 
 export function RallyHubAppSidebar() {
   const { pathname } = useLocation()
+  const { profile } = useAuth()
+  const staffRole = profile?.staff_role
   const { data: supportUnread = 0 } = useSupportUnreadCount('support')
+
+  // Staff only see the surfaces their tier works in.
+  const visibleNav = mainNav.filter(({ to }) => {
+    if (to === '/admin/clients') return staffCanSeeClients(staffRole)
+    if (to === '/admin/games') return staffCanSeePlatformGames(staffRole)
+    if (to === '/admin/payments') return staffCanSeePayments(staffRole)
+    if (to === '/admin/promo-codes') return staffCanSeePromoCodes(staffRole)
+    return true
+  })
 
   return (
     <Sidebar
@@ -69,7 +88,7 @@ export function RallyHubAppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
-              {mainNav.map(({ to, label, icon: Icon, end }) => (
+              {visibleNav.map(({ to, label, icon: Icon, end }) => (
                 <SidebarMenuItem key={to}>
                   <SidebarMenuButton
                     asChild
@@ -92,6 +111,7 @@ export function RallyHubAppSidebar() {
       {/* Theme toggle and sign-out live in the header, as on the client
           sidebar; the footer carries Support and the build label. */}
       <SidebarFooter className="border-sidebar-border mt-auto shrink-0 border-t p-2">
+        {staffCanSeeSupport(staffRole) ? (
         <SidebarMenu className="gap-px">
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -112,6 +132,7 @@ export function RallyHubAppSidebar() {
             ) : null}
           </SidebarMenuItem>
         </SidebarMenu>
+        ) : null}
         <p className="text-sidebar-foreground/40 px-2 pt-1 text-[10px] tracking-wide">
           {APP_BUILD_LABEL}
         </p>

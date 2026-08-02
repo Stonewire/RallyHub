@@ -103,7 +103,8 @@ export function ClientEventEditRoute() {
 
 export function ClientSettingsRoute() {
   const { role, profileLoading } = useAuth()
-  if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
+  const mode = useIsSuperAdminOnPlatform()
+  if (profileLoading || mode === null) return <AuthLoadingScreen label="Loading profile" />
   // event_manager gets no org-wide Settings access (canAccessOrgSettings), but
   // still needs somewhere to edit their own name/username/email/password —
   // the same personal-only page facilitators use.
@@ -113,11 +114,9 @@ export function ClientSettingsRoute() {
   if (!canAccessOrgSettings(role)) {
     return <Navigate to="/admin/events" replace />
   }
-  return (
-    <ClientAdminOnly>
-      <AdminSettingsPage />
-    </ClientAdminOnly>
-  )
+  // Platform super admins get Settings too (My Account, and Team for the
+  // owner); the page itself coerces the org tab away since they have no org.
+  return <AdminSettingsPage />
 }
 
 export function ClientTeamRoute() {

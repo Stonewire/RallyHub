@@ -6,7 +6,9 @@ import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { NeoButton, NeoCard, NeoStatusBadge } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
+import { useAuth } from '@/contexts/auth-context'
 import { useNotification } from '@/contexts/notification-context'
+import { isPlatformOwner } from '@/lib/auth-routes'
 import {
   useAllInvoices,
   useMarkInvoiceStatus,
@@ -69,6 +71,9 @@ function InvoiceMeta({ invoice }: { invoice: InvoiceWithOrgAndEvent }) {
  */
 export function RallyHubPaymentsPage() {
   const { notify } = useNotification()
+  const { profile } = useAuth()
+  // Marking paid is owner-only; the invoice trigger enforces it server-side.
+  const ownerHere = isPlatformOwner(profile?.staff_role)
   const invoicesQuery = useAllInvoices()
   const markStatus = useMarkInvoiceStatus()
   const [settledFilter, setSettledFilter] = useState<SettledFilter>('all')
@@ -145,16 +150,18 @@ export function RallyHubPaymentsPage() {
                       <p className="text-foreground text-sm font-semibold tabular-nums">
                         {amountLine(invoice)}
                       </p>
-                      <NeoButton
-                        type="button"
-                        size="sm"
-                        variant="accent"
-                        disabled={markStatus.isPending}
-                        onClick={() => void handleMarkPaid(invoice.id)}
-                      >
-                        <IconCheck className="size-3.5" />
-                        Mark paid
-                      </NeoButton>
+                      {ownerHere ? (
+                        <NeoButton
+                          type="button"
+                          size="sm"
+                          variant="accent"
+                          disabled={markStatus.isPending}
+                          onClick={() => void handleMarkPaid(invoice.id)}
+                        >
+                          <IconCheck className="size-3.5" />
+                          Mark paid
+                        </NeoButton>
+                      ) : null}
                     </div>
                   </li>
                 ))}

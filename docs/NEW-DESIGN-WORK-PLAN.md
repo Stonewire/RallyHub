@@ -670,3 +670,23 @@ Assumptions taken while Rumen was away:
 - Consequence: the support-link change is committed built+linted but not
   seen on screen, since the super-admin session lived on the dead dev
   server's origin. One click to verify once signed in again.
+
+## Internal staff roles: 2 Aug 2026
+
+Per Rumen's questionnaire answers: four tiers (Platform Admin, Support
+Agent, Content Manager, Finance), all four locks owner-only (delete clients,
+change plans, mark invoices paid, manage staff), onboarding by email + temp
+password, management inside Settings.
+
+Model: staff are super_admin at the auth layer with a profiles.staff_role
+column scoping them. Enforcement is layered: DB triggers block plan and
+invoice-status changes and staff_role edits by non-owner staff; the
+data-lifecycle function only purges organisations for the owner; the
+manage-staff function (create / set_role / remove) is owner-gated. The UI
+hides what a tier cannot use (sidebar, header verbs, plan card, danger
+zone, Mark paid).
+
+Deliberate gap, logged: per-tier READ scoping is UI-only. A support agent's
+session could technically query payments data directly because RLS still
+sees them as super_admin. Tightening that means per-table staff policies;
+do it before hiring anyone not fully trusted.

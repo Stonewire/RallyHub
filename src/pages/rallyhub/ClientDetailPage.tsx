@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { DangerZone } from '@/components/admin/DangerZone'
+import { useAuth } from '@/contexts/auth-context'
+import { isPlatformOwner } from '@/lib/auth-routes'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { Card } from '@/components/ui/card'
@@ -79,6 +81,7 @@ async function sendPasswordResetEmail(emailAddress: string, redirectTo: string) 
 }
 
 export function RallyHubClientDetailPage() {
+  const { profile } = useAuth()
   const { clientId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -345,6 +348,7 @@ export function RallyHubClientDetailPage() {
       })
   const displayName = orgName.trim() || (isCreateMode ? 'New client' : org!.name)
   const isDemoClient = org?.is_demo === true
+  const ownerHere = isPlatformOwner(profile?.staff_role)
   const initials = organizationInitials(displayName)
   const contactEmail = email.trim() || (org ? clientEmail(org) : '')
   const displayLogo = logoPreview || logoUrl
@@ -497,12 +501,21 @@ export function RallyHubClientDetailPage() {
         <div className="flex flex-col gap-4">
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
             <ClientCardHeader title="Plan & Account" visibility="RallyHub" />
+            {!ownerHere ? (
+              <p className="text-muted-foreground text-sm">
+                Plan, account status and the watermark toggle are owner-only. This account is
+                on {formatClientPlanLabel(billingPlan)} (
+                {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))}), status{' '}
+                {accountStatus}.
+              </p>
+            ) : null}
             {isDemoClient ? (
               <p className="text-muted-foreground text-sm">
                 This organisation runs the public demo. Nothing here is charged, and it is
                 excluded from Payments and platform revenue.
               </p>
             ) : null}
+            {ownerHere ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
@@ -583,13 +596,14 @@ export function RallyHubClientDetailPage() {
                 </div>
               ) : null}
             </div>
-            {educationalStatus === 'pending' ? (
+            ) : null}
+            {ownerHere && educationalStatus === 'pending' ? (
               <p className="text-muted-foreground text-xs">
                 This account requested educational pricing at signup. Set to "Approved" once
                 verified to apply the 50% discount.
               </p>
             ) : null}
-            {trialReviewNeeded ? (
+            {ownerHere && trialReviewNeeded ? (
               <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm">
                 <p className="font-medium text-orange-800">Trial expired — review needed</p>
                 <p className="mt-0.5 text-xs text-orange-700">
@@ -613,6 +627,7 @@ export function RallyHubClientDetailPage() {
                 lists.
               </p>
             ) : null}
+            {ownerHere ? (
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
@@ -625,6 +640,7 @@ export function RallyHubClientDetailPage() {
                 <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
               </span>
             </label>
+            ) : null}
           </Card>
 
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
@@ -787,9 +803,10 @@ export function RallyHubClientDetailPage() {
         </div>
       </div>
 
-      {!isCreateMode && clientId ? (
+      {!isCreateMode && clientId && ownerHere ? (
         // The shared Danger Zone, so this reads the same as Organisation,
-        // My Account and the event editor.
+        // My Account and the event editor. Deleting a client is owner-only,
+        // enforced again in the data-lifecycle function.
         <DangerZone
           notice={
             <>
