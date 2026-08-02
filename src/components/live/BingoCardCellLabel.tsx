@@ -4,8 +4,11 @@ const MIN_SCALE = 0.5
 const SCALE_STEP = 0.04
 
 function bingoCellBaseFontPx(): number {
-  if (typeof window === 'undefined') return 11
-  return window.matchMedia('(min-width: 640px)').matches ? 12 : 11
+  if (typeof window === 'undefined') return 13
+  // Read across a table on a tablet, so it starts larger and only shrinks for
+  // the cells that genuinely need it.
+  if (window.matchMedia('(min-width: 1024px)').matches) return 16
+  return window.matchMedia('(min-width: 640px)').matches ? 15 : 13
 }
 
 function contentFits(container: HTMLElement, content: HTMLElement): boolean {
@@ -83,9 +86,9 @@ export function BingoCardCellLabel({
         className="xp-bingo-cell-label w-full max-w-full text-center leading-tight break-words"
         style={{ fontSize: `${basePx * scale}px` }}
       >
-        <div className="font-semibold">{title}</div>
+        <div className="font-black">{title}</div>
         {artist ? (
-          <div className="opacity-80 [font-size:0.92em]">{artist}</div>
+          <div className="font-semibold opacity-70 [font-size:0.85em]">{artist}</div>
         ) : null}
       </div>
     </div>

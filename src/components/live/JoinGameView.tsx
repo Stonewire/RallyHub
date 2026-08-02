@@ -1688,13 +1688,15 @@ export function JoinGameView({
     for (const idx of pendingSelectedIndices) missedLockedIndices.delete(idx)
     const canMark = roundActive
     body = (
-      <div className="mx-auto h-[calc(100dvh-56px)] w-full max-w-5xl overflow-hidden px-2 pt-2 pb-2">
+      // Takes exactly what the shell leaves rather than guessing at the
+      // viewport: the card is one screen, never a scroll.
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden px-2 pt-2 pb-2">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="min-w-0 flex items-center gap-2">
             {logo ? (
               <img src={logo} alt="" className="h-6 w-auto max-w-[84px] object-contain" />
             ) : null}
-            <p className="truncate text-sm font-semibold">{event.name}</p>
+            <p className="truncate text-base font-black sm:text-lg">{event.name}</p>
           </div>
           {state.bingo_state === 'revealed' ? (
             // Marking is briefly locked while the previous song is scored and
@@ -1705,27 +1707,31 @@ export function JoinGameView({
             </p>
           ) : null}
           {state.hide_team_points ? null : (
-            <p className="xp-glass-panel shrink-0 rounded-full bg-black/30 px-3 py-1 text-sm font-semibold tabular-nums">
-              {team.score} pts
+            <p className="shrink-0 text-lg font-black tabular-nums sm:text-xl">
+              {team.score}
+              <span className="ml-1 text-xs font-bold opacity-70">pts</span>
             </p>
           )}
         </div>
-        <div className="grid h-[calc(100%-58px)] grid-cols-5 grid-rows-5 gap-1">
+        <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-5 gap-1 sm:gap-1.5">
           {cellLabels.map((cell, i) => {
             const finalStatus = historicalByIndex.get(i)
-            let cls = 'bg-white/20 text-white'
+            // Solid white with black text: a tinted cell read differently on
+            // every event background, and a bingo card has to be legible at a
+            // glance whatever is behind it.
+            let cls = 'bg-white text-black'
             let disabled = !canMark
             if (finalStatus === 'approved') {
-              cls = 'bg-green-500/80 text-white'
+              cls = 'bg-green-600 text-white'
               disabled = true
             } else if (finalStatus === 'rejected') {
-              cls = 'bg-red-500/80 text-white'
+              cls = 'bg-red-600 text-white'
               disabled = true
             } else if (missedLockedIndices.has(i)) {
-              cls = 'bg-gray-500/70 text-white/90'
+              cls = 'bg-white/45 text-black/45'
               disabled = true
             }
-            if (winningCells.has(i)) cls += ' ring-2 ring-yellow-300'
+            if (winningCells.has(i)) cls += ' ring-4 ring-[#FFC107]'
             // Show the yellow selection both for the optimistic tap (during play)
             // and for a persisted pending selection (through reveal) so a chosen
             // cell goes straight from yellow to green/red — never grey. Once the
@@ -1753,7 +1759,7 @@ export function JoinGameView({
             )
           })}
         </div>
-        <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-white/85 sm:text-xs">
+        <div className="mt-1.5 flex shrink-0 items-center justify-between px-1 text-[10px] font-semibold text-white/85 sm:text-xs">
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFC107]" />Your selection</span>
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-green-500" />Correct</span>
           <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-red-500" />Wrong</span>
