@@ -116,7 +116,6 @@ import {
   type MintedParticipantUpload,
 } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
-import { contrastRatio, readableTextOn } from '@/lib/hex-color'
 import type { Tables } from '@/types/helpers'
 
 type JoinGameViewProps = {
@@ -187,13 +186,6 @@ export function JoinGameView({
   // The event picks one text colour for its whole surface. Anything sitting on
   // the background rather than inside a filled control follows it.
   const eventTextColor = displayTextColorForEvent(event) === 'black' ? '#000000' : '#ffffff'
-  /**
-   * The event's text colour is chosen against the event background, so it is
-   * not automatically safe on an accent-filled control. Keep it where it reads,
-   * fall back where it does not: white on the default yellow measures 1.63:1.
-   */
-  const readableOnAccent =
-    contrastRatio(eventTextColor, accent) >= 4.5 ? eventTextColor : readableTextOn(accent)
   const logo = logoForEvent(event, organization)
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
@@ -1278,7 +1270,7 @@ export function JoinGameView({
       body = (
         <div className="mx-auto max-w-2xl px-4 lg:max-w-4xl">
           {inventoryEnabled ? (
-            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: readableOnAccent }} onClick={() => setInventoryScannerOpen(true)}>
+            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
               <QrCode className="size-5" /> Buy Items
             </Button>
           ) : null}
