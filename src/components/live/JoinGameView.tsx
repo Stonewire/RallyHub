@@ -1643,9 +1643,18 @@ export function JoinGameView({
     }
   } else if (stage?.type === 'break') {
     body = (
-      <div className="xp-break-panel px-6 py-12 text-center">
-        <p className="text-2xl font-bold sm:text-4xl">{stage.message ?? 'Break'}</p>
-        <p className="mt-8 font-mono text-5xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
+      // Same three lines as the room's screen, scaled to a phone and sized to
+      // fit without scrolling.
+      <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Break
+        </p>
+        <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
+          {stage.message ?? 'Back shortly'}
+        </p>
+        <p className="text-[clamp(3.5rem,18vw,6rem)] leading-[0.85] font-black tabular-nums drop-shadow-lg">
+          {formatBreakTimer(breakDisplay)}
+        </p>
       </div>
     )
   } else {

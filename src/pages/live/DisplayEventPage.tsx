@@ -424,11 +424,18 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (stage.type === 'break') {
     body = (
-      <div className={`xp-break-panel flex flex-col items-center justify-center text-center ${textClass}`}>
-        <p className="font-sans text-4xl font-bold md:text-6xl lg:text-7xl">
-          {stage.message ?? 'Break time'}
+      // Read from the back of a room: a small word for what this is, the
+      // organiser's message, then the clock at the size of the whole screen.
+      <div
+        className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
+      >
+        <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Break
         </p>
-        <p className="font-sans mt-10 text-7xl font-bold tabular-nums md:text-9xl">
+        <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
+          {stage.message ?? 'Back shortly'}
+        </p>
+        <p className="text-[clamp(5rem,20vw,16rem)] leading-[0.85] font-black tabular-nums drop-shadow-lg">
           {formatBreakTimer(breakDisplay)}
         </p>
       </div>
