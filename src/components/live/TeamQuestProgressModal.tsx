@@ -51,7 +51,7 @@ export function TeamQuestProgressModal({
               {doneCount}/{total} Quests completed
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Close team progress" onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>

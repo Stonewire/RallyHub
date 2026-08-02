@@ -58,7 +58,14 @@ function QuestionCard({
           {dragProps ? <IconGrip className="size-4 shrink-0 cursor-grab" /> : null}
           Question {index + 1}
         </div>
-        <Button type="button" variant="ghost" size="icon-sm" onClick={onRemove}>
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Remove question ${index + 1}`}
+            title="Remove question"
+            onClick={onRemove}
+          >
           <IconTrash className="size-4" />
         </Button>
       </div>

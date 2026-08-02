@@ -34,6 +34,7 @@ export function ParticipantChatOverlay({
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Close chat"
           className="text-white hover:bg-white/10"
           onClick={onClose}
         >

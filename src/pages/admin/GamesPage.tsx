@@ -122,10 +122,30 @@ function GroupHeader({
       </button>
       {editing ? (
         <>
-          <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onSaveRename}>
+          {/* Icon-only, so the label has to be spoken. Naming the group as well
+              as the action matters here: the page repeats this row once per
+              group, and "Delete" eight times in a row says nothing about which
+              one is about to go. */}
+          <NeoButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="size-8 p-0"
+            aria-label={`Save the new name for ${name}`}
+            title="Save"
+            onClick={onSaveRename}
+          >
             <IconCheck className="size-4" />
           </NeoButton>
-          <NeoButton type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={onCancelRename}>
+          <NeoButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="size-8 p-0"
+            aria-label={`Cancel renaming ${name}`}
+            title="Cancel"
+            onClick={onCancelRename}
+          >
             <IconClose className="size-4" />
           </NeoButton>
         </>
@@ -144,6 +164,8 @@ function GroupHeader({
             variant="destructive"
             size="sm"
             className="size-8 p-0"
+            aria-label={`Delete group ${name}`}
+            title={`Delete group ${name}`}
             onClick={onDelete}
           >
             <IconTrash className="size-4" />

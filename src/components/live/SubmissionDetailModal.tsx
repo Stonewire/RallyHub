@@ -121,7 +121,7 @@ export function SubmissionDetailModal({
             </p>
             <p className="text-muted-foreground truncate text-sm font-semibold">{gameName}</p>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Close submission" onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>

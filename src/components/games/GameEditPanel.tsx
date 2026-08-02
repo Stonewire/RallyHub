@@ -34,7 +34,7 @@ export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
                     <IconExpand className="size-4" />
                   </Link>
                 </Button>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close game editor" onClick={onClose}>
                   <IconClose className="size-4" />
                 </Button>
               </div>
