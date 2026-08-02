@@ -25,8 +25,8 @@ import { isFacilitatorOnlyRole } from '@/lib/auth-routes'
 const ICON_BUTTON =
   'hover:bg-muted rounded-nm-md flex size-8 items-center justify-center'
 
-function Divider() {
-  return <div className="bg-border h-5 w-px shrink-0" aria-hidden />
+function Divider({ className = '' }: { className?: string }) {
+  return <div className={`bg-border h-5 w-px shrink-0 ${className}`} aria-hidden />
 }
 
 /** The admin header. Composition only, owns no data of its own. */
@@ -72,31 +72,41 @@ export function AdminHeader() {
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-1.5">
-          <HeaderSearch />
+        {/* The header used to lay out at a fixed 662px, so on a phone New Event,
+            the theme toggle, Help and the avatar sat past the right edge with
+            no way to scroll to them: an admin on a phone could not create an
+            event or reach My Account at all. Below sm the search collapses and
+            the create buttons drop to their icons, which are duplicated on the
+            Events and Games pages anyway, so everything stays reachable. */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <div className="hidden sm:block">
+            <HeaderSearch />
+          </div>
 
           {canCreate ? (
             <>
-              <Divider />
+              <Divider className="hidden sm:block" />
               <button
                 type="button"
                 onClick={() => setNewGameOpen(true)}
-                className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-3 text-xs font-semibold whitespace-nowrap"
+                aria-label="New Game"
+                className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-2 text-xs font-semibold whitespace-nowrap sm:px-3"
               >
                 <IconGames className="size-4" />
-                New Game
+                <span className="hidden sm:inline">New Game</span>
               </button>
               <Link
                 to="/admin/events/new"
-                className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap"
+                aria-label="New Event"
+                className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-2 text-xs font-semibold whitespace-nowrap sm:px-3"
               >
                 <IconEvents className="size-4" />
-                New Event
+                <span className="hidden sm:inline">New Event</span>
               </Link>
             </>
           ) : null}
 
-          <Divider />
+          <Divider className="hidden sm:block" />
           <button
             type="button"
             onClick={toggleTheme}
@@ -141,7 +151,7 @@ export function AdminHeader() {
             </button>
           ) : null}
 
-          <Divider />
+          <Divider className="hidden sm:block" />
           <HeaderAvatar />
         </div>
       </header>
