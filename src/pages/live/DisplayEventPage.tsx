@@ -24,6 +24,7 @@ import { winnerSoundEnabled } from '@/lib/winner-sound'
 import {
   currentStage,
   breakDurationSeconds,
+  brandBlobColors,
   displayTextClass,
   displayTextColorForEvent,
   formatBreakTimer,
@@ -448,17 +449,30 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     stage?.type !== 'break' &&
     state.winner_reveal_stage < 1
 
-  // The timer is the one number the room checks repeatedly, so it gets the
-  // same badge treatment as the team labels and a size that carries across a
-  // venue rather than sitting quietly in the corner.
+  // The timer is the one number the room checks repeatedly, so it reads as a
+  // game HUD rather than a label: brand-yellow shell, dark inset face, a lit
+  // top edge and a glow underneath.
+  const timerAccent = brandBlobColors(event, organization).accent
   const headerTimer = showHeaderTimer ? (
-    <span
-      className={`font-sans rounded-2xl px-5 py-2 text-4xl font-black tabular-nums shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-sm md:text-6xl ${
-        textClass === 'text-black' ? 'bg-white/75 text-black' : 'bg-black/45 text-white'
-      }`}
-    >
-      {formatTimer(timerDisplay)}
-    </span>
+    <div className="relative inline-flex items-center justify-center">
+      <div
+        aria-hidden
+        className="absolute inset-0 rounded-[1.4rem] blur-xl"
+        style={{ background: timerAccent, opacity: 0.35 }}
+      />
+      <div
+        className="relative rounded-[1.4rem] p-[3px] shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+        style={{
+          background: `linear-gradient(180deg, ${timerAccent} 0%, rgba(0,0,0,0.35) 140%)`,
+        }}
+      >
+        <div className="rounded-[1.2rem] bg-black/80 px-7 py-2.5 shadow-[inset_0_2px_0_rgba(255,255,255,0.22),inset_0_-8px_18px_rgba(0,0,0,0.55)]">
+          <span className="font-sans block text-4xl leading-none font-black tracking-[0.06em] text-white tabular-nums drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] md:text-6xl">
+            {formatTimer(timerDisplay)}
+          </span>
+        </div>
+      </div>
+    </div>
   ) : null
 
   return (
@@ -469,7 +483,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       className={embedded ? 'h-screen overflow-hidden' : undefined}
     >
       <ClientBrandingStyle org={organization} />
-      <DisplayShell logo={logo} title={event.name} headerRight={headerTimer}>
+      <DisplayShell logo={logo} title={event.name} headerSlot={headerTimer}>
         {body}
       </DisplayShell>
       <PoweredByRallyHub
