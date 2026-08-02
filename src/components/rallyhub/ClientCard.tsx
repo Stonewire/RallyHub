@@ -9,6 +9,7 @@ import {
   formatClientPlanLabel,
   normalizeBillingPeriod,
 } from '@/lib/client-plans'
+import { NeoStatusBadge } from '@/components/neo-minimal'
 import { organizationInitials } from '@/lib/org-avatar'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +19,9 @@ export type ClientCardData = {
   logo_url: string | null
   email: string | null
   contact_email: string | null
+  subdomain?: string | null
+  phone?: string | null
+  created_at?: string | null
   billing_plan: string | null
   billing_period?: string | null
   account_status?: string | null
@@ -85,15 +89,10 @@ export function ClientCard({ client, className }: ClientCardProps) {
                 {client.unpaidInvoiceCount} unpaid
               </span>
             ) : null}
-            {trial ? (
-              <span className="bg-nm-yellow/40 text-nm-charcoal dark:text-nm-yellow shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                {trial}
-              </span>
-            ) : null}
-            {client.is_demo ? (
-              <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                Demo
-              </span>
+            {trial ? <NeoStatusBadge tone="ready">{trial}</NeoStatusBadge> : null}
+            {client.is_demo ? <NeoStatusBadge tone="demo">Demo</NeoStatusBadge> : null}
+            {!client.is_demo && !trial && client.account_status === 'active' ? (
+              <NeoStatusBadge tone="active">Active</NeoStatusBadge>
             ) : null}
             {client.trial_review_needed ? (
               <span className="text-destructive shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
@@ -110,6 +109,23 @@ export function ClientCard({ client, className }: ClientCardProps) {
                 )})`}
           </p>
         </div>
+      </div>
+
+      {/* The facts a super admin reaches this card for: where they live and
+          how to reach them, before any click-through. */}
+      <div className="text-muted-foreground space-y-1 text-xs">
+        {client.subdomain ? (
+          <p className="truncate font-mono">{client.subdomain}.rallyhub.games</p>
+        ) : null}
+        {email ? <p className="truncate">{email}</p> : null}
+        {client.created_at ? (
+          <p>
+            Client since{' '}
+            {new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(
+              new Date(client.created_at),
+            )}
+          </p>
+        ) : null}
       </div>
 
       <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
