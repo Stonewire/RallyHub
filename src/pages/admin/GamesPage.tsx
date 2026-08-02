@@ -515,6 +515,13 @@ export function AdminGamesPage() {
       }
       actions={
         view === 'catalog' ? <>
+          {/* Platform-only, and a page action like every other primary verb
+              rather than a button floating above the card. */}
+          {isPlatformLibrary ? (
+            <NeoButton type="button" variant="surface" onClick={() => setInstallMusicOpen(true)}>
+              Install to clients
+            </NeoButton>
+          ) : null}
           <NeoButton type="button" variant="surface" onClick={() => musicRef.current?.openCreatePlaylist()}>
             New Playlist
           </NeoButton>
@@ -602,14 +609,6 @@ export function AdminGamesPage() {
           Deleted Games {trashedGamesQuery.data?.length ? `(${trashedGamesQuery.data.length})` : ''}
         </button>
       </div>
-
-      {isPlatformLibrary && view === 'catalog' ? (
-        <div className="mb-4 flex justify-end">
-          <NeoButton type="button" size="sm" variant="accent" onClick={() => setInstallMusicOpen(true)}>
-            Install to clients
-          </NeoButton>
-        </div>
-      ) : null}
 
       {view === 'catalog' && organizationId ? (
         <MusicCatalogManager ref={musicRef} organizationId={organizationId} />
