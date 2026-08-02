@@ -8,6 +8,8 @@ type WinnerRevealPanelProps = {
   myTeamId: string
   /** Quiz-only points when on quiz results; optional for event winner */
   quizPoints?: number
+  /** The event's own accent, for the words that carry the moment. */
+  accentColor?: string
 }
 
 const RANK_LABELS: Record<number, string> = {
@@ -21,6 +23,7 @@ export function WinnerRevealPanel({
   ranked,
   myTeamId,
   quizPoints,
+  accentColor = '#FFC107',
 }: WinnerRevealPanelProps) {
   const mine = ranked.find((r) => r.team.id === myTeamId)
   const myRank = mine?.rank ?? 0
@@ -38,10 +41,24 @@ export function WinnerRevealPanel({
   }, [stage, isWinner])
 
   if (stage === 1) {
+    // The drum roll: nothing on screen but the sentence, set large enough to
+    // fill it and weighted so the two words that matter carry the moment.
     return (
-      <div className="xp-break-panel flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-        <p className="animate-pulse text-2xl font-bold sm:text-3xl">
-          It is time to announce the winners…
+      <div className="flex min-h-[78svh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-[clamp(1rem,3.5vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          It is
+        </p>
+        <p
+          className="mt-2 text-[clamp(3.5rem,17vw,10rem)] leading-[0.9] font-black drop-shadow-lg"
+          style={{ color: accentColor }}
+        >
+          TIME
+        </p>
+        <p className="mt-3 text-[clamp(1rem,3.5vw,1.75rem)] leading-tight font-black tracking-[0.22em] uppercase opacity-75">
+          to announce the
+        </p>
+        <p className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black drop-shadow-lg">
+          WINNER
         </p>
       </div>
     )

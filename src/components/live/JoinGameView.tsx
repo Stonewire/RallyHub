@@ -1109,6 +1109,7 @@ export function JoinGameView({
   } else if (state.winner_reveal_stage >= 1) {
     body = (
       <WinnerRevealPanel
+        accentColor={accent}
         stage={state.winner_reveal_stage as 1 | 2}
         ranked={eventRanked}
         myTeamId={teamId}
