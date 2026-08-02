@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
+import { readableTextOn } from '@/lib/hex-color'
 import { FilterChips } from '@/components/admin/FilterChips'
 import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
@@ -31,7 +32,7 @@ import {
   type WinnerSoundSurface,
 } from '@/lib/winner-sound'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
-import { NeoButton, NeoInput } from '@/components/neo-minimal'
+import { NeoButton, NeoInput, NeoStatusBadge } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
@@ -1450,296 +1451,6 @@ export function FacilitatorEventPage() {
             ) : null}
           </Card>
 
-          {/* UI-7: stage controls live here, left under Announcements, only when a
-              quiz / bingo / break stage is active. Quest review stays on the right. */}
-          {stage && stage.type !== 'open' ? (
-            // Green glow marks the live stage controls so the eye lands here.
-            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
-              {stage.type === 'quiz' && question ? (
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Q {state.current_question_index + 1} / {questions.length} · {questionSeconds}s
-              </p>
-              <p className="text-lg font-semibold">{question.text}</p>
-              <ul className="space-y-2 text-sm">
-                {question.answers.map((a) => (
-                  <li
-                    key={a.id}
-                    className="border-border/80 rounded-lg border px-3 py-2"
-                  >
-                    {a.text}
-                    {state.quiz_state === 'revealed' && a.id === question.correctAnswerId ? (
-                      <span className="text-muted-foreground ml-2 text-xs">(correct)</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-wrap gap-2">
-                {/* eslint-disable-next-line react-hooks/refs -- quizPrimary.action is a deferred onClick closure, not invoked here; see quizPrimaryButton above */}
-                {quizPrimary ? (
-                  <FacilitatorButton size="sm" onClick={quizPrimary.action}>
-                    {quizPrimary.label}
-                  </FacilitatorButton>
-                ) : null}
-                {state.quiz_state !== 'results' && state.quiz_state !== 'ended' ? (
-                  <FacilitatorButton
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void skipQuizQuestion()}
-                  >
-                    Skip
-                  </FacilitatorButton>
-                ) : null}
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void restartQuiz()}
-                >
-                  Restart Quiz
-                </FacilitatorButton>
-                {state.quiz_state === 'results' ? (
-                  <FacilitatorButton size="sm" onClick={() => void finishQuiz()}>
-                    Finish Quiz
-                  </FacilitatorButton>
-                ) : null}
-              </div>
-              <ul className="space-y-1 text-sm">
-                {namedTeams.map((t) => (
-                  <li key={t.id} className="flex items-center gap-2">
-                    {quizAnsweredTeamIds.has(t.id) ? (
-                      <Check className="text-foreground size-4 shrink-0" />
-                    ) : (
-                      <span className="size-4 shrink-0" />
-                    )}
-                    <span>{t.name}</span>
-                  </li>
-                ))}
-              </ul>
-              {state.quiz_state === 'active' && namedTeams.length === 0 ? (
-                <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-3 text-center text-sm">
-                  No teams have joined yet — participants won't receive quiz answers until they join.
-                </p>
-              ) : null}
-              {state.quiz_state === 'active' || state.quiz_state === 'revealed' ? (
-                <Card className="border-border/80 bg-muted/20 p-6 text-center shadow-inner">
-                  <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
-                    Question timer
-                  </p>
-                  <p className="font-mono text-5xl font-bold tabular-nums md:text-6xl">
-                    {formatTimer(quizTimerDisplay)}
-                  </p>
-                </Card>
-              ) : null}
-            </div>
-              ) : stage.type === 'bingo' ? (
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-xs">
-                {effectiveBingoRun
-                  ? `Run active · ${bingoPlayOrder.length} songs in script`
-                  : bingoRunQuery.isLoading
-                    ? 'Loading bingo run…'
-                    : 'No bingo run — switch to this stage to activate'}
-              </p>
-              <p className="text-muted-foreground text-sm font-medium tabular-nums">
-                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
-              </p>
-              {track && liveState.bingo_state === 'playing' ? (
-                <p className="font-semibold">
-                  Now playing: {track.title} — {track.artist}
-                </p>
-              ) : null}
-              {showBingoPlayer ? (
-                <BingoClipPlayer
-                  ref={bingoAudioRef}
-                  src={trackPlaybackUrl}
-                  nextSrc={nextTrackForCrossfade}
-                  playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
-                  autoPlay={false}
-                  crossfadeSeconds={4}
-                  onLockAndReveal={() => void handleBingoLockAndReveal()}
-                  onAutoAdvance={() => void autoAdvanceBingoSong()}
-                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
-                />
-              ) : null}
-
-              {liveState.bingo_winner_team_id ? (
-                <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
-                  🏆 Bingo! <strong>{teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'}</strong> won — game paused. Press Continue to keep playing.
-                </div>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                  <FacilitatorButton
-                    size="sm"
-                    disabled={
-                      liveState.bingo_state === 'ended' ||
-                      bingoAdvancing ||
-                      (bingoPlayOrder.length === 0 && bingoRunQuery.isLoading)
-                    }
-                    onClick={() => {
-                      if (
-                        liveState.bingo_state === 'waiting' ||
-                        liveState.bingo_state === 'active'
-                      ) {
-                        handleBingoStartClick()
-                        return
-                      }
-                      void handleBingoNextClick()
-                    }}
-                  >
-                    {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'
-                      ? 'Start'
-                      : liveState.bingo_winner_team_id
-                        ? 'Continue'
-                        : 'Next Song'}
-                  </FacilitatorButton>
-              </div>
-              {bingoMarkedTeams.length > 0 ? (
-                <div>
-                  <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
-                  <ul className="text-sm">
-                    {bingoMarkedTeams.map((n) => (
-                      <li key={n} className="flex items-center gap-1.5">
-                        <Check className="size-3.5 text-green-600" />
-                        <span>{n}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              <FacilitatorButton
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (!eventId || !stage.gameId) return
-                  setBingoRestartOpen(true)
-                }}
-              >
-                Restart bingo run
-              </FacilitatorButton>
-              {bingoRestartOpen && stage.gameId && eventId ? (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                  role="alertdialog"
-                  aria-modal="true"
-                  aria-labelledby="bingo-restart-title"
-                >
-                  <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
-                    <div className="space-y-2">
-                      <h3 id="bingo-restart-title" className="text-foreground font-semibold">
-                        Restart bingo run?
-                      </h3>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        Generates new cards and a new play order. Clears all marks and scores for this bingo game.
-                      </p>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <NeoButton
-                        type="button"
-                        variant="surface"
-                        onClick={() => setBingoRestartOpen(false)}
-                      >
-                        Cancel
-                      </NeoButton>
-                      <NeoButton
-                        type="button"
-                        variant="destructive"
-                        onClick={() => {
-                          setBingoRestartOpen(false)
-                          if (!eventId || !stage.gameId) return
-                          const gameId = stage.gameId
-                          const stageIndex = liveState.current_stage_index
-                          void restartBingoRun(eventId, gameId, stageIndex)
-                            .then((result) => {
-                              const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
-                              flushSync(() => setBingoRunOverride(row))
-                              queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
-                              void queryClient.invalidateQueries({
-                                queryKey: queryKeys.bingoRun(eventId, stageIndex),
-                              })
-                              setAudioPlayNonce((n) => n + 1)
-                              bingoWinHaltRef.current = false
-                              notify('Bingo run restarted')
-                              void patchState({
-                                current_question_index: 0,
-                                bingo_state: 'waiting',
-                                bingo_bonus_id: null,
-                                bingo_revealed_track_ids: [],
-                              })
-                              void patchWinnerFieldsSafe({
-                                bingo_winner_team_id: null,
-                                bingo_announced_winner_ids: [],
-                              })
-                          })
-                          .catch((err) =>
-                            notify(err instanceof Error ? err.message : 'Restart failed'),
-                          )
-                        }}
-                      >
-                        Restart bingo run
-                      </NeoButton>
-                    </div>
-                  </Card>
-                </div>
-              ) : null}
-            </div>
-              ) : stage.type === 'break' ? (
-            <div className="space-y-4">
-              <p className="text-lg">{stage.message}</p>
-              <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
-              <p className="text-muted-foreground text-xs">
-                Start/pause the break timer. Stop freezes the countdown; Reset restores full
-                duration.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <FacilitatorButton
-                  size="sm"
-                  disabled={breakHalted}
-                  onClick={() =>
-                    void patchState({
-                      break_timer_running: !state.break_timer_running,
-                    })
-                  }
-                >
-                  {state.break_timer_running ? (
-                    <>
-                      <Pause className="size-4" /> Pause
-                    </>
-                  ) : (
-                    <>
-                      <Play className="size-4" /> Start
-                    </>
-                  )}
-                </FacilitatorButton>
-                <FacilitatorButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (breakHalted) {
-                      setBreakHalted(false)
-                      void patchState({
-                        break_timer_seconds: breakDurationSeconds(stage, null),
-                        break_timer_running: false,
-                      })
-                    } else {
-                      setBreakHalted(true)
-                      void patchState({ break_timer_running: false })
-                    }
-                  }}
-                >
-                  {breakHalted ? (
-                    <>
-                      <RotateCcw className="size-4" /> Reset
-                    </>
-                  ) : (
-                    'Stop'
-                  )}
-                </FacilitatorButton>
-              </div>
-            </div>
-              ) : null}
-            </Card>
-          ) : null}
-
           <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
             <p className="text-sm font-bold">Teams</p>
             <p className="text-muted-foreground text-xs">
@@ -1998,6 +1709,7 @@ export function FacilitatorEventPage() {
                 <p className="text-sm font-bold">Stages</p>
                 <SegmentedPill
                   aria-label="Stage"
+                  size="sm"
                   options={stages
                     .map((s, i) => (s?.id ? { value: String(i), label: `Stage ${i + 1}` } : null))
                     .filter((o): o is { value: string; label: string } => o !== null)}
@@ -2012,6 +1724,415 @@ export function FacilitatorEventPage() {
             <p className="text-destructive px-1 text-sm">{stateError}</p>
           ) : null}
 
+          {/* Whatever is running sits directly under the main control card, on
+              the right, with the glow marking it as the live thing. */}
+          {stage && stage.type !== 'open' ? (
+            // Green glow marks the live stage controls so the eye lands here.
+            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
+              {stage.type === 'quiz' && question ? (
+            <div className="space-y-3">
+              {/* Controls first and centred: running the question matters more
+                  than re-reading it, and the clock rides with them so nothing
+                  below has to appear or disappear mid-question. */}
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {/* eslint-disable-next-line react-hooks/refs -- quizPrimary.action is a deferred onClick closure, not invoked here; see quizPrimaryButton above */}
+                {quizPrimary ? (
+                  <FacilitatorButton size="sm" onClick={quizPrimary.action}>
+                    {quizPrimary.label}
+                  </FacilitatorButton>
+                ) : null}
+                {state.quiz_state !== 'results' && state.quiz_state !== 'ended' ? (
+                  <FacilitatorButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void skipQuizQuestion()}
+                  >
+                    Skip
+                  </FacilitatorButton>
+                ) : null}
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void restartQuiz()}
+                >
+                  Restart Quiz
+                </FacilitatorButton>
+                {state.quiz_state === 'results' ? (
+                  <FacilitatorButton size="sm" onClick={() => void finishQuiz()}>
+                    Finish Quiz
+                  </FacilitatorButton>
+                ) : null}
+                {/* Always rendered, so the row keeps its height whether or not
+                    a question is running. */}
+                <span
+                  className={`ml-1 font-mono text-lg font-bold tabular-nums ${
+                    state.quiz_state === 'active' || state.quiz_state === 'revealed'
+                      ? ''
+                      : 'opacity-30'
+                  }`}
+                  aria-label="Question timer"
+                >
+                  {formatTimer(
+                    state.quiz_state === 'active' || state.quiz_state === 'revealed'
+                      ? quizTimerDisplay
+                      : questionSeconds,
+                  )}
+                </span>
+              </div>
+
+              <p className="text-muted-foreground text-center text-xs font-bold tracking-wide uppercase">
+                Q {state.current_question_index + 1} / {questions.length}
+              </p>
+              <p className="text-center text-base font-bold text-balance">{question.text}</p>
+
+              {/* Two by two rather than a stack: same information, half the card. */}
+              <ul className="grid grid-cols-2 gap-2 text-sm">
+                {question.answers.map((a) => (
+                  <li
+                    key={a.id}
+                    className={`rounded-lg border px-2.5 py-1.5 ${
+                      state.quiz_state === 'revealed' && a.id === question.correctAnswerId
+                        ? 'border-green-500 bg-green-500/15 font-bold'
+                        : 'border-border/80'
+                    }`}
+                  >
+                    {a.text}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Who has answered, side by side in each team's own colour. */}
+              <div className="flex flex-wrap gap-1.5">
+                {namedTeams.map((t) => {
+                  const answered = quizAnsweredTeamIds.has(t.id)
+                  return (
+                    <span
+                      key={t.id}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition-opacity ${
+                        answered ? '' : 'opacity-35'
+                      }`}
+                      style={{
+                        backgroundColor: t.color ?? '#666',
+                        color: readableTextOn(t.color ?? '#666666'),
+                      }}
+                    >
+                      {answered ? <Check className="size-3 shrink-0" /> : null}
+                      {t.name}
+                    </span>
+                  )
+                })}
+              </div>
+
+              {state.quiz_state === 'active' && namedTeams.length === 0 ? (
+                <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-3 text-center text-sm">
+                  No teams have joined yet. Participants will not receive quiz answers until they
+                  join.
+                </p>
+              ) : null}
+            </div>
+              ) : stage.type === 'bingo' ? (
+            <div className="space-y-4">
+              <p className="text-muted-foreground text-xs">
+                {effectiveBingoRun
+                  ? `Run active · ${bingoPlayOrder.length} songs in script`
+                  : bingoRunQuery.isLoading
+                    ? 'Loading bingo run…'
+                    : 'No bingo run — switch to this stage to activate'}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium tabular-nums">
+                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
+              </p>
+              {track && liveState.bingo_state === 'playing' ? (
+                <p className="font-semibold">
+                  Now playing: {track.title} — {track.artist}
+                </p>
+              ) : null}
+              {showBingoPlayer ? (
+                <BingoClipPlayer
+                  ref={bingoAudioRef}
+                  src={trackPlaybackUrl}
+                  nextSrc={nextTrackForCrossfade}
+                  playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
+                  autoPlay={false}
+                  crossfadeSeconds={4}
+                  onLockAndReveal={() => void handleBingoLockAndReveal()}
+                  onAutoAdvance={() => void autoAdvanceBingoSong()}
+                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
+                />
+              ) : null}
+
+              {liveState.bingo_winner_team_id ? (
+                <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
+                  🏆 Bingo! <strong>{teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'}</strong> won — game paused. Press Continue to keep playing.
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                  <FacilitatorButton
+                    size="sm"
+                    disabled={
+                      liveState.bingo_state === 'ended' ||
+                      bingoAdvancing ||
+                      (bingoPlayOrder.length === 0 && bingoRunQuery.isLoading)
+                    }
+                    onClick={() => {
+                      if (
+                        liveState.bingo_state === 'waiting' ||
+                        liveState.bingo_state === 'active'
+                      ) {
+                        handleBingoStartClick()
+                        return
+                      }
+                      void handleBingoNextClick()
+                    }}
+                  >
+                    {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'
+                      ? 'Start'
+                      : liveState.bingo_winner_team_id
+                        ? 'Continue'
+                        : 'Next Song'}
+                  </FacilitatorButton>
+              </div>
+              {bingoMarkedTeams.length > 0 ? (
+                <div>
+                  <p className="text-muted-foreground mb-1 text-xs">Marked this round</p>
+                  <ul className="text-sm">
+                    {bingoMarkedTeams.map((n) => (
+                      <li key={n} className="flex items-center gap-1.5">
+                        <Check className="size-3.5 text-green-600" />
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <FacilitatorButton
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!eventId || !stage.gameId) return
+                  setBingoRestartOpen(true)
+                }}
+              >
+                Restart bingo run
+              </FacilitatorButton>
+              {bingoRestartOpen && stage.gameId && eventId ? (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="bingo-restart-title"
+                >
+                  <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
+                    <div className="space-y-2">
+                      <h3 id="bingo-restart-title" className="text-foreground font-semibold">
+                        Restart bingo run?
+                      </h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Generates new cards and a new play order. Clears all marks and scores for this bingo game.
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <NeoButton
+                        type="button"
+                        variant="surface"
+                        onClick={() => setBingoRestartOpen(false)}
+                      >
+                        Cancel
+                      </NeoButton>
+                      <NeoButton
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          setBingoRestartOpen(false)
+                          if (!eventId || !stage.gameId) return
+                          const gameId = stage.gameId
+                          const stageIndex = liveState.current_stage_index
+                          void restartBingoRun(eventId, gameId, stageIndex)
+                            .then((result) => {
+                              const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
+                              flushSync(() => setBingoRunOverride(row))
+                              queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
+                              void queryClient.invalidateQueries({
+                                queryKey: queryKeys.bingoRun(eventId, stageIndex),
+                              })
+                              setAudioPlayNonce((n) => n + 1)
+                              bingoWinHaltRef.current = false
+                              notify('Bingo run restarted')
+                              void patchState({
+                                current_question_index: 0,
+                                bingo_state: 'waiting',
+                                bingo_bonus_id: null,
+                                bingo_revealed_track_ids: [],
+                              })
+                              void patchWinnerFieldsSafe({
+                                bingo_winner_team_id: null,
+                                bingo_announced_winner_ids: [],
+                              })
+                          })
+                          .catch((err) =>
+                            notify(err instanceof Error ? err.message : 'Restart failed'),
+                          )
+                        }}
+                      >
+                        Restart bingo run
+                      </NeoButton>
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
+            </div>
+              ) : stage.type === 'break' ? (
+            <div className="space-y-4">
+              <p className="text-lg">{stage.message}</p>
+              <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
+              <p className="text-muted-foreground text-xs">
+                Start/pause the break timer. Stop freezes the countdown; Reset restores full
+                duration.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <FacilitatorButton
+                  size="sm"
+                  disabled={breakHalted}
+                  onClick={() =>
+                    void patchState({
+                      break_timer_running: !state.break_timer_running,
+                    })
+                  }
+                >
+                  {state.break_timer_running ? (
+                    <>
+                      <Pause className="size-4" /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="size-4" /> Start
+                    </>
+                  )}
+                </FacilitatorButton>
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (breakHalted) {
+                      setBreakHalted(false)
+                      void patchState({
+                        break_timer_seconds: breakDurationSeconds(stage, null),
+                        break_timer_running: false,
+                      })
+                    } else {
+                      setBreakHalted(true)
+                      void patchState({ break_timer_running: false })
+                    }
+                  }}
+                >
+                  {breakHalted ? (
+                    <>
+                      <RotateCcw className="size-4" /> Reset
+                    </>
+                  ) : (
+                    'Stop'
+                  )}
+                </FacilitatorButton>
+              </div>
+            </div>
+              ) : null}
+            </Card>
+          ) : null}
+
+          {!stage || stage.type === 'open' ? (
+            // On a quest stage the review queue IS the live control, so it
+            // wears the same green glow the other stages' controls wear.
+            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
+            <>
+              <FilterChips
+                aria-label="Filter submissions"
+                className="mb-3"
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'rejected', label: 'Rejected' },
+                ]}
+                value={subTab}
+                onChange={setSubTab}
+              />
+              <ul className="max-h-[70vh] space-y-3 overflow-auto">
+                {filteredSubs
+                  .filter(
+                    (s) =>
+                      isOpenStageSubmissionMediaType(s.media_type) &&
+                      s.status !== 'cancelled',
+                  )
+                  .map((sub) => {
+                    const team = teams.find((t) => t.id === sub.team_id)
+                    const game = games.find((g) => g.id === sub.game_id)
+                    // The app's own badge tones: solid, not a tinted outline.
+                    const statusTone =
+                      sub.status === 'approved'
+                        ? 'active'
+                        : sub.status === 'rejected'
+                          ? 'attention'
+                          : 'ready'
+                    return (
+                      <li key={sub.id}>
+                        <button
+                          type="button"
+                          className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
+                          onClick={() => setSelectedSub(sub)}
+                        >
+                          {sub.media_type === 'puzzle' ? (
+                            <div className="bg-muted flex size-16 shrink-0 flex-col items-center justify-center rounded p-1 text-center">
+                              <span className="text-[10px] font-bold uppercase">Puzzle</span>
+                              <span className="text-muted-foreground text-[9px] leading-tight">
+                                {puzzleSubmissionStatLabel(sub.media_url)}
+                              </span>
+                            </div>
+                          ) : sub.media_type === 'text' ? (
+                            <div
+                              className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
+                            >
+                              <span className="line-clamp-4 break-all text-center">
+                                {game
+                                  ? textSubmissionDisplayLabel(game, sub.media_url)
+                                  : sub.media_url}
+                              </span>
+                            </div>
+                          ) : sub.media_url ? (
+                            sub.media_type === 'video' ? (
+                              <video
+                                src={sub.media_url}
+                                className="size-16 rounded object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={sub.media_url}
+                                alt=""
+                                className="size-16 rounded object-cover"
+                              />
+                            )
+                          ) : (
+                            <div className="bg-muted size-16 shrink-0 rounded" />
+                          )}
+                          <div className="min-w-0 flex-1 text-sm">
+                            <p className="font-medium">{team?.name ?? 'Team'}</p>
+                            <p className="text-muted-foreground truncate">{game?.name}</p>
+                            <NeoStatusBadge tone={statusTone} className="mt-1">
+                              {sub.status}
+                            </NeoStatusBadge>
+                            {sub.media_type === 'puzzle' && sub.points_awarded !== null ? (
+                              <span className="text-muted-foreground ml-2 text-xs font-semibold">
+                                +{sub.points_awarded} pts
+                              </span>
+                            ) : null}
+                          </div>
+                        </button>
+                      </li>
+                    )
+                  })}
+              </ul>
+            </>
+            </Card>
+          ) : null}
           <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -2061,100 +2182,6 @@ export function FacilitatorEventPage() {
               </ul>
             )}
           </Card>
-
-          {!stage || stage.type === 'open' ? (
-            <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-            <>
-              <FilterChips
-                aria-label="Filter submissions"
-                className="mb-3"
-                options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'rejected', label: 'Rejected' },
-                ]}
-                value={subTab}
-                onChange={setSubTab}
-              />
-              <ul className="max-h-[70vh] space-y-3 overflow-auto">
-                {filteredSubs
-                  .filter(
-                    (s) =>
-                      isOpenStageSubmissionMediaType(s.media_type) &&
-                      s.status !== 'cancelled',
-                  )
-                  .map((sub) => {
-                    const team = teams.find((t) => t.id === sub.team_id)
-                    const game = games.find((g) => g.id === sub.game_id)
-                    const statusBadgeClass =
-                      sub.status === 'approved'
-                        ? 'bg-green-100 text-green-800 border-green-300'
-                        : sub.status === 'rejected'
-                          ? 'bg-red-100 text-red-800 border-red-300'
-                          : 'bg-yellow-100 text-yellow-900 border-yellow-300'
-                    return (
-                      <li key={sub.id}>
-                        <button
-                          type="button"
-                          className="border-border/80 hover:bg-muted/30 flex w-full gap-3 rounded-lg border p-2 text-left transition-colors"
-                          onClick={() => setSelectedSub(sub)}
-                        >
-                          {sub.media_type === 'puzzle' ? (
-                            <div className="bg-muted flex size-16 shrink-0 flex-col items-center justify-center rounded p-1 text-center">
-                              <span className="text-[10px] font-bold uppercase">Puzzle</span>
-                              <span className="text-muted-foreground text-[9px] leading-tight">
-                                {puzzleSubmissionStatLabel(sub.media_url)}
-                              </span>
-                            </div>
-                          ) : sub.media_type === 'text' ? (
-                            <div
-                              className="bg-muted flex size-16 shrink-0 items-center justify-center rounded p-2 text-[10px] leading-tight"
-                            >
-                              <span className="line-clamp-4 break-all text-center">
-                                {game
-                                  ? textSubmissionDisplayLabel(game, sub.media_url)
-                                  : sub.media_url}
-                              </span>
-                            </div>
-                          ) : sub.media_url ? (
-                            sub.media_type === 'video' ? (
-                              <video
-                                src={sub.media_url}
-                                className="size-16 rounded object-cover"
-                              />
-                            ) : (
-                              <img
-                                src={sub.media_url}
-                                alt=""
-                                className="size-16 rounded object-cover"
-                              />
-                            )
-                          ) : (
-                            <div className="bg-muted size-16 shrink-0 rounded" />
-                          )}
-                          <div className="min-w-0 flex-1 text-sm">
-                            <p className="font-medium">{team?.name ?? 'Team'}</p>
-                            <p className="text-muted-foreground truncate">{game?.name}</p>
-                            <p
-                              className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClass}`}
-                            >
-                              {sub.status}
-                            </p>
-                            {sub.media_type === 'puzzle' && sub.points_awarded !== null ? (
-                              <span className="text-muted-foreground ml-2 text-xs font-semibold">
-                                +{sub.points_awarded} pts
-                              </span>
-                            ) : null}
-                          </div>
-                        </button>
-                      </li>
-                    )
-                  })}
-              </ul>
-            </>
-            </Card>
-          ) : null}
         </fieldset>
       </div>
 

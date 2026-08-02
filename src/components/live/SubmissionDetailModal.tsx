@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
-import { NeoButton } from '@/components/neo-minimal'
+import { NeoButton, NeoStatusBadge } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
@@ -108,7 +108,7 @@ export function SubmissionDetailModal({
       role="presentation"
     >
       <div
-        className="bg-card border-border/80 max-h-[92vh] w-full max-w-lg overflow-auto rounded-xl border shadow-xl"
+        className="neo-minimal-scope bg-card border-border/80 flex max-h-[92svh] w-full max-w-lg flex-col overflow-hidden rounded-xl border shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -116,19 +116,19 @@ export function SubmissionDetailModal({
       >
         <div className="border-border/80 flex items-center justify-between border-b px-4 py-3">
           <div className="min-w-0 pr-2">
-            <p id="submission-modal-title" className="truncate font-semibold">
+            <p id="submission-modal-title" className="truncate text-lg font-black">
               {teamName}
             </p>
-            <p className="text-muted-foreground truncate text-sm">{gameName}</p>
+            <p className="text-muted-foreground truncate text-sm font-semibold">{gameName}</p>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>
-        <div className="p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {game?.description?.trim() ? (
             <div className="border-border/80 mb-4 rounded-lg border bg-muted/20 px-4 py-3">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                 Challenge description
               </p>
               <RichText
@@ -139,7 +139,7 @@ export function SubmissionDetailModal({
           ) : null}
           {game?.solution_description?.trim() ? (
             <div className="border-border/80 mb-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                 Expected answer / solution
               </p>
               <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -149,7 +149,7 @@ export function SubmissionDetailModal({
           ) : null}
           {sub.media_type === 'puzzle' ? (
             <div className="rounded-lg border bg-muted/30 px-4 py-3">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                 Puzzle result
               </p>
               <p className="mt-1 text-base font-semibold">
@@ -162,7 +162,7 @@ export function SubmissionDetailModal({
             </div>
           ) : isText && answerLabel ? (
             <div className="rounded-lg border bg-muted/30 px-4 py-3">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                 Team answer
               </p>
               <p className="mt-1 text-base font-semibold break-words">{answerLabel}</p>
@@ -180,7 +180,7 @@ export function SubmissionDetailModal({
               <img
                 src={sub.media_url}
                 alt=""
-                className="max-h-[50vh] w-full rounded-lg object-contain"
+                className="max-h-[42svh] w-full rounded-lg object-contain"
               />
             ) : null
           ) : (
@@ -188,7 +188,7 @@ export function SubmissionDetailModal({
           )}
           {isText && textCfg && game && isTextGame(game) && hasTextReference ? (
             <div className="border-border/80 mt-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                 {isRange ? 'Notes from the organiser' : 'Reference for approval'}
               </p>
               {textCfg.mode === 'type_text' ? (
@@ -208,7 +208,7 @@ export function SubmissionDetailModal({
               )}
             </div>
           ) : null}
-          {sub.status === 'pending' ? (
+          {sub.status === 'pending' && sub.media_type !== 'puzzle' ? (
             <div className="mt-4 space-y-4">
               {isRange ? (
                 <div className="space-y-2">
@@ -252,10 +252,24 @@ export function SubmissionDetailModal({
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground mt-4 text-sm capitalize">
-              Status: {sub.status}
-              {sub.points_awarded != null ? ` · ${sub.points_awarded} pts` : ''}
-            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <NeoStatusBadge
+                tone={
+                  sub.status === 'approved' || sub.media_type === 'puzzle'
+                    ? 'active'
+                    : sub.status === 'rejected'
+                      ? 'attention'
+                      : 'ready'
+                }
+              >
+                {sub.media_type === 'puzzle' ? 'approved' : sub.status}
+              </NeoStatusBadge>
+              {sub.points_awarded != null ? (
+                <span className="text-sm font-bold tabular-nums">
+                  {sub.points_awarded} pts
+                </span>
+              ) : null}
+            </div>
           )}
         </div>
       </div>
