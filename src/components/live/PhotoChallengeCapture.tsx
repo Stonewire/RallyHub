@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
   CHALLENGE_CAPTURE_FRAME_CLASS,
+  CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
   captureStillFrame,
   encodeCanvasToJpeg,
@@ -205,7 +206,7 @@ export function PhotoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
+                className={CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS}
                 style={livePreviewStyle}
               />
               <button

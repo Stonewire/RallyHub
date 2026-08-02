@@ -30,6 +30,13 @@ export const CHALLENGE_CAPTURE_FRAME_CLASS =
  */
 export const CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS = 'size-full object-contain'
 
+/**
+ * The live viewfinder fills its frame, the way a phone camera app does.
+ * Reviewing a finished submission still uses the contain class above: there
+ * the point is to see the whole frame the team actually captured.
+ */
+export const CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS = 'size-full object-cover'
+
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
   return window.innerHeight >= window.innerWidth

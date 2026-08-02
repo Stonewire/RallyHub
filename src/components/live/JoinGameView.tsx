@@ -1276,7 +1276,7 @@ export function JoinGameView({
           ) : null}
           {/* Two up on a phone, three on a tablet, four on a computer: each
               step keeps the tiles near square instead of letterboxed. */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {openGames.map((g) => {
               const sub = activeSubmissionForGame(mySubs, g.id)
               return (
