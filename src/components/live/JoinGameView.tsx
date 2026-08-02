@@ -1091,7 +1091,9 @@ export function JoinGameView({
             quiz pts
           </p>
         ) : state.quiz_state === 'active' && quizRunning ? (
-          <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-mono font-semibold tabular-nums">
+          // The countdown is the loudest thing on the screen while a question
+          // is open, so it carries no chip and stands at full size.
+          <p className="text-[clamp(2rem,7vw,3.5rem)] leading-none font-black tabular-nums drop-shadow-lg">
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null
@@ -1435,25 +1437,27 @@ export function JoinGameView({
       )
     } else if (q && state.quiz_state === 'active') {
       body = (
-        <div className="mx-auto max-w-lg px-4">
-          <div className="mb-4 h-2 overflow-hidden rounded-full bg-black/30">
+        // The answers sit at the bottom of the screen: on a tablet held in two
+        // hands that is where the thumbs already are, and the question above
+        // has the room it needs to be read across a table.
+        <div className="mx-auto flex min-h-[74svh] max-w-lg flex-col px-4">
+          <div className="mb-6 h-2 shrink-0 overflow-hidden rounded-full bg-black/30">
             <div
               className="h-full transition-all duration-1000"
               style={{ width: `${timerPct}%`, backgroundColor: accent }}
             />
           </div>
-          <p className="mb-1 text-center text-xs text-white/70">
-            {formatTimer(quizTimerDisplay)} remaining
-          </p>
-          <h2 className="mb-6 text-center text-lg font-bold leading-snug">{q.text}</h2>
-          <div className="space-y-3">
+          <h2 className="text-center text-[clamp(1.5rem,4.5vw,2.5rem)] leading-tight font-black text-balance">
+            {q.text}
+          </h2>
+          <div className="mt-auto space-y-3 pt-8">
             {q.answers.map((a) => {
               const selected = quizAnswer === a.id
               const faded = quizLocked && !selected
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === q.correctAnswerId
               let cls =
-                'xp-quiz-option w-full px-4 py-4 text-left text-sm font-semibold transition-colors '
+                'xp-quiz-option w-full px-5 py-5 text-left text-base font-bold transition-colors md:text-lg '
               let style: CSSProperties | undefined
               if (revealed) {
                 if (isCorrect) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
