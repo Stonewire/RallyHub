@@ -3,6 +3,10 @@ import { Camera, Video } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
+import {
+  StickyChallengeAction,
+  STICKY_ACTION_SPACER,
+} from '@/components/live/StickyChallengeAction'
 
 type ChallengeCaptureBriefingProps = {
   title: string
@@ -40,9 +44,7 @@ export function ChallengeCaptureBriefing({
   }
 
   return (
-    // Bottom room for the sticky button, so at the end of the brief it comes
-    // to rest below the content instead of sitting on the video controls.
-    <div className="pb-32 text-center">
+    <div className={`text-center ${STICKY_ACTION_SPACER}`}>
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-2xl px-4 line-clamp-3">
         {title}
       </h2>
@@ -87,9 +89,7 @@ export function ChallengeCaptureBriefing({
         </div>
       ) : null}
 
-      {/* Sticks above the bottom furniture so the main action is always one
-          tap away, however long the brief runs. */}
-      <div className="sticky bottom-[5.5rem] z-20 mt-6 px-4">
+      <StickyChallengeAction>
         <LiveAccentButton
           type="button"
           className="mx-auto w-full max-w-sm gap-2 px-6 py-5 text-base"
@@ -100,7 +100,7 @@ export function ChallengeCaptureBriefing({
           <Icon className="size-5 shrink-0" />
           {cta}
         </LiveAccentButton>
-      </div>
+      </StickyChallengeAction>
     </div>
   )
 }

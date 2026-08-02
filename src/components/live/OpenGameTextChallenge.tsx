@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { ChallengeBrief, CHALLENGE_LABEL_CLASS } from '@/components/live/ChallengeBrief'
+import {
+  StickyChallengeAction,
+  STICKY_ACTION_SPACER,
+} from '@/components/live/StickyChallengeAction'
 import { textOnAccent } from '@/lib/live-event'
 import { parseTextGameConfig } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
@@ -24,11 +28,21 @@ export function OpenGameTextChallenge({
   const [typed, setTyped] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Nothing else to do on this screen, so the field is ready to type in
+  // without a tap. iOS only opens its keyboard for focus inside a user
+  // gesture, so there the field is focused and the keyboard follows the first
+  // tap; Android opens straight away.
+  useEffect(() => {
+    if (cfg.mode === 'type_text') inputRef.current?.focus()
+  }, [cfg.mode, game.id])
+
   const canSubmitTyped = typed.length > 0
   const canSubmitChoice = Boolean(selectedId)
 
   return (
-    <div className="pb-4 text-center">
+    <div className={`text-center ${STICKY_ACTION_SPACER}`}>
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md px-4 line-clamp-3">
         {game.name}
       </h2>
@@ -41,26 +55,40 @@ export function OpenGameTextChallenge({
 
       <div className="mx-auto w-full max-w-lg px-4">
       {cfg.mode === 'type_text' ? (
-        <div className="space-y-3">
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!disabled && canSubmitTyped) onSubmit(typed)
+          }}
+        >
           <label className={`block ${CHALLENGE_LABEL_CLASS}`}>Your answer:</label>
           <input
+            ref={inputRef}
             type="text"
             value={typed}
             disabled={disabled}
+            // Typing is the only thing to do here, so the field takes focus on
+            // open and the keyboard's action key sends the answer.
+            autoFocus
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCorrect="off"
             className="xp-field w-full rounded-lg border border-white/25 bg-white/10 px-3 py-3 text-base text-white placeholder:text-white/50"
             placeholder="Type your answer…"
             onChange={(e) => setTyped(e.target.value)}
           />
-          <LiveAccentButton
-            type="button"
-            className="w-full py-4 text-base"
-            accentColor={accentColor}
-            disabled={disabled || !canSubmitTyped}
-            onClick={() => onSubmit(typed)}
-          >
-            Submit answer
-          </LiveAccentButton>
-        </div>
+          <StickyChallengeAction>
+            <LiveAccentButton
+              type="submit"
+              className="mx-auto w-full max-w-sm py-4 text-base"
+              accentColor={accentColor}
+              disabled={disabled || !canSubmitTyped}
+            >
+              Submit answer
+            </LiveAccentButton>
+          </StickyChallengeAction>
+        </form>
       ) : (
         <div className="space-y-3">
           <p className={CHALLENGE_LABEL_CLASS}>Choose one answer:</p>
@@ -87,17 +115,19 @@ export function OpenGameTextChallenge({
               )
             })}
           </div>
-          <LiveAccentButton
-            type="button"
-            className="w-full py-4 text-base"
-            accentColor={accentColor}
-            disabled={disabled || !canSubmitChoice}
-            onClick={() => {
-              if (selectedId) onSubmit(selectedId)
-            }}
-          >
-            Submit answer
-          </LiveAccentButton>
+          <StickyChallengeAction>
+            <LiveAccentButton
+              type="button"
+              className="mx-auto w-full max-w-sm py-4 text-base"
+              accentColor={accentColor}
+              disabled={disabled || !canSubmitChoice}
+              onClick={() => {
+                if (selectedId) onSubmit(selectedId)
+              }}
+            >
+              Submit answer
+            </LiveAccentButton>
+          </StickyChallengeAction>
         </div>
       )}
       </div>
