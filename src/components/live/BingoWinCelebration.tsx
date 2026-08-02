@@ -13,6 +13,8 @@ type BingoWinCelebrationProps = {
   mine?: boolean
   /** Auto-dismiss after this many ms (default 8000). */
   durationMs?: number
+  /** Points the win itself paid, shown to the team that got it. */
+  bonusPoints?: number | null
   onDismiss: () => void
 }
 
@@ -23,6 +25,7 @@ export function BingoWinCelebration({
   teamColor,
   mine = false,
   durationMs = 8000,
+  bonusPoints,
   onDismiss,
 }: BingoWinCelebrationProps) {
   const accent = teamColor?.trim() || DEFAULT_ACCENT
@@ -101,12 +104,16 @@ export function BingoWinCelebration({
                 scale: [0, 1.3, 1],
                 rotate: [-45, 8, 0],
                 opacity: 1,
-                y: [0, -10, 0],
+                // Lands, then keeps bouncing: the moment should feel like a
+                // room cheering rather than a message that has been delivered.
+                y: [0, -10, 0, -14, 0],
               }}
               transition={{
                 delay: 0.15 + i * 0.12,
-                duration: 0.6,
-                times: [0, 0.6, 1],
+                duration: 1.6,
+                times: [0, 0.25, 0.45, 0.72, 1],
+                repeat: Infinity,
+                repeatDelay: 0.6,
               }}
             >
               {letter}
@@ -129,13 +136,25 @@ export function BingoWinCelebration({
         </motion.div>
 
         <motion.p
-          className="mt-5 text-base text-white/85 sm:text-xl"
+          className="mt-5 text-base font-semibold text-white/85 sm:text-xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          {mine ? 'Congratulations — you completed a bingo!' : 'has got BINGO!'}
+          {mine ? 'You completed a line!' : 'has got BINGO!'}
         </motion.p>
+
+        {mine && bonusPoints ? (
+          <motion.p
+            className="mt-2 text-2xl font-black tabular-nums sm:text-3xl"
+            style={{ color: accent }}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 1, type: 'spring', stiffness: 240, damping: 12 }}
+          >
+            +{bonusPoints} points
+          </motion.p>
+        ) : null}
       </motion.div>
     </AnimatePresence>
   )

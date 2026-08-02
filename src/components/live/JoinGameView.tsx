@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
+import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import {
@@ -12,7 +13,6 @@ import {
   ParticipantChatOverlay,
   ParticipantExitDialog,
 } from '@/components/live/participant/JoinGameOverlays'
-import { ParticipantBingoNotice } from '@/components/live/participant/ParticipantBingoNotice'
 import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
@@ -1704,10 +1704,22 @@ export function JoinGameView({
       }`}
     >
       <NotificationAccentSync color={accent} />
+      {/* The same celebration the room's screen plays, in its personal form:
+          a winner's own phone had a plain black card with one word on it. */}
       {showWinner && typeof document !== 'undefined'
         ? createPortal(
-            <ParticipantBingoNotice
+            <BingoWinCelebration
               key={winnerTeamId}
+              teamName={team.name ?? 'Your team'}
+              teamColor={team.color}
+              mine
+              bonusPoints={
+                stage?.type === 'bingo' && stage.gameId
+                  ? (parseBingoGameConfig(
+                      games.find((g) => g.id === stage.gameId)?.config,
+                    ).bingo_line_points ?? 100)
+                  : null
+              }
               onDismiss={() => setDismissedWinnerId(winnerTeamId)}
             />,
             document.body,
