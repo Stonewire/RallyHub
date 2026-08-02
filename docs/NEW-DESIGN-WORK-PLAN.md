@@ -615,3 +615,41 @@ Open:
   place pending Rumen's confirmation before deleting.
 - Support tickets show the organisation name now, but the thread still has no
   link through to that client's detail page.
+
+## Platform panel, second pass: 2 Aug 2026 (overnight)
+
+Rumen's correction: the first pass applied the paint, not the layout
+thinking. Redone from the design language outward, verified on screen as
+super admin:
+
+- **Sidebar** — theme-following logo (was ivory forced onto a light sidebar:
+  white on white).
+- **Overview** — the client Overview's exact frame: h1 header, stat tiles
+  left, tall reference panel right (revenue + events by status), recent
+  events in the activity-feed card below.
+- **Clients** — cards carry subdomain, contact email, client-since and the
+  shared status badges.
+- **Client detail** — Client Info is the two-column mirror of the client's
+  own Organisation tab, with visibility chips (Public / Private / RallyHub
+  only). Billing tab deleted: Paddle runs client billing, so plan and
+  account controls live in Client Info. Events tab shows the client's own
+  event cards (facts strip, status badge, grouped sections) and each opens
+  /admin/clients/:clientId/events/:eventId — the client's real event editor
+  rendered read-only inside a disabled fieldset, plus the links panel.
+- **Payments** — split into the work queue (unpaid + Mark paid, left) and
+  reference (totals + settled history behind pills, right).
+- **Promo codes** — the list is the page; creation moved into the New Code
+  modal.
+- **Support** — ticket statuses are the shared full-colour badges
+  (NeoStatusBadge), on both the platform and client screens.
+
+Assumptions taken while Rumen was away:
+
+- "Huddl" in the dictation is Paddle. The Billing tab removal follows from
+  "we don't handle billing for them".
+- The read-only event view hides nothing beyond the danger zone, duplicate,
+  status menu and save: nothing in the event editor is personal. If
+  something in there is later deemed private (facilitator-only solutions are
+  already only in the config), it gets stripped there.
+- Private/Public chips on the client mirror reuse the client's own
+  semantics; controls only RallyHub sees get a neutral "RallyHub only" chip.
