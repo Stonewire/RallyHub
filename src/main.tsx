@@ -14,8 +14,20 @@ import './index.css'
 
 registerServiceWorker()
 
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('fakecam')) {
-  void import('@/lib/dev-fake-camera').then((m) => m.installFakeCamera())
+// Camera stand-in for testing capture flows without a phone.
+//
+// Two locks, because this is code that fabricates camera input. The build-time
+// flag is statically replaced, so a normal production build drops the import
+// and never emits the chunk at all; to exercise a production build locally,
+// run `VITE_CAPTURE_HARNESS=1 npm run build && npm run preview`. The harness
+// then refuses to arm on anything but localhost whatever the query string says.
+if (import.meta.env.DEV || import.meta.env.VITE_CAPTURE_HARNESS === '1') {
+  void import('@/lib/dev-capture-harness').then(
+    ({ captureHarnessRequest, installCaptureHarness }) => {
+      const request = captureHarnessRequest()
+      if (request) void installCaptureHarness(request)
+    },
+  )
 }
 
 createRoot(document.getElementById('root')!).render(

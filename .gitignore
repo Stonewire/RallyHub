@@ -29,3 +29,6 @@ review-assets/
 
 # Downloaded event media pulled down for review. Never commit.
 review-assets/
+
+# Local-only footage for the dev capture harness (?camsrc=/dev-media/...)
+public/dev-media/
