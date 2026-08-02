@@ -1960,16 +1960,17 @@ export function FacilitatorEventPage() {
               ) : null}
             </div>
               ) : stage.type === 'break' ? (
-            <div className="space-y-4">
-              <p className="text-lg">{stage.message}</p>
-              <p className="font-mono text-2xl tabular-nums">{formatBreakTimer(breakDisplay)}</p>
-              <p className="text-muted-foreground text-xs">
-                Start/pause the break timer. Stop freezes the countdown; Reset restores full
-                duration.
+            <div className="space-y-3">
+              {/* What the room is reading, kept. The paragraph explaining what
+                  Start and Stop do is not: the two buttons say it. */}
+              <p className="text-center text-base font-bold text-balance italic">
+                “{stage.message}”
               </p>
-              <div className="flex flex-wrap gap-2">
-                <FacilitatorButton
+              <div className="flex items-center justify-center gap-5">
+                <div className="flex flex-wrap justify-center gap-2">
+                <NeoButton
                   size="sm"
+                  variant="accent"
                   disabled={breakHalted}
                   onClick={() =>
                     void patchState({
@@ -1986,7 +1987,7 @@ export function FacilitatorEventPage() {
                       <Play className="size-4" /> Start
                     </>
                   )}
-                </FacilitatorButton>
+                </NeoButton>
                 <FacilitatorButton
                   size="sm"
                   variant="outline"
@@ -2011,6 +2012,12 @@ export function FacilitatorEventPage() {
                     'Stop'
                   )}
                 </FacilitatorButton>
+                </div>
+                {/* The clock is the thing anyone glances at from across a room,
+                    so it gets the size and the right-hand end of the row. */}
+                <p className="shrink-0 font-mono text-4xl leading-none font-black tabular-nums">
+                  {formatBreakTimer(breakDisplay)}
+                </p>
               </div>
             </div>
               ) : null}
