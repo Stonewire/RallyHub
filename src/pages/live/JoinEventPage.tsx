@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
+import { BrandBackground } from '@/components/live/BrandBackground'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyNotice'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
@@ -336,46 +337,69 @@ export function JoinEventPage() {
   }
 
   return (
-    <LivePanelShell title={event.name} titleCentered className="experience-scope">
+    <BrandBackground
+      event={event}
+      organization={organization}
+      variant="default"
+      className="flex min-h-svh flex-col px-4 pt-4 pb-24 sm:pt-5"
+    >
       <ClientBrandingStyle org={organization} />
-      {/* Team-slot picker (pre-login) is always light mode → always the dark logo. */}
       <PoweredByRallyHub
         hidden={organization?.hide_platform_branding}
         position="bottom-center"
-        theme="dark"
+        theme={displayTextColorForEvent(event) === 'black' ? 'dark' : 'light'}
       />
       <DemoOverlay enabled={isEventDemoStatus(event.status)} />
-      {logo ? (
-        <img src={logo} alt="" className="mx-auto mb-6 max-h-20 object-contain" />
-      ) : null}
-      <div className="mx-auto grid max-w-lg gap-3 sm:grid-cols-2">
-        {joinTeams.map((team) => (
-          <button
-            key={team.id}
-            type="button"
-            disabled={Boolean(team.name?.trim())}
-            className="xp-team-slot border-border/80 bg-card hover:bg-muted/40 flex flex-col items-center gap-2 border p-4 disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={() => {
-              if (!team.name?.trim()) {
-                setClaimSlot(team)
-                setClaimName('')
-                setClaimPhoto(null)
-                setClaimError(null)
-              }
-            }}
-          >
-            <div
-              className="size-10 rounded-full ring-2 ring-border"
-              style={{ background: team.color ?? '#888' }}
-            />
-            {team.photo_url && team.name ? (
-              <img src={team.photo_url} alt={team.name} className="size-12 rounded-full object-cover" />
-            ) : null}
-            <span className="font-medium">
-              {team.name?.trim() || 'Available'}
-            </span>
-          </button>
-        ))}
+      {/* Same header as every other player screen: logo, then the event name. */}
+      <header className="mb-5 flex flex-col items-center gap-1.5 px-2 text-center">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="max-h-14 max-w-[200px] object-contain drop-shadow-md"
+          />
+        ) : null}
+        <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
+      </header>
+      <div className="mx-auto grid w-full max-w-lg gap-3 sm:grid-cols-2">
+        {joinTeams.map((team) => {
+          const taken = Boolean(team.name?.trim())
+          return (
+            <button
+              key={team.id}
+              type="button"
+              disabled={taken}
+              // Same tile as the quest board, so the lobby and the game share
+              // one shape: white card, its colour carried by the avatar ring.
+              className="xp-game-tile xp-interactive flex flex-col items-center justify-center gap-2.5 bg-white p-4 text-black disabled:cursor-not-allowed disabled:opacity-100"
+              onClick={() => {
+                if (!taken) {
+                  setClaimSlot(team)
+                  setClaimName('')
+                  setClaimPhoto(null)
+                  setClaimError(null)
+                }
+              }}
+            >
+              {team.photo_url && taken ? (
+                <img
+                  src={team.photo_url}
+                  alt=""
+                  className="size-14 rounded-full object-cover"
+                  style={{ boxShadow: `0 0 0 4px ${team.color ?? '#888'}` }}
+                />
+              ) : (
+                <div
+                  className="size-14 rounded-full"
+                  style={{ background: team.color ?? '#888' }}
+                />
+              )}
+              <span className="xp-wrap-text text-base font-bold">
+                {team.name?.trim() || 'Available'}
+              </span>
+            </button>
+          )
+        })}
       </div>
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -488,6 +512,6 @@ export function JoinEventPage() {
           }}
         />
       ) : null}
-    </LivePanelShell>
+    </BrandBackground>
   )
 }
