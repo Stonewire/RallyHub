@@ -7,17 +7,17 @@ type QuizResultsPanelProps = {
   entries: QuizLeaderboardEntry[]
   highlightTeamId?: string
   large?: boolean
-  /** The event's own accent, worn by the winning row. */
-  accentColor?: string
 }
 
 /**
- * The podium reads as a ladder of the app's own two surfaces rather than as
- * medals: the winner takes the accent, second and third are brighter panels
+ * The podium reads as a ladder rather than as medals: the winner takes the
+ * same green that marks a right answer, second and third are brighter panels
  * than the rest. Borrowed silver and bronze belonged to no palette here.
  */
+const WINNER_GREEN = '#16A34A'
+
 const PODIUM_ROW: Record<number, string> = {
-  0: 'text-[#1c1917]',
+  0: 'text-white',
   1: 'bg-white/35 text-white',
   2: 'bg-white/22 text-white',
 }
@@ -29,7 +29,6 @@ export function QuizResultsPanel({
   entries,
   highlightTeamId,
   large = false,
-  accentColor = '#FFC107',
 }: QuizResultsPanelProps) {
   const myIndex = entries.findIndex((entry) => entry.team.id === highlightTeamId)
   const myEntry = myIndex >= 0 ? entries[myIndex] : null
@@ -69,7 +68,7 @@ export function QuizResultsPanel({
               className={`xp-results-row flex items-center gap-3 px-4 ${
                 first ? 'py-4 sm:py-5' : 'py-3 sm:py-4'
               } ${podium ?? 'bg-white/12 text-white'} ${mine ? 'ring-2 ring-white' : ''}`}
-              style={first ? { backgroundColor: accentColor } : undefined}
+              style={first ? { backgroundColor: WINNER_GREEN } : undefined}
             >
               {first ? (
                 <Crown className="size-6 shrink-0 fill-current sm:size-7" aria-label="Winner" />

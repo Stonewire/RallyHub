@@ -1440,7 +1440,6 @@ export function JoinGameView({
     if (state.quiz_state === 'results') {
       body = (
         <QuizResultsPanel
-          accentColor={accent}
           title="Your quiz results"
           entries={quizLeaderboard(bundle.teams, submissions, stage.gameId)}
           highlightTeamId={teamId}
