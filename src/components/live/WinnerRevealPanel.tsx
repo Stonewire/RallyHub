@@ -48,16 +48,17 @@ export function WinnerRevealPanel({
         <p className="text-[clamp(1rem,3.5vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
           It is
         </p>
-        <p
-          className="mt-2 text-[clamp(3.5rem,17vw,10rem)] leading-[0.9] font-black drop-shadow-lg"
-          style={{ color: accentColor }}
-        >
+        <p className="mt-2 text-[clamp(3.5rem,17vw,10rem)] leading-[0.9] font-black drop-shadow-lg">
           TIME
         </p>
         <p className="mt-3 text-[clamp(1rem,3.5vw,1.75rem)] leading-tight font-black tracking-[0.22em] uppercase opacity-75">
           to announce the
         </p>
-        <p className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black drop-shadow-lg">
+        {/* The word the room is waiting for wears the event's accent. */}
+        <p
+          className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black drop-shadow-lg"
+          style={{ color: accentColor }}
+        >
           WINNER
         </p>
       </div>
