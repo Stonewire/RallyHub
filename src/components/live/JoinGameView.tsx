@@ -1119,10 +1119,6 @@ export function JoinGameView({
       const locked =
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
-      // The media briefing runs edge to edge (cover image, example video), so
-      // it manages its own width. Everything else stays in a reading column.
-      const fullBleed = !isTextGame(activeOpenGame) && !isPuzzleGame(activeOpenGame)
-
       body = (
         <div className="w-full pt-1">
           {!submitting ? (
@@ -1169,7 +1165,9 @@ export function JoinGameView({
               Event closed — no new submissions
             </p>
           ) : null}
-          <div className={fullBleed ? 'w-full' : 'mx-auto w-full max-w-lg px-3'}>
+          {/* Every challenge screen runs edge to edge and pads its own
+              content, so covers behave the same on all of them. */}
+          <div className="w-full">
           {submitting ? (
             <OpenGameSubmittingScreen accentColor={accent} />
           ) : pending && latestSub ? (

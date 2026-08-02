@@ -39,18 +39,18 @@ export function OpenGameChallengeReview({
         : null
 
   return (
-    <div className="space-y-5 pb-4 text-center">
-      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
+    <div className="pb-4 text-center">
+      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md px-4 line-clamp-3">
         {game.name}
       </h2>
+      {/* Full bleed like the photo and video briefs: the cover owns the width
+          and keeps its own height. */}
       {game.cover_url ? (
-        <img
-          src={game.cover_url}
-          alt=""
-          className="w-full object-cover"
-        />
+        <img src={game.cover_url} alt="" className="mt-4 w-full object-cover" />
       ) : null}
       <ChallengeBrief html={game.description} />
+
+      <div className="mx-auto w-full max-w-lg space-y-5 px-4">
 
       {statusHeading ? (
         <p className="text-base font-semibold" style={{ color: accentColor }}>
@@ -99,6 +99,7 @@ export function OpenGameChallengeReview({
           </p>
         </div>
       ) : null}
+      </div>
     </div>
   )
 }

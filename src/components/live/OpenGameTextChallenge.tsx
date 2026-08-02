@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
-import { ChallengeBrief } from '@/components/live/ChallengeBrief'
+import { ChallengeBrief, CHALLENGE_LABEL_CLASS } from '@/components/live/ChallengeBrief'
 import { textOnAccent } from '@/lib/live-event'
 import { parseTextGameConfig } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
@@ -28,24 +28,21 @@ export function OpenGameTextChallenge({
   const canSubmitChoice = Boolean(selectedId)
 
   return (
-    <div className="space-y-5 pb-4 text-center">
-      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
+    <div className="pb-4 text-center">
+      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md px-4 line-clamp-3">
         {game.name}
       </h2>
+      {/* Full bleed like the photo and video briefs: the cover owns the width
+          and keeps its own height. */}
       {game.cover_url ? (
-        <img
-          src={game.cover_url}
-          alt=""
-          className="w-full object-cover"
-        />
+        <img src={game.cover_url} alt="" className="mt-4 w-full object-cover" />
       ) : null}
       <ChallengeBrief html={game.description} />
 
+      <div className="mx-auto w-full max-w-lg px-4">
       {cfg.mode === 'type_text' ? (
         <div className="space-y-3">
-          <label className="block text-left text-sm font-medium text-white/90">
-            Your answer
-          </label>
+          <label className={`block ${CHALLENGE_LABEL_CLASS}`}>Your answer:</label>
           <input
             type="text"
             value={typed}
@@ -66,7 +63,7 @@ export function OpenGameTextChallenge({
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-white/90">Choose one answer</p>
+          <p className={CHALLENGE_LABEL_CLASS}>Choose one answer:</p>
           <div className="space-y-2">
             {(cfg.options ?? []).map((opt) => {
               const selected = selectedId === opt.id
@@ -103,6 +100,7 @@ export function OpenGameTextChallenge({
           </LiveAccentButton>
         </div>
       )}
+      </div>
     </div>
   )
 }
