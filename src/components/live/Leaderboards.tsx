@@ -11,26 +11,40 @@ type LeaderboardProps = {
 }
 
 /**
- * Columns and label sizing for the orbit grid.
+ * Columns, label sizes and breathing room for the orbit grid, all stepping
+ * down together with the head count.
  *
- * Both scale with the head count: at forty teams the old fixed label sizes
- * overlapped each other and squeezed the tiles to nothing, because only the
- * circle shrank. Columns lean wide because displays are landscape.
+ * `tile` is the share of the row height the circle takes, which is what
+ * reserves space for the labels underneath and the gap to the next row. It
+ * shrinks as the grid fills up, because a dense grid needs proportionally
+ * more of each cell for its text than a sparse one.
  */
 function orbitLayout(teamCount: number) {
-  if (teamCount <= 2) return { cols: 2, maxPx: 220, name: 'text-xl', score: 'text-2xl', rank: 40, gap: 'gap-y-5' }
-  if (teamCount <= 4) return { cols: 2, maxPx: 200, name: 'text-xl', score: 'text-2xl', rank: 38, gap: 'gap-y-5' }
-  if (teamCount <= 6) return { cols: 3, maxPx: 175, name: 'text-lg', score: 'text-xl', rank: 36, gap: 'gap-y-4' }
-  if (teamCount <= 9) return { cols: 3, maxPx: 155, name: 'text-lg', score: 'text-xl', rank: 34, gap: 'gap-y-4' }
-  if (teamCount <= 12) return { cols: 4, maxPx: 140, name: 'text-base', score: 'text-lg', rank: 30, gap: 'gap-y-3' }
-  if (teamCount <= 16) return { cols: 4, maxPx: 125, name: 'text-base', score: 'text-lg', rank: 28, gap: 'gap-y-3' }
-  if (teamCount <= 20) return { cols: 5, maxPx: 112, name: 'text-sm', score: 'text-base', rank: 26, gap: 'gap-y-3' }
-  if (teamCount <= 25) return { cols: 5, maxPx: 100, name: 'text-sm', score: 'text-base', rank: 24, gap: 'gap-y-2' }
-  if (teamCount <= 30) return { cols: 6, maxPx: 92, name: 'text-xs', score: 'text-sm', rank: 22, gap: 'gap-y-2' }
-  if (teamCount <= 36) return { cols: 6, maxPx: 84, name: 'text-xs', score: 'text-sm', rank: 20, gap: 'gap-y-2' }
-  if (teamCount <= 48) return { cols: 8, maxPx: 74, name: 'text-[11px]', score: 'text-xs', rank: 18, gap: 'gap-y-2' }
-  if (teamCount <= 64) return { cols: 9, maxPx: 64, name: 'text-[10px]', score: 'text-[11px]', rank: 16, gap: 'gap-y-1.5' }
-  return { cols: 10, maxPx: 56, name: 'text-[10px]', score: 'text-[10px]', rank: 14, gap: 'gap-y-1.5' }
+  if (teamCount <= 2)
+    return { cols: 2, maxPx: 220, name: 'text-xl', score: 'text-2xl', rank: 40, gapX: 'gap-x-10', gapY: 'gap-y-8', tile: 66, span: 10 }
+  if (teamCount <= 4)
+    return { cols: 2, maxPx: 200, name: 'text-lg', score: 'text-xl', rank: 36, gapX: 'gap-x-10', gapY: 'gap-y-8', tile: 64, span: 10 }
+  if (teamCount <= 6)
+    return { cols: 3, maxPx: 170, name: 'text-lg', score: 'text-xl', rank: 34, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 62, span: 10 }
+  if (teamCount <= 9)
+    return { cols: 3, maxPx: 150, name: 'text-base', score: 'text-lg', rank: 30, gapX: 'gap-x-8', gapY: 'gap-y-7', tile: 60, span: 9 }
+  if (teamCount <= 12)
+    return { cols: 4, maxPx: 132, name: 'text-sm', score: 'text-base', rank: 26, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 58, span: 9 }
+  if (teamCount <= 16)
+    return { cols: 4, maxPx: 118, name: 'text-sm', score: 'text-base', rank: 24, gapX: 'gap-x-7', gapY: 'gap-y-6', tile: 56, span: 8 }
+  if (teamCount <= 20)
+    return { cols: 5, maxPx: 104, name: 'text-xs', score: 'text-sm', rank: 22, gapX: 'gap-x-6', gapY: 'gap-y-5', tile: 54, span: 8 }
+  if (teamCount <= 25)
+    return { cols: 5, maxPx: 94, name: 'text-xs', score: 'text-sm', rank: 20, gapX: 'gap-x-6', gapY: 'gap-y-5', tile: 52, span: 8 }
+  if (teamCount <= 30)
+    return { cols: 6, maxPx: 86, name: 'text-[11px]', score: 'text-xs', rank: 19, gapX: 'gap-x-5', gapY: 'gap-y-4', tile: 50, span: 7 }
+  if (teamCount <= 36)
+    return { cols: 6, maxPx: 78, name: 'text-[11px]', score: 'text-xs', rank: 18, gapX: 'gap-x-5', gapY: 'gap-y-4', tile: 48, span: 7 }
+  if (teamCount <= 48)
+    return { cols: 8, maxPx: 68, name: 'text-[10px]', score: 'text-[11px]', rank: 16, gapX: 'gap-x-4', gapY: 'gap-y-4', tile: 46, span: 6 }
+  if (teamCount <= 64)
+    return { cols: 9, maxPx: 60, name: 'text-[9px]', score: 'text-[10px]', rank: 14, gapX: 'gap-x-3', gapY: 'gap-y-3', tile: 44, span: 6 }
+  return { cols: 10, maxPx: 52, name: 'text-[9px]', score: 'text-[9px]', rank: 13, gapX: 'gap-x-3', gapY: 'gap-y-3', tile: 42, span: 5 }
 }
 
 /**
@@ -51,9 +65,9 @@ function FloatStyles() {
     <style>{`
       @keyframes xp-team-float {
         0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
+        50% { transform: translateY(-3px); }
       }
-      .xp-team-float { animation: xp-team-float 7s ease-in-out infinite; }
+      .xp-team-float { animation: xp-team-float 9s ease-in-out infinite; }
       @media (prefers-reduced-motion: reduce) {
         .xp-team-float { animation: none; }
       }
@@ -97,7 +111,7 @@ export function Leaderboard({
             size: with a logo, title and timer above, fixed tiles overflowed
             and the rank badges were clipped off the top of the screen. */}
         <div
-          className={`grid h-full max-h-full w-full max-w-7xl place-items-center justify-items-center gap-x-4 ${orbit.gap}`}
+          className={`grid h-full max-h-full w-full max-w-7xl place-items-center justify-items-center ${orbit.gapX} ${orbit.gapY}`}
           style={{
             gridTemplateColumns: `repeat(${orbit.cols}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -108,7 +122,9 @@ export function Leaderboard({
             // Relative size still carries standing, but as a share of the row
             // height so it scales with the screen. When scores are hidden the
             // bubbles are uniform, or the size would leak the ranking.
-            const heightPct = showScores ? 72 + scoreRatio * 28 : 86
+            const heightPct = showScores
+              ? orbit.tile + scoreRatio * orbit.span
+              : orbit.tile + orbit.span * 0.5
             const color = team.color ?? '#888'
             return (
               <div
@@ -121,7 +137,7 @@ export function Leaderboard({
                   maxWidth: Math.round(orbit.maxPx * 1.6),
                   // Staggered so the group drifts rather than pulsing in unison.
                   animationDelay: `${(i % 5) * 0.6}s`,
-                  animationDuration: `${6.5 + (i % 3) * 0.8}s`,
+                  animationDuration: `${8.5 + (i % 3) * 1.2}s`,
                 }}
               >
                 <div
