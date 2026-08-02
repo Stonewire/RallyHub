@@ -22,10 +22,10 @@ type Props = {
   steps: DevQuizStep[]
   index: number
   onGo: (index: number) => void
-  onRestartTimer: () => void
+  onReset: () => void
 }
 
-export function DevQuizBar({ steps, index, onGo, onRestartTimer }: Props) {
+export function DevQuizBar({ steps, index, onGo, onReset }: Props) {
   if (typeof document === 'undefined' || steps.length === 0) return null
   const step = steps[Math.min(index, steps.length - 1)]
 
@@ -55,17 +55,10 @@ export function DevQuizBar({ steps, index, onGo, onRestartTimer }: Props) {
       </button>
       <button
         type="button"
-        onClick={onRestartTimer}
+        onClick={onReset}
         className="text-nm-yellow rounded bg-white/15 px-3 py-1 text-xs font-bold"
       >
-        Restart timer
-      </button>
-      <button
-        type="button"
-        onClick={() => onGo(0)}
-        className="rounded bg-white/15 px-3 py-1 text-xs font-bold"
-      >
-        Back to start
+        Reset run
       </button>
     </div>,
     document.body,

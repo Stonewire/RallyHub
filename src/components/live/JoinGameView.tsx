@@ -378,29 +378,37 @@ export function JoinGameView({
     return () => window.clearTimeout(id)
   }, [devBarOn, devSteps, devStep, quizTimerDisplay, quizLocked, goDevStep])
 
-  const restartDevTimer = useCallback(() => {
-    setBundle((b) =>
-      b
-        ? {
-            ...b,
-            state: {
-              ...b.state,
-              quiz_timer_running: false,
-              quiz_timer_seconds: quizTimerSeconds(b.state),
-            },
-          }
-        : b,
-    )
-    // A tick later, so the countdown restarts from the top rather than
-    // carrying on from where it had got to.
-    window.setTimeout(
-      () =>
-        setBundle((b) =>
-          b ? { ...b, state: { ...b.state, quiz_timer_running: true } } : b,
-        ),
-      50,
-    )
-  }, [setBundle])
+  // Clears this team's quiz answers so a run can be reviewed from scratch:
+  // without it every question opens with the previous run's answer already
+  // selected and locked. Scoped to the joined team's own pending answers for
+  // this quiz, which is the one delete a participant is allowed to make.
+  async function resetDevQuiz() {
+    const gameId = stage?.type === 'quiz' ? stage.gameId : null
+    if (gameId) {
+      await supabase
+        .from('submissions')
+        .delete()
+        .eq('event_id', event.id)
+        .eq('team_id', teamId)
+        .eq('game_id', gameId)
+        .eq('status', 'pending')
+      setBundle((b) =>
+        b
+          ? {
+              ...b,
+              submissions: b.submissions.filter(
+                (sub) => !(sub.team_id === teamId && sub.game_id === gameId),
+              ),
+            }
+          : b,
+      )
+    }
+    quizChangeDeadlineRef.current = null
+    setQuizAnswer(null)
+    setQuizChangeLeft(null)
+    setQuizLocked(false)
+    goDevStep(0)
+  }
 
   useEffect(() => {
     // Reset only when the question (or game) changes — NOT on quiz_state
@@ -1762,7 +1770,7 @@ export function JoinGameView({
           steps={devSteps}
           index={devStep}
           onGo={goDevStep}
-          onRestartTimer={restartDevTimer}
+          onReset={() => void resetDevQuiz()}
         />
       ) : null}
       {header}
