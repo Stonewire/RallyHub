@@ -1381,162 +1381,16 @@ export function FacilitatorEventPage() {
         </p>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
-          <Card className="neo-card border-border/80 gap-0 overflow-hidden border bg-card p-0 shadow-sm">
-            <DisplayPreviewFrame displayUrl={displayUrl} />
-          </Card>
-
-          <fieldset
-            disabled={!controlsLive}
-            className="min-w-0 space-y-4 border-0 p-0"
-          >
-          {/* The message is the point, so it gets the full width and the send
-              targets sit under it as one row of buttons rather than a label,
-              a squeezed field and three loose outlines. */}
-          <Card className="neo-card border-border/80 space-y-2.5 bg-card p-4 shadow-sm">
-            <NeoInput
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-              aria-label="Announcement"
-              placeholder="Type your announcement here… clears after 1 minute"
-              className="bg-background w-full"
-            />
-            {/* Same pill track as the stage selector, though each of these
-                sends rather than selects, so none of them stays lit. */}
-            <div className="bg-nm-slate-800 dark:bg-nm-slate-200 grid grid-cols-3 gap-1 rounded-full p-1">
-              {(['display', 'participants', 'both'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  className="hover:bg-nm-yellow rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:text-black disabled:pointer-events-none dark:text-white"
-                  onClick={() => sendAnnouncement(t)}
-                >
-                  {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
-                </button>
-              ))}
-            </div>
-            {state.announcement ? (
-              <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-                <span className="text-muted-foreground line-clamp-2 flex-1">
-                  Live: {state.announcement}
-                </span>
-                <NeoButton
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void clearAnnouncement()}
-                >
-                  <X className="size-4" />
-                  Clear
-                </NeoButton>
-              </div>
-            ) : null}
-          </Card>
-
-          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
-            <ul className="space-y-2">
-              {teams.map((team) => {
-                const claimed = Boolean(team.name?.trim())
-                const prog =
-                  questGames.length > 0 && claimed
-                    ? teamQuestProgress(team.id, questGames, submissions)
-                    : null
-                return (
-                <li
-                  key={team.id}
-                  className="border-border/80 relative flex flex-wrap items-center gap-3 overflow-hidden rounded-lg border p-2"
-                  style={
-                    prog
-                      ? {
-                          background: `linear-gradient(to right, rgba(34,197,94,0.22) ${prog.percent}%, transparent ${prog.percent}%)`,
-                        }
-                      : undefined
-                  }
-                >
-                  <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
-                  <div
-                    className="size-6 shrink-0 rounded-full"
-                    style={{ background: team.color ?? '#888' }}
-                  />
-                  {team.photo_url ? (
-                    <img src={team.photo_url} alt="" className="size-8 rounded-full object-cover" />
-                  ) : null}
-                  <button
-                    type="button"
-                    className="min-w-0 flex-1 text-left text-sm font-medium"
-                    onClick={() => {
-                      setClaimSlot(team)
-                      setClaimName(team.name ?? '')
-                    }}
-                  >
-                    {team.name?.trim() || 'Available'}
-                  </button>
-                  <span className="text-sm tabular-nums">{team.score}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    title={`Reset slot ${team.slot_number}`}
-                    disabled={!controlsLive || !team.name?.trim()}
-                    onClick={() => setResetConfirmTeam(team)}
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
-                    onClick={() => {
-                      setChatTeamId(team.id)
-                      setChatOpen(true)
-                    }}
-                  >
-                    <MessageCircle className="size-4" />
-                  </Button>
-                  {/* Still a control, wearing the status badge the events list
-                      uses so a team's state reads the same way an event's does. */}
-                  <select
-                    className={`neo-status-badge neo-status-badge--${TEAM_STATUS_TONE[team.status] ?? 'draft'} cursor-pointer appearance-none rounded-full border-0 px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase`}
-                    value={team.status}
-                    onChange={(e) =>
-                      void updateTeam(team.id, { status: e.target.value })
-                    }
-                    aria-label="Team status"
-                  >
-                    <option value="idle">Idle</option>
-                    <option value="active">Active</option>
-                    <option value="stopped">Stopped</option>
-                  </select>
-                  {prog ? (
-                    <div className="flex w-full items-center gap-2 pl-6">
-                      <span className="text-muted-foreground text-xs font-medium tabular-nums">
-                        {prog.doneCount}/{prog.total} Quests done
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="ml-auto h-7 px-2 text-xs"
-                        onClick={() => setProgressTeam(team)}
-                      >
-                        View Quests
-                      </Button>
-                    </div>
-                  ) : null}
-                </li>
-                )
-              })}
-            </ul>
-          </Card>
-          </fieldset>
-        </div>
-
-        <fieldset disabled={!controlsLive} className="min-w-0 space-y-4 border-0 p-0">
-          <Card className="neo-card border-border/80 grid gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
+      {/* Top row on its own so the display preview and the control card stretch
+          to a shared height. The preview's height comes from its 16:9 box and
+          the column width, so matching it any other way only holds at one
+          window size. */}
+      <div className="mb-6 grid items-stretch gap-6 lg:grid-cols-2">
+        <Card className="neo-card border-border/80 gap-0 overflow-hidden border bg-card p-0 shadow-sm">
+          <DisplayPreviewFrame displayUrl={displayUrl} />
+        </Card>
+        <fieldset disabled={!controlsLive} className="min-w-0 border-0 p-0">
+          <Card className="neo-card border-border/80 grid h-full content-between gap-4 bg-card p-4 shadow-sm sm:grid-cols-2">
             <div className="flex flex-col items-center gap-2">
               {timerEdit != null ? (
                 // UI-1: type minutes ("45") or mm:ss, then Save.
@@ -1683,7 +1537,6 @@ export function FacilitatorEventPage() {
               {/* Stages sit with the other things that change what the room is
                   looking at, rather than in a card of their own. */}
               <div className="border-border/60 mt-1 space-y-2 border-t pt-3">
-                <p className="text-sm font-bold">Stages</p>
                 <SegmentedPill
                   aria-label="Stage"
                   size="sm"
@@ -1696,7 +1549,155 @@ export function FacilitatorEventPage() {
               </div>
             </div>
           </Card>
+        </fieldset>
+      </div>
 
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <fieldset disabled={!controlsLive} className="min-w-0 space-y-4 border-0 p-0">
+          {/* The message is the point, so it gets the full width and the send
+              targets sit under it as one row of buttons rather than a label,
+              a squeezed field and three loose outlines. */}
+          <Card className="neo-card border-border/80 space-y-2.5 bg-card p-4 shadow-sm">
+            <NeoInput
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+              aria-label="Announcement"
+              placeholder="Type your announcement here… clears after 1 minute"
+              className="bg-background w-full"
+            />
+            {/* Same pill track as the stage selector, though each of these
+                sends rather than selects, so none of them stays lit. */}
+            <div className="bg-nm-slate-800 dark:bg-nm-slate-200 grid grid-cols-3 gap-1 rounded-full p-1">
+              {(['display', 'participants', 'both'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className="hover:bg-nm-yellow rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:text-black disabled:pointer-events-none dark:text-white"
+                  onClick={() => sendAnnouncement(t)}
+                >
+                  {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
+                </button>
+              ))}
+            </div>
+            {state.announcement ? (
+              <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                <span className="text-muted-foreground line-clamp-2 flex-1">
+                  Live: {state.announcement}
+                </span>
+                <NeoButton
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void clearAnnouncement()}
+                >
+                  <X className="size-4" />
+                  Clear
+                </NeoButton>
+              </div>
+            ) : null}
+          </Card>
+
+          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
+            <ul className="space-y-2">
+              {teams.map((team) => {
+                const claimed = Boolean(team.name?.trim())
+                const prog =
+                  questGames.length > 0 && claimed
+                    ? teamQuestProgress(team.id, questGames, submissions)
+                    : null
+                return (
+                <li
+                  key={team.id}
+                  className="border-border/80 relative flex flex-wrap items-center gap-3 overflow-hidden rounded-lg border p-2"
+                  style={
+                    prog
+                      ? {
+                          background: `linear-gradient(to right, rgba(34,197,94,0.22) ${prog.percent}%, transparent ${prog.percent}%)`,
+                        }
+                      : undefined
+                  }
+                >
+                  <span className="text-muted-foreground w-6 text-sm">{team.slot_number}</span>
+                  <div
+                    className="size-6 shrink-0 rounded-full"
+                    style={{ background: team.color ?? '#888' }}
+                  />
+                  {team.photo_url ? (
+                    <img src={team.photo_url} alt="" className="size-8 rounded-full object-cover" />
+                  ) : null}
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 text-left text-sm font-medium"
+                    onClick={() => {
+                      setClaimSlot(team)
+                      setClaimName(team.name ?? '')
+                    }}
+                  >
+                    {team.name?.trim() || 'Available'}
+                  </button>
+                  <span className="text-sm tabular-nums">{team.score}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    title={`Reset slot ${team.slot_number}`}
+                    disabled={!controlsLive || !team.name?.trim()}
+                    onClick={() => setResetConfirmTeam(team)}
+                  >
+                    <RotateCcw className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
+                    onClick={() => {
+                      setChatTeamId(team.id)
+                      setChatOpen(true)
+                    }}
+                  >
+                    <MessageCircle className="size-4" />
+                  </Button>
+                  {/* Still a control, wearing the status badge the events list
+                      uses so a team's state reads the same way an event's does. */}
+                  <select
+                    className={`neo-status-badge neo-status-badge--${TEAM_STATUS_TONE[team.status] ?? 'draft'} cursor-pointer appearance-none rounded-full border-0 px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase`}
+                    value={team.status}
+                    onChange={(e) =>
+                      void updateTeam(team.id, { status: e.target.value })
+                    }
+                    aria-label="Team status"
+                  >
+                    <option value="idle">Idle</option>
+                    <option value="active">Active</option>
+                    <option value="stopped">Stopped</option>
+                  </select>
+                  {prog ? (
+                    <div className="flex w-full items-center gap-2 pl-6">
+                      <span className="text-muted-foreground text-xs font-medium tabular-nums">
+                        {prog.doneCount}/{prog.total} Quests done
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto h-7 px-2 text-xs"
+                        onClick={() => setProgressTeam(team)}
+                      >
+                        View Quests
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+                )
+              })}
+            </ul>
+          </Card>
+        </fieldset>
+
+        <fieldset disabled={!controlsLive} className="min-w-0 space-y-4 border-0 p-0">
           {stateError ? (
             <p className="text-destructive px-1 text-sm">{stateError}</p>
           ) : null}
