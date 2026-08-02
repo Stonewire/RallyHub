@@ -1164,11 +1164,11 @@ export function JoinGameView({
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
       {stage?.type === 'quiz' && stage.gameId ? (
         state.quiz_state === 'results' ? (
-          <p className="rounded-full bg-black/30 px-4 py-1 text-sm font-semibold tabular-nums">
+          <p className="mt-2 text-[clamp(1.5rem,4.6vw,2.5rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-4">
             {quizLeaderboard(bundle.teams, submissions, stage.gameId).find(
               (e) => e.team.id === teamId,
-            )?.quizPoints ?? 0}{' '}
-            quiz pts
+            )?.quizPoints ?? 0}
+            <span className="ml-1.5 text-sm font-bold opacity-70">quiz pts</span>
           </p>
         ) : (
           // One slot, one size, always the same height: the verdict and the
@@ -1440,6 +1440,7 @@ export function JoinGameView({
     if (state.quiz_state === 'results') {
       body = (
         <QuizResultsPanel
+          accentColor={accent}
           title="Your quiz results"
           entries={quizLeaderboard(bundle.teams, submissions, stage.gameId)}
           highlightTeamId={teamId}
