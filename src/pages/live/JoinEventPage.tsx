@@ -27,6 +27,7 @@ import {
   PARTICIPANT_TEAM_KEY,
   logoForEvent,
 } from '@/lib/live-event'
+import { readableTextOn } from '@/lib/hex-color'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { reportClientIssue } from '@/lib/client-diagnostics'
 import { logEventActivity } from '@/lib/event-log'
@@ -525,7 +526,12 @@ export function JoinEventPage() {
                 className="xp-card flex-1 px-4 py-2.5 text-sm font-bold disabled:opacity-50"
                 style={{
                   backgroundColor: accent,
-                  color: displayTextColorForEvent(event),
+                  // Read against the accent this sits on, not against the event
+                  // background. Those are two different surfaces, and using the
+                  // background's colour here put white on the default yellow at
+                  // a contrast of 1.63:1 for every org with a light display
+                  // text colour, on the one button a player has to press.
+                  color: readableTextOn(accent),
                 }}
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void claimTeam()}
