@@ -1809,22 +1809,29 @@ export function FacilitatorEventPage() {
               ) : null}
             </div>
               ) : stage.type === 'bingo' ? (
-            <div className="space-y-4">
-              <p className="text-muted-foreground text-xs">
-                {effectiveBingoRun
-                  ? `Run active · ${bingoPlayOrder.length} songs in script`
-                  : bingoRunQuery.isLoading
+            <div className="space-y-3">
+              {/* The run's song count is already in the progress line below, so
+                  the only thing worth saying up here is when there is no run. */}
+              {!effectiveBingoRun ? (
+                <p className="text-muted-foreground text-xs">
+                  {bingoRunQuery.isLoading
                     ? 'Loading bingo run…'
-                    : 'No bingo run — switch to this stage to activate'}
-              </p>
-              <p className="text-muted-foreground text-sm font-medium tabular-nums">
-                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
-              </p>
-              {track && liveState.bingo_state === 'playing' ? (
-                <p className="font-semibold">
-                  Now playing: {track.title} — {track.artist}
+                    : 'No bingo run. Switch to this stage to activate one.'}
                 </p>
               ) : null}
+              <p className="text-muted-foreground text-center text-xs font-bold tracking-wide uppercase tabular-nums">
+                {bingoSongProgress(bingoPlayIndex, bingoPlayOrder.length)}
+              </p>
+              {/* One fixed line, always rendered. It used to appear only while a
+                  track was playing, so every changeover collapsed the card and
+                  pushed everything below it up and back down again. */}
+              <p className="flex min-h-[2.75rem] items-center justify-center text-center text-base font-bold text-balance">
+                {track && liveState.bingo_state === 'playing'
+                  ? `${track.title} — ${track.artist}`
+                  : liveState.bingo_state === 'ended'
+                    ? 'Run finished'
+                    : 'Cueing the next song…'}
+              </p>
               {showBingoPlayer ? (
                 <BingoClipPlayer
                   ref={bingoAudioRef}
@@ -1840,13 +1847,14 @@ export function FacilitatorEventPage() {
               ) : null}
 
               {liveState.bingo_winner_team_id ? (
-                <div className="rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
-                  🏆 Bingo! <strong>{teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'}</strong> won — game paused. Press Continue to keep playing.
+                <div className="rounded-lg border border-yellow-400 bg-yellow-50 px-3 py-2 text-center text-sm font-bold text-yellow-900">
+                  🏆 Bingo! {teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'} won. Press Continue to keep playing.
                 </div>
               ) : null}
-              <div className="flex flex-wrap gap-2">
-                  <FacilitatorButton
+              <div className="flex flex-wrap justify-center gap-2">
+                  <NeoButton
                     size="sm"
+                    variant="accent"
                     disabled={
                       liveState.bingo_state === 'ended' ||
                       bingoAdvancing ||
@@ -1868,7 +1876,7 @@ export function FacilitatorEventPage() {
                       : liveState.bingo_winner_team_id
                         ? 'Continue'
                         : 'Next Song'}
-                  </FacilitatorButton>
+                  </NeoButton>
               </div>
               {bingoMarkedTeams.length > 0 ? (
                 <div>
@@ -1883,16 +1891,18 @@ export function FacilitatorEventPage() {
                   </ul>
                 </div>
               ) : null}
-              <FacilitatorButton
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (!eventId || !stage.gameId) return
-                  setBingoRestartOpen(true)
-                }}
-              >
-                Restart bingo run
-              </FacilitatorButton>
+              <div className="flex justify-center">
+                <FacilitatorButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!eventId || !stage.gameId) return
+                    setBingoRestartOpen(true)
+                  }}
+                >
+                  Restart bingo run
+                </FacilitatorButton>
+              </div>
               {bingoRestartOpen && stage.gameId && eventId ? (
                 <div
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"

@@ -1,3 +1,4 @@
+import { Pause, Play } from 'lucide-react'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 import { shouldTriggerBingoLockAndReveal } from '@/lib/bingo-playback'
@@ -32,6 +33,11 @@ async function probeUrl(url: string): Promise<void> {
   }
 }
 
+function clipClock(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
+}
+
 function sleep(ms: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 }
@@ -60,6 +66,9 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     const lockRevealTriggeredRef = useRef(false)
     const crossfadeInProgressRef = useRef(false)
     const [activeDeck, setActiveDeck] = useState<'a' | 'b'>('a')
+    const [playing, setPlaying] = useState(false)
+    const [position, setPosition] = useState(0)
+    const [duration, setDuration] = useState(0)
     const onPlaybackErrorRef = useRef(onPlaybackError)
     onAutoAdvanceRef.current = onAutoAdvance
     onLockAndRevealRef.current = onLockAndReveal
@@ -244,27 +253,84 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
           })
         }
       }
+      // The transport reads whichever deck is live, so a crossfade hands the
+      // readout over without it resetting to zero.
+      const sync = () => {
+        setPosition(cur.currentTime)
+        setDuration(Number.isFinite(cur.duration) ? cur.duration : 0)
+        setPlaying(!cur.paused)
+      }
       cur.addEventListener('timeupdate', handleTime)
-      return () => cur.removeEventListener('timeupdate', handleTime)
+      cur.addEventListener('timeupdate', sync)
+      cur.addEventListener('durationchange', sync)
+      cur.addEventListener('play', sync)
+      cur.addEventListener('pause', sync)
+      sync()
+      return () => {
+        cur.removeEventListener('timeupdate', handleTime)
+        cur.removeEventListener('timeupdate', sync)
+        cur.removeEventListener('durationchange', sync)
+        cur.removeEventListener('play', sync)
+        cur.removeEventListener('pause', sync)
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps -- crossfadeTo isn't memoized (recreated every render); adding it would re-attach the timeupdate listener every render instead of only when the track/deck actually changes. Verified live this session.
     }, [nextSrc, crossfadeSeconds, playKey, activeDeck])
 
+    const progress = duration > 0 ? (position / duration) * 100 : 0
+
+    function toggle() {
+      const el = currentAudio()
+      if (!el) return
+      if (el.paused) void playElement(el, 'toggle')
+      else el.pause()
+    }
+
+    function seekTo(seconds: number) {
+      const el = currentAudio()
+      if (!el || !Number.isFinite(el.duration)) return
+      el.currentTime = Math.min(Math.max(0, seconds), el.duration)
+      setPosition(el.currentTime)
+    }
+
     return (
       <div className={className ?? 'w-full'} data-bingo-player="true">
-        <audio
-          ref={audioARef}
-          controls={activeDeck === 'a'}
-          preload="auto"
-          playsInline
-          className={activeDeck === 'a' ? 'w-full' : 'hidden'}
-        />
-        <audio
-          ref={audioBRef}
-          controls={activeDeck === 'b'}
-          preload="auto"
-          playsInline
-          className={activeDeck === 'b' ? 'w-full' : 'hidden'}
-        />
+        {/* Our own transport rather than the browser's pill. No volume slider:
+            the room's speakers are not controlled from this page, and the only
+            things the facilitator does here are play, pause and scrub. */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={playing ? 'Pause' : 'Play'}
+            className="bg-nm-yellow flex size-11 shrink-0 items-center justify-center rounded-full text-black transition-[filter] hover:brightness-105"
+          >
+            {playing ? (
+              <Pause className="size-5 fill-current" />
+            ) : (
+              <Play className="ml-0.5 size-5 fill-current" />
+            )}
+          </button>
+          <div className="min-w-0 flex-1">
+            <input
+              type="range"
+              min={0}
+              max={Math.max(1, Math.floor(duration))}
+              value={Math.floor(position)}
+              onChange={(e) => seekTo(Number(e.target.value))}
+              aria-label="Clip position"
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
+              style={{
+                background: `linear-gradient(to right, var(--nm-yellow) ${progress}%, var(--nm-bg-inset) ${progress}%)`,
+              }}
+            />
+            <div className="text-muted-foreground mt-1 flex justify-between text-[11px] font-semibold tabular-nums">
+              <span>{clipClock(position)}</span>
+              <span>{clipClock(duration)}</span>
+            </div>
+          </div>
+        </div>
+        <audio ref={audioARef} preload="auto" playsInline className="hidden" />
+        <audio ref={audioBRef} preload="auto" playsInline className="hidden" />
       </div>
     )
   },
