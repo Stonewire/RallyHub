@@ -4,7 +4,7 @@ import type { FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
-import { FilterChips } from '@/components/admin/FilterChips'
+import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
@@ -157,11 +157,17 @@ export function RegisterPage() {
 
           <div className="space-y-2.5">
             <NeoLabel>Plan</NeoLabel>
-            {/* Pills rather than a dropdown: every plan is worth seeing, and a
-                closed select hides the choice behind a tap. */}
-            <FilterChips
+            {/* One track with the indicator sliding between the plans, rather
+                than a dropdown that hides two of the three behind a tap. */}
+            <SegmentedPill
               aria-label="Plan"
-              options={PLANS.map((p) => ({ value: p.id, label: p.name }))}
+              // "Pay Per Event" truncated in a third of this card's width. The
+              // segment is shortened rather than the plan renamed: it keeps its
+              // full name in billing, on the pricing page and on the invoice.
+              options={PLANS.map((p) => ({
+                value: p.id,
+                label: p.name === 'Pay Per Event' ? 'Per Event' : p.name,
+              }))}
               value={plan}
               onChange={(next) => setPlan(normalizePlanId(next))}
             />
