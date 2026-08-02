@@ -13,6 +13,26 @@
   "lang": "en-GB",
   "dir": "ltr",
   "categories": ["business", "productivity", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Events",
+      "short_name": "Events",
+      "description": "Your events list",
+      "url": "/admin/events"
+    },
+    {
+      "name": "Games",
+      "short_name": "Games",
+      "description": "Your game library",
+      "url": "/admin/games"
+    },
+    {
+      "name": "Run an event",
+      "short_name": "Facilitate",
+      "description": "The facilitator console",
+      "url": "/facilitator"
+    }
+  ],
   "icons": [
     {
       "src": "/brand/pwa/icon-192.png",

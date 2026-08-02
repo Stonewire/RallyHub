@@ -62,6 +62,31 @@ TARGETS = [
 ]
 
 
+# iOS launch images have to match a device exactly. CSS points and the pixel
+# ratio, not pixels: that is what the media query compares against.
+# (width, height, dpr, what it covers)
+DEVICES = [
+    (320, 568, 2, 'iPhone SE 1st gen'),
+    (375, 667, 2, 'iPhone 8, SE 2nd and 3rd gen'),
+    (414, 736, 3, 'iPhone 8 Plus'),
+    (375, 812, 3, 'iPhone X, XS, 11 Pro, 12 mini, 13 mini'),
+    (390, 844, 3, 'iPhone 12, 13, 14'),
+    (393, 852, 3, 'iPhone 14 Pro, 15, 15 Pro, 16'),
+    (402, 874, 3, 'iPhone 16 Pro'),
+    (414, 896, 2, 'iPhone XR, 11'),
+    (414, 896, 3, 'iPhone XS Max, 11 Pro Max'),
+    (428, 926, 3, 'iPhone 12, 13, 14 Pro Max'),
+    (430, 932, 3, 'iPhone 14 Pro Max, 15 Plus and Pro Max, 16 Plus'),
+    (440, 956, 3, 'iPhone 16 Pro Max'),
+    (768, 1024, 2, 'iPad 9.7 inch'),
+    (810, 1080, 2, 'iPad 10.2 inch'),
+    (820, 1180, 2, 'iPad Air 10.9 inch'),
+    (834, 1112, 2, 'iPad Pro 10.5 inch'),
+    (834, 1194, 2, 'iPad Pro 11 inch'),
+    (1024, 1366, 2, 'iPad Pro 12.9 inch'),
+]
+
+
 def load_mark() -> Image.Image:
     """Render the logo, cut the mark out of it, and repaint it yellow."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -92,34 +117,90 @@ def load_mark() -> Image.Image:
     return mark
 
 
+def fit(mark: Image.Image, box: float) -> Image.Image:
+    """Scale the mark to fit a square box without distorting it."""
+    # resize, not thumbnail: thumbnail only ever shrinks, which silently left
+    # the 512 icons at the mark's own smaller size.
+    ratio = min(box / mark.width, box / mark.height)
+    return mark.resize(
+        (max(1, round(mark.width * ratio)), max(1, round(mark.height * ratio))),
+        Image.LANCZOS,
+    )
+
+
+def compose(mark: Image.Image, width: int, height: int, box: float) -> Image.Image:
+    """The mark centred on an opaque charcoal rectangle."""
+    scaled = fit(mark, box)
+    canvas = Image.new('RGBA', (width, height), (*CHARCOAL, 255))
+    canvas.paste(
+        scaled,
+        ((width - scaled.width) // 2, (height - scaled.height) // 2),
+        scaled,
+    )
+    # Flatten to RGB: no alpha channel at all, so no platform gets to pick its
+    # own backdrop.
+    return canvas.convert('RGB')
+
+
+def build_icons(mark: Image.Image) -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    for name, size, scale in TARGETS:
+        image = compose(mark, size, size, size * scale)
+        image.save(OUT_DIR / name, 'PNG', optimize=True)
+        print(f'{name}: {size}x{size}')
+
+
+def build_splashes(mark: Image.Image) -> None:
+    """
+    iOS launch images, plus the link tags that select them.
+
+    Safari shows a blank white screen while an installed app boots unless it
+    finds an apple-touch-startup-image whose media query matches the device
+    exactly, which is why this is a long list rather than one file: there is no
+    scaling and no fallback. A device with no match simply gets the blank
+    screen it would have had anyway, so the list degrades quietly as Apple ships
+    new sizes.
+    """
+    splash_dir = OUT_DIR / 'splash'
+    splash_dir.mkdir(parents=True, exist_ok=True)
+
+    tags: list[str] = []
+    for css_w, css_h, dpr, label in DEVICES:
+        for orientation in ('portrait', 'landscape'):
+            # The media query is in CSS points and swaps with the orientation;
+            # the file itself is in device pixels.
+            w, h = (css_w, css_h) if orientation == 'portrait' else (css_h, css_w)
+            px_w, px_h = w * dpr, h * dpr
+
+            name = f'{w}x{h}@{dpr}x.png'
+            # A quarter of the short edge: big enough to read on a phone, small
+            # enough that an iPad does not get a billboard.
+            image = compose(mark, px_w, px_h, min(px_w, px_h) * 0.25)
+            image.save(splash_dir / name, 'PNG', optimize=True)
+
+            tags.append(
+                '    <link\n'
+                '      rel="apple-touch-startup-image"\n'
+                f'      media="(device-width: {w}px) and (device-height: {h}px)'
+                f' and (-webkit-device-pixel-ratio: {dpr})'
+                f' and (orientation: {orientation})"\n'
+                f'      href="/brand/pwa/splash/{name}"\n'
+                '    />'
+            )
+        print(f'splash: {label}')
+
+    # Beside the script, not under public/, so a build artefact is not served.
+    fragment = Path(__file__).resolve().parent / 'pwa-splash-link-tags.html'
+    fragment.write_text('\n'.join(tags) + '\n')
+    print(f'\n{len(tags)} link tags written to {fragment.relative_to(ROOT)}')
+    print('Paste them into index.html when this list changes.')
+
+
 def main() -> None:
     mark = load_mark()
     print(f'mark rendered at {mark.width}x{mark.height}')
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    for name, size, scale in TARGETS:
-        box = size * scale
-        # Fit inside the box without distorting: whichever side is longer sets
-        # the scale. resize, not thumbnail, so small canvases shrink and the
-        # 512s are not silently left at the mark's own size.
-        ratio = min(box / mark.width, box / mark.height)
-        scaled = mark.resize(
-            (max(1, round(mark.width * ratio)), max(1, round(mark.height * ratio))),
-            Image.LANCZOS,
-        )
-
-        canvas = Image.new('RGBA', (size, size), (*CHARCOAL, 255))
-        canvas.paste(
-            scaled,
-            ((size - scaled.width) // 2, (size - scaled.height) // 2),
-            scaled,
-        )
-
-        # Flatten to RGB: no alpha channel at all, so no platform gets to pick
-        # its own backdrop.
-        canvas.convert('RGB').save(OUT_DIR / name, 'PNG', optimize=True)
-        print(f'{name}: {size}x{size} (mark {scaled.width}x{scaled.height})')
+    build_icons(mark)
+    build_splashes(mark)
 
 
 if __name__ == '__main__':
