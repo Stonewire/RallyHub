@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { SupportTicketsWorkspace } from '@/components/admin/SupportTicketsWorkspace'
@@ -59,7 +60,13 @@ export function RallyHubSupportPage() {
                     <span className="font-mono">{ticket.ticket_number}</span>
                   ) : null}
                   {ticket.ticket_number ? ' · ' : null}
-                  {labelForOrg(ticket.organization_id)}
+                  {/* Straight through to the client being discussed. */}
+                  <Link
+                    to={`/admin/clients/${ticket.organization_id}`}
+                    className="hover:text-foreground underline underline-offset-2"
+                  >
+                    {labelForOrg(ticket.organization_id)}
+                  </Link>
                 </p>
               </div>
               <select

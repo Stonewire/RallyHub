@@ -653,3 +653,20 @@ Assumptions taken while Rumen was away:
   already only in the config), it gets stripped there.
 - Private/Public chips on the client mirror reuse the client's own
   semantics; controls only RallyHub sees get a neutral "RallyHub only" chip.
+
+## Run notes: 2 Aug 2026, later overnight
+
+- Support thread header now links the organisation name through to that
+  client's detail page (the gap flagged in the first platform pass).
+- Verified /admin/clients/new renders the new two-column mirror correctly in
+  create mode (Brand Identity + Plan & Account + create-mode Admin Login).
+- Tooling, not app: cold loads from a freshly started dev server render a
+  blank page in the embedded preview pane tonight (empty #root, no console
+  errors, vite connected). The production build mounts fine via
+  `npm run preview` on :4173, and the long-lived dev server session worked
+  until it died. So the app is healthy; it looks like a pane/Vite dev
+  interaction. If the blank page appears in a normal browser too, that
+  changes the diagnosis — check there first.
+- Consequence: the support-link change is committed built+linted but not
+  seen on screen, since the super-admin session lived on the dead dev
+  server's origin. One click to verify once signed in again.
