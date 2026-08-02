@@ -1,3 +1,4 @@
+import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { Link } from 'react-router-dom'
 
 import { MarketingFooter } from '@/components/marketing/MarketingFooter'
@@ -23,7 +24,7 @@ export function ContactPage() {
             RallyHub for your team or agency.
           </p>
           <NeoButton variant="accent" asChild>
-            <a href="mailto:hello@rallyhubapp.com">Email hello@rallyhubapp.com</a>
+            <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}`}>Email {RALLYHUB_CONTACT_EMAIL}</a>
           </NeoButton>
           <NeoButton variant="ghost" asChild>
             <Link to="/">Back to home</Link>

@@ -1,3 +1,4 @@
+import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { IconClose } from '@/components/icons'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
@@ -56,14 +57,14 @@ export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModal
                   </NeoButton>
                 ) : plan.priceOnRequest ? (
                   <NeoButton variant="surface" size="sm" className="w-full" asChild>
-                    <a href="mailto:hello@rallyhub.games?subject=Custom%20plan">Contact us</a>
+                    <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}?subject=Custom%20plan`}>Contact us</a>
                   </NeoButton>
                 ) : (
                   // Self-serve switching is gated behind PLAN_CHANGES_ENABLED, so
                   // this points at the person who can do it rather than implying
                   // an upgrade path that is not wired up.
                   <NeoButton variant="surface" size="sm" className="w-full" asChild>
-                    <a href={`mailto:hello@rallyhub.games?subject=Switch%20to%20${encodeURIComponent(plan.name)}`}>
+                    <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}?subject=Switch%20to%20${encodeURIComponent(plan.name)}`}>
                       Ask us to switch
                     </a>
                   </NeoButton>

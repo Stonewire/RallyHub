@@ -1,3 +1,4 @@
+import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { ArrowRight, Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
@@ -8,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { Reveal } from './Reveal'
 
 /** Fallback contact address shown if the submission endpoint errors. */
-const CONTACT_EMAIL = 'hello@rallyhub.games'
+const CONTACT_EMAIL = RALLYHUB_CONTACT_EMAIL
 
 const EVENT_TYPES = [
   'Team building event',
