@@ -357,7 +357,17 @@ export function validateCrosswordWords(
       }
     }
   }
-  if (seen.size !== words.length) return 'Every word must cross at least one other word.'
+  if (seen.size !== words.length) {
+    // The old wording here was "Every word must cross at least one other word",
+    // which describes a weaker rule than the one this actually checks and sent
+    // people hunting for a lone word that was not there. A grid can satisfy
+    // that and still fail: two pairs that cross each other but not each other's
+    // pair are two islands, and this walk only reaches the first.
+    const stranded = words
+      .map((word, index) => (seen.has(index) ? null : word.answer))
+      .filter((answer): answer is string => Boolean(answer))
+    return `The grid is in separate pieces. Every word has to join up into one group, and ${stranded.join(', ')} ${stranded.length === 1 ? 'does' : 'do'} not connect to the rest.`
+  }
   return null
 }
 
