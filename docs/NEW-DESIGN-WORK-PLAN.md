@@ -843,3 +843,60 @@ closed and reopened. That is the right default for a shared device but it is
 friction on a dedicated one, and it is a security decision rather than a design
 one, so it was left alone. Also not built: iOS splash screens, manifest
 screenshots for Chrome's richer desktop install dialog, and app shortcuts.
+
+## Public demo audit, 2 Aug 2026
+
+Rumen's ask: demo.rallyhub.games must behave like a real account, because it is
+what he shows clients. Profiles, organisation, subscriptions and payments, and
+above all creating, activating and running a real event, including going over
+the free team allowance so the charge appears. Only things that genuinely need
+a real account, such as deleting it, may stop, and even those must still be
+visible rather than hidden.
+
+**First finding: the live demo is an old deploy.** demo.rallyhub.games has no
+Billing in its sidebar and none of the new design, so much of what looked
+missing is simply not shipped yet. The audit below was run against this branch,
+pointed at the same demo organisation.
+
+**Working already, verified by using it:** activating an event with 8 teams
+priced correctly at €129 on Pro including €30 for 3 extra teams, the invoice
+landing in Billing as paid, an unpaid invoice with Pay now, a subscription
+change from Pro to Starter with a full prorated preview and the plan actually
+changing, creating an event from scratch and activating it for €99, the
+facilitator console running it, a participant claiming a team and submitting to
+a challenge, the Games library with import, groups and all six types, and
+Support with no field disabled. The manual reset restores the organisation, the
+plan and the event statuses and restarts the 30 minute clock, so resetting
+before a demonstration does protect it.
+
+**Fixed here.**
+1. My Account was a hardcoded "John Doe" with every field, the photo upload and
+   the password form disabled and the Danger Zone hidden. The shared-login
+   reason over-blocks: the demo signs in by magic link, not password, and
+   resets every 30 minutes. Now the real profile, saving for real, with the
+   email held back because demo-session looks the account up by it, and account
+   deletion stopped in the handler rather than hidden.
+2. Organisation settings could not be saved at all. The seeded tablet code
+   `northstar-demo` predates the 1-10 character rule, so every save failed with
+   an error about a field the user had not touched. Now validated only when the
+   save changes it, which also unblocks any real client with a legacy code.
+3. Profile edits outlived the reset once they became editable. Added
+   `reset_demo_profile`, called from demo-reset, tolerant of the migration not
+   being applied yet.
+
+**Left alone deliberately, for Rumen to overrule.**
+- Data export stays stopped. It is a `select('*')` on the organisation, so the
+  zip would hand out the tablet password in plain text, on a public link. The
+  button and its explanation still show.
+- Support tickets raised on the demo are deleted by the next reset. Fine for a
+  demonstration, but a prospect who genuinely writes in is never seen. Pointing
+  demo support at the contact form instead would be a product decision.
+- The demo reset confirmation is a `window.confirm`, the only native dialog
+  left in a redesigned app.
+
+**Separate from the demo, found on the way.** Free-text games render the custom
+on-screen keyboard rather than the device keyboard, against the rule Rumen set
+when the puzzle input was built: on-screen for Wordle and Crossword, device
+keyboard for text games. Typing a paragraph answer such as "Write a compact
+organisation plan" on a tapped QWERTY grid is the case that rule existed to
+avoid. Not changed, because it may have been decided since.
