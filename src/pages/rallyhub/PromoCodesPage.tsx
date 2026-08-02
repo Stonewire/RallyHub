@@ -3,8 +3,8 @@ import {
   IconEdit,
   IconTrash,
 } from '@/components/icons'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Card } from '@/components/ui/card'
@@ -63,6 +63,16 @@ export function RallyHubPromoCodesPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [createOpen, setCreateOpen] = useState(false)
   const redemptionsQuery = useAllPromoRedemptions()
+  // The header's New Code lands here with ?new=1; open the modal and eat the
+  // param so refresh and back do not reopen it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to URL state arriving from the header link, not derivable at render time
+      setCreateOpen(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null)
   const [editForm, setEditForm] = useState({ discountPercent: '', durationMonths: '1', maxRedemptions: '', notes: '' })
   const [deletingCode, setDeletingCode] = useState<PromoCode | null>(null)
