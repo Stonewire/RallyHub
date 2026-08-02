@@ -12,6 +12,11 @@ import type { DevQuizStep } from '@/lib/dev-quiz-steps'
  * one.
  *
  * Never reaches production: the caller is behind `import.meta.env.DEV`.
+ *
+ * One wrinkle worth knowing: correct answers are stripped from the live
+ * payload until the event itself reaches that question, so a reveal step can
+ * only colour the right answer green if the stored quiz state is parked at or
+ * past it. Leaving the throwaway event on 'results' is enough.
  */
 type Props = {
   steps: DevQuizStep[]

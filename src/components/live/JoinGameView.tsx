@@ -15,6 +15,7 @@ import {
 import { ParticipantBingoNotice } from '@/components/live/participant/ParticipantBingoNotice'
 import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
+import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
 import { DevQuizBar } from '@/components/live/DevQuizBar'
 import { devQuizSteps } from '@/lib/dev-quiz-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
@@ -310,6 +311,22 @@ export function JoinGameView({
     : null
   const quizQs = useMemo(() => (quizGame ? quizQuestions(quizGame) : []), [quizGame])
   const currentQuizQ = quizQs[state.current_question_index]
+
+  // The correct answer is redacted from the live game payload and arrives on
+  // event_state at reveal time; the question's own field is only populated in
+  // the editor's preview.
+  const quizCorrectAnswerId =
+    state.quiz_correct_answer_id ?? currentQuizQ?.correctAnswerId ?? null
+  const quizMyAnswerId =
+    (currentQuizQ
+      ? mySubs.find(
+          (s) =>
+            s.media_type === quizSubmissionMediaType(currentQuizQ.id) &&
+            s.game_id === stage?.gameId,
+        )?.media_url
+      : null) ?? quizAnswer
+  const quizWasCorrect =
+    Boolean(quizCorrectAnswerId) && quizMyAnswerId === quizCorrectAnswerId
 
   // Development-only quiz driver (?devbar=1); see DevQuizBar.
   const devBarOn =
@@ -1090,6 +1107,30 @@ export function JoinGameView({
             )?.quizPoints ?? 0}{' '}
             quiz pts
           </p>
+        ) : state.quiz_state === 'revealed' ? (
+          // The reveal happens on the question itself, so this slot carries
+          // the verdict rather than a dead countdown.
+          <p
+            className={`mt-2 text-[clamp(1.6rem,5vw,2.75rem)] leading-none font-black drop-shadow-lg sm:mt-4 ${
+              quizWasCorrect ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {quizWasCorrect ? 'Correct!' : quizMyAnswerId ? 'Incorrect' : 'Time up'}
+          </p>
+        ) : state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked ? (
+          // While the change window runs it replaces the countdown: it is the
+          // only clock that still matters to a team that has answered.
+          <span className="mt-2 flex flex-col items-center sm:mt-4">
+            <span className="text-[11px] font-black tracking-[0.22em] uppercase opacity-70">
+              Change answer
+            </span>
+            <span
+              className="text-[clamp(1.9rem,6vw,3.25rem)] leading-none font-black tabular-nums drop-shadow-lg"
+              style={{ color: accent }}
+            >
+              {quizChangeLeft}s
+            </span>
+          </span>
         ) : state.quiz_state === 'active' && quizRunning ? (
           // The countdown is the loudest thing on the screen while a question
           // is open, so it carries no chip and stands at full size.
@@ -1317,13 +1358,6 @@ export function JoinGameView({
   } else if (stage?.type === 'quiz' && stage.gameId) {
     const game = quizGame
     const q = currentQuizQ
-    const existing = q
-      ? mySubs.find(
-          (s) =>
-            s.media_type === quizSubmissionMediaType(q.id) &&
-            s.game_id === stage.gameId,
-        )
-      : undefined
     const maxSec = (game?.config as GameConfig)?.timer_seconds ?? 20
     const timerPct =
       maxSec > 0
@@ -1392,50 +1426,7 @@ export function JoinGameView({
           </p>
         </div>
       )
-    } else if (state.quiz_state === 'revealed' && q) {
-      // correctAnswerId is redacted from the live game bundle; the facilitator
-      // broadcasts it via event_state.quiz_correct_answer_id at reveal time.
-      const correctAnswerId = state.quiz_correct_answer_id
-      const answerKnown = Boolean(correctAnswerId)
-      const myAnswerId = existing?.media_url ?? quizAnswer
-      const ok = answerKnown && myAnswerId === correctAnswerId
-      body = (
-        <div className="mx-auto max-w-lg px-4">
-          {answerKnown ? (
-            <p className={`mb-4 text-center text-lg font-bold ${ok ? 'text-green-400' : 'text-red-400'}`}>
-              {ok ? 'Correct!' : 'Incorrect'}
-            </p>
-          ) : (
-            <p className="mb-4 text-center text-lg font-bold text-white/80">
-              Answer locked in — revealing…
-            </p>
-          )}
-          <div className="space-y-2">
-            {q.answers.map((a) => {
-              const isCorrect = answerKnown && a.id === correctAnswerId
-              const isMine = a.id === myAnswerId
-              let cls = 'xp-quiz-option rounded-xl px-4 py-3 text-sm font-medium '
-              let style: CSSProperties | undefined
-              if (isCorrect) {
-                cls += 'bg-green-600/80 ring-2 ring-green-300'
-              } else if (answerKnown && isMine && !isCorrect) {
-                cls += 'bg-red-600/70'
-              } else if (isMine) {
-                cls += 'ring-2 ring-white/40'
-                style = { backgroundColor: STANDBY_ACCENT, color: textOnAccent(STANDBY_ACCENT) }
-              } else {
-                cls += 'bg-white/15'
-              }
-              return (
-                <div key={a.id} className={cls} style={style}>
-                  {a.text}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )
-    } else if (q && state.quiz_state === 'active') {
+    } else if (q && (state.quiz_state === 'active' || state.quiz_state === 'revealed')) {
       body = (
         // The answers sit at the bottom of the screen: on a tablet held in two
         // hands that is where the thumbs already are, and the question above
@@ -1450,15 +1441,17 @@ export function JoinGameView({
           <h2 className="shrink-0 text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance">
             {q.text}
           </h2>
-          {/* The gap above the answers is where a photo, video or audio player
-              will sit; it gives way before the answers do. */}
-          <div className="min-h-4 flex-1" />
+          {/* Whatever the question carries goes in the room between it and the
+              answers, and gives way before the answers do. */}
+          <div className="flex min-h-4 flex-1 items-center justify-center py-3">
+            <QuizQuestionMedia question={q} accentColor={accent} />
+          </div>
           <div className="shrink-0 space-y-2.5 sm:space-y-3">
             {q.answers.map((a) => {
-              const selected = quizAnswer === a.id
+              const selected = (quizMyAnswerId ?? quizAnswer) === a.id
               const faded = quizLocked && !selected
               const revealed = state.quiz_state === 'revealed'
-              const isCorrect = a.id === q.correctAnswerId
+              const isCorrect = a.id === quizCorrectAnswerId
               let cls =
                 'xp-quiz-option w-full px-5 py-4 text-left text-base font-bold transition-colors sm:py-5 md:text-lg '
               let style: CSSProperties | undefined
@@ -1484,7 +1477,7 @@ export function JoinGameView({
                 <button
                   key={a.id}
                   type="button"
-                  disabled={quizLocked}
+                  disabled={quizLocked || revealed}
                   className={cls}
                   style={style}
                   onClick={() => void submitQuizAnswer(a.id, stage.gameId!, q.id)}
@@ -1494,22 +1487,6 @@ export function JoinGameView({
               )
             })}
           </div>
-          {quizChangeLeft != null && !quizLocked ? (
-            <div
-              className="xp-glass-panel mt-4 rounded-xl px-4 py-3 text-center"
-              style={{ backgroundColor: `${accent}33` }}
-            >
-              <p className="text-xs font-medium uppercase tracking-wide text-white/80">
-                Change answer
-              </p>
-              <p
-                className="font-mono text-3xl font-bold tabular-nums"
-                style={{ color: accent }}
-              >
-                {quizChangeLeft}s
-              </p>
-            </div>
-          ) : null}
         </div>
       )
     } else {
