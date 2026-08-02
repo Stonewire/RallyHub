@@ -71,27 +71,31 @@ export function Leaderboard({
 
   if (layout === 'orbit_view') {
     const maxScore = Math.max(1, ...ranked.map((t) => t.score))
+    const rows = Math.ceil(ranked.length / orbit.cols)
     return (
-      <div className="flex min-h-[50vh] flex-1 items-center justify-center px-8 py-10">
+      <div className="flex h-full min-h-0 w-full items-center justify-center px-8 py-4">
         <FloatStyles />
+        {/* Rows share the available height rather than taking a fixed pixel
+            size: with a logo, title and timer above, fixed tiles overflowed
+            and the rank badges were clipped off the top of the screen. */}
         <div
-          className="grid w-full max-w-6xl place-items-center justify-items-center gap-x-8 gap-y-12"
+          className="grid h-full max-h-full w-full max-w-6xl place-items-center justify-items-center gap-x-8 gap-y-4"
           style={{
             gridTemplateColumns: `repeat(${orbit.cols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           }}
         >
           {ranked.map((team, i) => {
             const scoreRatio = team.score / maxScore
-            // When scores are hidden, render uniform bubbles so the size does not
-            // reveal standings — only the numeric score is gated by showScores.
-            const size = showScores
-              ? Math.round(orbit.maxPx * (0.72 + scoreRatio * 0.28))
-              : Math.round(orbit.maxPx * 0.86)
+            // Relative size still carries standing, but as a share of the row
+            // height so it scales with the screen. When scores are hidden the
+            // bubbles are uniform, or the size would leak the ranking.
+            const heightPct = showScores ? 72 + scoreRatio * 28 : 86
             const color = team.color ?? '#888'
             return (
               <div
                 key={team.id}
-                className={`xp-team-float flex w-full flex-col items-center gap-3 ${textClass}`}
+                className={`xp-team-float flex h-full min-h-0 w-full flex-col items-center justify-center gap-2 ${textClass}`}
                 style={{
                   // Wider than the tile on purpose: a team name needs more room
                   // than its photo, and truncating names was the first thing
@@ -102,7 +106,10 @@ export function Leaderboard({
                   animationDuration: `${6.5 + (i % 3) * 0.8}s`,
                 }}
               >
-                <div className="relative shrink-0" style={{ width: size, height: size }}>
+                <div
+                  className="relative aspect-square min-h-0 shrink"
+                  style={{ height: `${heightPct}%`, maxWidth: '100%' }}
+                >
                   <div
                     className="xp-team-tile relative flex size-full items-center justify-center rounded-full"
                     style={{
@@ -115,8 +122,6 @@ export function Leaderboard({
                       <img
                         src={team.photo_url}
                         alt=""
-                        width={size}
-                        height={size}
                         className="size-full rounded-full object-cover"
                       />
                     ) : (
@@ -136,13 +141,13 @@ export function Leaderboard({
                 </div>
 
                 <span
-                  className={`max-w-full rounded-full px-3.5 py-1 text-center text-lg leading-tight font-bold break-words ${badge}`}
+                  className={`max-w-full shrink-0 rounded-full px-3.5 py-1 text-center text-lg leading-tight font-bold break-words ${badge}`}
                 >
                   {team.name}
                 </span>
                 {showScores ? (
                   <span
-                    className={`rounded-full px-3 py-0.5 text-xl font-black tabular-nums ${badge}`}
+                    className={`shrink-0 rounded-full px-3 py-0.5 text-xl font-black tabular-nums ${badge}`}
                   >
                     {team.score}
                   </span>
