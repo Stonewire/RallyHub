@@ -4,6 +4,7 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { ChallengeBrief, CHALLENGE_LABEL_CLASS } from '@/components/live/ChallengeBrief'
 import {
   StickyChallengeAction,
+  CHALLENGE_ACTION_CLASS,
   STICKY_ACTION_SPACER,
 } from '@/components/live/StickyChallengeAction'
 import { textOnAccent } from '@/lib/live-event'
@@ -42,7 +43,9 @@ export function OpenGameTextChallenge({
   const canSubmitChoice = Boolean(selectedId)
 
   return (
-    <div className={`text-center ${STICKY_ACTION_SPACER}`}>
+    <div
+      className={`text-center ${cfg.mode === 'type_text' ? 'pb-10' : STICKY_ACTION_SPACER}`}
+    >
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md px-4 line-clamp-3">
         {game.name}
       </h2>
@@ -78,16 +81,16 @@ export function OpenGameTextChallenge({
             placeholder="Type your answer…"
             onChange={(e) => setTyped(e.target.value)}
           />
-          <StickyChallengeAction>
-            <LiveAccentButton
-              type="submit"
-              className="mx-auto w-full max-w-sm py-4 text-base"
-              accentColor={accentColor}
-              disabled={disabled || !canSubmitTyped}
-            >
-              Submit answer
-            </LiveAccentButton>
-          </StickyChallengeAction>
+          {/* Not pinned: the device keyboard is open on this screen and would
+              sit over a pinned button. The keyboard's own send key submits. */}
+          <LiveAccentButton
+            type="submit"
+            className={CHALLENGE_ACTION_CLASS}
+            accentColor={accentColor}
+            disabled={disabled || !canSubmitTyped}
+          >
+            Submit answer
+          </LiveAccentButton>
         </form>
       ) : (
         <div className="space-y-3">
@@ -118,7 +121,7 @@ export function OpenGameTextChallenge({
           <StickyChallengeAction>
             <LiveAccentButton
               type="button"
-              className="mx-auto w-full max-w-sm py-4 text-base"
+              className={CHALLENGE_ACTION_CLASS}
               accentColor={accentColor}
               disabled={disabled || !canSubmitChoice}
               onClick={() => {

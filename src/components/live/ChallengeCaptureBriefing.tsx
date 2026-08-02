@@ -5,6 +5,7 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 import {
   StickyChallengeAction,
+  CHALLENGE_ACTION_CLASS,
   STICKY_ACTION_SPACER,
 } from '@/components/live/StickyChallengeAction'
 
@@ -92,7 +93,7 @@ export function ChallengeCaptureBriefing({
       <StickyChallengeAction>
         <LiveAccentButton
           type="button"
-          className="mx-auto w-full max-w-sm gap-2 px-6 py-5 text-base"
+          className={CHALLENGE_ACTION_CLASS}
           accentColor={accentColor}
           disabled={disabled}
           onClick={onStart}
