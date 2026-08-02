@@ -272,6 +272,34 @@
     transform: translateY(0);
   }
 
+  /* ─── Photo drop: a field you tap rather than type into, so it wears the
+     field's inset surface and dashed edge instead of a button's fill. ─── */
+  .neo-minimal-scope .neo-photo-drop {
+    background: var(--nm-bg-muted);
+    border: 2px dashed var(--nm-border-strong);
+    color: var(--nm-text-secondary);
+    transition:
+      border-color var(--nm-transition),
+      background-color var(--nm-transition);
+  }
+
+  /* A field that opens already focused. The scope's own focus style is
+     focus-visible, which a programmatic focus never triggers, so the box
+     would look untouched while the keyboard was up. Applied by the component
+     from its own focus state rather than by :focus. */
+  .neo-minimal-scope .neo-field.neo-field-lit {
+    border-color: color-mix(in srgb, var(--nm-yellow) 50%, var(--nm-border-strong));
+    box-shadow:
+      var(--nm-shadow-soft),
+      0 0 0 3px color-mix(in srgb, var(--nm-yellow) 25%, transparent);
+    outline: none;
+  }
+
+  .neo-minimal-scope .neo-photo-drop:hover {
+    border-color: var(--nm-yellow);
+    background: var(--nm-bg-inset);
+  }
+
   /* ─── Buttons (scoped to RallyHub admin) ─── */
   .neo-minimal-scope .neo-btn {
     display: inline-flex;

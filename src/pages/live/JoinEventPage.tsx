@@ -2,7 +2,6 @@ import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
-import { AccentButton } from '@/components/admin/AccentButton'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyNotice'
@@ -11,10 +10,8 @@ import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { NeoButton } from '@/components/neo-minimal/NeoButton'
+import { NeoInput, NeoLabel } from '@/components/neo-minimal/NeoFormFields'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import {
@@ -82,6 +79,7 @@ export function JoinEventPage() {
   )
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
+  const [nameFocused, setNameFocused] = useState(true)
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -402,22 +400,26 @@ export function JoinEventPage() {
         })}
       </div>
       {claimSlot ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="xp-card border-border/80 max-h-[90dvh] w-full max-w-sm overflow-y-auto space-y-4 bg-card p-6 shadow-lg">
-            <h3 className="text-foreground font-semibold">
-              Join team {claimSlot.slot_number}
-            </h3>
+        <div className="neo-minimal-scope fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="neo-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto p-6">
             <div className="space-y-2">
-              <Label htmlFor="team-name">Team name</Label>
-              <Input
+              <NeoLabel htmlFor="team-name">Team name</NeoLabel>
+              <NeoInput
                 id="team-name"
+                // Opens ready to type, so the keyboard is one tap closer. The
+                // lit state is tracked here rather than left to :focus-visible,
+                // which a programmatic focus never triggers — the field has to
+                // look live even though nobody tapped it.
+                autoFocus
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+                className={nameFocused ? 'neo-field-lit' : undefined}
+                placeholder="Your team name"
                 value={claimName}
                 onChange={(e) => setClaimName(e.target.value)}
-                className="bg-background"
               />
             </div>
             <div className="space-y-2">
-              <Label>Photo (optional)</Label>
               <input
                 ref={photoInputRef}
                 type="file"
@@ -442,10 +444,11 @@ export function JoinEventPage() {
                   )
                 }}
               />
-              <Button
+              {/* The photo is the picture itself: tap the circle to shoot it,
+                  and once taken the circle becomes the preview. */}
+              <button
                 type="button"
-                variant="outline"
-                className="w-full"
+                className="neo-photo-drop mx-auto flex size-28 flex-col items-center justify-center gap-1 overflow-hidden rounded-full"
                 onClick={() => {
                   // iOS opens its native camera (excellent); everywhere else the
                   // in-app camera, because tablet browsers turn the camera-input
@@ -457,45 +460,47 @@ export function JoinEventPage() {
                   }
                   setJoinCameraOpen(true)
                 }}
+                aria-label={photoPreview ? 'Retake team photo' : 'Take team photo'}
               >
-                <Camera className="size-4" />
-                Take Photo
-              </Button>
+                {photoPreview ? (
+                  <img src={photoPreview} alt="" className="size-full object-cover" />
+                ) : (
+                  <>
+                    <Camera className="size-8" strokeWidth={1.75} />
+                    <span className="text-xs font-semibold">Team photo</span>
+                  </>
+                )}
+              </button>
               {!shouldUseNativePhotoCapture() ? (
                 <button
                   type="button"
-                  className="text-muted-foreground w-full text-center text-xs underline"
+                  className="w-full text-center text-xs underline"
+                  style={{ color: 'var(--nm-text-secondary)' }}
                   onClick={() => photoInputRef.current?.click()}
                 >
                   Or upload a photo
                 </button>
               ) : null}
-              {photoPreview ? (
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="border-border/80 mx-auto max-h-40 rounded-lg border object-contain"
-                />
-              ) : null}
             </div>
             {claimError ? (
-              <p className="text-destructive text-sm" role="alert">
+              <p className="text-sm text-red-600" role="alert">
                 {claimError}
               </p>
             ) : null}
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setClaimSlot(null)}>
+              <NeoButton variant="surface" className="flex-1" onClick={() => setClaimSlot(null)}>
                 Cancel
-              </Button>
-              <AccentButton
+              </NeoButton>
+              <NeoButton
+                variant="accent"
                 className="flex-1"
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void claimTeam()}
               >
                 {uploading ? 'Joining…' : 'Join'}
-              </AccentButton>
+              </NeoButton>
             </div>
-          </Card>
+          </div>
         </div>
       ) : null}
 
