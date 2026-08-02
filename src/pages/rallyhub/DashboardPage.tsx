@@ -1,26 +1,34 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-import { IconBilling, IconBolt, IconEvents, IconLive, IconOrganisation } from '@/components/icons'
-
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { AdminPageShell } from '@/components/layout/AdminPageShell'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NeoButton } from '@/components/neo-minimal'
-import { StatusIndicator, type RallyStatusTone } from '@/components/ui/status-indicator'
+import { NeoCard, NeoStatusBadge, type NeoStatusBadgeTone } from '@/components/neo-minimal'
 import { useExpireOverdueTrials, useRallyHubDashboard } from '@/hooks/use-rallyhub'
 import { formatEur } from '@/lib/subscription-plans'
 
 const STATUS_ORDER = ['active', 'ready', 'demo', 'draft', 'archived'] as const
 
-function formatEventDate(iso: string | null) {
+function relativeTime(iso: string | null): string {
   if (!iso) return 'Date not set'
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(iso))
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const minutes = Math.round((Date.now() - then) / 60000)
+  if (Math.abs(minutes) < 60) {
+    if (minutes < 1 && minutes > -1) return 'now'
+    return minutes > 0 ? `${minutes}m ago` : `in ${-minutes}m`
+  }
+  const hours = Math.round(minutes / 60)
+  if (Math.abs(hours) < 24) return hours > 0 ? `${hours}h ago` : `in ${-hours}h`
+  const days = Math.round(hours / 24)
+  if (Math.abs(days) < 30) return days > 0 ? `${days}d ago` : `in ${-days}d`
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+/**
+ * Platform overview, laid out exactly like the client Overview: stat tiles on
+ * the left, the tall reference panel on the right, activity underneath. Same
+ * grid, same cards, different facts.
+ */
 export function RallyHubOverviewPage() {
   const { data, isLoading, isError, error } = useRallyHubDashboard()
   const expireTrials = useExpireOverdueTrials()
@@ -32,133 +40,140 @@ export function RallyHubOverviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const stats = [
+    { label: 'Clients', value: data?.clientCount, to: '/admin/clients' },
+    { label: 'Live Now', value: data?.activeEvents },
+    { label: 'Upcoming Events', value: data?.upcomingEvents },
+    { label: 'Total Events', value: data?.totalEvents },
+  ]
+
   return (
-    <AdminPageShell
-      title="Dashboard"
-      subtitle="Platform-wide overview for RallyHub super admins."
-      actions={
-        <NeoButton variant="surface" asChild>
-          <Link to="/admin/clients">View clients</Link>
-        </NeoButton>
-      }
-    >
+    <div className="px-6 py-8 lg:px-8">
+      <h1 className="mb-1 text-3xl font-bold">Overview</h1>
+      <p className="text-nm-neutral-500 mb-6 text-sm">
+        Welcome back. Here's what's happening across RallyHub today.
+      </p>
+
       {isLoading ? (
         <QueryLoading rows={4} />
       ) : isError ? (
         <QueryError message={error?.message} />
       ) : (
-        <div className="space-y-8">
-          {/* Same stat card as the client dashboard: label and icon on one
-              row, the number underneath. */}
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="Clients" value={data?.clientCount ?? 0} icon={IconOrganisation} />
-            <StatTile label="Active events" value={data?.activeEvents ?? 0} icon={IconLive} />
-            <StatTile label="Upcoming events" value={data?.upcomingEvents ?? 0} icon={IconEvents} />
-            <StatTile label="Total events" value={data?.totalEvents ?? 0} icon={IconBolt} />
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-foreground text-xl font-semibold tracking-tight">Revenue</h2>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatTile
-                label="Outstanding"
-                value={formatEur(data?.revenue.outstanding ?? 0)}
-                hint="Unpaid event invoices"
-                icon={IconBilling}
-              />
-              <StatTile
-                label="Collected"
-                value={formatEur(data?.revenue.collected ?? 0)}
-                hint="Paid event invoices"
-                icon={IconBilling}
-              />
+        <div className="grid gap-4 xl:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_minmax(0,2.2fr)]">
+          {stats.map((stat) => (
+            <div key={stat.label} className="xl:col-span-1">
+              <PlatformStatCard label={stat.label} value={stat.value} to={stat.to} />
             </div>
-          </section>
+          ))}
 
-          <section className="space-y-3">
-            <h2 className="text-foreground text-xl font-semibold tracking-tight">
-              Events by status
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {STATUS_ORDER.map((status) => {
-                const count = data?.statusBreakdown?.[status] ?? 0
-                return (
-                  <span
-                    key={status}
-                    className="border-border/80 bg-card text-muted-foreground flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium capitalize shadow-sm"
-                  >
-                    {/* The indicator prints the label itself; printing it
-                        again beside it is where "Ready Ready" comes from. */}
-                    <StatusIndicator status={status} />
-                    <span className="text-foreground font-bold tabular-nums">{count}</span>
-                  </span>
-                )
-              })}
-            </div>
-          </section>
+          {/* Reference, not interaction: money owed and where events stand. */}
+          <div className="xl:col-start-3 xl:row-span-2 xl:row-start-1">
+            <NeoCard className="flex h-full flex-col p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-bold whitespace-nowrap">Revenue</h2>
+                <Link
+                  to="/admin/payments"
+                  className="text-nm-neutral-500 shrink-0 text-xs hover:underline"
+                >
+                  View Payments
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-nm-neutral-500 mb-1 text-[10px] font-semibold tracking-wider uppercase">
+                    Outstanding
+                  </p>
+                  <p className="text-3xl font-bold tabular-nums">
+                    {formatEur(data?.revenue.outstanding ?? 0)}
+                  </p>
+                  <p className="text-nm-neutral-500 mt-1 text-xs">Unpaid event invoices</p>
+                </div>
+                <div>
+                  <p className="text-nm-neutral-500 mb-1 text-[10px] font-semibold tracking-wider uppercase">
+                    Collected
+                  </p>
+                  <p className="text-3xl font-bold tabular-nums">
+                    {formatEur(data?.revenue.collected ?? 0)}
+                  </p>
+                  <p className="text-nm-neutral-500 mt-1 text-xs">Paid event invoices</p>
+                </div>
+              </div>
 
-          <section className="space-y-3">
-            <h2 className="text-foreground text-xl font-semibold tracking-tight">
-              Recent events
-            </h2>
-            {(data?.recentEvents.length ?? 0) === 0 ? (
-              <Card className="border-border/80 bg-card px-5 py-8 shadow-sm">
-                <p className="text-muted-foreground text-sm">No events across clients yet.</p>
-              </Card>
-            ) : (
-              <Card className="border-border/80 overflow-hidden p-0 shadow-sm">
-                <ul className="divide-border divide-y">
-                  {data?.recentEvents.map((event) => (
-                    <li
-                      key={event.id}
-                      className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-foreground font-semibold leading-snug">{event.name}</p>
-                        <p className="text-muted-foreground mt-0.5 text-sm">
-                          {event.clientName} · {formatEventDate(event.dateISO)}
-                        </p>
-                      </div>
-                      <div className="shrink-0 sm:text-right">
-                        <StatusIndicator status={event.status as RallyStatusTone} />
-                      </div>
+              <div className="border-border/70 mt-4 border-t pt-4">
+                <p className="text-nm-neutral-500 mb-2 text-[10px] font-semibold tracking-wider uppercase">
+                  Events by status
+                </p>
+                <ul className="space-y-1.5">
+                  {STATUS_ORDER.map((status) => (
+                    <li key={status} className="flex items-center justify-between gap-3">
+                      <NeoStatusBadge tone={status}>{status}</NeoStatusBadge>
+                      <span className="text-foreground text-sm font-bold tabular-nums">
+                        {data?.statusBreakdown?.[status] ?? 0}
+                      </span>
                     </li>
                   ))}
                 </ul>
-              </Card>
-            )}
-          </section>
+              </div>
+            </NeoCard>
+          </div>
+
+          <div className="xl:col-span-2 xl:col-start-1">
+            <NeoCard className="flex h-full flex-col p-4">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-bold whitespace-nowrap">Recent Events</h2>
+                <Link
+                  to="/admin/clients"
+                  className="text-nm-neutral-500 shrink-0 text-xs hover:underline"
+                >
+                  View Clients
+                </Link>
+              </div>
+              {(data?.recentEvents.length ?? 0) === 0 ? (
+                <p className="text-nm-neutral-500 py-2 text-xs">No events across clients yet.</p>
+              ) : (
+                <ul className="divide-border/60 divide-y">
+                  {data?.recentEvents.map((event) => (
+                    <li key={event.id} className="flex items-center gap-3 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-foreground truncate text-sm font-semibold">
+                          {event.name}
+                        </p>
+                        <p className="text-nm-neutral-500 mt-0.5 text-xs">
+                          {event.clientName} · {relativeTime(event.dateISO)}
+                        </p>
+                      </div>
+                      <NeoStatusBadge tone={event.status as NeoStatusBadgeTone}>
+                        {event.status}
+                      </NeoStatusBadge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </NeoCard>
+          </div>
         </div>
       )}
-    </AdminPageShell>
+    </div>
   )
 }
 
-function StatTile({
+/** The client Overview's stat tile, minus the link when there is nowhere to go. */
+function PlatformStatCard({
   label,
   value,
-  hint,
-  icon: Icon,
+  to,
 }: {
   label: string
-  value: number | string
-  hint?: string
-  icon: typeof IconBolt
+  value: number | undefined
+  to?: string
 }) {
-  return (
-    <Card className="neo-card border-border/80 bg-card text-card-foreground shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="neo-stat-label text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-          {label}
-        </CardTitle>
-        <Icon aria-hidden className="text-muted-foreground size-5 opacity-75" />
-      </CardHeader>
-      <CardContent>
-        <p className="neo-stat-value text-foreground text-[1.75rem] leading-none font-bold tracking-tight tabular-nums sm:text-[2rem]">
-          {value}
-        </p>
-        {hint ? <p className="text-muted-foreground mt-2 text-xs">{hint}</p> : null}
-      </CardContent>
-    </Card>
+  const card = (
+    <NeoCard interactive={Boolean(to)} className="h-full p-4">
+      <p className="text-nm-neutral-500 mb-1 text-[10px] font-semibold tracking-wider uppercase">
+        {label}
+      </p>
+      <p className="text-4xl font-bold tabular-nums">{value ?? 0}</p>
+    </NeoCard>
   )
+  return to ? <Link to={to}>{card}</Link> : card
 }
