@@ -20,6 +20,13 @@ type WinnerRevealPanelProps = {
 const WINNER_GREEN = '#22DD62'
 
 /**
+ * And the placing everyone else gets. Yellow rather than red: they finished,
+ * they did not fail. A team's own colour was used here first, which on a pink
+ * or orange team read as a decoration rather than a result.
+ */
+const RUNNER_UP_YELLOW = '#FFC107'
+
+/**
  * A white contour keeps the word readable whatever the event's background
  * happens to be behind it. paint-order puts the fill above the stroke, so the
  * letterforms stay their own weight rather than thinning.
@@ -63,7 +70,6 @@ export function WinnerRevealPanel({
   const mine = ranked.find((r) => r.team.id === myTeamId)
   const myRank = mine?.rank ?? 0
   const isWinner = myRank === 1
-  const teamColor = mine?.team.color?.trim() || '#FFFFFF'
 
   useEffect(() => {
     if (stage !== 2 || !isWinner) return
@@ -212,7 +218,7 @@ export function WinnerRevealPanel({
                 >
                   <motion.span
                     className="inline-block text-[clamp(3rem,13.5vw,8rem)] leading-[0.9] font-black"
-                    style={{ color: teamColor, ...WINNER_OUTLINE }}
+                    style={{ color: RUNNER_UP_YELLOW, ...WINNER_OUTLINE }}
                     initial={{ scale: 0, rotate: -45, opacity: 0 }}
                     animate={{ scale: [0, 1.3, 1], rotate: [-45, 8, 0], opacity: 1 }}
                     transition={{ delay: 0.3 + i * 0.12, duration: 0.6, times: [0, 0.6, 1] }}
