@@ -1129,10 +1129,11 @@ export function JoinGameView({
             // 1fr / auto / 1fr keeps the points dead centre whether or not
             // Buy Items is there, and pins the buttons to the screen edges.
             <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
+              {/* Black and yellow like the chat and exit buttons: app
+                  furniture, not part of the event's palette. */}
               <Button
-                variant="outline"
                 size="sm"
-                className="w-fit justify-self-start border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+                className="text-nm-yellow w-fit justify-self-start border-none bg-black px-4 py-2 font-semibold shadow-md hover:bg-black hover:brightness-110"
                 onClick={() => {
                   setSelectedGame(null)
                   setCaptureActive(false)
@@ -1149,9 +1150,8 @@ export function JoinGameView({
               {!captureActive && inventoryEnabled ? (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  className="w-fit justify-self-end gap-2 border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+                  className="text-nm-yellow w-fit justify-self-end gap-2 border-none bg-black px-4 py-2 font-semibold shadow-md hover:bg-black hover:brightness-110"
                   onClick={() => setInventoryScannerOpen(true)}
                 >
                   <QrCode className="size-4" /> Buy Items

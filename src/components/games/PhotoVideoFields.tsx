@@ -88,6 +88,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
           </div>
               <AssetField
                 label="Cover image"
+                cropCover
                 preview={coverUrl}
                 onFile={async (file) => {
                   if (!file) return

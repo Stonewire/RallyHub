@@ -78,6 +78,7 @@ export function MusicBingoEditor({
       <>
         <AssetField
           label="Cover image"
+                cropCover
           onFile={async (f) => {
             if (!f) return
             setCoverUrl(await uploadGameFile(organizationId, `bingo/cover-${newGameId()}`, f))

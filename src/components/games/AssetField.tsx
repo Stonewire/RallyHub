@@ -1,6 +1,9 @@
 import { IconUpload } from '@/components/icons'
 import { useRef, useState } from 'react'
 
+import { CoverCropModal } from '@/components/games/CoverCropModal'
+import { readCoverFile, type PendingCover } from '@/lib/cover-image'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -23,6 +26,12 @@ type AssetFieldProps = {
   previewLabel?: string
   /** Puts the thumbnail beside the upload button instead of under it. */
   inlinePreview?: boolean
+  /**
+   * Sends the chosen image through the cover framing step before uploading.
+   * The organiser decides what stays in shot, since a cover often carries part
+   * of the clue and a silent crop could cut it away.
+   */
+  cropCover?: boolean
 }
 
 /**
@@ -43,9 +52,11 @@ export function AssetField({
   showPreviewPanel = false,
   previewLabel = 'Cover preview',
   inlinePreview = false,
+  cropCover = false,
 }: AssetFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [pendingCrop, setPendingCrop] = useState<PendingCover | null>(null)
   const isVideo = accept.startsWith('video')
 
   return (
@@ -59,7 +70,13 @@ export function AssetField({
           className="sr-only"
           onChange={(event) => {
             const file = event.target.files?.[0]
+            // Reset so picking the same file twice still fires a change.
+            event.target.value = ''
             setFileName(file?.name ?? null)
+            if (cropCover && file) {
+              void readCoverFile(file).then(setPendingCrop)
+              return
+            }
             void onFile(file)
           }}
         />
@@ -112,6 +129,21 @@ export function AssetField({
         ) : (
           <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
         )
+      ) : null}
+
+      {cropCover ? (
+        <CoverCropModal
+          key={pendingCrop?.name ?? 'none'}
+          cover={pendingCrop}
+          onCancel={() => {
+            setPendingCrop(null)
+            setFileName(null)
+          }}
+          onCropped={(cropped) => {
+            setPendingCrop(null)
+            void onFile(cropped)
+          }}
+        />
       ) : null}
     </div>
   )
