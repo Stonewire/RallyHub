@@ -690,3 +690,49 @@ Deliberate gap, logged: per-tier READ scoping is UI-only. A support agent's
 session could technically query payments data directly because RLS still
 sees them as super_admin. Tightening that means per-table staff policies;
 do it before hiring anyone not fully trusted.
+
+## Player surfaces reviewed with Rumen: 2 Aug 2026
+
+Panel-by-panel review of the participant surfaces, driven live by Rumen. What
+landed, in the order he called it:
+
+- Quest list: game type icon in the tile corner, name centred, points beneath
+  it, two tiles per row on a phone, three on a tablet, four on a computer.
+  Team total moved to a fixed corner of the screen and stays there across
+  stages. Tile and Buy Items text follow the event's own text colour.
+- Challenge brief: one full-bleed cover at its natural height, a labelled
+  "YOUR TASK:" band, edge-to-edge example video with a 2x toggle and no
+  download or picture-in-picture, and a capture button fixed above the bottom
+  furniture rather than scrolling with the content.
+- Covers are now framed by the organiser at upload (2:1, drag and zoom,
+  exported 1600x800) instead of being cropped blind, because a cover often
+  carries part of the clue.
+- Text games: app keyboard rather than the device one, answer field always
+  clear of it, send key on the keyboard.
+- Puzzles: solved boards stay on screen, wordle grows downwards with
+  auto-scroll, crossword opens on the grid, clues beside the board on a
+  tablet and under it on a phone, across/down chosen at the tapped cell.
+- One keyboard component now serves every game.
+
+### Locked decision reversed
+
+**On-screen keyboard for text games.** The 28 Jul decision was that typed
+answers keep the native device keyboard, deliberately. On 2 Aug Rumen
+reversed it after seeing the puzzle keyboard: the app keyboard is now used on
+every player surface, with digits, punctuation, a space bar and shift. Shift
+matters rather than being decoration, since typed answers are matched exactly.
+
+### Assumption logged
+
+**Fake camera for review.** The capture screens cannot be reviewed without a
+camera, and the embedded pane blocks device access. Assumption: a dev-only
+canvas stand-in behind `?fakecam=1`, gated on `import.meta.env.DEV`, is worth
+having permanently for this kind of review. Reverse by deleting
+`src/lib/dev-fake-camera.ts` and its call in `main.tsx`.
+
+### Throwaway artifacts awaiting Rumen's word
+
+In **RallyHub Gaming**, all prefixed so they are obvious: event `ZZ Player
+Preview (throwaway)` with seven `ZZ Preview: …` games and seven teams. Not
+deleted, because deleting is his call. The demo org's `Bubbles` catalog track
+also still carries a 60s clip from pre-fix testing.
