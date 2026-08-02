@@ -10,14 +10,27 @@ type LeaderboardProps = {
   textClass?: string
 }
 
-function orbitGrid(teamCount: number) {
-  if (teamCount <= 2) return { cols: 2, maxPx: 200 }
-  if (teamCount <= 4) return { cols: 2, maxPx: 180 }
-  if (teamCount <= 6) return { cols: 3, maxPx: 150 }
-  if (teamCount <= 9) return { cols: 3, maxPx: 130 }
-  if (teamCount <= 12) return { cols: 4, maxPx: 115 }
-  if (teamCount <= 16) return { cols: 4, maxPx: 100 }
-  return { cols: 5, maxPx: 88 }
+/**
+ * Columns and label sizing for the orbit grid.
+ *
+ * Both scale with the head count: at forty teams the old fixed label sizes
+ * overlapped each other and squeezed the tiles to nothing, because only the
+ * circle shrank. Columns lean wide because displays are landscape.
+ */
+function orbitLayout(teamCount: number) {
+  if (teamCount <= 2) return { cols: 2, maxPx: 220, name: 'text-xl', score: 'text-2xl', rank: 40, gap: 'gap-y-5' }
+  if (teamCount <= 4) return { cols: 2, maxPx: 200, name: 'text-xl', score: 'text-2xl', rank: 38, gap: 'gap-y-5' }
+  if (teamCount <= 6) return { cols: 3, maxPx: 175, name: 'text-lg', score: 'text-xl', rank: 36, gap: 'gap-y-4' }
+  if (teamCount <= 9) return { cols: 3, maxPx: 155, name: 'text-lg', score: 'text-xl', rank: 34, gap: 'gap-y-4' }
+  if (teamCount <= 12) return { cols: 4, maxPx: 140, name: 'text-base', score: 'text-lg', rank: 30, gap: 'gap-y-3' }
+  if (teamCount <= 16) return { cols: 4, maxPx: 125, name: 'text-base', score: 'text-lg', rank: 28, gap: 'gap-y-3' }
+  if (teamCount <= 20) return { cols: 5, maxPx: 112, name: 'text-sm', score: 'text-base', rank: 26, gap: 'gap-y-3' }
+  if (teamCount <= 25) return { cols: 5, maxPx: 100, name: 'text-sm', score: 'text-base', rank: 24, gap: 'gap-y-2' }
+  if (teamCount <= 30) return { cols: 6, maxPx: 92, name: 'text-xs', score: 'text-sm', rank: 22, gap: 'gap-y-2' }
+  if (teamCount <= 36) return { cols: 6, maxPx: 84, name: 'text-xs', score: 'text-sm', rank: 20, gap: 'gap-y-2' }
+  if (teamCount <= 48) return { cols: 8, maxPx: 74, name: 'text-[11px]', score: 'text-xs', rank: 18, gap: 'gap-y-2' }
+  if (teamCount <= 64) return { cols: 9, maxPx: 64, name: 'text-[10px]', score: 'text-[11px]', rank: 16, gap: 'gap-y-1.5' }
+  return { cols: 10, maxPx: 56, name: 'text-[10px]', score: 'text-[10px]', rank: 14, gap: 'gap-y-1.5' }
 }
 
 /**
@@ -54,11 +67,16 @@ export function Leaderboard({
   layout,
   textClass = 'text-white',
 }: LeaderboardProps) {
+  // Hiding scores has to hide the standing too. Sorted by score, the order
+  // itself announces who is winning, so with scores off the teams sit in join
+  // order (slot number) instead.
   const ranked = [...teams]
     .filter((t) => t.name?.trim())
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) =>
+      showScores ? b.score - a.score : (a.slot_number ?? 0) - (b.slot_number ?? 0),
+    )
 
-  const orbit = useMemo(() => orbitGrid(ranked.length), [ranked.length])
+  const orbit = useMemo(() => orbitLayout(ranked.length), [ranked.length])
   const badge = badgeClass(textClass)
 
   if (ranked.length === 0) {
@@ -79,7 +97,7 @@ export function Leaderboard({
             size: with a logo, title and timer above, fixed tiles overflowed
             and the rank badges were clipped off the top of the screen. */}
         <div
-          className="grid h-full max-h-full w-full max-w-6xl place-items-center justify-items-center gap-x-8 gap-y-4"
+          className={`grid h-full max-h-full w-full max-w-7xl place-items-center justify-items-center gap-x-4 ${orbit.gap}`}
           style={{
             gridTemplateColumns: `repeat(${orbit.cols}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -95,7 +113,7 @@ export function Leaderboard({
             return (
               <div
                 key={team.id}
-                className={`xp-team-float flex h-full min-h-0 w-full flex-col items-center justify-center gap-2 ${textClass}`}
+                className={`xp-team-float flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 ${textClass}`}
                 style={{
                   // Wider than the tile on purpose: a team name needs more room
                   // than its photo, and truncating names was the first thing
@@ -132,8 +150,14 @@ export function Leaderboard({
                     // Rank sits on the tile rather than under the name, so
                     // position reads first at across-the-room distance.
                     <span
-                      className="absolute -top-2 -left-2 flex size-9 items-center justify-center rounded-full text-base font-black tabular-nums shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
-                      style={{ background: color, color: readableTextOn(color) }}
+                      className="absolute -top-1.5 -left-1.5 flex items-center justify-center rounded-full font-black tabular-nums shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+                      style={{
+                        background: color,
+                        color: readableTextOn(color),
+                        width: orbit.rank,
+                        height: orbit.rank,
+                        fontSize: Math.round(orbit.rank * 0.46),
+                      }}
                     >
                       {i + 1}
                     </span>
@@ -141,13 +165,13 @@ export function Leaderboard({
                 </div>
 
                 <span
-                  className={`max-w-full shrink-0 rounded-full px-3.5 py-1 text-center text-lg leading-tight font-bold break-words ${badge}`}
+                  className={`max-w-full shrink-0 rounded-full px-2.5 py-0.5 text-center ${orbit.name} leading-tight font-bold break-words ${badge}`}
                 >
                   {team.name}
                 </span>
                 {showScores ? (
                   <span
-                    className={`shrink-0 rounded-full px-3 py-0.5 text-xl font-black tabular-nums ${badge}`}
+                    className={`shrink-0 rounded-full px-2.5 py-0 ${orbit.score} font-black tabular-nums ${badge}`}
                   >
                     {team.score}
                   </span>
@@ -169,6 +193,8 @@ export function Leaderboard({
           key={team.id}
           className="xp-leaderboard-row flex items-center gap-4 bg-black/35 px-4 py-3 shadow-[0_6px_20px_rgba(0,0,0,0.28)] backdrop-blur-sm"
         >
+          {/* The position number is itself the standing, so it goes with the
+              scores. A plain colour disc keeps the row's rhythm. */}
           <span
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-base font-black tabular-nums"
             style={{
@@ -176,7 +202,7 @@ export function Leaderboard({
               color: readableTextOn(team.color ?? '#888'),
             }}
           >
-            {i + 1}
+            {showScores ? i + 1 : ''}
           </span>
           {team.photo_url ? (
             <img
@@ -195,15 +221,19 @@ export function Leaderboard({
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-xl font-bold">{team.name}</p>
-            <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/20">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${(team.score / maxScore) * 100}%`,
-                  background: team.color ?? '#FFC107',
-                }}
-              />
-            </div>
+            {/* The bar length is the score drawn as a picture, so it hides
+                with the number rather than leaking the gap between teams. */}
+            {showScores ? (
+              <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(team.score / maxScore) * 100}%`,
+                    background: team.color ?? '#FFC107',
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
           {showScores ? (
             <span className="text-2xl font-black tabular-nums">{team.score}</span>
