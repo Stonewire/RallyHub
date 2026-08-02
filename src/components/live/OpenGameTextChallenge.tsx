@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
-import { RichText } from '@/components/ui/rich-text'
+import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 import { textOnAccent } from '@/lib/live-event'
 import { parseTextGameConfig } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
@@ -39,12 +39,7 @@ export function OpenGameTextChallenge({
           className="w-full object-cover"
         />
       ) : null}
-      {game.description ? (
-        <RichText
-          html={game.description}
-          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
-        />
-      ) : null}
+      <ChallengeBrief html={game.description} />
 
       {cfg.mode === 'type_text' ? (
         <div className="space-y-3">

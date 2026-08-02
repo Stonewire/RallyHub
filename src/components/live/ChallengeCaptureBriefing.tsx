@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Camera, Video } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
-import { RichText } from '@/components/ui/rich-text'
+import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 
 type ChallengeCaptureBriefingProps = {
   title: string
@@ -54,12 +54,7 @@ export function ChallengeCaptureBriefing({
         <img src={coverUrl} alt="" className="mt-4 w-full object-cover" />
       ) : null}
 
-      {description ? (
-        <RichText
-          html={description}
-          className="xp-challenge-description xp-wrap-text mx-auto mt-5 max-w-md px-4 line-clamp-4 md:max-w-3xl"
-        />
-      ) : null}
+      <ChallengeBrief html={description} />
 
       {exampleVideoUrl ? (
         <div className="relative mt-5 w-full">

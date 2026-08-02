@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
 import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import { Button } from '@/components/ui/button'
-import { RichText } from '@/components/ui/rich-text'
+import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 import {
   publishLiveBundleReload,
   publishPuzzleProgressChange,
@@ -201,12 +201,7 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
           className="w-full object-cover"
         />
       ) : null}
-      {game.description ? (
-        <RichText
-          html={game.description}
-          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
-        />
-      ) : null}
+      <ChallengeBrief html={game.description} />
 
       {/* Above the puzzle, so the sticky keyboard can never hide a failure. */}
       {error ? (
