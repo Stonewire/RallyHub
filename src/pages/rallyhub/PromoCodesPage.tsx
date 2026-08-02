@@ -1,11 +1,10 @@
 import {
-  IconChevronDown,
-  IconChevronUp,
   IconClose,
   IconEdit,
   IconTrash,
 } from '@/components/icons'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Card } from '@/components/ui/card'
@@ -14,18 +13,19 @@ import {
   NeoButton,
   NeoInput,
   NeoLabel,
+  NeoStatusBadge,
 } from '@/components/neo-minimal'
 import { useNotification } from '@/contexts/notification-context'
 import {
   useCreatePromoCode,
   useDeletePromoCode,
-  usePromoCodeRedemptions,
   usePromoCodes,
   useSetPromoCodeActive,
   useUpdatePromoCode,
   type CreatePromoCodeInput,
   type PromoCode,
   type UpdatePromoCodeInput,
+  useAllPromoRedemptions,
 } from '@/hooks/use-promo-codes'
 
 type Purpose = 'event' | 'subscription'
@@ -52,25 +52,6 @@ function formatDate(iso: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso))
 }
 
-function RedemptionList({ codeId }: { codeId: string }) {
-  const q = usePromoCodeRedemptions(codeId)
-  if (q.isLoading) return <p className="text-muted-foreground py-2 text-sm">Loading…</p>
-  if (q.isError) return <p className="text-destructive py-2 text-sm">{q.error.message}</p>
-  if (!q.data?.length) return <p className="text-muted-foreground py-2 text-sm">No redemptions yet.</p>
-  return (
-    <ul className="divide-border mt-3 divide-y text-sm">
-      {q.data.map((r) => (
-        <li key={r.id} className="flex items-center justify-between gap-4 py-2">
-          <span className="text-foreground font-medium">{r.org_name}</span>
-          <span className="text-muted-foreground tabular-nums">
-            {formatDate(r.created_at)} · {r.status}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 export function RallyHubPromoCodesPage() {
   const { notify } = useNotification()
   const codesQuery = usePromoCodes()
@@ -81,10 +62,10 @@ export function RallyHubPromoCodesPage() {
 
   const [form, setForm] = useState(EMPTY_FORM)
   const [createOpen, setCreateOpen] = useState(false)
+  const redemptionsQuery = useAllPromoRedemptions()
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null)
   const [editForm, setEditForm] = useState({ discountPercent: '', durationMonths: '1', maxRedemptions: '', notes: '' })
   const [deletingCode, setDeletingCode] = useState<PromoCode | null>(null)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -307,6 +288,8 @@ export function RallyHubPromoCodesPage() {
         </div>
       ) : null}
 
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div>
       {codesQuery.isLoading ? (
         <QueryLoading rows={4} />
       ) : codesQuery.isError ? (
@@ -320,20 +303,15 @@ export function RallyHubPromoCodesPage() {
               code.max_redemptions == null
                 ? `${code.redemption_count} used · unlimited`
                 : `${code.redemption_count}/${code.max_redemptions} used`
-            const isExpanded = expandedId === code.id
             return (
               <Card key={code.id} className="border-border/80 bg-card p-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-foreground font-mono font-semibold">{code.code}</span>
-                      <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                        {code.purpose}
-                      </span>
+                      <NeoStatusBadge tone="draft">{code.purpose}</NeoStatusBadge>
                       {!code.is_active ? (
-                        <span className="text-destructive rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                          Inactive
-                        </span>
+                        <NeoStatusBadge tone="attention">Inactive</NeoStatusBadge>
                       ) : null}
                     </div>
                     <p className="text-muted-foreground mt-1 text-sm">
@@ -346,15 +324,6 @@ export function RallyHubPromoCodesPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <NeoButton
-                      type="button"
-                      variant="surface"
-                      size="sm"
-                      onClick={() => setExpandedId(isExpanded ? null : code.id)}
-                    >
-                      {isExpanded ? <IconChevronUp className="size-3.5" /> : <IconChevronDown className="size-3.5" />}
-                      Usage
-                    </NeoButton>
                     <NeoButton
                       type="button"
                       variant="surface"
@@ -384,16 +353,49 @@ export function RallyHubPromoCodesPage() {
                     </NeoButton>
                   </div>
                 </div>
-                {isExpanded ? (
-                  <div className="border-border/60 mt-3 border-t pt-3">
-                    <RedemptionList codeId={code.id} />
-                  </div>
-                ) : null}
               </Card>
             )
           })}
         </div>
       )}
+        </div>
+
+        {/* Who used what, when: the live usage feed beside the codes. */}
+        <Card className="border-border/80 bg-card p-6 shadow-sm">
+          <h2 className="text-foreground mb-4 text-sm font-bold">Usage</h2>
+          {redemptionsQuery.isLoading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : redemptionsQuery.isError ? (
+            <QueryError message={redemptionsQuery.error.message} />
+          ) : (redemptionsQuery.data?.length ?? 0) === 0 ? (
+            <p className="text-muted-foreground py-4 text-sm">
+              No redemptions yet. When a client redeems a code, it shows up here.
+            </p>
+          ) : (
+            <ul className="divide-border/60 divide-y">
+              {redemptionsQuery.data?.map((r) => (
+                <li key={r.id} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate text-sm font-medium">
+                      <Link
+                        to={`/admin/clients/${r.organization_id}`}
+                        className="hover:underline"
+                      >
+                        {r.org_name}
+                      </Link>
+                      <span className="text-muted-foreground"> redeemed </span>
+                      <span className="font-mono font-semibold">{r.code}</span>
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {formatDate(r.created_at)} · {r.status}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
 
       {/* Edit modal */}
       {editingCode ? (

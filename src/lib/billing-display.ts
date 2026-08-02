@@ -27,10 +27,10 @@ export function invoiceStatusLabel(status: InvoiceStatus): string {
 
 export function invoiceStatusTone(
   status: InvoiceStatus,
-): 'active' | 'draft' | 'ready' | 'archived' {
-  if (status === 'paid') return 'active'
-  if (status === 'comped') return 'ready'
-  return 'draft'
+): 'paid' | 'unpaid' | 'draft' {
+  if (status === 'paid') return 'paid'
+  if (status === 'comped') return 'draft'
+  return 'unpaid'
 }
 
 export function formatInvoiceAmountLine(invoice: {

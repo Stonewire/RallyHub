@@ -1,7 +1,7 @@
 import { IconBilling, IconDownload } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
-import { StatusIndicator } from '@/components/ui/status-indicator'
+import { NeoStatusBadge, type NeoStatusBadgeTone } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import type { EventInvoiceWithEvent } from '@/hooks/use-billing-invoices'
 import {
@@ -46,13 +46,12 @@ export function EventInvoiceRow({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-foreground truncate text-sm font-medium">{eventName}</p>
-          <StatusIndicator
-            status={invoiceStatusTone(invoice.status)}
+          <NeoStatusBadge
+            tone={invoiceStatusTone(invoice.status) as NeoStatusBadgeTone}
             className="shrink-0"
-          />
-          <span className="text-muted-foreground text-xs">
+          >
             {invoiceStatusLabel(invoice.status)}
-          </span>
+          </NeoStatusBadge>
         </div>
         <p className="text-muted-foreground text-xs">
           {formatEventDate(eventDate)} · {teamCount} team{teamCount === 1 ? '' : 's'}
@@ -200,10 +199,9 @@ export function EventInvoiceList({
                     })}
                   </td>
                   <td className="py-2.5 pr-3">
-                    <span className="bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium">
-                      <StatusIndicator status={invoiceStatusTone(invoice.status)} />
+                    <NeoStatusBadge tone={invoiceStatusTone(invoice.status) as NeoStatusBadgeTone}>
                       {invoiceStatusLabel(invoice.status)}
-                    </span>
+                    </NeoStatusBadge>
                   </td>
                   <td className="py-2.5 text-right whitespace-nowrap">
                     {showPayIndicator && invoice.status === 'unpaid' && onPay ? (

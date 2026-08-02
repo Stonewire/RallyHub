@@ -95,9 +95,7 @@ export function ClientCard({ client, className }: ClientCardProps) {
               <NeoStatusBadge tone="active">Active</NeoStatusBadge>
             ) : null}
             {client.trial_review_needed ? (
-              <span className="text-destructive shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
-                Review
-              </span>
+              <NeoStatusBadge tone="attention">Review</NeoStatusBadge>
             ) : null}
           </div>
           {/* A demo org bills nobody, so a plan line would be a lie. */}

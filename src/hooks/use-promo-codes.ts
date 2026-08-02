@@ -160,6 +160,43 @@ export function usePromoCodeRedemptions(codeId: string | null) {
   })
 }
 
+export type PromoRedemptionFeedRow = PromoRedemption & {
+  org_name: string
+  code: string
+}
+
+/** Every redemption across every code, newest first, for the usage feed. */
+export function useAllPromoRedemptions() {
+  return useQuery({
+    queryKey: ['rallyhub', 'promo-redemptions', 'all'],
+    queryFn: async (): Promise<PromoRedemptionFeedRow[]> => {
+      const { data, error } = await supabase
+        .from('promo_code_redemptions')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = data ?? []
+      const orgIds = [...new Set(rows.map((r) => r.organization_id))]
+      const codeIds = [...new Set(rows.map((r) => r.promo_code_id))]
+      const [orgsRes, codesRes] = await Promise.all([
+        orgIds.length
+          ? supabase.from('organizations').select('id, name').in('id', orgIds)
+          : Promise.resolve({ data: [] }),
+        codeIds.length
+          ? supabase.from('promo_codes').select('id, code').in('id', codeIds)
+          : Promise.resolve({ data: [] }),
+      ])
+      const orgMap = new Map((orgsRes.data ?? []).map((o) => [o.id, o.name]))
+      const codeMap = new Map((codesRes.data ?? []).map((c) => [c.id, c.code]))
+      return rows.map((r) => ({
+        ...r,
+        org_name: orgMap.get(r.organization_id) ?? r.organization_id,
+        code: codeMap.get(r.promo_code_id) ?? '—',
+      }))
+    },
+  })
+}
+
 /** Client: add a promo code to this org via the redeem RPC. */
 export function useRedeemPromoCode(orgId: string | null | undefined) {
   const qc = useQueryClient()

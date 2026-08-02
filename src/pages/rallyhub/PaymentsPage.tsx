@@ -118,7 +118,9 @@ export function RallyHubPaymentsPage() {
       ) : invoicesQuery.isError ? (
         <QueryError message={invoicesQuery.error.message} />
       ) : (
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-4">
+          {/* Even top split: the queue on the left, the totals on the right. */}
+          <div className="grid items-stretch gap-4 lg:grid-cols-2">
           {/* Work queue: the only rows with an action on them. */}
           <Card className="border-border/80 bg-card p-6 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -160,24 +162,27 @@ export function RallyHubPaymentsPage() {
             )}
           </Card>
 
-          {/* Reference: totals, then the settled history. */}
-          <div className="flex flex-col gap-4">
+            {/* Reference: the two totals. */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <NeoCard className="p-4">
+              <NeoCard className="flex flex-col justify-center p-6">
                 <p className="text-nm-neutral-500 mb-1 text-[10px] font-semibold tracking-wider uppercase">
                   Outstanding
                 </p>
-                <p className="text-3xl font-bold tabular-nums">{formatEur(outstanding)}</p>
+                <p className="text-4xl font-bold tabular-nums">{formatEur(outstanding)}</p>
+                <p className="text-nm-neutral-500 mt-1 text-xs">Unpaid event invoices</p>
               </NeoCard>
-              <NeoCard className="p-4">
+              <NeoCard className="flex flex-col justify-center p-6">
                 <p className="text-nm-neutral-500 mb-1 text-[10px] font-semibold tracking-wider uppercase">
                   Collected
                 </p>
-                <p className="text-3xl font-bold tabular-nums">{formatEur(collected)}</p>
+                <p className="text-4xl font-bold tabular-nums">{formatEur(collected)}</p>
+                <p className="text-nm-neutral-500 mt-1 text-xs">Paid event invoices</p>
               </NeoCard>
             </div>
+          </div>
 
-            <Card className="border-border/80 bg-card p-6 shadow-sm">
+          {/* The full history, end to end underneath. */}
+          <Card className="border-border/80 bg-card p-6 shadow-sm">
               <div className="border-border/70 mb-4 flex flex-wrap items-center gap-2 border-b pb-4">
                 {SETTLED_FILTERS.map((f) => {
                   const count =
@@ -220,8 +225,7 @@ export function RallyHubPaymentsPage() {
                   ))}
                 </ul>
               )}
-            </Card>
-          </div>
+          </Card>
         </div>
       )}
     </AdminPageShell>

@@ -14,6 +14,7 @@ export type NeoStatusBadgeTone =
   | 'paid'
   | 'unpaid'
   | 'demo-event'
+  | 'attention'
 
 type NeoStatusBadgeProps = {
   tone: NeoStatusBadgeTone

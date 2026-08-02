@@ -648,74 +648,62 @@
     border-bottom-color: var(--nm-yellow);
   }
 
-  /* ─── Status badges (muted neo-minimal pills) ─── */
+  /* ─── Status badges: solid pills, one colour each ───
+     The palette is EVENT_STATUS_PILL_CLASS (use-events.ts), so a badge here
+     is the same colour as the status pill on an event card. No tints, no
+     borders: solid fill, readable text. */
   .neo-minimal-scope .neo-status-badge {
-    border: 1px solid var(--nm-border);
-    box-shadow: var(--nm-shadow-soft);
-    background: var(--nm-bg-muted) !important;
-    color: var(--nm-text-secondary) !important;
-    border-color: var(--nm-border) !important;
+    border: none;
+    background: #dcdcdf !important;
+    color: #3a3a3f !important;
   }
 
   .neo-minimal-scope .neo-status-badge--open {
-    background: color-mix(in srgb, var(--nm-yellow) 14%, var(--nm-bg-muted)) !important;
-    color: #5c4f00 !important;
-    border-color: color-mix(in srgb, var(--nm-yellow) 28%, var(--nm-border)) !important;
+    background: #2f9e6e !important;
+    color: #ffffff !important;
   }
 
   .neo-minimal-scope .neo-status-badge--in_progress {
-    background: color-mix(in srgb, #6b8cae 16%, var(--nm-bg-muted)) !important;
-    color: #3d5568 !important;
-    border-color: color-mix(in srgb, #6b8cae 30%, var(--nm-border)) !important;
+    background: var(--nm-yellow) !important;
+    color: #3a2f00 !important;
   }
 
   .neo-minimal-scope .neo-status-badge--resolved {
-    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
-    color: #2d5a3d !important;
-    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
+    background: #4a7fb5 !important;
+    color: #ffffff !important;
   }
 
   .neo-minimal-scope .neo-status-badge--demo-event,
   .neo-minimal-scope .neo-status-badge--demo {
-    background: color-mix(in srgb, #8b7cb8 14%, var(--nm-bg-muted)) !important;
-    color: #4a3d66 !important;
-    border-color: color-mix(in srgb, #8b7cb8 28%, var(--nm-border)) !important;
+    background: #bfe0f5 !important;
+    color: #1c3d52 !important;
   }
 
-  .neo-minimal-scope .neo-status-badge--paid {
-    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
-    color: #2d5a3d !important;
-    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
-  }
-
-  .neo-minimal-scope .neo-status-badge--unpaid {
-    background: color-mix(in srgb, #c49a5a 14%, var(--nm-bg-muted)) !important;
-    color: #5c4520 !important;
-    border-color: color-mix(in srgb, #c49a5a 28%, var(--nm-border)) !important;
-  }
-
+  .neo-minimal-scope .neo-status-badge--paid,
   .neo-minimal-scope .neo-status-badge--active {
-    background: color-mix(in srgb, #5a9a6e 14%, var(--nm-bg-muted)) !important;
-    color: #2d5a3d !important;
-    border-color: color-mix(in srgb, #5a9a6e 28%, var(--nm-border)) !important;
+    background: #2f9e6e !important;
+    color: #ffffff !important;
+  }
+
+  .neo-minimal-scope .neo-status-badge--unpaid,
+  .neo-minimal-scope .neo-status-badge--attention {
+    background: #d64545 !important;
+    color: #ffffff !important;
   }
 
   .neo-minimal-scope .neo-status-badge--ready {
-    background: color-mix(in srgb, var(--nm-yellow) 12%, var(--nm-bg-muted)) !important;
-    color: #5c4f00 !important;
-    border-color: color-mix(in srgb, var(--nm-yellow) 25%, var(--nm-border)) !important;
+    background: var(--nm-yellow) !important;
+    color: #3a2f00 !important;
   }
 
   .neo-minimal-scope .neo-status-badge--draft {
-    background: var(--nm-bg-inset) !important;
-    color: var(--nm-text-muted) !important;
-    border-color: var(--nm-border) !important;
+    background: #dcdcdf !important;
+    color: #3a3a3f !important;
   }
 
   .neo-minimal-scope .neo-status-badge--archived {
-    background: color-mix(in srgb, var(--nm-charcoal) 6%, var(--nm-bg-muted)) !important;
-    color: var(--nm-text-muted) !important;
-    border-color: var(--nm-border) !important;
+    background: #4a4a4f !important;
+    color: #ffffff !important;
   }
 
   /* ─── Status indicator dots (games list) ─── */
