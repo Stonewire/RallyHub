@@ -1202,15 +1202,15 @@ export function JoinGameView({
       )
     } else {
       body = (
-        <div className="mx-auto max-w-2xl px-4">
+        <div className="mx-auto max-w-2xl px-4 lg:max-w-4xl">
           {inventoryEnabled ? (
             <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
               <QrCode className="size-5" /> Buy Items
             </Button>
           ) : null}
-          {/* Two up on a phone, three on a tablet: at tablet width two tiles
-              stretch into letterboxes, and three keeps them near square. */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {/* Two up on a phone, three on a tablet, four on a computer: each
+              step keeps the tiles near square instead of letterboxed. */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {openGames.map((g) => {
               const sub = activeSubmissionForGame(mySubs, g.id)
               return (
