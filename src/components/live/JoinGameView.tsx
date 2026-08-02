@@ -1093,7 +1093,7 @@ export function JoinGameView({
         ) : state.quiz_state === 'active' && quizRunning ? (
           // The countdown is the loudest thing on the screen while a question
           // is open, so it carries no chip and stands at full size.
-          <p className="mt-3 text-[clamp(2rem,7vw,3.5rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-5">
+          <p className="mt-2 text-[clamp(1.9rem,6vw,3.25rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-4">
             {formatTimer(quizTimerDisplay)}
           </p>
         ) : null
@@ -1440,24 +1440,27 @@ export function JoinGameView({
         // The answers sit at the bottom of the screen: on a tablet held in two
         // hands that is where the thumbs already are, and the question above
         // has the room it needs to be read across a table.
-        <div className="mx-auto flex min-h-[74svh] max-w-lg flex-col px-4 pt-3 pb-20 sm:pt-5">
-          <div className="mb-7 h-2 shrink-0 overflow-hidden rounded-full bg-black/30">
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-2 pb-2 sm:pt-4">
+          <div className="mb-5 h-2 shrink-0 overflow-hidden rounded-full bg-black/30 sm:mb-6">
             <div
               className="h-full transition-all duration-1000"
               style={{ width: `${timerPct}%`, backgroundColor: accent }}
             />
           </div>
-          <h2 className="text-center text-[clamp(1.5rem,4.5vw,2.5rem)] leading-tight font-black text-balance">
+          <h2 className="shrink-0 text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance">
             {q.text}
           </h2>
-          <div className="mt-auto space-y-3 pt-10">
+          {/* The gap above the answers is where a photo, video or audio player
+              will sit; it gives way before the answers do. */}
+          <div className="min-h-4 flex-1" />
+          <div className="shrink-0 space-y-2.5 sm:space-y-3">
             {q.answers.map((a) => {
               const selected = quizAnswer === a.id
               const faded = quizLocked && !selected
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === q.correctAnswerId
               let cls =
-                'xp-quiz-option w-full px-5 py-5 text-left text-base font-bold transition-colors md:text-lg '
+                'xp-quiz-option w-full px-5 py-4 text-left text-base font-bold transition-colors sm:py-5 md:text-lg '
               let style: CSSProperties | undefined
               // Solid white answers: they are the one thing on this screen to
               // press, and a tinted panel over the event's own background read
@@ -1729,11 +1732,12 @@ export function JoinGameView({
       event={event}
       organization={organization}
       variant="default"
-      className={
+      fill
+      className={`flex min-h-svh flex-col ${
         showChatFab
           ? 'pt-3 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]'
           : 'pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]'
-      }
+      }`}
     >
       <NotificationAccentSync color={accent} />
       {showWinner && typeof document !== 'undefined'
@@ -1771,7 +1775,7 @@ export function JoinGameView({
         />
       ) : null}
       {header}
-      <div className="w-full">{body}</div>
+      <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>
       {inventoryScannerOpen ? (
         <InventoryQrScanner
           onClose={() => setInventoryScannerOpen(false)}

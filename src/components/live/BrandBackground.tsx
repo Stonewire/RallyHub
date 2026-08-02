@@ -16,6 +16,11 @@ type BrandBackgroundProps = {
    * which fills the screen without inflating scroll height.
    */
   contained?: boolean
+  /**
+   * Lets the content stretch to the height of this element, for screens that
+   * must fit the viewport exactly rather than scroll (the quiz question).
+   */
+  fill?: boolean
 }
 
 export function BrandBackground({
@@ -25,6 +30,7 @@ export function BrandBackground({
   children,
   className,
   contained = false,
+  fill = false,
 }: BrandBackgroundProps) {
   const { base, primary, accent } = brandBlobColors(event, organization)
   const opacity = variant === 'relaxed' ? 0.4 : variant === 'disco' ? 0.6 : 0.55
@@ -58,7 +64,17 @@ export function BrandBackground({
           />
         </div>
       </div>
-      <div className={contained ? 'relative z-10 h-full' : 'relative'}>{children}</div>
+      <div
+        className={
+          contained
+            ? 'relative z-10 h-full'
+            : fill
+              ? 'relative flex min-h-0 flex-1 flex-col'
+              : 'relative'
+        }
+      >
+        {children}
+      </div>
       <style>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }
