@@ -100,6 +100,10 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
 
   const activeClue = clues.find((c) => c.id === activeClueId) ?? null
   const activeCells = activeClue ? clueCells(activeClue) : []
+  // The clues meeting at the selected cell — one each way at a crossing.
+  const cluesHere = (panelCell ? (cluesByCell.get(panelCell) ?? []) : []).filter(
+    (clue) => !solvedWordIds.has(clue.id),
+  )
 
   const applyProgress = useCallback((next: PuzzleProgress) => {
     setProgress(next)
@@ -189,10 +193,12 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   // scrolled past the cover and brief, sitting clear above the keyboard. The
   // cover is still there to scroll back up to.
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      boardRef.current?.scrollIntoView({ block: 'start' })
-    }, 120)
-    return () => window.clearTimeout(id)
+    // Twice: the cover above is still loading on the first pass and shifts
+    // everything down when it lands.
+    const ids = [120, 700].map((delay) =>
+      window.setTimeout(() => boardRef.current?.scrollIntoView({ block: 'start' }), delay),
+    )
+    return () => ids.forEach((id) => window.clearTimeout(id))
   }, [game.id])
 
   // Live clock tick while unsolved.
@@ -309,6 +315,15 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     setActiveIndex(prevIndex)
   }
 
+  /** Jump the cursor to a word, from the clue list or a direction button. */
+  function selectClue(clue: CrosswordClue) {
+    setActiveClueId(clue.id)
+    const cellsForClue = clueCells(clue)
+    const first = cellsForClue.findIndex((k) => !isLocked(k))
+    setActiveIndex(first === -1 ? 0 : first)
+    setPanelCell(cellsForClue[first === -1 ? 0 : first])
+  }
+
   function selectCell(key: string) {
     const here = cluesByCell.get(key) ?? []
     if (here.length === 0) return
@@ -376,11 +391,11 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     <div ref={boardRef} className="scroll-mt-3 space-y-4 pb-[20rem]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`text-2xl font-black tabular-nums ${clockColor}`}>{formatClock(remaining)}</p>
+          <p className={`text-xl font-black tabular-nums md:text-2xl ${clockColor}`}>{formatClock(remaining)}</p>
           <p className="text-xs text-white/60">Time left</p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-black tabular-nums" style={{ color: accentColor }}>
+          <p className="text-xl font-black tabular-nums md:text-2xl" style={{ color: accentColor }}>
             {livePoints}
           </p>
           <p className="text-xs text-white/60">Points if solved now</p>
@@ -396,6 +411,82 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         </button>
       </div>
 
+      {/* Clues beside the board on a tablet, where there is width for both, so
+          nothing has to be scrolled away to read a clue. On a phone the board
+          keeps the width and only the selected cell's two clues sit under it. */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+        <div className="order-2 min-w-0 flex-1 md:order-1">
+          {/* Which way to answer, asked plainly, rather than by tapping the same
+              cell twice and hoping the direction flipped. */}
+          {cluesHere.length > 0 ? (
+            <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+              {cluesHere.map((clue) => (
+                <button
+                  key={clue.id}
+                  type="button"
+                  onClick={() => selectClue(clue)}
+                  className={`rounded-full px-4 py-2 text-xs font-black uppercase ${
+                    activeClueId === clue.id ? 'text-black' : 'bg-white/15 text-white'
+                  }`}
+                  style={
+                    activeClueId === clue.id ? { backgroundColor: accentColor } : undefined
+                  }
+                >
+                  {clue.direction === 'across' ? 'Across' : 'Down'} {clue.number}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="hidden md:block">
+            {(['across', 'down'] as const).map((direction) => (
+              <div key={direction} className="mb-4">
+                <p className="mb-1.5 text-xs font-black tracking-[0.16em] uppercase opacity-70">
+                  {direction}
+                </p>
+                <ul className="space-y-1">
+                  {clues
+                    .filter((clue) => clue.direction === direction)
+                    .map((clue) => {
+                      const solved = solvedWordIds.has(clue.id)
+                      const active = activeClueId === clue.id
+                      return (
+                        <li key={clue.id}>
+                          <button
+                            type="button"
+                            onClick={() => selectClue(clue)}
+                            className={`w-full text-left text-sm leading-snug ${
+                              solved
+                                ? 'text-green-300/80 line-through'
+                                : active
+                                  ? 'font-bold text-white'
+                                  : 'text-white/75'
+                            }`}
+                          >
+                            <span className="mr-1.5 font-black tabular-nums">{clue.number}.</span>
+                            {clue.clue}
+                          </button>
+                        </li>
+                      )
+                    })}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {activeClue ? (
+            <p className="mt-3 text-sm leading-snug md:hidden">
+              <span className="font-black tabular-nums">{activeClue.number}.</span>{' '}
+              {activeClue.clue}
+            </p>
+          ) : (
+            <p className="text-center text-xs text-white/60 md:hidden">
+              Tap any letter cell to read its clue, then type the answer.
+            </p>
+          )}
+        </div>
+
+        <div className="order-1 md:order-2 md:shrink-0">
       <div
         className={`mx-auto grid w-fit grid-cols-6 gap-1 transition-transform ${
           wrongFlash ? 'animate-pulse' : ''
@@ -405,10 +496,10 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           Array.from({ length: GRID_SIZE }, (_, col) => {
             const key = `${row}-${col}`
             if (blockedKeys.has(key)) {
-              return <span key={key} className="size-12 rounded-md bg-[#FFC107]" />
+              return <span key={key} className="size-8 rounded-md bg-[#FFC107] md:size-14" />
             }
             if (!openKeys.has(key)) {
-              return <span key={key} className="size-12 rounded-md bg-black/50" />
+              return <span key={key} className="size-8 rounded-md bg-black/50 md:size-14" />
             }
             const number = startNumbers.get(key)
             const solved = solvedCellKeys.has(key)
@@ -419,7 +510,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
             return (
               <span key={key} className="relative">
                 {number ? (
-                  <span className="absolute top-0.5 left-1 z-10 text-[9px] font-bold text-white/70">
+                  <span className="absolute top-0 left-0.5 z-10 text-[8px] font-bold text-white/70 md:top-0.5 md:left-1 md:text-[10px]">
                     {number}
                   </span>
                 ) : null}
@@ -428,7 +519,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                   disabled={checking}
                   onClick={() => selectCell(key)}
                   aria-label={`Row ${row + 1} column ${col + 1}`}
-                  className={`size-12 rounded-md border-2 text-center text-lg font-black uppercase ${
+                  className={`size-8 rounded-md border-2 text-center text-sm font-black uppercase md:size-14 md:text-lg ${
                     solved
                       ? 'border-green-400/70 bg-green-500/25 text-green-100'
                       : revealed
@@ -447,41 +538,8 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
           }),
         )}
       </div>
-
-      {panelCell && cluesByCell.get(panelCell)?.length ? (
-        <div className="rounded-xl bg-black/30 p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-white/60">
-            {(cluesByCell.get(panelCell) ?? []).length > 1 ? 'Clues here' : 'Clue'}
-          </p>
-          <div className="mt-2 space-y-1">
-            {(cluesByCell.get(panelCell) ?? []).map((clue) => (
-              <button
-                key={clue.id}
-                type="button"
-                onClick={() => {
-                  setActiveClueId(clue.id)
-                  const cellsForClue = clueCells(clue)
-                  const first = cellsForClue.findIndex((k) => !isLocked(k))
-                  setActiveIndex(first === -1 ? 0 : first)
-                }}
-                className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
-                  activeClueId === clue.id ? 'bg-white/20' : 'bg-white/5'
-                }`}
-              >
-                <span className="font-bold uppercase text-white/70">
-                  {clue.direction === 'across' ? 'Across' : 'Down'}
-                </span>{' '}
-                {clue.clue}
-              </button>
-            ))}
-          </div>
         </div>
-      ) : (
-        <p className="text-center text-xs text-white/60">
-          Tap any letter cell to read its clue, then type the answer. Tap it again
-          where two words cross to switch between across and down.
-        </p>
-      )}
+      </div>
 
       {wrongFlash ? (
         <p className="text-center text-sm font-semibold text-amber-300">Not quite. Try again.</p>

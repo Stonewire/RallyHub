@@ -239,7 +239,8 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
       ) : null}
       <ChallengeBrief html={game.description} />
 
-      <div className="mx-auto w-full max-w-lg space-y-5 px-4">
+      {/* Wider on a tablet so the crossword can sit beside its clues. */}
+      <div className="mx-auto w-full max-w-lg space-y-5 px-4 md:max-w-3xl">
       {/* Above the puzzle, so the sticky keyboard can never hide a failure. */}
       {error ? (
         <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
