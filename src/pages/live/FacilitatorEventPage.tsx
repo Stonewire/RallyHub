@@ -34,12 +34,11 @@ import {
 } from '@/lib/winner-sound'
 import { FacilitatorPanelShell } from '@/components/layout/FacilitatorPanelShell'
 import { NeoButton, NeoInput, NeoStatusBadge } from '@/components/neo-minimal'
+import type { NeoStatusBadgeTone } from '@/components/neo-minimal/NeoStatusBadge'
 import { useNotification } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { StatusIndicator } from '@/components/ui/status-indicator'
-import type { RallyStatusTone } from '@/components/ui/status-indicator'
 import { useBingoRun, type BingoRunRow } from '@/hooks/use-bingo-run'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useDocumentTitle } from '@/hooks/use-document-title'
@@ -1341,7 +1340,9 @@ export function FacilitatorEventPage() {
         <div className="flex min-w-0 items-center gap-3">
           {/* StatusIndicator prints the label itself; the console used to print
               it a second time alongside, reading "Ready Ready". */}
-          <StatusIndicator status={event.status as RallyStatusTone} />
+          <NeoStatusBadge tone={event.status as NeoStatusBadgeTone}>
+            {event.status === 'demo' ? 'Demo' : event.status}
+          </NeoStatusBadge>
           {others.length > 0 ? (
             <span className="text-muted-foreground truncate text-xs">
               Also viewing: {others.map((o) => o.name).join(', ')}
@@ -1394,11 +1395,11 @@ export function FacilitatorEventPage() {
               targets sit under it as one row of buttons rather than a label,
               a squeezed field and three loose outlines. */}
           <Card className="neo-card border-border/80 space-y-2.5 bg-card p-4 shadow-sm">
-            <p className="text-sm font-bold">Announcement</p>
             <NeoInput
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
-              placeholder="Message… clears after 1 minute"
+              aria-label="Announcement"
+              placeholder="Type your announcement here… clears after 1 minute"
               className="bg-background w-full"
             />
             {/* Same pill track as the stage selector, though each of these
@@ -1433,11 +1434,7 @@ export function FacilitatorEventPage() {
             ) : null}
           </Card>
 
-          <Card className="neo-card border-border/80 space-y-3 bg-card p-4 shadow-sm">
-            <p className="text-sm font-bold">Teams</p>
-            <p className="text-muted-foreground text-xs">
-              Tap a slot to set name/photo. Scores update when you approve submissions.
-            </p>
+          <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <ul className="space-y-2">
               {teams.map((team) => {
                 const claimed = Boolean(team.name?.trim())
