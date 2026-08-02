@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import { useCookieConsent } from '@/contexts/cookie-consent-context'
 
@@ -76,21 +77,24 @@ export function CookiePreferencesDialog() {
                   : undefined
 
             return (
-              <label
+              <div
                 key={category.id}
-                className={`flex gap-3 rounded-lg border border-[var(--nm-border)] p-3 ${
-                  category.required ? 'bg-muted/30' : 'hover:bg-muted/20 cursor-pointer'
+                className={`flex items-start gap-3 rounded-lg border border-[var(--nm-border)] p-3 ${
+                  category.required ? 'bg-muted/30' : ''
                 }`}
               >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 shrink-0"
-                  checked={checked}
-                  disabled={category.required}
-                  onChange={(e) => onChange?.(e.target.checked)}
-                  aria-describedby={`cookie-cat-${category.id}-desc`}
-                />
-                <span className="min-w-0">
+                {/* The app's on/off switch rather than a tick box: these are
+                    settings that take effect, not boxes on a form. */}
+                <div className="order-2 mt-0.5 shrink-0">
+                  <FacilitatorToggle
+                    label={category.label}
+                    labelHidden
+                    checked={checked}
+                    disabled={category.required}
+                    onChange={(next) => onChange?.(next)}
+                  />
+                </div>
+                <span className="order-1 min-w-0 flex-1">
                   <span className="text-foreground text-sm font-medium">
                     {category.label}
                     {category.required ? (
@@ -106,7 +110,7 @@ export function CookiePreferencesDialog() {
                     {category.description}
                   </span>
                 </span>
-              </label>
+              </div>
             )
           })}
         </div>
