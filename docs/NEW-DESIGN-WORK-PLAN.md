@@ -577,3 +577,41 @@ Contact support, which routes to `/admin/support`.
 
 The search and article list return when there is real content, and that will
 want a proper content system rather than the hardcoded array that was there.
+
+## Platform (super-admin) panel: 2 Aug 2026
+
+The RallyHub-side panel now runs the same design language as the client
+admin. Verified on screen while signed in as a super admin.
+
+Done:
+
+- **Sidebar** — RallyHub icon set (new `IconTicket` for promo codes), Support
+  as a centred footer item with its unread badge, theme and sign-out dropped
+  because they already live in the header, build label added.
+- **Dashboard** — the client dashboard's stat card, status counts as pills,
+  shared heading weights.
+- **Clients** — Games Library toolbar (filter pills left, search right), cards
+  that lift on hover, shared tag vocabulary, real empty state.
+- **Client detail** — centred underlined tabs, shared cards and selects,
+  shared `DangerZone`, floating save.
+- **Payments** — shared stat cards, pill filters with counts, Refresh as a
+  page action.
+- **Promo codes** — shared cards and dialogs, accent create button.
+- **Support** — shared workspace; tickets now name the client instead of
+  showing a truncated organisation id.
+- **Games** — already the shared `AdminGamesPage`, so the platform game
+  editors are literally the client ones. Install to clients became a page
+  action. The three install modals moved to the shared card and backdrop.
+
+Demo organisations are excluded from Payments, platform revenue, the unpaid
+badge, the client detail Billing tab and the event invoice badges. Their
+invoices are seeded on purpose so the demo's own billing screen is not empty,
+but none of it is money.
+
+Open:
+
+- `src/pages/rallyhub/GamesPage.tsx` is unreferenced. The platform games view
+  is the shared `AdminGamesPage`, so this file appears to be dead. Left in
+  place pending Rumen's confirmation before deleting.
+- Support tickets show the organisation name now, but the thread still has no
+  link through to that client's detail page.
