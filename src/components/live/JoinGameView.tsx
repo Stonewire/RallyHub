@@ -19,8 +19,6 @@ import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
 import { questionMedia } from '@/lib/quiz-media'
 import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { quizQuestionSeconds } from '@/lib/quiz-timing'
-import { DevStageBar } from '@/components/live/DevStageBar'
-import { devBingoSteps, devQuizSteps } from '@/lib/dev-stage-steps'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
@@ -330,135 +328,6 @@ export function JoinGameView({
       : null) ?? quizAnswer
   const quizWasCorrect =
     Boolean(quizCorrectAnswerId) && quizMyAnswerId === quizCorrectAnswerId
-
-  // Development-only quiz driver (?devbar=1); see DevQuizBar.
-  const devBarOn =
-    import.meta.env.DEV &&
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).has('devbar')
-  const devBingoTracks = useMemo(() => {
-    if (!devBarOn || stage?.type !== 'bingo' || !stage.gameId) return []
-    const bingoGame = games.find((g) => g.id === stage.gameId)
-    return bingoGame ? bingoTracks(bingoGame) : []
-  }, [devBarOn, games, stage])
-
-  const devSteps = useMemo(() => {
-    if (!devBarOn) return []
-    if (stage?.type === 'bingo') return devBingoTracks.length > 0 ? devBingoSteps(devBingoTracks) : []
-    return quizQs.length > 0 ? devQuizSteps(quizQs) : []
-  }, [devBarOn, devBingoTracks, quizQs, stage?.type])
-  const [devStep, setDevStep] = useState(0)
-  // Scoring is the facilitator's job and the driver has no facilitator, so a
-  // correct answer is credited locally instead. Preview only: nothing is
-  // written, and the set stops a step being paid for twice.
-  const devScoredSteps = useRef<Set<number>>(new Set())
-
-  const goDevStep = useCallback(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- setState functions are stable; listing them adds nothing
-    (next: number) => {
-      const step = devSteps[Math.max(0, Math.min(next, devSteps.length - 1))]
-      if (!step) return
-      setDevStep(Math.max(0, Math.min(next, devSteps.length - 1)))
-      // Stepping onto a question makes it answerable again, so the lock left
-      // behind by the last reveal cannot bounce the driver straight past it.
-      if (step.quiz_state === 'active') {
-        quizChangeDeadlineRef.current = null
-        setQuizLocked(false)
-        setQuizChangeLeft(null)
-      }
-      const awardHere =
-        step.quiz_state === 'revealed' &&
-        step.correct_answer_id != null &&
-        quizMyAnswerId === step.correct_answer_id &&
-        !devScoredSteps.current.has(next)
-      if (awardHere) devScoredSteps.current.add(next)
-      const award = awardHere ? (quizGame?.points_static ?? 0) : 0
-      setBundle((b) =>
-        b
-          ? {
-              ...b,
-              teams: award
-                ? b.teams.map((t) =>
-                    t.id === teamId ? { ...t, score: t.score + award } : t,
-                  )
-                : b.teams,
-              // The quiz scoreboard reads points off the submissions, so the
-              // credited answer is marked the way the facilitator would mark
-              // it — otherwise the results screen shows a zero.
-              submissions: awardHere
-                ? b.submissions.map((sub) =>
-                    sub.team_id === teamId &&
-                    sub.media_type === quizSubmissionMediaType(quizQs[step.question_index]?.id ?? '')
-                      ? { ...sub, status: 'approved', points_awarded: award }
-                      : sub,
-                  )
-                : b.submissions,
-              state: {
-                ...b.state,
-                quiz_state: step.quiz_state,
-                bingo_state: step.bingo_state ?? b.state.bingo_state,
-                current_question_index: step.question_index,
-                quiz_correct_answer_id: step.correct_answer_id,
-                winner_reveal_stage: step.winner_reveal_stage,
-                quiz_timer_running: step.quiz_state === 'active',
-                quiz_timer_seconds: quizQuestionSeconds(
-                  (quizGame?.config as GameConfig | undefined)?.timer_seconds ?? 20,
-                  quizQs[step.question_index],
-                ),
-              },
-            }
-          : b,
-      )
-    },
-    [devSteps, quizGame, quizMyAnswerId, quizQs, setBundle, teamId],
-  )
-
-  // In a real round the facilitator's console reveals by itself when the timer
-  // ends or every team has locked in. The driver has no facilitator behind it,
-  // so it mirrors that here: otherwise reviewing the quiz gives a false
-  // impression of how many presses running one takes.
-  useEffect(() => {
-    if (!devBarOn) return
-    const step = devSteps[devStep]
-    if (step?.quiz_state !== 'active') return
-    const timedOut = quizTimerDisplay <= 0
-    if (!timedOut && !quizLocked) return
-    const id = window.setTimeout(() => goDevStep(devStep + 1), 400)
-    return () => window.clearTimeout(id)
-  }, [devBarOn, devSteps, devStep, quizTimerDisplay, quizLocked, goDevStep])
-
-  // Clears this team's quiz answers so a run can be reviewed from scratch:
-  // without it every question opens with the previous run's answer already
-  // selected and locked. Scoped to the joined team's own pending answers for
-  // this quiz, which is the one delete a participant is allowed to make.
-  async function resetDevQuiz() {
-    const gameId = stage?.type === 'quiz' ? stage.gameId : null
-    if (gameId) {
-      await supabase
-        .from('submissions')
-        .delete()
-        .eq('event_id', event.id)
-        .eq('team_id', teamId)
-        .eq('game_id', gameId)
-        .eq('status', 'pending')
-      setBundle((b) =>
-        b
-          ? {
-              ...b,
-              submissions: b.submissions.filter(
-                (sub) => !(sub.team_id === teamId && sub.game_id === gameId),
-              ),
-            }
-          : b,
-      )
-    }
-    devScoredSteps.current.clear()
-    quizChangeDeadlineRef.current = null
-    setQuizAnswer(null)
-    setQuizChangeLeft(null)
-    setQuizLocked(false)
-    goDevStep(0)
-  }
 
   useEffect(() => {
     // Reset only when the question (or game) changes — NOT on quiz_state
@@ -1730,7 +1599,8 @@ export function JoinGameView({
               cls = 'bg-red-600 text-white'
               disabled = true
             } else if (missedLockedIndices.has(i)) {
-              cls = 'bg-white/45 text-black/45'
+              // Played, on the card, never marked: grey, as the legend says.
+              cls = 'bg-gray-400 text-gray-900'
               disabled = true
             }
             if (winningCells.has(i)) cls += ' ring-4 ring-[#FFC107]'
@@ -1860,14 +1730,6 @@ export function JoinGameView({
             document.body,
           )
         : null}
-      {devBarOn && devSteps.length > 0 ? (
-        <DevStageBar
-          steps={devSteps}
-          index={devStep}
-          onGo={goDevStep}
-          onReset={() => void resetDevQuiz()}
-        />
-      ) : null}
       {header}
       <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>
       {inventoryScannerOpen ? (
