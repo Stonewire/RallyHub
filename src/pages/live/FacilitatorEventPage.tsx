@@ -419,23 +419,31 @@ export function FacilitatorEventPage() {
     if (!quizGame || !question) return
 
     const mediaType = quizSubmissionMediaType(question.id)
+    const answersHere = bundle.submissions.filter(
+      (s) =>
+        s.game_id === st.gameId &&
+        (s.media_type === mediaType || s.media_type === 'quiz'),
+    )
     const named = bundle.teams.filter((t) => t.name?.trim())
     const allAnswered =
       named.length > 0 &&
-      named.every((t) =>
-        bundle.submissions.some(
-          (s) =>
-            s.team_id === t.id &&
-            s.game_id === st.gameId &&
-            (s.media_type === mediaType || s.media_type === 'quiz'),
-        ),
-      )
+      named.every((t) => answersHere.some((s) => s.team_id === t.id))
+    // created_at is the team's FIRST answer, which is exactly when their
+    // change window opened, so it is the right clock for the lock.
+    const newestAnswerAt = answersHere.reduce(
+      (latest, s) => Math.max(latest, Date.parse(s.created_at)),
+      0,
+    )
+    const secondsSinceLastAnswer = newestAnswerAt
+      ? (Date.now() - newestAnswerAt) / 1000
+      : 0
     if (
       !shouldAutoRevealQuizQuestion({
         quizState: state.quiz_state,
         timerSeconds: quizTimerSeconds(state),
         timerRunning: quizTimerRunning(state),
         allAnswered,
+        secondsSinceLastAnswer,
       })
     ) {
       return

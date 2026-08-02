@@ -364,6 +364,20 @@ export function JoinGameView({
     [devSteps, setBundle],
   )
 
+  // In a real round the facilitator's console reveals by itself when the timer
+  // ends or every team has locked in. The driver has no facilitator behind it,
+  // so it mirrors that here: otherwise reviewing the quiz gives a false
+  // impression of how many presses running one takes.
+  useEffect(() => {
+    if (!devBarOn) return
+    const step = devSteps[devStep]
+    if (step?.quiz_state !== 'active') return
+    const timedOut = quizTimerDisplay <= 0
+    if (!timedOut && !quizLocked) return
+    const id = window.setTimeout(() => goDevStep(devStep + 1), 400)
+    return () => window.clearTimeout(id)
+  }, [devBarOn, devSteps, devStep, quizTimerDisplay, quizLocked, goDevStep])
+
   const restartDevTimer = useCallback(() => {
     setBundle((b) =>
       b
