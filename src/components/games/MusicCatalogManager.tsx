@@ -603,7 +603,17 @@ export const MusicCatalogManager = forwardRef<
                 <span className="text-muted-foreground hidden text-xs xl:block">{formatAddedDate(row.created_at)}</span>
                 <span className="text-muted-foreground hidden text-xs tabular-nums xl:block">{formatDuration(row.duration_seconds)}</span>
                 <span className="flex justify-end">
-                <Button type="button" size="icon-sm" variant="ghost" onClick={() => startEdit(row)}>
+                {/* Icon only, and the list repeats it once per track, so the
+                    label names the track as well as the action. Otherwise a
+                    screen reader reads 50 identical "button"s down the page. */}
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={`Edit ${row.title}`}
+                  title="Edit track"
+                  onClick={() => startEdit(row)}
+                >
                   <IconEdit className="size-4" />
                 </Button>
                 <Button
@@ -611,6 +621,8 @@ export const MusicCatalogManager = forwardRef<
                   size="icon-sm"
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
+                  aria-label={`Delete ${row.title}`}
+                  title={`Delete ${row.title}`}
                   disabled={deleteCatalog.isPending}
                   onClick={() => void deleteCatalog.mutateAsync(row).catch((e) => setError(String(e)))}
                 >
