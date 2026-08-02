@@ -6,6 +6,10 @@ import type { WordleCellState } from '@/lib/puzzle-engine'
 
 type Alphabet = 'latin' | 'cyrillic'
 
+/** Digits and the punctuation a typed answer actually needs. */
+const TEXT_EXTRA_TOP = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+const TEXT_EXTRA_BOTTOM = ['-', '+', '.', ',', '?', '!', "'", '&']
+
 const LATIN_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -56,6 +60,11 @@ type Props = {
   accentColor?: string
   keyState?: Record<string, WordleCellState>
   disabled?: boolean
+  /**
+   * Typing an answer needs more than letters: adds digits, punctuation and a
+   * space bar. Off for the puzzles, whose answers are letters only.
+   */
+  fullText?: boolean
 }
 
 export function VirtualKeyboard({
@@ -68,8 +77,12 @@ export function VirtualKeyboard({
   accentColor,
   keyState,
   disabled,
+  fullText = false,
 }: Props) {
-  const rows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
+  const letterRows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
+  const rows = fullText
+    ? [TEXT_EXTRA_TOP, ...letterRows, TEXT_EXTRA_BOTTOM]
+    : letterRows
   const keyStyle: CSSProperties = { width: KEY_WIDTH }
   const submitInactive = disabled || submitDisabled
 
@@ -110,7 +123,7 @@ export function VirtualKeyboard({
             })}
             {/* On a phone Delete sits at the end of the last letter row, so the
                 keyboard costs one row less of the screen. */}
-            {i === rows.length - 1 ? (
+            {!fullText && i === rows.length - 1 ? (
               <button
                 type="button"
                 disabled={disabled}
@@ -131,17 +144,37 @@ export function VirtualKeyboard({
             onClick={onBackspace}
             aria-label="Delete last letter"
             style={{ width: `calc(${KEY_WIDTH} * 3 + 0.5rem)`, backgroundColor: STATE_COLOR.absent }}
-            className="hidden h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40 md:flex"
+            className={`h-12 items-center justify-center gap-1.5 rounded-md text-xs font-bold text-white uppercase active:scale-95 disabled:opacity-40 md:flex ${
+              fullText ? 'flex' : 'hidden'
+            }`}
           >
             <Delete className="size-4" /> Delete
           </button>
+          {fullText ? (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onKey(' ')}
+              aria-label="Space"
+              style={{
+                width: `calc(${KEY_WIDTH} * 3 + 0.5rem)`,
+                backgroundColor: UNUSED_KEY_COLOR,
+                color: UNUSED_KEY_TEXT,
+              }}
+              className="flex h-12 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40"
+            >
+              Space
+            </button>
+          ) : null}
           {onSubmit ? (
             <button
               type="button"
               disabled={submitInactive}
               onClick={onSubmit}
               style={{
-                width: `calc(${KEY_WIDTH} * 5 + 1rem)`,
+                width: fullText
+                  ? `calc(${KEY_WIDTH} * 3 + 0.5rem)`
+                  : `calc(${KEY_WIDTH} * 5 + 1rem)`,
                 // Keeps the accent even while inactive — it is the key that
                 // sends the guess, and a grey one read as a dead control.
                 backgroundColor: accentColor ?? UNUSED_KEY_COLOR,

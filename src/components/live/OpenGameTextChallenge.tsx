@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
+import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import { ChallengeBrief, CHALLENGE_LABEL_CLASS } from '@/components/live/ChallengeBrief'
 import {
   StickyChallengeAction,
@@ -27,24 +28,24 @@ export function OpenGameTextChallenge({
   const onAccent = textOnAccent(accentColor)
   const cfg = parseTextGameConfig(game.config)
   const [typed, setTyped] = useState('')
+  const answerRef = useRef<HTMLDivElement | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Nothing else to do on this screen, so the field is ready to type in
-  // without a tap. iOS only opens its keyboard for focus inside a user
-  // gesture, so there the field is focused and the keyboard follows the first
-  // tap; Android opens straight away.
+  // Open with the answer field and its keyboard in view rather than on the
+  // cover, the same way the puzzles open on their board.
   useEffect(() => {
-    if (cfg.mode === 'type_text') inputRef.current?.focus()
-  }, [cfg.mode, game.id])
+    const ids = [120, 700].map((delay) =>
+      window.setTimeout(() => answerRef.current?.scrollIntoView({ block: 'start' }), delay),
+    )
+    return () => ids.forEach((id) => window.clearTimeout(id))
+  }, [game.id])
 
   const canSubmitTyped = typed.length > 0
   const canSubmitChoice = Boolean(selectedId)
 
   return (
     <div
-      className={`text-center ${cfg.mode === 'type_text' ? 'pb-10' : STICKY_ACTION_SPACER}`}
+      className={`text-center ${cfg.mode === 'type_text' ? 'pb-[22rem] md:pb-[24rem]' : STICKY_ACTION_SPACER}`}
     >
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md px-4 line-clamp-3">
         {game.name}
@@ -58,40 +59,30 @@ export function OpenGameTextChallenge({
 
       <div className="mx-auto w-full max-w-lg px-4">
       {cfg.mode === 'type_text' ? (
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!disabled && canSubmitTyped) onSubmit(typed)
-          }}
-        >
+        <div ref={answerRef} className="scroll-mt-3 space-y-3">
           <label className={`block ${CHALLENGE_LABEL_CLASS}`}>Your answer:</label>
-          <input
-            ref={inputRef}
-            type="text"
-            value={typed}
-            disabled={disabled}
-            // Typing is the only thing to do here, so the field takes focus on
-            // open and the keyboard's action key sends the answer.
-            autoFocus
-            enterKeyHint="send"
-            autoComplete="off"
-            autoCorrect="off"
-            className="xp-field w-full rounded-lg border border-white/25 bg-white/10 px-3 py-3 text-base text-white placeholder:text-white/50"
-            placeholder="Type your answer…"
-            onChange={(e) => setTyped(e.target.value)}
-          />
-          {/* Not pinned: the device keyboard is open on this screen and would
-              sit over a pinned button. The keyboard's own send key submits. */}
-          <LiveAccentButton
-            type="submit"
-            className={CHALLENGE_ACTION_CLASS}
-            accentColor={accentColor}
-            disabled={disabled || !canSubmitTyped}
+          {/* The app's own keyboard, so the answer field cannot be covered by
+              the device one and the send key is always in the same place. */}
+          <p
+            className="xp-field min-h-[3.25rem] w-full rounded-lg border border-white/25 bg-white/10 px-3 py-3 text-left text-base break-words text-white"
+            aria-live="polite"
           >
-            Submit answer
-          </LiveAccentButton>
-        </form>
+            {typed || <span className="text-white/50">Type your answer…</span>}
+          </p>
+          <VirtualKeyboard
+            alphabet="latin"
+            fullText
+            onKey={(char) => setTyped((current) => current + char)}
+            onBackspace={() => setTyped((current) => Array.from(current).slice(0, -1).join(''))}
+            onSubmit={() => {
+              if (!disabled && canSubmitTyped) onSubmit(typed)
+            }}
+            submitDisabled={disabled || !canSubmitTyped}
+            submitLabel="Send"
+            accentColor={accentColor}
+            disabled={disabled}
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           <p className={CHALLENGE_LABEL_CLASS}>Choose one answer:</p>
