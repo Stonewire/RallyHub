@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
-const MIN_SCALE = 0.5
+// Low enough that a long title shrinks rather than breaking mid-word: a
+// hyphen-free split like "Abracada / bra" reads as a mistake.
+const MIN_SCALE = 0.32
 const SCALE_STEP = 0.04
 
 function bingoCellBaseFontPx(): number {
@@ -44,20 +46,16 @@ export function BingoCardCellLabel({
       setBasePx(base)
 
       let chosen = MIN_SCALE
-      let fits = false
       for (let s = 1; s >= MIN_SCALE; s -= SCALE_STEP) {
-        content.style.overflowWrap = 'break-word'
+        // Only ever wrap at spaces, at any size.
+        content.style.overflowWrap = 'normal'
         content.style.fontSize = `${base * s}px`
         if (contentFits(container, content)) {
           chosen = s
-          fits = true
           break
         }
       }
-      if (!fits) {
-        content.style.overflowWrap = 'anywhere'
-        content.style.fontSize = `${base * MIN_SCALE}px`
-      }
+      content.style.overflowWrap = 'normal'
       setScale(chosen)
     }
 
@@ -83,7 +81,7 @@ export function BingoCardCellLabel({
     >
       <div
         ref={contentRef}
-        className="xp-bingo-cell-label w-full max-w-full text-center leading-tight break-words"
+        className="xp-bingo-cell-label w-full max-w-full text-center leading-tight [overflow-wrap:normal] [hyphens:none]"
         style={{ fontSize: `${basePx * scale}px` }}
       >
         <div className="font-black">{title}</div>

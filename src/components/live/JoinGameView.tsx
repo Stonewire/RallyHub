@@ -1713,7 +1713,9 @@ export function JoinGameView({
             </p>
           )}
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-5 gap-1 sm:gap-1.5">
+        {/* Capped on a phone: filling the whole height gave cells taller than
+            they are wide, which reads as a list rather than a card. */}
+        <div className="my-auto grid max-h-[62svh] min-h-0 flex-1 grid-cols-5 grid-rows-5 gap-1 sm:max-h-full sm:gap-1.5">
           {cellLabels.map((cell, i) => {
             const finalStatus = historicalByIndex.get(i)
             // Solid white with black text: a tinted cell read differently on
