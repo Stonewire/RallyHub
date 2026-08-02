@@ -340,10 +340,18 @@ export function JoinGameView({
   const [devStep, setDevStep] = useState(0)
 
   const goDevStep = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- setState functions are stable; listing them adds nothing
     (next: number) => {
       const step = devSteps[Math.max(0, Math.min(next, devSteps.length - 1))]
       if (!step) return
       setDevStep(Math.max(0, Math.min(next, devSteps.length - 1)))
+      // Stepping onto a question makes it answerable again, so the lock left
+      // behind by the last reveal cannot bounce the driver straight past it.
+      if (step.quiz_state === 'active') {
+        quizChangeDeadlineRef.current = null
+        setQuizLocked(false)
+        setQuizChangeLeft(null)
+      }
       setBundle((b) =>
         b
           ? {
@@ -1129,37 +1137,34 @@ export function JoinGameView({
             )?.quizPoints ?? 0}{' '}
             quiz pts
           </p>
-        ) : state.quiz_state === 'revealed' ? (
-          // The reveal happens on the question itself, so this slot carries
-          // the verdict rather than a dead countdown.
+        ) : (
+          // One slot, one size, always the same height: the verdict and the
+          // change-answer window take turns in it and nothing below shifts.
           <p
-            className={`mt-2 text-[clamp(1.6rem,5vw,2.75rem)] leading-none font-black drop-shadow-lg sm:mt-4 ${
-              quizWasCorrect ? 'text-green-400' : 'text-red-400'
+            className={`mt-2 flex h-[clamp(2rem,5.5vw,3rem)] items-center text-[clamp(1.5rem,4.6vw,2.5rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-4 ${
+              state.quiz_state === 'revealed'
+                ? quizWasCorrect
+                  ? 'text-green-400'
+                  : 'text-red-400'
+                : ''
             }`}
+            style={
+              state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked
+                ? { color: accent }
+                : undefined
+            }
           >
-            {quizWasCorrect ? 'Correct!' : quizMyAnswerId ? 'Incorrect' : 'Time up'}
+            {state.quiz_state === 'revealed'
+              ? quizWasCorrect
+                ? 'Correct!'
+                : quizMyAnswerId
+                  ? 'Incorrect'
+                  : 'Time up'
+              : state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked
+                ? `Change answer · ${quizChangeLeft}s`
+                : ''}
           </p>
-        ) : state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked ? (
-          // While the change window runs it replaces the countdown: it is the
-          // only clock that still matters to a team that has answered.
-          <span className="mt-2 flex flex-col items-center sm:mt-4">
-            <span className="text-[11px] font-black tracking-[0.22em] uppercase opacity-70">
-              Change answer
-            </span>
-            <span
-              className="text-[clamp(1.9rem,6vw,3.25rem)] leading-none font-black tabular-nums drop-shadow-lg"
-              style={{ color: accent }}
-            >
-              {quizChangeLeft}s
-            </span>
-          </span>
-        ) : state.quiz_state === 'active' && quizRunning ? (
-          // The countdown is the loudest thing on the screen while a question
-          // is open, so it carries no chip and stands at full size.
-          <p className="mt-2 text-[clamp(1.9rem,6vw,3.25rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-4">
-            {formatTimer(quizTimerDisplay)}
-          </p>
-        ) : null
+        )
       ) : null}
 
       {/* The running total belongs to the team, not to the screen it happens
@@ -1460,14 +1465,29 @@ export function JoinGameView({
               style={{ width: `${timerPct}%`, backgroundColor: accent }}
             />
           </div>
-          <h2 className="shrink-0 text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance">
+          {/* Two lines' worth of room whether or not this question needs it,
+              so a long one does not push everything below it. */}
+          <h2 className="flex min-h-[2.5em] shrink-0 items-center justify-center text-center text-[clamp(1.35rem,4vw,2.25rem)] leading-tight font-black text-balance">
             {q.text}
           </h2>
           {/* Whatever the question carries goes in the room between it and the
               answers, and gives way before the answers do. */}
           <div className="flex min-h-4 flex-1 items-center justify-center py-3">
-            <QuizQuestionMedia question={q} accentColor={accent} />
+            <QuizQuestionMedia question={q} accentColor={accent} textColor={eventTextColor} />
           </div>
+          {/* The countdown sits with the answers, where the eye already is
+              while deciding, and keeps a fixed height so nothing shifts when
+              it empties at reveal. */}
+          <p
+            className="mb-1.5 flex h-5 shrink-0 items-center justify-center text-sm font-black tabular-nums"
+            style={{
+              color: quizTimerDisplay <= 5 && quizRunning ? '#F87171' : accent,
+            }}
+          >
+            {state.quiz_state === 'active' && quizRunning
+              ? formatTimer(quizTimerDisplay)
+              : ''}
+          </p>
           <div className="shrink-0 space-y-2.5 sm:space-y-3">
             {q.answers.map((a) => {
               const selected = (quizMyAnswerId ?? quizAnswer) === a.id
@@ -1475,7 +1495,7 @@ export function JoinGameView({
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === quizCorrectAnswerId
               let cls =
-                'xp-quiz-option w-full px-5 py-4 text-left text-base font-bold transition-colors sm:py-5 md:text-lg '
+                'xp-quiz-option w-full px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg '
               let style: CSSProperties | undefined
               // Solid white answers: they are the one thing on this screen to
               // press, and a tinted panel over the event's own background read
