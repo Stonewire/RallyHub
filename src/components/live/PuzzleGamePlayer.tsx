@@ -10,7 +10,6 @@ import {
   publishPuzzleProgressChange,
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
-import { gamePointsDisplay, textOnAccent } from '@/lib/live-event'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import {
   liveMatchingItems,
@@ -189,24 +188,17 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
   const matchedRight = new Set(progress?.matchedRightIds ?? [])
   const wordLength = Math.max(3, Math.min(12, config.puzzle_wordle_length ?? 5))
   const wordleKeyState = useMemo(() => wordleKeyStates(progress?.guesses ?? []), [progress?.guesses])
-  const onAccent = textOnAccent(accentColor)
 
   return (
     <div className="space-y-5 pb-5 text-center">
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
         {game.name}
       </h2>
-      <span
-        className="inline-flex rounded-full px-4 py-1.5 text-sm font-bold tracking-wide"
-        style={{ backgroundColor: accentColor, color: onAccent }}
-      >
-        {gamePointsDisplay(game)} maximum
-      </span>
       {game.cover_url ? (
         <img
           src={game.cover_url}
           alt=""
-          className="mx-auto max-h-40 w-full rounded-xl object-cover object-center shadow-lg"
+          className="w-full object-cover"
         />
       ) : null}
       {game.description ? (

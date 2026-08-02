@@ -1119,14 +1119,20 @@ export function JoinGameView({
       const locked =
         latestSub?.status === 'approved' || latestSub?.status === 'rejected'
 
+      // The media briefing runs edge to edge (cover image, example video), so
+      // it manages its own width. Everything else stays in a reading column.
+      const fullBleed = !isTextGame(activeOpenGame) && !isPuzzleGame(activeOpenGame)
+
       body = (
-        <div className="mx-auto w-full max-w-lg px-3 pt-1">
+        <div className="w-full pt-1">
           {!submitting ? (
-            <div className="mb-3 flex items-center justify-between gap-2">
+            // 1fr / auto / 1fr keeps the points dead centre whether or not
+            // Buy Items is there, and pins the buttons to the screen edges.
+            <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-fit border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+                className="w-fit justify-self-start border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
                 onClick={() => {
                   setSelectedGame(null)
                   setCaptureActive(false)
@@ -1134,11 +1140,25 @@ export function JoinGameView({
               >
                 ← Back
               </Button>
+              <span
+                className="text-lg leading-none font-black tabular-nums drop-shadow-sm sm:text-xl"
+                style={{ color: accent }}
+              >
+                {gamePointsDisplay(activeOpenGame)}
+              </span>
               {!captureActive && inventoryEnabled ? (
-                <Button type="button" size="sm" className="gap-2 font-semibold" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit justify-self-end gap-2 border-white/40 bg-black/30 px-4 py-2 font-semibold shadow-md backdrop-blur-sm hover:bg-black/50"
+                  onClick={() => setInventoryScannerOpen(true)}
+                >
                   <QrCode className="size-4" /> Buy Items
                 </Button>
-              ) : null}
+              ) : (
+                <span />
+              )}
             </div>
           ) : null}
           {!canSubmit ? (
@@ -1149,6 +1169,7 @@ export function JoinGameView({
               Event closed — no new submissions
             </p>
           ) : null}
+          <div className={fullBleed ? 'w-full' : 'mx-auto w-full max-w-lg px-3'}>
           {submitting ? (
             <OpenGameSubmittingScreen accentColor={accent} />
           ) : pending && latestSub ? (
@@ -1187,7 +1208,6 @@ export function JoinGameView({
             <ChallengeMediaCaptureFlow
               title={activeOpenGame.name}
               description={activeOpenGame.description}
-              pointsLabel={gamePointsDisplay(activeOpenGame)}
               coverUrl={activeOpenGame.cover_url}
               accentColor={accent}
               mediaType={activeOpenGame.type === 'video' ? 'video' : 'photo'}
@@ -1198,6 +1218,7 @@ export function JoinGameView({
               onFileReady={(file) => void submitOpenGame(file, activeOpenGame)}
             />
           )}
+          </div>
         </div>
       )
     } else {

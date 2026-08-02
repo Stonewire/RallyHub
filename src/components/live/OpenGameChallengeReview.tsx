@@ -4,7 +4,6 @@ import {
   CHALLENGE_VIDEO_FRAME_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
 } from '@/lib/challenge-camera'
-import { gamePointsDisplay, textOnAccent } from '@/lib/live-event'
 import { textSubmissionDisplayLabel } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -23,7 +22,6 @@ export function OpenGameChallengeReview({
   cancelling,
   onCancel,
 }: OpenGameChallengeReviewProps) {
-  const onAccent = textOnAccent(accentColor)
   const pending = submission.status === 'pending'
   const approved = submission.status === 'approved'
   const rejected = submission.status === 'rejected'
@@ -45,17 +43,11 @@ export function OpenGameChallengeReview({
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
         {game.name}
       </h2>
-      <span
-        className="inline-flex rounded-full px-4 py-1.5 text-sm font-bold tracking-wide"
-        style={{ backgroundColor: accentColor, color: onAccent }}
-      >
-        {gamePointsDisplay(game)}
-      </span>
       {game.cover_url ? (
         <img
           src={game.cover_url}
           alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
+          className="w-full object-cover"
         />
       ) : null}
       {game.description ? (

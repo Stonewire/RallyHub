@@ -1,13 +1,12 @@
+import { useRef, useState } from 'react'
 import { Camera, Video } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { RichText } from '@/components/ui/rich-text'
-import { textOnAccent } from '@/lib/live-event'
 
 type ChallengeCaptureBriefingProps = {
   title: string
   description?: string | null
-  pointsLabel: string
   coverUrl?: string | null
   exampleVideoUrl?: string | null
   accentColor: string
@@ -16,10 +15,12 @@ type ChallengeCaptureBriefingProps = {
   onStart: () => void
 }
 
+/** Press once to run the example at double speed, press again to drop back. */
+const FAST_RATE = 2
+
 export function ChallengeCaptureBriefing({
   title,
   description,
-  pointsLabel,
   coverUrl,
   exampleVideoUrl,
   accentColor,
@@ -27,57 +28,84 @@ export function ChallengeCaptureBriefing({
   disabled,
   onStart,
 }: ChallengeCaptureBriefingProps) {
-  const onAccent = textOnAccent(accentColor)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [fast, setFast] = useState(false)
   const cta = mediaType === 'video' ? 'Take video' : 'Take photo'
   const Icon = mediaType === 'video' ? Video : Camera
 
+  function toggleSpeed() {
+    const next = !fast
+    setFast(next)
+    if (videoRef.current) videoRef.current.playbackRate = next ? FAST_RATE : 1
+  }
+
   return (
-    <div className="space-y-5 pb-4 text-center">
-      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
+    // Bottom room for the sticky button, so at the end of the brief it comes
+    // to rest below the content instead of sitting on the video controls.
+    <div className="pb-32 text-center">
+      <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-2xl px-4 line-clamp-3">
         {title}
       </h2>
-      <span
-        className="inline-flex rounded-full px-4 py-1.5 text-sm font-bold tracking-wide"
-        style={{ backgroundColor: accentColor, color: onAccent }}
-      >
-        {pointsLabel}
-      </span>
+
+      {/* Full bleed: a cover image reads as a cover only when it owns the
+          width. Natural height, no frame — the old panel was the letterboxed
+          box around a contained image. */}
       {coverUrl ? (
-        <img
-          src={coverUrl}
-          alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
-        />
+        <img src={coverUrl} alt="" className="mt-4 w-full object-cover" />
       ) : null}
+
       {description ? (
         <RichText
           html={description}
-          className="xp-challenge-description xp-wrap-text mx-auto max-w-md line-clamp-4"
+          className="xp-challenge-description xp-wrap-text mx-auto mt-5 max-w-md px-4 line-clamp-4 md:max-w-3xl"
         />
       ) : null}
+
       {exampleVideoUrl ? (
-        <div className="mx-auto w-full max-w-md space-y-1.5">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+        <div className="relative mt-5 w-full">
+          <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
             Example video
           </p>
           <video
+            ref={videoRef}
             src={exampleVideoUrl}
             controls
             playsInline
-            className="mx-auto w-full max-h-56 rounded-xl shadow-lg"
+            disablePictureInPicture
+            // Downloading someone else's brief is not a participant action, and
+            // the native speed menu is replaced by the button below.
+            controlsList="nodownload noplaybackrate noremoteplayback"
+            className="w-full"
           />
+          <button
+            type="button"
+            onClick={toggleSpeed}
+            aria-pressed={fast}
+            className="xp-interactive absolute top-8 right-3 rounded-full px-3 py-1.5 text-xs font-black tabular-nums shadow-lg"
+            style={{
+              backgroundColor: fast ? accentColor : 'rgba(0,0,0,0.55)',
+              color: fast ? '#1c1917' : '#ffffff',
+            }}
+          >
+            {FAST_RATE}×
+          </button>
         </div>
       ) : null}
-      <LiveAccentButton
-        type="button"
-        className="mx-auto w-full max-w-xs gap-2 px-6 py-5 text-base"
-        accentColor={accentColor}
-        disabled={disabled}
-        onClick={onStart}
-      >
-        <Icon className="size-5 shrink-0" />
-        {cta}
-      </LiveAccentButton>
+
+      {/* Sticks above the bottom furniture so the main action is always one
+          tap away, however long the brief runs. */}
+      <div className="sticky bottom-[5.5rem] z-20 mt-6 px-4">
+        <LiveAccentButton
+          type="button"
+          className="mx-auto w-full max-w-sm gap-2 px-6 py-5 text-base"
+          accentColor={accentColor}
+          disabled={disabled}
+          onClick={onStart}
+        >
+          <Icon className="size-5 shrink-0" />
+          {cta}
+        </LiveAccentButton>
+      </div>
     </div>
   )
 }

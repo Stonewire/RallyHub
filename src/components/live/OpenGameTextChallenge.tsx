@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { RichText } from '@/components/ui/rich-text'
-import { gamePointsDisplay, textOnAccent } from '@/lib/live-event'
+import { textOnAccent } from '@/lib/live-event'
 import { parseTextGameConfig } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -32,17 +32,11 @@ export function OpenGameTextChallenge({
       <h2 className="xp-challenge-title xp-wrap-text mx-auto max-w-md line-clamp-3">
         {game.name}
       </h2>
-      <span
-        className="inline-flex rounded-full px-4 py-1.5 text-sm font-bold tracking-wide"
-        style={{ backgroundColor: accentColor, color: onAccent }}
-      >
-        {gamePointsDisplay(game)}
-      </span>
       {game.cover_url ? (
         <img
           src={game.cover_url}
           alt=""
-          className="mx-auto w-full max-h-40 rounded-xl object-contain object-center shadow-lg sm:max-h-48"
+          className="w-full object-cover"
         />
       ) : null}
       {game.description ? (

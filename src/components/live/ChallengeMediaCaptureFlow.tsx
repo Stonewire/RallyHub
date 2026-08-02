@@ -20,7 +20,6 @@ import type { GameConfig } from '@/types/game-config'
 type ChallengeMediaCaptureFlowProps = {
   title: string
   description?: string | null
-  pointsLabel: string
   coverUrl?: string | null
   accentColor: string
   mediaType: 'photo' | 'video'
@@ -34,7 +33,6 @@ type ChallengeMediaCaptureFlowProps = {
 export function ChallengeMediaCaptureFlow({
   title,
   description,
-  pointsLabel,
   coverUrl,
   accentColor,
   mediaType,
@@ -194,7 +192,6 @@ export function ChallengeMediaCaptureFlow({
       <ChallengeCaptureBriefing
         title={title}
         description={description}
-        pointsLabel={pointsLabel}
         coverUrl={coverUrl}
         exampleVideoUrl={config?.example_video_url}
         accentColor={accentColor}
