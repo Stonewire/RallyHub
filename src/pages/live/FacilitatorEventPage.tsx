@@ -1998,9 +1998,11 @@ export function FacilitatorEventPage() {
             <div className="space-y-3">
               {/* What the room is reading, kept. The paragraph explaining what
                   Start and Stop do is not: the two buttons say it. */}
-              <p className="text-center text-base font-bold text-balance italic">
-                “{stage.message}”
-              </p>
+              {stage.message?.trim() ? (
+                <p className="text-center text-base font-bold text-balance italic">
+                  “{stage.message}”
+                </p>
+              ) : null}
               <div className="flex items-center justify-center gap-5">
                 <div className="flex flex-wrap justify-center gap-2">
                 <NeoButton

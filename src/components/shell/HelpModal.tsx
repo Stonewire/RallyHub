@@ -1,4 +1,5 @@
 import { IconClose, IconSupport } from '@/components/icons'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 type HelpModalProps = {
@@ -15,6 +16,17 @@ type HelpModalProps = {
  * is where they would have ended up anyway.
  */
 export function HelpModal({ open, onClose }: HelpModalProps) {
+  // Escape closes it, the way every other dialog in the app does. This one is
+  // hand-rolled rather than a Radix dialog, so it does not get that for free.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   if (!open) return null
 
   return (
