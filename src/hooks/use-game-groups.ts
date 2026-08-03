@@ -94,26 +94,31 @@ export function useDeleteGameGroup(organizationId: string | null) {
   })
 }
 
-export function useAssignGameToGroup(organizationId: string | null) {
+/**
+ * Adds games to a group, leaving whatever other groups they are already in.
+ *
+ * The group dialogs used to clear every membership before inserting, so "add
+ * these to Puzzles" quietly pulled the games out of the groups they were
+ * already in. The game editor's own checkboxes
+ * have always been additive, so the two surfaces disagreed about what a group
+ * is. This is the additive one.
+ *
+ * Duplicate memberships are ignored rather than treated as errors: adding a
+ * game that is already in the group should be a no-op, not a failure.
+ */
+export function useAddGamesToGroup(organizationId: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({
-      gameId,
-      groupId,
-    }: {
-      gameId: string
-      groupId: string | null
-    }) => {
-      await supabase.from('game_group_items').delete().eq('game_id', gameId)
-
-      if (groupId) {
-        const { error } = await supabase.from('game_group_items').insert({
-          group_id: groupId,
-          game_id: gameId,
-        })
-        if (error) throw error
-      }
+    mutationFn: async ({ gameIds, groupId }: { gameIds: string[]; groupId: string }) => {
+      if (gameIds.length === 0) return
+      const { error } = await supabase
+        .from('game_group_items')
+        .upsert(
+          gameIds.map((gameId) => ({ group_id: groupId, game_id: gameId })),
+          { onConflict: 'group_id,game_id', ignoreDuplicates: true },
+        )
+      if (error) throw error
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -126,8 +131,7 @@ export function useAssignGameToGroup(organizationId: string | null) {
 /**
  * Sets the full list of groups a game belongs to.
  *
- * Separate from useAssignGameToGroup, which replaces every membership with a
- * single one. The data model (game_group_items) has always been many-to-many;
+ * The data model (game_group_items) has always been many-to-many;
  * the old single-group behaviour was a limitation of the card control, not of
  * the schema. This writes the whole set so a game can sit in several groups.
  */

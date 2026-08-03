@@ -29,7 +29,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  useAssignGameToGroup,
+  useAddGamesToGroup,
   useDeleteGameGroup,
   useGameGroups,
   useRenameGameGroup,
@@ -184,7 +184,7 @@ export function AdminGamesPage() {
   const groupsQuery = useGameGroups(organizationId)
   const deleteGame = useDeleteGame(organizationId)
   const createGroup = useCreateGameGroup(organizationId)
-  const assignGroup = useAssignGameToGroup(organizationId)
+  const addGamesToGroup = useAddGamesToGroup(organizationId)
   const renameGroup = useRenameGameGroup(organizationId)
   const deleteGroup = useDeleteGameGroup(organizationId)
   const reorderGames = useReorderGames(organizationId)
@@ -251,11 +251,20 @@ export function AdminGamesPage() {
     return map
   }, [groups])
 
-  const gameToGroupId = useMemo(() => {
-    const map = new Map<string, string>()
+  /**
+   * Every group a game belongs to, not just one.
+   *
+   * This used to be a game -> single group id map, so a game in two groups was
+   * only ever drawn under whichever group the loop saw last and vanished from
+   * the other. Membership has always been many-to-many in the schema.
+   */
+  const gameToGroupIds = useMemo(() => {
+    const map = new Map<string, Set<string>>()
     for (const g of groups) {
       for (const item of g.items) {
-        map.set(item.game_id, g.id)
+        const set = map.get(item.game_id) ?? new Set<string>()
+        set.add(g.id)
+        map.set(item.game_id, set)
       }
     }
     return map
@@ -266,34 +275,39 @@ export function AdminGamesPage() {
   const activeGroup = groups.find((group) => group.id === groupFilter) ?? null
   const addToGroupCandidates = useMemo(() => {
     const q = addToGroupSearch.trim().toLowerCase()
+    // Hide only what is already in THIS group. Membership is many-to-many, so a
+    // game sitting in another group is still a fair candidate; the old check
+    // read gameToGroupId, which keeps one group per game and so hid games that
+    // belonged elsewhere.
+    const alreadyIn = new Set(activeGroup?.items.map((item) => item.game_id) ?? [])
     return allGames.filter((game) => {
-      if (gameToGroupId.get(game.id) === groupFilter) return false
+      if (alreadyIn.has(game.id)) return false
       if (addToGroupType !== 'all' && game.type !== addToGroupType) return false
       return !q || game.name.toLowerCase().includes(q)
     })
-  }, [allGames, gameToGroupId, groupFilter, addToGroupType, addToGroupSearch])
+  }, [allGames, activeGroup, addToGroupType, addToGroupSearch])
 
   const filtered = useMemo(() => {
     const list = gamesQuery.data ?? []
     return list.filter((game) => {
       const matchesType = filter === 'all' || game.type === filter
       const matchesGroup =
-        groupFilter === 'all' || gameToGroupId.get(game.id) === groupFilter
+        groupFilter === 'all' || Boolean(gameToGroupIds.get(game.id)?.has(groupFilter))
       const q = search.trim().toLowerCase()
       const matchesSearch = !q || game.name.toLowerCase().includes(q)
       return matchesType && matchesGroup && matchesSearch
     })
-  }, [gamesQuery.data, filter, groupFilter, search, gameToGroupId])
+  }, [gamesQuery.data, filter, groupFilter, search, gameToGroupIds])
   const filteredTrashed = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (trashedGamesQuery.data ?? []).filter((game) => {
       const matchesType = filter === 'all' || game.type === filter
-      const matchesGroup = groupFilter === 'all' || gameToGroupId.get(game.id) === groupFilter
+      const matchesGroup = groupFilter === 'all' || Boolean(gameToGroupIds.get(game.id)?.has(groupFilter))
       return matchesType && matchesGroup && (!q || game.name.toLowerCase().includes(q))
     })
-  }, [trashedGamesQuery.data, filter, groupFilter, search, gameToGroupId])
+  }, [trashedGamesQuery.data, filter, groupFilter, search, gameToGroupIds])
 
-  const ungrouped = filtered.filter((g) => !gameToGroupId.has(g.id))
+  const ungrouped = filtered.filter((g) => !gameToGroupIds.has(g.id))
   const createGroupCandidates = useMemo(() => {
     const q = createGroupSearch.trim().toLowerCase()
     const sourceIds =
@@ -343,9 +357,10 @@ export function AdminGamesPage() {
     setDialogError(null)
     try {
       const group = await createGroup.mutateAsync(name)
-      for (const gameId of createGroupSelection) {
-        await assignGroup.mutateAsync({ gameId, groupId: group.id })
-      }
+      await addGamesToGroup.mutateAsync({
+        gameIds: [...createGroupSelection],
+        groupId: group.id,
+      })
       setCreateGroupOpen(false)
       setNewGroupName('')
       setCreateGroupSelection(new Set())
@@ -412,9 +427,10 @@ export function AdminGamesPage() {
     if (!activeGroup || addToGroupSelection.size === 0) return
     setDialogError(null)
     try {
-      for (const gameId of addToGroupSelection) {
-        await assignGroup.mutateAsync({ gameId, groupId: activeGroup.id })
-      }
+      await addGamesToGroup.mutateAsync({
+        gameIds: [...addToGroupSelection],
+        groupId: activeGroup.id,
+      })
       setAddToGroupOpen(false)
       setAddToGroupSelection(new Set())
     } catch (err) {
@@ -777,7 +793,7 @@ export function AdminGamesPage() {
         <div className="space-y-6">
           {groups.filter((group) => groupFilter === 'all' || group.id === groupFilter).map((group) => {
             const groupGames = filtered.filter(
-              (g) => gameToGroupId.get(g.id) === group.id,
+              (g) => gameToGroupIds.get(g.id)?.has(group.id),
             )
             // Absent = use the view default: collapsed when browsing all
             // groups so the page stays scannable, expanded when one is picked.
@@ -964,7 +980,7 @@ export function AdminGamesPage() {
                 </label>
                 <div className="divide-border max-h-64 overflow-y-auto rounded-md border">
                   {createGroupCandidates.map((game) => {
-                    const currentGroup = groups.find((group) => group.id === gameToGroupId.get(game.id))
+                    const currentGroup = groups.find((group) => gameToGroupIds.get(game.id)?.has(group.id))
                     return (
                       <label key={game.id} className="hover:bg-muted/30 flex cursor-pointer items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
                         <input
@@ -987,7 +1003,7 @@ export function AdminGamesPage() {
                   ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Selected games already in another group will move to this one.
+                  Games stay in any group they are already in.
                 </p>
               </div>
             ) : null}
@@ -1003,7 +1019,7 @@ export function AdminGamesPage() {
               <NeoButton
                 type="button"
                 variant="surface"
-                disabled={createGroup.isPending || assignGroup.isPending}
+                disabled={createGroup.isPending || addGamesToGroup.isPending}
                 onClick={() => {
                   setDialogError(null)
                   setCreateGroupOpen(false)
@@ -1014,10 +1030,10 @@ export function AdminGamesPage() {
               <NeoButton
                 type="button"
                 variant="primary"
-                disabled={createGroup.isPending || assignGroup.isPending}
+                disabled={createGroup.isPending || addGamesToGroup.isPending}
                 onClick={() => void confirmCreateGroup()}
               >
-                {createGroup.isPending || assignGroup.isPending ? 'Creating…' : 'Create group'}
+                {createGroup.isPending || addGamesToGroup.isPending ? 'Creating…' : 'Create group'}
               </NeoButton>
               </div>
             </div>
@@ -1041,7 +1057,8 @@ export function AdminGamesPage() {
                     Add games to {activeGroup.name}
                   </h3>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    A game can belong to one group. Games already grouped will move here.
+                    A game can sit in several groups, so this adds without taking it
+                    out of the groups it is already in.
                   </p>
                 </div>
                 <button
@@ -1091,7 +1108,7 @@ export function AdminGamesPage() {
               </label>
               <div className="divide-border overflow-hidden rounded-md border">
                 {addToGroupCandidates.map((game) => {
-                  const currentGroup = groups.find((group) => group.id === gameToGroupId.get(game.id))
+                  const currentGroup = groups.find((group) => gameToGroupIds.get(game.id)?.has(group.id))
                   return (
                     <label key={game.id} className="hover:bg-muted/30 flex cursor-pointer items-center gap-3 border-b px-3 py-3 last:border-b-0">
                       <input
@@ -1119,11 +1136,11 @@ export function AdminGamesPage() {
             <div className="border-border flex items-center justify-between gap-3 border-t p-5">
               <p className="text-muted-foreground text-xs">{addToGroupSelection.size} selected</p>
               <div className="flex gap-2">
-                <NeoButton type="button" variant="surface" disabled={assignGroup.isPending} onClick={() => setAddToGroupOpen(false)}>
+                <NeoButton type="button" variant="surface" disabled={addGamesToGroup.isPending} onClick={() => setAddToGroupOpen(false)}>
                   Cancel
                 </NeoButton>
-                <NeoButton type="button" variant="primary" disabled={addToGroupSelection.size === 0 || assignGroup.isPending} onClick={() => void confirmAddToGroup()}>
-                  {assignGroup.isPending ? 'Adding…' : `Add ${addToGroupSelection.size || ''} game${addToGroupSelection.size === 1 ? '' : 's'}`}
+                <NeoButton type="button" variant="primary" disabled={addToGroupSelection.size === 0 || addGamesToGroup.isPending} onClick={() => void confirmAddToGroup()}>
+                  {addGamesToGroup.isPending ? 'Adding…' : `Add ${addToGroupSelection.size || ''} game${addToGroupSelection.size === 1 ? '' : 's'}`}
                 </NeoButton>
               </div>
             </div>
