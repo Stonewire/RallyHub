@@ -79,6 +79,50 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 - [x] Onboarding v2 (on `fixes`): per-user progress (migration 083; every existing account resets, each new user gets their own tour, event_manager sees a trimmed 10-step run), panel auto-minimises to a corner pill while the spotlight points at the page, completed steps clickable to revisit, Mark complete on every step
 - [x] Dropped the obsolete `organizations.onboarding_completed_tasks` / `onboarding_dismissed` columns — per-user version already live on `main`; applied via migration 086 with Rumen's explicit confirmation (2026-07-08), TS types cleaned up in `src/types/database.ts`
 
+## Client live test, 3 Aug 2026 (V3.0.0)
+
+Rumen ran a real event with a client on the V3.0.0 release. Nineteen items,
+grouped by surface. Branch: `feature/client-feedback-v3`.
+
+**Event editor**
+- [ ] **CF-1** Duplicate a game from the library
+- [ ] **CF-2** Move stages up and down
+- [ ] **CF-3** Collapsible stages
+- [ ] **CF-4** Search bar when picking games for a Quest stage
+- [ ] **CF-5** Pressing "Save changes" while games are being added should commit
+  the game selection instead of dropping it (currently you must press the
+  games' own Save first)
+
+**Player**
+- [ ] **CF-6** Wordle: hold the completion screen ~1.5s before returning to the
+  game list, so the result is readable
+- [ ] **CF-7** Text games: show the text box is focused (caret / flicker)
+- [ ] **CF-8** Buying an item returns to the event automatically
+- [ ] **CF-9** Players see the event timer, following the same
+  "Timer on display" toggle the display obeys: toggle off, players lose it too
+
+**Facilitator**
+- [ ] **CF-10** Show the stage's name, not "STAGE 1"
+- [ ] **CF-11** Text games needing review: show the facilitator the correct
+  answer alongside the submission
+- [ ] **CF-12** Submission cards carry a badge for the game type (photo, video,
+  text, …)
+- [ ] **CF-13** Facilitator chat messages show "Facilitator", not the person's
+  own name
+- [ ] **CF-14** Puzzle answers for the facilitator are inconsistent: Spice Rack
+  shows them, Circle Pieces does not
+
+**Media and content**
+- [ ] **CF-15** Square photos and videos render horizontally
+- [ ] **CF-16** Long game descriptions are cut off instead of shown in full
+- [ ] **CF-17** Size limit for photo uploads on games
+
+**Scoring**
+- [ ] **CF-18** Text auto-approval should reject a wrong answer, not leave it
+
+**Permissions**
+- [ ] **CF-19** Event managers need the tablet QR code too
+
 ## Open bugs / security
 
 - [x] **SEC-TEAM Participant writes are event-scoped, not team-owned** — **fully
