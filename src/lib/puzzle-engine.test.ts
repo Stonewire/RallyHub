@@ -152,7 +152,13 @@ describe('crossword engine', () => {
       { id: 'c', answer: 'CD', clue: 'x', row: 3, col: 3, direction: 'across' },
       { id: 'd', answer: 'CE', clue: 'x', row: 3, col: 3, direction: 'down' },
     ]
-    expect(validateCrosswordWords(words)).toMatch(/cross/i)
+    // Two pairs that cross each other but not each other's pair. The message
+    // names the stranded words, since "every word must cross another" is true
+    // of this grid and still leaves it in two pieces.
+    const error = validateCrosswordWords(words)
+    expect(error).toMatch(/separate pieces/i)
+    expect(error).toContain('CD')
+    expect(error).toContain('CE')
   })
 
   it('numbers clues in top-left scan order', () => {
