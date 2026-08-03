@@ -1,5 +1,6 @@
 
 import { getCurrentAppOrigin } from '@/lib/app-origin'
+import { qrCodeDataUrl } from '@/lib/qr'
 
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
 
@@ -44,8 +45,15 @@ export function getEventLinks(
   }
 }
 
+/**
+ * A QR code for `link`, as a data URL.
+ *
+ * Drawn locally (see lib/qr.ts). This used to point at api.qrserver.com, which
+ * sent every tablet, event and inventory link to a third party and left the
+ * codes blank at any venue without open internet.
+ */
 export function qrCodeUrl(link: string, size = 200) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(link)}`
+  return qrCodeDataUrl(link, size)
 }
 
 export async function downloadQrPng(link: string, filename: string) {
