@@ -1,4 +1,12 @@
-import { IconGrip, IconPlus, IconTrash } from '@/components/icons'
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconChevronDown,
+  IconChevronRight,
+  IconGrip,
+  IconPlus,
+  IconTrash,
+} from '@/components/icons'
 import { useMemo, useState } from 'react'
 
 import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
@@ -16,6 +24,7 @@ import type { OrganizationRow } from '@/hooks/use-organization-settings'
 import { uploadAsset } from '@/lib/storage'
 import {
   addStage,
+  moveStage,
   defaultTeams,
   type EventFormValues,
 } from '@/lib/event-form-utils'
@@ -76,6 +85,9 @@ export function EventForm({
   // be removed together when that event is permanently deleted.
   const [newEventStorageKey] = useState(() => crypto.randomUUID())
   const [previewOpen, setPreviewOpen] = useState(false)
+  // Collapsed stages, keyed by stage id. Local to the editing session: which
+  // stage you are working on is not worth persisting.
+  const [collapsedStages, setCollapsedStages] = useState<Record<string, boolean>>({})
   const brandingStorageKey = storageKey ?? newEventStorageKey
   const teamCharge = additionalTeamCharge(values.teamCount)
 
@@ -416,6 +428,30 @@ export function EventForm({
         {stages.map((stage, stageIndex) => (
           <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
             <div className="flex flex-wrap items-center gap-3">
+              {/* A long event is a long page. Collapsing a finished stage keeps
+                  the one being edited on screen. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={
+                  collapsedStages[stage.id]
+                    ? `Expand ${stage.name || `stage ${stageIndex + 1}`}`
+                    : `Collapse ${stage.name || `stage ${stageIndex + 1}`}`
+                }
+                onClick={() =>
+                  setCollapsedStages((current) => ({
+                    ...current,
+                    [stage.id]: !current[stage.id],
+                  }))
+                }
+              >
+                {collapsedStages[stage.id] ? (
+                  <IconChevronRight className="size-4" />
+                ) : (
+                  <IconChevronDown className="size-4" />
+                )}
+              </Button>
               <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">Stage {stageIndex + 1}</span>
               <Input
                 value={stage.name}
@@ -429,10 +465,33 @@ export function EventForm({
                 }
                 className="bg-background h-8 min-w-40 flex-1 text-sm font-semibold"
               />
+              {/* Running order changes constantly while planning, and
+                  rebuilding a stage just to move it was the only way. */}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
+                aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} earlier`}
+                disabled={stageIndex === 0}
+                onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, -1) }))}
+              >
+                <IconArrowUp className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} later`}
+                disabled={stageIndex === stages.length - 1}
+                onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, 1) }))}
+              >
+                <IconArrowDown className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Delete ${stage.name || `stage ${stageIndex + 1}`}`}
                 disabled={stages.length <= 1}
                 onClick={() =>
                   onChange((prev) => ({
@@ -444,6 +503,8 @@ export function EventForm({
                 <IconTrash className="size-4" />
               </Button>
             </div>
+            {collapsedStages[stage.id] ? null : (
+            <>
             <SegmentedPill
               aria-label="Stage type"
               options={STAGE_TYPE_OPTIONS.map((option) => ({
@@ -559,6 +620,8 @@ export function EventForm({
                 ))}
               </select>
             )}
+            </>
+            )}
           </Card>
         ))}
         <Button
@@ -632,10 +695,10 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [selectedInStage, setSelectedInStage] = useState<Set<string>>(new Set())
   const [groupFilter, setGroupFilter] = useState('all')
+  const [gameSearch, setGameSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<QuestTypeFilter>(null)
   // Checked-but-unsaved picks. The design stages a selection and commits it on
   // Save, rather than the previous behaviour of adding on every single click.
-  const [pending, setPending] = useState<Set<string>>(new Set())
   const [pickerOpen, setPickerOpen] = useState((stage.gameIds ?? []).length === 0)
 
   const ids = useMemo(() => stage.gameIds ?? [], [stage.gameIds])
@@ -659,19 +722,31 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
       list = list.filter((game) => gameIds.has(game.id))
     }
     if (typeFilter) list = list.filter((game) => game.type === typeFilter)
+    // A library of 140 games is not browsable by group and type alone; the
+    // organiser usually knows the name and just wants to find it.
+    const query = gameSearch.trim().toLowerCase()
+    if (query) list = list.filter((game) => game.name.toLowerCase().includes(query))
     return list
-  }, [available, groupFilter, groups, typeFilter])
+  }, [available, groupFilter, groups, typeFilter, gameSearch])
 
   const allFilteredChecked =
-    filteredAvailable.length > 0 && filteredAvailable.every((g) => pending.has(g.id))
+    filteredAvailable.length > 0 && filteredAvailable.every((g) => ids.includes(g.id))
 
+  /**
+   * Ticking a game adds it to the stage there and then.
+   *
+   * It used to sit in a pending set until the picker's own Save was pressed,
+   * which meant pressing the form's "Save changes" with boxes ticked threw the
+   * selection away with no warning. Committing on the tick removes the failure
+   * outright: there is never unsaved selection state to lose, and checking ten
+   * boxes still works the same way.
+   */
   function togglePending(id: string) {
-    setPending((previous) => {
-      const next = new Set(previous)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    if (ids.includes(id)) {
+      setStageIds(ids.filter((existing) => existing !== id))
+      return
+    }
+    setStageIds([...ids, id], [id])
   }
 
   // Adding always unions into the event library too (same rule as before).
@@ -683,19 +758,6 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
         x.id === stage.id ? { ...x, gameIds: nextIds } : x,
       ),
     }))
-  }
-
-  /**
-   * Moves everything currently checked into the stage. Called by Save and also
-   * whenever a filter changes, so a partly-made selection is never dropped
-   * silently just because the organiser looked at a different group or type.
-   */
-  function commitPending() {
-    if (pending.size === 0) return
-    const toAdd = [...pending].filter((id) => !ids.includes(id))
-    setPending(new Set())
-    if (toAdd.length === 0) return
-    setStageIds([...ids, ...toAdd], toAdd)
   }
 
   function moveTo(from: number, to: number) {
@@ -833,14 +895,16 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
       {pickerOpen || inStage.length === 0 ? (
         <div className="border-border/70 space-y-3 border-t pt-3">
           <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={gameSearch}
+              onChange={(event) => setGameSearch(event.target.value)}
+              placeholder="Search games…"
+              aria-label="Search available quest games"
+              className="bg-background h-8 min-w-44 flex-1 text-xs"
+            />
             <select
               value={groupFilter}
-              onChange={(event) => {
-                // Committing first means a half-made selection is never lost
-                // just because the organiser went looking in another group.
-                commitPending()
-                setGroupFilter(event.target.value)
-              }}
+              onChange={(event) => setGroupFilter(event.target.value)}
               className="border-input bg-background h-8 min-w-40 rounded-md border px-2 text-xs font-semibold"
               aria-label="Filter available quest games by group"
             >
@@ -854,13 +918,15 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
               size="sm"
               variant="outline"
               disabled={filteredAvailable.length === 0}
-              onClick={() =>
-                setPending(
-                  allFilteredChecked
-                    ? new Set()
-                    : new Set(filteredAvailable.map((g) => g.id)),
-                )
-              }
+              onClick={() => {
+                const filteredIds = filteredAvailable.map((g) => g.id)
+                if (allFilteredChecked) {
+                  setStageIds(ids.filter((id) => !filteredIds.includes(id)))
+                  return
+                }
+                const toAdd = filteredIds.filter((id) => !ids.includes(id))
+                setStageIds([...ids, ...toAdd], toAdd)
+              }}
             >
               {allFilteredChecked ? 'Deselect All' : 'Select All'}
             </Button>
@@ -871,10 +937,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
               <button
                 key={label}
                 type="button"
-                onClick={() => {
-                  commitPending()
-                  setTypeFilter(type)
-                }}
+                onClick={() => setTypeFilter(type)}
                 className={cn(
                   'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                   typeFilter === type
@@ -895,7 +958,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                     <label className="hover:bg-muted/40 flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={pending.has(g.id)}
+                        checked={ids.includes(g.id)}
                         onChange={() => togglePending(g.id)}
                       />
                       <span className="min-w-0 flex-1 truncate">{g.name}</span>
@@ -911,13 +974,9 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   type="button"
                   variant="primary"
                   size="sm"
-                  disabled={pending.size === 0}
-                  onClick={() => {
-                    commitPending()
-                    setPickerOpen(false)
-                  }}
+                  onClick={() => setPickerOpen(false)}
                 >
-                  Save{pending.size > 0 ? ` (${pending.size})` : ''}
+                  Done
                 </NeoButton>
               </div>
             </>
