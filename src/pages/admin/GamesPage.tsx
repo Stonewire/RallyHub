@@ -733,7 +733,10 @@ export function AdminGamesPage() {
         </>
       ) : (
       <>
-      <div className={editingGameId ? 'xl:pr-[38rem]' : undefined}>
+      {/* The editor is a fixed overlay, so the list underneath keeps its own
+          width. Reserving room for the panel used to reflow the card grid the
+          moment it opened, which reshuffled every card the eye was already on. */}
+      <div>
       <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
         {/* Type filters, search, then group selector. Every control here is h-9
             so the row reads as one band rather than three different sizes. */}

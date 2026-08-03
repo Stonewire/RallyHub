@@ -214,32 +214,41 @@ export function BillingOverview({
 
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
 
+          {/* Two equal buttons on one centred row, then comparing plans as a
+              quiet link underneath. It is the least committing of the three, so
+              it does not need to compete with them for the eye. */}
           {showAvailablePlans ? (
-            <div className="border-border flex flex-wrap justify-center gap-2 border-t pt-3">
-              {!paddleSubscriptionId && canStartSubscription ? (
+            <div className="border-border flex flex-col items-center gap-3 border-t pt-3">
+              <div className="grid w-full grid-cols-2 gap-2">
+                {!paddleSubscriptionId && canStartSubscription ? (
+                  <NeoButton
+                    variant="accent"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => void handleStartSubscription()}
+                    disabled={startSubscription.isPending}
+                  >
+                    {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
+                  </NeoButton>
+                ) : null}
                 <NeoButton
-                  variant="accent"
+                  variant="surface"
                   size="sm"
-                  onClick={() => void handleStartSubscription()}
-                  disabled={startSubscription.isPending}
+                  className={`w-full ${!paddleSubscriptionId && canStartSubscription ? '' : 'col-span-2'}`}
+                  onClick={() => void handleOpenPortal()}
+                  disabled={openingPortal}
                 >
-                  {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
+                  <IconBilling className="size-4" aria-hidden />
+                  {openingPortal ? 'Opening…' : 'Manage billing details'}
                 </NeoButton>
-              ) : null}
-              <NeoButton
-                variant="surface"
-                size="sm"
-                onClick={() => void handleOpenPortal()}
-                disabled={openingPortal}
+              </div>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+                onClick={() => setPlansOpen(true)}
               >
-                <IconBilling className="size-4" aria-hidden />
-                {openingPortal ? 'Opening…' : 'Manage billing details'}
-              </NeoButton>
-              {/* Gold: comparing plans is the action worth drawing the eye to
-                  on this card. */}
-              <NeoButton variant="accent" size="sm" onClick={() => setPlansOpen(true)}>
                 View other plans
-              </NeoButton>
+              </button>
             </div>
           ) : null}
 

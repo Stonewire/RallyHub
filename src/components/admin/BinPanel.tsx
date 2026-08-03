@@ -157,7 +157,7 @@ export function BinPanel({
           </NeoButton>
         ) : null}
       </div>
-      <div className="text-muted-foreground border-border hidden grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_190px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
+      <div className="text-muted-foreground border-border hidden grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_320px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
         <span />
         <span>Cover</span>
         <span>Name</span>
@@ -173,7 +173,7 @@ export function BinPanel({
         return (
           <div
             key={item.id}
-            className="border-border/70 grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_190px] md:items-center"
+            className="border-border/70 grid gap-3 border-b px-4 py-3 last:border-b-0 md:grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_320px] md:items-center"
           >
             <input
               type="checkbox"
@@ -222,7 +222,7 @@ export function BinPanel({
             <p className="text-muted-foreground text-xs">
               {remaining > 0 ? `${remaining} day${remaining === 1 ? '' : 's'}` : 'Deleting soon'}
             </p>
-            <div className="flex shrink-0 justify-start gap-2 md:justify-end">
+            <div className="flex shrink-0 flex-wrap justify-start gap-2 md:flex-nowrap md:justify-end">
               <NeoButton type="button" variant="surface" size="sm" onClick={() => onOpen(item.id)}>
                 Open
               </NeoButton>
@@ -233,8 +233,8 @@ export function BinPanel({
                 disabled={restoringId === item.id || remaining <= 0}
                 onClick={() => void onRestore(item.id)}
               >
-                <IconRestore className="mr-1.5 size-3.5" />
-                Restore
+                <IconRestore className="mr-1.5 size-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Restore</span>
               </NeoButton>
               {onDeletePermanently ? (
                 <NeoButton
@@ -244,8 +244,10 @@ export function BinPanel({
                   disabled={deletingId === item.id}
                   onClick={() => onDeletePermanently(item.id)}
                 >
-                  <IconTrash className="mr-1.5 size-3.5" />
-                  {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
+                  <IconTrash className="mr-1.5 size-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">
+                    {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
+                  </span>
                 </NeoButton>
               ) : null}
             </div>
