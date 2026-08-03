@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  CHALLENGE_REVIEW_MEDIA_CLASS,
 } from '@/lib/challenge-camera'
 import { textSubmissionDisplayLabel } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
@@ -72,7 +72,7 @@ export function OpenGameChallengeReview({
               src={submission.media_url}
               controls
               playsInline
-              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
+              className={CHALLENGE_REVIEW_MEDIA_CLASS}
             />
           </div>
         ) : submission.media_type === 'photo' ? (

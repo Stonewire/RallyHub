@@ -9,9 +9,16 @@ export type ChallengeFacingMode = 'environment' | 'user'
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
 
-/** Fixed 9:16 portrait frame for embedded review surfaces (modals, cards). */
+/**
+ * Frame for embedded review surfaces (modals, cards).
+ *
+ * It used to be locked to 9:16, which is right for a phone-shot video and
+ * wrong for everything else: a square submission sat in a tall black column
+ * with bars top and bottom, and read as though it had been stretched. The
+ * frame now takes its shape from the media inside it and only caps the height.
+ */
 export const CHALLENGE_VIDEO_FRAME_CLASS =
-  'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
+  'xp-media-frame relative mx-auto flex w-full max-w-sm items-center justify-center overflow-hidden bg-black'
 
 /**
  * Full-bleed capture container: the live camera uses the whole available
@@ -29,6 +36,16 @@ export const CHALLENGE_CAPTURE_FRAME_CLASS =
  * loss from blowing up a slice).
  */
 export const CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS = 'size-full object-contain'
+
+/**
+ * Media inside an embedded review frame, sized by its own aspect ratio.
+ *
+ * Separate from the class above because that one fills a full-bleed capture
+ * screen, where capping the height would shrink the snapshot the team is
+ * checking. Here the media decides the shape and only the height is bounded.
+ */
+export const CHALLENGE_REVIEW_MEDIA_CLASS =
+  'max-h-[min(70svh,720px)] w-full object-contain'
 
 /**
  * The live viewfinder fills its frame, the way a phone camera app does.

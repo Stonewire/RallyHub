@@ -18,9 +18,9 @@ import {
   EVENT_LINK_ORDER,
   getEventLinks,
   qrCodeUrl,
-  type EventLinkKey,
   type EventLinksPdfBranding,
 } from '@/lib/event-links'
+import { getTabletLink } from '@/lib/tablet-link'
 import type { TenantPublicOrg } from '@/lib/tenant'
 
 type EventLinksPanelProps = {
@@ -81,11 +81,37 @@ export function EventLinksPanel({
     clientSlug: organization?.subdomain,
     eventSlug,
   })
-  const [copied, setCopied] = useState<EventLinkKey | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
   const [downloadingAll, setDownloadingAll] = useState(false)
 
-  async function handleCopy(key: EventLinkKey) {
-    await copyToClipboard(links[key])
+  /**
+   * The three event links, plus the org's tablet kiosk when we know the
+   * subdomain.
+   *
+   * The tablet QR used to live only on the Organisation page, which event
+   * managers cannot open at all, so the person setting the room up could not
+   * reach the code for the tablets they were setting up. It belongs with the
+   * other things you print before an event.
+   */
+  const linkCards = [
+    ...EVENT_LINK_ORDER.map((key) => ({
+      key: key as string,
+      label: EVENT_LINK_LABELS[key],
+      url: links[key],
+    })),
+    ...(organization?.subdomain
+      ? [
+          {
+            key: 'tablet',
+            label: 'Tablet',
+            url: getTabletLink({ subdomain: organization.subdomain }),
+          },
+        ]
+      : []),
+  ]
+
+  async function handleCopy(key: string, url: string) {
+    await copyToClipboard(url)
     setCopied(key)
     window.setTimeout(() => setCopied(null), 2000)
   }
@@ -94,17 +120,21 @@ export function EventLinksPanel({
 
   return (
     <div className="space-y-6">
-      <div className={compact ? 'space-y-4' : 'grid items-stretch gap-6 sm:grid-cols-3'}>
-        {EVENT_LINK_ORDER.map((key) => (
+      <div
+        className={
+          compact ? 'space-y-4' : 'grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4'
+        }
+      >
+        {linkCards.map(({ key, label, url }) => (
           // No card around each link: these already sit inside a panel or a
           // modal, so the extra border and shadow was a box inside a box.
           <div key={key} className="flex flex-col gap-3">
             <Label className="text-foreground block text-center text-sm font-bold">
-              {EVENT_LINK_LABELS[key]}
+              {label}
             </Label>
             <img
-              src={qrCodeUrl(links[key], 200)}
-              alt={`QR code for ${EVENT_LINK_LABELS[key]}`}
+              src={qrCodeUrl(url, 200)}
+              alt={`QR code for ${label}`}
               width={200}
               height={200}
               className="mx-auto rounded-lg bg-white p-2"
@@ -112,7 +142,7 @@ export function EventLinksPanel({
             {/* Grows to fill, so a longer URL does not shove the buttons of one
                 column below the others. */}
             <p className="text-muted-foreground min-h-8 flex-1 break-all font-mono text-xs">
-              {links[key]}
+              {url}
             </p>
             {/* Three equal columns rather than wrapping flex: the labels are
                 short enough to sit on one line at any card width. */}
@@ -122,7 +152,7 @@ export function EventLinksPanel({
                 size="sm"
                 variant="surface"
                 className="w-full justify-center px-0"
-                onClick={() => void handleCopy(key)}
+                onClick={() => void handleCopy(key, url)}
               >
                 {copied === key ? (
                   <IconCheck className="size-3.5" />
@@ -132,7 +162,7 @@ export function EventLinksPanel({
                 Copy
               </NeoButton>
               <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center px-0" asChild>
-                <Link to={links[key]} target="_blank" rel="noreferrer">
+                <Link to={url} target="_blank" rel="noreferrer">
                   <IconExternal className="size-3.5" />
                   Open
                 </Link>
@@ -144,7 +174,7 @@ export function EventLinksPanel({
                 className="w-full justify-center px-0"
                 title="Download this QR as a PNG"
                 onClick={() =>
-                  void downloadQrPng(links[key], `rallyhub-${key}-${eventId}.png`)
+                  void downloadQrPng(url, `rallyhub-${key}-${eventId}.png`)
                 }
               >
                 <IconQr className="size-3.5" />

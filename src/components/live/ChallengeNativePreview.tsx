@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import {
   CHALLENGE_PREVIEW_MEDIA_CLASS,
   CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  CHALLENGE_REVIEW_MEDIA_CLASS,
 } from '@/lib/challenge-camera'
 
 type ChallengeNativePreviewProps = {
@@ -63,7 +63,7 @@ export function ChallengeNativePreview({
               controls
               playsInline
               preload="auto"
-              className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
+              className={CHALLENGE_REVIEW_MEDIA_CLASS}
             />
           </div>
         )}
