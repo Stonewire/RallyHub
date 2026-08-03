@@ -72,8 +72,11 @@ export function BingoWinCelebration({
 
   return (
     <AnimatePresence>
+      {/* z-10100 sits above the display's sound gate (z-10050). A display that
+          reloads mid-event sits behind that gate until someone taps it, and the
+          win is the one moment the room must not miss. */}
       <motion.div
-        className="experience-scope fixed inset-0 z-[10000] flex flex-col items-center justify-center px-6 text-center"
+        className="experience-scope fixed inset-0 z-[10100] flex flex-col items-center justify-center px-6 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

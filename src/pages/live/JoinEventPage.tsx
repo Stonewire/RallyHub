@@ -497,15 +497,10 @@ export function JoinEventPage() {
                   </>
                 )}
               </button>
-              {!shouldUseNativePhotoCapture() ? (
-                <button
-                  type="button"
-                  className="w-full text-center text-xs text-black/55 underline"
-                  onClick={() => photoInputRef.current?.click()}
-                >
-                  Or upload a photo
-                </button>
-              ) : null}
+              {/* No "upload instead" escape hatch. Team devices shoot their
+                  photo, the same rule the photo challenges follow, and iOS never
+                  offered one anyway, so the link only ever appeared on Android
+                  and desktop. The photo is optional, so nobody is blocked. */}
             </div>
             {claimError ? (
               <p className="text-sm text-red-600" role="alert">

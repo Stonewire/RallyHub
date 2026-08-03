@@ -203,7 +203,12 @@ export function useRedeemPromoCode(orgId: string | null | undefined) {
   return useMutation({
     mutationFn: async (code: string) => {
       const { data, error } = await supabase.rpc('redeem_promo_code', { p_code: code })
-      if (error) throw error
+      // redeem_promo_code raises a message written for the client ("Invalid or
+      // inactive promo code", "…reached its redemption limit", "…already on
+      // your account"). Supabase hands those back as a PostgrestError, which is
+      // a plain object, so `err instanceof Error` was false at the call site and
+      // every failure collapsed into one generic "Could not add promo code".
+      if (error) throw new Error(error.message)
       return data as PromoRedemption
     },
     onSuccess: () => {

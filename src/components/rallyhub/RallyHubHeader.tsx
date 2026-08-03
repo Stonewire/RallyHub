@@ -12,6 +12,7 @@ import {
 } from '@/components/icons'
 import { LoggedOutScreen } from '@/components/auth/LoggedOutScreen'
 import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
+import { SignOutConfirmDialog } from '@/components/shell/SignOutConfirmDialog'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
@@ -110,17 +111,20 @@ export function RallyHubHeader() {
   const { signOut, profile } = useAuth()
   const staffRole = profile?.staff_role
   const [loggedOut, setLoggedOut] = useState(false)
+  const [exitOpen, setExitOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const collapsed = state === 'collapsed'
 
   async function handleExit() {
-    if (!window.confirm('Log out of RallyHub? You will need to sign in again.')) {
-      return
-    }
+    setSigningOut(true)
     try {
       await signOut()
+      setExitOpen(false)
       setLoggedOut(true)
     } catch (err) {
       console.error('[RallyHub] Sign out failed', err)
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -180,7 +184,7 @@ export function RallyHubHeader() {
           </button>
           <button
             type="button"
-            onClick={() => void handleExit()}
+            onClick={() => setExitOpen(true)}
             aria-label="Exit"
             className={ICON_BUTTON}
           >
@@ -191,6 +195,14 @@ export function RallyHubHeader() {
           <HeaderAvatar />
         </div>
       </header>
+
+      {exitOpen ? (
+        <SignOutConfirmDialog
+          signingOut={signingOut}
+          onCancel={() => setExitOpen(false)}
+          onConfirm={() => void handleExit()}
+        />
+      ) : null}
 
       {loggedOut ? (
         <LoggedOutScreen onLogBackIn={() => navigate('/login', { replace: true })} />

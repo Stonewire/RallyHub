@@ -625,3 +625,33 @@ export function QuizEditor({
     </div>
   )
 }
+
+/**
+ * Why a quiz cannot be saved yet, or null when it is fine.
+ *
+ * The live panel drops any question with no text (quizQuestions in
+ * live-event.ts), so a quiz saved half-written silently loses questions, and a
+ * quiz where every question is blank leaves players staring at nothing while
+ * the facilitator sees a working panel. The text game already refuses the
+ * equivalent, so this holds the quiz to the same standard.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- validation helper for QuizEditor's config shape
+export function validateQuizConfig(config: GameConfig): string | null {
+  const questions = config.questions ?? []
+  if (questions.length === 0) return 'Add at least one question.'
+
+  const blank = questions.findIndex((q) => !q.text?.trim())
+  if (blank >= 0) return `Question ${blank + 1} needs its text.`
+
+  const thin = questions.findIndex(
+    (q) => (q.answers ?? []).filter((a) => a.text?.trim()).length < 2,
+  )
+  if (thin >= 0) return `Question ${thin + 1} needs at least two answers.`
+
+  const unanswered = questions.findIndex(
+    (q) => !q.correctAnswerId || !(q.answers ?? []).some((a) => a.id === q.correctAnswerId),
+  )
+  if (unanswered >= 0) return `Mark the correct answer for question ${unanswered + 1}.`
+
+  return null
+}

@@ -15,6 +15,7 @@ import { HeaderAvatar } from '@/components/shell/HeaderAvatar'
 import { HeaderSearch } from '@/components/shell/HeaderSearch'
 import { HelpModal } from '@/components/shell/HelpModal'
 import { NewGameTypeModal } from '@/components/games/NewGameTypeModal'
+import { SignOutConfirmDialog } from '@/components/shell/SignOutConfirmDialog'
 import { InstallAppButton } from '@/components/pwa/InstallAppButton'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
@@ -39,20 +40,23 @@ export function AdminHeader() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [newGameOpen, setNewGameOpen] = useState(false)
   const [loggedOut, setLoggedOut] = useState(false)
+  const [exitOpen, setExitOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   // Facilitators cannot create games or events, so those CTAs stay hidden.
   const canCreate = !isFacilitatorOnlyRole(role)
   const collapsed = state === 'collapsed'
 
   async function handleExit() {
-    if (!window.confirm('Log out of RallyHub? You will need to sign in again.')) {
-      return
-    }
+    setSigningOut(true)
     try {
       await signOut()
+      setExitOpen(false)
       setLoggedOut(true)
     } catch (err) {
       console.error('[RallyHub] Sign out failed', err)
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -143,7 +147,7 @@ export function AdminHeader() {
           {!tenantOrg?.is_demo ? (
             <button
               type="button"
-              onClick={() => void handleExit()}
+              onClick={() => setExitOpen(true)}
               aria-label="Exit"
               className={ICON_BUTTON}
             >
@@ -158,6 +162,13 @@ export function AdminHeader() {
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <NewGameTypeModal open={newGameOpen} onClose={() => setNewGameOpen(false)} />
+      {exitOpen ? (
+        <SignOutConfirmDialog
+          signingOut={signingOut}
+          onCancel={() => setExitOpen(false)}
+          onConfirm={() => void handleExit()}
+        />
+      ) : null}
 
       {loggedOut ? (
         <LoggedOutScreen

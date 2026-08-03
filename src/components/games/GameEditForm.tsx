@@ -21,6 +21,7 @@ import {
 import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import { useNotification } from '@/contexts/notification-context'
 import { validatePuzzleConfig } from '@/components/games/PuzzleEditor'
+import { validateQuizConfig } from '@/components/games/QuizEditor'
 import { validateTextGameConfig } from '@/components/games/TextGameEditor'
 import { sanitizeRichText } from '@/lib/rich-text'
 import type { GameType, PointsType } from '@/types/database'
@@ -189,6 +190,13 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
       const puzzleError = validatePuzzleConfig(config)
       if (puzzleError) {
         setError(puzzleError)
+        return
+      }
+    }
+    if (gameType === 'quiz') {
+      const quizError = validateQuizConfig(config)
+      if (quizError) {
+        setError(quizError)
         return
       }
     }
