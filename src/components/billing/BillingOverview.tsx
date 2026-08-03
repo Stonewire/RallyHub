@@ -224,7 +224,7 @@ export function BillingOverview({
                   <NeoButton
                     variant="accent"
                     size="sm"
-                    className="w-full"
+                    className="w-full whitespace-nowrap"
                     onClick={() => void handleStartSubscription()}
                     disabled={startSubscription.isPending}
                   >
@@ -234,12 +234,15 @@ export function BillingOverview({
                 <NeoButton
                   variant="surface"
                   size="sm"
-                  className={`w-full ${!paddleSubscriptionId && canStartSubscription ? '' : 'col-span-2'}`}
+                  className={`w-full whitespace-nowrap ${!paddleSubscriptionId && canStartSubscription ? '' : 'col-span-2'}`}
                   onClick={() => void handleOpenPortal()}
                   disabled={openingPortal}
                 >
-                  <IconBilling className="size-4" aria-hidden />
-                  {openingPortal ? 'Opening…' : 'Manage billing details'}
+                  <IconBilling className="size-4 shrink-0" aria-hidden />
+                  {/* "Manage billing details" does not fit in half a card once
+                      the icon is in front of it, and wrapping made the pair
+                      uneven. The heading above already says Billing. */}
+                  {openingPortal ? 'Opening…' : 'Billing details'}
                 </NeoButton>
               </div>
               <button
