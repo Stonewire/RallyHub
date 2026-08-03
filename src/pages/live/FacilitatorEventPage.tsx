@@ -72,6 +72,7 @@ import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
   isOpenStageSubmissionMediaType,
+  parseTextGameConfig,
   puzzleSubmissionStatLabel,
   textSubmissionDisplayLabel,
 } from '@/lib/text-game'
@@ -151,6 +152,22 @@ function gameTypeLabel(
     default:
       return 'Other'
   }
+}
+
+/**
+ * The answer a text game counts as correct, for the review card.
+ *
+ * Null for a judged game, which deliberately has no right answer. Multiple
+ * accepted answers are joined so the facilitator sees the whole set rather than
+ * only the first one a team might have matched.
+ */
+function expectedTextAnswerLabel(game: Tables<'games'>): string | null {
+  const cfg = parseTextGameConfig(game.config)
+  if (cfg.mode === 'choose_answer') {
+    return (cfg.options ?? []).find((o) => o.id === cfg.correctAnswerId)?.text ?? null
+  }
+  const answers = (cfg.correctAnswers ?? []).filter((a) => a.trim().length > 0)
+  return answers.length > 0 ? answers.join(' / ') : null
 }
 
 function parseTimerInput(raw: string): number | null {
@@ -2130,6 +2147,10 @@ export function FacilitatorEventPage() {
                   .map((sub) => {
                     const team = teams.find((t) => t.id === sub.team_id)
                     const game = games.find((g) => g.id === sub.game_id)
+                    const expectedTextAnswer =
+                      sub.media_type === 'text' && game
+                        ? expectedTextAnswerLabel(game)
+                        : null
                     // The app's own badge tones: solid, not a tinted outline.
                     const statusTone =
                       sub.status === 'approved'
@@ -2187,6 +2208,15 @@ export function FacilitatorEventPage() {
                             <span className="bg-muted text-muted-foreground mt-1 mr-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]">
                               {gameTypeLabel(game?.type, sub.media_type)}
                             </span>
+                            {/* Marking a text answer means comparing it with
+                                the right one, and an automatically marked game
+                                never reaches the review modal where the
+                                reference used to live. */}
+                            {expectedTextAnswer ? (
+                              <p className="text-muted-foreground truncate text-xs">
+                                Expected: <span className="font-semibold">{expectedTextAnswer}</span>
+                              </p>
+                            ) : null}
                             <NeoStatusBadge tone={statusTone} className="mt-1">
                               {sub.status}
                             </NeoStatusBadge>
