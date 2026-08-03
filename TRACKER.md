@@ -82,46 +82,47 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 ## Client live test, 3 Aug 2026 (V3.0.0)
 
 Rumen ran a real event with a client on the V3.0.0 release. Nineteen items,
-grouped by surface. Branch: `feature/client-feedback-v3`.
+grouped by surface. Branch: `feature/client-feedback-v3`. All nineteen are done; the auto-approval
+migration (CF-18) is written but NOT yet applied to the shared project.
 
 **Event editor**
-- [ ] **CF-1** Duplicate a game from the library
-- [ ] **CF-2** Move stages up and down
-- [ ] **CF-3** Collapsible stages
-- [ ] **CF-4** Search bar when picking games for a Quest stage
-- [ ] **CF-5** Pressing "Save changes" while games are being added should commit
+- [x] **CF-1** Duplicate a game from the library
+- [x] **CF-2** Move stages up and down
+- [x] **CF-3** Collapsible stages
+- [x] **CF-4** Search bar when picking games for a Quest stage
+- [x] **CF-5** Pressing "Save changes" while games are being added should commit
   the game selection instead of dropping it (currently you must press the
   games' own Save first)
 
 **Player**
-- [ ] **CF-6** Wordle: hold the completion screen ~1.5s before returning to the
+- [x] **CF-6** Wordle: hold the completion screen ~1.5s before returning to the
   game list, so the result is readable
-- [ ] **CF-7** Text games: show the text box is focused (caret / flicker)
-- [ ] **CF-8** Buying an item returns to the event automatically
-- [ ] **CF-9** Players see the event timer, following the same
+- [x] **CF-7** Text games: show the text box is focused (caret / flicker)
+- [x] **CF-8** Buying an item returns to the event automatically
+- [x] **CF-9** Players see the event timer, following the same
   "Timer on display" toggle the display obeys: toggle off, players lose it too
 
 **Facilitator**
-- [ ] **CF-10** Show the stage's name, not "STAGE 1"
-- [ ] **CF-11** Text games needing review: show the facilitator the correct
+- [x] **CF-10** Show the stage's name, not "STAGE 1"
+- [x] **CF-11** Text games needing review: show the facilitator the correct
   answer alongside the submission
-- [ ] **CF-12** Submission cards carry a badge for the game type (photo, video,
+- [x] **CF-12** Submission cards carry a badge for the game type (photo, video,
   text, …)
-- [ ] **CF-13** Facilitator chat messages show "Facilitator", not the person's
+- [x] **CF-13** Facilitator chat messages show "Facilitator", not the person's
   own name
-- [ ] **CF-14** Puzzle answers for the facilitator are inconsistent: Spice Rack
+- [x] **CF-14** Puzzle answers for the facilitator are inconsistent: Spice Rack
   shows them, Circle Pieces does not
 
 **Media and content**
-- [ ] **CF-15** Square photos and videos render horizontally
-- [ ] **CF-16** Long game descriptions are cut off instead of shown in full
-- [ ] **CF-17** Size limit for photo uploads on games
+- [x] **CF-15** Square photos and videos render horizontally
+- [x] **CF-16** Long game descriptions are cut off instead of shown in full
+- [x] **CF-17** Size limit for photo uploads on games
 
 **Scoring**
-- [ ] **CF-18** Text auto-approval should reject a wrong answer, not leave it
+- [x] **CF-18** Text auto-approval should reject a wrong answer, not leave it
 
 **Permissions**
-- [ ] **CF-19** Event managers need the tablet QR code too
+- [x] **CF-19** Event managers need the tablet QR code too
 
 ## Open bugs / security
 
