@@ -5,6 +5,31 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.0.0 - 2026-08-03 (the new design ships)
+
+- The full admin redesign (ND-1 to ND-5): new shell and header, flat sidebar,
+  rebuilt Overview, Games, Events, Organisation, Billing, Support and My
+  Account, reviewed and signed off by Rumen on 3 Aug 2026.
+- The app installs as a PWA on iPhone, iPad, Android and desktop: manifest,
+  iOS splash screens, app shortcuts, per-page manifests for the tablet and
+  join surfaces, and an install button on all four surfaces.
+- The audience display scales to the screen it is on (1280 design width,
+  up to 3x), so a 4K room screen no longer shows laptop-sized text.
+- QR codes are drawn locally instead of fetched from api.qrserver.com, so
+  they work with no outbound internet and no link leaves the app.
+- Live-run fixes from the full QA sweep: a question-less quiz no longer
+  white-screens players, the bingo win celebration renders above the display's
+  sound gate, and the facilitator's break panel drops its empty quote marks.
+- Games can sit in several groups; adding to a group no longer silently moves
+  games out of their other groups.
+- The quiz editor refuses blank questions the way the text game always has,
+  promo code failures say what is actually wrong, sign-out uses the app's own
+  dialog, and the help dialog closes on Escape.
+- All 21 crossword games repaired: five had a word that could not cross
+  anything, so no valid 6x6 layout existed; one word swapped in each and every
+  grid re-laid connected.
+- Team photos are camera-only on every device, matching the photo challenges.
+
 ## V2.20.36 - 2026-07-31 (remove the on-screen shutter stats line)
 
 - Rumen confirmed the instant-shutter flow on device: any residual wait now
