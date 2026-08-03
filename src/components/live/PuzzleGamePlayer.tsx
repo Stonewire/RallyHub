@@ -30,7 +30,13 @@ type Props = {
   teamId: string
   game: Tables<'games'>
   accentColor: string
+  /** Called once a Wordle is solved, after the result has been on screen long
+   *  enough to read. Absent for the other puzzle types, which keep their board. */
+  onSolvedAutoClose?: () => void
 }
+
+/** How long the Wordle result stays up before the team is taken back. */
+const WORDLE_RESULT_HOLD_MS = 1500
 
 function puzzleErrorMessage(reason: unknown): string {
   if (reason && typeof reason === 'object' && 'message' in reason) {
@@ -81,13 +87,23 @@ function WordleGuessRows({ guesses }: { guesses: PuzzleProgress['guesses'] }) {
   )
 }
 
-export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) {
+export function PuzzleGamePlayer({
+  eventId,
+  teamId,
+  game,
+  accentColor,
+  onSolvedAutoClose,
+}: Props) {
   const config = (game.config ?? {}) as GameConfig
   const type = puzzleType(config)
   const session = getCurrentParticipantSession()
   const teamToken =
     session?.eventId === eventId && session.teamId === teamId ? session.purchaseToken : undefined
   const [progress, setProgress] = useState<PuzzleProgress | null>(null)
+  // Wordle is over the moment the word is found: the board above the result
+  // already tells the story, so the team reads the score and goes back to the
+  // game list instead of hunting for a way out. Crossword and Matching keep
+  // their boards, which teams look back over.
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -148,6 +164,13 @@ export function PuzzleGamePlayer({ eventId, teamId, game, accentColor }: Props) 
     const covered = row.getBoundingClientRect().bottom > window.innerHeight - KEYBOARD_CLEARANCE_PX
     if (covered) row.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [guessCount])
+
+  const solved = Boolean(progress?.completed)
+  useEffect(() => {
+    if (type !== 'wordle' || !solved || !onSolvedAutoClose) return
+    const timer = window.setTimeout(onSolvedAutoClose, WORDLE_RESULT_HOLD_MS)
+    return () => window.clearTimeout(timer)
+  }, [type, solved, onSolvedAutoClose])
 
   async function submitWordleGuess() {
     if (!teamToken || saving) return
