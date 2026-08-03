@@ -9,10 +9,18 @@ import type { QuizMediaKind, QuizQuestion } from '@/types/game-config'
  * reader treats a bare photoUrl as a photo question. New questions write
  * mediaKind and mediaUrl and never touch photoUrl.
  */
-export function questionMedia(question: QuizQuestion): {
+export function questionMedia(question: QuizQuestion | null | undefined): {
   kind: QuizMediaKind
   url: string | null
 } {
+  // A missing question is a real state, not a bug to crash on: the live panel
+  // indexes into the question list with event_state.current_question_index, and
+  // that can point at nothing when a quiz has no usable questions yet or the
+  // index runs past the end. Every other read of the current question already
+  // uses optional chaining; this one did not, so it took the whole participant
+  // screen down with "Cannot read properties of undefined (reading
+  // 'mediaKind')" the moment a facilitator opened such a quiz stage.
+  if (!question) return { kind: 'none', url: null }
   if (question.mediaKind) {
     return { kind: question.mediaKind, url: question.mediaUrl ?? null }
   }
