@@ -112,7 +112,7 @@ export function buildChallengeVideoConstraints(
   withAudio: boolean,
   deviceId?: string,
 ): MediaStreamConstraints {
-  const lowPowerRecording = withAudio && isAndroid()
+  const lowPowerRecording = withAudio && isAndroidDevice()
   const video: MediaTrackConstraints & { focusMode?: string } = {
     // A chosen lens is exact: "ideal" would let the browser silently fall back
     // to whichever camera it prefers, which reads as the picker doing nothing.
@@ -130,7 +130,8 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-function isAndroid(): boolean {
+/** Any Android browser that says so; the adaptive recording probe keys off it. */
+export function isAndroidDevice(): boolean {
   return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
