@@ -6,9 +6,8 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_CAPTURE_FRAME_CLASS,
-  CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  CHALLENGE_ASPECT_FRAME_CLASS,
+  CHALLENGE_ASPECT_TRUE_MEDIA_CLASS,
   captureStillFrame,
   encodeCanvasToJpeg,
   getChallengeCameraStream,
@@ -110,7 +109,7 @@ export function PhotoChallengeCapture({
       // else so the encoder never fights the live camera pipeline for the GPU.
       stopStream()
 
-      canvas.className = CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS
+      canvas.className = CHALLENGE_ASPECT_TRUE_MEDIA_CLASS
       snapshotHostRef.current?.replaceChildren(canvas)
       setSnapshotTaken(true)
 
@@ -192,12 +191,14 @@ export function PhotoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
+        <div className={CHALLENGE_ASPECT_FRAME_CLASS}>
           {/* Snapshot canvas host: always mounted so the captured canvas can be
               appended synchronously; hidden while the live preview shows. */}
           <div
             ref={snapshotHostRef}
-            className={snapshotTaken ? 'size-full' : 'hidden'}
+            className={
+              snapshotTaken ? 'flex size-full items-center justify-center' : 'hidden'
+            }
           />
           {!snapshotTaken ? (
             <>
@@ -206,7 +207,7 @@ export function PhotoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS}
+                className={CHALLENGE_ASPECT_TRUE_MEDIA_CLASS}
                 style={livePreviewStyle}
               />
               <button

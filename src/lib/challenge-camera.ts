@@ -54,6 +54,20 @@ export const CHALLENGE_REVIEW_MEDIA_CLASS =
  */
 export const CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS = 'size-full object-cover'
 
+/**
+ * WYSIWYG viewfinder: the stage behind it, and the media at its own aspect.
+ *
+ * The old cover-fit preview cropped the sensor's frame to the screen while the
+ * capture kept the whole frame (Rumen's no-zoom-crop rule, 30 Jul 2026), so
+ * teams framed one picture and submitted a wider one (client live test,
+ * 3 Aug 2026). A video or canvas element laid out at its intrinsic size IS the
+ * sensor frame: square sensor, square viewfinder; what you see is exactly what
+ * is sent.
+ */
+export const CHALLENGE_ASPECT_FRAME_CLASS =
+  'relative flex size-full items-center justify-center overflow-hidden bg-black'
+export const CHALLENGE_ASPECT_TRUE_MEDIA_CLASS = 'max-h-full max-w-full'
+
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
   return window.innerHeight >= window.innerWidth
