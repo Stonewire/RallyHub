@@ -248,6 +248,24 @@ export function JoinGameView({
     (next, stillRunning) => breakSyncRef.current(next, stillRunning),
   )
 
+  // Teams asked how long is left and had to look up at the room's screen. The
+  // countdown follows the same "Timer on display" switch the display obeys, so
+  // turning it off still hides it everywhere.
+  const eventTimerSyncRef = useRef(
+    createThrottledTimerSync(() => {
+      /* read-only on the player; the facilitator persists timer state */
+    }),
+  )
+  const eventTimerDisplay = useLiveTimer(
+    state.timer_seconds ?? 0,
+    Boolean(state.timer_running),
+    (next, stillRunning) => eventTimerSyncRef.current(next, stillRunning),
+  )
+  const showEventTimer =
+    Boolean(state.show_timer_on_display) &&
+    stage?.type !== 'break' &&
+    state.winner_reveal_stage < 1
+
   const mySubs = submissions.filter((s) => s.team_id === teamId)
   // Merge the player's own submission write into the local bundle immediately so a
   // bingo mark reads as settled without waiting for the broadcast echo (which anon
@@ -1040,6 +1058,11 @@ export function JoinGameView({
         />
       ) : null}
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
+      {showEventTimer ? (
+        <p className="rounded-full bg-black/35 px-3 py-0.5 text-sm font-black tabular-nums backdrop-blur-sm">
+          {formatBreakTimer(eventTimerDisplay)}
+        </p>
+      ) : null}
       {stage?.type === 'quiz' && stage.gameId ? (
         state.quiz_state === 'results' ? (
           <p className="mt-2 text-[clamp(1.5rem,4.6vw,2.5rem)] leading-none font-black tabular-nums drop-shadow-lg sm:mt-4">
@@ -1223,6 +1246,7 @@ export function JoinGameView({
               teamId={teamId}
               game={activeOpenGame}
               accentColor={accent}
+              onSolvedAutoClose={() => setSelectedGame(null)}
             />
           ) : pending && latestSub ? (
             <OpenGameChallengeReview

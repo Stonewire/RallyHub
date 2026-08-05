@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Camera, SwitchCamera, X } from 'lucide-react'
+import { Aperture, Camera, SwitchCamera, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
-  CHALLENGE_CAPTURE_FRAME_CLASS,
-  CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  CHALLENGE_ASPECT_FRAME_CLASS,
+  CHALLENGE_ASPECT_TRUE_MEDIA_CLASS,
   captureStillFrame,
   encodeCanvasToJpeg,
+  facingFromDeviceLabel,
   getChallengeCameraStream,
+  listVideoInputs,
   previewVideoStyle,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
@@ -45,6 +46,9 @@ export function PhotoChallengeCapture({
   const [snapshotTaken, setSnapshotTaken] = useState(false)
   const [encodePending, setEncodePending] = useState(false)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
+  // Every camera the device admits to; the phone's wide and tele lenses show
+  // up here as separate inputs. Populated once permission is granted.
+  const [lenses, setLenses] = useState<MediaDeviceInfo[]>([])
 
   function clearSnapshot() {
     encodeSeqRef.current += 1
@@ -78,10 +82,10 @@ export function PhotoChallengeCapture({
 
   const cameraOpenMsRef = useRef<number | null>(null)
 
-  async function startCamera(facing: ChallengeFacingMode) {
+  async function startCamera(facing: ChallengeFacingMode, deviceId?: string) {
     stopStream()
     const openStarted = nowMs()
-    const stream = await getChallengeCameraStream(facing, false)
+    const stream = await getChallengeCameraStream(facing, false, deviceId)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens')
       return
@@ -89,6 +93,7 @@ export function PhotoChallengeCapture({
     cameraOpenMsRef.current = Math.round(nowMs() - openStarted)
     streamRef.current = stream
     setReady(true)
+    void listVideoInputs().then(setLenses)
   }
 
   function flipCamera() {
@@ -97,6 +102,23 @@ export function PhotoChallengeCapture({
     setFacingMode(next)
     clearSnapshot()
     void startCamera(next)
+  }
+
+  /**
+   * Steps through every physical camera, not just front/back. Flip covers the
+   * common case; this reaches the wide and tele lenses phones expose as
+   * separate devices. Mirroring follows the lens's own label, since a deviceId
+   * request carries no facing information.
+   */
+  function cycleLens() {
+    if (lenses.length < 2) return
+    const currentId = streamRef.current?.getVideoTracks()[0]?.getSettings().deviceId
+    const index = lenses.findIndex((lens) => lens.deviceId === currentId)
+    const next = lenses[(index + 1) % lenses.length]
+    if (!next?.deviceId) return
+    setFacingMode(facingFromDeviceLabel(next.label))
+    clearSnapshot()
+    void startCamera(facingFromDeviceLabel(next.label), next.deviceId)
   }
 
   function capturePhoto() {
@@ -110,7 +132,7 @@ export function PhotoChallengeCapture({
       // else so the encoder never fights the live camera pipeline for the GPU.
       stopStream()
 
-      canvas.className = CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS
+      canvas.className = CHALLENGE_ASPECT_TRUE_MEDIA_CLASS
       snapshotHostRef.current?.replaceChildren(canvas)
       setSnapshotTaken(true)
 
@@ -192,12 +214,14 @@ export function PhotoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
+        <div className={CHALLENGE_ASPECT_FRAME_CLASS}>
           {/* Snapshot canvas host: always mounted so the captured canvas can be
               appended synchronously; hidden while the live preview shows. */}
           <div
             ref={snapshotHostRef}
-            className={snapshotTaken ? 'size-full' : 'hidden'}
+            className={
+              snapshotTaken ? 'flex size-full items-center justify-center' : 'hidden'
+            }
           />
           {!snapshotTaken ? (
             <>
@@ -206,19 +230,34 @@ export function PhotoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS}
+                className={CHALLENGE_ASPECT_TRUE_MEDIA_CLASS}
                 style={livePreviewStyle}
               />
-              <button
-                type="button"
-                onClick={flipCamera}
-                disabled={!ready}
-                aria-label="Switch camera"
-                className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
-              >
-                <SwitchCamera className="size-4" />
-                Flip
-              </button>
+              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={flipCamera}
+                  disabled={!ready}
+                  aria-label="Switch camera"
+                  className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
+                >
+                  <SwitchCamera className="size-4" />
+                  Flip
+                </button>
+                {/* Only when there is more to reach than front/back. */}
+                {lenses.length > 2 ? (
+                  <button
+                    type="button"
+                    onClick={cycleLens}
+                    disabled={!ready}
+                    aria-label="Switch lens"
+                    className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
+                  >
+                    <Aperture className="size-4" />
+                    Lens
+                  </button>
+                ) : null}
+              </div>
             </>
           ) : null}
         </div>

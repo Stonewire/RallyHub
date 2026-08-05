@@ -1,4 +1,4 @@
-import { IconDownload, IconGrip, IconTrash } from '@/components/icons'
+import { IconCopy, IconDownload, IconGrip, IconTrash } from '@/components/icons'
 import { useRef, useState } from 'react'
 
 import { createPortal } from 'react-dom'
@@ -13,6 +13,8 @@ type DraggableGamesGridProps = {
   groupNamesByGame: Record<string, string[]>
   deleting: boolean
   onDelete: (game: GameRow) => void
+  /** Absent on the platform library, where copying into place makes no sense. */
+  onDuplicate?: (game: GameRow) => void
   onReorder: (gameId: string, index: number) => void
   onEdit: (gameId: string) => void
   onInstall?: (game: GameRow) => void
@@ -23,6 +25,7 @@ export function DraggableGamesGrid({
   groupNamesByGame,
   deleting,
   onDelete,
+  onDuplicate,
   onReorder,
   onEdit,
   onInstall,
@@ -138,6 +141,22 @@ export function DraggableGamesGrid({
             >
               <IconTrash className="size-3.5" />
             </button>
+            {/* Beside Delete, same hover treatment. Building a variant of an
+                existing game was otherwise a full rebuild by hand. */}
+            {onDuplicate ? (
+              <button
+                type="button"
+                title="Duplicate game"
+                aria-label={`Duplicate ${game.name}`}
+                className="absolute left-9 top-1.5 rounded bg-black/45 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDuplicate(game)
+                }}
+              >
+                <IconCopy className="size-3.5" />
+              </button>
+            ) : null}
             <IconGrip
               className="absolute bottom-1.5 left-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
               aria-hidden

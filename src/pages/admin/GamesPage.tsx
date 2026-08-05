@@ -39,6 +39,7 @@ import {
   useAdminGames,
   useCreateGameGroup,
   useDeleteGame,
+  useDuplicateGame,
   useReorderGames,
   usePermanentlyDeleteGame,
   useRestoreGame,
@@ -185,6 +186,7 @@ export function AdminGamesPage() {
   const deleteGame = useDeleteGame(organizationId)
   const createGroup = useCreateGameGroup(organizationId)
   const addGamesToGroup = useAddGamesToGroup(organizationId)
+  const duplicateGame = useDuplicateGame(organizationId)
   const renameGroup = useRenameGameGroup(organizationId)
   const deleteGroup = useDeleteGameGroup(organizationId)
   const reorderGames = useReorderGames(organizationId)
@@ -194,6 +196,15 @@ export function AdminGamesPage() {
   // The RPC refuses games that still carry submissions or event links, so its
   // message is shown rather than swallowed: "nothing happened" would be worse.
   const [purgeError, setPurgeError] = useState<string | null>(null)
+
+  async function handleDuplicateGame(game: GameRow) {
+    setDialogError(null)
+    try {
+      await duplicateGame.mutateAsync(game)
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Could not duplicate that game')
+    }
+  }
   const navigate = useNavigate()
 
   const [view, setView] = useState<'games' | 'catalog' | 'inventory' | 'bin'>('games')
@@ -832,6 +843,7 @@ export function AdminGamesPage() {
                       games={groupGames}
                       groupNamesByGame={groupNamesByGame}
                       deleting={deleteGame.isPending}
+                      onDuplicate={(game) => void handleDuplicateGame(game)}
                       onDelete={(game) => {
                         setDialogError(null)
                         setPendingDeleteGame({ id: game.id, name: game.name })
@@ -860,6 +872,7 @@ export function AdminGamesPage() {
                 games={ungrouped}
                 groupNamesByGame={groupNamesByGame}
                 deleting={deleteGame.isPending}
+                onDuplicate={(game) => void handleDuplicateGame(game)}
                 onDelete={(game) => {
                   setDialogError(null)
                   setPendingDeleteGame({ id: game.id, name: game.name })

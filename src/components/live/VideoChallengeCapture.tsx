@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { SwitchCamera, Video, X } from 'lucide-react'
+import { Aperture, SwitchCamera, Video, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
+  CHALLENGE_ASPECT_FRAME_CLASS,
+  CHALLENGE_ASPECT_TRUE_MEDIA_CLASS,
   CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  facingFromDeviceLabel,
   getChallengeCameraStream,
+  isAndroidDevice,
+  listVideoInputs,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
@@ -28,6 +33,23 @@ import {
   videoMimeForRecorder,
 } from '@/lib/video-recorder'
 import type { GameConfig } from '@/types/game-config'
+
+/**
+ * Adaptive recording resolution, Android only.
+ *
+ * Android opens at the calibrated-safe 720p (the event tablet measured 9fps at
+ * 1080p, record-timing 30 Jul 2026). But that floor also punished phones that
+ * record 1080p without breaking a sweat. Instead of a device list: measure the
+ * real preview first at 720p, and only a device that holds a full 28fps there
+ * is asked for 1080p; then measure again at 1080p and drop straight back if it
+ * cannot hold 22fps. The known-slow tablet fails the second gate, a Pixel
+ * passes both. The record button is held for the ~1s the 1080p check runs so a
+ * recording can never start at an unmeasured resolution.
+ */
+const PROBE_720_MS = 1200
+const PROBE_1080_MS = 1000
+const PROBE_MIN_FPS_AT_720 = 28
+const PROBE_MIN_FPS_AT_1080 = 22
 
 type VideoChallengeCaptureProps = {
   config: GameConfig | null | undefined
@@ -62,6 +84,12 @@ export function VideoChallengeCapture({
   const tickRef = useRef<number | undefined>(undefined)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
   const [quarterTurn, setQuarterTurn] = useState(false)
+  // Every camera the device admits to, for the lens cycle. Populated once
+  // permission is granted.
+  const [lenses, setLenses] = useState<MediaDeviceInfo[]>([])
+  // True only during the 1080p leg of the adaptive probe; gates Record.
+  const [resProbeActive, setResProbeActive] = useState(false)
+  const probeSeqRef = useRef(0)
 
   useEffect(() => {
     if (!recordedFile) {
@@ -142,6 +170,69 @@ export function VideoChallengeCapture({
     return measuredFpsRef.current
   }
 
+  /** Frames per second actually painted by the preview over `ms`. */
+  function measurePreviewFps(ms: number): Promise<number | null> {
+    const el = previewRef.current as
+      | (HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number })
+      | null
+    if (!el?.requestVideoFrameCallback) return Promise.resolve(null)
+    return new Promise((resolve) => {
+      let frames = 0
+      let live = true
+      const started = nowMs()
+      const tick = () => {
+        if (!live) return
+        frames += 1
+        el.requestVideoFrameCallback!(tick)
+      }
+      el.requestVideoFrameCallback(tick)
+      window.setTimeout(() => {
+        live = false
+        const elapsed = nowMs() - started
+        resolve(elapsed > 0 ? Math.round((frames / elapsed) * 1000) : null)
+      }, ms)
+    })
+  }
+
+  async function probeForHdRecording(stream: MediaStream) {
+    const seq = ++probeSeqRef.current
+    const track = stream.getVideoTracks()[0]
+    if (!track) return
+    const settings = track.getSettings()
+    if (Math.max(settings.width ?? 0, settings.height ?? 0) >= 1080) return
+
+    const fps720 = await measurePreviewFps(PROBE_720_MS)
+    const stale = () =>
+      seq !== probeSeqRef.current || streamRef.current !== stream || recorderRef.current != null
+    if (stale() || fps720 === null || fps720 < PROBE_MIN_FPS_AT_720) return
+
+    setResProbeActive(true)
+    try {
+      await track.applyConstraints({ width: { ideal: 1080 }, height: { ideal: 1920 } })
+      const after = track.getSettings()
+      if (Math.max(after.width ?? 0, after.height ?? 0) < 1080) return
+      const fps1080 = await measurePreviewFps(PROBE_1080_MS)
+      if (stale()) return
+      if (fps1080 !== null && fps1080 < PROBE_MIN_FPS_AT_1080) {
+        await track.applyConstraints({ width: { ideal: 720 }, height: { ideal: 1280 } })
+        reportClientTiming('record-timing', `adaptive: 1080p rejected at ${fps1080}fps`, {
+          eventId,
+          extra: { fps720, fps1080 },
+        })
+      } else {
+        reportClientTiming('record-timing', `adaptive: 1080p accepted at ${fps1080 ?? '?'}fps`, {
+          eventId,
+          extra: { fps720, fps1080 },
+        })
+      }
+    } catch {
+      // The track keeps whatever it has; recording bitrate follows real
+      // dimensions either way.
+    } finally {
+      if (seq === probeSeqRef.current) setResProbeActive(false)
+    }
+  }
+
   function stopStream() {
     if (tickRef.current != null) {
       window.clearInterval(tickRef.current)
@@ -156,8 +247,8 @@ export function VideoChallengeCapture({
     setQuarterTurn(false)
   }
 
-  async function openPreview(facing: ChallengeFacingMode) {
-    const stream = await getChallengeCameraStream(facing, true)
+  async function openPreview(facing: ChallengeFacingMode, deviceId?: string) {
+    const stream = await getChallengeCameraStream(facing, true, deviceId)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens, or upload a video')
       return
@@ -165,6 +256,8 @@ export function VideoChallengeCapture({
     streamRef.current = stream
     setQuarterTurn(streamNeedsQuarterTurn(stream))
     setPreviewReady(true)
+    void listVideoInputs().then(setLenses)
+    if (isAndroidDevice()) void probeForHdRecording(stream)
   }
 
   function flipCamera() {
@@ -174,6 +267,18 @@ export function VideoChallengeCapture({
     setFacingMode(next)
     stopStream()
     void openPreview(next)
+  }
+
+  /** Same lens cycle as the photo side; see PhotoChallengeCapture. */
+  function cycleLens() {
+    if (recording || lenses.length < 2) return
+    const currentId = streamRef.current?.getVideoTracks()[0]?.getSettings().deviceId
+    const index = lenses.findIndex((lens) => lens.deviceId === currentId)
+    const next = lenses[(index + 1) % lenses.length]
+    if (!next?.deviceId) return
+    setFacingMode(facingFromDeviceLabel(next.label))
+    stopStream()
+    void openPreview(facingFromDeviceLabel(next.label), next.deviceId)
   }
 
   function validateDuration(file: File): Promise<boolean> {
@@ -213,6 +318,7 @@ export function VideoChallengeCapture({
   }
 
   function startRecording() {
+    if (resProbeActive) return
     if (!streamRef.current) {
       uploadRef.current?.click()
       return
@@ -337,7 +443,12 @@ export function VideoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
+        {/* The quarter-turn tablet path keeps the old full-bleed cover fit:
+            its stream is sideways pixels corrected by a CSS rotation, and a
+            rotated element's layout box does not rotate with it, so intrinsic
+            sizing there would letterbox the already-corrected image. Every
+            normal stream gets the WYSIWYG frame. */}
+        <div className={quarterTurn ? CHALLENGE_CAPTURE_FRAME_CLASS : CHALLENGE_ASPECT_FRAME_CLASS}>
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
@@ -356,19 +467,36 @@ export function VideoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS}
+                className={
+                  quarterTurn
+                    ? CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS
+                    : CHALLENGE_ASPECT_TRUE_MEDIA_CLASS
+                }
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (
-                <button
-                  type="button"
-                  onClick={flipCamera}
-                  aria-label="Switch camera"
-                  className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
-                >
-                  <SwitchCamera className="size-4" />
-                  Flip
-                </button>
+                <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={flipCamera}
+                    aria-label="Switch camera"
+                    className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                  >
+                    <SwitchCamera className="size-4" />
+                    Flip
+                  </button>
+                  {lenses.length > 2 ? (
+                    <button
+                      type="button"
+                      onClick={cycleLens}
+                      aria-label="Switch lens"
+                      className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                    >
+                      <Aperture className="size-4" />
+                      Lens
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
               {recording ? (
                 <div className="absolute inset-x-0 bottom-0 space-y-2 bg-black/60 px-4 py-4 text-center backdrop-blur-sm">
@@ -420,11 +548,11 @@ export function VideoChallengeCapture({
             type="button"
             className="mx-auto min-h-12 w-full max-w-lg gap-2 text-base"
             accentColor={accentColor}
-            disabled={disabled}
+            disabled={disabled || resProbeActive}
             onClick={() => startRecording()}
           >
             <Video className="size-5" />
-            Record video
+            {resProbeActive ? 'Preparing camera…' : 'Record video'}
           </LiveAccentButton>
         ) : null}
         {!recordedFile && !recording ? (

@@ -1,6 +1,6 @@
 import { ArrowLeft, CheckCircle2, PackageOpen, ShoppingBag } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { LivePanelShell } from '@/components/layout/LivePanelShell'
@@ -11,6 +11,9 @@ import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
+
+/** Long enough to read the receipt, short enough not to feel stuck. */
+const PURCHASE_RETURN_MS = 2500
 
 type ItemPreview = Pick<
   Tables<'inventory_items'>,
@@ -49,6 +52,7 @@ export function InventoryPurchasePage() {
     return () => setLiveParticipantMode(false)
   }, [])
 
+  const navigate = useNavigate()
   const { publicCode } = useParams<{ publicCode: string }>()
   const [item, setItem] = useState<ItemPreview | null>(null)
   const [team, setTeam] = useState<Tables<'teams'> | null>(null)
@@ -145,6 +149,15 @@ export function InventoryPurchasePage() {
   }
 
   const joinLink = session ? `/join/${session.eventId}` : '/'
+
+  // A team scans, buys, and wants to be back in the game. Hold the receipt long
+  // enough to read the new balance, then take them back rather than leaving
+  // them on a dead-end screen waiting to be told to press a button.
+  useEffect(() => {
+    if (!purchase || !session) return
+    const timer = window.setTimeout(() => navigate(joinLink), PURCHASE_RETURN_MS)
+    return () => window.clearTimeout(timer)
+  }, [purchase, session, joinLink, navigate])
 
   return (
     <LivePanelShell title="Inventory" titleCentered className="experience-scope">

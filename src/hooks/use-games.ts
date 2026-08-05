@@ -117,6 +117,57 @@ export function useCreateGame(organizationId: string | null) {
   })
 }
 
+/**
+ * Copies a game into the same organisation.
+ *
+ * Config is copied wholesale, so a quiz keeps its questions and a bingo game
+ * its tracks. The copy starts as a draft and out of every group: it is a
+ * starting point for editing, and dropping it into the original's groups would
+ * quietly change what those groups contain. Cover and media URLs are shared
+ * with the original rather than re-uploaded, since nothing here mutates a
+ * stored file in place.
+ */
+export function useDuplicateGame(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (game: GameRow) => {
+      if (!organizationId) throw new Error('No organization selected.')
+      const insert: TablesInsert<'games'> = {
+        organization_id: organizationId,
+        name: `${game.name} (copy)`.slice(0, 120),
+        type: game.type,
+        description: game.description,
+        cover_url: game.cover_url,
+        config: game.config,
+        points_type: game.points_type,
+        points_static: game.points_static,
+        points_min: game.points_min,
+        points_max: game.points_max,
+        solution_description: game.solution_description,
+        solution_image_url: game.solution_image_url,
+        status: 'draft',
+        // A duplicate belongs to the organisation that made it, never to the
+        // shared platform library, whatever the original was.
+        is_platform_template: false,
+      }
+      const { data, error } = await supabase
+        .from('games')
+        .insert(insert)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      invalidateGameListQueries(queryClient, organizationId)
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+    },
+  })
+}
+
 export function useDeleteGame(organizationId: string | null) {
   const queryClient = useQueryClient()
 

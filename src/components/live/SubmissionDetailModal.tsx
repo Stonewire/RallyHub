@@ -5,7 +5,7 @@ import { NeoButton, NeoStatusBadge } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import {
   CHALLENGE_VIDEO_FRAME_CLASS,
-  CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  CHALLENGE_REVIEW_MEDIA_CLASS,
 } from '@/lib/challenge-camera'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -173,7 +173,7 @@ export function SubmissionDetailModal({
                 <video
                   src={sub.media_url}
                   controls
-                  className={CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS}
+                  className={CHALLENGE_REVIEW_MEDIA_CLASS}
                 />
               </div>
             ) : sub.media_type === 'photo' ? (

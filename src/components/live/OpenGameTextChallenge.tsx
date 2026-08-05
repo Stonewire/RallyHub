@@ -68,6 +68,16 @@ export function OpenGameTextChallenge({
             aria-live="polite"
           >
             {typed || <span className="text-white/50">Type your answer…</span>}
+            {/* The field is a paragraph, not an input, because the answer is
+                typed on the app's own keyboard. Without a caret it reads as a
+                label rather than something that is listening, and teams sat
+                waiting for a device keyboard that never comes. */}
+            {disabled ? null : (
+              <span
+                aria-hidden
+                className="ml-0.5 inline-block h-[1.15em] w-[2px] translate-y-[0.18em] animate-pulse rounded-full bg-white align-middle"
+              />
+            )}
           </p>
           <VirtualKeyboard
             alphabet="latin"            onKey={(char) => setTyped((current) => current + char)}

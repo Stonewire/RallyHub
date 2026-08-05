@@ -1,5 +1,16 @@
 import type { Tables } from '@/types/helpers'
 
+/**
+ * What a facilitator's chat messages are signed with.
+ *
+ * Teams are talking to "the facilitator", not to whichever staff member picked
+ * up the console, and a real name told a team nothing useful. This is also the
+ * value the unread logic compares against, so it has to be one shared constant:
+ * sign messages with one string and classify with another and the facilitator's
+ * own replies come back as unread messages from a team.
+ */
+export const FACILITATOR_CHAT_SENDER = 'Facilitator'
+
 function normalizeSender(sender: string | null | undefined): string {
   return (sender ?? '').trim().toLowerCase()
 }

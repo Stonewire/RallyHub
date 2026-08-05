@@ -15,9 +15,12 @@ export function ChallengeBrief({ html }: { html?: string | null }) {
   return (
     <div className="my-9 space-y-2 px-4">
       <p className={CHALLENGE_LABEL_CLASS}>Your task:</p>
+      {/* No line clamp: a brief is the instructions for the task, and cutting
+          it at four lines with no way to expand meant a longer challenge could
+          not be read at all. The screen scrolls; the text does not need to. */}
       <RichText
         html={html}
-        className="xp-challenge-description xp-wrap-text mx-auto line-clamp-4 max-w-md md:max-w-3xl"
+        className="xp-challenge-description xp-wrap-text mx-auto max-w-md md:max-w-3xl"
       />
     </div>
   )

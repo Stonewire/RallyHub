@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
+import { FACILITATOR_CHAT_SENDER } from '@/lib/chat-notifications'
 import { readableTextOn } from '@/lib/hex-color'
 import { FilterChips } from '@/components/admin/FilterChips'
 import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
@@ -71,6 +72,7 @@ import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
   isOpenStageSubmissionMediaType,
+  parseTextGameConfig,
   puzzleSubmissionStatLabel,
   textSubmissionDisplayLabel,
 } from '@/lib/text-game'
@@ -121,6 +123,53 @@ const TEAM_STATUS_TONE: Record<string, string> = {
 }
 
 // UI-1: parse a typed countdown — plain number = minutes, otherwise mm:ss / hh:mm:ss.
+/**
+ * Short label for the kind of submission on a review card.
+ *
+ * Prefers the game's own type; falls back to the submission's media_type for
+ * rows whose game has since been removed from the event. Quiz answers arrive
+ * as "quiz:<questionId>", so the prefix is what matters, not the whole string.
+ */
+function gameTypeLabel(
+  gameType: string | null | undefined,
+  mediaType: string | null | undefined,
+): string {
+  const key = gameType ?? (mediaType ?? '').split(':')[0]
+  switch (key) {
+    case 'photo':
+      return 'Photo'
+    case 'video':
+      return 'Video'
+    case 'text':
+      return 'Text'
+    case 'quiz':
+      return 'Quiz'
+    case 'music_bingo':
+    case 'bingo':
+      return 'Bingo'
+    case 'puzzle':
+      return 'Puzzle'
+    default:
+      return 'Other'
+  }
+}
+
+/**
+ * The answer a text game counts as correct, for the review card.
+ *
+ * Null for a judged game, which deliberately has no right answer. Multiple
+ * accepted answers are joined so the facilitator sees the whole set rather than
+ * only the first one a team might have matched.
+ */
+function expectedTextAnswerLabel(game: Tables<'games'>): string | null {
+  const cfg = parseTextGameConfig(game.config)
+  if (cfg.mode === 'choose_answer') {
+    return (cfg.options ?? []).find((o) => o.id === cfg.correctAnswerId)?.text ?? null
+  }
+  const answers = (cfg.correctAnswers ?? []).filter((a) => a.trim().length > 0)
+  return answers.length > 0 ? answers.join(' / ') : null
+}
+
 function parseTimerInput(raw: string): number | null {
   const t = raw.trim()
   if (!t) return null
@@ -196,7 +245,7 @@ export function FacilitatorEventPage() {
 
   const { totalUnread: chatUnread, unreadByTeamId } = useFacilitatorChatInbox(
     messages,
-    name,
+    FACILITATOR_CHAT_SENDER,
     chatOpen,
     chatTeamId,
     chatHistoryReady,
@@ -1551,7 +1600,17 @@ export function FacilitatorEventPage() {
                   aria-label="Stage"
                   size="sm"
                   options={stages
-                    .map((s, i) => (s?.id ? { value: String(i), label: `Stage ${i + 1}` } : null))
+                    .map((s, i) =>
+                      s?.id
+                        ? {
+                            value: String(i),
+                            // The organiser named these; "Stage 3" tells the
+                            // person running the room nothing about what is
+                            // behind the tab.
+                            label: s.name?.trim() || `Stage ${i + 1}`,
+                          }
+                        : null,
+                    )
                     .filter((o): o is { value: string; label: string } => o !== null)}
                   value={String(state.current_stage_index)}
                   onChange={(next) => selectStage(Number(next))}
@@ -2088,6 +2147,10 @@ export function FacilitatorEventPage() {
                   .map((sub) => {
                     const team = teams.find((t) => t.id === sub.team_id)
                     const game = games.find((g) => g.id === sub.game_id)
+                    const expectedTextAnswer =
+                      sub.media_type === 'text' && game
+                        ? expectedTextAnswerLabel(game)
+                        : null
                     // The app's own badge tones: solid, not a tinted outline.
                     const statusTone =
                       sub.status === 'approved'
@@ -2138,6 +2201,22 @@ export function FacilitatorEventPage() {
                           <div className="min-w-0 flex-1 text-sm">
                             <p className="font-medium">{team?.name ?? 'Team'}</p>
                             <p className="text-muted-foreground truncate">{game?.name}</p>
+                            {/* The thumbnail alone does not say what kind of
+                                submission this is: a video still and a photo
+                                look identical at 64px, and text and puzzle
+                                tiles read as grey boxes. */}
+                            <span className="bg-muted text-muted-foreground mt-1 mr-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]">
+                              {gameTypeLabel(game?.type, sub.media_type)}
+                            </span>
+                            {/* Marking a text answer means comparing it with
+                                the right one, and an automatically marked game
+                                never reaches the review modal where the
+                                reference used to live. */}
+                            {expectedTextAnswer ? (
+                              <p className="text-muted-foreground truncate text-xs">
+                                Expected: <span className="font-semibold">{expectedTextAnswer}</span>
+                              </p>
+                            ) : null}
                             <NeoStatusBadge tone={statusTone} className="mt-1">
                               {sub.status}
                             </NeoStatusBadge>
@@ -2227,7 +2306,10 @@ export function FacilitatorEventPage() {
         onSend={async (text, teamId) => {
           if (!controlsLive) return
           unlockAudioFromUserGesture('operational')
-          await sendMessage(name.trim(), text, teamId)
+          // Teams talk to "the facilitator", not to whichever staff member
+          // happens to be holding the console. Presence still uses the real
+          // name so facilitators can see each other.
+          await sendMessage(FACILITATOR_CHAT_SENDER, text, teamId)
         }}
       />
 

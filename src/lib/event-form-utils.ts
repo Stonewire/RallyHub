@@ -81,6 +81,26 @@ export function addStage(stages: EventStage[]): EventStage[] {
   ]
 }
 
+/**
+ * Moves one stage earlier or later in the running order.
+ *
+ * Returns the list unchanged when the move would fall off either end, so the
+ * caller can wire it to a button without guarding the edges twice.
+ */
+export function moveStage(
+  stages: EventStage[],
+  index: number,
+  delta: number,
+): EventStage[] {
+  const target = index + delta
+  if (index < 0 || index >= stages.length) return stages
+  if (target < 0 || target >= stages.length) return stages
+  const next = [...stages]
+  const [moved] = next.splice(index, 1)
+  next.splice(target, 0, moved)
+  return next
+}
+
 export function toLocalDatetime(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)

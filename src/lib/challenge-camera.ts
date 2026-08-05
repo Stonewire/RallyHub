@@ -9,9 +9,16 @@ export type ChallengeFacingMode = 'environment' | 'user'
 export const CHALLENGE_PREVIEW_MEDIA_CLASS =
   'max-h-[min(92dvh,960px)] w-full max-w-lg object-contain bg-black'
 
-/** Fixed 9:16 portrait frame for embedded review surfaces (modals, cards). */
+/**
+ * Frame for embedded review surfaces (modals, cards).
+ *
+ * It used to be locked to 9:16, which is right for a phone-shot video and
+ * wrong for everything else: a square submission sat in a tall black column
+ * with bars top and bottom, and read as though it had been stretched. The
+ * frame now takes its shape from the media inside it and only caps the height.
+ */
 export const CHALLENGE_VIDEO_FRAME_CLASS =
-  'xp-media-frame relative mx-auto w-full max-w-sm aspect-[9/16] overflow-hidden bg-black'
+  'xp-media-frame relative mx-auto flex w-full max-w-sm items-center justify-center overflow-hidden bg-black'
 
 /**
  * Full-bleed capture container: the live camera uses the whole available
@@ -31,11 +38,35 @@ export const CHALLENGE_CAPTURE_FRAME_CLASS =
 export const CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS = 'size-full object-contain'
 
 /**
+ * Media inside an embedded review frame, sized by its own aspect ratio.
+ *
+ * Separate from the class above because that one fills a full-bleed capture
+ * screen, where capping the height would shrink the snapshot the team is
+ * checking. Here the media decides the shape and only the height is bounded.
+ */
+export const CHALLENGE_REVIEW_MEDIA_CLASS =
+  'max-h-[min(70svh,720px)] w-full object-contain'
+
+/**
  * The live viewfinder fills its frame, the way a phone camera app does.
  * Reviewing a finished submission still uses the contain class above: there
  * the point is to see the whole frame the team actually captured.
  */
 export const CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS = 'size-full object-cover'
+
+/**
+ * WYSIWYG viewfinder: the stage behind it, and the media at its own aspect.
+ *
+ * The old cover-fit preview cropped the sensor's frame to the screen while the
+ * capture kept the whole frame (Rumen's no-zoom-crop rule, 30 Jul 2026), so
+ * teams framed one picture and submitted a wider one (client live test,
+ * 3 Aug 2026). A video or canvas element laid out at its intrinsic size IS the
+ * sensor frame: square sensor, square viewfinder; what you see is exactly what
+ * is sent.
+ */
+export const CHALLENGE_ASPECT_FRAME_CLASS =
+  'relative flex size-full items-center justify-center overflow-hidden bg-black'
+export const CHALLENGE_ASPECT_TRUE_MEDIA_CLASS = 'max-h-full max-w-full'
 
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
@@ -79,10 +110,13 @@ export function previewVideoStyle(
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
+  deviceId?: string,
 ): MediaStreamConstraints {
-  const lowPowerRecording = withAudio && isAndroid()
+  const lowPowerRecording = withAudio && isAndroidDevice()
   const video: MediaTrackConstraints & { focusMode?: string } = {
-    facingMode,
+    // A chosen lens is exact: "ideal" would let the browser silently fall back
+    // to whichever camera it prefers, which reads as the picker doing nothing.
+    ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode }),
     width: { ideal: lowPowerRecording ? 720 : 1080 },
     height: { ideal: lowPowerRecording ? 1280 : 1920 },
     aspectRatio: { ideal: 9 / 16 },
@@ -96,7 +130,8 @@ export function buildChallengeVideoConstraints(
   }
 }
 
-function isAndroid(): boolean {
+/** Any Android browser that says so; the adaptive recording probe keys off it. */
+export function isAndroidDevice(): boolean {
   return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
@@ -145,8 +180,11 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
+  deviceId?: string,
 ): Promise<MediaStream | null> {
-  const stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
+  const stream = await getTeamMediaStream(
+    buildChallengeVideoConstraints(facingMode, withAudio, deviceId),
+  )
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
@@ -155,6 +193,29 @@ export async function getChallengeCameraStream(
   }
 
   return stream
+}
+
+/**
+ * Every camera the browser will admit to. Labels are only populated once
+ * permission has been granted, so call this after a stream is open.
+ */
+export async function listVideoInputs(): Promise<MediaDeviceInfo[]> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return []
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    return devices.filter((d) => d.kind === 'videoinput')
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Facing inferred from a lens label, so the preview mirrors only for selfie
+ * lenses when cycling by deviceId. Labels are free text from the OS; anything
+ * that does not declare itself front-facing is treated as rear.
+ */
+export function facingFromDeviceLabel(label: string): ChallengeFacingMode {
+  return /front|user|face|selfie/i.test(label) ? 'user' : 'environment'
 }
 
 /** Upload size for stills. Matches downscalePhoto()'s target for file uploads. */
