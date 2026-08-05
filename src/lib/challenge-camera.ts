@@ -110,10 +110,13 @@ export function previewVideoStyle(
 export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
+  deviceId?: string,
 ): MediaStreamConstraints {
   const lowPowerRecording = withAudio && isAndroid()
   const video: MediaTrackConstraints & { focusMode?: string } = {
-    facingMode,
+    // A chosen lens is exact: "ideal" would let the browser silently fall back
+    // to whichever camera it prefers, which reads as the picker doing nothing.
+    ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode }),
     width: { ideal: lowPowerRecording ? 720 : 1080 },
     height: { ideal: lowPowerRecording ? 1280 : 1920 },
     aspectRatio: { ideal: 9 / 16 },
@@ -176,8 +179,11 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
+  deviceId?: string,
 ): Promise<MediaStream | null> {
-  const stream = await getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio))
+  const stream = await getTeamMediaStream(
+    buildChallengeVideoConstraints(facingMode, withAudio, deviceId),
+  )
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
@@ -186,6 +192,29 @@ export async function getChallengeCameraStream(
   }
 
   return stream
+}
+
+/**
+ * Every camera the browser will admit to. Labels are only populated once
+ * permission has been granted, so call this after a stream is open.
+ */
+export async function listVideoInputs(): Promise<MediaDeviceInfo[]> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return []
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    return devices.filter((d) => d.kind === 'videoinput')
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Facing inferred from a lens label, so the preview mirrors only for selfie
+ * lenses when cycling by deviceId. Labels are free text from the OS; anything
+ * that does not declare itself front-facing is treated as rear.
+ */
+export function facingFromDeviceLabel(label: string): ChallengeFacingMode {
+  return /front|user|face|selfie/i.test(label) ? 'user' : 'environment'
 }
 
 /** Upload size for stills. Matches downscalePhoto()'s target for file uploads. */

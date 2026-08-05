@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { SwitchCamera, Video, X } from 'lucide-react'
+import { Aperture, SwitchCamera, Video, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,9 @@ import {
   CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  facingFromDeviceLabel,
   getChallengeCameraStream,
+  listVideoInputs,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
@@ -64,6 +66,9 @@ export function VideoChallengeCapture({
   const tickRef = useRef<number | undefined>(undefined)
   const [facingMode, setFacingMode] = useState<ChallengeFacingMode>('environment')
   const [quarterTurn, setQuarterTurn] = useState(false)
+  // Every camera the device admits to, for the lens cycle. Populated once
+  // permission is granted.
+  const [lenses, setLenses] = useState<MediaDeviceInfo[]>([])
 
   useEffect(() => {
     if (!recordedFile) {
@@ -158,8 +163,8 @@ export function VideoChallengeCapture({
     setQuarterTurn(false)
   }
 
-  async function openPreview(facing: ChallengeFacingMode) {
-    const stream = await getChallengeCameraStream(facing, true)
+  async function openPreview(facing: ChallengeFacingMode, deviceId?: string) {
+    const stream = await getChallengeCameraStream(facing, true, deviceId)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens, or upload a video')
       return
@@ -167,6 +172,7 @@ export function VideoChallengeCapture({
     streamRef.current = stream
     setQuarterTurn(streamNeedsQuarterTurn(stream))
     setPreviewReady(true)
+    void listVideoInputs().then(setLenses)
   }
 
   function flipCamera() {
@@ -176,6 +182,18 @@ export function VideoChallengeCapture({
     setFacingMode(next)
     stopStream()
     void openPreview(next)
+  }
+
+  /** Same lens cycle as the photo side; see PhotoChallengeCapture. */
+  function cycleLens() {
+    if (recording || lenses.length < 2) return
+    const currentId = streamRef.current?.getVideoTracks()[0]?.getSettings().deviceId
+    const index = lenses.findIndex((lens) => lens.deviceId === currentId)
+    const next = lenses[(index + 1) % lenses.length]
+    if (!next?.deviceId) return
+    setFacingMode(facingFromDeviceLabel(next.label))
+    stopStream()
+    void openPreview(facingFromDeviceLabel(next.label), next.deviceId)
   }
 
   function validateDuration(file: File): Promise<boolean> {
@@ -371,15 +389,28 @@ export function VideoChallengeCapture({
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (
-                <button
-                  type="button"
-                  onClick={flipCamera}
-                  aria-label="Switch camera"
-                  className="absolute right-3 top-3 z-10 flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
-                >
-                  <SwitchCamera className="size-4" />
-                  Flip
-                </button>
+                <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={flipCamera}
+                    aria-label="Switch camera"
+                    className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                  >
+                    <SwitchCamera className="size-4" />
+                    Flip
+                  </button>
+                  {lenses.length > 2 ? (
+                    <button
+                      type="button"
+                      onClick={cycleLens}
+                      aria-label="Switch lens"
+                      className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
+                    >
+                      <Aperture className="size-4" />
+                      Lens
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
               {recording ? (
                 <div className="absolute inset-x-0 bottom-0 space-y-2 bg-black/60 px-4 py-4 text-center backdrop-blur-sm">
