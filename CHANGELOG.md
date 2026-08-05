@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.0 - 2026-08-04 (client live-test feedback and the camera overhaul)
+
+- All nineteen items from the 3 Aug client live test: stage reorder, collapse
+  and search in the event editor, ticking a quest game commits immediately (no
+  more selections lost to "Save changes"), game duplication, the event timer on
+  player devices behind the same switch as the display, Wordle holds its
+  result before returning, a caret on the text answer box, buying an item
+  returns to the event, stage names instead of "STAGE 1" on the facilitator,
+  type badges and the expected text answer on review cards, chat signs as
+  "Facilitator", square media keeps its shape, long briefs read in full, game
+  images downscale on upload, and event managers get the tablet QR with the
+  event links.
+- Wrong auto-marked text answers are now rejected instead of approved with
+  zero points (database trigger, applied and verified in production).
+- Camera overhaul: the viewfinder shows exactly the sensor frame that will be
+  submitted (verified pixel-identical on the emulator), a Lens button reaches
+  wide and tele cameras, Android phones open the system camera app for photos,
+  and Android recording starts at the calibrated-safe 720p but upgrades itself
+  to 1080p when a measured preview shows the device can hold it.
+
 ## V3.0.0 - 2026-08-03 (the new design ships)
 
 - The full admin redesign (ND-1 to ND-5): new shell and header, flat sidebar,
