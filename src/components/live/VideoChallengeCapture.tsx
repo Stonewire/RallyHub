@@ -6,6 +6,8 @@ import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
 import {
+  CHALLENGE_ASPECT_FRAME_CLASS,
+  CHALLENGE_ASPECT_TRUE_MEDIA_CLASS,
   CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
@@ -337,7 +339,12 @@ export function VideoChallengeCapture({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div className={CHALLENGE_CAPTURE_FRAME_CLASS}>
+        {/* The quarter-turn tablet path keeps the old full-bleed cover fit:
+            its stream is sideways pixels corrected by a CSS rotation, and a
+            rotated element's layout box does not rotate with it, so intrinsic
+            sizing there would letterbox the already-corrected image. Every
+            normal stream gets the WYSIWYG frame. */}
+        <div className={quarterTurn ? CHALLENGE_CAPTURE_FRAME_CLASS : CHALLENGE_ASPECT_FRAME_CLASS}>
           {recordedFile && reviewUrl ? (
             <video
               ref={reviewRef}
@@ -356,7 +363,11 @@ export function VideoChallengeCapture({
                 autoPlay
                 playsInline
                 muted
-                className={CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS}
+                className={
+                  quarterTurn
+                    ? CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS
+                    : CHALLENGE_ASPECT_TRUE_MEDIA_CLASS
+                }
                 style={livePreviewStyle}
               />
               {previewReady && !recording ? (
