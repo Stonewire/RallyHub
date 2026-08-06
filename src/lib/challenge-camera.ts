@@ -98,8 +98,17 @@ export function onOrientationFlip(callback: () => void): () => void {
   return () => window.removeEventListener('orientationchange', callback)
 }
 
-/** Stream is landscape pixels while the device is held vertically. */
+/**
+ * Stream is landscape pixels while the device is held vertically.
+ *
+ * Never on iOS: cam-open diagnostics (Rumen's iPhone, 6 Aug 2026) show Safari
+ * returns a 1920x1080 landscape buffer with UPRIGHT content when held
+ * portrait, honestly reported. The quarter-turn rule was written for the
+ * Android tablet whose wide frame really is sideways pixels; applying it to
+ * the iPhone's upright wide frame rotated correct content into sideways.
+ */
 export function streamNeedsQuarterTurn(stream: MediaStream): boolean {
+  if (isIOSOrIPadOS()) return false
   const track = stream.getVideoTracks()[0]
   if (!track) return false
   const { width = 0, height = 0 } = track.getSettings()

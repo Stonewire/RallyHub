@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.6 - 2026-08-06 (iPhone video: stop rotating an already-upright frame)
+
+- First fix designed from the new camera diagnostics. The iPhone's Safari
+  returns a landscape buffer with UPRIGHT content when held vertical, and the
+  tablet-era quarter-turn rule was rotating that correct picture sideways.
+  iOS never quarter-turns now: held vertical you get an upright wide frame
+  that submits exactly what it previews. True full-height portrait capture on
+  iPhone needs a crop pipeline and is a planned change, not a quick patch.
+
 ## V3.1.5 - 2026-08-06 (camera diagnostics actually reach the database)
 
 - The camera-open diagnostics added in V3.1.4 never arrived: the diagnostics
