@@ -92,6 +92,7 @@ import {
   revealQuizAnswer,
   isEventLive,
 } from '@/lib/live-event'
+import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { bingoRunRowFromActivation, normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
 import { getEventLinks } from '@/lib/event-links'
 import { queryKeys } from '@/lib/query-keys'
@@ -2205,7 +2206,9 @@ export function FacilitatorEventPage() {
                                 submission this is: a video still and a photo
                                 look identical at 64px, and text and puzzle
                                 tiles read as grey boxes. */}
-                            <span className="bg-muted text-muted-foreground mt-1 mr-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]">
+                            <span
+                              className={`${gameTypeTagClass(game?.type ?? (sub.media_type ?? '').split(':')[0])} mt-1 mr-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white`}
+                            >
                               {gameTypeLabel(game?.type, sub.media_type)}
                             </span>
                             {/* Marking a text answer means comparing it with
