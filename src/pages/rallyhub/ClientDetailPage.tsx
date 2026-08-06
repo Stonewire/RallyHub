@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { DangerZone } from '@/components/admin/DangerZone'
 import { useAuth } from '@/contexts/auth-context'
@@ -93,6 +94,7 @@ export function RallyHubClientDetailPage() {
     showBillingAndEvents,
   )
 
+  const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useRallyHubClient(
     isCreateMode ? undefined : clientId,
   )
@@ -890,6 +892,11 @@ export function RallyHubClientDetailPage() {
           clientPlan={billingPlan}
           hideInvoiceState={isDemoClient}
           clientId={clientId}
+          onEventDeleted={() =>
+            void queryClient.invalidateQueries({
+              queryKey: ['rallyhub', 'client', clientId],
+            })
+          }
         />
       ) : null}
 
