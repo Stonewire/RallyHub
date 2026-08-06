@@ -494,20 +494,6 @@ export function VideoChallengeCapture({
                   </button>
                 </div>
               ) : null}
-              {recording ? (
-                <div className="absolute inset-x-0 bottom-0 space-y-2 bg-black/60 px-4 py-4 text-center backdrop-blur-sm">
-                  <p className="text-xs uppercase tracking-wide text-white/70">Recording</p>
-                  <p className="font-mono text-4xl tabular-nums text-white">{remaining}s</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-12 w-full border-white/30 bg-white/10 text-base text-white"
-                    onClick={() => recorderRef.current?.stop()}
-                  >
-                    Stop recording
-                  </Button>
-                </div>
-              ) : null}
             </>
           )}
         </div>
@@ -539,7 +525,27 @@ export function VideoChallengeCapture({
               Submit
             </LiveAccentButton>
           </div>
-        ) : !recording && previewReady ? (
+        ) : recording ? (
+          // Same bottom bar the Record and Upload buttons occupied, so the
+          // viewfinder keeps its size and nothing overlays the footage
+          // (starting a recording used to collapse this bar, which grew the
+          // stage and "zoomed" the preview under an on-video panel).
+          <div className="mx-auto w-full max-w-lg space-y-3 text-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 w-full border-white/30 bg-white/10 text-base text-white"
+              onClick={() => recorderRef.current?.stop()}
+            >
+              <span className="mr-2 inline-block size-2.5 animate-pulse rounded-full bg-red-500" />
+              Stop recording
+              <span className="ml-2 font-mono tabular-nums">{remaining}s</span>
+            </Button>
+            {/* Holds the Upload button's row so the bar, and therefore the
+                viewfinder above it, keeps exactly the same height. */}
+            <div className="min-h-12" aria-hidden />
+          </div>
+        ) : previewReady ? (
           <LiveAccentButton
             type="button"
             className="mx-auto min-h-12 w-full max-w-lg gap-2 text-base"

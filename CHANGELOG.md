@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.10 - 2026-08-06 (recording no longer zooms the viewfinder)
+
+- Starting a video recording used to collapse the bottom buttons, which grew
+  the stage, rescaled the preview with a visible jerk, and drew the recording
+  panel over the bottom of the footage. The recording controls (pulsing dot,
+  countdown, Stop) now live in the same bottom bar the Record and Upload
+  buttons occupied, with the bar held at the same height: the viewfinder
+  stays exactly where it was and nothing covers the picture.
+
 ## V3.1.9 - 2026-08-06 (iPhone vertical video, from the probe's answer)
 
 - The ?camprobe sweep found the phrasing Safari accepts: naming both
