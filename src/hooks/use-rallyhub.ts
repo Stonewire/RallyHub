@@ -167,7 +167,9 @@ export function useRallyHubClient(clientId: string | undefined) {
           .from('organization_members')
           .select('*')
           .eq('organization_id', clientId!),
-        supabase.from('events').select('*').eq('organization_id', clientId!),
+        // Wiped stubs are billing records, not events; showing them made a
+        // permanent delete look like it had been refused.
+        supabase.from('events').select('*').eq('organization_id', clientId!).is('wiped_at', null),
       ])
 
       const { data: profiles } = await supabase

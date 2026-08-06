@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.13 - 2026-08-06 (the permanent delete dialog behaves)
+
+- The delete confirmation dialog was rendered inside the event card, whose
+  hover animation applies a CSS transform; a transformed ancestor captures
+  fixed positioning, so the dialog jumped between the card and the screen
+  with every hover change. It now portals to the page body like the other
+  admin dialogs.
+- Deleting an invoiced event looked refused because its wiped billing stub
+  stayed in the client's event list; wiped stubs are now filtered out.
+- The type-the-name confirmation ignores case and surrounding spaces.
+
 ## V3.1.12 - 2026-08-06 (super admins can permanently delete client events)
 
 - The client detail page's Events tab gains a guarded permanent delete on

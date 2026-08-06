@@ -1,5 +1,6 @@
 import { IconEvents, IconEye, IconLocation, IconTrash } from '@/components/icons'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 
 import { NeoButton, NeoInput, NeoStatusBadge, type NeoStatusBadgeTone } from '@/components/neo-minimal'
@@ -156,8 +157,16 @@ export function ClientEventOverviewCard({
         </div>
       </div>
 
-      {deleteOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      {/* Portalled to body: the card's hover animation applies a transform,
+          and a transformed ancestor captures fixed positioning, which pinned
+          this dialog inside the card and made it jump with the hover state. */}
+      {deleteOpen
+        ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="neo-minimal-scope fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        >
           <div className="border-border/80 bg-card w-full max-w-md rounded-lg border p-6 shadow-xl">
             <h3 className="text-foreground text-base font-bold">
               Permanently delete “{event.name}”?
@@ -197,15 +206,20 @@ export function ClientEventOverviewCard({
                 type="button"
                 variant="destructive"
                 size="sm"
-                disabled={deleting || confirmName.trim() !== event.name}
+                disabled={
+                  deleting ||
+                  confirmName.trim().toLowerCase() !== event.name.trim().toLowerCase()
+                }
                 onClick={() => void handleDelete()}
               >
                 {deleting ? 'Deleting…' : 'Delete permanently'}
               </NeoButton>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+        : null}
     </article>
   )
 }
