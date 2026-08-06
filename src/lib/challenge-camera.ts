@@ -160,6 +160,23 @@ export function buildChallengeVideoConstraints(
   const portrait = portraitOverride ?? isPortraitDevice()
   const long = lowPowerRecording ? 1280 : 1920
   const short = lowPowerRecording ? 720 : 1080
+
+  // iOS held vertical: ask for HEIGHT ONLY. The ?camprobe sweep on Rumen's
+  // iPhone (6 Aug 2026) showed Safari forces landscape the moment both
+  // dimensions or an aspect ratio are named (1080x1920 ideal AND exact both
+  // returned 1920x1080; aspectRatio 9/16 returned 1137x640), but a bare
+  // height ask keeps the camera's natural portrait frame and returned a full
+  // 1920x2560 sensor view, the same picture the system camera app shows.
+  if (isIOSOrIPadOS() && portrait) {
+    const video: MediaTrackConstraints & { focusMode?: string } = {
+      ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode }),
+      height: { ideal: long },
+      frameRate: { ideal: 30 },
+      focusMode: 'continuous',
+    }
+    return { video, audio: withAudio }
+  }
+
   const video: MediaTrackConstraints & { focusMode?: string } = {
     // A chosen lens is exact: "ideal" would let the browser silently fall back
     // to whichever camera it prefers, which reads as the picker doing nothing.
