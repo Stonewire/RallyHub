@@ -4,6 +4,8 @@ import { createPortal, flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { cameraProbeRequested } from '@/lib/challenge-camera'
+
 import { BingoCardCellLabel } from '@/components/live/BingoCardCellLabel'
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
@@ -162,6 +164,12 @@ export function JoinGameView({
   )
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
+  // Capture a ?camprobe flag before routing can strip the query string; the
+  // capture screens read the remembered flag later.
+  useEffect(() => {
+    cameraProbeRequested()
+  }, [])
 
   // When the facilitator starts (or restarts) bingo, the run + team cards are
   // created server-side and event_state.bingo_state flips via realtime. The run
