@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.1 - 2026-08-06 (camera follow-ups from the device re-test)
+
+- The in-app camera now asks for the orientation the device is actually held
+  in, restarts the stream when the device rotates (keyed off the orientation
+  media query, which flips in step with the rotation itself), and if a camera
+  stack still hands back a sideways frame it politely re-asks for the upright
+  one after opening. Held vertical you get a vertical frame, held horizontal a
+  horizontal one, matching the system camera app.
+- The Lens button is gone: rear lenses now show as iPhone-style zoom chips
+  (0.5x, 1x, 2x) in a row above the shutter and record buttons. Devices with a
+  single rear camera see no chips at all.
+
 ## V3.1.0 - 2026-08-04 (client live-test feedback and the camera overhaul)
 
 - All nineteen items from the 3 Aug client live test: stage reorder, collapse

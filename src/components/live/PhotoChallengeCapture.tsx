@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Aperture, Camera, SwitchCamera, X } from 'lucide-react'
+import { Camera, SwitchCamera, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,9 @@ import {
   facingFromDeviceLabel,
   getChallengeCameraStream,
   listVideoInputs,
+  onOrientationFlip,
   previewVideoStyle,
+  rearLensOptions,
   type ChallengeFacingMode,
 } from '@/lib/challenge-camera'
 import { nowMs, reportClientIssue, reportClientTiming } from '@/lib/client-diagnostics'
@@ -49,6 +51,7 @@ export function PhotoChallengeCapture({
   // Every camera the device admits to; the phone's wide and tele lenses show
   // up here as separate inputs. Populated once permission is granted.
   const [lenses, setLenses] = useState<MediaDeviceInfo[]>([])
+  const [activeDeviceId, setActiveDeviceId] = useState<string | undefined>(undefined)
 
   function clearSnapshot() {
     encodeSeqRef.current += 1
@@ -93,6 +96,7 @@ export function PhotoChallengeCapture({
     cameraOpenMsRef.current = Math.round(nowMs() - openStarted)
     streamRef.current = stream
     setReady(true)
+    setActiveDeviceId(stream.getVideoTracks()[0]?.getSettings().deviceId)
     void listVideoInputs().then(setLenses)
   }
 
@@ -100,26 +104,36 @@ export function PhotoChallengeCapture({
     const next: ChallengeFacingMode =
       facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
+    setActiveDeviceId(undefined)
     clearSnapshot()
     void startCamera(next)
   }
 
   /**
-   * Steps through every physical camera, not just front/back. Flip covers the
-   * common case; this reaches the wide and tele lenses phones expose as
-   * separate devices. Mirroring follows the lens's own label, since a deviceId
-   * request carries no facing information.
+   * Jumps straight to a chosen rear lens, the way a phone's own camera does
+   * with its 0.5x / 1x / 2x chips. Mirroring follows the lens's own label,
+   * since a deviceId request carries no facing information.
    */
-  function cycleLens() {
-    if (lenses.length < 2) return
-    const currentId = streamRef.current?.getVideoTracks()[0]?.getSettings().deviceId
-    const index = lenses.findIndex((lens) => lens.deviceId === currentId)
-    const next = lenses[(index + 1) % lenses.length]
-    if (!next?.deviceId) return
-    setFacingMode(facingFromDeviceLabel(next.label))
+  function selectLens(deviceId: string) {
+    if (deviceId === activeDeviceId) return
+    const lens = lenses.find((l) => l.deviceId === deviceId)
+    const facing = lens ? facingFromDeviceLabel(lens.label) : 'environment'
+    setFacingMode(facing)
     clearSnapshot()
-    void startCamera(facingFromDeviceLabel(next.label), next.deviceId)
+    void startCamera(facing, deviceId)
   }
+
+  // Rotating the device changes which way the sensor should be asked to frame,
+  // so the stream is reopened with orientation-correct constraints. Not while
+  // reviewing a shot: the snapshot must stay exactly as taken.
+  useEffect(() => {
+    const onRotate = () => {
+      if (snapshotTaken || !streamRef.current) return
+      void startCamera(facingMode, activeDeviceId)
+    }
+    return onOrientationFlip(onRotate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- startCamera is stable per render; the listener reads current state
+  }, [snapshotTaken, facingMode, activeDeviceId])
 
   function capturePhoto() {
     const video = videoRef.current
@@ -194,6 +208,7 @@ export function PhotoChallengeCapture({
   }
 
   const livePreviewStyle = previewVideoStyle(facingMode, false)
+  const rearLenses = rearLensOptions(lenses)
 
   if (typeof document === 'undefined') return null
 
@@ -244,19 +259,6 @@ export function PhotoChallengeCapture({
                   <SwitchCamera className="size-4" />
                   Flip
                 </button>
-                {/* Only when there is more to reach than front/back. */}
-                {lenses.length > 2 ? (
-                  <button
-                    type="button"
-                    onClick={cycleLens}
-                    disabled={!ready}
-                    aria-label="Switch lens"
-                    className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
-                  >
-                    <Aperture className="size-4" />
-                    Lens
-                  </button>
-                ) : null}
               </div>
             </>
           ) : null}
@@ -269,6 +271,28 @@ export function PhotoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
+        {/* Zoom-style lens chips, like a phone's own camera. Rear lenses only;
+            hidden while mirrored to the selfie camera or reviewing a shot. */}
+        {!snapshotTaken && facingMode === 'environment' && rearLenses.length > 0 ? (
+          <div className="flex items-center gap-2">
+            {rearLenses.map((lens) => (
+              <button
+                key={lens.deviceId}
+                type="button"
+                onClick={() => selectLens(lens.deviceId)}
+                aria-label={`Switch to the ${lens.label} lens`}
+                aria-pressed={lens.deviceId === activeDeviceId}
+                className={`flex size-11 items-center justify-center rounded-full text-sm font-bold backdrop-blur-sm ${
+                  lens.deviceId === activeDeviceId
+                    ? 'bg-white text-black'
+                    : 'bg-black/55 text-white'
+                }`}
+              >
+                {lens.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {snapshotTaken ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button

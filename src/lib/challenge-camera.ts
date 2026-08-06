@@ -70,7 +70,31 @@ export const CHALLENGE_ASPECT_TRUE_MEDIA_CLASS = 'max-h-full max-w-full'
 
 export function isPortraitDevice(): boolean {
   if (typeof window === 'undefined') return true
+  // The orientation media query flips in the same beat as the rotation itself,
+  // while innerWidth/innerHeight can still hold the pre-rotation values inside
+  // an orientationchange handler. Reading the query keeps a restart triggered
+  // by rotation from re-requesting the orientation the device just left.
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia('(orientation: portrait)').matches
+  }
   return window.innerHeight >= window.innerWidth
+}
+
+/**
+ * Runs the callback once the device orientation has actually flipped. Returns
+ * the cleanup function. The media query change event fires with the new
+ * viewport already in place; bare orientationchange often runs too early.
+ */
+export function onOrientationFlip(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {}
+  if (typeof window.matchMedia === 'function') {
+    const query = window.matchMedia('(orientation: portrait)')
+    const handler = () => callback()
+    query.addEventListener('change', handler)
+    return () => query.removeEventListener('change', handler)
+  }
+  window.addEventListener('orientationchange', callback)
+  return () => window.removeEventListener('orientationchange', callback)
 }
 
 /** Stream is landscape pixels while the device is held vertically. */
@@ -113,13 +137,22 @@ export function buildChallengeVideoConstraints(
   deviceId?: string,
 ): MediaStreamConstraints {
   const lowPowerRecording = withAudio && isAndroidDevice()
+  // Sized for how the device is held RIGHT NOW. The old fixed portrait request
+  // was interpreted by Android against the device's NATURAL orientation, which
+  // on a tablet is landscape: held upright, the "portrait" request came back
+  // as a sideways 16:9 frame, and physically rotating the tablet "fixed" it
+  // (Rumen's device test, 4 Aug 2026). Asking in the orientation the device is
+  // actually in gets the frame the system camera app would give.
+  const portrait = isPortraitDevice()
+  const long = lowPowerRecording ? 1280 : 1920
+  const short = lowPowerRecording ? 720 : 1080
   const video: MediaTrackConstraints & { focusMode?: string } = {
     // A chosen lens is exact: "ideal" would let the browser silently fall back
     // to whichever camera it prefers, which reads as the picker doing nothing.
     ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode }),
-    width: { ideal: lowPowerRecording ? 720 : 1080 },
-    height: { ideal: lowPowerRecording ? 1280 : 1920 },
-    aspectRatio: { ideal: 9 / 16 },
+    width: { ideal: portrait ? short : long },
+    height: { ideal: portrait ? long : short },
+    aspectRatio: { ideal: portrait ? 9 / 16 : 16 / 9 },
     frameRate: { ideal: 30 },
     focusMode: 'continuous',
   }
@@ -135,9 +168,26 @@ export function isAndroidDevice(): boolean {
   return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
-async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
+/**
+ * Some camera stacks rotate the delivered frame AFTER the constraints were
+ * negotiated, so a landscape request can come back tall and a portrait request
+ * can come back wide. Whichever way it lands, re-ask for the orientation the
+ * device is actually held in; the catch keeps the stream as-is on hardware
+ * that truly cannot.
+ */
+async function tryMatchDeviceOrientation(track: MediaStreamTrack): Promise<void> {
   const { width = 0, height = 0 } = track.getSettings()
-  if (!width || !height || width <= height) return
+  if (!width || !height || width === height) return
+
+  const portrait = isPortraitDevice()
+  const streamPortrait = height > width
+  if (streamPortrait === portrait) return
+
+  const short = Math.min(width, height)
+  const long = Math.max(width, height)
+  const desired = portrait
+    ? { width: short, height: long, aspect: 9 / 16 }
+    : { width: long, height: short, aspect: 16 / 9 }
 
   // iOS Safari ignores ideal-only portrait hints and stays in its landscape
   // camera mode (horizontal iPhone video, reported 30 Jul 2026 after the old
@@ -148,8 +198,8 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
   if (isIOSOrIPadOS()) {
     try {
       await track.applyConstraints({
-        width: { exact: Math.min(width, height) },
-        height: { exact: Math.max(width, height) },
+        width: { exact: desired.width },
+        height: { exact: desired.height },
       })
       return
     } catch {
@@ -159,9 +209,9 @@ async function tryPortraitConstraints(track: MediaStreamTrack): Promise<void> {
 
   try {
     await track.applyConstraints({
-      width: { ideal: Math.min(width, height) },
-      height: { ideal: Math.max(width, height) },
-      aspectRatio: { ideal: 9 / 16 },
+      width: { ideal: desired.width },
+      height: { ideal: desired.height },
+      aspectRatio: { ideal: desired.aspect },
     })
   } catch {
     // Keep the stream as-is; preview/capture will correct orientation.
@@ -188,8 +238,8 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const track = stream.getVideoTracks()[0]
-  if (track && isPortraitDevice()) {
-    await tryPortraitConstraints(track)
+  if (track) {
+    await tryMatchDeviceOrientation(track)
   }
 
   return stream
@@ -216,6 +266,35 @@ export async function listVideoInputs(): Promise<MediaDeviceInfo[]> {
  */
 export function facingFromDeviceLabel(label: string): ChallengeFacingMode {
   return /front|user|face|selfie/i.test(label) ? 'user' : 'environment'
+}
+
+export type LensOption = { deviceId: string; label: string }
+
+/**
+ * The rear lenses as zoom-style chips ("0.5x", "1x", "2x"), the way a phone's
+ * own camera presents them. Zoom factors are not exposed by the web API, so
+ * they are read from the lens labels; a set the labels cannot describe falls
+ * back to numbered lenses. One rear lens means no chips at all — Flip covers
+ * front/back on its own.
+ */
+export function rearLensOptions(devices: MediaDeviceInfo[]): LensOption[] {
+  const rear = devices.filter(
+    (d) => d.deviceId && facingFromDeviceLabel(d.label) === 'environment',
+  )
+  if (rear.length < 2) return []
+  const labels = rear.map((d) => {
+    const l = d.label.toLowerCase()
+    if (/ultra|0\.5/.test(l)) return '0.5x'
+    if (/periscope|5x/.test(l)) return '5x'
+    if (/tele(photo)?|[23]x/.test(l)) return '2x'
+    if (/wide|main|back|rear|camera/.test(l)) return '1x'
+    return ''
+  })
+  const parseable = new Set(labels.filter(Boolean)).size === rear.length
+  return rear.map((d, i) => ({
+    deviceId: d.deviceId,
+    label: parseable ? labels[i] : `${i + 1}`,
+  }))
 }
 
 /** Upload size for stills. Matches downscalePhoto()'s target for file uploads. */
