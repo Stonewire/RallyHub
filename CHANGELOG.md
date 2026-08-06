@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.8 - 2026-08-06 (camprobe flag survives the join redirects)
+
+- The ?camprobe diagnostic flag is now remembered for the session as soon as
+  the join page sees it, because the join flow's redirects stripped the query
+  string before the capture screen could read it and the first probe run
+  logged nothing.
+
 ## V3.1.7 - 2026-08-06 (Safari constraint probe behind ?camprobe)
 
 - Adds a diagnostic-only camera probe on iOS: a join link carrying ?camprobe

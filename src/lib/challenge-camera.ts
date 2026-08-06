@@ -373,10 +373,24 @@ export async function runIOSCameraProbe(eventId: string): Promise<void> {
   }
 }
 
-/** True when the join URL asks for the diagnostic camera probe. */
+/**
+ * True when the join URL asks for the diagnostic camera probe. Sticky: the
+ * SPA's join redirects can strip the query string before the capture screen
+ * ever opens (first probe attempt logged nothing, 6 Aug 2026), so the flag is
+ * remembered for the session the moment any page sees it. Call once early on
+ * the join page so it is captured before routing rewrites the URL.
+ */
 export function cameraProbeRequested(): boolean {
   if (typeof window === 'undefined') return false
-  return new URLSearchParams(window.location.search).has('camprobe')
+  const inUrl =
+    new URLSearchParams(window.location.search).has('camprobe') ||
+    window.location.hash.includes('camprobe')
+  try {
+    if (inUrl) sessionStorage.setItem('rallyhub-camprobe', '1')
+    return inUrl || sessionStorage.getItem('rallyhub-camprobe') === '1'
+  } catch {
+    return inUrl
+  }
 }
 
 export async function getChallengeCameraStream(
