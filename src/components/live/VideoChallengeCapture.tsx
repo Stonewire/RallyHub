@@ -11,9 +11,11 @@ import {
   CHALLENGE_CAPTURE_FRAME_CLASS,
   CHALLENGE_VIDEO_LIVE_PREVIEW_CLASS,
   CHALLENGE_VIDEO_MEDIA_CONTAIN_CLASS,
+  cameraProbeRequested,
   getChallengeCameraStream,
   isAndroidDevice,
   onOrientationFlip,
+  runIOSCameraProbe,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
@@ -109,8 +111,15 @@ export function VideoChallengeCapture({
 
   useEffect(() => {
     if (recordedFile) return
-    void openPreview(facingMode)
+    let cancelled = false
+    void (async () => {
+      // Diagnostic sweep of Safari constraint shapes, only when the join URL
+      // carries ?camprobe. Runs before the real open so the camera is free.
+      if (cameraProbeRequested()) await runIOSCameraProbe(eventId)
+      if (!cancelled) await openPreview(facingMode)
+    })()
     return () => {
+      cancelled = true
       stopStream()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- flipCamera() explicitly restarts the stream on facingMode change, so re-running this effect too would restart it twice

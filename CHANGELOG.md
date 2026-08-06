@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.7 - 2026-08-06 (Safari constraint probe behind ?camprobe)
+
+- Adds a diagnostic-only camera probe on iOS: a join link carrying ?camprobe
+  makes the video capture screen try six constraint shapes in sequence before
+  the real viewfinder opens, logging what Safari actually returns for each.
+  Answers whether Safari can be asked for a true vertical frame at all, and
+  in which phrasing, before any more orientation code is written. No effect
+  on normal links or players.
+
 ## V3.1.6 - 2026-08-06 (iPhone video: stop rotating an already-upright frame)
 
 - First fix designed from the new camera diagnostics. The iPhone's Safari
