@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.4 - 2026-08-06 (iOS hands off, plus camera diagnostics)
+
+- iOS no longer gets any orientation correction: forcing its sideways-claiming
+  stream into portrait made Safari rotate the picture itself (V3.1.3's
+  sideways iPhone video). The iPhone video viewfinder returns to the upright
+  wide frame that submits exactly what it previews. Android keeps the V3.1.2
+  cross-orientation retry.
+- Every camera open now logs one diagnostics line (device orientation, what
+  the track claims, what the pixels really are) so the next orientation change
+  is designed from real device data instead of guesswork.
+
 ## V3.1.3 - 2026-08-06 (trust the frames, not the settings; zoom chips out)
 
 - Camera orientation checks now measure the frames the stream actually
