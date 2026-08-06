@@ -321,3 +321,21 @@
     transform: translateY(0);
   }
 }
+
+/* Typing caret in the text-answer field: a hard on/off blink like a real
+   input's caret. animate-pulse only faded between 100% and 50% opacity, which
+   read as a decorative line rather than "you can type here". */
+@keyframes xp-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.experience-scope .xp-caret {
+  animation: xp-caret-blink 1.1s step-end infinite;
+}

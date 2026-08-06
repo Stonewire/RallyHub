@@ -75,7 +75,7 @@ export function OpenGameTextChallenge({
             {disabled ? null : (
               <span
                 aria-hidden
-                className="ml-0.5 inline-block h-[1.15em] w-[2px] translate-y-[0.18em] animate-pulse rounded-full bg-white align-middle"
+                className="xp-caret ml-0.5 inline-block h-[1.15em] w-[2px] translate-y-[0.18em] rounded-full bg-white align-middle"
               />
             )}
           </p>

@@ -144,14 +144,15 @@ export function EventLinksPanel({
             <p className="text-muted-foreground min-h-8 flex-1 break-all font-mono text-xs">
               {url}
             </p>
-            {/* Three equal columns rather than wrapping flex: the labels are
-                short enough to sit on one line at any card width. */}
-            <div className="grid grid-cols-3 gap-1.5">
+            {/* Stacked full-width actions: three pills squeezed onto one row
+                (px-0, icons touching labels) read as broken buttons at this
+                column width. */}
+            <div className="flex flex-col gap-1.5">
               <NeoButton
                 type="button"
                 size="sm"
                 variant="surface"
-                className="w-full justify-center px-0"
+                className="w-full justify-center"
                 onClick={() => void handleCopy(key, url)}
               >
                 {copied === key ? (
@@ -159,9 +160,9 @@ export function EventLinksPanel({
                 ) : (
                   <IconCopy className="size-3.5" />
                 )}
-                Copy
+                {copied === key ? 'Copied' : 'Copy link'}
               </NeoButton>
-              <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center px-0" asChild>
+              <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center" asChild>
                 <Link to={url} target="_blank" rel="noreferrer">
                   <IconExternal className="size-3.5" />
                   Open
@@ -171,14 +172,14 @@ export function EventLinksPanel({
                 type="button"
                 size="sm"
                 variant="surface"
-                className="w-full justify-center px-0"
+                className="w-full justify-center"
                 title="Download this QR as a PNG"
                 onClick={() =>
                   void downloadQrPng(url, `rallyhub-${key}-${eventId}.png`)
                 }
               >
                 <IconQr className="size-3.5" />
-                QR
+                Download QR
               </NeoButton>
             </div>
           </div>

@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.11 - 2026-08-06 (four small polish fixes)
+
+- The text-answer caret blinks fully on and off, so the preselected box
+  clearly invites typing.
+- The event clock on player devices always reads H:MM:SS (2:00:00, not
+  120:00).
+- Facilitator review cards colour their game-type badges with the same
+  per-type colours as the games library.
+- The Event Links dialog's Copy/Open/QR actions are stacked full-width
+  buttons instead of three squeezed pills.
+
 ## V3.1.10 - 2026-08-06 (recording no longer zooms the viewfinder)
 
 - Starting a video recording used to collapse the bottom buttons, which grew
