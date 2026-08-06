@@ -330,6 +330,55 @@ function reportCameraOpen(
   )
 }
 
+/**
+ * Diagnostic-only sweep of constraint shapes Safari might honour for a
+ * vertical frame, run on demand (join URL carries ?camprobe) on iOS before
+ * the normal viewfinder opens. Each shape is opened, its REAL decoded frame
+ * measured, logged, and closed; nothing is shown to the player. The answer to
+ * "can Safari be asked for 9:16 at all, and how" comes from these lines
+ * instead of another round of production guesses.
+ */
+export async function runIOSCameraProbe(eventId: string): Promise<void> {
+  if (!isIOSOrIPadOS()) return
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return
+  const held = isPortraitDevice() ? 'portrait' : 'landscape'
+  const variants: Array<[string, MediaTrackConstraints]> = [
+    ['bare', { facingMode: 'environment' }],
+    ['pair-ideal', { facingMode: 'environment', width: { ideal: 1080 }, height: { ideal: 1920 } }],
+    ['pair-exact', { facingMode: 'environment', width: { exact: 1080 }, height: { exact: 1920 } }],
+    ['aspect-exact', { facingMode: 'environment', aspectRatio: { exact: 9 / 16 } }],
+    ['aspect-ideal-only', { facingMode: 'environment', aspectRatio: { ideal: 9 / 16 } }],
+    ['height-only', { facingMode: 'environment', height: { ideal: 1920 } }],
+  ]
+  for (const [name, video] of variants) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video })
+      const frame = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
+      const settings = trackSettingsFrame(stream)
+      reportClientTiming(
+        'record-timing',
+        `cam-probe ${name}: held=${held}` +
+          ` settings=${settings ? `${settings.width}x${settings.height}` : 'none'}` +
+          ` frames=${frame ? `${frame.width}x${frame.height}` : 'none'}`,
+        { eventId },
+      )
+      stopAllTracks(stream)
+    } catch (err) {
+      reportClientTiming(
+        'record-timing',
+        `cam-probe ${name}: held=${held} error=${err instanceof Error ? err.name : 'unknown'}`,
+        { eventId },
+      )
+    }
+  }
+}
+
+/** True when the join URL asks for the diagnostic camera probe. */
+export function cameraProbeRequested(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).has('camprobe')
+}
+
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
