@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.12 - 2026-08-06 (super admins can permanently delete client events)
+
+- The client detail page's Events tab gains a guarded permanent delete on
+  every event card: type the event name to confirm, and the event goes with
+  its teams, submissions, chat and media. An invoiced event keeps its bare
+  stub so billing history survives. Uses the existing wipe_event_data
+  database routine, which already authorises super admins for any client.
+
 ## V3.1.11 - 2026-08-06 (four small polish fixes)
 
 - The text-answer caret blinks fully on and off, so the preselected box

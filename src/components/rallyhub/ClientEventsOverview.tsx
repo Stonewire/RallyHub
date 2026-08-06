@@ -18,6 +18,8 @@ type ClientEventsOverviewProps = {
   clientPlan: string | null | undefined
   hideInvoiceState?: boolean
   clientId?: string
+  /** Enables the per-event permanent delete and refreshes the list after. */
+  onEventDeleted?: () => void
 }
 
 export function ClientEventsOverview({
@@ -25,6 +27,7 @@ export function ClientEventsOverview({
   clientPlan,
   hideInvoiceState,
   clientId,
+  onEventDeleted,
 }: ClientEventsOverviewProps) {
   const groups = useMemo(() => groupClientEventsForOverview(events), [events])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -69,6 +72,7 @@ export function ClientEventsOverview({
                       clientPlan={clientPlan}
                       hideInvoiceState={hideInvoiceState}
                       clientId={clientId}
+                      onDeleted={onEventDeleted}
                     />
                   ))}
                 </div>

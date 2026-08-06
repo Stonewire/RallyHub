@@ -38,6 +38,19 @@ async function deleteEventStorageFiles(eventId: string): Promise<void> {
   }
 }
 
+/**
+ * Permanently delete an event: media files first (the URLs are gone once the
+ * rows are), then wipe_event_data removes every child row and the event row
+ * itself. An invoiced event keeps a bare wiped stub so billing history stays
+ * intact; the RPC allows client admins for their own org and super admins for
+ * any client's event.
+ */
+export async function deleteEventPermanently(eventId: string): Promise<void> {
+  await deleteEventStorageFiles(eventId)
+  const { error } = await supabase.rpc('wipe_event_data', { p_event_id: eventId })
+  if (error) throw error
+}
+
 /** Clear gameplay data, delete Storage files, and restore empty team slots. */
 export async function resetEventData(eventId: string): Promise<void> {
   const { data: event, error: fetchErr } = await supabase
