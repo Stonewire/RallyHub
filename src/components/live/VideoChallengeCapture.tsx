@@ -245,7 +245,7 @@ export function VideoChallengeCapture({
   }
 
   async function openPreview(facing: ChallengeFacingMode, deviceId?: string) {
-    const stream = await getChallengeCameraStream(facing, true, deviceId)
+    const stream = await getChallengeCameraStream(facing, true, deviceId, eventId)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens, or upload a video')
       return

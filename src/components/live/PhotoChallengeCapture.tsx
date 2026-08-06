@@ -82,7 +82,7 @@ export function PhotoChallengeCapture({
   async function startCamera(facing: ChallengeFacingMode, deviceId?: string) {
     stopStream()
     const openStarted = nowMs()
-    const stream = await getChallengeCameraStream(facing, false, deviceId)
+    const stream = await getChallengeCameraStream(facing, false, deviceId, eventId)
     if (!stream) {
       notify('Camera access not granted — allow camera when the app opens')
       return

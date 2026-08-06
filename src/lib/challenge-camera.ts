@@ -307,13 +307,17 @@ function reportCameraOpen(
   stage: string,
   stream: MediaStream,
   frame: { width: number; height: number } | null,
+  eventId?: string,
 ): void {
   const settings = trackSettingsFrame(stream)
+  // The insert policy on client_diagnostics only admits rows carrying a live
+  // event's join token, so a line without an eventId is silently dropped.
   reportClientTiming(
     'record-timing',
     `cam-open ${stage}: held=${isPortraitDevice() ? 'portrait' : 'landscape'}` +
       ` settings=${settings ? `${settings.width}x${settings.height}` : 'none'}` +
       ` frames=${frame ? `${frame.width}x${frame.height}` : 'none'}`,
+    { eventId: eventId ?? null },
   )
 }
 
@@ -321,6 +325,7 @@ export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
   deviceId?: string,
+  eventId?: string,
 ): Promise<MediaStream | null> {
   const stream = await getTeamMediaStream(
     buildChallengeVideoConstraints(facingMode, withAudio, deviceId),
@@ -328,7 +333,7 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const frame = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
-  reportCameraOpen('initial', stream, frame)
+  reportCameraOpen('initial', stream, frame, eventId)
 
   // iOS is HANDS OFF. Its Safari reports portrait settings while delivering a
   // wide upright frame, and any attempt to "correct" that (an exact
@@ -347,7 +352,7 @@ export async function getChallengeCameraStream(
   if (track && frame) {
     await tryMatchDeviceOrientation(track, frame)
     const fixed = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
-    reportCameraOpen('after-inplace', stream, fixed)
+    reportCameraOpen('after-inplace', stream, fixed, eventId)
     if (!frameIsCross(fixed)) return stream
   }
 
@@ -369,6 +374,7 @@ export async function getChallengeCameraStream(
       'after-cross-retry',
       retry,
       (await measureStreamFrame(retry)) ?? trackSettingsFrame(retry),
+      eventId,
     )
     return retry
   }
