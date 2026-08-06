@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.2 - 2026-08-06 (cross-orientation camera retry)
+
+- Some tablet camera stacks deliver the opposite of the requested orientation
+  (vertical hold produced a sideways 16:9 frame, horizontal hold a vertical
+  one). When the opened frame lands strictly sideways, the camera now reopens
+  once asking for the opposite orientation, which such hardware answers with
+  the frame we actually wanted. One reopen at most, the same churn as the
+  Flip button; square compromise frames are left alone.
+
 ## V3.1.1 - 2026-08-06 (camera follow-ups from the device re-test)
 
 - The in-app camera now asks for the orientation the device is actually held
