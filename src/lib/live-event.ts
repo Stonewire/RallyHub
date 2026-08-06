@@ -204,6 +204,18 @@ export function formatTimer(seconds: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
+/**
+ * The event clock on player devices: always H:MM:SS (a two-hour event shows
+ * 2:00:00, not 120:00, which read as a broken minutes counter on devices).
+ */
+export function formatClockTimer(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+}
+
 /** Break / stage timers: always M:SS (e.g. 5:00 for five minutes). */
 export function formatBreakTimer(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds))

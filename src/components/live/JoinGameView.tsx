@@ -68,6 +68,7 @@ import {
   currentStage,
   displayTextColorForEvent,
   formatBreakTimer,
+  formatClockTimer,
   formatTimer,
   gamePointsDisplay,
   isEventLive,
@@ -1068,7 +1069,7 @@ export function JoinGameView({
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
       {showEventTimer ? (
         <p className="rounded-full bg-black/35 px-3 py-0.5 text-sm font-black tabular-nums backdrop-blur-sm">
-          {formatBreakTimer(eventTimerDisplay)}
+          {formatClockTimer(eventTimerDisplay)}
         </p>
       ) : null}
       {stage?.type === 'quiz' && stage.gameId ? (
