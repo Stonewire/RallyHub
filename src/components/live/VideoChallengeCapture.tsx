@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Aperture, SwitchCamera, Video, X } from 'lucide-react'
+import { SwitchCamera, Video, X } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,9 @@ import {
   facingFromDeviceLabel,
   getChallengeCameraStream,
   isAndroidDevice,
+  rearLensOptions,
   listVideoInputs,
+  onOrientationFlip,
   previewVideoStyle,
   streamNeedsQuarterTurn,
   type ChallengeFacingMode,
@@ -87,6 +89,7 @@ export function VideoChallengeCapture({
   // Every camera the device admits to, for the lens cycle. Populated once
   // permission is granted.
   const [lenses, setLenses] = useState<MediaDeviceInfo[]>([])
+  const [activeDeviceId, setActiveDeviceId] = useState<string | undefined>(undefined)
   // True only during the 1080p leg of the adaptive probe; gates Record.
   const [resProbeActive, setResProbeActive] = useState(false)
   const probeSeqRef = useRef(0)
@@ -256,6 +259,7 @@ export function VideoChallengeCapture({
     streamRef.current = stream
     setQuarterTurn(streamNeedsQuarterTurn(stream))
     setPreviewReady(true)
+    setActiveDeviceId(stream.getVideoTracks()[0]?.getSettings().deviceId)
     void listVideoInputs().then(setLenses)
     if (isAndroidDevice()) void probeForHdRecording(stream)
   }
@@ -265,21 +269,32 @@ export function VideoChallengeCapture({
     const next: ChallengeFacingMode =
       facingMode === 'environment' ? 'user' : 'environment'
     setFacingMode(next)
+    setActiveDeviceId(undefined)
     stopStream()
     void openPreview(next)
   }
 
-  /** Same lens cycle as the photo side; see PhotoChallengeCapture. */
-  function cycleLens() {
-    if (recording || lenses.length < 2) return
-    const currentId = streamRef.current?.getVideoTracks()[0]?.getSettings().deviceId
-    const index = lenses.findIndex((lens) => lens.deviceId === currentId)
-    const next = lenses[(index + 1) % lenses.length]
-    if (!next?.deviceId) return
-    setFacingMode(facingFromDeviceLabel(next.label))
+  /** Same zoom-chip lens selection as the photo side. */
+  function selectLens(deviceId: string) {
+    if (recording || deviceId === activeDeviceId) return
+    const lens = lenses.find((l) => l.deviceId === deviceId)
+    const facing = lens ? facingFromDeviceLabel(lens.label) : 'environment'
+    setFacingMode(facing)
     stopStream()
-    void openPreview(facingFromDeviceLabel(next.label), next.deviceId)
+    void openPreview(facing, deviceId)
   }
+
+  // Reopen with orientation-correct constraints when the device rotates; never
+  // mid-recording (the recorder owns the track) or during review.
+  useEffect(() => {
+    const onRotate = () => {
+      if (recording || recordedFile || !streamRef.current) return
+      stopStream()
+      void openPreview(facingMode, activeDeviceId)
+    }
+    return onOrientationFlip(onRotate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listener reads current state; openPreview is stable per render
+  }, [recording, recordedFile, facingMode, activeDeviceId])
 
   function validateDuration(file: File): Promise<boolean> {
     return new Promise((resolve) => {
@@ -416,6 +431,7 @@ export function VideoChallengeCapture({
   }
 
   const livePreviewStyle = previewVideoStyle(facingMode, quarterTurn)
+  const rearLenses = rearLensOptions(lenses)
 
   if (typeof document === 'undefined') return null
 
@@ -485,17 +501,6 @@ export function VideoChallengeCapture({
                     <SwitchCamera className="size-4" />
                     Flip
                   </button>
-                  {lenses.length > 2 ? (
-                    <button
-                      type="button"
-                      onClick={cycleLens}
-                      aria-label="Switch lens"
-                      className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
-                    >
-                      <Aperture className="size-4" />
-                      Lens
-                    </button>
-                  ) : null}
                 </div>
               ) : null}
               {recording ? (
@@ -523,6 +528,26 @@ export function VideoChallengeCapture({
           paddingBottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 3.5rem))',
         }}
       >
+        {!recordedFile && !recording && previewReady && facingMode === 'environment' && rearLenses.length > 0 ? (
+          <div className="flex items-center gap-2">
+            {rearLenses.map((lens) => (
+              <button
+                key={lens.deviceId}
+                type="button"
+                onClick={() => selectLens(lens.deviceId)}
+                aria-label={`Switch to the ${lens.label} lens`}
+                aria-pressed={lens.deviceId === activeDeviceId}
+                className={`flex size-11 items-center justify-center rounded-full text-sm font-bold backdrop-blur-sm ${
+                  lens.deviceId === activeDeviceId
+                    ? 'bg-white text-black'
+                    : 'bg-black/55 text-white'
+                }`}
+              >
+                {lens.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {recordedFile && reviewUrl ? (
           <div className="mx-auto flex w-full max-w-lg gap-3">
             <Button
