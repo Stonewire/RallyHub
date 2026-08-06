@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.9 - 2026-08-06 (iPhone vertical video, from the probe's answer)
+
+- The ?camprobe sweep found the phrasing Safari accepts: naming both
+  dimensions or an aspect ratio forces landscape, but asking for height alone
+  keeps the camera's natural portrait frame and returns the full sensor view
+  (1920x2560 on the test iPhone), the same picture the system camera shows.
+  iOS held vertical now asks for height only, so vertical video finally gets
+  a true vertical full-height viewfinder. Horizontal and Android unchanged.
+
 ## V3.1.8 - 2026-08-06 (camprobe flag survives the join redirects)
 
 - The ?camprobe diagnostic flag is now remembered for the session as soon as
