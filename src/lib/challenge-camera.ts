@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 
 import { isIOSOrIPadOS } from '@/lib/capture-platform'
+import { reportClientTiming } from '@/lib/client-diagnostics'
 import { getTeamMediaStream } from '@/lib/media-permissions'
 
 export type ChallengeFacingMode = 'environment' | 'user'
@@ -296,6 +297,26 @@ function stopAllTracks(stream: MediaStream): void {
   for (const track of stream.getTracks()) track.stop()
 }
 
+/**
+ * One line per camera open into client_diagnostics, from the devices we can
+ * never test here. What was asked, what the track CLAIMS, what the pixels
+ * really are, and how the device is held: the four numbers every orientation
+ * decision needs, straight from Rumen's own hardware.
+ */
+function reportCameraOpen(
+  stage: string,
+  stream: MediaStream,
+  frame: { width: number; height: number } | null,
+): void {
+  const settings = trackSettingsFrame(stream)
+  reportClientTiming(
+    'record-timing',
+    `cam-open ${stage}: held=${isPortraitDevice() ? 'portrait' : 'landscape'}` +
+      ` settings=${settings ? `${settings.width}x${settings.height}` : 'none'}` +
+      ` frames=${frame ? `${frame.width}x${frame.height}` : 'none'}`,
+  )
+}
+
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
@@ -307,14 +328,26 @@ export async function getChallengeCameraStream(
   if (!stream) return null
 
   const frame = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
+  reportCameraOpen('initial', stream, frame)
+
+  // iOS is HANDS OFF. Its Safari reports portrait settings while delivering a
+  // wide upright frame, and any attempt to "correct" that (an exact
+  // constraint swap, V3.1.3) makes it rotate the buffer instead of
+  // re-cropping: correct shape, sideways content (Rumen's iPhone, 6 Aug
+  // 2026). A wide upright frame shown at its true aspect is honest and
+  // submits exactly what it previews; leave it alone until the diagnostics
+  // above tell us something better.
+  if (isIOSOrIPadOS()) return stream
+
   if (!frameIsCross(frame)) return stream
 
   // The frame landed sideways. First try to fix it in place on the open track
-  // (exact on iOS, ideals on Android), then re-measure the real frames.
+  // then re-measure the real frames.
   const track = stream.getVideoTracks()[0]
   if (track && frame) {
     await tryMatchDeviceOrientation(track, frame)
     const fixed = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
+    reportCameraOpen('after-inplace', stream, fixed)
     if (!frameIsCross(fixed)) return stream
   }
 
@@ -331,7 +364,14 @@ export async function getChallengeCameraStream(
   const retry = await getTeamMediaStream(
     buildChallengeVideoConstraints(facingMode, withAudio, deviceId, !isPortraitDevice()),
   )
-  if (retry) return retry
+  if (retry) {
+    reportCameraOpen(
+      'after-cross-retry',
+      retry,
+      (await measureStreamFrame(retry)) ?? trackSettingsFrame(retry),
+    )
+    return retry
+  }
 
   // The reopen came back empty (camera momentarily busy after the stop);
   // one last plain ask so the user is not left with a dead viewfinder.
