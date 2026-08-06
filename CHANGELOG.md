@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.3 - 2026-08-06 (trust the frames, not the settings; zoom chips out)
+
+- Camera orientation checks now measure the frames the stream actually
+  decodes instead of asking the track for its settings: iOS Safari reports
+  the negotiated portrait size while delivering sideways video frames, which
+  made every earlier orientation fix think there was nothing to fix (Rumen's
+  iPhone video test). A sideways frame is first corrected in place, then, if
+  the stack refuses, reopened cross-wise as in V3.1.2.
+- The zoom lens chips are removed. The web camera API does not expose the
+  camera app's real zoom factors, and phones advertise virtual lens combos
+  (six inputs on a three-lens iPhone), so the chips could only show
+  meaningless numbers. Flip still switches front and back.
+
 ## V3.1.2 - 2026-08-06 (cross-orientation camera retry)
 
 - Some tablet camera stacks deliver the opposite of the requested orientation

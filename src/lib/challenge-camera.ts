@@ -179,8 +179,11 @@ export function isAndroidDevice(): boolean {
  * device is actually held in; the catch keeps the stream as-is on hardware
  * that truly cannot.
  */
-async function tryMatchDeviceOrientation(track: MediaStreamTrack): Promise<void> {
-  const { width = 0, height = 0 } = track.getSettings()
+async function tryMatchDeviceOrientation(
+  track: MediaStreamTrack,
+  frame: { width: number; height: number },
+): Promise<void> {
+  const { width, height } = frame
   if (!width || !height || width === height) return
 
   const portrait = isPortraitDevice()
@@ -232,17 +235,61 @@ async function tryMatchDeviceOrientation(track: MediaStreamTrack): Promise<void>
  * within what the hardware handles.
  */
 /**
+ * The size of the frames the stream ACTUALLY decodes, read off a detached
+ * video element. Track settings cannot be trusted for this: iOS Safari
+ * reports the negotiated portrait size while delivering sideways frames
+ * (Rumen's iPhone video test, 6 Aug 2026), which made every settings-based
+ * orientation check pass while the viewfinder showed a 16:9 strip.
+ */
+async function measureStreamFrame(
+  stream: MediaStream,
+  timeoutMs = 2000,
+): Promise<{ width: number; height: number } | null> {
+  if (typeof document === 'undefined') return null
+  const video = document.createElement('video')
+  video.muted = true
+  video.playsInline = true
+  video.srcObject = stream
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error('metadata timeout')), timeoutMs)
+      video.onloadedmetadata = () => {
+        window.clearTimeout(timer)
+        resolve()
+      }
+      video.onerror = () => {
+        window.clearTimeout(timer)
+        reject(new Error('metadata error'))
+      }
+      void video.play().catch(() => {})
+    })
+    if (video.videoWidth && video.videoHeight) {
+      return { width: video.videoWidth, height: video.videoHeight }
+    }
+    return null
+  } catch {
+    return null
+  } finally {
+    video.srcObject = null
+  }
+}
+
+function trackSettingsFrame(stream: MediaStream): { width: number; height: number } | null {
+  const track = stream.getVideoTracks()[0]
+  if (!track) return null
+  const { width = 0, height = 0 } = track.getSettings()
+  return width && height ? { width, height } : null
+}
+
+/**
  * Strictly the OPPOSITE of the held orientation. A square frame is a
  * compromise, not a swap: retrying from square has been seen to come back
  * worse (a 16:9 strip in a vertical hand), so only a genuinely sideways frame
  * is worth the churn of a reopen.
  */
-function streamIsCross(stream: MediaStream): boolean {
-  const track = stream.getVideoTracks()[0]
-  if (!track) return false
-  const { width = 0, height = 0 } = track.getSettings()
-  if (!width || !height) return false
-  return isPortraitDevice() ? width > height : height > width
+function frameIsCross(frame: { width: number; height: number } | null): boolean {
+  if (!frame) return false
+  return isPortraitDevice() ? frame.width > frame.height : frame.height > frame.width
 }
 
 function stopAllTracks(stream: MediaStream): void {
@@ -259,11 +306,17 @@ export async function getChallengeCameraStream(
   )
   if (!stream) return null
 
+  const frame = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
+  if (!frameIsCross(frame)) return stream
+
+  // The frame landed sideways. First try to fix it in place on the open track
+  // (exact on iOS, ideals on Android), then re-measure the real frames.
   const track = stream.getVideoTracks()[0]
-  if (track) {
-    await tryMatchDeviceOrientation(track)
+  if (track && frame) {
+    await tryMatchDeviceOrientation(track, frame)
+    const fixed = (await measureStreamFrame(stream)) ?? trackSettingsFrame(stream)
+    if (!frameIsCross(fixed)) return stream
   }
-  if (!streamIsCross(stream)) return stream
 
   // Cross-orientation retry, at most ONE extra open (the same churn as the
   // Flip button; rapid open/stop cycles wedge some camera services). Some
