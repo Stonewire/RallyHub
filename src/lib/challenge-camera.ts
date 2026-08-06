@@ -135,6 +135,7 @@ export function buildChallengeVideoConstraints(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
   deviceId?: string,
+  portraitOverride?: boolean,
 ): MediaStreamConstraints {
   const lowPowerRecording = withAudio && isAndroidDevice()
   // Sized for how the device is held RIGHT NOW. The old fixed portrait request
@@ -143,7 +144,10 @@ export function buildChallengeVideoConstraints(
   // as a sideways 16:9 frame, and physically rotating the tablet "fixed" it
   // (Rumen's device test, 4 Aug 2026). Asking in the orientation the device is
   // actually in gets the frame the system camera app would give.
-  const portrait = isPortraitDevice()
+  // portraitOverride exists for the cross-orientation retry below: stacks that
+  // rotate the frame after negotiation deliver the OPPOSITE of the request, so
+  // the retry deliberately asks for the orientation it does not want.
+  const portrait = portraitOverride ?? isPortraitDevice()
   const long = lowPowerRecording ? 1280 : 1920
   const short = lowPowerRecording ? 720 : 1080
   const video: MediaTrackConstraints & { focusMode?: string } = {
@@ -227,6 +231,24 @@ async function tryMatchDeviceOrientation(track: MediaStreamTrack): Promise<void>
  * the bitrate computed from real track dimensions (~5Mbps at 1080p) is well
  * within what the hardware handles.
  */
+/**
+ * Strictly the OPPOSITE of the held orientation. A square frame is a
+ * compromise, not a swap: retrying from square has been seen to come back
+ * worse (a 16:9 strip in a vertical hand), so only a genuinely sideways frame
+ * is worth the churn of a reopen.
+ */
+function streamIsCross(stream: MediaStream): boolean {
+  const track = stream.getVideoTracks()[0]
+  if (!track) return false
+  const { width = 0, height = 0 } = track.getSettings()
+  if (!width || !height) return false
+  return isPortraitDevice() ? width > height : height > width
+}
+
+function stopAllTracks(stream: MediaStream): void {
+  for (const track of stream.getTracks()) track.stop()
+}
+
 export async function getChallengeCameraStream(
   facingMode: ChallengeFacingMode,
   withAudio: boolean,
@@ -241,8 +263,26 @@ export async function getChallengeCameraStream(
   if (track) {
     await tryMatchDeviceOrientation(track)
   }
+  if (!streamIsCross(stream)) return stream
 
-  return stream
+  // Cross-orientation retry, at most ONE extra open (the same churn as the
+  // Flip button; rapid open/stop cycles wedge some camera services). Some
+  // camera stacks (a portrait-natural pipeline on a landscape-natural tablet)
+  // rotate the frame AFTER negotiating the request, so they deliver the
+  // opposite of whatever was asked: Rumen's tablet held vertical returned a
+  // sideways 16:9 frame for a portrait ask, and a vertical frame once rotated
+  // horizontal (device test, 4 Aug 2026). Asking for the opposite of what we
+  // want gets what we want. Whatever the retry returns is kept: a stack this
+  // confused gains nothing from more churn.
+  stopAllTracks(stream)
+  const retry = await getTeamMediaStream(
+    buildChallengeVideoConstraints(facingMode, withAudio, deviceId, !isPortraitDevice()),
+  )
+  if (retry) return retry
+
+  // The reopen came back empty (camera momentarily busy after the stop);
+  // one last plain ask so the user is not left with a dead viewfinder.
+  return getTeamMediaStream(buildChallengeVideoConstraints(facingMode, withAudio, deviceId))
 }
 
 /**
