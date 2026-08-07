@@ -644,6 +644,8 @@ export type Database = {
           status: string
           slot_number: number
           created_at: string
+          /** Bumped by takeover_team_slot; devices holding an older value log out. */
+          session_epoch: number
         }
         Insert: {
           id?: string
@@ -654,6 +656,7 @@ export type Database = {
           score?: number
           status?: string
           slot_number: number
+          session_epoch?: number
         }
         Update: {
           name?: string | null
@@ -661,6 +664,7 @@ export type Database = {
           photo_url?: string | null
           score?: number
           status?: string
+          session_epoch?: number
         }
         Relationships: []
       }
@@ -1159,6 +1163,26 @@ export type Database = {
           status: string
           slot_number: number
           created_at: string
+          inventory_purchase_token: string
+        }[]
+      }
+      takeover_team_slot: {
+        Args: {
+          p_event_id: string
+          p_team_id: string
+          p_password: string
+        }
+        Returns: {
+          id: string
+          event_id: string
+          name: string | null
+          color: string | null
+          photo_url: string | null
+          score: number
+          status: string
+          slot_number: number
+          created_at: string
+          session_epoch: number
           inventory_purchase_token: string
         }[]
       }
