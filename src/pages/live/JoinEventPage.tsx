@@ -66,6 +66,21 @@ export function JoinEventPage() {
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
   useDocumentTitle('Teams', bundle?.event?.name)
+
+  // Back-button trap. Scanning the join QR from a phone's camera app opens a
+  // temporary browser sheet whose history starts empty, so one press of the
+  // hardware Back closed the whole event and teams had to walk over and
+  // rescan (7 Aug event, Android personal phones). A guard entry is pushed on
+  // mount and re-pushed on every popstate, so Back keeps the page alive; all
+  // in-game navigation is app state and its own buttons, never history.
+  useEffect(() => {
+    window.history.pushState({ rhBackTrap: true }, '')
+    const onPop = () => {
+      window.history.pushState({ rhBackTrap: true }, '')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
