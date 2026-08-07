@@ -174,7 +174,7 @@ export function buildChallengeVideoConstraints(
       frameRate: { ideal: 30 },
       focusMode: 'continuous',
     }
-    return { video, audio: withAudio }
+    return { video, audio: challengeAudioConstraints(withAudio) }
   }
 
   const video: MediaTrackConstraints & { focusMode?: string } = {
@@ -190,7 +190,29 @@ export function buildChallengeVideoConstraints(
 
   return {
     video,
-    audio: withAudio,
+    audio: challengeAudioConstraints(withAudio),
+  }
+}
+
+/**
+ * Recording audio, with the browser's phone-call processing switched off.
+ *
+ * getUserMedia defaults echo cancellation, noise suppression and automatic
+ * gain control to ON: they are tuned for a talking head on a video call, and
+ * some Android tablets implement them aggressively enough to gate a room full
+ * of people into silence between words (Rumen's tablets, 7 Aug 2026 event,
+ * "sound is cutting down" on some devices and fine on others). A team filming
+ * a challenge wants the room as it sounded, so the processing is declined.
+ * Ideals, not exact: a device that cannot disable them still records.
+ */
+function challengeAudioConstraints(withAudio: boolean): MediaStreamConstraints['audio'] {
+  if (!withAudio) return false
+  return {
+    echoCancellation: { ideal: false },
+    noiseSuppression: { ideal: false },
+    autoGainControl: { ideal: false },
+    channelCount: { ideal: 2 },
+    sampleRate: { ideal: 48000 },
   }
 }
 

@@ -42,6 +42,7 @@ import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import {
   DiagnosticReportedError,
   nowMs,
+  isLikelyNetworkError,
   reportClientIssue,
   reportClientTiming,
 } from '@/lib/client-diagnostics'
@@ -200,6 +201,8 @@ export function JoinGameView({
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
   const [captureActive, setCaptureActive] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  // 0-100 while a photo/video upload reports progress, null otherwise.
+  const [uploadPct, setUploadPct] = useState<number | null>(null)
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
@@ -735,14 +738,17 @@ export function JoinGameView({
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
+      const detail = reportClientIssue('text-submit', err, {
+        eventId: event.id,
+        teamId,
+        extra: { gameId: game.id },
+      })
       const msg =
         err instanceof DiagnosticReportedError
           ? err.message
-          : `Couldn't submit (${reportClientIssue('text-submit', err, {
-              eventId: event.id,
-              teamId,
-              extra: { gameId: game.id },
-            })}) — tap to retry`
+          : isLikelyNetworkError(err)
+            ? 'No connection — check the wifi and tap Send again'
+            : `Couldn't submit (${detail}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
@@ -766,15 +772,18 @@ export function JoinGameView({
       const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
 
       const uploadStartedAt = nowMs()
+      const onProgress = (fraction: number) =>
+        setUploadPct(Math.min(100, Math.round(fraction * 100)))
+      setUploadPct(0)
       let url: string
       try {
         url = minted
-          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
+          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind, onProgress })
           : await uploadParticipantAsset(
               event.id,
               `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
               file,
-              { mediaKind: kind },
+              { mediaKind: kind, onProgress },
             )
       } catch (err) {
         const detail = reportClientIssue('submission-upload', err, {
@@ -783,6 +792,8 @@ export function JoinGameView({
           extra: { gameId: game.id, mediaType: kind },
         })
         throw new DiagnosticReportedError(`Could not upload submission (${detail})`, { cause: err })
+      } finally {
+        setUploadPct(null)
       }
       const mediaType = game.type === 'video' ? 'video' : 'photo'
       optimistic = optimisticOpenSubmission(game, url, mediaType)
@@ -823,16 +834,19 @@ export function JoinGameView({
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
+      const detail = reportClientIssue('submission-upload', err, {
+        eventId: event.id,
+        teamId,
+        extra: { gameId: game.id },
+      })
       const msg =
         err instanceof Error && err.message.includes('must be')
           ? err.message
           : err instanceof DiagnosticReportedError
             ? err.message
-            : `Couldn't submit (${reportClientIssue('submission-upload', err, {
-                eventId: event.id,
-                teamId,
-                extra: { gameId: game.id },
-              })}) — tap to retry`
+            : isLikelyNetworkError(err)
+              ? 'No connection — check the wifi and tap Submit again'
+              : `Couldn't submit (${detail}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
@@ -1246,7 +1260,7 @@ export function JoinGameView({
               content, so covers behave the same on all of them. */}
           <div className="w-full">
           {submitting ? (
-            <OpenGameSubmittingScreen accentColor={accent} />
+            <OpenGameSubmittingScreen accentColor={accent} progress={uploadPct} />
           ) : isPuzzleGame(activeOpenGame) ? (
             // A solved puzzle keeps its own board and result on screen. The
             // generic review card would replace all of it with one line.

@@ -507,3 +507,43 @@ expected on this branch and is not a bug to chase.
   unverified end to end, because exercising them would delete Rumen's own live
   account; the confirm dialog, its Cancel path and both buttons' rendering were
   verified, the RPC itself was not.
+
+## CF2 — Feedback from the 7 Aug live event (Ufficju Elettorali, Afterglow)
+
+Branch work only, NO pushes until Rumen says so (another event imminent).
+
+- [ ] CF2-1 Default "Welcome" stage type: shows a welcome message while teams
+      sign in, instead of exposing all games immediately.
+- [x] CF2-2 BUG iPhone non-Safari browsers (Chrome iOS) cannot access the
+      camera for video. Investigate: Chrome on iOS is WebKit; getUserMedia
+      availability + our capture-platform detection.
+- [ ] CF2-3 QUESTION Non-Chrome browsers on Android: does the app work?
+      (Event diagnostics show Samsung Browser submitting successfully.)
+- [x] CF2-4 Inventory purchase page needs a back/return control in every
+      state, especially "item unavailable".
+- [ ] CF2-5 Manual camera permission re-request when a team refused it at
+      join. Rumen wants this reachable via "facilitator menu" — interpretation
+      to confirm (a device cannot re-prompt another device).
+- [ ] CF2-6 Inventory fulfilment: facilitator marks a purchase as done;
+      purchases list filters pending / done / all; done collapse under (done).
+      Needs a fulfilled_at column + policy + facilitator UI.
+- [ ] CF2-7 Camera permission gate at join: if refused, tell the team they
+      cannot play without accepting, offer refresh/retry.
+- [x] CF2-8 Team slot takeover: a new device may claim a taken slot by
+      entering the org's TABLET password (Rumen's decision, 7 Aug); the old
+      device is logged out via token rotation.
+- [ ] CF2-9 Facilitator sees the submitted (wrong) answer AND the expected
+      answer for every text item. Related to CF2-11.
+- [ ] CF2-10 "Play slideshow" facilitator action: display cycles all
+      submissions + team photos (end-of-event while packing).
+- [ ] CF2-11 BUG Investigate text games during the event: some review cards
+      showed no expected answer, some showed the answer of a different
+      similar game.
+- [x] CF2-12 Readable submit errors: diagnostics logged "[object Object]"
+      (supabase error objects aren't Error instances); players need a
+      friendly "check connection, tap to retry" message.
+- [x] CF2-13 Video upload progress: uploads ran 12s-260s at the event with
+      only a spinner; show real percentage via the signed-URL upload.
+- [x] CF2-14 Android hardware Back closed the QR camera-app browser sheet and
+      teams had to rescan; the join page now traps popstate with a guard
+      history entry so Back keeps the event open.

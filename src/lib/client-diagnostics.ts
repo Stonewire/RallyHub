@@ -57,7 +57,37 @@ export function detectPlatform(): DiagnosticPlatform {
 /** Short human-readable summary, safe to append to an existing notify() message. */
 export function diagnosticSummary(error: unknown): string {
   if (error instanceof Error) return `${error.name}: ${error.message}`
+  // Supabase errors are plain objects, not Error instances; String() turned
+  // them into "[object Object]" in every diagnostic row from the 7 Aug event.
+  if (error && typeof error === 'object') {
+    const e = error as { message?: unknown; error_description?: unknown; code?: unknown; hint?: unknown }
+    const parts = [e.message, e.error_description, e.code]
+      .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    if (parts.length > 0) return parts.join(' | ').slice(0, 300)
+    try {
+      return JSON.stringify(error).slice(0, 300)
+    } catch {
+      return 'UnserializableError'
+    }
+  }
   return String(error)
+}
+
+/**
+ * A failure that smells like connectivity rather than the app: fetch's
+ * TypeError, Safari's "Load failed", or the device reporting itself offline.
+ * Used to show teams "check the wifi" instead of a diagnostic reference.
+ */
+export function isLikelyNetworkError(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+  const text = diagnosticSummary(error).toLowerCase()
+  return (
+    text.includes('load failed') ||
+    text.includes('failed to fetch') ||
+    text.includes('network') ||
+    text.includes('timeout') ||
+    text.includes('fetcherror')
+  )
 }
 
 /** Builds the exact row reportClientIssue inserts — exported for isolated testing. */

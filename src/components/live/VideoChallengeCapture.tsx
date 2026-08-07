@@ -5,6 +5,7 @@ import { SwitchCamera, Video, X } from 'lucide-react'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
 import { useNotification } from '@/contexts/notification-context'
+import { cameraPermissionDenied } from '@/lib/media-permissions'
 import {
   CHALLENGE_ASPECT_FRAME_CLASS,
   CHALLENGE_ASPECT_TRUE_MEDIA_CLASS,
@@ -255,7 +256,11 @@ export function VideoChallengeCapture({
   async function openPreview(facing: ChallengeFacingMode, deviceId?: string) {
     const stream = await getChallengeCameraStream(facing, true, deviceId, eventId)
     if (!stream) {
-      notify('Camera access not granted — allow camera when the app opens')
+      notify(
+        (await cameraPermissionDenied())
+          ? 'Camera is blocked for this site — enable it in your browser settings, then reload the page'
+          : 'Camera did not open — tap Record again and allow camera and microphone access',
+      )
       return
     }
     streamRef.current = stream

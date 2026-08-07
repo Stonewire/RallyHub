@@ -49,6 +49,12 @@ function teamKey(eventId: string) {
   return `${PARTICIPANT_TEAM_KEY}_${eventId}`
 }
 
+/** The team session_epoch this device joined at; an older value means a
+ *  takeover happened elsewhere and this device must let go. */
+function epochKey(eventId: string) {
+  return `${PARTICIPANT_TEAM_KEY}_${eventId}_epoch`
+}
+
 export function JoinEventPage() {
   // Participants are anonymous. Force the anon role for all live requests so a
   // logged-in session in the same browser never makes participant writes run as
@@ -66,6 +72,21 @@ export function JoinEventPage() {
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
   useDocumentTitle('Teams', bundle?.event?.name)
+
+  // Back-button trap. Scanning the join QR from a phone's camera app opens a
+  // temporary browser sheet whose history starts empty, so one press of the
+  // hardware Back closed the whole event and teams had to walk over and
+  // rescan (7 Aug event, Android personal phones). A guard entry is pushed on
+  // mount and re-pushed on every popstate, so Back keeps the page alive; all
+  // in-game navigation is app state and its own buttons, never history.
+  useEffect(() => {
+    window.history.pushState({ rhBackTrap: true }, '')
+    const onPop = () => {
+      window.history.pushState({ rhBackTrap: true }, '')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +99,32 @@ export function JoinEventPage() {
   )
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
+  // Taken-slot takeover (CF2-8): tap a claimed team, enter the org's tablet
+  // password, and this device becomes the team's device; the old one logs out
+  // via the session_epoch watcher below.
+  const [takeoverSlot, setTakeoverSlot] = useState<Tables<'teams'> | null>(null)
+  const [takeoverPassword, setTakeoverPassword] = useState('')
+  const [takeoverBusy, setTakeoverBusy] = useState(false)
+  const [takeoverError, setTakeoverError] = useState<string | null>(null)
+  const [signedOutByTakeover, setSignedOutByTakeover] = useState(false)
+
+  // Another device took this team over (session_epoch moved past what this
+  // device joined at): let go of the claim and fall back to the lobby.
+  useEffect(() => {
+    if (!eventId || !teamId || !bundle) return
+    const mine = bundle.teams.find((t) => t.id === teamId)
+    if (!mine) return
+    const stored = Number(localStorage.getItem(epochKey(eventId)) ?? '0')
+    if ((mine.session_epoch ?? 0) > stored) {
+      localStorage.removeItem(teamKey(eventId))
+      localStorage.removeItem(epochKey(eventId))
+      clearCurrentParticipantSession(eventId, teamId)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local claim state with the authoritative realtime team row
+      setTeamId(null)
+       
+      setSignedOutByTakeover(true)
+    }
+  }, [bundle, teamId, eventId])
   const [nameFocused, setNameFocused] = useState(true)
   const [claimPhoto, setClaimPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -185,6 +232,58 @@ export function JoinEventPage() {
     ? demoTeamSlots(bundle.teams)
     : bundle.teams
 
+  async function takeoverTeam() {
+    if (!takeoverSlot || !eventId || !takeoverPassword.trim()) return
+    unlockAudioFromUserGesture('full')
+    setTakeoverBusy(true)
+    setTakeoverError(null)
+    try {
+      const { data, error } = await supabase.rpc('takeover_team_slot', {
+        p_event_id: eventId,
+        p_team_id: takeoverSlot.id,
+        p_password: takeoverPassword.trim(),
+      })
+      if (error) throw error
+      const row = data?.[0]
+      if (!row) throw new Error('Could not move this team to your device.')
+      const updatedTeam: Tables<'teams'> = {
+        id: row.id,
+        event_id: row.event_id,
+        name: row.name,
+        color: row.color,
+        photo_url: row.photo_url,
+        score: row.score,
+        status: row.status,
+        slot_number: row.slot_number,
+        created_at: row.created_at,
+        session_epoch: row.session_epoch,
+      }
+      // The epoch bump rides this patch to the old device, which logs itself out.
+      void publishLiveBundlePatch(eventId, { kind: 'team', op: 'UPDATE', row: updatedTeam })
+      localStorage.setItem(teamKey(eventId), row.id)
+      localStorage.setItem(epochKey(eventId), String(row.session_epoch))
+      saveCurrentParticipantSession(eventId, row.id, row.inventory_purchase_token)
+      setTeamId(row.id)
+      setJustJoined(true)
+      setSignedOutByTakeover(false)
+      setTakeoverSlot(null)
+      setTakeoverPassword('')
+      setBundle((prev) =>
+        prev
+          ? { ...prev, teams: prev.teams.map((t) => (t.id === row.id ? updatedTeam : t)) }
+          : prev,
+      )
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : 'Could not move this team to your device.'
+      setTakeoverError(msg)
+    } finally {
+      setTakeoverBusy(false)
+    }
+  }
+
   async function claimTeam() {
     if (!claimSlot || !eventId || !claimName.trim()) return
     unlockAudioFromUserGesture('full')
@@ -237,6 +336,7 @@ export function JoinEventPage() {
         status: claimed.status,
         slot_number: claimed.slot_number,
         created_at: claimed.created_at,
+        session_epoch: claimSlot.session_epoch ?? 0,
       }
 
       // Fan-out to facilitator/display — must not block the join UX.
@@ -257,6 +357,7 @@ export function JoinEventPage() {
       })
 
       localStorage.setItem(teamKey(eventId), claimSlot.id)
+      localStorage.setItem(epochKey(eventId), String(claimSlot.session_epoch ?? 0))
       saveCurrentParticipantSession(eventId, claimSlot.id, claimed.inventory_purchase_token)
       setTeamId(claimSlot.id)
       setJustJoined(true)
@@ -381,12 +482,17 @@ export function JoinEventPage() {
             <button
               key={team.id}
               type="button"
-              disabled={taken}
               // Same tile as the quest board, so the lobby and the game share
               // one shape: white card, its colour carried by the avatar ring.
-              className="xp-game-tile xp-interactive flex flex-col items-center justify-center gap-2.5 bg-white p-4 text-black disabled:cursor-not-allowed disabled:opacity-100"
+              // Taken teams stay tappable: with the event password a new
+              // device can take the team over (lost phone, dead battery).
+              className="xp-game-tile xp-interactive flex flex-col items-center justify-center gap-2.5 bg-white p-4 text-black"
               onClick={() => {
-                if (!taken) {
+                if (taken) {
+                  setTakeoverSlot(team)
+                  setTakeoverPassword('')
+                  setTakeoverError(null)
+                } else {
                   setClaimSlot(team)
                   setClaimName('')
                   setClaimPhoto(null)
@@ -415,6 +521,61 @@ export function JoinEventPage() {
         })}
       </div>
       <ParticipantInstallButton className="mt-6" />
+      {signedOutByTakeover ? (
+        <p className="mx-auto mt-4 max-w-sm rounded-lg bg-black/35 px-4 py-2 text-center text-sm font-semibold backdrop-blur-sm">
+          Your team was moved to another device. Ask your facilitator if this
+          was not you.
+        </p>
+      ) : null}
+      {takeoverSlot ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-4 overflow-y-auto bg-white p-6 text-black">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold">
+                Move “{takeoverSlot.name?.trim()}” to this device?
+              </h2>
+              <p className="text-sm text-black/70">
+                This team is already playing on another device. Enter the event
+                password from your facilitator to continue here — the other
+                device will be signed out.
+              </p>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoFocus
+              className="w-full rounded-lg border-2 border-black/15 px-3 py-2.5 text-base outline-none focus:border-black/40"
+              placeholder="Event password"
+              value={takeoverPassword}
+              onChange={(e) => setTakeoverPassword(e.target.value)}
+            />
+            {takeoverError ? (
+              <p className="text-sm font-semibold text-red-600" role="alert">
+                {takeoverError}
+              </p>
+            ) : null}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="min-h-12 flex-1 rounded-lg border-2 border-black/15 text-base font-semibold"
+                onClick={() => setTakeoverSlot(null)}
+                disabled={takeoverBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="min-h-12 flex-1 rounded-lg text-base font-bold text-black disabled:opacity-50"
+                style={{ backgroundColor: accent }}
+                disabled={takeoverBusy || !takeoverPassword.trim()}
+                onClick={() => void takeoverTeam()}
+              >
+                {takeoverBusy ? 'Moving…' : 'Move team here'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {claimSlot ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto bg-white p-6 text-black">
