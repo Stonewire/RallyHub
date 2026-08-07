@@ -61,17 +61,39 @@ type MediaStreamConstraints = {
 }
 
 /**
- * Open camera/mic for a challenge without re-prompting when permission was already granted.
- * Does not request permission — call requestTeamMediaPermissions() once at app open.
+ * Open camera/mic for a challenge. Always ATTEMPTS getUserMedia: the callers
+ * sit behind explicit taps (Take photo / Record), which are exactly where a
+ * browser is allowed to show its permission prompt. The old
+ * ask-permissions-first gate locked out browsers that answer the Permissions
+ * API badly: iPhone Chrome reports nothing useful for camera/microphone, so
+ * if the join-time prompt did not complete, every camera open returned null
+ * without ever asking (Rumen's 7 Aug event, CF2-2).
  */
 export async function getTeamMediaStream(
   constraints: MediaStreamConstraints,
 ): Promise<MediaStream | null> {
   if (!navigator.mediaDevices?.getUserMedia) return null
-  if (!(await mediaPermissionsAlreadyGranted())) return null
   try {
-    return await navigator.mediaDevices.getUserMedia(constraints)
+    const stream = await navigator.mediaDevices.getUserMedia(constraints)
+    storeGrant()
+    return stream
   } catch {
     return null
+  }
+}
+
+/**
+ * True when the browser reports camera access as hard-denied, in which case
+ * another getUserMedia call will fail silently rather than re-prompt and the
+ * player needs to fix it in browser settings. Unknown (unsupported API)
+ * returns false.
+ */
+export async function cameraPermissionDenied(): Promise<boolean> {
+  if (!('permissions' in navigator) || !navigator.permissions?.query) return false
+  try {
+    const perm = await navigator.permissions.query({ name: 'camera' as PermissionName })
+    return perm.state === 'denied'
+  } catch {
+    return false
   }
 }
