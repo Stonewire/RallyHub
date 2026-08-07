@@ -385,6 +385,7 @@ export type Database = {
           brand_colors: Json
           teams_config: Json
           stages_config: Json
+          store_config: Json
           display_layout: string
           display_text_color: string
           list_order: number
@@ -412,6 +413,7 @@ export type Database = {
           brand_colors?: Json
           teams_config?: Json
           stages_config?: Json
+          store_config?: Json
           display_layout?: string
           display_text_color?: string
           list_order?: number
@@ -432,6 +434,7 @@ export type Database = {
           brand_colors?: Json
           teams_config?: Json
           stages_config?: Json
+          store_config?: Json
           display_layout?: string
           display_text_color?: string
           list_order?: number

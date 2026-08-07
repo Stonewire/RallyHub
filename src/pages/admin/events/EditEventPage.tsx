@@ -138,6 +138,7 @@ export function AdminEventEditPage() {
             : brandColorsFromOrg(org),
           teams_config: values.teams,
           stages_config: values.stages,
+          store_config: values.store,
           display_layout: values.displayLayout,
           display_text_color: values.displayTextColor,
         },
