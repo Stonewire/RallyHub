@@ -529,7 +529,7 @@ Branch work only, NO pushes until Rumen says so (another event imminent).
       Needs a fulfilled_at column + policy + facilitator UI.
 - [ ] CF2-7 Camera permission gate at join: if refused, tell the team they
       cannot play without accepting, offer refresh/retry.
-- [ ] CF2-8 Team slot takeover: a new device may claim a taken slot by
+- [x] CF2-8 Team slot takeover: a new device may claim a taken slot by
       entering the org's TABLET password (Rumen's decision, 7 Aug); the old
       device is logged out via token rotation.
 - [ ] CF2-9 Facilitator sees the submitted (wrong) answer AND the expected
