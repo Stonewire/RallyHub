@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.2.2 - 2026-08-07 (exports carry photos and videos only)
+
+- Event archives no longer contain dead ~10KB "photos". Text submissions were
+  being queued for download, but a text submission holds the team's answer,
+  not a link, so the request fell through to the app's own page and that HTML
+  was saved under a .jpg name. Only photo and video submissions with a real
+  link are downloaded now; answers already travel in the CSV data.
+
 ## V3.2.1 - 2026-08-07 (exported photos open again)
 
 - Downloaded event archives contained photos that listed correctly but would
