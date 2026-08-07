@@ -71,10 +71,12 @@ import { parseAnnouncedWinnerIds, parseRevealedTrackIds } from '@/lib/bingo-cell
 import { restartBingoRun } from '@/lib/restart-bingo-run'
 import { scoreBingoRound } from '@/lib/bingo-scoring'
 import {
+  expectedTextAnswerLabel,
   isOpenStageSubmissionMediaType,
-  parseTextGameConfig,
   puzzleSubmissionStatLabel,
+  textAnswerVerdict,
   textSubmissionDisplayLabel,
+  type TextAnswerVerdict,
 } from '@/lib/text-game'
 import { profileDisplayName } from '@/lib/auth-routes'
 import {
@@ -162,13 +164,17 @@ function gameTypeLabel(
  * accepted answers are joined so the facilitator sees the whole set rather than
  * only the first one a team might have matched.
  */
-function expectedTextAnswerLabel(game: Tables<'games'>): string | null {
-  const cfg = parseTextGameConfig(game.config)
-  if (cfg.mode === 'choose_answer') {
-    return (cfg.options ?? []).find((o) => o.id === cfg.correctAnswerId)?.text ?? null
-  }
-  const answers = (cfg.correctAnswers ?? []).filter((a) => a.trim().length > 0)
-  return answers.length > 0 ? answers.join(' / ') : null
+/** How a text answer compares with the game's reference answer, as a chip. */
+const TEXT_VERDICT_CHIP: Record<
+  Exclude<TextAnswerVerdict, 'unknown'>,
+  { label: string; className: string }
+> = {
+  correct: { label: '✓ Matches', className: 'bg-emerald-600 text-white' },
+  close: {
+    label: '≈ Matches except case/spaces',
+    className: 'bg-amber-500 text-black',
+  },
+  wrong: { label: '✗ Does not match', className: 'bg-rose-600 text-white' },
 }
 
 function parseTimerInput(raw: string): number | null {
@@ -2152,6 +2158,10 @@ export function FacilitatorEventPage() {
                       sub.media_type === 'text' && game
                         ? expectedTextAnswerLabel(game)
                         : null
+                    const textVerdict: TextAnswerVerdict | null =
+                      sub.media_type === 'text' && game
+                        ? textAnswerVerdict(game, sub.media_url)
+                        : null
                     // The app's own badge tones: solid, not a tinted outline.
                     const statusTone =
                       sub.status === 'approved'
@@ -2214,10 +2224,23 @@ export function FacilitatorEventPage() {
                             {/* Marking a text answer means comparing it with
                                 the right one, and an automatically marked game
                                 never reaches the review modal where the
-                                reference used to live. */}
+                                reference used to live. The verdict chip does
+                                the comparing: two long near-identical options
+                                are impossible to tell apart by eye on a card
+                                (Camilleri event, 7 Aug 2026). */}
+                            {textVerdict && textVerdict !== 'unknown' ? (
+                              <span
+                                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${TEXT_VERDICT_CHIP[textVerdict].className}`}
+                              >
+                                {TEXT_VERDICT_CHIP[textVerdict].label}
+                              </span>
+                            ) : null}
                             {expectedTextAnswer ? (
-                              <p className="text-muted-foreground truncate text-xs">
-                                Expected: <span className="font-semibold">{expectedTextAnswer}</span>
+                              <p className="text-muted-foreground text-xs">
+                                Expected:{' '}
+                                <span className="text-foreground font-semibold">
+                                  {expectedTextAnswer}
+                                </span>
                               </p>
                             ) : null}
                             <NeoStatusBadge tone={statusTone} className="mt-1">

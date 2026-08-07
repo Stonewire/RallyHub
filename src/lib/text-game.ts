@@ -18,9 +18,63 @@ export function parseTextGameConfig(
     mode: c.text_answer_mode ?? 'type_text',
     correctAnswers: c.text_correct_answers ?? [],
     options,
-    correctAnswerId:
-      c.text_correct_answer_id ?? options[0]?.id ?? '',
+    // No silent fallback to the first option. An unset correct answer used to
+    // designate option 1 as correct, so the facilitator was shown a confident
+    // but wrong "expected answer" whenever the real answer was not listed
+    // first (Camilleri event, 7 Aug 2026). Unset now reads as unset, and the
+    // review surfaces say so out loud.
+    correctAnswerId: c.text_correct_answer_id ?? '',
   }
+}
+
+/**
+ * The answer the facilitator should be checking against, read STRICTLY by the
+ * game's own mode. Text games commonly carry leftovers from the other mode
+ * (typed games keep the editor's default "Answer 1 / Answer 2" options and a
+ * stale option pointer), so reading the wrong field prints convincing
+ * nonsense. Returns null when the game has no reference answer at all, which
+ * is legitimate for judged games.
+ */
+export function expectedTextAnswerLabel(
+  game: Pick<Tables<'games'>, 'config'>,
+): string | null {
+  const cfg = parseTextGameConfig(game.config)
+  if (cfg.mode === 'choose_answer') {
+    if (!cfg.correctAnswerId) return null
+    return (cfg.options ?? []).find((o) => o.id === cfg.correctAnswerId)?.text ?? null
+  }
+  const answers = (cfg.correctAnswers ?? []).filter((a) => a.trim().length > 0)
+  return answers.length > 0 ? answers.join(' / ') : null
+}
+
+/**
+ * Whether a submitted answer matches the game's reference answer.
+ *
+ * 'close' means it matches apart from capitalisation or surrounding spaces:
+ * the automatic marker counts that as wrong, so the facilitator needs to see
+ * it flagged rather than hidden. 'unknown' means the game has no reference
+ * answer to compare against (a judged game, or a correct answer never set).
+ */
+export type TextAnswerVerdict = 'correct' | 'close' | 'wrong' | 'unknown'
+
+export function textAnswerVerdict(
+  game: Pick<Tables<'games'>, 'config'>,
+  mediaUrl: string | null | undefined,
+): TextAnswerVerdict {
+  const cfg = parseTextGameConfig(game.config)
+  const given = (mediaUrl ?? '').trim()
+  if (!given) return 'unknown'
+
+  if (cfg.mode === 'choose_answer') {
+    if (!cfg.correctAnswerId) return 'unknown'
+    return given === cfg.correctAnswerId ? 'correct' : 'wrong'
+  }
+
+  const answers = (cfg.correctAnswers ?? []).map((a) => a.trim()).filter(Boolean)
+  if (answers.length === 0) return 'unknown'
+  if (answers.some((a) => a === given)) return 'correct'
+  if (answers.some((a) => a.toLowerCase() === given.toLowerCase())) return 'close'
+  return 'wrong'
 }
 
 /** Open-stage text game: by type column or text answer config in jsonb. */

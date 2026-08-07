@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RichText } from '@/components/ui/rich-text'
 import {
-  parseTextGameConfig,
+  expectedTextAnswerLabel,
   puzzleSubmissionStatLabel,
+  textAnswerVerdict,
   textSubmissionDisplayLabel,
-  isTextGame,
+  type TextAnswerVerdict,
 } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -55,14 +56,13 @@ export function SubmissionDetailModal({
   const isText = sub.media_type === 'text'
   const answerLabel =
     isText && game ? textSubmissionDisplayLabel(game, sub.media_url) : sub.media_url ?? ''
-  const textCfg = game ? parseTextGameConfig(game.config) : null
   // A judged text game has no right answer, so there may be nothing to show the
-  // facilitator beyond the optional notes the organiser left.
-  const textReference =
-    textCfg?.mode === 'type_text'
-      ? (textCfg.correctAnswers ?? []).filter((a) => a.length > 0)
-      : textCfg?.options?.filter((o) => o.id === textCfg.correctAnswerId).map((o) => o.text) ?? []
-  const hasTextReference = textReference.length > 0
+  // facilitator beyond the optional notes the organiser left. Read strictly by
+  // the game's mode: text games carry leftovers from the other mode and the
+  // wrong field prints convincing nonsense.
+  const textReferenceLabel = isText && game ? expectedTextAnswerLabel(game) : null
+  const verdict: TextAnswerVerdict | null =
+    isText && game ? textAnswerVerdict(game, sub.media_url) : null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -161,11 +161,42 @@ export function SubmissionDetailModal({
               </p>
             </div>
           ) : isText && answerLabel ? (
-            <div className="rounded-lg border bg-muted/30 px-4 py-3">
-              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                Team answer
-              </p>
-              <p className="mt-1 text-base font-semibold break-words">{answerLabel}</p>
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
+                  Team answer
+                </p>
+                <p className="mt-1 text-base font-semibold break-words">{answerLabel}</p>
+              </div>
+              {/* The reference answer in full, never truncated: the options
+                  that caused trouble differ only in their last few words. */}
+              {textReferenceLabel ? (
+                <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                  <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
+                    Correct answer
+                  </p>
+                  <p className="mt-1 text-base font-semibold break-words">
+                    {textReferenceLabel}
+                  </p>
+                  {verdict && verdict !== 'unknown' ? (
+                    <p
+                      className={`mt-2 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${
+                        verdict === 'correct'
+                          ? 'bg-emerald-600 text-white'
+                          : verdict === 'close'
+                            ? 'bg-amber-500 text-black'
+                            : 'bg-rose-600 text-white'
+                      }`}
+                    >
+                      {verdict === 'correct'
+                        ? '✓ Team answer matches'
+                        : verdict === 'close'
+                          ? '≈ Matches except capitals or spaces'
+                          : '✗ Team answer does not match'}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : sub.media_url ? (
             sub.media_type === 'video' ? (
@@ -186,28 +217,6 @@ export function SubmissionDetailModal({
           ) : (
             <p className="text-muted-foreground text-sm">No media attached</p>
           )}
-          {isText && textCfg && game && isTextGame(game) && hasTextReference ? (
-            <div className="border-border/80 mt-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
-              <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                {isRange ? 'Notes from the organiser' : 'Reference for approval'}
-              </p>
-              {textCfg.mode === 'type_text' ? (
-                <ul className="mt-2 space-y-1">
-                  {(textCfg.correctAnswers ?? []).filter((a) => a.length > 0).map((a, i) => (
-                    <li key={i} className="font-mono text-sm break-all">{a}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2">
-                  Correct:{' '}
-                  <span className="font-semibold">
-                    {textCfg.options?.find((o) => o.id === textCfg.correctAnswerId)?.text ??
-                      '—'}
-                  </span>
-                </p>
-              )}
-            </div>
-          ) : null}
           {sub.status === 'pending' && sub.media_type !== 'puzzle' ? (
             <div className="mt-4 space-y-4">
               {isRange ? (
