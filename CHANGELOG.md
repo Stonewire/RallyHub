@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.3.0 - 2026-08-07 (event Store, part one: building it)
+
+- The event designer gains a Store beside Teams, each taking half the width
+  and growing together so neither runs long. Add items from the inventory
+  library exactly as you add games (search, filter by group, tick several at
+  once or add everything shown), then set how many of each item you brought
+  and how many one team may take.
+- This is the first half of replacing the printed QR codes. Teams browsing
+  the store, a basket, and facilitator fulfilment per team follow next; the
+  existing scan-to-buy flow is untouched in the meantime.
+
 ## V3.2.2 - 2026-08-07 (exports carry photos and videos only)
 
 - Event archives no longer contain dead ~10KB "photos". Text submissions were

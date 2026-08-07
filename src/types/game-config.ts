@@ -170,6 +170,17 @@ export type EventTeam = {
   color: string
 }
 
+/**
+ * One inventory item on sale at an event. Stock is what the organiser
+ * physically brought; the per-team limit stops one team buying the lot.
+ * Remaining stock is derived from purchases, never stored here.
+ */
+export type EventStoreItem = {
+  itemId: string
+  totalStock: number
+  perTeamLimit: number
+}
+
 export type EventStage = {
   id: string
   name: string

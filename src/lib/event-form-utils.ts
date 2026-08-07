@@ -5,7 +5,7 @@ import {
   type DisplayLayout,
   type DisplayTextColor,
 } from '@/lib/live-event'
-import type { EventStage, EventTeam } from '@/types/game-config'
+import type { EventStage, EventStoreItem, EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 import { INCLUDED_TEAMS_PER_EVENT } from '@/lib/subscription-plans'
 
@@ -25,6 +25,8 @@ export type EventFormValues = {
   displayTextColor: DisplayTextColor
   selectedGameIds: string[]
   stages: EventStage[]
+  /** Inventory items on sale at this event, with stock and per-team limits. */
+  store: EventStoreItem[]
 }
 
 export const TEAM_COLORS = [
@@ -139,7 +141,34 @@ export function eventToFormValues(
       event.display_text_color === 'black' ? 'black' : 'white',
     selectedGameIds: gameIds,
     stages: stages.length ? stages : defaultStages(),
+    store: parseStoreConfig(event.store_config),
   }
+}
+
+/**
+ * Store rows from the events jsonb, ignoring anything malformed rather than
+ * crashing the designer: an item deleted from the library leaves an id that
+ * simply no longer resolves, and the picker drops it on the next save.
+ */
+export function parseStoreConfig(raw: Json | null | undefined): EventStoreItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+    const row = entry as Record<string, unknown>
+    const itemId = typeof row.itemId === 'string' ? row.itemId : null
+    if (!itemId) return []
+    const totalStock = Number(row.totalStock)
+    const perTeamLimit = Number(row.perTeamLimit)
+    return [
+      {
+        itemId,
+        totalStock: Number.isFinite(totalStock) ? Math.max(0, Math.floor(totalStock)) : 0,
+        perTeamLimit: Number.isFinite(perTeamLimit)
+          ? Math.max(1, Math.floor(perTeamLimit))
+          : 1,
+      },
+    ]
+  })
 }
 
 /** All game ids needed for live bundle (selected + referenced in stages). */
@@ -170,5 +199,6 @@ export function emptyEventForm(): EventFormValues {
     displayTextColor: 'white',
     selectedGameIds: [],
     stages: defaultStages(),
+    store: [],
   }
 }

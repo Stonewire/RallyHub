@@ -15,6 +15,7 @@ import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
 import { EventPreviewModal } from '@/components/events/EventPreviewModal'
 import { IconEye } from '@/components/icons'
 import { Button } from '@/components/ui/button'
+import { EventStorePanel } from '@/components/events/EventStorePanel'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -305,7 +306,11 @@ export function EventForm({
         </Card>
       </div>
 
-      <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
+      {/* Teams and Store side by side: both are short lists describing what
+          the event physically consists of, and neither needs full width.
+          items-stretch keeps them the same height as either one grows. */}
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+      <Card className="border-border/80 flex flex-col space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="border-border flex flex-wrap items-end gap-4 border-b pb-3">
           <div className="mr-auto">
             <h3 className="text-foreground text-base font-bold">Teams</h3>
@@ -408,6 +413,15 @@ export function EventForm({
           ))}
         </ul>
       </Card>
+
+      <Card className="border-border/80 flex flex-col space-y-4 bg-card p-5 shadow-sm sm:p-6">
+        <EventStorePanel
+          organizationId={organizationId}
+          store={values.store}
+          onChange={(store) => onChange((prev) => ({ ...prev, store }))}
+        />
+      </Card>
+      </div>
 
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
