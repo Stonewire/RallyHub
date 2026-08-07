@@ -163,6 +163,20 @@ export function InventoryPurchasePage() {
     <LivePanelShell title="Inventory" titleCentered className="experience-scope">
       <PoweredByRallyHub position="bottom-center" theme="dark" />
       <div className="mx-auto w-full max-w-md space-y-4 pb-16">
+        {/* A back control in every state: teams scanning mid-game must always
+            have a way home, most of all when the item cannot be shown. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-white/90"
+          onClick={() => {
+            if (session) navigate(joinLink)
+            else if (window.history.length > 1) navigate(-1)
+            else navigate('/')
+          }}
+        >
+          <ArrowLeft className="size-4" /> Back
+        </Button>
         {loading ? (
           <Card className="p-8 text-center"><p className="text-muted-foreground text-sm">Opening item…</p></Card>
         ) : purchase && item ? (
