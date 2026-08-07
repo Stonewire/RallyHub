@@ -71,7 +71,6 @@ export function VideoChallengeCapture({
 }: VideoChallengeCaptureProps) {
   const { notify } = useNotification()
   const maxSec = getMaxVideoDurationSeconds(config)
-  const uploadRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLVideoElement>(null)
   const reviewRef = useRef<HTMLVideoElement>(null)
   const [previewReady, setPreviewReady] = useState(false)
@@ -256,7 +255,7 @@ export function VideoChallengeCapture({
   async function openPreview(facing: ChallengeFacingMode, deviceId?: string) {
     const stream = await getChallengeCameraStream(facing, true, deviceId, eventId)
     if (!stream) {
-      notify('Camera access not granted — allow camera when the app opens, or upload a video')
+      notify('Camera access not granted — allow camera when the app opens')
       return
     }
     streamRef.current = stream
@@ -326,10 +325,7 @@ export function VideoChallengeCapture({
 
   function startRecording() {
     if (resProbeActive) return
-    if (!streamRef.current) {
-      uploadRef.current?.click()
-      return
-    }
+    if (!streamRef.current) return
     try {
       // Snapshot what the camera actually negotiated while the track is live;
       // after stopStream() getSettings() comes back empty.
@@ -541,9 +537,6 @@ export function VideoChallengeCapture({
               Stop recording
               <span className="ml-2 font-mono tabular-nums">{remaining}s</span>
             </Button>
-            {/* Holds the Upload button's row so the bar, and therefore the
-                viewfinder above it, keeps exactly the same height. */}
-            <div className="min-h-12" aria-hidden />
           </div>
         ) : previewReady ? (
           <LiveAccentButton
@@ -557,30 +550,7 @@ export function VideoChallengeCapture({
             {resProbeActive ? 'Preparing camera…' : 'Record video'}
           </LiveAccentButton>
         ) : null}
-        {!recordedFile && !recording ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="mx-auto min-h-12 w-full max-w-lg border-white/30 bg-white/10 text-base text-white"
-            disabled={disabled}
-            onClick={() => uploadRef.current?.click()}
-          >
-            Upload video
-          </Button>
-        ) : null}
       </div>
-
-      <input
-        ref={uploadRef}
-        type="file"
-        accept="video/*"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          e.target.value = ''
-          if (f) void queueForReview(f)
-        }}
-      />
     </div>,
     document.body,
   )
