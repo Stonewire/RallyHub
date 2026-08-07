@@ -5,6 +5,30 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.2.0 - 2026-08-07 (event-day fixes: back button, device switching, marking, audio)
+
+- Hardware Back no longer closes the event. Phones that scan the join QR from
+  the camera app land in a temporary browser sheet with no history, so one
+  Back press ended the game and the team had to walk over and rescan. The join
+  page now holds its ground.
+- A team can move to a new phone or browser: tap the team's taken slot, enter
+  the event password (the organisation's tablet password), and the team moves
+  across with its name and score. The old device signs out by itself.
+- Text approvals show the truth. The correct answer is now read strictly from
+  the game's own answer mode, so games carrying leftovers from the editor's
+  defaults can no longer print "Answer 1" as the expected answer, and a
+  multiple-choice game with no correct answer set says so instead of silently
+  treating the first option as correct. Review cards and the approval dialog
+  now also show a plain verdict chip (matches / does not match / matches
+  except capitals), and the correct answer is no longer truncated, so
+  near-identical long options can be told apart at a glance.
+- Video recordings keep the room's sound. The browser's phone-call processing
+  (noise suppression, echo cancellation, automatic gain) is switched off for
+  recordings; some Android tablets applied it hard enough to gate the audio
+  between words while other tablets sounded fine.
+- Photo and video challenges are camera-only, with real upload progress and
+  readable submit errors (from the earlier client feedback batch).
+
 ## V3.1.15 - 2026-08-07 (camera only, no uploads)
 
 - Photo and video challenges no longer offer an upload path. The Upload
