@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.1.14 - 2026-08-06 (permanent delete actually deletes)
+
+- The real cause of "Deletion failed" for clients and super admins alike:
+  the wipe_event_data database routine was never granted to signed-in users,
+  so every call was refused before its own permission checks even ran. The
+  grant is applied and verified for both roles; no app code changed.
+
 ## V3.1.13 - 2026-08-06 (the permanent delete dialog behaves)
 
 - The delete confirmation dialog was rendered inside the event card, whose
