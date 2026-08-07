@@ -135,8 +135,35 @@ function pickSaveTarget(suggestedName: string): Promise<SaveTarget | null> {
     })
 }
 
-/** Stream the archive to disk, so the JS heap never holds the whole ZIP. */
-async function writeZipToDisk(zip: JSZip, handle: FileSystemFileHandle): Promise<void> {
+/**
+ * Only real media files belong in the archive, and only when the submission
+ * actually points at one.
+ *
+ * The old rule skipped quiz and puzzle submissions but let TEXT through, and a
+ * text submission stores the team's typed answer ("Toothpick") or the id of
+ * the option they chose, never a URL. Fetching that resolves against the app's
+ * own origin, the single-page app answers every unknown path with index.html
+ * and a 200, and about 10KB of HTML was saved under a .jpg name: files that
+ * list fine and open as nothing (Rumen's export, 7 Aug 2026, 86 text answers
+ * in a single event). An allowlist plus a URL check means a non-media
+ * submission can never again be mistaken for a download.
+ */
+export function isDownloadableMedia(
+  mediaType: string | null | undefined,
+  mediaUrl: string | null | undefined,
+): mediaUrl is string {
+  if (mediaType !== 'photo' && mediaType !== 'video') return false
+  return /^https?:\/\//i.test((mediaUrl ?? '').trim())
+}
+
+/**
+ * Stream the archive to disk, so the JS heap never holds the whole ZIP.
+ * Exported for the ordering test: close must never outrun the writes.
+ */
+export async function writeZipToDisk(
+  zip: JSZip,
+  handle: FileSystemFileHandle,
+): Promise<void> {
   // Cast through unknown: intersecting with FileSystemFileHandle keeps the DOM
   // lib's stricter chunk type and rejects the Uint8Array JSZip emits.
   const writable = await (
@@ -151,15 +178,24 @@ async function writeZipToDisk(zip: JSZip, handle: FileSystemFileHandle): Promise
         // burn minutes of main-thread CPU for no size win.
         compression: 'STORE',
       })
+      // Every write is chained, and 'end' waits for the chain to drain before
+      // resolving. JSZip's 'end' only means it has finished PRODUCING bytes:
+      // resolving there left the final write in flight while writable.close()
+      // ran, truncating the archive's tail. The entries still listed, so the
+      // damage showed up as photos that would not open (7 Aug 2026 export).
+      let queue: Promise<void> = Promise.resolve()
       stream
         .on('data', (chunk: Uint8Array) => {
           // Pause while the disk write settles, or JSZip outruns the writer and
           // the chunks pile up in memory: exactly what this path avoids.
           stream.pause()
-          writable.write(chunk).then(() => stream.resume(), reject)
+          queue = queue.then(() => writable.write(chunk))
+          queue.then(() => stream.resume(), reject)
         })
         .on('error', reject)
-        .on('end', () => resolve())
+        .on('end', () => {
+          queue.then(() => resolve(), reject)
+        })
       stream.resume()
     })
     await writable.close()
@@ -253,8 +289,7 @@ export async function downloadEventPackage(
   }
 
   for (const sub of submissions) {
-    if (!sub.media_url || sub.media_type?.startsWith('quiz') || sub.media_type === 'puzzle')
-      continue
+    if (!isDownloadableMedia(sub.media_type, sub.media_url)) continue
     const team = teams.find((t) => t.id === sub.team_id)
     const game = games.find((g) => g.id === sub.game_id)
     const base = `${team?.name ?? sub.team_id}-${game?.name ?? sub.game_id}-${sub.status}`
