@@ -136,7 +136,11 @@ function pickSaveTarget(suggestedName: string): Promise<SaveTarget | null> {
 }
 
 /** Stream the archive to disk, so the JS heap never holds the whole ZIP. */
-async function writeZipToDisk(zip: JSZip, handle: FileSystemFileHandle): Promise<void> {
+/** Exported for the ordering test: close must never outrun the writes. */
+export async function writeZipToDisk(
+  zip: JSZip,
+  handle: FileSystemFileHandle,
+): Promise<void> {
   // Cast through unknown: intersecting with FileSystemFileHandle keeps the DOM
   // lib's stricter chunk type and rejects the Uint8Array JSZip emits.
   const writable = await (
@@ -151,15 +155,24 @@ async function writeZipToDisk(zip: JSZip, handle: FileSystemFileHandle): Promise
         // burn minutes of main-thread CPU for no size win.
         compression: 'STORE',
       })
+      // Every write is chained, and 'end' waits for the chain to drain before
+      // resolving. JSZip's 'end' only means it has finished PRODUCING bytes:
+      // resolving there left the final write in flight while writable.close()
+      // ran, truncating the archive's tail. The entries still listed, so the
+      // damage showed up as photos that would not open (7 Aug 2026 export).
+      let queue: Promise<void> = Promise.resolve()
       stream
         .on('data', (chunk: Uint8Array) => {
           // Pause while the disk write settles, or JSZip outruns the writer and
           // the chunks pile up in memory: exactly what this path avoids.
           stream.pause()
-          writable.write(chunk).then(() => stream.resume(), reject)
+          queue = queue.then(() => writable.write(chunk))
+          queue.then(() => stream.resume(), reject)
         })
         .on('error', reject)
-        .on('end', () => resolve())
+        .on('end', () => {
+          queue.then(() => resolve(), reject)
+        })
       stream.resume()
     })
     await writable.close()

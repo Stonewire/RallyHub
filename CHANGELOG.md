@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.2.1 - 2026-08-07 (exported photos open again)
+
+- Downloaded event archives contained photos that listed correctly but would
+  not open. The export told the browser the archive was finished as soon as
+  the zip generator stopped producing bytes, without waiting for the last
+  disk writes, so closing the file truncated the archive's tail. Writes are
+  now drained before the file is closed. The originals in storage were never
+  affected, so re-exporting an old event recovers its media intact.
+
 ## V3.2.0 - 2026-08-07 (event-day fixes: back button, device switching, marking, audio)
 
 - Hardware Back no longer closes the event. Phones that scan the join QR from
