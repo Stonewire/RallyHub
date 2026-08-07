@@ -42,6 +42,8 @@ export type MintedParticipantUpload = {
   path: string
   /** Public URL the object will have once uploaded. */
   publicUrl: string
+  /** Full signed upload URL, for the progress-reporting XHR path. */
+  signedUrl?: string
 }
 
 /**
@@ -80,18 +82,60 @@ export async function mintParticipantUpload(
   if (!mint) throw new Error('Could not authorize upload')
 
   const { data } = supabase.storage.from('game-assets').getPublicUrl(objectPath)
-  return { token: mint.token, path: mint.path, publicUrl: data.publicUrl }
+  return {
+    token: mint.token,
+    path: mint.path,
+    publicUrl: data.publicUrl,
+    signedUrl: mint.signedUrl,
+  }
+}
+
+/**
+ * PUT the file to the signed URL through XHR purely so upload progress exists;
+ * fetch (and supabase-js on top of it) still has no request-progress events.
+ * Any failure falls back to the library path in the caller.
+ */
+function putWithProgress(
+  signedUrl: string,
+  file: File,
+  onProgress: (fraction: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', signedUrl)
+    if (file.type) xhr.setRequestHeader('content-type', file.type)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) onProgress(e.loaded / e.total)
+    }
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed (${xhr.status})`))
+    xhr.onerror = () => reject(new Error('Upload failed (network)'))
+    xhr.send(file)
+  })
 }
 
 /** Upload a file to a previously-minted signed URL. Fast: no edge function call. */
 export async function uploadToMintedParticipantUrl(
   minted: MintedParticipantUpload,
   file: File,
-  options?: { mediaKind?: UploadMediaKind },
+  options?: { mediaKind?: UploadMediaKind; onProgress?: (fraction: number) => void },
 ): Promise<string> {
   const kind = options?.mediaKind ?? inferUploadMediaKind(file)
   const sizeError = validateUploadFileSize(file, kind)
   if (sizeError) throw new Error(sizeError)
+
+  // Progress wanted and a signed URL available: XHR first, so 30-260s video
+  // uploads (7 Aug event) show a moving percentage instead of a bare spinner.
+  if (options?.onProgress && minted.signedUrl) {
+    try {
+      await putWithProgress(minted.signedUrl, file, options.onProgress)
+      return minted.publicUrl
+    } catch {
+      // Fall through to the library path; progress just will not tick.
+    }
+  }
 
   const { error } = await supabase.storage
     .from('game-assets')
@@ -110,14 +154,17 @@ export async function uploadParticipantAsset(
   eventId: string,
   path: string,
   file: File,
-  options?: { mediaKind?: UploadMediaKind },
+  options?: { mediaKind?: UploadMediaKind; onProgress?: (fraction: number) => void },
 ): Promise<string> {
   const kind = options?.mediaKind ?? inferUploadMediaKind(file)
   const sizeError = validateUploadFileSize(file, kind)
   if (sizeError) throw new Error(sizeError)
 
   const minted = await mintParticipantUpload(eventId, path)
-  return uploadToMintedParticipantUrl(minted, file, { mediaKind: kind })
+  return uploadToMintedParticipantUrl(minted, file, {
+    mediaKind: kind,
+    onProgress: options?.onProgress,
+  })
 }
 
 /** Extract object path from a Supabase public storage URL. */
