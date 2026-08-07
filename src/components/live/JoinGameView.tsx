@@ -42,6 +42,7 @@ import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import {
   DiagnosticReportedError,
   nowMs,
+  isLikelyNetworkError,
   reportClientIssue,
   reportClientTiming,
 } from '@/lib/client-diagnostics'
@@ -735,14 +736,17 @@ export function JoinGameView({
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
+      const detail = reportClientIssue('text-submit', err, {
+        eventId: event.id,
+        teamId,
+        extra: { gameId: game.id },
+      })
       const msg =
         err instanceof DiagnosticReportedError
           ? err.message
-          : `Couldn't submit (${reportClientIssue('text-submit', err, {
-              eventId: event.id,
-              teamId,
-              extra: { gameId: game.id },
-            })}) — tap to retry`
+          : isLikelyNetworkError(err)
+            ? 'No connection — check the wifi and tap Send again'
+            : `Couldn't submit (${detail}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
@@ -823,16 +827,19 @@ export function JoinGameView({
         mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
         setSelectedGame(game)
       }
+      const detail = reportClientIssue('submission-upload', err, {
+        eventId: event.id,
+        teamId,
+        extra: { gameId: game.id },
+      })
       const msg =
         err instanceof Error && err.message.includes('must be')
           ? err.message
           : err instanceof DiagnosticReportedError
             ? err.message
-            : `Couldn't submit (${reportClientIssue('submission-upload', err, {
-                eventId: event.id,
-                teamId,
-                extra: { gameId: game.id },
-              })}) — tap to retry`
+            : isLikelyNetworkError(err)
+              ? 'No connection — check the wifi and tap Submit again'
+              : `Couldn't submit (${detail}) — tap to retry`
       notify(msg)
       setSubmitting(false)
     }
