@@ -1,7 +1,6 @@
 import { LogOut, MessageCircle, QrCode, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { cameraProbeRequested } from '@/lib/challenge-camera'
@@ -16,7 +15,6 @@ import {
   ParticipantChatOverlay,
   ParticipantExitDialog,
 } from '@/components/live/participant/JoinGameOverlays'
-import { InventoryQrScanner } from '@/components/live/participant/InventoryQrScanner'
 import { OpenGameChallengeCard } from '@/components/live/OpenGameChallengeCard'
 import { QuizQuestionMedia } from '@/components/live/QuizQuestionMedia'
 import { questionMedia } from '@/lib/quiz-media'
@@ -169,7 +167,6 @@ export function JoinGameView({
     teamId,
   )
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
 
   // Capture a ?camprobe flag before routing can strip the query string; the
   // capture screens read the remembered flag later.
@@ -216,37 +213,26 @@ export function JoinGameView({
   const bingoPickOptimisticRef = useRef<number | null | undefined>(undefined)
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
-  const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [storeView, setStoreView] = useState<'store' | 'orders'>('store')
   const [orderSentOpen, setOrderSentOpen] = useState(false)
-  // Organisers running an event without a physical item shop switch this off.
-  // On top of that, a facilitator can close the store mid-event with the
-  // Purchase items toggle; My Items stays reachable so teams still see what
-  // they bought.
-  const inventoryEnabled = (event.inventory_enabled ?? true) && state.store_open !== false
-  // An event with a configured store gets the in-app store; events without
-  // one keep the printed-QR scanner flow.
+  // The store shows only when the organiser configured one AND left
+  // purchasing on, and the facilitator has not closed it live with the
+  // Purchase items toggle. The printed-QR scan-to-buy flow is retired
+  // (Rumen, 8 Aug) — the in-app store is the only way to buy.
   const hasStore = parseStoreConfig(event.store_config).length > 0
+  const inventoryEnabled =
+    hasStore && (event.inventory_enabled ?? true) && state.store_open !== false
 
   function openBuyItems() {
-    if (hasStore) {
-      setStoreView('store')
-      setStoreOpen(true)
-    } else {
-      setInventoryScannerOpen(true)
-    }
+    setStoreView('store')
+    setStoreOpen(true)
   }
 
   function openMyItems() {
     setStoreView('orders')
     setStoreOpen(true)
   }
-
-  const handleInventoryItemScanned = useCallback((publicCode: string) => {
-    setInventoryScannerOpen(false)
-    navigate(`/inventory/item/${publicCode}`)
-  }, [navigate, setInventoryScannerOpen])
 
   // Mint a signed upload URL when a photo/video challenge opens, moving the
   // authorization round trip out of the submit path. Key it by game id so one
@@ -1768,7 +1754,7 @@ export function JoinGameView({
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
 
-  const showChatFab = !chatOpen && !captureActive && !selectedGame && !inventoryScannerOpen && !storeOpen
+  const showChatFab = !chatOpen && !captureActive && !selectedGame && !storeOpen
 
   // Keep document scroll anchored at top when switching challenge views.
   useEffect(() => {
@@ -1831,7 +1817,7 @@ export function JoinGameView({
             document.body,
           )
         : null}
-      {!selectedGame && !chatOpen && !inventoryScannerOpen
+      {!selectedGame && !chatOpen
         ? createPortal(
             <Button
               type="button"
@@ -1850,12 +1836,6 @@ export function JoinGameView({
         : null}
       {header}
       <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>
-      {inventoryScannerOpen ? (
-        <InventoryQrScanner
-          onClose={() => setInventoryScannerOpen(false)}
-          onItemScanned={handleInventoryItemScanned}
-        />
-      ) : null}
       {storeOpen ? (
         <EventStoreSheet
           eventId={event.id}
@@ -1865,7 +1845,7 @@ export function JoinGameView({
           onOrderPlaced={() => setOrderSentOpen(true)}
         />
       ) : null}
-      {typeof document !== 'undefined' && !chatOpen && !captureActive && !inventoryScannerOpen
+      {typeof document !== 'undefined' && !chatOpen && !captureActive
         ? createPortal(
             <div
               className="fixed left-4 z-[9999]"

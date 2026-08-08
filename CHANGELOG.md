@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.8.0 - 2026-08-08
+
+- Keyboard sounds replaced with Rumen's final prepared set: three rotating
+  key clicks, two space sounds, two backspace sounds, one submit sound.
+  Only peak-normalised to a consistent level — no other processing. The
+  earlier processed set is removed.
+- The matching game plays the quiz select sound on every tile tap, the same
+  cue as selecting a quiz answer.
+- The printed-QR purchase flow is retired: Buy Items now exists only on
+  events with a configured store, the scan-to-buy page and scanner are
+  gone, and the facilitator's old Purchases card is replaced entirely by
+  Store orders. (Database tables stay; only the surfaces are gone.)
+
 ## V3.7.0 - 2026-08-08
 
 - The keyboard now clicks with Rumen's own recorded mechanical keyboard
