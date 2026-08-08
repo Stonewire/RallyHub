@@ -40,15 +40,13 @@ no wheel edits), iOS missed-paint fix + perf pass (LiveClock isolation,
 static mobile blobs), on-screen keyboard (bottom-docked, purchased click
 pack, key pop, nearest-key proximity), QR purchase flow retired.
 
-Still open / untested:
+Still open / untested (9 Aug review with Rumen):
 - Tablet recording audio fix (V3.2.x) unverified on the real tablet.
-- Android untested for the whole 8-9 Aug batch.
-- Per-stage game branding (CF3-16) not yet tried by Rumen.
-- Partial order completion + My Items + order overlay shipped after his last
-  store pass — needs one live run-through.
-- Select-sound rule ("everywhere you select something") applied to quiz +
-  matching; other tap-to-select spots (e.g. bingo squares) still silent.
-- Mobile/tablet redesign of admin + facilitator: agreed later project.
+- Android untested for the 8-9 Aug batch — Rumen will run it another time.
+- Per-stage branding: tested by Rumen, works. Closed.
+- Store round three (partial completion, My Items, overlay): tested, works. Closed.
+- Bingo squares stay silent — Rumen's call, no select sound there.
+- NEXT UP: mobile/tablet redesign of admin + facilitator (Rumen briefing).
 - H6 (teams joining mid-bingo) remains a live risk, unchanged.
 
 ## Session plan
