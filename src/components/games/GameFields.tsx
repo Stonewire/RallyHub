@@ -13,6 +13,7 @@ import { moveTargets, questionsInRound, removeRound } from '@/components/games/q
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { newGameId, uploadGameFile } from '@/lib/game-upload'
@@ -284,39 +285,31 @@ export function GameFields({
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="quiz-points">Points / correct</Label>
-                    <Input
+                    <NumberField
                       id="quiz-points"
-                      type="number"
                       min={0}
                       value={pointsStatic}
-                      onChange={(e) => setPointsStatic(Math.max(0, Number(e.target.value) || 0))}
+                      onChange={setPointsStatic}
                       className="bg-background"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="quiz-timer">Time / question (sec)</Label>
-                    <Input
+                    <NumberField
                       id="quiz-timer"
-                      type="number"
                       min={5}
                       value={config.timer_seconds ?? 20}
-                      onChange={(e) =>
-                        setConfig((c) => ({
-                          ...c,
-                          timer_seconds: Math.max(5, Number(e.target.value) || 5),
-                        }))
-                      }
+                      onChange={(n) => setConfig((c) => ({ ...c, timer_seconds: n }))}
                       className="bg-background"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="quiz-rounds">Rounds</Label>
-                    <Input
+                    <NumberField
                       id="quiz-rounds"
-                      type="number"
                       min={1}
                       value={(config.rounds ?? []).length || 1}
-                      onChange={(e) => setRoundCount(Number(e.target.value) || 1)}
+                      onChange={setRoundCount}
                       className="bg-background"
                     />
                   </div>
@@ -379,13 +372,10 @@ export function GameFields({
                       <>
                         <div className="flex w-full items-center gap-3">
                           <Label className="shrink-0">Maximum points</Label>
-                          <Input
-                            type="number"
+                          <NumberField
                             min={1}
                             value={pointsStatic}
-                            onChange={(e) =>
-                              setPointsStatic(Math.max(1, Number(e.target.value) || 1))
-                            }
+                            onChange={setPointsStatic}
                             className="bg-background h-8 w-24"
                           />
                           <span className="text-muted-foreground text-xs">

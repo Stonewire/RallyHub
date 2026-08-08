@@ -2,6 +2,7 @@ import { AssetField } from '@/components/games/AssetField'
 import { PointsEditor } from '@/components/games/PointsEditor'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import { youTubeEmbedUrl } from '@/lib/video-embed'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
@@ -114,25 +115,21 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                 <div className="flex w-full flex-wrap items-center gap-3">
                   <Label className="shrink-0">Max video duration</Label>
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       max={59}
                       aria-label="Minutes"
                       value={videoMaxMinutes}
-                      onChange={(e) => setVideoMaxMinutes(Math.max(0, Number(e.target.value) || 0))}
+                      onChange={setVideoMaxMinutes}
                       className="bg-background h-8 w-20"
                     />
                     <span className="text-muted-foreground text-sm">min</span>
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       max={59}
                       aria-label="Seconds"
                       value={videoMaxSeconds}
-                      onChange={(e) =>
-                        setVideoMaxSeconds(Math.min(59, Math.max(0, Number(e.target.value) || 0)))
-                      }
+                      onChange={setVideoMaxSeconds}
                       className="bg-background h-8 w-20"
                     />
                     <span className="text-muted-foreground text-sm">sec</span>

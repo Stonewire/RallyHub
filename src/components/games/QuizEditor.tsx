@@ -6,6 +6,7 @@ import { IconUpload } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import { SegmentedPill } from '@/components/neo-minimal'
 import { mediaAccept, questionMedia } from '@/lib/quiz-media'
@@ -183,19 +184,12 @@ function QuestionMedia({
               timer adds this on so teams are not watching on their own time. */}
           <div className="flex items-center gap-2">
             <Label className="shrink-0 text-xs">Length</Label>
-            <Input
-              type="number"
+            <NumberField
               min={0}
-              value={q.mediaDurationSeconds ?? ''}
+              value={q.mediaDurationSeconds ?? 0}
               placeholder="sec"
               className="bg-background w-20"
-              onChange={(event) =>
-                onUpdate({
-                  mediaDurationSeconds: event.target.value
-                    ? Math.max(0, Number(event.target.value))
-                    : null,
-                })
-              }
+              onChange={(n) => onUpdate({ mediaDurationSeconds: n })}
             />
           </div>
         </div>

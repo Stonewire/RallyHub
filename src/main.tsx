@@ -14,6 +14,20 @@ import './index.css'
 
 registerServiceWorker()
 
+// Scrolling over a focused number input silently changes its value — clients
+// typed a timer, scrolled towards Save, and saved a different number (CF3-20,
+// 8 Aug). Dropping focus lets the page scroll and freezes the value; typing
+// and the arrow buttons are untouched. Document-level so every number input,
+// present and future, is covered.
+document.addEventListener(
+  'wheel',
+  () => {
+    const el = document.activeElement
+    if (el instanceof HTMLInputElement && el.type === 'number') el.blur()
+  },
+  { passive: true },
+)
+
 // Camera stand-in for testing capture flows without a phone.
 //
 // Two locks, because this is code that fabricates camera input. The build-time

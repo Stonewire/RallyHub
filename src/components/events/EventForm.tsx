@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { EventStorePanel } from '@/components/events/EventStorePanel'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
@@ -325,7 +326,7 @@ export function EventForm({
             </Label>
             <div className="flex items-center gap-1.5">
               <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= minTeamCount} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
-              <Input type="number" min={minTeamCount} max={maxTeamCount} value={teamCount} onChange={(e) => onTeamCountChange(Number(e.target.value))} className="bg-background h-8 w-16 text-center tabular-nums" />
+              <NumberField min={minTeamCount} max={maxTeamCount} value={teamCount} onChange={onTeamCountChange} className="bg-background h-8 w-16 text-center tabular-nums" />
               <Button type="button" size="icon-sm" variant="outline" disabled={teamCount >= maxTeamCount} onClick={() => onTeamCountChange(teamCount + 1)}>+</Button>
             </div>
           </div>
@@ -552,44 +553,31 @@ export function EventForm({
                     Duration
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       aria-label="Break minutes"
-                      value={stage.durationMinutes ?? ''}
-                      onChange={(e) =>
+                      value={stage.durationMinutes ?? 0}
+                      onChange={(n) =>
                         onChange((prev) => ({
                           ...prev,
                           stages: prev.stages.map((x) =>
-                            x.id === stage.id
-                              ? { ...x, durationMinutes: Math.max(0, Number(e.target.value) || 0) }
-                              : x,
+                            x.id === stage.id ? { ...x, durationMinutes: n } : x,
                           ),
                         }))
                       }
                       className="bg-background w-16 text-center tabular-nums"
                     />
                     <span className="text-muted-foreground">min</span>
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       max={59}
                       aria-label="Break seconds"
-                      value={stage.durationSeconds ?? ''}
-                      onChange={(e) =>
+                      value={stage.durationSeconds ?? 0}
+                      onChange={(n) =>
                         onChange((prev) => ({
                           ...prev,
                           stages: prev.stages.map((x) =>
-                            x.id === stage.id
-                              ? {
-                                  ...x,
-                                  // Clamp to 0-59: anything more belongs in minutes.
-                                  durationSeconds: Math.min(
-                                    59,
-                                    Math.max(0, Number(e.target.value) || 0),
-                                  ),
-                                }
-                              : x,
+                            x.id === stage.id ? { ...x, durationSeconds: n } : x,
                           ),
                         }))
                       }
