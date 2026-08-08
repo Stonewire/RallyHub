@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.6.3 - 2026-08-08
+
+- Keyboard click reworked to match the iPhone's: a short damped "tock"
+  (band-passed noise burst) instead of the electronic blip. Still generated
+  live in Web Audio — the genuine Apple sound is Apple's asset, so it is
+  approximated, not shipped.
+
 ## V3.6.2 - 2026-08-08
 
 - On-screen keyboard behaves like the phone's own (CF6): docked to the very
