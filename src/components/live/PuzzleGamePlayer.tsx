@@ -30,13 +30,14 @@ type Props = {
   teamId: string
   game: Tables<'games'>
   accentColor: string
-  /** Called once a Wordle is solved, after the result has been on screen long
-   *  enough to read. Absent for the other puzzle types, which keep their board. */
+  /** Called once the puzzle is solved, after the result has been on screen
+   *  long enough to read; every puzzle type returns to the challenge list. */
   onSolvedAutoClose?: () => void
 }
 
-/** How long the Wordle result stays up before the team is taken back. */
-const WORDLE_RESULT_HOLD_MS = 1500
+/** How long the solved result stays up before the team is taken back
+ *  (Rumen, 8 Aug: one second, on every game). */
+const RESULT_HOLD_MS = 1000
 
 function puzzleErrorMessage(reason: unknown): string {
   if (reason && typeof reason === 'object' && 'message' in reason) {
@@ -166,11 +167,16 @@ export function PuzzleGamePlayer({
   }, [guessCount])
 
   const solved = Boolean(progress?.completed)
+  // Close only when the solve happens on THIS screen: reopening an already
+  // finished puzzle to look at the board must not bounce the team straight
+  // back out.
+  const sawUnsolvedRef = useRef(false)
   useEffect(() => {
-    if (type !== 'wordle' || !solved || !onSolvedAutoClose) return
-    const timer = window.setTimeout(onSolvedAutoClose, WORDLE_RESULT_HOLD_MS)
+    if (progress && !solved) sawUnsolvedRef.current = true
+    if (!solved || !sawUnsolvedRef.current || !onSolvedAutoClose) return
+    const timer = window.setTimeout(onSolvedAutoClose, RESULT_HOLD_MS)
     return () => window.clearTimeout(timer)
-  }, [type, solved, onSolvedAutoClose])
+  }, [progress, solved, onSolvedAutoClose])
 
   async function submitWordleGuess() {
     if (!teamToken || saving) return

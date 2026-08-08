@@ -1,5 +1,7 @@
 import { IconChevronDown, IconGrip, IconPlus, IconTrash } from '@/components/icons'
-import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useRef, useState, type Dispatch, type SetStateAction } from 'react'
+
+import { IconUpload } from '@/components/icons'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -121,6 +123,8 @@ function QuestionMedia({
 }) {
   const { kind, url } = questionMedia(q)
   const [busy, setBusy] = useState(false)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   /** Length of an uploaded clip, so the question's timer can allow for it. */
   function measureDuration(file: File): Promise<number | null> {
@@ -196,26 +200,43 @@ function QuestionMedia({
           </div>
         </div>
       ) : kind !== 'none' ? (
-        <Input
-          type="file"
-          accept={mediaAccept(kind)}
-          disabled={busy}
-          className="max-w-xs"
-          onChange={async (event) => {
-            const file = event.target.files?.[0]
-            if (!file) return
-            setBusy(true)
-            try {
-              const [mediaUrl, mediaDurationSeconds] = await Promise.all([
-                onUploadMedia(file),
-                measureDuration(file),
-              ])
-              onUpdate({ mediaUrl, mediaDurationSeconds })
-            } finally {
-              setBusy(false)
-            }
-          }}
-        />
+        /* Same pill-with-icon upload control as every other designer asset
+           row; the bare native file input was the odd one out (CF3-4). */
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={mediaAccept(kind)}
+            className="sr-only"
+            onChange={async (event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (!file) return
+              setFileName(file.name)
+              setBusy(true)
+              try {
+                const [mediaUrl, mediaDurationSeconds] = await Promise.all([
+                  onUploadMedia(file),
+                  measureDuration(file),
+                ])
+                onUpdate({ mediaUrl, mediaDurationSeconds })
+              } finally {
+                setBusy(false)
+              }
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-input bg-background hover:bg-muted flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold disabled:opacity-60"
+          >
+            <IconUpload className="size-3.5" />
+            <span className="max-w-40 truncate">
+              {busy ? 'Uploading…' : (fileName ?? 'No File')}
+            </span>
+          </button>
+        </div>
       ) : null}
 
       {url && kind === 'photo' ? (

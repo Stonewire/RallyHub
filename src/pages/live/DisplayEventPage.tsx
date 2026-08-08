@@ -23,6 +23,7 @@ import { playEventWinnerSequence, installAudioUnlock, resetEventWinnerAudioGuard
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import {
   currentStage,
+  stageGameBackdrop,
   breakDurationSeconds,
   brandBlobColors,
   displayTextClass,
@@ -487,6 +488,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       event={event}
       organization={organization}
       variant={variant}
+      gameBackdrop={stageGameBackdrop(stage, bundle?.games ?? [])}
       className={embedded ? 'h-screen overflow-hidden' : undefined}
     >
       <ClientBrandingStyle org={organization} />

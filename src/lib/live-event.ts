@@ -74,6 +74,31 @@ export function parseStages(raw: Json | null | undefined): EventStage[] {
   )
 }
 
+/**
+ * The backdrop a 'game'-branded quiz/bingo stage wears (CF3-16): the image or
+ * corner-colour gradient designed inside the game. Null means keep the
+ * event's own branding.
+ */
+export function stageGameBackdrop(
+  stage: EventStage | null,
+  games: Tables<'games'>[],
+): { imageUrl: string | null; colors: string[] | null } | null {
+  if (!stage || (stage.type !== 'quiz' && stage.type !== 'bingo')) return null
+  if (stage.branding !== 'game' || !stage.gameId) return null
+  const game = games.find((g) => g.id === stage.gameId)
+  if (!game) return null
+  const config = (game.config ?? {}) as {
+    background_url?: string | null
+    background_mode?: 'image' | 'colours'
+    quiz_background_colors?: string[]
+  }
+  if (config.background_mode === 'colours' || !config.background_url) {
+    const colors = (config.quiz_background_colors ?? []).filter(Boolean)
+    return colors.length >= 2 ? { imageUrl: null, colors } : null
+  }
+  return { imageUrl: config.background_url, colors: null }
+}
+
 export function currentStage(
   stages: EventStage[],
   index: number,

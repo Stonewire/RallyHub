@@ -34,6 +34,8 @@ type EventStoreSheetProps = {
   eventId: string
   accentColor: string
   onClose: () => void
+  /** 'store' browses and orders; 'orders' is the read-only My Items view. */
+  view?: 'store' | 'orders'
 }
 
 function rpcMessage(err: unknown, fallback: string): string {
@@ -50,7 +52,7 @@ function rpcMessage(err: unknown, fallback: string): string {
  * moves. Replaces scanning printed QR codes, which mixed up items when many
  * teams scanned at once (7 Aug 2026 event).
  */
-export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreSheetProps) {
+export function EventStoreSheet({ eventId, accentColor, onClose, view = 'store' }: EventStoreSheetProps) {
   const { notify } = useNotification()
   const session = getCurrentParticipantSession()
   const token = session?.eventId === eventId ? (session.purchaseToken ?? '') : ''
@@ -60,7 +62,6 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
   const [loadError, setLoadError] = useState<string | null>(null)
   const [basket, setBasket] = useState<Record<string, number>>({})
   const [placing, setPlacing] = useState(false)
-  const [placed, setPlaced] = useState(false)
 
   const reload = useCallback(async () => {
     if (!token) {
@@ -132,8 +133,10 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
       })
       if (error) throw error
       setBasket({})
-      setPlaced(true)
-      void reload()
+      // The job here is done; the next stop is a person, not this screen.
+      notify('Order sent! Collect your items from the facilitator.')
+      onClose()
+      return
     } catch (err) {
       notify(rpcMessage(err, 'Could not send your order. Try again.'))
       // Stock may have moved under us; show the fresh numbers.
@@ -156,7 +159,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
       >
         <div className="flex items-center gap-2">
           <ShoppingBag className="size-5" />
-          <h2 className="text-lg font-bold">Store</h2>
+          <h2 className="text-lg font-bold">{view === 'orders' ? 'My Items' : 'Store'}</h2>
         </div>
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-bold tabular-nums">
@@ -174,21 +177,11 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-40">
-        {placed ? (
-          <div className="xp-glass-panel mx-auto mt-2 max-w-md rounded-xl bg-white/10 px-4 py-3 text-center">
-            <p className="font-bold">Order sent!</p>
-            <p className="mt-1 text-sm text-white/80">
-              Collect your items from the facilitator. Points are taken when
-              you pick them up.
-            </p>
-          </div>
-        ) : null}
-
         {loadError ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">{loadError}</p>
         ) : rows === null ? (
           <p className="mx-auto mt-8 text-center text-sm text-white/70">Opening the store…</p>
-        ) : rows.length === 0 ? (
+        ) : view === 'orders' ? null : rows.length === 0 ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">
             The store is empty for this event.
           </p>
@@ -250,6 +243,12 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
           </ul>
         )}
 
+        {view === 'orders' && rows !== null && pendingOrders.length === 0 && doneOrders.length === 0 ? (
+          <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">
+            Nothing bought yet. Order from the Store first.
+          </p>
+        ) : null}
+
         {pendingOrders.length > 0 || doneOrders.length > 0 ? (
           <div className="mx-auto mt-6 max-w-md space-y-2">
             <h3 className="text-sm font-bold tracking-wide text-white/70 uppercase">
@@ -288,6 +287,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
         ) : null}
       </div>
 
+      {view === 'orders' ? null : (
       <div
         className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/90 to-transparent px-4 pt-6"
         style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
@@ -306,6 +306,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose }: EventStoreShe
               : `Order ${basketCount} item${basketCount === 1 ? '' : 's'} · ${basketTotal} pts`}
         </LiveAccentButton>
       </div>
+      )}
     </div>,
     document.body,
   )

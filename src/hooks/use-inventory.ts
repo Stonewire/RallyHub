@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { publishLiveBundlePatch } from '@/lib/live-broadcast'
 import { queryKeys } from '@/lib/query-keys'
 import { deleteStorageObjects, publicUrlStoragePath, uploadAsset } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
@@ -314,6 +315,27 @@ export function useFulfilOrderItem(eventId: string | undefined) {
       })
       if (error) throw error
     },
+    // Flip the tick in the cache immediately: waiting on a refetch made every
+    // checkbox in the dialog flicker on each tick (CF3-12).
+    onMutate: async (input) => {
+      const key = queryKeys.inventoryOrders(eventId)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<InventoryOrder[]>(key)
+      queryClient.setQueryData<InventoryOrder[]>(key, (orders = []) =>
+        orders.map((order) => ({
+          ...order,
+          inventory_order_items: order.inventory_order_items.map((item) =>
+            item.id === input.orderItemId ? { ...item, fulfilled: input.fulfilled } : item,
+          ),
+        })),
+      )
+      return { previous }
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.inventoryOrders(eventId), context.previous)
+      }
+    },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) }),
   })
@@ -327,7 +349,21 @@ export function useCompleteStoreOrder(eventId: string | undefined) {
         p_order_id: orderId,
       })
       if (error) throw error
-      return data?.[0] ?? null
+      const result = data?.[0] ?? null
+      // The RPC changed teams.score in SQL, which no live channel carries to
+      // player devices; broadcast the fresh team row so their header updates
+      // without a refresh (CF3-13).
+      if (result && eventId) {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('id', result.team_id)
+          .single()
+        if (team) {
+          void publishLiveBundlePatch(eventId, { kind: 'team', op: 'UPDATE', row: team })
+        }
+      }
+      return result
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) }),

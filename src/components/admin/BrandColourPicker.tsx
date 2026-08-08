@@ -109,7 +109,10 @@ export function BrandColourPicker({
         <div
           role="dialog"
           aria-label={`${label} colour picker`}
-          className="border-border bg-card absolute top-11 left-1/2 z-40 w-56 -translate-x-1/2 rounded-lg border p-3 text-left shadow-xl"
+          // Anchored to the column's left edge and growing rightwards into
+          // the card: centring a 14rem popover over a 5rem column pushed it
+          // past the card edge, where it clipped (CF3-5).
+          className="border-border bg-card absolute top-11 left-0 z-40 w-56 rounded-lg border p-3 text-left shadow-xl"
         >
           <div
             className="mb-3 flex h-12 items-center justify-center rounded-md font-mono text-xs font-semibold"
@@ -117,6 +120,18 @@ export function BrandColourPicker({
           >
             {value.toUpperCase()}
           </div>
+
+          {/* The browser's own picker (wheel/eyedropper) — the sliders are
+              handy for nudging, but picking a colour wants the real thing. */}
+          <label className="border-border hover:bg-muted mb-3 flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border text-xs font-semibold">
+            <input
+              type="color"
+              value={normalizeHex(value) ?? '#000000'}
+              onChange={(event) => onChange(event.target.value)}
+              className="size-4 cursor-pointer appearance-none border-0 bg-transparent p-0"
+            />
+            Open colour wheel
+          </label>
 
           <Label htmlFor={`${id}-hex`} className="text-muted-foreground text-[10px] uppercase">
             Hex

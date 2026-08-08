@@ -3,6 +3,7 @@ import { PointsEditor } from '@/components/games/PointsEditor'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { youTubeEmbedUrl } from '@/lib/video-embed'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import type { GameConfig } from '@/types/game-config'
 import type { GameType, PointsType } from '@/types/database'
@@ -166,6 +167,17 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                     YouTube link. Unlisted is fine; private videos will not play
                     for participants.
                   </p>
+                  {/* The same player participants get, so the organiser sees
+                      whether the link actually works (CF3-2). */}
+                  {youTubeEmbedUrl(exampleVideoUrl) ? (
+                    <iframe
+                      src={youTubeEmbedUrl(exampleVideoUrl)!}
+                      title="Video preview"
+                      className="aspect-video w-full max-w-md rounded-lg"
+                      allow="encrypted-media; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : null}
                 </div>
               )}
             </Card>

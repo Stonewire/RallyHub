@@ -5,6 +5,40 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.5.0 - 2026-08-08 (the 8 Aug test-pass fixes, CF3)
+
+- Auto-approved text games no longer fail on CORRECT answers. The scoring
+  trigger was blocked by the team-fields guard for participants, so a right
+  answer errored while a wrong one sailed through; a scoped marker now lets
+  the trigger award the points. This was also the "Triangle pieces" failure
+  from the 7 Aug event.
+- Quiz robustness: a leftover question index from an earlier run no longer
+  leaves the facilitator quiz panel empty or players on a fallback screen;
+  both clamp to a real question. (The reported "wrong" media timers were the
+  designer's Time per question field holding 46-55s, not 15; the formula is
+  and was double the base plus the clip length.)
+- Store round two: placing an order closes the store with a clear message;
+  a My Items button next to Buy Items shows the team's orders; completing an
+  order updates the team's points on their device immediately; the order
+  dialog ticks without flicker, gains Select all, and the button reads
+  "Complete all and take X points".
+- The facilitator gains a Purchase items toggle (only on events with a
+  store) that opens and closes Buy Items for players live; display toggles
+  renamed to Rank on display and Points on display (on means visible).
+- YouTube instructional videos now actually play: the player briefing, both
+  game designers and the quiz preview embed YouTube's own player instead of
+  a dead native video box, with a proper sized preview everywhere.
+- Every solved puzzle returns to the challenge list after one second, not
+  just Wordle; iOS overscroll past the end of a challenge no longer flashes
+  white.
+- Quiz and bingo stages can choose Game branding: live surfaces then wear
+  the background designed inside the game (photo or colours) instead of the
+  event branding.
+- Quiz photo/audio uploads use the same pill upload control as every other
+  designer; the event brand colour popover no longer clips and offers the
+  browser's own colour wheel; the Event created page redesigned to match the
+  app (status cards with plain-language hints, link cards with QR codes).
+
 ## V3.4.0 - 2026-08-08 (event Store, part two: teams order, facilitators hand over)
 
 - Buy Items now opens the event's Store when one is configured: teams browse

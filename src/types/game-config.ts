@@ -191,4 +191,10 @@ export type EventStage = {
   durationMinutes?: number
   /** Extra seconds on top of durationMinutes. Absent means zero. */
   durationSeconds?: number
+  /**
+   * Quiz/bingo stages only: which look the live surfaces wear during the
+   * stage. 'event' (default) keeps the event's brand backdrop; 'game' uses
+   * the background designed inside the quiz/bingo game itself.
+   */
+  branding?: 'event' | 'game'
 }

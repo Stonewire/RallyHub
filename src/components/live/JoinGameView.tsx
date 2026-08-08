@@ -1,4 +1,4 @@
-import { LogOut, MessageCircle, QrCode } from 'lucide-react'
+import { LogOut, MessageCircle, QrCode, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
@@ -69,6 +69,7 @@ import {
   brandColorsForEvent,
   breakDurationSeconds,
   currentStage,
+  stageGameBackdrop,
   displayTextColorForEvent,
   formatBreakTimer,
   formatClockTimer,
@@ -216,15 +217,28 @@ export function JoinGameView({
   const [cancelling, setCancelling] = useState(false)
   const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
+  const [storeView, setStoreView] = useState<'store' | 'orders'>('store')
   // Organisers running an event without a physical item shop switch this off.
-  const inventoryEnabled = event.inventory_enabled ?? true
+  // On top of that, a facilitator can close the store mid-event with the
+  // Purchase items toggle; My Items stays reachable so teams still see what
+  // they bought.
+  const inventoryEnabled = (event.inventory_enabled ?? true) && state.store_open !== false
   // An event with a configured store gets the in-app store; events without
   // one keep the printed-QR scanner flow.
   const hasStore = parseStoreConfig(event.store_config).length > 0
 
   function openBuyItems() {
-    if (hasStore) setStoreOpen(true)
-    else setInventoryScannerOpen(true)
+    if (hasStore) {
+      setStoreView('store')
+      setStoreOpen(true)
+    } else {
+      setInventoryScannerOpen(true)
+    }
+  }
+
+  function openMyItems() {
+    setStoreView('orders')
+    setStoreOpen(true)
   }
 
   const handleInventoryItemScanned = useCallback((publicCode: string) => {
@@ -352,7 +366,14 @@ export function JoinGameView({
     ? games.find((g) => g.id === stage.gameId)
     : null
   const quizQs = useMemo(() => (quizGame ? quizQuestions(quizGame) : []), [quizGame])
-  const currentQuizQ = quizQs[state.current_question_index]
+  // Clamped like the facilitator panel: a stale index past the last question
+  // (old run, edited-down quiz) must not drop players on the fallback screen.
+  const currentQuizQ =
+    quizQs[
+      quizQs.length
+        ? Math.min(Math.max(state.current_question_index, 0), quizQs.length - 1)
+        : 0
+    ]
 
   // The correct answer is redacted from the live game payload and arrives on
   // event_state at reveal time; the question's own field is only populated in
@@ -1327,10 +1348,23 @@ export function JoinGameView({
     } else {
       body = (
         <div className="mx-auto max-w-2xl px-4 lg:max-w-4xl">
-          {inventoryEnabled ? (
-            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
-              <QrCode className="size-5" /> Buy Items
-            </Button>
+          {inventoryEnabled || hasStore ? (
+            <div className="mb-4 flex gap-3">
+              {inventoryEnabled ? (
+                <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
+                  <QrCode className="size-5" /> Buy Items
+                </Button>
+              ) : null}
+              {hasStore ? (
+                <Button
+                  type="button"
+                  className={`text-nm-yellow gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110 ${inventoryEnabled ? '' : 'flex-1'}`}
+                  onClick={openMyItems}
+                >
+                  <ShoppingBag className="size-5" /> My Items
+                </Button>
+              ) : null}
+            </div>
           ) : null}
           {/* Two up on a phone, three on a tablet, four on a computer: each
               step keeps the tiles near square instead of letterboxed. */}
@@ -1763,6 +1797,7 @@ export function JoinGameView({
       event={event}
       organization={organization}
       variant="default"
+      gameBackdrop={stageGameBackdrop(stage, games)}
       fill
       className={`flex min-h-svh flex-col ${
         showChatFab
@@ -1821,6 +1856,7 @@ export function JoinGameView({
         <EventStoreSheet
           eventId={event.id}
           accentColor={accent}
+          view={storeView}
           onClose={() => setStoreOpen(false)}
         />
       ) : null}
