@@ -28,10 +28,14 @@ export function PricingSection() {
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
             Simple, per-event pricing
           </p>
-          <h2 className="text-foreground font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
+          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
             Pick a plan.{' '}
             <span className="text-muted-foreground">Pay per event on top.</span>
           </h2>
+          <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+            Every plan includes every game type, the facilitator control room, the big-screen
+            display and per-event branding.
+          </p>
         </Reveal>
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

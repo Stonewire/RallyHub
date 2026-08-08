@@ -670,10 +670,10 @@ export function AdminGamesPage() {
         <InventoryLibraryManager ref={inventoryRef} organizationId={organizationId} />
       ) : view === 'bin' ? (
         <>
-          <div className="border-border/70 mb-5 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="border-border/70 mb-5 flex flex-col gap-3 border-b pb-4 xl:flex-row xl:items-center xl:justify-between">
             {/* Identical to the Games Library toolbar: same pill styling and
                 height, same filters / search / group order. */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-xl:justify-center">
               {FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -685,7 +685,7 @@ export function AdminGamesPage() {
                 </button>
               ))}
             </div>
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center max-xl:mx-auto max-xl:max-w-xl max-xl:justify-center xl:w-auto">
               <div className="relative min-w-52 flex-1">
                 <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                 <Input
@@ -748,10 +748,10 @@ export function AdminGamesPage() {
           width. Reserving room for the panel used to reflow the card grid the
           moment it opened, which reshuffled every card the eye was already on. */}
       <div>
-      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 xl:flex-row xl:items-center xl:justify-between">
         {/* Type filters, search, then group selector. Every control here is h-9
             so the row reads as one band rather than three different sizes. */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-xl:justify-center">
           {FILTERS.map(({ value, label }) => (
             <button
               key={value}
@@ -763,7 +763,7 @@ export function AdminGamesPage() {
             </button>
           ))}
         </div>
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center max-xl:mx-auto max-xl:max-w-xl max-xl:justify-center xl:w-auto">
           <div className="relative min-w-52 flex-1">
             <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
             <Input

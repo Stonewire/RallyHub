@@ -282,9 +282,9 @@
   color: var(--mkt-show-text);
 }
 .mkt-proof strong {
-  font-family: 'Abril Fatface', Georgia, serif;
-  font-weight: 400;
-  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.55rem;
   line-height: 1.1;
   display: block;
   color: var(--mkt-gold);
@@ -935,7 +935,8 @@
 
 /* ─── Steps ─── */
 .mkt-step-num {
-  font-family: 'Abril Fatface', Georgia, serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   font-size: 2rem;
   color: color-mix(in srgb, var(--mkt-gold) 90%, var(--nm-charcoal));
   line-height: 1;

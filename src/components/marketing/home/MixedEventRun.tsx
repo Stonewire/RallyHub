@@ -1,4 +1,4 @@
-import { ArrowRight, Camera, ListChecks, Music4, Trophy, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Camera, ListChecks, Music4, Puzzle, Trophy, type LucideIcon } from 'lucide-react'
 import { Fragment } from 'react'
 
 import { Reveal } from './Reveal'
@@ -28,6 +28,13 @@ const RUN: RunStage[] = [
   },
   {
     stage: 'Stage 03',
+    icon: Puzzle,
+    title: 'Puzzles',
+    body: 'Crosswords, word games and matching rounds for a change of pace.',
+    tags: ['Crossword', 'Matching'],
+  },
+  {
+    stage: 'Stage 04',
     icon: Music4,
     title: 'Music bingo',
     body: 'Play the clips, reveal the tracks and give every team its own shuffled card.',
@@ -51,22 +58,22 @@ export function MixedEventRun() {
             <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
               One continuous experience
             </p>
-            <h2 className="font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl lg:text-[2.9rem]">
-              Stop stitching the fun together{' '}
-              <span className="text-[var(--mkt-gold)]">across different apps.</span>
+            <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl lg:text-[2.8rem]">
+              One event.{' '}
+              <span className="text-[var(--mkt-gold)]">As many games as you want in it.</span>
             </h2>
           </Reveal>
           <Reveal delay={1}>
             <p className="text-[color:var(--mkt-show-muted)] text-lg leading-relaxed">
-              Start with a photo quest. Move into timed quiz rounds. Turn up the music for bingo.
-              Reveal the final podium, all without asking teams to switch links, apps or
-              leaderboards.
+              Run a quiz night on its own. Or stack a photo quest, a puzzle round and a music
+              bingo finale into one event with one continuous score. Every game lives in the same
+              app, so switching stages takes a tap, not a new tool.
             </p>
           </Reveal>
         </div>
 
         <ol
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-stretch lg:gap-2"
+          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-stretch lg:gap-2"
           aria-label="Example mixed-format RallyHub event"
         >
           {RUN.map((item, i) => (

@@ -109,12 +109,13 @@ export function DemoContactSection() {
           <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
             Book a walkthrough
           </p>
-          <h2 className="font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
-            Show us the event you want to run.
+          <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+            See a real event, not a slideshow.
           </h2>
           <p className="text-[color:var(--mkt-show-muted)] mt-4 max-w-md text-lg leading-relaxed">
-            Tell us the shape of your event and we will show you how RallyHub brings the whole
-            experience together.
+            Book 30 minutes. We will build an event in front of you, brand it like one of your
+            clients, and run you through it as a player. If it is not obviously faster than how
+            you work today, no hard feelings.
           </p>
           <div className="mt-8 rounded-2xl border border-[var(--mkt-show-border)] bg-[var(--mkt-show-elev)] p-6">
             <p className="text-[color:var(--mkt-show-muted)] text-sm">

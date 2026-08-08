@@ -22,6 +22,7 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
@@ -61,6 +62,9 @@ const orgNav = [
 ] as const
 
 export function AdminAppSidebar() {
+  // Choosing a section closes the mobile sheet — the menu is a launcher,
+  // not a place to stay (Rumen, 9 Aug).
+  const { setOpenMobile } = useSidebar()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   const { role } = useAuth()
@@ -129,7 +133,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, to, end)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to={to} end={end} data-tour={tourId}>
+                    <NavLink to={to} end={end} data-tour={tourId} onClick={() => setOpenMobile(false)}>
                       <Icon className="shrink-0" />
                       <span className="font-medium">{label}</span>
                     </NavLink>
@@ -145,7 +149,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, '/admin/settings', true)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to="/admin/settings">
+                    <NavLink to="/admin/settings" onClick={() => setOpenMobile(false)}>
                       <UserCircle className="shrink-0" strokeWidth={1.75} />
                       <span className="font-medium">Profile</span>
                     </NavLink>
@@ -161,7 +165,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, '/admin/team', true)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to="/admin/team">
+                    <NavLink to="/admin/team" onClick={() => setOpenMobile(false)}>
                       <IconUsers className="shrink-0" />
                       <span className="font-medium">Team</span>
                     </NavLink>
@@ -215,7 +219,7 @@ export function AdminAppSidebar() {
                 isActive={isAdminNavActive(pathname, '/admin/support', true)}
                 className="text-sidebar-foreground"
               >
-                <NavLink to="/admin/support" data-tour="nav-support" className="justify-center">
+                <NavLink to="/admin/support" data-tour="nav-support" className="justify-center" onClick={() => setOpenMobile(false)}>
                   <IconSupport className="size-4" />
                   <span className="font-medium">Support</span>
                 </NavLink>

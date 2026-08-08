@@ -286,8 +286,8 @@ export function AdminEventsPage() {
     >
       <OrgSuspendedBanner accountStatus={orgQuery.data?.account_status} />
 
-      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
+      <div className="border-border/70 mb-6 flex flex-col gap-3 border-b pb-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap gap-2 max-xl:justify-center">
         <button
           type="button"
           className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${view === 'events' && statusFilter === 'all' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
@@ -320,7 +320,7 @@ export function AdminEventsPage() {
         </button>
         </div>
         {view === 'events' ? (
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center max-xl:mx-auto max-xl:max-w-xl max-xl:justify-center xl:w-auto">
             <div className="relative min-w-52 flex-1">
               <IconSearch className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <Input

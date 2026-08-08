@@ -4,22 +4,24 @@ import { BrandingPreview } from '@/components/marketing/home/BrandingPreview'
 import { DemoContactSection } from '@/components/marketing/home/DemoContactSection'
 import { EventBuilderShowcase } from '@/components/marketing/home/EventBuilderShowcase'
 import { FacilitatorShowcase } from '@/components/marketing/home/FacilitatorShowcase'
-import { HowItWorks } from '@/components/marketing/home/HowItWorks'
 import { LiveViewsShowcase } from '@/components/marketing/home/LiveViewsShowcase'
 import { MarketingHero } from '@/components/marketing/home/MarketingHero'
 import { MarketingHomeFooter } from '@/components/marketing/home/MarketingHomeFooter'
 import { MarketingHomeHeader } from '@/components/marketing/home/MarketingHomeHeader'
 import { MixedEventRun } from '@/components/marketing/home/MixedEventRun'
+import { PricingMaths } from '@/components/marketing/home/PricingMaths'
 import { PricingSection } from '@/components/marketing/home/PricingSection'
 import { ProofStrip } from '@/components/marketing/home/ProofStrip'
 import { ScrollProgress } from '@/components/marketing/home/Reveal'
+import { StoreShowcase } from '@/components/marketing/home/StoreShowcase'
+import { TrustStrip } from '@/components/marketing/home/TrustStrip'
 
 export function MarketingLandingPage() {
   return (
     <div className="mkt neo-minimal-scope min-h-svh overflow-x-clip bg-[var(--nm-bg-base)]">
       <PageHead
-        title="RallyHub — One link, one leaderboard, your whole team event"
-        description="RallyHub is the all-in-one platform for live team events. Build quests, quizzes and music bingo into one branded run, host from a single control room, and keep every team on one live leaderboard. Players join in the browser, no app required."
+        title="RallyHub — Event software for people who run events"
+        description="Design your team-building games once, brand them for every client, and run the whole event live from one screen. Quests, quizzes, puzzles and music bingo on one leaderboard. Players join in the browser. Event set-up in about 10 minutes."
         path="/"
         ogImage="/og-image.jpg"
       />
@@ -34,7 +36,9 @@ export function MarketingLandingPage() {
         <FacilitatorShowcase />
         <LiveViewsShowcase />
         <BrandingPreview />
-        <HowItWorks />
+        <StoreShowcase />
+        <PricingMaths />
+        <TrustStrip />
         <AudienceCards />
         <PricingSection />
         <DemoContactSection />

@@ -1,5 +1,4 @@
 import { ArrowRight, Camera, Check, ListChecks, Music4 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 import { NeoButton } from '@/components/neo-minimal'
 
@@ -23,34 +22,36 @@ export function MarketingHero() {
         <Reveal className="space-y-6">
           <p className="mkt-eyebrow">
             <span className="mkt-live-pulse" aria-hidden />
-            The all-in-one live team event platform
+            Event software for people who run events
           </p>
-          <h1 className="text-foreground font-display text-[2.6rem] font-normal leading-[1.05] tracking-tight sm:text-6xl lg:text-[4rem]">
-            One link. One leaderboard.{' '}
+          <h1 className="text-foreground font-sans text-[2.5rem] font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-[3.9rem]">
+            Design it once. Brand it for every client.{' '}
             <span className="text-[color-mix(in_srgb,var(--nm-yellow)_88%,var(--nm-charcoal))]">
-              Your whole event.
+              Run it live.
             </span>
           </h1>
           <p className="text-muted-foreground max-w-xl text-lg leading-relaxed">
-            Build quests, live quizzes and music bingo into one branded run. Facilitate from one
-            calm control room while teams play on their phones and the room follows on the big
-            screen.
+            RallyHub turns your game library into client-ready team events. Quests, quizzes,
+            puzzles and music bingo in one run, on one leaderboard, controlled from one screen.
+            Set-up for a new event: about 10 minutes.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <NeoButton variant="accent" size="lg" asChild>
-              <Link to="/register">
-                Start building
+              <a href="#contact">
+                Book a demo
                 <ArrowRight className="size-4" aria-hidden />
-              </Link>
+              </a>
             </NeoButton>
             <NeoButton variant="surface" size="lg" asChild>
-              <a href="#contact">Book a demo</a>
+              <a href="https://demo.rallyhub.games" target="_blank" rel="noreferrer">
+                Watch a live event
+              </a>
             </NeoButton>
           </div>
           <div className="mkt-micro-proof pt-2" aria-label="Product highlights">
             <span>
               <Check aria-hidden />
-              No app for players
+              Players join in the browser
             </span>
             <span>
               <Check aria-hidden />
@@ -58,7 +59,7 @@ export function MarketingHero() {
             </span>
             <span>
               <Check aria-hidden />
-              Live, synced scoring
+              One live leaderboard
             </span>
           </div>
         </Reveal>

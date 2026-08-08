@@ -12,7 +12,7 @@ export function LiveViewsShowcase() {
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
             Three purpose-built views
           </p>
-          <h2 className="text-foreground font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
+          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
             The right screen <span className="text-muted-foreground">for everyone in the room.</span>
           </h2>
           <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
