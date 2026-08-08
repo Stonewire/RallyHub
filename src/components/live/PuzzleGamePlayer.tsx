@@ -2,6 +2,7 @@ import { Check, Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
+import { playQuizSelectSound } from '@/lib/sounds'
 import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import { Button } from '@/components/ui/button'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
@@ -363,6 +364,7 @@ export function PuzzleGamePlayer({
                             : 'border-white/25 bg-white/10 text-white'
                     }`}
                     onClick={() => {
+                      playQuizSelectSound()
                       setSelectedLeft(item.id)
                       if (selectedRight) void submitMatch(item.id, selectedRight)
                     }}
@@ -392,6 +394,7 @@ export function PuzzleGamePlayer({
                             : 'border-white/25 bg-white/10 text-white'
                     }`}
                     onClick={() => {
+                      playQuizSelectSound()
                       setSelectedRight(item.id)
                       if (selectedLeft) void submitMatch(selectedLeft, item.id)
                     }}

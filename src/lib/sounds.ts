@@ -427,8 +427,9 @@ export function playQuizSelectSound() {
 }
 // ---- Keyboard clicks (CF7: Rumen's own mechanical keyboard, recorded) ------
 //
-// Four rotating key clicks plus dedicated space / submit / backspace sounds,
-// cut from his 8 Aug recording (pitched down, filtered, normalised).
+// Rumen's own prepared set (8 Aug): three rotating key clicks, two space,
+// two backspace, one submit. Only peak-normalised — no other processing, at
+// his instruction.
 // Decoded into AudioBuffers once and played through the shared context —
 // zero-latency, unlike pooled <audio> elements. Until buffers are decoded
 // (or if decode fails) a synthesised thock stands in, so the very first key
@@ -437,10 +438,10 @@ export function playQuizSelectSound() {
 export type KeyClickKind = 'key' | 'space' | 'submit' | 'backspace'
 
 const KEY_CLICK_FILES: Record<KeyClickKind, string[]> = {
-  key: ['/sounds/key-click-1.wav', '/sounds/key-click-2.wav', '/sounds/key-click-3.wav', '/sounds/key-click-4.wav'],
-  space: ['/sounds/key-space.wav'],
+  key: ['/sounds/key-click-1.wav', '/sounds/key-click-2.wav', '/sounds/key-click-3.wav'],
+  space: ['/sounds/key-space-1.wav', '/sounds/key-space-2.wav'],
   submit: ['/sounds/key-submit.wav'],
-  backspace: ['/sounds/key-backspace.wav'],
+  backspace: ['/sounds/key-backspace-1.wav', '/sounds/key-backspace-2.wav'],
 }
 
 const keyClickBuffers = new Map<string, AudioBuffer>()
