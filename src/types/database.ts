@@ -973,6 +973,7 @@ export type Database = {
           quantity: number
           points_cost_each: number
           fulfilled: boolean
+          completed_at: string | null
         }
         Insert: never
         Update: never
@@ -1258,7 +1259,12 @@ export type Database = {
       }
       complete_store_order: {
         Args: { p_order_id: string }
-        Returns: { team_id: string; remaining_score: number }[]
+        Returns: {
+          team_id: string
+          remaining_score: number
+          taken_points: number
+          order_done: boolean
+        }[]
       }
       cancel_store_order: {
         Args: { p_order_id: string }

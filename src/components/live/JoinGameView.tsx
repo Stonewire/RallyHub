@@ -11,6 +11,7 @@ import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
 import { GameUnavailableFallback } from '@/components/live/GameUnavailableFallback'
 import {
+  OrderSentOverlay,
   ParticipantAnnouncementOverlay,
   ParticipantChatOverlay,
   ParticipantExitDialog,
@@ -218,6 +219,7 @@ export function JoinGameView({
   const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
   const [storeOpen, setStoreOpen] = useState(false)
   const [storeView, setStoreView] = useState<'store' | 'orders'>('store')
+  const [orderSentOpen, setOrderSentOpen] = useState(false)
   // Organisers running an event without a physical item shop switch this off.
   // On top of that, a facilitator can close the store mid-event with the
   // Purchase items toggle; My Items stays reachable so teams still see what
@@ -652,6 +654,18 @@ export function JoinGameView({
       setSubmitting(false)
     })
     const afterFlush = nowMs()
+    // iOS (Safari and Chrome) sometimes commits this update but never
+    // presents the frame: the sound plays, the facilitator already has the
+    // submission, and the player stares at the frozen capture screen until
+    // the NEXT DOM change repaints it (8 Aug: 9-10s, unfrozen exactly when
+    // the approval landed). Touching a compositor-affecting style forces a
+    // present right now.
+    requestAnimationFrame(() => {
+      document.body.style.transform = 'translateZ(0)'
+      requestAnimationFrame(() => {
+        document.body.style.transform = ''
+      })
+    })
     playSubmitSound()
     notify('Submitted — waiting for approval')
     if (!timing) return
@@ -1858,6 +1872,7 @@ export function JoinGameView({
           accentColor={accent}
           view={storeView}
           onClose={() => setStoreOpen(false)}
+          onOrderPlaced={() => setOrderSentOpen(true)}
         />
       ) : null}
       {typeof document !== 'undefined' && !chatOpen && !captureActive && !inventoryScannerOpen
@@ -1902,6 +1917,11 @@ export function JoinGameView({
         announcement={announcement}
         accent={accent}
         onDismiss={onDismissAnnouncement}
+      />
+      <OrderSentOverlay
+        open={orderSentOpen}
+        accent={accent}
+        onClose={() => setOrderSentOpen(false)}
       />
       <ParticipantExitDialog
         open={exitDialogOpen}

@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.6.0 - 2026-08-08 (evening test-pass, CF4)
+
+- Order confirmation is a proper moment now: a centred full-screen card
+  ("Order sent!" with a big Close button), the same shape as a facilitator
+  announcement, instead of a toast at the top.
+- Partial order completion: the facilitator ticks what was actually handed
+  over and presses "Complete selected and take X points" — only those items
+  complete and only their points move; the rest stays pending in the same
+  order. Completed items lock with "handed over, points taken". Cancelling
+  releases only the not-yet-completed items. No points move before the
+  button, ever.
+- iPhone submit freeze fixed: iOS sometimes committed the post-submit screen
+  but never painted it — sound played, the facilitator already had the
+  submission, and the player stared at a frozen capture screen until the
+  next update (often the approval, ~10s later). A forced repaint now lands
+  the challenge list immediately on every submit.
+- iPhone Chrome could bounce far past the end of the page into blank space;
+  live surfaces now disable overscroll entirely (Safari already clamped it,
+  and since V3.5.0 the area behind the page wears the event colour).
+
 ## V3.5.1 - 2026-08-08
 
 - Number fields behave like text now: the value can be deleted completely
