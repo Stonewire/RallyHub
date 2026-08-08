@@ -5,6 +5,22 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.11.0 - 2026-08-09 (marketing page rework)
+
+- Marketing homepage rebuilt around the agency-first positioning from the
+  August 2026 competitive brief: new hero ("Design it once. Brand it for every
+  client. Run it live."), Book a demo as the primary CTA everywhere, and the
+  live demo site as the secondary proof path.
+- New sections: the event store ("Digital points. Physical consequences."),
+  a worked pricing comparison versus per-player tools, and a GDPR/trust strip.
+- Mixed-event run now shows five stages including puzzles; proof strip leads
+  with the 10-minute set-up claim.
+- Copy rewritten in the new voice (docs/marketing/voice-guide.md): per-event
+  client branding instead of "white-label", web-app install story instead of
+  "no installs".
+- Marketing headings moved off the retired serif display font to bold sans;
+  How-it-works section retired.
+
 ## V3.10.1 - 2026-08-09
 
 - The hamburger menu closes itself when a section is chosen — it is a
