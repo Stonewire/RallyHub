@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.9.0 - 2026-08-09
+
+- Keyboard clicks replaced with Rumen's purchased studio pack: eight clean
+  ~60ms clicks cut straight from the pack (no processing beyond level),
+  deeper strokes on the space bar, the usual 3/2/2/1 rotation.
+- Forgiving key targets, like a real phone keyboard: the whole keyboard
+  routes each tap to the nearest key, so a thumb landing in the gap between
+  keys or a couple of pixels off still types. Verified on the iPhone
+  simulator with deliberate gap taps.
+
 ## V3.8.3 - 2026-08-09
 
 - Keyboard clicks softer and darker again: highs rolled off harder

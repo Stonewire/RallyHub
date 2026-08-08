@@ -164,6 +164,45 @@ export function VirtualKeyboard({
     <div
       className="fixed inset-x-0 bottom-0 z-[10002] bg-black/85 pt-2.5 backdrop-blur-md select-none"
       style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))' }}
+      // Forgiving hit targets, like a real phone keyboard (CF9): the whole
+      // panel takes the pointer-down and routes it to the NEAREST letter key,
+      // so a thumb landing in a gap or a couple of pixels off still types.
+      // Commits on finger DOWN, like iOS. Modifier keys keep their own
+      // handlers; a miss near them falls through to the closest letter only
+      // when it is genuinely close.
+      onPointerDown={(e) => {
+        if (disabled) return
+        const target = e.target as HTMLElement
+        // Direct hit on a letter key: press it (letters have no handler of
+        // their own — this delegate is the only path).
+        const direct = target.closest('button[data-kb]') as HTMLButtonElement | null
+        if (direct) {
+          if (!direct.disabled) {
+            e.preventDefault()
+            press(direct.dataset.kb!)
+          }
+          return
+        }
+        // Any other real button (modifiers, space, submit) handles itself.
+        if (target.closest('button')) return
+        e.preventDefault()
+        const panel = e.currentTarget as HTMLElement
+        let best: HTMLButtonElement | null = null
+        let bestDistance = Infinity
+        for (const el of panel.querySelectorAll<HTMLButtonElement>('button[data-kb]')) {
+          if (el.disabled) continue
+          const r = el.getBoundingClientRect()
+          const dx = Math.max(r.left - e.clientX, 0, e.clientX - r.right)
+          const dy = Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)
+          const d = Math.hypot(dx, dy)
+          if (d < bestDistance) {
+            bestDistance = d
+            best = el
+          }
+        }
+        // Half a key of forgiveness; further away than that was not a typo.
+        if (best && bestDistance <= 22) press(best.dataset.kb!)
+      }}
     >
       {/* The panel runs to the edges, the keys keep a margin from them. */}
       <div className="mx-auto w-full max-w-2xl space-y-1.5 px-5">
@@ -192,14 +231,7 @@ export function VirtualKeyboard({
                     key={letter}
                     type="button"
                     disabled={disabled || locked}
-                    // Commit on finger DOWN, like iOS: the letter appears the
-                    // instant the key is touched, with the popped preview and
-                    // click confirming the press.
-                    onPointerDown={(e) => {
-                      e.preventDefault()
-                      if (disabled || locked) return
-                      press(letter)
-                    }}
+                    data-kb={letter}
                     style={{
                       ...keyStyle,
                       backgroundColor: state ? STATE_COLOR[state] : UNUSED_KEY_COLOR,
