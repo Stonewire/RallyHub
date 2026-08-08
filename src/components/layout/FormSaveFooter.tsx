@@ -58,15 +58,19 @@ export function FormSaveFooter({
     <div
       className={cn(
         // pointer-events-none so the strip never swallows clicks on the form
-        // it floats over; the button itself takes them back.
-        'pointer-events-none sticky bottom-6 z-20 mt-10 flex justify-end',
+        // it floats over; the button itself takes them back. On touch widths
+        // (below xl) the floating chip sat ON TOP of form fields, so it
+        // becomes a full-width bar with its own backdrop instead.
+        'pointer-events-none sticky z-20 flex',
+        'max-xl:bottom-0 max-xl:-mx-4 max-xl:mt-6 max-xl:border-t max-xl:border-border max-xl:bg-background/95 max-xl:px-4 max-xl:py-3 max-xl:backdrop-blur',
+        'xl:bottom-6 xl:mt-10 xl:justify-end',
         className,
       )}
     >
       <NeoButton
         type="button"
         variant="primary"
-        className="pointer-events-auto shadow-lg"
+        className="pointer-events-auto shadow-lg max-xl:w-full max-xl:justify-center"
         disabled={saving || dirty === false}
         onClick={onSave}
         data-tour="form-save-button"

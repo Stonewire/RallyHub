@@ -323,7 +323,7 @@ export function IconRestore(props: RhIconProps) {
 export function IconPlay(props: RhIconProps) {
   return (
     <RhIcon {...props}>
-      <path d="M8 5.6 18.5 12 8 18.4Z" />
+      <path d="M9 5.6 19.5 12 9 18.4Z" />
     </RhIcon>
   )
 }
@@ -613,6 +613,15 @@ export function IconSignOut(props: RhIconProps) {
     <RhIcon {...props}>
       <path d="M15.5 7.5V5.8A2.3 2.3 0 0 0 13.2 3.5H5.8A2.3 2.3 0 0 0 3.5 5.8v12.4a2.3 2.3 0 0 0 2.3 2.3h7.4a2.3 2.3 0 0 0 2.3-2.3v-1.7" />
       <path d="M20.5 12H9.5M17.3 8.8 20.5 12l-3.2 3.2" />
+    </RhIcon>
+  )
+}
+
+/** Hamburger: the touch-device menu trigger. */
+export function IconMenu(props: RhIconProps) {
+  return (
+    <RhIcon {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
     </RhIcon>
   )
 }

@@ -6,6 +6,7 @@ import {
   IconEvents,
   IconGames,
   IconHelp,
+  IconMenu,
   IconPanelLeft,
   IconMoon,
   IconSun,
@@ -33,7 +34,7 @@ function Divider({ className = '' }: { className?: string }) {
 /** The admin header. Composition only, owns no data of its own. */
 export function AdminHeader() {
   const navigate = useNavigate()
-  const { toggleSidebar, state } = useSidebar()
+  const { toggleSidebar, state, isMobile } = useSidebar()
   const { resolvedTheme, toggleTheme } = useTheme()
   const { role, signOut } = useAuth()
   const { tenantOrg } = useTenant()
@@ -66,12 +67,12 @@ export function AdminHeader() {
         <button
           type="button"
           onClick={toggleSidebar}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isMobile ? 'Open menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={`${ICON_BUTTON} opacity-70 hover:opacity-100`}
         >
-          {/* A panel glyph rather than an arrow: it says what the control acts
-              on, not just which way it moves. */}
-          <IconPanelLeft className="size-4" />
+          {/* Touch devices get the hamburger everyone recognises; the docked
+              desktop sidebar keeps the panel glyph. */}
+          {isMobile ? <IconMenu className="size-5" /> : <IconPanelLeft className="size-4" />}
         </button>
 
         <div className="flex-1" />

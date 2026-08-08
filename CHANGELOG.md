@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.10.0 - 2026-08-09 (mobile/tablet admin, phase 1)
+
+- Tablets and phones get a hamburger menu instead of the docked sidebar:
+  below 1280px the admin nav opens as a full-height sheet (logo, sections,
+  Support), triggered by a proper hamburger icon. Laptops and desktops keep
+  the docked sidebar.
+- The floating Save button on long forms becomes a full-width sticky bar
+  with its own backdrop on touch widths, so it no longer sits on top of
+  form fields while staying always reachable.
+- Music library play button optically centred.
+
 ## V3.9.0 - 2026-08-09
 
 - Keyboard clicks replaced with Rumen's purchased studio pack: eight clean
