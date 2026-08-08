@@ -1348,17 +1348,18 @@ export function JoinGameView({
     } else {
       body = (
         <div className="mx-auto max-w-2xl px-4 lg:max-w-4xl">
-          {inventoryEnabled || hasStore ? (
+          {/* Both or neither: with the store switched off (organiser or the
+              facilitator's Purchase items toggle) My Items goes too — no
+              items to look at, no button to puzzle over (CF6). */}
+          {inventoryEnabled ? (
             <div className="mb-4 flex gap-3">
-              {inventoryEnabled ? (
-                <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
-                  <QrCode className="size-5" /> Buy Items
-                </Button>
-              ) : null}
+              <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
+                <QrCode className="size-5" /> Buy Items
+              </Button>
               {hasStore ? (
                 <Button
                   type="button"
-                  className={`text-nm-yellow gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110 ${inventoryEnabled ? '' : 'flex-1'}`}
+                  className="text-nm-yellow flex-1 gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110"
                   onClick={openMyItems}
                 >
                   <ShoppingBag className="size-5" /> My Items

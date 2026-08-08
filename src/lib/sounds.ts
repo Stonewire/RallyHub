@@ -425,6 +425,28 @@ export function playSubmitSound() {
 export function playQuizSelectSound() {
   void ensureAudioReady(false).then(() => playSoundImmediate('quiz-select'))
 }
+/**
+ * Soft keyboard tick for the on-screen keyboard (CF6): a 30ms filtered blip,
+ * generated in Web Audio so there is zero file latency. Silent until the
+ * shared context is running (the join tap unlocks it) — typing must never
+ * stall on audio init.
+ */
+export function playKeyClickSound() {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state !== 'running') return
+  const t = ctx.currentTime
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'triangle'
+  osc.frequency.setValueAtTime(1750, t)
+  gain.gain.setValueAtTime(0.08, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03)
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.start(t)
+  osc.stop(t + 0.035)
+}
+
 /** @deprecated quiz timer-warning sound removed. */
 export function playQuizTimerWarningSound() {}
 /** @deprecated separate loser sound removed. */

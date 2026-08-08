@@ -1,7 +1,8 @@
 import { ArrowBigUp, CornerDownLeft, Delete } from 'lucide-react'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { textOnAccent } from '@/lib/live-event'
+import { playKeyClickSound } from '@/lib/sounds'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
 type Alphabet = 'latin' | 'cyrillic'
@@ -96,6 +97,22 @@ export function VirtualKeyboard({
   // for the first letter, then releases itself, like a phone keyboard.
   const [shift, setShift] = useState(true)
   const [layer, setLayer] = useState<Layer>('letters')
+  // The key currently under a finger, for the iOS-style popped-up preview.
+  const [poppedKey, setPoppedKey] = useState<string | null>(null)
+  const popTimerRef = useRef<number | null>(null)
+
+  /** Click + (Android) haptic on every key, like the phone's own keyboard. */
+  function keyFeedback() {
+    playKeyClickSound()
+    navigator.vibrate?.(8)
+  }
+
+  /** Shows the popped letter briefly even on the fastest tap. */
+  function popKey(letter: string) {
+    if (popTimerRef.current != null) window.clearTimeout(popTimerRef.current)
+    setPoppedKey(letter)
+    popTimerRef.current = window.setTimeout(() => setPoppedKey(null), 220)
+  }
 
   const letterRows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
   const rows =
@@ -104,6 +121,8 @@ export function VirtualKeyboard({
   const submitInactive = disabled || submitDisabled
 
   function press(char: string) {
+    keyFeedback()
+    popKey(char)
     onKey(layer === 'letters' && !shift ? char.toLocaleLowerCase() : char)
     if (shift) setShift(false)
   }
@@ -119,7 +138,10 @@ export function VirtualKeyboard({
       <button
         type="button"
         disabled={disabled}
-        onClick={onClick}
+        onClick={() => {
+          keyFeedback()
+          onClick()
+        }}
         aria-label={ariaLabel}
         aria-pressed={active}
         style={{
@@ -135,10 +157,13 @@ export function VirtualKeyboard({
   }
 
   return (
-    // Fixed and edge to edge: a tall grid can never push Delete/Submit off the
-    // screen, and the keys get the full width to sit in. It stops above the
-    // chat, exit and RallyHub badge rather than laying its panel over them.
-    <div className="fixed inset-x-0 bottom-[4.5rem] z-[9997] bg-black/55 py-2.5 backdrop-blur-sm select-none">
+    // Fixed to the very bottom of the screen, like the phone's own keyboard
+    // (CF6). It sits ABOVE the chat/exit fabs and the RallyHub badge — the
+    // near-opaque panel simply covers them while typing.
+    <div
+      className="fixed inset-x-0 bottom-0 z-[10002] bg-black/85 pt-2.5 backdrop-blur-md select-none"
+      style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))' }}
+    >
       {/* The panel runs to the edges, the keys keep a margin from them. */}
       <div className="mx-auto w-full max-w-2xl space-y-1.5 px-5">
         {rows.map((row, i) => {
@@ -160,12 +185,20 @@ export function VirtualKeyboard({
                 // A letter is only ever 'absent' once every occurrence of it has come
                 // back absent, so locking it can never hide a letter still in play.
                 const locked = state === 'absent'
+                const popped = poppedKey === letter
                 return (
                   <button
                     key={letter}
                     type="button"
                     disabled={disabled || locked}
-                    onClick={() => press(letter)}
+                    // Commit on finger DOWN, like iOS: the letter appears the
+                    // instant the key is touched, with the popped preview and
+                    // click confirming the press.
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      if (disabled || locked) return
+                      press(letter)
+                    }}
                     style={{
                       ...keyStyle,
                       backgroundColor: state ? STATE_COLOR[state] : UNUSED_KEY_COLOR,
@@ -173,11 +206,27 @@ export function VirtualKeyboard({
                     }}
                     // Ruled-out keys keep their solid grey instead of fading, so they
                     // still read as "already tried" rather than as a rendering glitch.
-                    className={`flex h-10 items-center justify-center rounded-md text-base font-bold transition-colors active:scale-95 md:h-12 ${
+                    className={`relative flex h-10 items-center justify-center rounded-md text-base font-bold transition-colors md:h-12 ${
                       layer === 'letters' && !shift ? 'lowercase' : 'uppercase'
                     } ${disabled && !locked ? 'opacity-40' : ''}`}
                   >
                     {letter}
+                    {popped ? (
+                      // The iOS key pop: a larger copy of the letter above the
+                      // finger, so the press is visible under a thumb.
+                      <span
+                        aria-hidden
+                        className={`pointer-events-none absolute -top-12 left-1/2 z-10 flex h-12 w-11 -translate-x-1/2 items-center justify-center rounded-lg text-3xl font-bold shadow-xl ${
+                          layer === 'letters' && !shift ? 'lowercase' : 'uppercase'
+                        }`}
+                        style={{
+                          backgroundColor: state ? STATE_COLOR[state] : UNUSED_KEY_COLOR,
+                          color: state ? STATE_TEXT[state] : UNUSED_KEY_TEXT,
+                        }}
+                      >
+                        {letter}
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}
@@ -204,7 +253,10 @@ export function VirtualKeyboard({
             <button
               type="button"
               disabled={disabled}
-              onClick={() => onKey(' ')}
+              onClick={() => {
+                keyFeedback()
+                onKey(' ')
+              }}
               aria-label="Space"
               style={{
                 // Takes whatever the send key leaves, so the row always ends
