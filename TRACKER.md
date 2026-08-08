@@ -510,7 +510,7 @@ expected on this branch and is not a bug to chase.
 
 ## CF2 — Feedback from the 7 Aug live event (Ufficju Elettorali, Afterglow)
 
-Branch work only, NO pushes until Rumen says so (another event imminent).
+Rumen approved pushing straight to main on 7 Aug (no events imminent).
 
 - [ ] CF2-1 Default "Welcome" stage type: shows a welcome message while teams
       sign in, instead of exposing all games immediately.
@@ -524,21 +524,25 @@ Branch work only, NO pushes until Rumen says so (another event imminent).
 - [ ] CF2-5 Manual camera permission re-request when a team refused it at
       join. Rumen wants this reachable via "facilitator menu" — interpretation
       to confirm (a device cannot re-prompt another device).
-- [ ] CF2-6 Inventory fulfilment: facilitator marks a purchase as done;
-      purchases list filters pending / done / all; done collapse under (done).
-      Needs a fulfilled_at column + policy + facilitator UI.
-- [ ] CF2-7 Camera permission gate at join: if refused, tell the team they
-      cannot play without accepting, offer refresh/retry.
+- [x] CF2-6 Superseded by the event Store (V3.3.0 + V3.4.0): teams order
+      from a basket, the facilitator's Store orders card ticks items off per
+      team, Complete all takes the points, done orders collapse into their
+      own list. The old scan-to-buy purchases panel stays for storeless
+      events.
+- [x] CF2-7 Camera permission gate at join (V3.4.0): full screen prompt
+      right after joining with one big Approve button; refusal shows how to
+      fix it in browser settings plus Try again; skip is a small link.
 - [x] CF2-8 Team slot takeover: a new device may claim a taken slot by
       entering the org's TABLET password (Rumen's decision, 7 Aug); the old
       device is logged out via token rotation.
-- [ ] CF2-9 Facilitator sees the submitted (wrong) answer AND the expected
-      answer for every text item. Related to CF2-11.
+- [x] CF2-9 Review cards and the submission modal show the team's answer,
+      a correct/wrong verdict chip and the full expected answer (V3.2.x).
 - [ ] CF2-10 "Play slideshow" facilitator action: display cycles all
       submissions + team photos (end-of-event while packing).
-- [ ] CF2-11 BUG Investigate text games during the event: some review cards
-      showed no expected answer, some showed the answer of a different
-      similar game.
+- [x] CF2-11 BUG root-caused: parseTextGameConfig silently fell back to
+      options[0] when the correct id was unset, and typed games carried
+      leftover options from earlier edits. Strict by-mode reads shipped with
+      unit tests over the real leftover shapes (V3.2.x).
 - [x] CF2-12 Readable submit errors: diagnostics logged "[object Object]"
       (supabase error objects aren't Error instances); players need a
       friendly "check connection, tap to retry" message.

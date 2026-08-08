@@ -23,6 +23,8 @@ import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { quizQuestionSeconds } from '@/lib/quiz-timing'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
 import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
+import { EventStoreSheet } from '@/components/live/EventStoreSheet'
+import { parseStoreConfig } from '@/lib/event-form-utils'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
 import { PuzzleGamePlayer } from '@/components/live/PuzzleGamePlayer'
 import { BrandBackground } from '@/components/live/BrandBackground'
@@ -213,8 +215,17 @@ export function JoinGameView({
   const [chatOpen, setChatOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [inventoryScannerOpen, setInventoryScannerOpen] = useState(false)
+  const [storeOpen, setStoreOpen] = useState(false)
   // Organisers running an event without a physical item shop switch this off.
   const inventoryEnabled = event.inventory_enabled ?? true
+  // An event with a configured store gets the in-app store; events without
+  // one keep the printed-QR scanner flow.
+  const hasStore = parseStoreConfig(event.store_config).length > 0
+
+  function openBuyItems() {
+    if (hasStore) setStoreOpen(true)
+    else setInventoryScannerOpen(true)
+  }
 
   const handleInventoryItemScanned = useCallback((publicCode: string) => {
     setInventoryScannerOpen(false)
@@ -1239,7 +1250,7 @@ export function JoinGameView({
                   type="button"
                   size="sm"
                   className="text-nm-yellow w-fit justify-self-end gap-2 border-none bg-black px-4 py-2 font-semibold shadow-md hover:bg-black hover:brightness-110"
-                  onClick={() => setInventoryScannerOpen(true)}
+                  onClick={openBuyItems}
                 >
                   <QrCode className="size-4" /> Buy Items
                 </Button>
@@ -1317,7 +1328,7 @@ export function JoinGameView({
       body = (
         <div className="mx-auto max-w-2xl px-4 lg:max-w-4xl">
           {inventoryEnabled ? (
-            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={() => setInventoryScannerOpen(true)}>
+            <Button type="button" className="mb-4 w-full gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
               <QrCode className="size-5" /> Buy Items
             </Button>
           ) : null}
@@ -1719,7 +1730,7 @@ export function JoinGameView({
     announcedWinnerIds.includes(winnerTeamId) &&
     state.bingo_state === 'revealed'
 
-  const showChatFab = !chatOpen && !captureActive && !selectedGame && !inventoryScannerOpen
+  const showChatFab = !chatOpen && !captureActive && !selectedGame && !inventoryScannerOpen && !storeOpen
 
   // Keep document scroll anchored at top when switching challenge views.
   useEffect(() => {
@@ -1804,6 +1815,13 @@ export function JoinGameView({
         <InventoryQrScanner
           onClose={() => setInventoryScannerOpen(false)}
           onItemScanned={handleInventoryItemScanned}
+        />
+      ) : null}
+      {storeOpen ? (
+        <EventStoreSheet
+          eventId={event.id}
+          accentColor={accent}
+          onClose={() => setStoreOpen(false)}
         />
       ) : null}
       {typeof document !== 'undefined' && !chatOpen && !captureActive && !inventoryScannerOpen

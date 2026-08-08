@@ -30,6 +30,8 @@ export const queryKeys = {
   inventoryGroups: (orgId: string | null) => ['inventory-groups', orgId] as const,
   inventoryPurchases: (eventId: string | undefined) =>
     ['inventory-purchases', eventId] as const,
+  inventoryOrders: (eventId: string | undefined) =>
+    ['inventory-orders', eventId] as const,
   bingoRun: (eventId: string, stageIndex: number) =>
     ['bingo-run', eventId, stageIndex] as const,
   organizationFacilitators: (orgId: string | null) =>

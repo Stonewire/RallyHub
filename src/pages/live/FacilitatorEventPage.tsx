@@ -18,6 +18,7 @@ import {
   FacilitatorChatDrawer,
   useFacilitatorChatInbox,
 } from '@/components/live/FacilitatorChatDrawer'
+import { StoreOrdersPanel } from '@/components/live/facilitator/StoreOrdersPanel'
 import { SubmissionDetailModal } from '@/components/live/SubmissionDetailModal'
 import { TeamQuestProgressModal } from '@/components/live/TeamQuestProgressModal'
 import {
@@ -2260,6 +2261,7 @@ export function FacilitatorEventPage() {
             </>
             </Card>
           ) : null}
+          {eventId ? <StoreOrdersPanel eventId={eventId} teams={teams} /> : null}
           <Card className="neo-card border-border/80 bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
