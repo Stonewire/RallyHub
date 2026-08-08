@@ -99,7 +99,7 @@ import {
   quizRoundForQuestionIndex,
 } from '@/lib/quiz-rounds'
 import { useLiveTimer } from '@/hooks/use-live-timer'
-import { createThrottledTimerSync } from '@/lib/live-timer-sync'
+import { LiveClock } from '@/components/live/LiveClock'
 import {
   playAnnouncementSound,
   playEventWinnerSequence,
@@ -270,36 +270,15 @@ export function JoinGameView({
   const { notify } = useNotification()
   const [chatText, setChatText] = useState('')
 
-  const breakSyncRef = useRef(
-    createThrottledTimerSync(() => {
-      /* display-only read; join does not write break timer */
-    }),
-  )
-
   const breakSeconds =
     stage?.type === 'break'
       ? breakDurationSeconds(stage, state.break_timer_seconds)
       : (state.break_timer_seconds ?? 0)
 
-  const breakDisplay = useLiveTimer(
-    breakSeconds,
-    Boolean(state.break_timer_running),
-    (next, stillRunning) => breakSyncRef.current(next, stillRunning),
-  )
-
   // Teams asked how long is left and had to look up at the room's screen. The
   // countdown follows the same "Timer on display" switch the display obeys, so
-  // turning it off still hides it everywhere.
-  const eventTimerSyncRef = useRef(
-    createThrottledTimerSync(() => {
-      /* read-only on the player; the facilitator persists timer state */
-    }),
-  )
-  const eventTimerDisplay = useLiveTimer(
-    state.timer_seconds ?? 0,
-    Boolean(state.timer_running),
-    (next, stillRunning) => eventTimerSyncRef.current(next, stillRunning),
-  )
+  // turning it off still hides it everywhere. Both countdowns render through
+  // LiveClock so their 1Hz tick never re-renders this whole surface.
   const showEventTimer =
     Boolean(state.show_timer_on_display) &&
     stage?.type !== 'break' &&
@@ -661,10 +640,14 @@ export function JoinGameView({
     // the approval landed). Touching a compositor-affecting style forces a
     // present right now.
     requestAnimationFrame(() => {
-      document.body.style.transform = 'translateZ(0)'
-      requestAnimationFrame(() => {
-        document.body.style.transform = ''
-      })
+      // A 1px throwaway node: enough DOM churn to make WebKit present the
+      // pending frame, without re-layering the whole page like a body
+      // transform would.
+      const nudge = document.createElement('div')
+      nudge.style.cssText =
+        'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;pointer-events:none'
+      document.body.appendChild(nudge)
+      requestAnimationFrame(() => nudge.remove())
     })
     playSubmitSound()
     notify('Submitted — waiting for approval')
@@ -1128,9 +1111,12 @@ export function JoinGameView({
       ) : null}
       <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
       {showEventTimer ? (
-        <p className="rounded-full bg-black/35 px-3 py-0.5 text-sm font-black tabular-nums backdrop-blur-sm">
-          {formatClockTimer(eventTimerDisplay)}
-        </p>
+        <LiveClock
+          seconds={state.timer_seconds ?? 0}
+          running={Boolean(state.timer_running)}
+          render={formatClockTimer}
+          className="rounded-full bg-black/35 px-3 py-0.5 text-sm font-black tabular-nums backdrop-blur-sm"
+        />
       ) : null}
       {stage?.type === 'quiz' && stage.gameId ? (
         state.quiz_state === 'results' ? (
@@ -1758,9 +1744,12 @@ export function JoinGameView({
         <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
           {stage.message ?? 'Back shortly'}
         </p>
-        <p className="text-[clamp(3.5rem,18vw,6rem)] leading-[0.85] font-black tabular-nums drop-shadow-lg">
-          {formatBreakTimer(breakDisplay)}
-        </p>
+        <LiveClock
+          seconds={breakSeconds}
+          running={Boolean(state.break_timer_running)}
+          render={formatBreakTimer}
+          className="text-[clamp(3.5rem,18vw,6rem)] leading-[0.85] font-black tabular-nums drop-shadow-lg"
+        />
       </div>
     )
   } else {

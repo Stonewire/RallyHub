@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.6.1 - 2026-08-08
+
+- iPhone smoothness pass (CF5). Two real costs found and removed: the event
+  and break countdowns lived inside the main player component, so every
+  one-second tick re-rendered the entire surface for the whole event — they
+  now tick inside their own tiny LiveClock component; and the three huge
+  blurred background blobs animated permanently, forcing WebKit to
+  re-rasterise them every frame — on phones they are now static with a
+  lighter blur (screens md and up keep the full animated look). The
+  post-submit repaint nudge also got cheaper (a 1px throwaway node instead
+  of re-layering the whole page).
+- Database: covering indexes for the live-path foreign keys the Supabase
+  advisor flagged, plus the suggested submissions(created_at) index for the
+  dashboard queries.
+
 ## V3.6.0 - 2026-08-08 (evening test-pass, CF4)
 
 - Order confirmation is a proper moment now: a centred full-screen card

@@ -100,15 +100,15 @@ export function BrandBackground({
         {gameBackdrop ? null : (
         <div className="absolute inset-0 overflow-hidden">
           <div
-            className={`animate-blob absolute -left-[20%] top-[-10%] rounded-full ${contained ? 'size-[90%] blur-[28px]' : 'size-[70vmax] blur-[120px]'}`}
+            className={`animate-blob absolute -left-[20%] top-[-10%] rounded-full ${contained ? 'size-[90%] blur-[28px]' : 'size-[70vmax] blur-[56px] md:blur-[120px]'}`}
             style={{ background: primary, opacity }}
           />
           <div
-            className={`animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] rounded-full ${contained ? 'size-[80%] blur-[28px]' : 'size-[65vmax] blur-[120px]'}`}
+            className={`animate-blob animation-delay-2000 absolute -right-[15%] top-[10%] rounded-full ${contained ? 'size-[80%] blur-[28px]' : 'size-[65vmax] blur-[56px] md:blur-[120px]'}`}
             style={{ background: accent, opacity }}
           />
           <div
-            className={`animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] rounded-full ${contained ? 'size-[75%] blur-[28px]' : 'size-[60vmax] blur-[120px]'}`}
+            className={`animate-blob animation-delay-4000 absolute bottom-[-20%] left-[20%] rounded-full ${contained ? 'size-[75%] blur-[28px]' : 'size-[60vmax] blur-[56px] md:blur-[120px]'}`}
             style={{ background: primary, opacity: opacity * 0.85 }}
           />
         </div>
@@ -132,6 +132,12 @@ export function BrandBackground({
           66% { transform: translate(-35px, 30px) scale(0.94); }
         }
         .animate-blob { animation: blob 20s ease-in-out infinite; }
+        /* Phones: the drift is invisible on a small screen but WebKit keeps
+           re-rasterising three giant blurred layers for it, which is what
+           made scrolling choppy on iPhones (CF5). Static below md. */
+        @media (max-width: 767px) {
+          .animate-blob { animation: none; }
+        }
         .animation-delay-2000 { animation-delay: 2s; }
         .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
