@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.7.0 - 2026-08-08
+
+- The keyboard now clicks with Rumen's own recorded mechanical keyboard
+  (CF7): four rotating key clicks plus dedicated space, submit and
+  backspace sounds, cut from the 8 Aug recording, pitched down for depth,
+  filtered and normalised. Decoded into Web Audio buffers for zero-latency
+  playback; a synthesised thock stands in until they load.
+
 ## V3.6.4 - 2026-08-08
 
 - Keyboard click is now a mechanical-keyboard thock: a 6ms broadband snap

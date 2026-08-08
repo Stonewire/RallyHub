@@ -425,21 +425,48 @@ export function playSubmitSound() {
 export function playQuizSelectSound() {
   void ensureAudioReady(false).then(() => playSoundImmediate('quiz-select'))
 }
-// One shared burst of white noise for the key click; built lazily so no
-// audio work happens before the context exists.
+// ---- Keyboard clicks (CF7: Rumen's own mechanical keyboard, recorded) ------
+//
+// Four rotating key clicks plus dedicated space / submit / backspace sounds,
+// cut from his 8 Aug recording (pitched down, filtered, normalised).
+// Decoded into AudioBuffers once and played through the shared context —
+// zero-latency, unlike pooled <audio> elements. Until buffers are decoded
+// (or if decode fails) a synthesised thock stands in, so the very first key
+// press still clicks.
+
+export type KeyClickKind = 'key' | 'space' | 'submit' | 'backspace'
+
+const KEY_CLICK_FILES: Record<KeyClickKind, string[]> = {
+  key: ['/sounds/key-click-1.wav', '/sounds/key-click-2.wav', '/sounds/key-click-3.wav', '/sounds/key-click-4.wav'],
+  space: ['/sounds/key-space.wav'],
+  submit: ['/sounds/key-submit.wav'],
+  backspace: ['/sounds/key-backspace.wav'],
+}
+
+const keyClickBuffers = new Map<string, AudioBuffer>()
+let keyClickLoadStarted = false
+
+/** Fetch+decode all click files once; safe to call every keystroke. */
+function ensureKeyClickBuffers(ctx: AudioContext) {
+  if (keyClickLoadStarted) return
+  keyClickLoadStarted = true
+  for (const files of Object.values(KEY_CLICK_FILES)) {
+    for (const url of files) {
+      void fetch(url)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+        .then((buf) => ctx.decodeAudioData(buf))
+        .then((decoded) => keyClickBuffers.set(url, decoded))
+        .catch(() => {
+          // Missing/undecodable file: the synth fallback keeps clicking.
+        })
+    }
+  }
+}
+
 let keyClickNoise: AudioBuffer | null = null
 
-/**
- * Keyboard click (CF6/CF7): a mechanical-keyboard "thock" — a 6ms broadband
- * snap plus a low ~45ms body thump. No resonant filters: a high-Q band-pass
- * is what made earlier versions read as a beep. Each press varies slightly
- * in level and weight so fast typing sounds mechanical, not looped.
- * Generated in Web Audio (zero file latency); silent until the shared
- * context is running — typing must never stall on audio init.
- */
-export function playKeyClickSound() {
-  const ctx = getSharedAudioContext()
-  if (!ctx || ctx.state !== 'running') return
+/** Synth stand-in while the recorded buffers decode. */
+function playSynthThock(ctx: AudioContext) {
   if (!keyClickNoise || keyClickNoise.sampleRate !== ctx.sampleRate) {
     const length = Math.floor(ctx.sampleRate * 0.06)
     keyClickNoise = ctx.createBuffer(1, length, ctx.sampleRate)
@@ -447,37 +474,39 @@ export function playKeyClickSound() {
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
   }
   const t = ctx.currentTime
-  const vary = 0.9 + Math.random() * 0.2
-
-  // The snap: the plastic click of the keycap. High-passed noise, gone in 6ms.
-  const snap = ctx.createBufferSource()
-  snap.buffer = keyClickNoise
-  const snapFilter = ctx.createBiquadFilter()
-  snapFilter.type = 'highpass'
-  snapFilter.frequency.setValueAtTime(2600, t)
-  const snapGain = ctx.createGain()
-  snapGain.gain.setValueAtTime(0.22 * vary, t)
-  snapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.006)
-  snap.connect(snapFilter)
-  snapFilter.connect(snapGain)
-  snapGain.connect(ctx.destination)
-  snap.start(t)
-  snap.stop(t + 0.01)
-
-  // The thock: the key bottoming out. Low-passed noise, soft and round.
   const body = ctx.createBufferSource()
   body.buffer = keyClickNoise
   const bodyFilter = ctx.createBiquadFilter()
   bodyFilter.type = 'lowpass'
-  bodyFilter.frequency.setValueAtTime(520 * vary, t)
+  bodyFilter.frequency.setValueAtTime(520, t)
   const bodyGain = ctx.createGain()
-  bodyGain.gain.setValueAtTime(0.55 * vary, t)
+  bodyGain.gain.setValueAtTime(0.5, t)
   bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.045)
   body.connect(bodyFilter)
   bodyFilter.connect(bodyGain)
   bodyGain.connect(ctx.destination)
   body.start(t)
   body.stop(t + 0.05)
+}
+
+export function playKeyClickSound(kind: KeyClickKind = 'key') {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state !== 'running') return
+  ensureKeyClickBuffers(ctx)
+  const files = KEY_CLICK_FILES[kind]
+  const url = files[Math.floor(Math.random() * files.length)]
+  const buffer = keyClickBuffers.get(url) ?? keyClickBuffers.get(files[0])
+  if (!buffer) {
+    playSynthThock(ctx)
+    return
+  }
+  const source = ctx.createBufferSource()
+  source.buffer = buffer
+  const gain = ctx.createGain()
+  gain.gain.setValueAtTime(0.9, ctx.currentTime)
+  source.connect(gain)
+  gain.connect(ctx.destination)
+  source.start()
 }
 
 /** @deprecated quiz timer-warning sound removed. */

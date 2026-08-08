@@ -2,7 +2,7 @@ import { ArrowBigUp, CornerDownLeft, Delete } from 'lucide-react'
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { textOnAccent } from '@/lib/live-event'
-import { playKeyClickSound } from '@/lib/sounds'
+import { playKeyClickSound, type KeyClickKind } from '@/lib/sounds'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
 type Alphabet = 'latin' | 'cyrillic'
@@ -102,8 +102,8 @@ export function VirtualKeyboard({
   const popTimerRef = useRef<number | null>(null)
 
   /** Click + (Android) haptic on every key, like the phone's own keyboard. */
-  function keyFeedback() {
-    playKeyClickSound()
+  function keyFeedback(kind: KeyClickKind = 'key') {
+    playKeyClickSound(kind)
     navigator.vibrate?.(8)
   }
 
@@ -133,13 +133,14 @@ export function VirtualKeyboard({
     units: number,
     ariaLabel: string,
     active = false,
+    clickKind: KeyClickKind = 'key',
   ) {
     return (
       <button
         type="button"
         disabled={disabled}
         onClick={() => {
-          keyFeedback()
+          keyFeedback(clickKind)
           onClick()
         }}
         aria-label={ariaLabel}
@@ -231,7 +232,7 @@ export function VirtualKeyboard({
                 )
               })}
               {lastRow
-                ? modifierKey(<Delete className="size-5" />, onBackspace, 1.5, 'Delete last letter')
+                ? modifierKey(<Delete className="size-5" />, onBackspace, 1.5, 'Delete last letter', false, 'backspace')
                 : null}
             </div>
           )
@@ -254,7 +255,7 @@ export function VirtualKeyboard({
               type="button"
               disabled={disabled}
               onClick={() => {
-                keyFeedback()
+                keyFeedback('space')
                 onKey(' ')
               }}
               aria-label="Space"
@@ -275,7 +276,10 @@ export function VirtualKeyboard({
               <button
                 type="button"
                 disabled={submitInactive}
-                onClick={onSubmit}
+                onClick={() => {
+                  keyFeedback('submit')
+                  onSubmit()
+                }}
                 aria-label={submitLabel}
                 style={{
                   width: spanWidth(2.5),
