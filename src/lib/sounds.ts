@@ -425,26 +425,43 @@ export function playSubmitSound() {
 export function playQuizSelectSound() {
   void ensureAudioReady(false).then(() => playSoundImmediate('quiz-select'))
 }
+// One shared burst of white noise for the key click; built lazily so no
+// audio work happens before the context exists.
+let keyClickNoise: AudioBuffer | null = null
+
 /**
- * Soft keyboard tick for the on-screen keyboard (CF6): a 30ms filtered blip,
- * generated in Web Audio so there is zero file latency. Silent until the
- * shared context is running (the join tap unlocks it) — typing must never
- * stall on audio init.
+ * Keyboard click for the on-screen keyboard (CF6/CF7). Modelled on the
+ * iPhone's key click, which is not a tone but a short damped "tock": a
+ * ~25ms noise burst through a band-pass around 1.4kHz with a fast decay.
+ * Generated in Web Audio so there is zero file latency, and silent until
+ * the shared context is running (the join tap unlocks it) — typing must
+ * never stall on audio init. (The real Apple sound file is Apple's asset,
+ * so we approximate rather than ship it.)
  */
 export function playKeyClickSound() {
   const ctx = getSharedAudioContext()
   if (!ctx || ctx.state !== 'running') return
+  if (!keyClickNoise || keyClickNoise.sampleRate !== ctx.sampleRate) {
+    const length = Math.floor(ctx.sampleRate * 0.03)
+    keyClickNoise = ctx.createBuffer(1, length, ctx.sampleRate)
+    const data = keyClickNoise.getChannelData(0)
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
+  }
   const t = ctx.currentTime
-  const osc = ctx.createOscillator()
+  const source = ctx.createBufferSource()
+  source.buffer = keyClickNoise
+  const filter = ctx.createBiquadFilter()
+  filter.type = 'bandpass'
+  filter.frequency.setValueAtTime(1400, t)
+  filter.Q.setValueAtTime(1.2, t)
   const gain = ctx.createGain()
-  osc.type = 'triangle'
-  osc.frequency.setValueAtTime(1750, t)
-  gain.gain.setValueAtTime(0.08, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03)
-  osc.connect(gain)
+  gain.gain.setValueAtTime(0.5, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025)
+  source.connect(filter)
+  filter.connect(gain)
   gain.connect(ctx.destination)
-  osc.start(t)
-  osc.stop(t + 0.035)
+  source.start(t)
+  source.stop(t + 0.03)
 }
 
 /** @deprecated quiz timer-warning sound removed. */
