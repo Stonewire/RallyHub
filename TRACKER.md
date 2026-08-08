@@ -1,20 +1,12 @@
 # RallyHub Fixes Tracker
 
-Workflow since 16 Jul 2026 (supersedes the old push-straight-to-`main` rule):
+Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 
-- **Level 1 — isolated work.** Each major feature gets its own
-  `feature/<short-name>` branch; all ordinary bug fixes share the long-lived
-  `bug-fixes` branch.
-- **Level 2 — integration.** Merge confirmed Level 1 branches into `dev` and
-  test them together.
-- **Level 3 — release candidate.** Refresh `staging` from the latest `main`,
-  then merge the confirmed `dev` candidate in. Final production-like test.
-- **Level 4 — production.** Merge `staging` into `main` only after Rumen
-  confirms staging. `main` is live.
-- A single isolated change may go Level 1 → `staging` directly, skipping `dev`,
-  but still has to be confirmed on `staging` before `main`.
-- After every production release, realign `staging` and `dev` with the new
-  `main` before starting the next cycle.
+- Two levels only. Substantial features get a `feature/<short-name>` branch;
+  everything else may go straight to `main`. `main` is live production.
+- `staging` and `dev` are retired — do not merge into them.
+- Never push while a client event is `active` (own test events are fine).
+- Every main push bumps `APP_VERSION` + CHANGELOG entry.
 
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
@@ -34,6 +26,30 @@ Bump `APP_VERSION` in `src/lib/version.ts` + add a CHANGELOG entry on every main
 5. Every risky change lands as its own commit so a single `git revert` undoes exactly that change, not a whole batch. No more full rollbacks.
 
 ---
+
+## Client feedback marathon, 7-9 Aug 2026 (V3.2.0 -> V3.9.0, all shipped)
+
+Everything from the two 7 Aug client events plus Rumen's 8 Aug test passes:
+back-button trap, team slot takeover (tablet password), text answer verdicts,
+tablet recording audio, export fixes, event Store (designer 50/50, player
+basket, facilitator fulfilment with partial "Complete selected" completion,
+Purchase items live toggle), forced one-time camera permission gate,
+auto-approve text scoring guard (P0001), quiz stale-index clamps, YouTube
+embeds everywhere, per-stage event/game branding, NumberField (deletable,
+no wheel edits), iOS missed-paint fix + perf pass (LiveClock isolation,
+static mobile blobs), on-screen keyboard (bottom-docked, purchased click
+pack, key pop, nearest-key proximity), QR purchase flow retired.
+
+Still open / untested:
+- Tablet recording audio fix (V3.2.x) unverified on the real tablet.
+- Android untested for the whole 8-9 Aug batch.
+- Per-stage game branding (CF3-16) not yet tried by Rumen.
+- Partial order completion + My Items + order overlay shipped after his last
+  store pass — needs one live run-through.
+- Select-sound rule ("everywhere you select something") applied to quiz +
+  matching; other tap-to-select spots (e.g. bingo squares) still silent.
+- Mobile/tablet redesign of admin + facilitator: agreed later project.
+- H6 (teams joining mid-bingo) remains a live risk, unchanged.
 
 ## Session plan
 
