@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.8.1 - 2026-08-08
+
+- Keyboard sounds cleaned and softened: spectral noise reduction on all
+  eight clicks (profile taken from each file's own quiet frames) and the
+  whole set brought down to a subtle typing level — roughly a third of the
+  previous loudness.
+
 ## V3.8.0 - 2026-08-08
 
 - Keyboard sounds replaced with Rumen's final prepared set: three rotating
