@@ -505,7 +505,7 @@ export function playKeyClickSound(kind: KeyClickKind = 'key') {
   source.buffer = buffer
   const gain = ctx.createGain()
   // Subtle under fast typing (CF7 follow-up): quiet files plus a low gain.
-  gain.gain.setValueAtTime(0.55, ctx.currentTime)
+  gain.gain.setValueAtTime(0.45, ctx.currentTime)
   source.connect(gain)
   gain.connect(ctx.destination)
   source.start()

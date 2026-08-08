@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.8.3 - 2026-08-09
+
+- Keyboard clicks softer and darker again: highs rolled off harder
+  (spectral centre now ~800-930Hz, was ~1.3-1.6kHz) and overall level
+  dropped about 40% further.
+
 ## V3.8.2 - 2026-08-08
 
 - Leave-team password dialog fixed: the typed password and the Cancel
