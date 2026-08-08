@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.5.1 - 2026-08-08
+
+- Number fields behave like text now: the value can be deleted completely
+  while typing (clamped back on leaving the field), and scrolling the page
+  never changes a focused number input again — clients had typed a timer,
+  scrolled towards Save, and silently saved a different number. Typing and
+  the arrow buttons are unchanged. Applied through a shared NumberField
+  control across the game designers, event designer and store panel, plus a
+  global wheel guard covering every number input.
+
 ## V3.5.0 - 2026-08-08 (the 8 Aug test-pass fixes, CF3)
 
 - Auto-approved text games no longer fail on CORRECT answers. The scoring

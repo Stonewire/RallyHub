@@ -1,5 +1,5 @@
 import { SegmentedPill } from '@/components/neo-minimal'
-import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import type { PointsType } from '@/types/database'
 
@@ -41,30 +41,27 @@ export function PointsEditor({
           onChange={(next) => setPointsType(next as PointsType)}
         />
         {pointsType === 'static' ? (
-          <Input
-            type="number"
+          <NumberField
             aria-label="Points"
             value={pointsStatic}
-            onChange={(e) => setPointsStatic(Number(e.target.value))}
+            onChange={setPointsStatic}
             className="bg-background h-8 w-24 shrink-0"
           />
         ) : (
           <div className="flex shrink-0 items-center gap-2">
-            <Input
-              type="number"
+            <NumberField
               placeholder="Min"
               aria-label="Minimum points"
               value={pointsMin}
-              onChange={(e) => setPointsMin(Number(e.target.value))}
+              onChange={setPointsMin}
               className="bg-background h-8 w-24 shrink-0"
             />
             <span className="text-muted-foreground text-sm">to</span>
-            <Input
-              type="number"
+            <NumberField
               placeholder="Max"
               aria-label="Maximum points"
               value={pointsMax}
-              onChange={(e) => setPointsMax(Number(e.target.value))}
+              onChange={setPointsMax}
               className="bg-background h-8 w-24 shrink-0"
             />
           </div>

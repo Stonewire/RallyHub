@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { IconSearch, IconTrash } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { useInventoryGroups } from '@/hooks/use-inventory-groups'
 import { useInventoryItems } from '@/hooks/use-inventory'
 import type { EventStoreItem } from '@/types/game-config'
@@ -124,29 +125,19 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                 <div className="flex shrink-0 items-center gap-2">
                   <label className="text-muted-foreground text-[10px] font-semibold uppercase">
                     <span className="block">Have</span>
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       value={row.totalStock}
-                      onChange={(e) =>
-                        updateRow(row.itemId, {
-                          totalStock: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
+                      onChange={(n) => updateRow(row.itemId, { totalStock: n })}
                       className="bg-background mt-0.5 h-8 w-16 text-center tabular-nums"
                     />
                   </label>
                   <label className="text-muted-foreground text-[10px] font-semibold uppercase">
                     <span className="block">Per team</span>
-                    <Input
-                      type="number"
+                    <NumberField
                       min={1}
                       value={row.perTeamLimit}
-                      onChange={(e) =>
-                        updateRow(row.itemId, {
-                          perTeamLimit: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
+                      onChange={(n) => updateRow(row.itemId, { perTeamLimit: n })}
                       className="bg-background mt-0.5 h-8 w-16 text-center tabular-nums"
                     />
                   </label>

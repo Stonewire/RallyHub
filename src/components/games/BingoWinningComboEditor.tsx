@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { SegmentedPill } from '@/components/neo-minimal'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import {
   MAX_BINGO_LINES_REQUIRED,
   MIN_BINGO_LINES_REQUIRED,
@@ -51,14 +51,13 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
           >
             −
           </button>
-          <Input
-            type="number"
+          <NumberField
             min={MIN_BINGO_LINES_REQUIRED}
             max={MAX_BINGO_LINES_REQUIRED}
             aria-label="Lines required to win"
             className="bg-background h-8 w-16 text-center"
             value={win.linesRequired}
-            onChange={(e) => setLinesRequired(Number(e.target.value))}
+            onChange={setLinesRequired}
           />
           <button
             type="button"
@@ -91,26 +90,20 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Bingo win points</Label>
-          <Input
-            type="number"
+          <NumberField
             min={0}
             className="bg-background h-8"
             value={config.bingo_line_points ?? 100}
-            onChange={(e) =>
-              setConfig((c) => ({ ...c, bingo_line_points: Number(e.target.value) || 0 }))
-            }
+            onChange={(n) => setConfig((c) => ({ ...c, bingo_line_points: n }))}
           />
         </div>
         <div className="space-y-1.5">
           <Label>Points per correct song</Label>
-          <Input
-            type="number"
+          <NumberField
             min={0}
             className="bg-background h-8"
             value={config.bingo_points_per_correct ?? 10}
-            onChange={(e) =>
-              setConfig((c) => ({ ...c, bingo_points_per_correct: Number(e.target.value) || 0 }))
-            }
+            onChange={(n) => setConfig((c) => ({ ...c, bingo_points_per_correct: n }))}
           />
         </div>
       </div>
