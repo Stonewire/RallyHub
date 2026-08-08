@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.8.2 - 2026-08-08
+
+- Leave-team password dialog fixed: the typed password and the Cancel
+  button were both white on the white card — invisible. Dark field text and
+  a visible Cancel now.
+- Keyboard clicks redesigned to the Apple-keyboard profile, built from
+  Rumen's own recordings: analysis showed his clicks rang 72-114ms centred
+  near 3kHz (bright and clattery at speed) where the iPhone click is ~30ms
+  centred near 1kHz. Each click is noise-reduced, cut to a ~30ms tock,
+  darkened and slightly deepened — his keyboard's character at the iPhone's
+  length, softness and level.
+
 ## V3.8.1 - 2026-08-08
 
 - Keyboard sounds cleaned and softened: spectral noise reduction on all

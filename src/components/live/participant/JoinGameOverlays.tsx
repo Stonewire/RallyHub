@@ -159,7 +159,9 @@ export function ParticipantExitDialog({
           <input
             type="password"
             autoComplete="current-password"
-            className="xp-field w-full rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
+            // Dark text on the light card: the old white-on-white styling made
+            // both the typed password and the Cancel button invisible (CF8).
+            className="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg border px-3 py-2 text-base"
             placeholder="Password"
             value={passwordValue}
             onChange={(e) => onPasswordChange(e.target.value)}
@@ -171,9 +173,8 @@ export function ParticipantExitDialog({
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={onCancel}
             >
               Cancel
