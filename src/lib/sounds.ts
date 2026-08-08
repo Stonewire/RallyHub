@@ -430,38 +430,54 @@ export function playQuizSelectSound() {
 let keyClickNoise: AudioBuffer | null = null
 
 /**
- * Keyboard click for the on-screen keyboard (CF6/CF7). Modelled on the
- * iPhone's key click, which is not a tone but a short damped "tock": a
- * ~25ms noise burst through a band-pass around 1.4kHz with a fast decay.
- * Generated in Web Audio so there is zero file latency, and silent until
- * the shared context is running (the join tap unlocks it) — typing must
- * never stall on audio init. (The real Apple sound file is Apple's asset,
- * so we approximate rather than ship it.)
+ * Keyboard click (CF6/CF7): a mechanical-keyboard "thock" — a 6ms broadband
+ * snap plus a low ~45ms body thump. No resonant filters: a high-Q band-pass
+ * is what made earlier versions read as a beep. Each press varies slightly
+ * in level and weight so fast typing sounds mechanical, not looped.
+ * Generated in Web Audio (zero file latency); silent until the shared
+ * context is running — typing must never stall on audio init.
  */
 export function playKeyClickSound() {
   const ctx = getSharedAudioContext()
   if (!ctx || ctx.state !== 'running') return
   if (!keyClickNoise || keyClickNoise.sampleRate !== ctx.sampleRate) {
-    const length = Math.floor(ctx.sampleRate * 0.03)
+    const length = Math.floor(ctx.sampleRate * 0.06)
     keyClickNoise = ctx.createBuffer(1, length, ctx.sampleRate)
     const data = keyClickNoise.getChannelData(0)
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
   }
   const t = ctx.currentTime
-  const source = ctx.createBufferSource()
-  source.buffer = keyClickNoise
-  const filter = ctx.createBiquadFilter()
-  filter.type = 'bandpass'
-  filter.frequency.setValueAtTime(1400, t)
-  filter.Q.setValueAtTime(1.2, t)
-  const gain = ctx.createGain()
-  gain.gain.setValueAtTime(0.5, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025)
-  source.connect(filter)
-  filter.connect(gain)
-  gain.connect(ctx.destination)
-  source.start(t)
-  source.stop(t + 0.03)
+  const vary = 0.9 + Math.random() * 0.2
+
+  // The snap: the plastic click of the keycap. High-passed noise, gone in 6ms.
+  const snap = ctx.createBufferSource()
+  snap.buffer = keyClickNoise
+  const snapFilter = ctx.createBiquadFilter()
+  snapFilter.type = 'highpass'
+  snapFilter.frequency.setValueAtTime(2600, t)
+  const snapGain = ctx.createGain()
+  snapGain.gain.setValueAtTime(0.22 * vary, t)
+  snapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.006)
+  snap.connect(snapFilter)
+  snapFilter.connect(snapGain)
+  snapGain.connect(ctx.destination)
+  snap.start(t)
+  snap.stop(t + 0.01)
+
+  // The thock: the key bottoming out. Low-passed noise, soft and round.
+  const body = ctx.createBufferSource()
+  body.buffer = keyClickNoise
+  const bodyFilter = ctx.createBiquadFilter()
+  bodyFilter.type = 'lowpass'
+  bodyFilter.frequency.setValueAtTime(520 * vary, t)
+  const bodyGain = ctx.createGain()
+  bodyGain.gain.setValueAtTime(0.55 * vary, t)
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.045)
+  body.connect(bodyFilter)
+  bodyFilter.connect(bodyGain)
+  bodyGain.connect(ctx.destination)
+  body.start(t)
+  body.stop(t + 0.05)
 }
 
 /** @deprecated quiz timer-warning sound removed. */
