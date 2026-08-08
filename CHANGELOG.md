@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.6.2 - 2026-08-08
+
+- On-screen keyboard behaves like the phone's own (CF6): docked to the very
+  bottom of the screen (it covers the chat button and badge while typing),
+  every key clicks (plus a small vibration on Android), letters commit the
+  instant the key is touched, and the pressed key pops up enlarged above the
+  finger, iOS style, so fast typing is visible.
+- Buy Items and My Items sit as an even 50/50 pair, and both disappear
+  together when purchasing is off (organiser setting or the facilitator's
+  Purchase items toggle) — no My Items button on an event where nothing can
+  be bought.
+
 ## V3.6.1 - 2026-08-08
 
 - iPhone smoothness pass (CF5). Two real costs found and removed: the event
