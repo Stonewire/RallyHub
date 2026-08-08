@@ -50,21 +50,32 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
   // Nothing ordered ever: the event probably has no store, so no empty card.
   if (!ordersQuery.isSuccess || orders.length === 0) return null
 
+  /** Points for ticked items whose points have not been taken yet. */
+  const selectedPoints = (order: InventoryOrder) =>
+    order.inventory_order_items
+      .filter((i) => i.fulfilled && !i.completed_at)
+      .reduce((sum, i) => sum + i.quantity * i.points_cost_each, 0)
+
   const teamName = (order: InventoryOrder) =>
     teams.find((t) => t.id === order.team_id)?.name?.trim() || 'Team'
 
   async function complete(order: InventoryOrder) {
     try {
-      await completeOrder.mutateAsync(order.id)
-      setOpenOrderId(null)
-      notify(`${teamName(order)}'s order completed — ${order.total_points} points taken.`)
+      const result = await completeOrder.mutateAsync(order.id)
+      if (result?.order_done) {
+        setOpenOrderId(null)
+        notify(`${teamName(order)}'s order completed — ${result.taken_points} points taken.`)
+      } else {
+        // Partial hand-over: the dialog stays open with the rest still pending.
+        notify(`${result?.taken_points ?? 0} points taken — the unticked items stay in the order.`)
+      }
     } catch (err) {
       notify(errText(err, 'Could not complete the order.'))
     }
   }
 
   async function cancel(order: InventoryOrder) {
-    if (!window.confirm(`Cancel ${teamName(order)}'s order? Their items go back on sale and no points are taken.`)) {
+    if (!window.confirm(`Cancel ${teamName(order)}'s order? Items not yet handed over go back on sale; anything already handed over stays paid.`)) {
       return
     }
     try {
@@ -112,7 +123,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                 <div className="shrink-0 text-right">
                   <p className="font-semibold tabular-nums">{order.total_points} pts</p>
                   <p className="text-muted-foreground text-xs">
-                    {order.inventory_order_items.filter((i) => i.fulfilled).length}/
+                    {order.inventory_order_items.filter((i) => i.completed_at).length}/
                     {order.inventory_order_items.length} handed over
                   </p>
                 </div>
@@ -164,7 +175,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                   <div>
                     <h3 className="text-foreground font-bold">{teamName(openOrder)}</h3>
                     <p className="text-muted-foreground text-xs">
-                      Order · {openOrder.total_points} points on completion
+                      Order · points are taken only for the items you complete
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -173,7 +184,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                       size="sm"
                       onClick={() =>
                         openOrder.inventory_order_items
-                          .filter((item) => !item.fulfilled)
+                          .filter((item) => !item.fulfilled && !item.completed_at)
                           .forEach((item) =>
                             fulfilItem.mutate(
                               { orderItemId: item.id, fulfilled: true },
@@ -199,6 +210,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                         type="checkbox"
                         className="size-5"
                         checked={item.fulfilled}
+                        disabled={Boolean(item.completed_at)}
                         onChange={(e) =>
                           fulfilItem.mutate(
                             { orderItemId: item.id, fulfilled: e.target.checked },
@@ -210,11 +222,12 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                         }
                       />
                       <div className="min-w-0 flex-1">
-                        <p className={`text-sm font-semibold ${item.fulfilled ? 'text-muted-foreground line-through' : ''}`}>
+                        <p className={`text-sm font-semibold ${item.completed_at ? 'text-muted-foreground line-through' : ''}`}>
                           {item.quantity}× {item.item_name}
                         </p>
                         <p className="text-muted-foreground text-xs">
                           {item.points_cost_each} pts each
+                          {item.completed_at ? ' · handed over, points taken' : ''}
                         </p>
                       </div>
                     </li>
@@ -234,12 +247,12 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                     variant="primary"
                     size="sm"
                     className="ml-auto"
-                    disabled={completeOrder.isPending}
+                    disabled={completeOrder.isPending || selectedPoints(openOrder) === 0}
                     onClick={() => void complete(openOrder)}
                   >
                     {completeOrder.isPending
                       ? 'Completing…'
-                      : `Complete all and take ${openOrder.total_points} points`}
+                      : `Complete selected and take ${selectedPoints(openOrder)} points`}
                   </NeoButton>
                 </div>
               </div>

@@ -34,6 +34,8 @@ type EventStoreSheetProps = {
   eventId: string
   accentColor: string
   onClose: () => void
+  /** Fired after a successful order, once the sheet has closed. */
+  onOrderPlaced?: () => void
   /** 'store' browses and orders; 'orders' is the read-only My Items view. */
   view?: 'store' | 'orders'
 }
@@ -52,7 +54,7 @@ function rpcMessage(err: unknown, fallback: string): string {
  * moves. Replaces scanning printed QR codes, which mixed up items when many
  * teams scanned at once (7 Aug 2026 event).
  */
-export function EventStoreSheet({ eventId, accentColor, onClose, view = 'store' }: EventStoreSheetProps) {
+export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, view = 'store' }: EventStoreSheetProps) {
   const { notify } = useNotification()
   const session = getCurrentParticipantSession()
   const token = session?.eventId === eventId ? (session.purchaseToken ?? '') : ''
@@ -134,8 +136,8 @@ export function EventStoreSheet({ eventId, accentColor, onClose, view = 'store' 
       if (error) throw error
       setBasket({})
       // The job here is done; the next stop is a person, not this screen.
-      notify('Order sent! Collect your items from the facilitator.')
       onClose()
+      onOrderPlaced?.()
       return
     } catch (err) {
       notify(rpcMessage(err, 'Could not send your order. Try again.'))

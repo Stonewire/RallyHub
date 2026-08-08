@@ -49,9 +49,15 @@ export function BrandBackground({
   useEffect(() => {
     if (contained) return
     const previous = document.body.style.backgroundColor
+    const previousOverscroll = document.documentElement.style.overscrollBehaviorY
     document.body.style.backgroundColor = base
+    // iPhone Chrome also let the page bounce well past the end of the
+    // content (8 Aug video); Safari clamps this itself. Kill the overscroll
+    // glow/bounce on live surfaces entirely.
+    document.documentElement.style.overscrollBehaviorY = 'none'
     return () => {
       document.body.style.backgroundColor = previous
+      document.documentElement.style.overscrollBehaviorY = previousOverscroll
     }
   }, [base, contained])
 

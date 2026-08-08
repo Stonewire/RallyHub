@@ -2,7 +2,7 @@
 // it renders markup and calls back into JoinGameView, which still owns all
 // state and handlers. No behaviour change.
 import type { FormEvent } from 'react'
-import { X } from 'lucide-react'
+import { X, ShoppingBag } from 'lucide-react'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -82,6 +82,37 @@ export function ParticipantAnnouncementOverlay({
         <p className="text-lg">{announcement}</p>
         <LiveAccentButton accentColor={accent} onClick={onDismiss}>
           Dismiss
+        </LiveAccentButton>
+      </Card>
+    </div>
+  )
+}
+
+/** CF4-1: the order confirmation is a moment, not a toast. Same shape as a
+ *  facilitator announcement: centred card, big message, Close underneath. */
+export function OrderSentOverlay({
+  open,
+  accent,
+  onClose,
+}: {
+  open: boolean
+  accent: string
+  onClose: () => void
+}) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/70 p-6">
+      <Card className="xp-card max-w-md space-y-5 p-6 text-center">
+        <ShoppingBag className="mx-auto size-12" style={{ color: accent }} />
+        <div className="space-y-2">
+          <p className="text-2xl font-black">Order sent!</p>
+          <p className="text-base">
+            Collect your items from the facilitator. Your points are taken
+            when you pick them up.
+          </p>
+        </div>
+        <LiveAccentButton accentColor={accent} className="min-h-12 w-full" onClick={onClose}>
+          Close
         </LiveAccentButton>
       </Card>
     </div>
