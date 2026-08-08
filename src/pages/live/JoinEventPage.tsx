@@ -31,7 +31,10 @@ import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { reportClientIssue } from '@/lib/client-diagnostics'
 import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
-import { requestTeamMediaPermissions } from '@/lib/media-permissions'
+import {
+  mediaPermissionsAlreadyGranted,
+  requestTeamMediaPermissions,
+} from '@/lib/media-permissions'
 import { slugifyOrgName } from '@/lib/tablet-link'
 import { setLiveParticipantMode, supabase } from '@/lib/supabase'
 import { uploadParticipantAsset } from '@/lib/storage'
@@ -133,6 +136,9 @@ export function JoinEventPage() {
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [justJoined, setJustJoined] = useState(false)
   const [mediaReady, setMediaReady] = useState(false)
+  const [permissionGateOpen, setPermissionGateOpen] = useState(false)
+  const [permissionRequesting, setPermissionRequesting] = useState(false)
+  const [permissionDenied, setPermissionDenied] = useState(false)
   // In-app camera for the join team photo (non-iOS); the file input stays as
   // the iOS-native path and the explicit upload fallback.
   const [joinCameraOpen, setJoinCameraOpen] = useState(false)
@@ -180,10 +186,32 @@ export function JoinEventPage() {
     }
   }, [bundle?.state.announcement, bundle?.state.announcement_target])
 
+  // Camera permission is requested through the explicit gate below, never
+  // passively: a page-load getUserMedia is suppressed by several browsers
+  // (silently on iPhone Chrome), which is why teams were prompted per game or
+  // never prompted at all (7 Aug event). The gate's Approve tap is a user
+  // gesture, which every browser honours with its native prompt.
   useEffect(() => {
-    if (mediaReady) return
-    void requestTeamMediaPermissions().then((granted) => setMediaReady(granted))
-  }, [mediaReady])
+    if (mediaReady || !teamId) return
+    void mediaPermissionsAlreadyGranted().then((granted) => {
+       
+      if (granted) setMediaReady(true)
+      else setPermissionGateOpen(true)
+    })
+  }, [mediaReady, teamId])
+
+  async function approveCamera() {
+    setPermissionRequesting(true)
+    const granted = await requestTeamMediaPermissions()
+    setPermissionRequesting(false)
+    setMediaReady(granted)
+    if (granted) {
+      setPermissionGateOpen(false)
+      setPermissionDenied(false)
+    } else {
+      setPermissionDenied(true)
+    }
+  }
 
   if (loading || !bundle) {
     // No event means no brand to dress this in, so it is the plain canvas with
@@ -395,6 +423,51 @@ export function JoinEventPage() {
     setJustJoined(false)
   }
 
+  // Rendered in both the lobby and the joined branch: joining is exactly when
+  // the gate must appear, and a device restored mid-game needs it too.
+  const permissionGate =
+    permissionGateOpen && teamId ? (
+      <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/70 p-4">
+        <div className="xp-card w-full max-w-sm space-y-4 bg-white p-6 text-center text-black">
+          <Camera className="mx-auto size-12" style={{ color: accent }} />
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold">Allow your camera</h2>
+            <p className="text-sm text-black/70">
+              Challenges use your camera and microphone for photos and videos.
+              Approve it once now and you will not be asked again during the
+              game.
+            </p>
+          </div>
+          {permissionDenied ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              The browser blocked it. Open your browser's site settings, allow
+              Camera and Microphone for this page, then try again.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="min-h-14 w-full rounded-xl text-lg font-bold text-black disabled:opacity-60"
+            style={{ backgroundColor: accent }}
+            disabled={permissionRequesting}
+            onClick={() => void approveCamera()}
+          >
+            {permissionRequesting
+              ? 'Waiting for the browser…'
+              : permissionDenied
+                ? 'Try again'
+                : 'Approve camera'}
+          </button>
+          <button
+            type="button"
+            className="text-xs font-medium text-black/50 underline"
+            onClick={() => setPermissionGateOpen(false)}
+          >
+            Skip for now — photo and video games will not work
+          </button>
+        </div>
+      </div>
+    ) : null
+
   if (hasJoined && teamId && (myTeam || justJoined)) {
     const teamForView =
       myTeam ??
@@ -412,6 +485,7 @@ export function JoinEventPage() {
 
     return (
       <>
+        {permissionGate}
         <PoweredByRallyHub
           hidden={organization?.hide_platform_branding}
           position="bottom-center"
@@ -521,6 +595,7 @@ export function JoinEventPage() {
         })}
       </div>
       <ParticipantInstallButton className="mt-6" />
+      {permissionGate}
       {signedOutByTakeover ? (
         <p className="mx-auto mt-4 max-w-sm rounded-lg bg-black/35 px-4 py-2 text-center text-sm font-semibold backdrop-blur-sm">
           Your team was moved to another device. Ask your facilitator if this

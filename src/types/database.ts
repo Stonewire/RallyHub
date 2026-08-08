@@ -946,6 +946,35 @@ export type Database = {
         Update: never
         Relationships: []
       }
+      inventory_orders: {
+        Row: {
+          id: string
+          event_id: string
+          team_id: string
+          organization_id: string
+          status: 'pending' | 'done' | 'cancelled'
+          total_points: number
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      inventory_order_items: {
+        Row: {
+          id: string
+          order_id: string
+          inventory_item_id: string | null
+          item_name: string
+          quantity: number
+          points_cost_each: number
+          fulfilled: boolean
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       music_playlists: {
         Row: {
           id: string
@@ -1188,6 +1217,49 @@ export type Database = {
           session_epoch: number
           inventory_purchase_token: string
         }[]
+      }
+      get_event_store: {
+        Args: { p_event_id: string; p_purchase_token: string }
+        Returns: {
+          item_id: string
+          name: string
+          description: string | null
+          image_url: string | null
+          points_cost: number
+          total_stock: number
+          per_team_limit: number
+          sold: number
+          my_team_qty: number
+          team_score: number
+        }[]
+      }
+      place_store_order: {
+        Args: { p_event_id: string; p_purchase_token: string; p_items: Json }
+        Returns: { order_id: string; total_points: number }[]
+      }
+      get_team_store_orders: {
+        Args: { p_event_id: string; p_purchase_token: string }
+        Returns: {
+          order_id: string
+          status: 'pending' | 'done' | 'cancelled'
+          total_points: number
+          created_at: string
+          item_name: string
+          quantity: number
+          fulfilled: boolean
+        }[]
+      }
+      fulfil_store_order_item: {
+        Args: { p_order_item_id: string; p_fulfilled: boolean }
+        Returns: undefined
+      }
+      complete_store_order: {
+        Args: { p_order_id: string }
+        Returns: { team_id: string; remaining_score: number }[]
+      }
+      cancel_store_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
       }
       purchase_inventory_item: {
         Args: { p_public_code: string; p_event_id: string; p_purchase_token: string }

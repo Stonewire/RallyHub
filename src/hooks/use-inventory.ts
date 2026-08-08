@@ -254,3 +254,94 @@ export function useDuplicateInventoryItem(organizationId: string | null) {
     },
   })
 }
+
+export type InventoryOrder = Tables<'inventory_orders'> & {
+  inventory_order_items: Tables<'inventory_order_items'>[]
+}
+
+/**
+ * Store orders for the facilitator's fulfilment panel, live: the orders table
+ * is in the realtime publication, and any change simply refetches — orders
+ * are rare enough that merging patches by hand would be complexity for
+ * nothing.
+ */
+export function useEventStoreOrders(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  const query = useQuery({
+    queryKey: queryKeys.inventoryOrders(eventId),
+    enabled: Boolean(eventId),
+    queryFn: async (): Promise<InventoryOrder[]> => {
+      if (!eventId) return []
+      const { data, error } = await supabase
+        .from('inventory_orders')
+        .select('*, inventory_order_items(*)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      // Hand-authored types carry no FK metadata, so the embedded relation
+      // needs a cast; the runtime shape is exactly InventoryOrder.
+      return (data ?? []) as unknown as InventoryOrder[]
+    },
+  })
+
+  useEffect(() => {
+    if (!eventId) return
+    const channel = supabase
+      .channel(`inventory-orders:${eventId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory_orders', filter: `event_id=eq.${eventId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) })
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [eventId, queryClient])
+
+  return query
+}
+
+export function useFulfilOrderItem(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { orderItemId: string; fulfilled: boolean }) => {
+      const { error } = await supabase.rpc('fulfil_store_order_item', {
+        p_order_item_id: input.orderItemId,
+        p_fulfilled: input.fulfilled,
+      })
+      if (error) throw error
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) }),
+  })
+}
+
+export function useCompleteStoreOrder(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase.rpc('complete_store_order', {
+        p_order_id: orderId,
+      })
+      if (error) throw error
+      return data?.[0] ?? null
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) }),
+  })
+}
+
+export function useCancelStoreOrder(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase.rpc('cancel_store_order', { p_order_id: orderId })
+      if (error) throw error
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryOrders(eventId) }),
+  })
+}

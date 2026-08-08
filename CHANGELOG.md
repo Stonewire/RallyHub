@@ -5,6 +5,24 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.4.0 - 2026-08-08 (event Store, part two: teams order, facilitators hand over)
+
+- Buy Items now opens the event's Store when one is configured: teams browse
+  the items, add to a basket and place an order. Nothing is deducted at order
+  time; the order arrives at the facilitator instead.
+- The facilitator panel gains a Store orders card: each order shows the team,
+  its items and total, opens into a pop up with a tick per item as things are
+  handed over, plus Complete all (which takes the points) and Cancel (which
+  puts the items back on sale). Done orders drop into their own list.
+- Stock is honest under pressure: pending orders reserve items, per team
+  limits and affordability are checked server side inside a lock, and a team
+  cannot order past what is left or what it can pay for.
+- Camera and microphone are now asked for once, right after joining a team,
+  through a full screen prompt with one big Approve button. Approved once,
+  never asked again; skipping is a small link and a denied camera gets clear
+  instructions to fix it in browser settings.
+- Events without a store keep the existing QR scan-to-buy flow untouched.
+
 ## V3.3.0 - 2026-08-07 (event Store, part one: building it)
 
 - The event designer gains a Store beside Teams, each taking half the width
