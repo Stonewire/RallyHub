@@ -1,8 +1,8 @@
 const PROOF = [
-  { strong: '5 ways to play', span: 'Photo · Video · Text · Quiz · Music bingo' },
-  { strong: '3 synced live views', span: 'Facilitator · Room display · Team phones' },
-  { strong: '1 continuous score', span: 'Every stage feeds the same live leaderboard' },
-  { strong: 'Your event, your look', span: 'Logo and colour palette on every screen' },
+  { strong: '~10 minutes', span: 'From new event to ready to run, once your games are built' },
+  { strong: '6 ways to play', span: 'Photo · Video · Text · Quiz · Puzzles · Music bingo' },
+  { strong: '3 synced live views', span: 'Facilitator · Room display · Player phones' },
+  { strong: '1 continuous score', span: 'Every game feeds the same live leaderboard' },
 ] as const
 
 export function ProofStrip() {

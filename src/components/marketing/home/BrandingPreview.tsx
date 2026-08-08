@@ -32,13 +32,13 @@ export function BrandingPreview() {
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
             Per-event branding
           </p>
-          <h2 className="text-foreground font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
-            Every event can feel{' '}
-            <span className="text-muted-foreground">made for that client.</span>
+          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+            Their logo on the door. <span className="text-muted-foreground">Every time.</span>
           </h2>
           <p className="text-muted-foreground mt-4 max-w-lg text-lg leading-relaxed">
-            Apply a logo and colour palette once. RallyHub carries the identity across team phones,
-            the audience display and the live event experience.
+            Upload a client’s logo and colours and every screen in the event wears them. Your
+            client sees an event made for them, not a generic app with their name typed in. Want
+            RallyHub’s name gone entirely? Branding removal is available as an option.
           </p>
           <div
             className="mt-8 grid gap-2"

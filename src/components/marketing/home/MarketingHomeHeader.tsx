@@ -10,7 +10,7 @@ const NAV = [
   { label: 'Why RallyHub', href: '#why' },
   { label: 'Product', href: '#product' },
   { label: 'Branding', href: '#branding' },
-  { label: 'How it works', href: '#how' },
+  { label: 'Store', href: '#store' },
   { label: 'Pricing', href: '#pricing' },
 ] as const
 

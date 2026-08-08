@@ -17,19 +17,19 @@ import { Reveal } from './Reveal'
 
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
-    icon: LayoutGrid,
-    title: 'One visual timeline',
-    body: 'Arrange quests, quizzes, bingo and breaks in the exact order you want to host them.',
+    icon: Copy,
+    title: 'Your formats are assets, not one-offs',
+    body: 'Design your challenges, quizzes and playlists once. Save them to your library. Reuse them for every client after that.',
   },
   {
-    icon: Copy,
-    title: 'Reuse what works',
-    body: 'Keep your best games in a library and duplicate a whole event instead of rebuilding it.',
+    icon: LayoutGrid,
+    title: 'A new event in about 10 minutes',
+    body: 'Create the event, pick the games, set the stages. Last week’s format becomes next week’s event in minutes, not days.',
   },
   {
     icon: Palette,
-    title: 'Brand it before it goes live',
-    body: 'Set the event logo and colours once, then carry them across every live surface.',
+    title: 'Their brand, dropped in',
+    body: 'Add the client’s logo and colours while you set up. Every live screen wears them.',
   },
 ]
 
@@ -48,12 +48,12 @@ export function EventBuilderShowcase() {
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
             The event builder
           </p>
-          <h2 className="text-foreground font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
-            Build the run. <span className="text-muted-foreground">Not the plumbing.</span>
+          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+            Build your games once. <span className="text-muted-foreground">Sell them forever.</span>
           </h2>
           <p className="text-muted-foreground mt-4 max-w-lg text-lg leading-relaxed">
-            Create reusable games, arrange the stages, set timers and scoring, add your music, then
-            duplicate the whole event for next time.
+            Prep time is money you do not bill for. RallyHub gives most of it back: build the
+            format once, then every client event after it is assembly, not construction.
           </p>
           <ul className="mt-8 space-y-6">
             {FEATURES.map((f) => (

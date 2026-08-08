@@ -114,13 +114,14 @@ export function FacilitatorShowcase() {
           <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
             The facilitator
           </p>
-          <h2 className="font-display mt-3 text-3xl font-normal leading-[1.12] tracking-tight sm:text-4xl">
-            Run the room from{' '}
-            <span className="text-[var(--mkt-gold)]">one calm control panel.</span>
+          <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+            Running the room is{' '}
+            <span className="text-[var(--mkt-gold)]">the easy part.</span>
           </h2>
           <p className="text-[color:var(--mkt-show-muted)] mt-4 max-w-lg text-lg leading-relaxed">
-            Preview the display, move between stages, run timers, review submissions, award points,
-            message teams and cue the winner reveal without losing sight of the live show.
+            One screen controls everything: stages, timers, tracks, submissions, reveals, winners.
+            The big screen keeps the room hyped. Player phones stay in sync on their own. You look
+            calm because you are.
           </p>
           <ul className="mt-8 space-y-6">
             {FEATURES.map((f) => (

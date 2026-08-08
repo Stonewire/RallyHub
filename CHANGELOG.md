@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.10.1 - 2026-08-09
+
+- The hamburger menu closes itself when a section is chosen — it is a
+  launcher, not a place to stay.
+- Games and Events toolbars centred on tablet widths: filter pills in a
+  centred row, search (plus group selector / Date) centred underneath, the
+  same layout on both tabs. Desktop unchanged.
+
 ## V3.10.0 - 2026-08-09 (mobile/tablet admin, phase 1)
 
 - Tablets and phones get a hamburger menu instead of the docked sidebar:
