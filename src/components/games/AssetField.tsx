@@ -7,6 +7,7 @@ import { readCoverFile, type PendingCover } from '@/lib/cover-image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { youTubeEmbedUrl } from '@/lib/video-embed'
 
 type AssetFieldProps = {
   label: string
@@ -115,7 +116,19 @@ export function AssetField({
         >
           {preview ? (
             isVideo ? (
-              <video src={preview} className="max-h-72" controls />
+              youTubeEmbedUrl(preview) ? (
+                // A YouTube link needs YouTube's player; a <video> tag shows a
+                // dead box (CF3-3).
+                <iframe
+                  src={youTubeEmbedUrl(preview)!}
+                  title="Video preview"
+                  className="aspect-video w-full"
+                  allow="encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={preview} className="aspect-video w-full" controls />
+              )
             ) : (
               <img src={preview} alt="" className="max-h-72 object-contain" />
             )
@@ -125,7 +138,19 @@ export function AssetField({
         </div>
       ) : preview && !inlinePreview ? (
         isVideo ? (
-          <video src={preview} className="max-h-24 rounded-lg" controls />
+          youTubeEmbedUrl(preview) ? (
+            <iframe
+              src={youTubeEmbedUrl(preview)!}
+              title="Video preview"
+              className="aspect-video w-full max-w-md rounded-lg"
+              allow="encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            // Big enough to actually watch; the old thumbnail-height strip was
+            // unusable (CF3-3).
+            <video src={preview} className="aspect-video w-full max-w-md rounded-lg" controls />
+          )
         ) : (
           <img src={preview} alt="" className="size-20 rounded-lg object-cover" />
         )

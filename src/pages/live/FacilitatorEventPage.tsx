@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
+import { parseStoreConfig } from '@/lib/event-form-utils'
 import { FACILITATOR_CHAT_SENDER } from '@/lib/chat-notifications'
 import { readableTextOn } from '@/lib/hex-color'
 import { FilterChips } from '@/components/admin/FilterChips'
@@ -657,6 +658,7 @@ export function FacilitatorEventPage() {
     isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
   ).filter((team): team is Tables<'teams'> => Boolean(team?.id))
   const liveState = state
+  const eventHasStore = parseStoreConfig(event.store_config).length > 0
   // Internal iframe preview — always the direct /display/:eventId URL.
   const displayUrl = eventId ? getEventLinks(eventId).display : ''
 
@@ -862,7 +864,13 @@ export function FacilitatorEventPage() {
     ? games.find((g) => g.id === stage.gameId)
     : null
   const questions = quizGame ? quizQuestions(quizGame) : []
-  const question = questions[liveState.current_question_index]
+  // A leftover index from an earlier run (or an edited-down quiz) can point
+  // past the last question, which used to leave this panel empty with no way
+  // to start; clamp so the controls always render a real question.
+  const quizQuestionIndex = questions.length
+    ? Math.min(Math.max(liveState.current_question_index, 0), questions.length - 1)
+    : 0
+  const question = questions[quizQuestionIndex]
   const quizConfig = (quizGame?.config ?? {}) as GameConfig
   const quizBaseSeconds = quizConfig.timer_seconds ?? 20
   // A question carrying media runs longer; see quizQuestionSeconds.
@@ -1000,17 +1008,17 @@ export function FacilitatorEventPage() {
   function quizPrimaryButton(): { label: string; action: () => void } | null {
     if (liveState.quiz_state === 'results') return null
     if (liveState.quiz_state === 'round_intro') {
-      const n = liveState.current_question_index + 1
+      const n = quizQuestionIndex + 1
       return {
         label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
-        action: () => startQuizQuestion(liveState.current_question_index),
+        action: () => startQuizQuestion(quizQuestionIndex),
       }
     }
     if (liveState.quiz_state === 'idle' || liveState.quiz_state === 'waiting') {
-      const n = liveState.current_question_index + 1
+      const n = quizQuestionIndex + 1
       return {
         label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
-        action: () => startQuizQuestion(liveState.current_question_index),
+        action: () => startQuizQuestion(quizQuestionIndex),
       }
     }
     if (liveState.quiz_state === 'active' || liveState.quiz_state === 'revealed') {
@@ -1581,7 +1589,7 @@ export function FacilitatorEventPage() {
             </div>
             {/* UI-2: display toggles side by side, centred at the card bottom. */}
             <div className="border-border/60 space-y-3 border-t pt-3 sm:col-span-2">
-              <div className="grid grid-cols-3 gap-2">
+              <div className={`grid gap-2 ${eventHasStore ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <FacilitatorToggle
                   stacked
                   label="Timer on display"
@@ -1590,16 +1598,28 @@ export function FacilitatorEventPage() {
                 />
                 <FacilitatorToggle
                   stacked
-                  label="Scores on display"
+                  label="Rank on display"
                   checked={state.show_scores}
                   onChange={(next) => void patchState({ show_scores: next })}
                 />
+                {/* On means the room sees points; the column stays the
+                    negative hide_team_points underneath. */}
                 <FacilitatorToggle
                   stacked
-                  label="Hide points for teams"
-                  checked={state.hide_team_points}
-                  onChange={(next) => void patchState({ hide_team_points: next })}
+                  label="Points on display"
+                  checked={!state.hide_team_points}
+                  onChange={(next) => void patchState({ hide_team_points: !next })}
                 />
+                {/* Only events whose organiser configured a store expose this;
+                    a storeless event never shows the control (CF3-15). */}
+                {eventHasStore ? (
+                  <FacilitatorToggle
+                    stacked
+                    label="Purchase items"
+                    checked={state.store_open !== false}
+                    onChange={(next) => void patchState({ store_open: next })}
+                  />
+                ) : null}
               </div>
               {/* Stages sit with the other things that change what the room is
                   looking at, rather than in a card of their own. */}

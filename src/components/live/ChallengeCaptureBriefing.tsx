@@ -8,6 +8,7 @@ import {
   CHALLENGE_ACTION_CLASS,
   STICKY_ACTION_SPACER,
 } from '@/components/live/StickyChallengeAction'
+import { youTubeEmbedUrl } from '@/lib/video-embed'
 
 type ChallengeCaptureBriefingProps = {
   title: string
@@ -37,6 +38,7 @@ export function ChallengeCaptureBriefing({
   const [fast, setFast] = useState(false)
   const cta = mediaType === 'video' ? 'Take video' : 'Take photo'
   const Icon = mediaType === 'video' ? Video : Camera
+  const embedUrl = youTubeEmbedUrl(exampleVideoUrl)
 
   function toggleSpeed() {
     const next = !fast
@@ -64,29 +66,44 @@ export function ChallengeCaptureBriefing({
           <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
             Example video
           </p>
-          <video
-            ref={videoRef}
-            src={exampleVideoUrl}
-            controls
-            playsInline
-            disablePictureInPicture
-            // Downloading someone else's brief is not a participant action, and
-            // the native speed menu is replaced by the button below.
-            controlsList="nodownload noplaybackrate noremoteplayback"
-            className="w-full"
-          />
-          <button
-            type="button"
-            onClick={toggleSpeed}
-            aria-pressed={fast}
-            className="xp-interactive absolute top-8 right-3 rounded-full px-3 py-1.5 text-xs font-black tabular-nums shadow-lg"
-            style={{
-              backgroundColor: fast ? accentColor : 'rgba(0,0,0,0.55)',
-              color: fast ? '#1c1917' : '#ffffff',
-            }}
-          >
-            {FAST_RATE}×
-          </button>
+          {embedUrl ? (
+            // A YouTube link cannot play in a <video> tag (dead black box on
+            // the 8 Aug test) — it gets YouTube's own player. Speed control
+            // lives inside that player, so no 2x button here.
+            <iframe
+              src={embedUrl}
+              title="Example video"
+              className="aspect-video w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                src={exampleVideoUrl}
+                controls
+                playsInline
+                disablePictureInPicture
+                // Downloading someone else's brief is not a participant action, and
+                // the native speed menu is replaced by the button below.
+                controlsList="nodownload noplaybackrate noremoteplayback"
+                className="w-full"
+              />
+              <button
+                type="button"
+                onClick={toggleSpeed}
+                aria-pressed={fast}
+                className="xp-interactive absolute top-8 right-3 rounded-full px-3 py-1.5 text-xs font-black tabular-nums shadow-lg"
+                style={{
+                  backgroundColor: fast ? accentColor : 'rgba(0,0,0,0.55)',
+                  color: fast ? '#1c1917' : '#ffffff',
+                }}
+              >
+                {FAST_RATE}×
+              </button>
+            </>
+          )}
         </div>
       ) : null}
 

@@ -634,6 +634,33 @@ export function EventForm({
                 ))}
               </select>
             )}
+            {stage.type === 'quiz' || stage.type === 'bingo' ? (
+              /* Which look the room wears during this stage: the event's own
+                 branding, or the background designed inside the game (CF3-16). */
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-medium">Branding</span>
+                <SegmentedPill
+                  size="sm"
+                  className="w-64"
+                  aria-label={`Branding for ${stage.name || 'stage'}`}
+                  options={[
+                    { value: 'event', label: 'Event branding' },
+                    { value: 'game', label: 'Game branding' },
+                  ]}
+                  value={stage.branding ?? 'event'}
+                  onChange={(next) =>
+                    onChange((prev) => ({
+                      ...prev,
+                      stages: prev.stages.map((x) =>
+                        x.id === stage.id
+                          ? { ...x, branding: next as 'event' | 'game' }
+                          : x,
+                      ),
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
             </>
             )}
           </Card>

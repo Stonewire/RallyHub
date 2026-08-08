@@ -167,9 +167,30 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                       Order · {openOrder.total_points} points on completion
                     </p>
                   </div>
-                  <NeoButton variant="ghost" size="sm" onClick={() => setOpenOrderId(null)}>
-                    Close
-                  </NeoButton>
+                  <div className="flex items-center gap-1">
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        openOrder.inventory_order_items
+                          .filter((item) => !item.fulfilled)
+                          .forEach((item) =>
+                            fulfilItem.mutate(
+                              { orderItemId: item.id, fulfilled: true },
+                              {
+                                onError: (err) =>
+                                  notify(errText(err, 'Could not update the item.')),
+                              },
+                            ),
+                          )
+                      }
+                    >
+                      Select all
+                    </NeoButton>
+                    <NeoButton variant="ghost" size="sm" onClick={() => setOpenOrderId(null)}>
+                      Close
+                    </NeoButton>
+                  </div>
                 </div>
                 <ul className="divide-border/60 min-h-0 flex-1 divide-y overflow-y-auto px-4">
                   {openOrder.inventory_order_items.map((item) => (
@@ -178,7 +199,6 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                         type="checkbox"
                         className="size-5"
                         checked={item.fulfilled}
-                        disabled={fulfilItem.isPending}
                         onChange={(e) =>
                           fulfilItem.mutate(
                             { orderItemId: item.id, fulfilled: e.target.checked },
@@ -219,7 +239,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                   >
                     {completeOrder.isPending
                       ? 'Completing…'
-                      : `Complete all · take ${openOrder.total_points} pts`}
+                      : `Complete all and take ${openOrder.total_points} points`}
                   </NeoButton>
                 </div>
               </div>

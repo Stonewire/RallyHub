@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 import { brandBlobColors, displayTextClass } from '@/lib/live-event'
 import type { TenantPublicOrg } from '@/lib/tenant'
@@ -21,6 +21,12 @@ type BrandBackgroundProps = {
    * must fit the viewport exactly rather than scroll (the quiz question).
    */
   fill?: boolean
+  /**
+   * A 'game'-branded quiz/bingo stage (CF3-16): replaces the blob backdrop
+   * with the game's designed background — a full-bleed image or a corner
+   * colour gradient. Null keeps the event branding.
+   */
+  gameBackdrop?: { imageUrl: string | null; colors: string[] | null } | null
 }
 
 export function BrandBackground({
@@ -31,10 +37,23 @@ export function BrandBackground({
   className,
   contained = false,
   fill = false,
+  gameBackdrop = null,
 }: BrandBackgroundProps) {
   const { base, primary, accent } = brandBlobColors(event, organization)
   const opacity = variant === 'relaxed' ? 0.4 : variant === 'disco' ? 0.6 : 0.55
   const textTone = displayTextClass(event)
+
+  // iOS rubber-band scrolling shows the page BEHIND the app — a plain white
+  // body, which read as "I scrolled past the end into a white screen" (8 Aug
+  // test). Paint the body the event's base colour while a live surface is up.
+  useEffect(() => {
+    if (contained) return
+    const previous = document.body.style.backgroundColor
+    document.body.style.backgroundColor = base
+    return () => {
+      document.body.style.backgroundColor = previous
+    }
+  }, [base, contained])
 
   return (
     <div className={`experience-scope relative ${textTone} ${className ?? ''}`}>
@@ -46,9 +65,33 @@ export function BrandBackground({
         style={{ backgroundColor: base }}
         aria-hidden
       >
+        {gameBackdrop?.imageUrl ? (
+          <img
+            src={gameBackdrop.imageUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : gameBackdrop?.colors ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                gameBackdrop.colors.length >= 4
+                  ? // The quiz designer's four corner colours, blended the way
+                    // its own preview blends them.
+                    `linear-gradient(135deg, ${gameBackdrop.colors[0]}, transparent 70%),
+                     linear-gradient(225deg, ${gameBackdrop.colors[1]}, transparent 70%),
+                     linear-gradient(45deg, ${gameBackdrop.colors[2]}, transparent 70%),
+                     linear-gradient(315deg, ${gameBackdrop.colors[3]}, transparent 70%),
+                     ${gameBackdrop.colors[0]}`
+                  : `linear-gradient(135deg, ${gameBackdrop.colors[0]}, ${gameBackdrop.colors[gameBackdrop.colors.length - 1]})`,
+            }}
+          />
+        ) : null}
         {/* Contained frames are a few hundred pixels wide, so the blobs are
             sized to the frame and the blur scaled down with them; vmax and a
             120px blur would wash the whole frame to one flat colour. */}
+        {gameBackdrop ? null : (
         <div className="absolute inset-0 overflow-hidden">
           <div
             className={`animate-blob absolute -left-[20%] top-[-10%] rounded-full ${contained ? 'size-[90%] blur-[28px]' : 'size-[70vmax] blur-[120px]'}`}
@@ -63,6 +106,7 @@ export function BrandBackground({
             style={{ background: primary, opacity: opacity * 0.85 }}
           />
         </div>
+        )}
       </div>
       <div
         className={
