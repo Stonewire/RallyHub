@@ -30,15 +30,10 @@ export function EventBuilderShowcase() {
         </Reveal>
 
         <Reveal as="ol" className="mk-steps-row">
-          {STEPS.map((step, i) => (
+          {STEPS.map((step) => (
             <li key={step.title}>
-              <span className="mk-step-num" aria-hidden>
-                {i + 1}
-              </span>
-              <div>
-                <h3 className="mk-h3">{step.title}</h3>
-                <p>{step.body}</p>
-              </div>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
             </li>
           ))}
         </Reveal>

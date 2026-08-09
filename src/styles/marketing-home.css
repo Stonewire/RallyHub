@@ -687,15 +687,22 @@
 }
 .mk-steps-row li {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.9rem;
-  align-items: start;
+  gap: 0.5rem;
+  justify-items: center;
+  text-align: center;
+}
+.mk-steps-row h3 {
+  margin: 0;
+  font-weight: 800;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 .mk-steps-row p {
-  margin: 0.3rem 0 0;
+  margin: 0;
   color: var(--mk-mut-l);
-  font-size: 0.95rem;
-  max-width: 34ch;
+  font-size: 0.97rem;
+  max-width: 32ch;
 }
 .mk-wide-shot {
   margin-top: 3rem;
