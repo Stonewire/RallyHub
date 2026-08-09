@@ -26,7 +26,8 @@ export function MarketingHero() {
       <div className="mk-wrap mk-hero-inner">
         <Reveal className="grid gap-6">
           <h1 className="mk-display">
-            Build the format once. <span className="accent">Tailor every event.</span>
+            <span>Build the format once.</span>
+            <span className="accent">Tailor every event.</span>
           </h1>
           <p className="mk-lead mk-muted">Stronger Teams, one game at a time.</p>
           <div>

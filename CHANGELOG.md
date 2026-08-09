@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.3 - 2026-08-09
+
+- Hero: headline breaks onto two fixed lines and the whole block sits at mid
+  height instead of hugging the bottom, still left-aligned.
+- Design. Adapt. Deliver. is centred with its intro directly underneath.
+- Facilitator returns to the two-column layout with the screenshot on the
+  left, now about 40% wider than it originally was.
+- The three client-branded player screens were recaptured from scratch on a
+  live event with each client's real logo and palette, at full-screen tablet
+  size. The previous two were captured in a floating window, which is why
+  their tiles never lined up with the first one.
+
 ## V3.16.2 - 2026-08-09
 
 - Design/Adapt/Deliver and the facilitator section now run their screenshots

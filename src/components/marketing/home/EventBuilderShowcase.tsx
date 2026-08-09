@@ -21,17 +21,13 @@ export function EventBuilderShowcase() {
   return (
     <section id="product" className="mk-sandband scroll-mt-20">
       <div className="mk-wrap mk-section">
-        <div className="mk-builder-head">
-          <Reveal>
-            <h2 className="mk-h2">Design. Adapt. Deliver.</h2>
-          </Reveal>
-          <Reveal delay={1}>
-            <p className="mk-lead mk-muted">
-              Prep time is money you do not bill for. RallyHub gives most of it back: every client
-              event after the first is assembly, not construction.
-            </p>
-          </Reveal>
-        </div>
+        <Reveal className="mk-head-center">
+          <h2 className="mk-h2">Design. Adapt. Deliver.</h2>
+          <p className="mk-lead mk-muted">
+            Prep time is money you do not bill for. RallyHub gives most of it back: every client
+            event after the first is assembly, not construction.
+          </p>
+        </Reveal>
 
         <Reveal as="ol" className="mk-steps-row">
           {STEPS.map((step, i) => (

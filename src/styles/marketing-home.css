@@ -357,7 +357,8 @@
   overflow: hidden;
   min-height: min(88vh, 780px);
   display: grid;
-  align-items: end;
+  /* Block sits mid-height, still left-aligned. */
+  align-items: center;
 }
 .mk-hero-bg {
   position: absolute;
@@ -413,7 +414,11 @@
   padding-block: clamp(3.5rem, 8vw, 6rem);
 }
 .mk-hero .mk-display {
-  max-width: 15ch;
+  max-width: 24ch;
+}
+/* One phrase per line: "Build the format once." / "Tailor every event." */
+.mk-hero .mk-display span {
+  display: block;
 }
 .mk-hero .mk-display .accent {
   color: var(--mk-yellow);
@@ -641,6 +646,19 @@
   max-width: 46ch;
 }
 
+/* Centred section intro: heading with its lead directly underneath. */
+.mk-head-center {
+  display: grid;
+  gap: 1.1rem;
+  justify-items: center;
+  text-align: center;
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.mk-head-center .mk-lead {
+  max-width: 44ch;
+}
+
 /* ─── Wide product shots: heading + row of points, then a full-width screen ─── */
 .mk-builder-head {
   display: grid;
@@ -698,6 +716,19 @@
 .mk-feat-row li {
   border-top: 3px solid var(--mk-yellow);
   padding-top: 0.9rem;
+}
+
+/* Facilitator: original two-column layout, image column widened. */
+.mk-fac-grid {
+  display: grid;
+  gap: 3rem;
+  align-items: center;
+}
+@media (min-width: 1024px) {
+  .mk-fac-grid {
+    grid-template-columns: 1.35fr 0.85fr;
+    gap: 3.5rem;
+  }
 }
 .mk-feat-row p {
   margin: 0.4rem 0 0;
