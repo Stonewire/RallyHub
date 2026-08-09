@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.15.1 - 2026-08-09
+
+- Builder and facilitator screenshots no longer crop: their image slots now
+  match the screenshots' own aspect ratios, so the logo and top bar stay
+  fully visible.
+
 ## V3.15.0 - 2026-08-09 (real product screenshots)
 
 - The last four image placeholders are now real screenshots captured from a

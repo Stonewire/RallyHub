@@ -23,7 +23,8 @@ export function FacilitatorShowcase() {
         <div className="mk-steps-grid" style={{ alignItems: 'start' }}>
           <Reveal>
             <ImageSlot
-              aspect="16 / 10"
+              /* Matches the screenshot exactly so object-fit never crops the app chrome. */
+              aspect="1500 / 703"
               label="Facilitator control room"
               photo={{
                 base: '/marketing/app-facilitator',

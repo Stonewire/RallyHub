@@ -45,7 +45,8 @@ export function EventBuilderShowcase() {
           </Reveal>
           <Reveal delay={1}>
             <ImageSlot
-              aspect="16 / 10"
+              /* Matches the screenshot exactly so object-fit never crops the app chrome. */
+              aspect="1500 / 984"
               label="Event builder"
               photo={{
                 base: '/marketing/app-event-builder',
