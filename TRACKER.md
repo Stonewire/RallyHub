@@ -11,6 +11,32 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## Current state, 9 Aug 2026 (read this first)
+
+Production is **V3.12.0** on rallyhub.games. Working branch
+`feature/client-feedback-v3`, kept in sync with `main`.
+
+**Done and live:** full admin redesign (V3.0.0, 3 Aug), camera overhaul
+(V3.1.0), the 7-9 Aug client-feedback marathon (V3.2.0-V3.9.0: event Store,
+camera gate, scoring guards, per-stage branding, NumberField, iOS perf +
+missed-paint fix, on-screen keyboard with purchased click pack), marketing
+homepage rework (V3.11.0), and mobile/tablet phases 1-2 (V3.10.x + V3.12.0:
+hamburger admin nav below 1280px, sticky save bar, centred toolbars,
+full-screen game editor on tablet, back-gesture auto-save in both editors,
+facilitator single vertical flow with Preview popup).
+
+**Actively next:** mobile app entry flow per Rumen's brief — install as PWA,
+log in with an account, then choose Admin, or pick an event and enter as
+Facilitator or Team player; tablet password stays for exiting an event and
+cross-device team sign-in. Android verification pass after that.
+
+**Biggest still-open items:** PAY-1 live Paddle launch (checklist in
+`docs/PADDLE-LIVE-CHECKLIST.md`), DATA-1 lifecycle deployment steps,
+CONTENT-1's 159 cover images, CF2-1 Welcome stage, CF2-5 camera permission
+re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
+ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
+local migration chain, HERMIT-ENCODE workaround in place.
+
 **Versioning on main** (three numbers, MAJOR.MINOR.PATCH):
 - Patch (small fixes): 2.0.1, 2.0.2, ...
 - Minor (bigger updates): 2.1.0, 2.1.1, ...
@@ -53,7 +79,7 @@ Still open / untested (9 Aug review with Rumen):
   Rumen: app entry flow (login, then Admin / Facilitator / Team player).
 - H6 (teams joining mid-bingo) remains a live risk, unchanged.
 
-## Session plan
+## Session plan (HISTORICAL — all six sessions delivered by mid-July 2026; kept for context)
 
 **Session 1 — safety net + zero-risk cleanup.** Set up vitest and write tests
 around bingo scoring, line bonus, and restart maths (pure functions, no live
@@ -100,8 +126,9 @@ ENG2, AI features (L-2), PDF report (PDF-1).
 ## Client live test, 3 Aug 2026 (V3.0.0)
 
 Rumen ran a real event with a client on the V3.0.0 release. Nineteen items,
-grouped by surface. Branch: `feature/client-feedback-v3`. All nineteen are done; the auto-approval
-migration (CF-18) is written but NOT yet applied to the shared project.
+grouped by surface. Branch: `feature/client-feedback-v3`. All nineteen are done,
+including the auto-approval migration (CF-18), applied to the shared project
+(and later guarded by the 8 Aug `text_score_award` marker migration).
 
 **Event editor**
 - [x] **CF-1** Duplicate a game from the library
@@ -219,16 +246,17 @@ worth a real pass if it's been a while since the last live event exercised them.
 
 ## New design rollout (client admin panel)
 
-Branch `feature/new-design`. Design reference and handover live in `new-design/`.
+**SHIPPED: the whole redesign merged to `main` and went live as V3.0.0 on
+3 Aug 2026** ("release: V3.0.0, the new design ships", commit 33de51e).
+Rumen ran a real client event on it the same day, which is the sign-off.
+The `delete_own_account` migration ND-5 flagged as pending IS applied to
+production (verified 9 Aug 2026). The stale `feature/new-design` branch
+pointer still exists with a few WIP commits; do not resume work on it.
+Design reference and handover live in `new-design/`.
 Spec: `docs/superpowers/specs/2026-07-30-new-design-shell-and-dashboard-design.md`.
 Plan: `docs/superpowers/plans/2026-07-30-new-design-shell-and-dashboard.md`.
 
-**Do not merge this branch until the whole redesign is signed off.** Phase 1
-changed the shared `--nm-*` tokens, so admin screens that have not been
-redesigned yet render in the new palette with their old layout. That is
-expected on this branch and is not a bug to chase.
-
-- [~] **ND-1** Phase 1: app shell + Overview. Code complete, awaiting Rumen's signed-in check.
+- [x] **ND-1** Phase 1: app shell + Overview. Shipped in V3.0.0.
   Cool grey surfaces (`#f7f7f8` canvas, white cards, `#1f2126` text) with brand
   yellow `#ffc107` kept; Inter replaces Manrope; radii tightened to 3/6/10px;
   new slate and neutral 100-900 ramps. New 40px header carries search, New Game,
@@ -289,7 +317,7 @@ expected on this branch and is not a bug to chase.
   gameplay/scoring was deliberately preserved; only its editor presentation was
   redesigned. The branch still requires Rumen's overall staging/sign-off before
   it can enter the release workflow.
-- [~] **ND-4** High-fidelity layout correction after live review. The earlier
+- [x] **ND-4** (shipped in V3.0.0) High-fidelity layout correction after live review. The earlier
   implementation followed the feature inventory but did not follow the design's
   page geometry closely enough. The shared page shell now uses the full admin
   workspace with the reference's 32px inset instead of a centered 1152px column,
@@ -406,12 +434,19 @@ expected on this branch and is not a bug to chase.
   blocked. Facilitators receive live, persistent purchase notifications above
   Submissions with the team, item, cost, time, and purchase count.
 
+- [x] **MKT-2** Marketing homepage rework, agency-first positioning — **live in
+  V3.11.0** (9 Aug 2026, parallel session). New hero, Book a demo primary CTA,
+  event store / pricing-comparison / trust sections, voice guide at
+  `docs/marketing/voice-guide.md`, serif display font retired.
 - [x] **MKT-1** Marketing homepage redesign — **live in V2.5.0**. Rebuilt `rallyhub.games` from the design handoff (`Marketing Page Design/`) into maintainable components under `src/components/marketing/home/` + `src/styles/marketing-home.css`. Verified: build/lint/tests pass, no console errors, no horizontal overflow at 375px, mobile menu + palette preview + form validation all work, dark mode holds. Optimised hero/display images + real OG image added. Accuracy guardrails applied (no instant-scoring-for-all, no client-management or free-event claims).
 - [x] **CONTACT-1** Marketing demo form backend — **live in V2.5.1**. `submit-contact` Edge Function (deployed) validates + honeypot + per-IP rate limit, stores every lead in `contact_submissions` (RLS super-admin read), emails via Resend when `RESEND_API_KEY` is set (graceful degradation: lead saved even without the key). Frontend wired with loading/success/error + mailto fallback. Verified end to end. **Remaining (Rumen, dashboard):** set `RESEND_API_KEY` (+ optional `CONTACT_TO_EMAIL`/`CONTACT_FROM_EMAIL`) Edge Function secrets to turn on the email — see `docs/RESEND-SETUP.md`. Confirm the `hello@rallyhub.games` inbox exists/forwards.
 - [x] **EMAIL-1** Transactional email via Resend — **done.** Code/deliverables landed in V2.5.1; Rumen confirms the Resend account, domain verification and Supabase Custom SMTP were set up (3 Aug 2026). Branded auth templates in `docs/email/rallyhub-auth-templates.html`; full guide in `docs/RESEND-SETUP.md`. Decision stands: Resend as Supabase Auth **Custom SMTP** (built-in sender is test-only).
 - [x] **FACIL-1** Facilitator admin access — **live in V2.5.2, smoke-tested for real 2026-07-29.** Facilitators were fully locked out of the app/admin (4 guards bounced them; platform host looped to /login). Now they log in and land on a restricted surface: read-only Events page with open/copy links + teams QR (`FacilitatorEventsPage`), and a Profile page (`FacilitatorSettingsPage`, org shown read-only). Sidebar stripped to Events + Profile. Confirmed live against a real facilitator login on a local dev server: correct sidebar restriction, Profile page renders and prefills correctly. **Decision confirmed:** facilitators can edit their own name/username/email/password but NOT rename the org (left as a client_admin power).
 - [x] **ACCT-1** Self-service account settings for every role — **live in V2.18.0.** New shared `MyAccountPanel` (first/last name, username, email, password) backed by `update-org-user`'s existing self-service path, which already supported any role editing their own record but had no frontend beyond name. Facilitators' Profile page now exposes all four fields. Event managers previously had zero personal account access (`/admin/settings` silently bounced them to Events) — now get the same page plus a new sidebar "Profile" entry. Client admins/super admins get a new "My Account" tab in Settings. Verified live against a real facilitator login.
-- [ ] **REDESIGN-1** Full app redesign — every page, admin panels included. Far future; Rumen is starting the design file (2026-07-13). Parked until designs are ready. When it lands, fold ENG1/ENG2 (God-component refactors) into it.
+- [x] **REDESIGN-1** Full app redesign — superseded and delivered: the admin
+  redesign shipped as V3.0.0 (see "New design rollout"), and the mobile/tablet
+  adaptation is the current V3.10.x-V3.12.0 work stream. ENG1/ENG2
+  (God-component refactors) were NOT folded in and stay open.
 - [x] **PRICING-1** Final plan ladder promoted in V2.12.0: Pay Per Event €199/event with no subscription; Starter €20/mo or €180/yr + €149/event and 2 events/month; Pro €200/mo or €1,800/yr + €99/event and unlimited events; Custom by contact. Standard plans include 5 teams/event. Business is retired. See `docs/PAYMENTS-AND-PLAN-ECONOMICS.md`.
 - [~] **PAY-2 add-ons:** additional-team billing is complete in V2.12.1: five included, then €10/team, snapshotted server-side into the activation invoice and automatically included in Paddle's exact invoice charge. Remaining: decide and implement the optional per-event RallyHub branding-removal price/product.
 - [ ] **L-2** AI features for clients (#24): bulk game creation, AI descriptions
@@ -465,7 +500,9 @@ expected on this branch and is not a bug to chase.
 
 ## Shipped but never got a tracker line (backfilled 2026-07-29)
 
-- [~] **DEMO-1 Public self-resetting demo account** — implemented on
+- [x] **DEMO-1 Public self-resetting demo account** — live and in daily use:
+  `demo.rallyhub.games` needs no login and is the standing UI-verification
+  environment (production confirmation happened in practice). Implemented on
   `feature/demo-account`: passwordless shared tenant entry, 30-minute automatic
   restore + manual countdown control, deterministic year-long history using the
   real platform game library, runnable live events, simulated Paddle checkout,
@@ -488,13 +525,18 @@ expected on this branch and is not a bug to chase.
 
 - [x] **CAPTURE-2026-07-30** The full camera/upload investigation that DIAG-1 was built for, resolved end to end across V2.20.9-V2.20.28, every fix picked from measured device evidence: x-team-token CORS gate re-landed (submissions restored on all platforms); tablet shutter (ImageCapture 2-23s per shot) replaced with preview-frame capture; choppy tablet video (3fps at a forced 3120x2448) fixed by dropping the max-resolution reconfigure, then 720p recording on Android per Rumen's fps-over-quality call (iOS keeps 1080p); full field of view with no zoom crop, edge-to-edge capture screens; join photo uses the in-app camera on tablets; Hermit's 8-13s shutter was the JPEG encode fighting the live camera pipeline for the GPU in the system WebView, fixed by releasing the camera before encoding (confirmed on device). Still parked: iPhone in-app video shows horizontal/slightly zoomed (exact-portrait demand shipped in V2.20.21, needs one retest); Hermit never delivered a single client_diagnostics insert while Chrome on the same tablet did (worked around with on-screen display, worth understanding before relying on diagnostics rows from WebView traffic).
 
-- [ ] **IOS-FREEZE** iPhone post-submit freeze (constant ~2-4s, floats between the submitting screen and the next tap; also delays approval echoes). Exhaustively instrumented across V2.20.10-V2.20.31: submit close, paint delay, tap dispatch (hardware timestamp), and render all measure clean on every reproduction, and zero iOS diagnostic rows exceeded thresholds all night — the stall is provably OUTSIDE the page (WKWebView/Safari input+display pipeline), which is why three page-level candidate fixes (toast backdrop-blur, iOS-only flat toast, skipping the submit sound) each changed nothing on device and were reverted. Next step when picking this up: 10-minute wired session — iPhone via cable, Mac Safari Develop menu, record a Web Inspector timeline during a text submit; the timeline sees the layers page instrumentation cannot. Not event-blocking: tablets are the event platform, and the iPhone flow works correctly, just sluggish for a few seconds after each submit.
+- [x] **IOS-FREEZE** (RESOLVED 8 Aug 2026, V3.6.x: the stall was an iOS
+  missed paint — WebKit committed but never presented the frame — fixed with
+  a 1px repaint nudge after submit, plus the V3.6.1 perf pass; Rumen's 9 Aug
+  iPhone test passes closed the complaint. Historical detail below.)
+  iPhone post-submit freeze (constant ~2-4s, floats between the submitting screen and the next tap; also delays approval echoes). Exhaustively instrumented across V2.20.10-V2.20.31: submit close, paint delay, tap dispatch (hardware timestamp), and render all measure clean on every reproduction, and zero iOS diagnostic rows exceeded thresholds all night — the stall is provably OUTSIDE the page (WKWebView/Safari input+display pipeline), which is why three page-level candidate fixes (toast backdrop-blur, iOS-only flat toast, skipping the submit sound) each changed nothing on device and were reverted. Next step when picking this up: 10-minute wired session — iPhone via cable, Mac Safari Develop menu, record a Web Inspector timeline during a text submit; the timeline sees the layers page instrumentation cannot. Not event-blocking: tablets are the event platform, and the iPhone flow works correctly, just sluggish for a few seconds after each submit.
 
 - [~] **HERMIT-ENCODE** Correction to CAPTURE-2026-07-30: the Hermit shutter fix (V2.20.27, camera release before encode) was confirmed on one good round but the stall is INTERMITTENT, so that confirmation was a lucky streak, not a fix. Rumen's on-screen stage data (31 Jul 2026) pins it precisely: frame grab is ~15ms every time; the JPEG encode intermittently stalls at a near-constant ~13.1s (five sightings at 13.1-13.2s plus 7.3s/8.7s outliers), content-independent, first-shot-of-a-game biased, retakes instant. That constancy is a timeout inside Hermit's WebView encoder, outside our code. V2.20.35 restructures around it: the captured canvas IS the preview (shutter feels instant always), the JPEG encodes in the background during human review, and Submit shows "Preparing" only if tapped before a stalled encode finishes. On-screen stats stay (draw ms, then encode ms when it lands). True root cause would need chrome://inspect on the tablet with Hermit's WebView debugging enabled; only worth it if the background-encode approach still bothers real events.
 
 - [-] **COMPANION-APP** ~~RallyHub companion app for the App Store and Play Store~~ — **dropped by Rumen, 3 Aug 2026.** The PWA work (installable manifest, per-page manifests for the tablet and join surfaces, iOS splash screens, service worker) covers what the wrapper was for: teams install RallyHub from the browser on any of the four platforms and get a full-screen app with no third-party WebView. Verified on the Android tablet, which offered "Add to home screen" straight from the join page. `docs/IDEA-COMPANION-APP.md` stays as the reasoning if the decision is ever revisited. Note the Hermit encode stall (HERMIT-ENCODE) is a Hermit problem, so it disappears with Hermit rather than needing a wrapper of our own.
 
-- [~] **ND-5** New design: merged `main` into `feature/new-design`, plus the two
+- [x] **ND-5** (shipped in V3.0.0; `delete_own_account` migration confirmed
+  applied to production 9 Aug 2026) New design: merged `main` into `feature/new-design`, plus the two
   My Account Danger Zone actions that had been shipped as disabled placeholders.
   The branch had drifted 54 commits behind `main` (branched at the V2.19.1
   hotfix, missing all V2.20.x Hermit/camera work and V2.21.0's event media
