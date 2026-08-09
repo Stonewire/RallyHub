@@ -6,6 +6,8 @@ import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { NeoButton } from '@/components/neo-minimal'
 import { type EventRow } from '@/hooks/use-events'
 import { canTransitionEventStatus, isEventActivated } from '@/lib/event-lifecycle'
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import type { EventStatus } from '@/types/database'
 
 function formatEventDate(iso: string | null) {
@@ -50,6 +52,7 @@ export function DraggableEventsGrid({
   duplicating = false,
 }: DraggableEventsGridProps) {
   const navigate = useNavigate()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const [dragId, setDragId] = useState<string | null>(null)
   const [upcomingCollapsed, setUpcomingCollapsed] = useState(false)
   // Past events start collapsed: they accumulate forever and push the events
@@ -119,9 +122,9 @@ export function DraggableEventsGrid({
           handleDrop(event.status as EventStatus, event.id)
         }}
         className={`border-border/80 bg-card hover:border-nm-slate-400 group flex cursor-pointer flex-col rounded-lg border p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md ${compact ? 'opacity-80' : ''}`}
-        onClick={() => navigate(`/admin/events/${event.id}`)}
+        onClick={() => navigate(orgPath(clientSlug, `/admin/events/${event.id}`))}
         onKeyDown={(keyEvent) => {
-          if (keyEvent.key === 'Enter') navigate(`/admin/events/${event.id}`)
+          if (keyEvent.key === 'Enter') navigate(orgPath(clientSlug, `/admin/events/${event.id}`))
         }}
         role="button"
         tabIndex={0}
@@ -193,7 +196,7 @@ export function DraggableEventsGrid({
           {archivedEvent ? (
             <>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={`/admin/events/${event.id}`}><IconEye className="size-3.5" />View</Link>
+                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />View</Link>
               </NeoButton>
               <NeoButton type="button" variant="surface" size="sm" className="flex-1" disabled={duplicating} onClick={() => onDuplicate(event)}>
                 <IconCopy className="size-3.5" />{duplicating ? 'Duplicating…' : 'Duplicate'}
@@ -205,7 +208,7 @@ export function DraggableEventsGrid({
                 <IconLink className="size-3.5" />Event Links
               </NeoButton>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={`/admin/events/${event.id}`}><IconEye className="size-3.5" />View</Link>
+                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />View</Link>
               </NeoButton>
             </>
           )}

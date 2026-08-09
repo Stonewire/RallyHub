@@ -2,6 +2,8 @@ import { IconClock } from '@/components/icons'
 import { Link } from 'react-router-dom'
 
 import { NeoCard } from '@/components/neo-minimal'
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import type { RecentEventRow } from '@/hooks/use-dashboard'
 
 function relativeTime(iso: string | null): string {
@@ -35,12 +37,13 @@ type ActivityFeedProps = {
  * activity log yet.
  */
 export function ActivityFeed({ events, isLoading }: ActivityFeedProps) {
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   return (
     <NeoCard className="flex h-full flex-col p-4">
       <div className="mb-1 flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold whitespace-nowrap">Recent Activity</h2>
         <Link
-          to="/admin/events"
+          to={orgPath(clientSlug, "/admin/events")}
           className="text-nm-neutral-500 shrink-0 text-xs hover:underline"
         >
           View All
@@ -52,7 +55,7 @@ export function ActivityFeed({ events, isLoading }: ActivityFeedProps) {
       ) : events.length === 0 ? (
         <p className="text-nm-neutral-500 py-2 text-xs">
           No events yet.{' '}
-          <Link to="/admin/events/new" className="underline">
+          <Link to={orgPath(clientSlug, "/admin/events/new")} className="underline">
             Create your first event
           </Link>
           .
@@ -69,7 +72,7 @@ export function ActivityFeed({ events, isLoading }: ActivityFeedProps) {
               </span>
               <div className="min-w-0 flex-1">
                 <Link
-                  to={`/admin/events/${event.id}`}
+                  to={orgPath(clientSlug, `/admin/events/${event.id}`)}
                   className="block truncate text-sm hover:underline"
                 >
                   {event.name}

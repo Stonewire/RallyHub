@@ -26,7 +26,8 @@ import {
 } from '@/components/ui/sidebar'
 import { useSupportUnreadCount } from '@/hooks/use-support-tickets'
 import { useAuth } from '@/contexts/auth-context'
-import { useTenant } from '@/contexts/tenant-context'
+import { useTenant, useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import {
   canAccessOrgSettings,
   canManageOrgUsers,
@@ -69,6 +70,7 @@ export function AdminAppSidebar() {
   const [searchParams] = useSearchParams()
   const { role } = useAuth()
   const { tenantOrg } = useTenant()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   // Item 7: sidebar is always charcoal, so a client's *light* logo replaces ours.
   const clientLogo = tenantOrg?.logo_light_url ?? null
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
@@ -133,7 +135,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, to, end)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to={to} end={end} data-tour={tourId} onClick={() => setOpenMobile(false)}>
+                    <NavLink to={orgPath(clientSlug, to)} end={end} data-tour={tourId} onClick={() => setOpenMobile(false)}>
                       <Icon className="shrink-0" />
                       <span className="font-medium">{label}</span>
                     </NavLink>
@@ -149,7 +151,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, '/admin/settings', true)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to="/admin/settings" onClick={() => setOpenMobile(false)}>
+                    <NavLink to={orgPath(clientSlug, "/admin/settings")} onClick={() => setOpenMobile(false)}>
                       <UserCircle className="shrink-0" strokeWidth={1.75} />
                       <span className="font-medium">Profile</span>
                     </NavLink>
@@ -165,7 +167,7 @@ export function AdminAppSidebar() {
                     isActive={isAdminNavActive(pathname, '/admin/team', true)}
                     className="text-sidebar-foreground"
                   >
-                    <NavLink to="/admin/team" onClick={() => setOpenMobile(false)}>
+                    <NavLink to={orgPath(clientSlug, "/admin/team")} onClick={() => setOpenMobile(false)}>
                       <IconUsers className="shrink-0" />
                       <span className="font-medium">Team</span>
                     </NavLink>
@@ -192,7 +194,7 @@ export function AdminAppSidebar() {
                           className="text-sidebar-foreground"
                         >
                           <NavLink
-                            to={search ? { pathname: to, search } : to}
+                            to={search ? { pathname: orgPath(clientSlug, to), search } : orgPath(clientSlug, to)}
                             data-tour={tourId}
                           >
                             <Icon className="shrink-0" />
@@ -219,7 +221,7 @@ export function AdminAppSidebar() {
                 isActive={isAdminNavActive(pathname, '/admin/support', true)}
                 className="text-sidebar-foreground"
               >
-                <NavLink to="/admin/support" data-tour="nav-support" className="justify-center" onClick={() => setOpenMobile(false)}>
+                <NavLink to={orgPath(clientSlug, "/admin/support")} data-tour="nav-support" className="justify-center" onClick={() => setOpenMobile(false)}>
                   <IconSupport className="size-4" />
                   <span className="font-medium">Support</span>
                 </NavLink>
