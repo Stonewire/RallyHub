@@ -5,12 +5,111 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
-## V3.12.1 - 2026-08-09
+## V3.15.2 - 2026-08-09
 
 - The facilitator panel on a computer is back to exactly the layout it had
   before V3.12.0: display preview beside the control card, two columns,
   teams under the announcement. The new single-column flow with the Preview
   popup now only applies below 1280px, so tablets and phones keep it.
+
+## V3.15.1 - 2026-08-09
+
+- Builder and facilitator screenshots no longer crop: their image slots now
+  match the screenshots' own aspect ratios, so the logo and top bar stay
+  fully visible.
+
+## V3.15.0 - 2026-08-09 (real product screenshots)
+
+- The last four image placeholders are now real screenshots captured from a
+  live event: the event builder with its stage list, the facilitator control
+  room, a player's quest board, and the same player screen in three different
+  event palettes. The branding palette buttons swap the real screenshots.
+- Captured on the demo build against a live event rather than mocked, so the
+  page shows the product as it actually looks.
+
+## V3.14.0 - 2026-08-09 (real marketing photography, /contact, device pricing copy)
+
+- The three generated marketing photographs are in: full-bleed hero (the
+  facilitator at her control screen with the room cheering behind her), the
+  wide room frame showing all three live views at once, and the store
+  handover. Served as responsive WebP with JPEG fallbacks; source masters
+  kept in "Marketing Page Photos". ImageSlot now renders a real photo when
+  given one and keeps the placeholder frame otherwise.
+- /contact is a real page again: it reuses the working demo form in the new
+  marketing design instead of the old placeholder card. The pricing grid's
+  "Contact sales" and every legal-page Contact link now land on a working
+  form. Marketing header and footer section links are absolute so they work
+  from /contact too.
+- Plan feature copy now says devices, not teams: "5 devices included per
+  event · €10 per extra device". The homepage pricing cards contradicted the
+  pricing-maths section above them, which said devices. Shows on the
+  marketing pricing grid, the billing plan card and the signup plan summary.
+
+## V3.13.3 - 2026-08-09
+
+- Demo form: portrait slot removed (multiple salespeople handle demos).
+  AI photo-generation prompts for the three remaining photo slots added at
+  docs/marketing/photo-prompts.md.
+
+## V3.13.2 - 2026-08-09
+
+- Hero subline is now the brand slogan: Stronger Teams, one game at a time.
+
+## V3.13.1 - 2026-08-09 (hero and branding refinements)
+
+- Hero rebuilt around a full-bleed background photo slot with a legibility
+  scrim: title, one-line sub and a single Book a demo button. Kicker,
+  micro-proof row and the Watch a live event button removed.
+- Game-type marquee removed.
+- Header now uses the full logo with the tagline underneath.
+- Branding section shows a player-phone screenshot placeholder (where the
+  branding actually lives) instead of the mocked leaderboard; palette
+  buttons will switch the real screenshots once captured.
+
+## V3.13.0 - 2026-08-09 (marketing page redesign, warm coal system)
+
+- Full visual redesign of the marketing homepage: warm charcoal + ivory +
+  committed brand yellow, Manrope throughout, no more washed-out grey. Dark
+  hero, yellow proof band, kinetic game-type marquee, games as an editorial
+  list instead of icon cards, yellow-drenched store section, coal pricing
+  maths, split audience panels, restyled pricing cards and demo form.
+- All imagery replaced with labelled placeholder slots matching the planned
+  shoot list (facilitator-over-shoulder hero, six phone screenshots, builder
+  and control-room screenshots, wide room photo, three-palette branding
+  strip, store handover photo, demo-call portrait), each with its selling
+  caption already in place.
+- Marketing page no longer follows the app theme toggle; it is a committed
+  single visual world. New reusable ImageSlot component.
+
+## V3.12.3 - 2026-08-09 (hero + event-builder titles)
+
+- Hero headline: "Build the format once. Tailor every event."
+- Event builder section title: "Design. Adapt. Deliver."
+
+## V3.12.2 - 2026-08-09 (marketing content corrections)
+
+- Game-variety section replaced the invented stage grid with the actual game
+  library: photo, video, text, live quiz, puzzles, music bingo, each shown on
+  its own merits.
+- Facilitator section now lists the real controls: approving every
+  submission, controlling every live screen, and full unrestricted control
+  over the event (jump stages in any order, pause a team, hold the reveal).
+- Branding copy reframed around per-event customisation rather than "their
+  logo"; event builder feature renamed the same way.
+- Pricing maths corrected: RallyHub's pricing is per DEVICE (5 included per
+  event, €10 per additional device), not per team or player, and it does
+  not matter whether the device is a supplied tablet or a personal phone.
+
+## V3.12.1 - 2026-08-09 (marketing accuracy + hero cleanup)
+
+- Marketing homepage now describes the real event model: quest stages are
+  free-roam challenge boards (photo, video, text, puzzles), quiz and bingo
+  stages are lock-step, breaks and the winner reveal sit in between, and the
+  facilitator jumps between stages in any order. The old numbered
+  stage-pipeline framing (with puzzles as a stage) was wrong.
+- Hero simplified to a single photo: removed the stacked screenshot floats
+  and orbit icons.
+- Event-builder mock shows stage kinds instead of made-up stage durations.
 
 ## V3.12.0 - 2026-08-09 (mobile/tablet, phase 2)
 

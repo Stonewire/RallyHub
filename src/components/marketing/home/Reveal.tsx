@@ -2,12 +2,11 @@ import { useEffect, useRef, useState, type ElementType, type ReactNode } from 'r
 
 import { cn } from '@/lib/utils'
 
-type RevealProps = {
+type RevealProps = React.HTMLAttributes<HTMLElement> & {
   children: ReactNode
   /** Stagger index; each step adds ~90ms delay. */
   delay?: number
   as?: ElementType
-  className?: string
 }
 
 /**
@@ -22,7 +21,7 @@ function prefersInstant(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function Reveal({ children, delay = 0, as: Tag = 'div', className }: RevealProps) {
+export function Reveal({ children, delay = 0, as: Tag = 'div', className, style, ...rest }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [visible, setVisible] = useState(prefersInstant)
 
@@ -62,7 +61,11 @@ export function Reveal({ children, delay = 0, as: Tag = 'div', className }: Reve
     <Tag
       ref={ref}
       className={cn('mkt-reveal', visible && 'is-visible', className)}
-      style={delay ? ({ '--mkt-delay': `${delay * 90}ms` } as React.CSSProperties) : undefined}
+      style={{
+        ...style,
+        ...(delay ? ({ '--mkt-delay': `${delay * 90}ms` } as React.CSSProperties) : null),
+      }}
+      {...rest}
     >
       {children}
     </Tag>

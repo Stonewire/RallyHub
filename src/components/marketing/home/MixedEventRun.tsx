@@ -1,109 +1,70 @@
-import { ArrowRight, Camera, ListChecks, Music4, Puzzle, Trophy, type LucideIcon } from 'lucide-react'
-import { Fragment } from 'react'
-
+import { ImageSlot } from './ImageSlot'
 import { Reveal } from './Reveal'
 
-type RunStage = {
-  stage: string
-  icon: LucideIcon
-  title: string
-  body: string
-  tags: string[]
-}
-
-const RUN: RunStage[] = [
+const GAMES = [
   {
-    stage: 'Stage 01',
-    icon: Camera,
-    title: 'Team quest',
-    body: 'Get teams moving with creative photo, video and text challenges.',
-    tags: ['Photo', 'Video', 'Text'],
+    title: 'Photo challenges',
+    body: 'Send teams out with a brief. They bring back the proof.',
   },
   {
-    stage: 'Stage 02',
-    icon: ListChecks,
-    title: 'Live quiz',
-    body: 'Run timed rounds, reveal the answers and score every team automatically.',
-    tags: ['Rounds', 'Timers'],
+    title: 'Video challenges',
+    body: 'Give teams a prompt worth acting out on camera.',
   },
   {
-    stage: 'Stage 03',
-    icon: Puzzle,
+    title: 'Text challenges',
+    body: 'Typed answers or multiple choice, right on their phone.',
+  },
+  {
+    title: 'Live quizzes',
+    body: 'Timed rounds, every team answering together, scored automatically.',
+  },
+  {
     title: 'Puzzles',
     body: 'Crosswords, word games and matching rounds for a change of pace.',
-    tags: ['Crossword', 'Matching'],
   },
   {
-    stage: 'Stage 04',
-    icon: Music4,
     title: 'Music bingo',
-    body: 'Play the clips, reveal the tracks and give every team its own shuffled card.',
-    tags: ['Audio clips', 'Unique cards'],
+    body: 'Play the clips. Every team gets its own shuffled card.',
   },
-  {
-    stage: 'Finale',
-    icon: Trophy,
-    title: 'Winner reveal',
-    body: 'Build the suspense, reveal the podium and give the room its final cheer.',
-    tags: ['Podium', 'Celebration'],
-  },
-]
+] as const
 
 export function MixedEventRun() {
   return (
-    <section id="why" className="mkt-show scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-end">
-          <Reveal>
-            <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
-              One continuous experience
-            </p>
-            <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl lg:text-[2.8rem]">
-              One event.{' '}
-              <span className="text-[var(--mkt-gold)]">As many games as you want in it.</span>
-            </h2>
+    <section id="why" className="scroll-mt-20">
+      <div className="mk-wrap mk-section">
+        <Reveal className="grid gap-5" style={{ maxWidth: '46rem' }}>
+          <h2 className="mk-h2">
+            A real library of games. Mix them into one event, or run one alone.
+          </h2>
+          <p className="mk-lead mk-muted">
+            Every format lives in the same app, on the same leaderboard, ready whenever your
+            event needs it.
+          </p>
+        </Reveal>
+
+        <div className="mk-games-grid">
+          <Reveal as="ul" className="mk-games-list" aria-label="Game types available on RallyHub">
+            {GAMES.map((game) => (
+              <li key={game.title}>
+                <h3>{game.title}</h3>
+                <p>{game.body}</p>
+              </li>
+            ))}
           </Reveal>
-          <Reveal delay={1}>
-            <p className="text-[color:var(--mkt-show-muted)] text-lg leading-relaxed">
-              Run a quiz night on its own. Or stack a photo quest, a puzzle round and a music
-              bingo finale into one event with one continuous score. Every game lives in the same
-              app, so switching stages takes a tap, not a new tool.
-            </p>
+          <Reveal delay={1} className="mk-games-side">
+            <ImageSlot
+              aspect="9 / 16"
+              label="Player quest board"
+              photo={{
+                base: '/marketing/app-quest-board',
+                widths: [420, 760],
+                alt: 'A player’s phone showing a quest board: photo, video, text and puzzle challenges with their point values',
+                sizes: '(max-width: 1024px) 70vw, 320px',
+              }}
+              caption="A real quest board on a player's phone. Four challenge types, one tap each."
+            />
           </Reveal>
         </div>
-
-        <ol
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-stretch lg:gap-2"
-          aria-label="Example mixed-format RallyHub event"
-        >
-          {RUN.map((item, i) => (
-            <Fragment key={item.title}>
-              <Reveal as="li" delay={i}>
-                <div className="mkt-run-card">
-                  <span className="mkt-run-num">
-                    <i />
-                    {item.stage}
-                  </span>
-                  <span className="mkt-run-icon">
-                    <item.icon aria-hidden />
-                  </span>
-                  <h3>{item.title}</h3>
-                  <p>{item.body}</p>
-                  <div className="mkt-run-tags">
-                    {item.tags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-              {i < RUN.length - 1 ? (
-                <li className="hidden items-center justify-center lg:flex" aria-hidden>
-                  <ArrowRight className="mkt-run-arrow size-5" />
-                </li>
-              ) : null}
-            </Fragment>
-          ))}
-        </ol>
       </div>
     </section>
   )

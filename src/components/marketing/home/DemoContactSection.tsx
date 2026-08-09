@@ -3,7 +3,6 @@ import { ArrowRight, Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-import { NeoButton, NeoInput, NeoLabel, NeoSelect, NeoTextarea } from '@/components/neo-minimal'
 import { supabase } from '@/lib/supabase'
 
 import { Reveal } from './Reveal'
@@ -103,142 +102,144 @@ export function DemoContactSection() {
   const firstName = values.name.trim().split(' ')[0]
 
   return (
-    <section id="contact" className="mkt-show scroll-mt-20">
-      <div className="mx-auto grid max-w-6xl items-start gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:px-12 lg:py-24">
+    <section id="contact" className="mk-dark scroll-mt-20">
+      <div className="mk-wrap mk-section mk-form-grid">
         <Reveal>
-          <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
-            Book a walkthrough
-          </p>
-          <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
-            See a real event, not a slideshow.
-          </h2>
-          <p className="text-[color:var(--mkt-show-muted)] mt-4 max-w-md text-lg leading-relaxed">
+          <h2 className="mk-h2">See a real event, not a slideshow.</h2>
+          <p className="mk-lead mk-muted" style={{ marginTop: '1.1rem' }}>
             Book 30 minutes. We will build an event in front of you, brand it like one of your
             clients, and run you through it as a player. If it is not obviously faster than how
             you work today, no hard feelings.
           </p>
-          <div className="mt-8 rounded-2xl border border-[var(--mkt-show-border)] bg-[var(--mkt-show-elev)] p-6">
-            <p className="text-[color:var(--mkt-show-muted)] text-sm">
-              Already know what you want? Open an account and explore the builder.
-            </p>
-            <NeoButton variant="accent" asChild className="mt-4">
-              <Link to="/register">
-                Create your account
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </NeoButton>
-          </div>
+          <p className="mk-muted mt-6 text-sm font-semibold">
+            Already know what you want?{' '}
+            <Link to="/register" style={{ color: 'var(--mk-yellow)' }}>
+              Open an account
+            </Link>{' '}
+            and explore the builder.
+          </p>
         </Reveal>
 
         <Reveal delay={1}>
-          <div className="rounded-2xl border border-[var(--mkt-show-border)] bg-[var(--nm-bg-elevated)] p-6 sm:p-8">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-foreground text-lg font-bold">Book your RallyHub demo</h3>
-              <span className="text-muted-foreground text-xs">About 30 minutes</span>
+          <div className="mk-form-card">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h3 className="mk-h3">Book your RallyHub demo</h3>
+              <span className="mk-chip mk-chip--ghost" style={{ color: 'var(--mk-mut-d)' }}>
+                ~30 min
+              </span>
             </div>
 
             {submitted ? (
-              <div role="status" className="space-y-3 py-6 text-center">
-                <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nm-yellow)_30%,transparent)]">
-                  <Check className="size-6 text-[var(--nm-charcoal)]" aria-hidden />
+              <div role="status" className="grid gap-3 py-8 text-center">
+                <span
+                  className="mx-auto grid size-12 place-items-center rounded-full"
+                  style={{ background: 'var(--mk-yellow)', color: 'var(--mk-ink)' }}
+                >
+                  <Check className="size-6" aria-hidden />
                 </span>
-                <p className="text-foreground font-semibold">
+                <p className="font-extrabold">
                   Thanks{firstName ? `, ${firstName}` : ''}. Your request is in.
                 </p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  We have got your details and will be in touch shortly to set up your walkthrough.
+                <p className="mk-muted text-sm leading-relaxed">
+                  We have your details and will be in touch shortly to set up your walkthrough.
                 </p>
               </div>
             ) : (
               <form onSubmit={onSubmit} noValidate className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    id="demo-name"
-                    label="Your name"
-                    error={errors.name}
-                    input={
-                      <NeoInput
-                        id="demo-name"
-                        name="name"
-                        autoComplete="name"
-                        placeholder="Alex Morgan"
-                        value={values.name}
-                        aria-invalid={!!errors.name}
-                        aria-describedby={errors.name ? 'demo-name-err' : undefined}
-                        onChange={(e) => update('name', e.target.value)}
-                      />
-                    }
-                  />
-                  <Field
-                    id="demo-email"
-                    label="Work email"
-                    error={errors.email}
-                    input={
-                      <NeoInput
-                        id="demo-email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        placeholder="alex@company.com"
-                        value={values.email}
-                        aria-invalid={!!errors.email}
-                        aria-describedby={errors.email ? 'demo-email-err' : undefined}
-                        onChange={(e) => update('email', e.target.value)}
-                      />
-                    }
-                  />
-                  <Field
-                    id="demo-company"
-                    label="Organisation"
-                    error={errors.company}
-                    input={
-                      <NeoInput
-                        id="demo-company"
-                        name="company"
-                        autoComplete="organization"
-                        placeholder="Your company"
-                        value={values.company}
-                        aria-invalid={!!errors.company}
-                        aria-describedby={errors.company ? 'demo-company-err' : undefined}
-                        onChange={(e) => update('company', e.target.value)}
-                      />
-                    }
-                  />
-                  <Field
-                    id="demo-eventType"
-                    label="What are you planning?"
-                    error={errors.eventType}
-                    input={
-                      <NeoSelect
-                        id="demo-eventType"
-                        name="eventType"
-                        value={values.eventType}
-                        aria-invalid={!!errors.eventType}
-                        aria-describedby={errors.eventType ? 'demo-eventType-err' : undefined}
-                        onChange={(e) => update('eventType', e.target.value)}
-                      >
-                        <option value="">Choose one</option>
-                        {EVENT_TYPES.map((t) => (
-                          <option key={t}>{t}</option>
-                        ))}
-                      </NeoSelect>
-                    }
+                  <div className="mk-field">
+                    <label htmlFor="demo-name">Your name</label>
+                    <input
+                      id="demo-name"
+                      name="name"
+                      className="mk-input"
+                      autoComplete="name"
+                      placeholder="Alex Morgan"
+                      value={values.name}
+                      aria-invalid={!!errors.name}
+                      aria-describedby={errors.name ? 'demo-name-err' : undefined}
+                      onChange={(e) => update('name', e.target.value)}
+                    />
+                    {errors.name ? (
+                      <p id="demo-name-err" className="mk-error">
+                        {errors.name}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="mk-field">
+                    <label htmlFor="demo-email">Work email</label>
+                    <input
+                      id="demo-email"
+                      name="email"
+                      type="email"
+                      className="mk-input"
+                      autoComplete="email"
+                      placeholder="alex@company.com"
+                      value={values.email}
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? 'demo-email-err' : undefined}
+                      onChange={(e) => update('email', e.target.value)}
+                    />
+                    {errors.email ? (
+                      <p id="demo-email-err" className="mk-error">
+                        {errors.email}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="mk-field">
+                    <label htmlFor="demo-company">Organisation</label>
+                    <input
+                      id="demo-company"
+                      name="company"
+                      className="mk-input"
+                      autoComplete="organization"
+                      placeholder="Your company"
+                      value={values.company}
+                      aria-invalid={!!errors.company}
+                      aria-describedby={errors.company ? 'demo-company-err' : undefined}
+                      onChange={(e) => update('company', e.target.value)}
+                    />
+                    {errors.company ? (
+                      <p id="demo-company-err" className="mk-error">
+                        {errors.company}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="mk-field">
+                    <label htmlFor="demo-eventType">What are you planning?</label>
+                    <select
+                      id="demo-eventType"
+                      name="eventType"
+                      className="mk-select"
+                      value={values.eventType}
+                      aria-invalid={!!errors.eventType}
+                      aria-describedby={errors.eventType ? 'demo-eventType-err' : undefined}
+                      onChange={(e) => update('eventType', e.target.value)}
+                    >
+                      <option value="">Choose one</option>
+                      {EVENT_TYPES.map((t) => (
+                        <option key={t}>{t}</option>
+                      ))}
+                    </select>
+                    {errors.eventType ? (
+                      <p id="demo-eventType-err" className="mk-error">
+                        {errors.eventType}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mk-field">
+                  <label htmlFor="demo-message">Tell us a little more</label>
+                  <textarea
+                    id="demo-message"
+                    name="message"
+                    className="mk-textarea"
+                    rows={3}
+                    placeholder="Team size, timing, game ideas, or anything you want the event to feel like."
+                    value={values.message}
+                    onChange={(e) => update('message', e.target.value)}
                   />
                 </div>
-                <Field
-                  id="demo-message"
-                  label="Tell us a little more"
-                  input={
-                    <NeoTextarea
-                      id="demo-message"
-                      name="message"
-                      rows={3}
-                      placeholder="Team size, timing, game ideas, or anything you want the event to feel like."
-                      value={values.message}
-                      onChange={(e) => update('message', e.target.value)}
-                    />
-                  }
-                />
 
                 {/* Honeypot: hidden from users, catches bots. */}
                 <div aria-hidden className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
@@ -254,12 +255,9 @@ export function DemoContactSection() {
                 </div>
 
                 {submitError ? (
-                  <p role="alert" className="text-sm font-medium text-[#c0574f]">
+                  <p role="alert" className="mk-error">
                     {submitError} You can also email us at{' '}
-                    <a
-                      href={`mailto:${CONTACT_EMAIL}`}
-                      className="underline underline-offset-2"
-                    >
+                    <a href={`mailto:${CONTACT_EMAIL}`} className="underline underline-offset-2">
                       {CONTACT_EMAIL}
                     </a>
                     .
@@ -267,13 +265,13 @@ export function DemoContactSection() {
                 ) : null}
 
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-muted-foreground text-xs">
+                  <p className="mk-muted text-xs font-semibold">
                     We will only use your details to arrange your demo.
                   </p>
-                  <NeoButton variant="primary" type="submit" disabled={submitting}>
+                  <button className="mk-btn" type="submit" disabled={submitting}>
                     {submitting ? 'Sending…' : 'Book my demo'}
-                    {submitting ? null : <ArrowRight className="size-4" aria-hidden />}
-                  </NeoButton>
+                    {submitting ? null : <ArrowRight aria-hidden />}
+                  </button>
                 </div>
               </form>
             )}
@@ -281,29 +279,5 @@ export function DemoContactSection() {
         </Reveal>
       </div>
     </section>
-  )
-}
-
-function Field({
-  id,
-  label,
-  error,
-  input,
-}: {
-  id: string
-  label: string
-  error?: string
-  input: React.ReactNode
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <NeoLabel htmlFor={id}>{label}</NeoLabel>
-      {input}
-      {error ? (
-        <p id={`${id}-err`} className="text-xs font-medium text-[#c0574f]">
-          {error}
-        </p>
-      ) : null}
-    </div>
   )
 }
