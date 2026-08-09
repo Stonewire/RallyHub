@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.4 - 2026-08-09
+
+- Client screens keep their footer: the tablet mock was cropping the bottom
+  70px, which is exactly where "Powered By RallyHub" and the chat and exit
+  buttons sit. The mock now takes the screenshot ratio per section, and the
+  three client boards were recaptured at full screen height.
+- Tablet mock enlarged so the event logo and score are legible.
+
 ## V3.16.3 - 2026-08-09
 
 - Hero: headline breaks onto two fixed lines and the whole block sits at mid

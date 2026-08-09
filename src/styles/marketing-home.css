@@ -549,7 +549,7 @@
 .mk-ipad {
   position: relative;
   margin-inline: auto;
-  max-width: 380px;
+  max-width: 440px;
   padding: 12px;
   border-radius: 30px;
   background: linear-gradient(160deg, #3a3630, #201d19 55%, #35302a);

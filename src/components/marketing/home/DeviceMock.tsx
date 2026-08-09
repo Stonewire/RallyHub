@@ -11,6 +11,8 @@ type DeviceMockProps = {
   widths: number[]
   sizes?: string
   className?: string
+  /** Screenshot ratio. Must match the assets or the footer gets cropped away. */
+  aspect?: string
 }
 
 /**
@@ -20,13 +22,20 @@ type DeviceMockProps = {
  * opacity. Swapping the src (or remounting via key) makes the browser drop the
  * painted frame first, which reads as a flicker.
  */
-export function DeviceMock({ screens, activeId, widths, sizes, className }: DeviceMockProps) {
+export function DeviceMock({
+  screens,
+  activeId,
+  widths,
+  sizes,
+  className,
+  aspect = '1488 / 2196',
+}: DeviceMockProps) {
   const srcSet = (base: string, ext: 'webp' | 'jpg') =>
     widths.map((w) => `${base}-${w}.${ext} ${w}w`).join(', ')
 
   return (
     <div className={className ? `mk-ipad ${className}` : 'mk-ipad'}>
-      <div className="mk-ipad-screen">
+      <div className="mk-ipad-screen" style={{ aspectRatio: aspect }}>
         {screens.map((screen) => {
           const isActive = screen.id === activeId
           return (

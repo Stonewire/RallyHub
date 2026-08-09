@@ -69,7 +69,9 @@ export function BrandingPreview() {
               alt: `The same RallyHub challenge board wearing ${c.label} branding: their logo and their colours on every tile`,
             }))}
             widths={[500, 900]}
-            sizes="(max-width: 1024px) 78vw, 380px"
+            /* Full screen height, so Powered By and the chat/exit buttons stay in frame. */
+            aspect="1488 / 2266"
+            sizes="(max-width: 1024px) 82vw, 440px"
           />
           <p className="mk-caption">
             {current.label}. Same event, same screen, their brand.
