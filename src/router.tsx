@@ -1,6 +1,9 @@
+import type { RouteObject } from 'react-router-dom'
 import { Link, Navigate, createBrowserRouter, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
+import { RequireAuth } from '@/components/auth/RequireAuth'
+import { RequireTenantAccess } from '@/components/auth/RequireTenantAccess'
 import { RouteErrorBoundary } from '@/components/errors/RouteErrorBoundary'
 import {
   AdminGamesRoute,
@@ -17,7 +20,9 @@ import {
 } from '@/components/routing/AdminRouteDispatchers'
 import { HostAdminLayout } from '@/components/routing/HostAdminLayout'
 import { AppRootLayout } from '@/components/routing/AppRootLayout'
+import { PathTenantScope } from '@/components/routing/PathTenantScope'
 import { TenantScope } from '@/components/routing/TenantScope'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from '@/pages/LoginPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
@@ -104,6 +109,93 @@ function NotFoundPage() {
 }
 
 /**
+ * The client admin panel's pages, mounted twice: once host-scoped at /admin
+ * (admin.rallyhub.games and the legacy tenant subdomains) and once path-scoped
+ * at /:clientSlug/admin (app.rallyhub.games). Shared so the two mounts can't
+ * drift apart.
+ *
+ * The two settings redirects use route-relative targets ('../settings'), which
+ * resolve against the parent mount — /admin/settings under the first mount,
+ * /:clientSlug/admin/settings under the second. Absolute targets would send
+ * slug-scoped users out of their own panel.
+ */
+const adminRouteChildren: RouteObject[] = [
+  { index: true, element: <AdminHomePage /> },
+  { path: 'games', element: <AdminGamesRoute /> },
+  { path: 'games/new', element: <ClientGamesNewRoute /> },
+  { path: 'games/:gameId', element: <ClientGameDetailRoute /> },
+  { path: 'events', element: <ClientEventsRoute /> },
+  { path: 'events/new', element: <ClientEventsNewRoute /> },
+  { path: 'events/:eventId', element: <ClientEventEditRoute /> },
+  { path: 'settings', element: <ClientSettingsRoute /> },
+  { path: 'team', element: <ClientTeamRoute /> },
+  {
+    path: 'settings/organization',
+    element: <Navigate to="../settings" replace />,
+  },
+  {
+    path: 'settings/billing',
+    element: <Navigate to="../settings?tab=billing" replace />,
+  },
+  { path: 'support', element: <AdminSupportRoute /> },
+]
+
+/**
+ * Super-admin-only pages. These live on the host-scoped /admin mount only —
+ * super admins never operate inside a client's slug-scoped panel.
+ */
+const superAdminRouteChildren: RouteObject[] = [
+  {
+    path: 'clients',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubClientsPage />
+      </SuperAdminOnly>
+    ),
+  },
+  {
+    path: 'clients/new',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubClientDetailPage />
+      </SuperAdminOnly>
+    ),
+  },
+  {
+    path: 'clients/:clientId',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubClientDetailPage />
+      </SuperAdminOnly>
+    ),
+  },
+  {
+    path: 'clients/:clientId/events/:eventId',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubClientEventViewPage />
+      </SuperAdminOnly>
+    ),
+  },
+  {
+    path: 'payments',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubPaymentsPage />
+      </SuperAdminOnly>
+    ),
+  },
+  {
+    path: 'promo-codes',
+    element: (
+      <SuperAdminOnly>
+        <RallyHubPromoCodesPage />
+      </SuperAdminOnly>
+    ),
+  },
+]
+
+/**
  * Public live routes are top-level siblings (no layout wrapper) so nothing
  * can redirect them before the router matches. Do not wrap these in LiveRoute
  * or TenantOnlyRoutes.
@@ -136,6 +228,8 @@ export const router = createBrowserRouter([
   { path: '/tablet', element: <TabletPage />, errorElement: <RouteErrorBoundary /> },
 
   // Pretty shareable slug links → resolve and forward to the real pages above.
+  // Legacy 4-segment form (/{client}/events/{event}/{surface}) stays mounted
+  // as an alias; the 3-segment form below is the primary shape.
   {
     path: '/:clientSlug/events/:eventSlug/facilitator',
     element: <SlugEventRedirect surface="facilitator" />,
@@ -148,6 +242,25 @@ export const router = createBrowserRouter([
   },
   {
     path: '/:clientSlug/events/:eventSlug/teams',
+    element: <SlugEventRedirect surface="join" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+
+  // Primary slug links: /{client}/{event}/{surface}. Kept after the static-
+  // prefixed live routes above so a same-rank match (e.g. /tablet/x/display)
+  // still resolves to the older, more specific route.
+  {
+    path: '/:clientSlug/:eventSlug/facilitator',
+    element: <SlugEventRedirect surface="facilitator" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/:clientSlug/:eventSlug/display',
+    element: <SlugEventRedirect surface="display" />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/:clientSlug/:eventSlug/join',
     element: <SlugEventRedirect surface="join" />,
     errorElement: <RouteErrorBoundary />,
   },
@@ -212,74 +325,25 @@ export const router = createBrowserRouter([
         </LegalAcceptanceGate>
       </TenantScope>
     ),
-    children: [
-      { index: true, element: <AdminHomePage /> },
-      { path: 'games', element: <AdminGamesRoute /> },
-      { path: 'games/new', element: <ClientGamesNewRoute /> },
-      { path: 'games/:gameId', element: <ClientGameDetailRoute /> },
-      { path: 'events', element: <ClientEventsRoute /> },
-      { path: 'events/new', element: <ClientEventsNewRoute /> },
-      { path: 'events/:eventId', element: <ClientEventEditRoute /> },
-      { path: 'settings', element: <ClientSettingsRoute /> },
-      { path: 'team', element: <ClientTeamRoute /> },
-      {
-        path: 'settings/organization',
-        element: <Navigate to="/admin/settings" replace />,
-      },
-      {
-        path: 'settings/billing',
-        element: <Navigate to="/admin/settings?tab=billing" replace />,
-      },
-      { path: 'support', element: <AdminSupportRoute /> },
-      {
-        path: 'clients',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubClientsPage />
-          </SuperAdminOnly>
-        ),
-      },
-      {
-        path: 'clients/new',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubClientDetailPage />
-          </SuperAdminOnly>
-        ),
-      },
-      {
-        path: 'clients/:clientId',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubClientDetailPage />
-          </SuperAdminOnly>
-        ),
-      },
-      {
-        path: 'clients/:clientId/events/:eventId',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubClientEventViewPage />
-          </SuperAdminOnly>
-        ),
-      },
-      {
-        path: 'payments',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubPaymentsPage />
-          </SuperAdminOnly>
-        ),
-      },
-      {
-        path: 'promo-codes',
-        element: (
-          <SuperAdminOnly>
-            <RallyHubPromoCodesPage />
-          </SuperAdminOnly>
-        ),
-      },
-    ],
+    children: [...adminRouteChildren, ...superAdminRouteChildren],
+  },
+  {
+    // Path-scoped client panel on app.rallyhub.games. Always the client shell,
+    // so it mounts AdminLayout directly instead of HostAdminLayout (whose only
+    // job is picking between the RallyHub and client shells by host).
+    path: '/:clientSlug/admin',
+    element: (
+      <PathTenantScope>
+        <LegalAcceptanceGate>
+          <RequireAuth>
+            <RequireTenantAccess>
+              <AdminLayout />
+            </RequireTenantAccess>
+          </RequireAuth>
+        </LegalAcceptanceGate>
+      </PathTenantScope>
+    ),
+    children: adminRouteChildren,
   },
   { path: '/rallyhub', element: <Navigate to="/admin" replace /> },
   { path: '/rallyhub/*', element: <Navigate to="/admin" replace /> },
