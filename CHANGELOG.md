@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.12.2 - 2026-08-09 (marketing content corrections)
+
+- Game-variety section replaced the invented stage grid with the actual game
+  library: photo, video, text, live quiz, puzzles, music bingo, each shown on
+  its own merits.
+- Facilitator section now lists the real controls: approving every
+  submission, controlling every live screen, and full unrestricted control
+  over the event (jump stages in any order, pause a team, hold the reveal).
+- Branding copy reframed around per-event customisation rather than "their
+  logo"; event builder feature renamed the same way.
+- Pricing maths corrected: RallyHub's pricing is per DEVICE (5 included per
+  event, €10 per additional device), not per team or player, and it does
+  not matter whether the device is a supplied tablet or a personal phone.
+
 ## V3.12.1 - 2026-08-09 (marketing accuracy + hero cleanup)
 
 - Marketing homepage now describes the real event model: quest stages are

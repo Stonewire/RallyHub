@@ -1,22 +1,22 @@
-import { MessageSquare, Monitor, Trophy, type LucideIcon } from 'lucide-react'
+import { CheckCheck, MonitorSmartphone, SlidersHorizontal, type LucideIcon } from 'lucide-react'
 
 import { Reveal } from './Reveal'
 
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
-    icon: Monitor,
-    title: 'See what the room sees',
-    body: 'Keep the audience display preview right beside the controls you need next.',
+    icon: CheckCheck,
+    title: 'Approve every submission yourself',
+    body: 'Photos, videos and answers land in your queue. Nothing scores until you say it does.',
   },
   {
-    icon: MessageSquare,
-    title: 'Stay connected',
-    body: 'Send announcements, chat with teams and review their creative submissions in one flow.',
+    icon: MonitorSmartphone,
+    title: 'Control what every screen shows',
+    body: 'The big display, the leaderboard, every player phone: you decide what the room sees and when.',
   },
   {
-    icon: Trophy,
-    title: 'Own the finale',
-    body: 'Control the leaderboard, scoring and winner reveal when the room is ready.',
+    icon: SlidersHorizontal,
+    title: 'Full control, no restrictions',
+    body: 'Jump between stages in any order, pause a team, replay a track, hold the reveal. It is your event to run.',
   },
 ]
 

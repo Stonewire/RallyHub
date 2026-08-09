@@ -1,10 +1,10 @@
 import { Reveal } from './Reveal'
 
-/** Worked example: 60 players. RallyHub Pro = €99 event + 7 extra teams × €10. */
+/** Worked example: a 12-device event (~60 players). RallyHub Pro = €99 event + 7 extra devices × €10. */
 const COMPARISON = [
-  { label: 'RallyHub Pro', price: 169, note: '€99 event + 7 extra teams', us: true },
-  { label: 'Per-player tools (€5 a head)', price: 300, note: 'Typical BYOD pricing', us: false },
-  { label: 'iPad-per-team platforms', price: 660, note: '12 team devices at €55', us: false },
+  { label: 'RallyHub Pro', price: 169, note: '€99 event + 7 extra devices, 12 total', us: true },
+  { label: 'Per-player tools (€5 a head)', price: 300, note: '60 players at €5 a head', us: false },
+  { label: 'iPad-per-team platforms', price: 660, note: '12 devices supplied at €55 each', us: false },
 ] as const
 
 const MAX = Math.max(...COMPARISON.map((c) => c.price))
@@ -26,14 +26,15 @@ export function PricingMaths() {
           <Reveal delay={1}>
             <p className="text-[color:var(--mkt-show-muted)] text-lg leading-relaxed">
               Most event platforms charge per head or per device, so your biggest events carry the
-              biggest software bill. RallyHub charges per event. Here is a 60-player event, priced
-              three ways.
+              biggest software bill. RallyHub charges per event: 5 devices included, then €10 for
+              each one after that. Tablets you hand out or phones people bring along, it makes no
+              difference. Here is a 12-device event, priced three ways.
             </p>
           </Reveal>
         </div>
 
         <Reveal delay={1} className="mt-12">
-          <div className="grid gap-4" role="img" aria-label="Cost comparison for a 60-player event: RallyHub Pro 169 euros, per-player tools 300 euros, iPad-per-team platforms 660 euros">
+          <div className="grid gap-4" role="img" aria-label="Cost comparison for a 12-device, roughly 60-player event: RallyHub Pro 169 euros, per-player tools 300 euros, iPad-per-team platforms 660 euros">
             {COMPARISON.map((c) => (
               <div key={c.label} className="grid gap-1.5">
                 <div className="flex items-baseline justify-between gap-3">
@@ -69,6 +70,9 @@ export function PricingMaths() {
           </div>
           <p className="mt-8 text-sm font-semibold" style={{ color: 'var(--mkt-show-muted)' }}>
             The bigger your events get, the better our maths looks. All prices exclude VAT.
+          </p>
+          <p className="mt-2 text-xs" style={{ color: 'var(--mkt-show-muted)' }}>
+            Device, not player: a shared tablet and a personal phone both count the same.
           </p>
         </Reveal>
       </div>

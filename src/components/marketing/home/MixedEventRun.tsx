@@ -1,43 +1,43 @@
-import { Camera, Coffee, ListChecks, Music4, type LucideIcon } from 'lucide-react'
+import { Camera, ListChecks, Music4, Puzzle, Type, Video, type LucideIcon } from 'lucide-react'
 
 import { Reveal } from './Reveal'
 
-type StageKind = {
-  kind: string
+type GameKind = {
   icon: LucideIcon
   title: string
   body: string
-  tags: string[]
 }
 
-const STAGE_KINDS: StageKind[] = [
+const GAME_KINDS: GameKind[] = [
   {
-    kind: 'Quest stage',
     icon: Camera,
-    title: 'The free-roam board',
-    body: 'A grid of photo, video, text and puzzle challenges. Teams pick their own path and their own pace; you approve submissions as they land.',
-    tags: ['Photo', 'Video', 'Text', 'Puzzles'],
+    title: 'Photo challenges',
+    body: 'Send teams out with a brief. They bring back the proof.',
   },
   {
-    kind: 'Quiz stage',
+    icon: Video,
+    title: 'Video challenges',
+    body: 'Give teams a prompt worth acting out on camera.',
+  },
+  {
+    icon: Type,
+    title: 'Text challenges',
+    body: 'Typed answers or multiple choice, right on their phone.',
+  },
+  {
     icon: ListChecks,
-    title: 'Lock-step rounds',
-    body: 'Start the question, watch every team answer at once, reveal together. Timed and scored automatically.',
-    tags: ['Timed rounds', 'Auto-scored'],
+    title: 'Live quizzes',
+    body: 'Timed rounds, every team answering together, scored automatically.',
   },
   {
-    kind: 'Bingo stage',
+    icon: Puzzle,
+    title: 'Puzzles',
+    body: 'Crosswords, word games and matching rounds for a change of pace.',
+  },
+  {
     icon: Music4,
     title: 'Music bingo',
-    body: 'You play the clips. Every team gets its own shuffled card. The whole room sings the chorus.',
-    tags: ['Your playlist', 'Unique cards'],
-  },
-  {
-    kind: 'In between',
-    icon: Coffee,
-    title: 'Breaks and the reveal',
-    body: 'A pizza break with a countdown, then the two-step podium reveal when the room is ready for it.',
-    tags: ['Countdown', 'Podium'],
+    body: 'Play the clips. Every team gets its own shuffled card.',
   },
 ]
 
@@ -48,44 +48,34 @@ export function MixedEventRun() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-end">
           <Reveal>
             <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
-              One continuous experience
+              One platform, six ways to play
             </p>
             <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl lg:text-[2.8rem]">
-              One event, built from stages.{' '}
-              <span className="text-[var(--mkt-gold)]">You hold the remote.</span>
+              A real library of games.{' '}
+              <span className="text-[var(--mkt-gold)]">Mix them into one event, or run one alone.</span>
             </h2>
           </Reveal>
           <Reveal delay={1}>
             <p className="text-[color:var(--mkt-show-muted)] text-lg leading-relaxed">
-              Mix free-roam quest boards, lock-step quiz rounds, a music bingo singalong and a
-              proper break into one event. You switch the whole room between stages from the
-              facilitator screen, in whatever order the night needs, and every point lands on the
-              same leaderboard.
+              Photo and video challenges, typed questions, live quizzes, puzzles, music bingo.
+              Every format lives in the same app, on the same leaderboard, ready whenever your
+              event needs it.
             </p>
           </Reveal>
         </div>
 
         <ul
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          aria-label="The kinds of stages in a RallyHub event"
+          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          aria-label="Game types available on RallyHub"
         >
-          {STAGE_KINDS.map((item, i) => (
+          {GAME_KINDS.map((item, i) => (
             <Reveal as="li" key={item.title} delay={i}>
               <div className="mkt-run-card">
-                <span className="mkt-run-num">
-                  <i />
-                  {item.kind}
-                </span>
                 <span className="mkt-run-icon">
                   <item.icon aria-hidden />
                 </span>
                 <h3>{item.title}</h3>
                 <p>{item.body}</p>
-                <div className="mkt-run-tags">
-                  {item.tags.map((tag) => (
-                    <span key={tag}>{tag}</span>
-                  ))}
-                </div>
               </div>
             </Reveal>
           ))}

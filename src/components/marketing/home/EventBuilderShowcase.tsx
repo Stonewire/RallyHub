@@ -28,8 +28,8 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   },
   {
     icon: Palette,
-    title: 'Their brand, dropped in',
-    body: 'Add the client’s logo and colours while you set up. Every live screen wears them.',
+    title: 'Customise the branding, event by event',
+    body: 'Add a logo and colours while you set up. Every live screen carries them for that event.',
   },
 ]
 
