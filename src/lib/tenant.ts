@@ -175,15 +175,20 @@ async function fetchTenantBySubdomain(subdomain: string): Promise<TenantPublicOr
   return fetchOrganizationTenantBySubdomain(subdomain)
 }
 
-export function useTenantOrganization() {
+export function useTenantOrganization(subdomainOverride?: string) {
   const ctx = getTenantContext()
   const host =
     typeof window !== 'undefined' ? window.location.hostname : platformHost()
+  const effectiveSubdomain = subdomainOverride ?? (ctx.kind === 'tenant' ? ctx.subdomain : undefined)
+  const enabled = Boolean(subdomainOverride) || ctx.kind === 'tenant'
 
   return useQuery({
-    queryKey: ['tenant-org', ctx.kind, ctx.kind === 'tenant' ? ctx.subdomain : host],
-    enabled: ctx.kind === 'tenant',
+    queryKey: ['tenant-org', subdomainOverride ? 'path' : ctx.kind, effectiveSubdomain ?? host],
+    enabled,
     queryFn: async () => {
+      if (subdomainOverride) {
+        return fetchTenantBySubdomain(subdomainOverride)
+      }
       if (ctx.kind !== 'tenant') return null
       if (isLocalDev() && ctx.subdomain) {
         const bySub = await fetchTenantBySubdomain(ctx.subdomain)

@@ -12,16 +12,25 @@ type TenantContextValue = {
 
 const Ctx = createContext<TenantContextValue | null>(null)
 
-export function TenantProvider({ children }: { children: ReactNode }) {
+export function TenantProvider({
+  children,
+  subdomainOverride,
+}: {
+  children: ReactNode
+  /** Path-based tenancy: the client slug from the URL, e.g. /:clientSlug/admin/*.
+   *  When set, resolution is by this slug instead of by host. */
+  subdomainOverride?: string
+}) {
   const ctx = getTenantContext()
-  const { data, isLoading, error } = useTenantOrganization()
+  const { data, isLoading, error } = useTenantOrganization(subdomainOverride)
+  const effectiveKind = subdomainOverride ? 'tenant' : ctx.kind
 
   return (
     <Ctx.Provider
       value={{
         ctx,
         tenantOrg: data ?? null,
-        tenantLoading: ctx.kind === 'tenant' && isLoading,
+        tenantLoading: effectiveKind === 'tenant' && isLoading,
         tenantError: error as Error | null,
       }}
     >

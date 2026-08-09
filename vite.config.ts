@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -36,5 +37,13 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    // Default environment stays 'node' (unchanged) for the existing pure-logic
+    // test suite, so `typeof window === 'undefined'` branches elsewhere keep
+    // testing their node-environment behavior exactly as before. Component
+    // tests that need DOM globals opt in per-file with a
+    // `// @vitest-environment jsdom` docblock instead of a global switch.
+    setupFiles: ['./vitest.setup.ts'],
   },
 })
