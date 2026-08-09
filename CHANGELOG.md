@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.6 - 2026-08-09
+
+- Store section: removed the claims "No other platform does this" and "the one
+  picture no competitor can take". Competitive research on 9 Aug found
+  TeamingLabs ships an in-event store with stock levels, per-team purchase
+  limits and material return, so both claims were false.
+
 ## V3.16.5 - 2026-08-09
 
 - Design/Adapt/Deliver steps: numbered badges removed, each column centred

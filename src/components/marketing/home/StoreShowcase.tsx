@@ -10,7 +10,7 @@ export function StoreShowcase() {
           <p className="mk-lead" style={{ marginTop: '1.1rem', color: 'color-mix(in srgb, var(--mk-ink) 78%, var(--mk-yellow))' }}>
             Teams earn points on their phones and spend them in the event store on real items in
             the room: build materials, power-ups, sabotage cards, whatever your format calls for.
-            No other platform does this.
+            It is the bridge between the screen and the table.
           </p>
           <ul className="mk-store-points" aria-label="How the event store works">
             <li>Points from any game become store budget for the team.</li>
@@ -32,7 +32,7 @@ export function StoreShowcase() {
               alt: 'A facilitator hands a RallyHub-banded build kit across the host table while the order shows on a player’s phone',
               sizes: '(max-width: 1024px) 100vw, 520px',
             }}
-            caption="The moment points become glue. The one picture no competitor can take."
+            caption="The moment points become glue. Digital scoring, physical payoff."
           />
         </Reveal>
       </div>
