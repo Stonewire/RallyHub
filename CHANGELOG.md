@@ -5,6 +5,10 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.13.2 - 2026-08-09
+
+- Hero subline is now the brand slogan: Stronger Teams, one game at a time.
+
 ## V3.13.1 - 2026-08-09 (hero and branding refinements)
 
 - Hero rebuilt around a full-bleed background photo slot with a legibility

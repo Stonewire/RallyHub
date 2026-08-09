@@ -18,9 +18,7 @@ export function MarketingHero() {
           <h1 className="mk-display">
             Build the format once. <span className="accent">Tailor every event.</span>
           </h1>
-          <p className="mk-lead mk-muted">
-            Your game library, turned into client-ready events in about 10 minutes.
-          </p>
+          <p className="mk-lead mk-muted">Stronger Teams, one game at a time.</p>
           <div>
             <a className="mk-btn" href="#contact">
               Book a demo
