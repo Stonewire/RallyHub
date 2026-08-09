@@ -29,9 +29,9 @@ describe('branch-aware share links', () => {
     expect(
       getEventLinks('event-123', { clientSlug: 'acme', eventSlug: 'summer-day' }),
     ).toEqual({
-      facilitator: `${PREVIEW_ORIGIN}/acme/events/summer-day/facilitator`,
-      display: `${PREVIEW_ORIGIN}/acme/events/summer-day/display`,
-      join: `${PREVIEW_ORIGIN}/acme/events/summer-day/teams`,
+      facilitator: `${PREVIEW_ORIGIN}/acme/summer-day/facilitator`,
+      display: `${PREVIEW_ORIGIN}/acme/summer-day/display`,
+      join: `${PREVIEW_ORIGIN}/acme/summer-day/join`,
     })
     expect(getInventoryItemLink('item-code')).toBe(
       `${PREVIEW_ORIGIN}/inventory/item/item-code`,
