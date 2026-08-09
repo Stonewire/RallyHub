@@ -5,6 +5,13 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.12.1 - 2026-08-09
+
+- The facilitator panel on a computer is back to exactly the layout it had
+  before V3.12.0: display preview beside the control card, two columns,
+  teams under the announcement. The new single-column flow with the Preview
+  popup now only applies below 1280px, so tablets and phones keep it.
+
 ## V3.12.0 - 2026-08-09 (mobile/tablet, phase 2)
 
 - Game editor opens full screen on tablets and phones instead of the
