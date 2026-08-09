@@ -132,7 +132,7 @@ export function AdminAppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip={label}
-                    isActive={isAdminNavActive(pathname, to, end)}
+                    isActive={isAdminNavActive(pathname, orgPath(clientSlug, to), end)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, to)} end={end} data-tour={tourId} onClick={() => setOpenMobile(false)}>
@@ -148,7 +148,7 @@ export function AdminAppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip="Profile"
-                    isActive={isAdminNavActive(pathname, '/admin/settings', true)}
+                    isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/settings'), true)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, "/admin/settings")} onClick={() => setOpenMobile(false)}>
@@ -164,7 +164,7 @@ export function AdminAppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip="Team"
-                    isActive={isAdminNavActive(pathname, '/admin/team', true)}
+                    isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/team'), true)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, "/admin/team")} onClick={() => setOpenMobile(false)}>
@@ -177,7 +177,7 @@ export function AdminAppSidebar() {
 
               {showOrgSettings
                 ? orgNav.map(({ to, search, label, icon: Icon, tourId }) => {
-                    const onSettings = pathname.startsWith('/admin/settings')
+                    const onSettings = pathname.startsWith(orgPath(clientSlug, '/admin/settings'))
                     const isActive =
                       search === '?tab=billing'
                         ? onSettings && settingsTab === 'billing'
@@ -218,7 +218,7 @@ export function AdminAppSidebar() {
               <SidebarMenuButton
                 asChild
                 tooltip="Support"
-                isActive={isAdminNavActive(pathname, '/admin/support', true)}
+                isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/support'), true)}
                 className="text-sidebar-foreground"
               >
                 <NavLink to={orgPath(clientSlug, "/admin/support")} data-tour="nav-support" className="justify-center" onClick={() => setOpenMobile(false)}>
