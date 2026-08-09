@@ -1,6 +1,8 @@
 import { IconClose, IconSupport } from '@/components/icons'
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 type HelpModalProps = {
   open: boolean
@@ -16,6 +18,8 @@ type HelpModalProps = {
  * is where they would have ended up anyway.
  */
 export function HelpModal({ open, onClose }: HelpModalProps) {
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
+
   // Escape closes it, the way every other dialog in the app does. This one is
   // hand-rolled rather than a Radix dialog, so it does not get that for free.
   useEffect(() => {
@@ -63,7 +67,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
             directly.
           </p>
           <Link
-            to="/admin/support"
+            to={orgPath(clientSlug, '/admin/support')}
             onClick={onClose}
             className="bg-nm-yellow text-nm-charcoal rounded-nm-md inline-flex h-8 items-center px-3 text-xs font-semibold"
           >

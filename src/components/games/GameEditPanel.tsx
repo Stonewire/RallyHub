@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 
 import { GameEditForm } from '@/components/games/GameEditForm'
 import { Button } from '@/components/ui/button'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 type GameEditPanelProps = {
   gameId: string
@@ -15,6 +17,8 @@ type GameEditPanelProps = {
  * content instead of forcing a close-then-reopen round trip.
  */
 export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
+
   return (
     <div className="border-nm-slate-800 bg-background fixed inset-y-0 right-0 z-40 flex w-full max-w-[35rem] flex-col border-l-2 shadow-2xl">
       <GameEditForm key={gameId} gameId={gameId} singleColumn>
@@ -30,7 +34,7 @@ export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
               <div className="flex shrink-0 items-center gap-2">
                 {headerActions}
                 <Button type="button" variant="ghost" size="icon-sm" asChild title="Open full screen">
-                  <Link to={`/admin/games/${gameId}`}>
+                  <Link to={orgPath(clientSlug, `/admin/games/${gameId}`)}>
                     <IconExpand className="size-4" />
                   </Link>
                 </Button>

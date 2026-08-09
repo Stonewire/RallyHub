@@ -20,9 +20,10 @@ import { SignOutConfirmDialog } from '@/components/shell/SignOutConfirmDialog'
 import { InstallAppButton } from '@/components/pwa/InstallAppButton'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth-context'
-import { useTenant } from '@/contexts/tenant-context'
+import { useTenant, useOptionalTenant } from '@/contexts/tenant-context'
 import { useTheme } from '@/contexts/theme-context'
 import { isFacilitatorOnlyRole } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
 
 const ICON_BUTTON =
   'hover:bg-muted rounded-nm-md flex size-8 items-center justify-center'
@@ -38,6 +39,7 @@ export function AdminHeader() {
   const { resolvedTheme, toggleTheme } = useTheme()
   const { role, signOut } = useAuth()
   const { tenantOrg } = useTenant()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const [helpOpen, setHelpOpen] = useState(false)
   const [newGameOpen, setNewGameOpen] = useState(false)
   const [loggedOut, setLoggedOut] = useState(false)
@@ -101,7 +103,7 @@ export function AdminHeader() {
                 <span className="hidden sm:inline">New Game</span>
               </button>
               <Link
-                to="/admin/events/new"
+                to={orgPath(clientSlug, '/admin/events/new')}
                 aria-label="New Event"
                 className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-2 text-xs font-semibold whitespace-nowrap sm:px-3"
               >

@@ -12,6 +12,8 @@ import {
   IconVideo,
 } from '@/components/icons'
 import type { GameType } from '@/types/database'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 /** Reading order asked for: photo, video, puzzle, then text, quiz, bingo. */
 const NEW_GAME_TYPES: { type: GameType; label: string; icon: typeof IconPhoto }[] = [
@@ -35,6 +37,7 @@ type NewGameTypeModalProps = {
  */
 export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
   const navigate = useNavigate()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
 
   useEffect(() => {
     if (!open) return
@@ -77,7 +80,7 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
               type="button"
               onClick={() => {
                 onClose()
-                navigate(`/admin/games/new?type=${type}`)
+                navigate(orgPath(clientSlug, `/admin/games/new?type=${type}`))
               }}
               className="bg-nm-yellow text-nm-charcoal flex flex-col items-center gap-2 rounded-md p-5 transition-[filter,transform] hover:-translate-y-0.5 hover:brightness-95"
             >

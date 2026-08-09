@@ -2,10 +2,13 @@ import { Link } from 'react-router-dom'
 
 import { useAuth } from '@/contexts/auth-context'
 import { profileDisplayName } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 /** Header avatar: the user's photo when set, initials otherwise. */
 export function HeaderAvatar() {
   const { profile } = useAuth()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const name = profileDisplayName(profile)
   const initials =
     name
@@ -17,7 +20,7 @@ export function HeaderAvatar() {
 
   return (
     <Link
-      to="/admin/settings?tab=account"
+      to={orgPath(clientSlug, '/admin/settings?tab=account')}
       title="My Account"
       aria-label="My Account"
       className="bg-nm-slate-500 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white"
