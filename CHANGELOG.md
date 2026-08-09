@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.2 - 2026-08-09
+
+- Design/Adapt/Deliver and the facilitator section now run their screenshots
+  full width, roughly double the previous size, with the steps and feature
+  points laid out as rows above and below. Step copy shortened to suit.
+- Client 2 and 3 screenshots were captured in a floating window, which left a
+  strip of backdrop down the left and shrank the app. All tablet screenshots
+  are now cropped to pure app content, status bar and window chrome removed,
+  and normalised so the three client screens frame identically.
+
 ## V3.16.1 - 2026-08-09
 
 - Fixed the flicker when switching game types or client branding. The mock

@@ -559,7 +559,7 @@
   background: var(--mk-coal);
   line-height: 0;
   /* Locked to the screenshots so the frame never resizes between screens. */
-  aspect-ratio: 1488 / 2266;
+  aspect-ratio: 1488 / 2196;
 }
 /* Screens stack; only opacity changes, so no frame is ever dropped. */
 .mk-ipad-layer {
@@ -639,6 +639,71 @@
   color: var(--mk-mut-l);
   font-size: 0.97rem;
   max-width: 46ch;
+}
+
+/* ─── Wide product shots: heading + row of points, then a full-width screen ─── */
+.mk-builder-head {
+  display: grid;
+  gap: 1.4rem;
+  max-width: 62rem;
+}
+@media (min-width: 900px) {
+  .mk-builder-head {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: end;
+  }
+}
+.mk-steps-row {
+  display: grid;
+  gap: 1.8rem;
+  margin: 2.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 760px) {
+  .mk-steps-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.2rem;
+  }
+}
+.mk-steps-row li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+.mk-steps-row p {
+  margin: 0.3rem 0 0;
+  color: var(--mk-mut-l);
+  font-size: 0.95rem;
+  max-width: 34ch;
+}
+.mk-wide-shot {
+  margin-top: 3rem;
+}
+.mk-feat-row {
+  display: grid;
+  gap: 1.6rem;
+  margin: 2.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 760px) {
+  .mk-feat-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.2rem;
+  }
+}
+.mk-feat-row li {
+  border-top: 3px solid var(--mk-yellow);
+  padding-top: 0.9rem;
+}
+.mk-feat-row p {
+  margin: 0.4rem 0 0;
+  color: var(--mk-mut-d);
+  font-size: 0.95rem;
+  max-width: 36ch;
 }
 
 /* ─── Divider feature list (dark sections) ─── */
