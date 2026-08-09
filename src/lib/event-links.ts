@@ -18,9 +18,9 @@ export const EVENT_LINK_LABELS: Record<EventLinkKey, string> = {
 
 /**
  * Shareable event links. When the client slug (org subdomain) and event slug are
- * known, produce the pretty slug URLs (/client/events/event/{facilitator|display|
- * teams}); otherwise fall back to the always-valid /surface/:eventId URLs so a
- * missing slug never yields a broken link/QR.
+ * known, produce the pretty slug URLs (/{client}/{event}/{facilitator|display|join});
+ * otherwise fall back to the always-valid /surface/:eventId URLs so a missing slug
+ * never yields a broken link/QR.
  */
 export function getEventLinks(
   eventId: string,
@@ -32,9 +32,9 @@ export function getEventLinks(
 
   if (c && e) {
     return {
-      facilitator: `${base}/${c}/events/${e}/facilitator`,
-      display: `${base}/${c}/events/${e}/display`,
-      join: `${base}/${c}/events/${e}/teams`,
+      facilitator: `${base}/${c}/${e}/facilitator`,
+      display: `${base}/${c}/${e}/display`,
+      join: `${base}/${c}/${e}/join`,
     }
   }
 
