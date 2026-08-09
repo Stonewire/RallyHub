@@ -49,7 +49,7 @@ export function EventBuilderShowcase() {
             The event builder
           </p>
           <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
-            Build your games once. <span className="text-muted-foreground">Sell them forever.</span>
+            Design. Adapt. Deliver.
           </h2>
           <p className="text-muted-foreground mt-4 max-w-lg text-lg leading-relaxed">
             Prep time is money you do not bill for. RallyHub gives most of it back: build the

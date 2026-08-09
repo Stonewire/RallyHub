@@ -25,9 +25,9 @@ export function MarketingHero() {
             Event software for people who run events
           </p>
           <h1 className="text-foreground font-sans text-[2.5rem] font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-[3.9rem]">
-            Design it once. Brand it for every client.{' '}
+            Build the format once.{' '}
             <span className="text-[color-mix(in_srgb,var(--nm-yellow)_88%,var(--nm-charcoal))]">
-              Run it live.
+              Tailor every event.
             </span>
           </h1>
           <p className="text-muted-foreground max-w-xl text-lg leading-relaxed">

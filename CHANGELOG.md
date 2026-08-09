@@ -5,6 +5,11 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.12.3 - 2026-08-09 (hero + event-builder titles)
+
+- Hero headline: "Build the format once. Tailor every event."
+- Event builder section title: "Design. Adapt. Deliver."
+
 ## V3.12.2 - 2026-08-09 (marketing content corrections)
 
 - Game-variety section replaced the invented stage grid with the actual game
