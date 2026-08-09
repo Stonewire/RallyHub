@@ -27,7 +27,7 @@ export function MarketingHomeHeader() {
     <header className="mk-header">
       <div className="mk-wrap mk-header-row">
         <Link to="/" className="shrink-0" aria-label="RallyHub home">
-          <RallyLogo mark="wordmark" theme="dark" className="h-7 w-auto sm:h-8" />
+          <RallyLogo mark="full" theme="dark" className="h-10 w-auto sm:h-11" />
         </Link>
 
         <nav className="mk-nav" aria-label="Primary">

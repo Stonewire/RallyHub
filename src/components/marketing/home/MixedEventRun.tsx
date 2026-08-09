@@ -28,23 +28,9 @@ const GAMES = [
   },
 ] as const
 
-const MARQUEE = ['Photo', 'Video', 'Text', 'Quiz', 'Puzzles', 'Music bingo']
-
 export function MixedEventRun() {
   return (
     <section id="why" className="scroll-mt-20">
-      <div className="mk-marquee" aria-hidden>
-        <div className="mk-marquee-track">
-          {[0, 1].map((copy) => (
-            <span key={copy}>
-              {MARQUEE.map((word) => (
-                <span key={word}>{word}</span>
-              ))}
-            </span>
-          ))}
-        </div>
-      </div>
-
       <div className="mk-wrap mk-section">
         <Reveal className="grid gap-5" style={{ maxWidth: '46rem' }}>
           <h2 className="mk-h2">

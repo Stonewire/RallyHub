@@ -1,29 +1,20 @@
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 
 import { ImageSlot } from './ImageSlot'
 import { Reveal } from './Reveal'
 
 type PaletteId = 'sunset' | 'ocean' | 'citrus'
 
-const PALETTES: Record<
-  PaletteId,
-  { label: string; eventName: string; mark: string; a: string; b: string; c: string }
-> = {
-  sunset: { label: 'Sunset social', eventName: 'Monarch Summer Social', mark: 'M', a: '#382064', b: '#a73c7c', c: '#f37e64' },
-  ocean: { label: 'Ocean offsite', eventName: 'Bluewater Offsite', mark: 'B', a: '#0b3042', b: '#087e8b', c: '#6dd6c7' },
-  citrus: { label: 'Citrus summit', eventName: 'Evergreen Summit', mark: 'E', a: '#263a29', b: '#6d8d45', c: '#d4dc65' },
+const PALETTES: Record<PaletteId, { label: string; a: string; b: string; c: string }> = {
+  sunset: { label: 'Sunset social', a: '#382064', b: '#a73c7c', c: '#f37e64' },
+  ocean: { label: 'Ocean offsite', a: '#0b3042', b: '#087e8b', c: '#6dd6c7' },
+  citrus: { label: 'Citrus summit', a: '#263a29', b: '#6d8d45', c: '#d4dc65' },
 }
 
 const ORDER: PaletteId[] = ['sunset', 'ocean', 'citrus']
 
 export function BrandingPreview() {
   const [active, setActive] = useState<PaletteId>('sunset')
-  const p = PALETTES[active]
-  const clientVars = {
-    '--client-a': p.a,
-    '--client-b': p.b,
-    '--client-c': p.c,
-  } as CSSProperties
 
   return (
     <section id="branding" className="scroll-mt-20">
@@ -60,33 +51,10 @@ export function BrandingPreview() {
         </Reveal>
 
         <Reveal delay={1} aria-live="polite">
-          <div className="mk-custom-display" style={clientVars}>
-            <div className="mk-cd-head">
-              <span className="mk-client-mark">{p.mark}</span>
-              <span>{p.eventName}</span>
-            </div>
-            <h3>Live leaderboard</h3>
-            <div className="mk-custom-row">
-              <span>1</span>
-              <i style={{ '--score': '92%' } as CSSProperties} />
-              <b>340</b>
-            </div>
-            <div className="mk-custom-row">
-              <span>2</span>
-              <i style={{ '--score': '74%' } as CSSProperties} />
-              <b>275</b>
-            </div>
-            <div className="mk-custom-row">
-              <span>3</span>
-              <i style={{ '--score': '58%' } as CSSProperties} />
-              <b>215</b>
-            </div>
-          </div>
           <ImageSlot
-            className="mk-brand-slot"
-            aspect="16 / 6"
-            label="SCREENSHOTS: three real display screens in three different event palettes, side by side"
-            caption="Same platform, three real events, three completely different looks."
+            aspect="9 / 13"
+            label={`SCREENSHOT: what a player sees on their phone in the "${PALETTES[active].label}" branding — challenge board, event logo and colours`}
+            caption="The player's screen is where the branding lives. One screenshot per palette; the buttons will switch them."
           />
         </Reveal>
       </div>

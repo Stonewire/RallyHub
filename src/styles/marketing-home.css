@@ -344,54 +344,64 @@
   border-bottom: 1px solid var(--mk-coal-line);
 }
 
-/* ─── Hero ─── */
+/* ─── Hero (full-bleed background image) ─── */
 .mk-hero {
   position: relative;
   overflow: hidden;
+  min-height: min(88vh, 780px);
+  display: grid;
+  align-items: end;
 }
-.mk-hero::before {
+.mk-hero-bg {
+  position: absolute;
+  inset: 0;
+  /* Placeholder texture until the shoot; the real photo replaces this layer. */
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 16px,
+    rgb(250 247 242 / 0.035) 16px 32px
+  );
+}
+.mk-hero-bg::after {
+  /* Legibility scrim: photo darkens toward the text. */
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    58rem 30rem at 88% -10%,
-    color-mix(in srgb, var(--mk-yellow) 9%, transparent),
-    transparent 65%
-  );
-  pointer-events: none;
+  background:
+    linear-gradient(to top, rgb(23 20 17 / 0.94) 8%, rgb(23 20 17 / 0.45) 55%, rgb(23 20 17 / 0.2)),
+    linear-gradient(to right, rgb(23 20 17 / 0.55), transparent 60%);
 }
-.mk-hero-grid {
-  position: relative;
-  display: grid;
-  gap: 3rem;
-  align-items: center;
-  padding-block: clamp(3.5rem, 7vw, 6.5rem);
-}
-@media (min-width: 1024px) {
-  .mk-hero-grid {
-    grid-template-columns: 1.06fr 0.94fr;
-    gap: 4rem;
-  }
-}
-.mk-hero .mk-display .accent {
-  color: var(--mk-yellow);
-}
-.mk-microproof {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.4rem;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--mk-mut-d);
-}
-.mk-microproof span {
+.mk-hero-bg-label {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.4rem;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  max-width: 34rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--mk-mut-d) 80%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--mk-mut-d) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
 }
-.mk-microproof svg {
+.mk-hero-bg-label svg {
   width: 0.95rem;
   height: 0.95rem;
+  flex: none;
+}
+.mk-hero-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-block: clamp(3.5rem, 8vw, 6rem);
+}
+.mk-hero .mk-display {
+  max-width: 15ch;
+}
+.mk-hero .mk-display .accent {
   color: var(--mk-yellow);
 }
 

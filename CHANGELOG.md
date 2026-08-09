@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.13.1 - 2026-08-09 (hero and branding refinements)
+
+- Hero rebuilt around a full-bleed background photo slot with a legibility
+  scrim: title, one-line sub and a single Book a demo button. Kicker,
+  micro-proof row and the Watch a live event button removed.
+- Game-type marquee removed.
+- Header now uses the full logo with the tagline underneath.
+- Branding section shows a player-phone screenshot placeholder (where the
+  branding actually lives) instead of the mocked leaderboard; palette
+  buttons will switch the real screenshots once captured.
+
 ## V3.13.0 - 2026-08-09 (marketing page redesign, warm coal system)
 
 - Full visual redesign of the marketing homepage: warm charcoal + ivory +
