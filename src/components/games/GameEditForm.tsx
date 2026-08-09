@@ -1,5 +1,6 @@
 import { IconEye } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useBlocker } from 'react-router-dom'
 
 import {
   NoOrganizationMessage,
@@ -97,6 +98,22 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   // Snapshot of the game as loaded, so Save can be disabled until something
   // actually changes. The design's editor only offers Save when dirty.
   const baselineRef = useRef<string>('')
+  // Device back (button or swipe gesture) means "save my changes and leave"
+  // (Rumen, 9 Aug) — no unsaved-changes dialog. The refs keep the blocker
+  // callback reading live values; they are refreshed each render below.
+  const dirtyRef = useRef(false)
+  const saveRef = useRef<(options?: { silent?: boolean }) => Promise<boolean>>(
+    async () => true,
+  )
+  const blocker = useBlocker(() => dirtyRef.current)
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    void saveRef.current({ silent: true }).then((ok) => {
+      if (ok) blocker.proceed?.()
+      else blocker.reset?.()
+    })
+  }, [blocker])
+
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null)
   const [exampleVideoUrl, setExampleVideoUrl] = useState<string | null>(null)
   const [videoMaxMinutes, setVideoMaxMinutes] = useState(2)
@@ -170,34 +187,34 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   const gameType = gameQuery.data.type as GameType
   const tracks = config.tracks ?? []
 
-  async function handleSave() {
+  async function handleSave(options?: { silent?: boolean }): Promise<boolean> {
     if (!name.trim()) {
       setError('Game name is required.')
-      return
+      return false
     }
     if (gameType === 'music_bingo' && tracks.length < 5) {
       setError('Music bingo needs at least 5 tracks.')
-      return
+      return false
     }
     if (gameType === 'text') {
       const textErr = validateTextGameConfig(config, pointsType === 'range')
       if (textErr) {
         setError(textErr)
-        return
+        return false
       }
     }
     if (gameType === 'puzzle') {
       const puzzleError = validatePuzzleConfig(config)
       if (puzzleError) {
         setError(puzzleError)
-        return
+        return false
       }
     }
     if (gameType === 'quiz') {
       const quizError = validateQuizConfig(config)
       if (quizError) {
         setError(quizError)
-        return
+        return false
       }
     }
     setSaving(true)
@@ -256,9 +273,11 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         },
       })
       notify('Game saved')
-      onSaved?.()
+      if (!options?.silent) onSaved?.()
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save')
+      return false
     } finally {
       setSaving(false)
     }
@@ -281,6 +300,10 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   })
   // eslint-disable-next-line react-hooks/refs -- baselineRef is only written in the hydrate effect; comparing during render is the intended dirty check
   const dirty = hydrated && current !== baselineRef.current
+  // eslint-disable-next-line react-hooks/refs -- standard keep-ref-fresh idiom for the navigation blocker above
+  dirtyRef.current = dirty
+  // eslint-disable-next-line react-hooks/refs -- standard keep-ref-fresh idiom for the navigation blocker above
+  saveRef.current = handleSave
 
   const headerActions = (
     <>

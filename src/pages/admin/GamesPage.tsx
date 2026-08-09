@@ -213,6 +213,11 @@ export function AdminGamesPage() {
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
+  /** Touch widths get the full-screen editor; the slide-over stays desktop. */
+  function openGameEditor(id: string) {
+    if (window.matchMedia('(max-width: 1279px)').matches) navigate(`/admin/games/${id}`)
+    else setEditingGameId(id)
+  }
   const musicRef = useRef<MusicCatalogHandle>(null)
   const inventoryRef = useRef<InventoryLibraryHandle>(null)
   // Bin selection lives here so the page header can act on it, the same way
@@ -849,7 +854,7 @@ export function AdminGamesPage() {
                         setPendingDeleteGame({ id: game.id, name: game.name })
                       }}
                       onReorder={handleReorder}
-                      onEdit={setEditingGameId}
+                      onEdit={openGameEditor}
                       onInstall={
                         isPlatformLibrary ? (game) => setInstallGame(game) : undefined
                       }
@@ -878,7 +883,7 @@ export function AdminGamesPage() {
                   setPendingDeleteGame({ id: game.id, name: game.name })
                 }}
                 onReorder={handleReorder}
-                onEdit={setEditingGameId}
+                onEdit={openGameEditor}
                 onInstall={isPlatformLibrary ? (game) => setInstallGame(game) : undefined}
               />
             </section>
