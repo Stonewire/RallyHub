@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.13.0 - 2026-08-09 (marketing page redesign, warm coal system)
+
+- Full visual redesign of the marketing homepage: warm charcoal + ivory +
+  committed brand yellow, Manrope throughout, no more washed-out grey. Dark
+  hero, yellow proof band, kinetic game-type marquee, games as an editorial
+  list instead of icon cards, yellow-drenched store section, coal pricing
+  maths, split audience panels, restyled pricing cards and demo form.
+- All imagery replaced with labelled placeholder slots matching the planned
+  shoot list (facilitator-over-shoulder hero, six phone screenshots, builder
+  and control-room screenshots, wide room photo, three-palette branding
+  strip, store handover photo, demo-call portrait), each with its selling
+  caption already in place.
+- Marketing page no longer follows the app theme toggle; it is a committed
+  single visual world. New reusable ImageSlot component.
+
 ## V3.12.3 - 2026-08-09 (hero + event-builder titles)
 
 - Hero headline: "Build the format once. Tailor every event."

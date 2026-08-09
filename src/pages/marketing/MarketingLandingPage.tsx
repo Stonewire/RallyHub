@@ -18,7 +18,7 @@ import { TrustStrip } from '@/components/marketing/home/TrustStrip'
 
 export function MarketingLandingPage() {
   return (
-    <div className="mkt neo-minimal-scope min-h-svh overflow-x-clip bg-[var(--nm-bg-base)]">
+    <div className="mkt min-h-svh overflow-x-clip">
       <PageHead
         title="RallyHub — Event software for people who run events"
         description="Design your team-building games once, brand them for every client, and run the whole event live from one screen. Quests, quizzes, puzzles and music bingo on one leaderboard. Players join in the browser. Event set-up in about 10 minutes."

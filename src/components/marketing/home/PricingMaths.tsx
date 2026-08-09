@@ -11,68 +11,56 @@ const MAX = Math.max(...COMPARISON.map((c) => c.price))
 
 export function PricingMaths() {
   return (
-    <section className="mkt-show scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
+    <section className="mk-dark">
+      <div className="mk-wrap mk-section">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-end">
           <Reveal>
-            <p className="mkt-eyebrow-light text-xs font-bold uppercase tracking-[0.05em]">
-              The maths
-            </p>
-            <h2 className="font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+            <h2 className="mk-h2">
               Per-player pricing punishes you for growing.{' '}
-              <span className="text-[var(--mkt-gold)]">So we do not use it.</span>
+              <span style={{ color: 'var(--mk-yellow)' }}>So we do not use it.</span>
             </h2>
           </Reveal>
           <Reveal delay={1}>
-            <p className="text-[color:var(--mkt-show-muted)] text-lg leading-relaxed">
-              Most event platforms charge per head or per device, so your biggest events carry the
-              biggest software bill. RallyHub charges per event: 5 devices included, then €10 for
-              each one after that. Tablets you hand out or phones people bring along, it makes no
-              difference. Here is a 12-device event, priced three ways.
+            <p className="mk-lead mk-muted">
+              RallyHub charges per event: 5 devices included, then €10 for each one after that.
+              Tablets you hand out or phones people bring along, it makes no difference. Here is a
+              12-device event, priced three ways.
             </p>
           </Reveal>
         </div>
 
-        <Reveal delay={1} className="mt-12">
-          <div className="grid gap-4" role="img" aria-label="Cost comparison for a 12-device, roughly 60-player event: RallyHub Pro 169 euros, per-player tools 300 euros, iPad-per-team platforms 660 euros">
-            {COMPARISON.map((c) => (
-              <div key={c.label} className="grid gap-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p
-                    className="text-sm font-bold"
-                    style={{ color: c.us ? 'var(--mkt-gold)' : 'var(--mkt-show-text)' }}
-                  >
-                    {c.label}
-                  </p>
-                  <p
-                    className="text-xl font-extrabold tabular-nums sm:text-2xl"
-                    style={{ color: c.us ? 'var(--mkt-gold)' : 'var(--mkt-show-text)' }}
-                  >
-                    €{c.price}
-                  </p>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-[rgb(250_247_242_/_0.08)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(c.price / MAX) * 100}%`,
-                      background: c.us
-                        ? 'var(--mkt-gold)'
-                        : 'color-mix(in srgb, var(--mkt-show-text) 34%, transparent)',
-                    }}
-                  />
-                </div>
-                <p className="text-xs" style={{ color: 'var(--mkt-show-muted)' }}>
-                  {c.note}
-                </p>
+        <Reveal
+          delay={1}
+          className="mk-maths"
+          role="img"
+          aria-label="Cost comparison for a 12-device, roughly 60-player event: RallyHub Pro 169 euros, per-player tools 300 euros, iPad-per-team platforms 660 euros"
+        >
+          {COMPARISON.map((c) => (
+            <div key={c.label} className="mk-maths-row">
+              <div
+                className="mk-maths-head"
+                style={{ color: c.us ? 'var(--mk-yellow)' : 'var(--mk-ivory-text)' }}
+              >
+                <span>{c.label}</span>
+                <span className="mk-maths-price">€{c.price}</span>
               </div>
-            ))}
-          </div>
-          <p className="mt-8 text-sm font-semibold" style={{ color: 'var(--mkt-show-muted)' }}>
-            The bigger your events get, the better our maths looks. All prices exclude VAT.
-          </p>
-          <p className="mt-2 text-xs" style={{ color: 'var(--mkt-show-muted)' }}>
-            Device, not player: a shared tablet and a personal phone both count the same.
+              <div className="mk-maths-track">
+                <div
+                  className="mk-maths-fill"
+                  style={{
+                    width: `${(c.price / MAX) * 100}%`,
+                    background: c.us
+                      ? 'var(--mk-yellow)'
+                      : 'color-mix(in srgb, var(--mk-ivory-text) 32%, transparent)',
+                  }}
+                />
+              </div>
+              <span className="mk-maths-note">{c.note}</span>
+            </div>
+          ))}
+          <p className="mk-maths-note" style={{ marginTop: '0.8rem' }}>
+            The bigger your events get, the better our maths looks. Device, not player: a shared
+            tablet and a personal phone count the same. All prices exclude VAT.
           </p>
         </Reveal>
       </div>

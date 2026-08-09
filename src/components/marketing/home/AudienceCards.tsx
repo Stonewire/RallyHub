@@ -1,61 +1,36 @@
-import { ArrowRight, Beer, Users } from 'lucide-react'
-
-import { NeoCard, NeoIconContainer } from '@/components/neo-minimal'
-
 import { Reveal } from './Reveal'
 
 export function AudienceCards() {
   return (
-    <section className="py-16 lg:py-24">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-12">
-        <Reveal className="max-w-2xl">
-          <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
-            Beyond agencies
-          </p>
-          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
-            Not an agency? <span className="text-muted-foreground">Still your kind of party.</span>
-          </h2>
+    <section className="mk-sandband">
+      <div className="mk-wrap mk-section">
+        <Reveal style={{ maxWidth: '40rem' }}>
+          <h2 className="mk-h2">Not an agency? Still your kind of party.</h2>
         </Reveal>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <Reveal>
-            <NeoCard className="flex h-full flex-col gap-5 p-8">
-              <NeoIconContainer size="lg">
-                <Users className="size-6" aria-hidden />
-              </NeoIconContainer>
-              <h3 className="text-foreground text-2xl font-bold">Companies</h3>
-              <p className="text-muted-foreground flex-1 leading-relaxed">
-                Running your own team day? Build it yourself with the same tools the pros use, or
-                grab a ready-made format and go. No event-planning degree required.
-              </p>
-              <a
-                href="#contact"
-                className="text-foreground hover:text-foreground/80 inline-flex items-center gap-1.5 text-sm font-semibold"
-              >
-                Book a demo
-                <ArrowRight className="size-4" aria-hidden />
-              </a>
-            </NeoCard>
+        <div className="mk-aud-grid">
+          <Reveal className="mk-aud mk-aud--coal">
+            <span className="mk-chip mk-chip--yellow">Companies</span>
+            <h3>Run your own team day</h3>
+            <p>
+              Build it yourself with the same tools the pros use, or grab a ready-made format and
+              go. No event-planning degree required.
+            </p>
+            <a className="mk-link" href="#contact" style={{ color: 'var(--mk-yellow)' }}>
+              Book a demo
+            </a>
           </Reveal>
 
-          <Reveal delay={1}>
-            <NeoCard className="flex h-full flex-col gap-5 p-8">
-              <NeoIconContainer size="lg" accent>
-                <Beer className="size-6" aria-hidden />
-              </NeoIconContainer>
-              <h3 className="text-foreground text-2xl font-bold">Venues and hosts</h3>
-              <p className="text-muted-foreground flex-1 leading-relaxed">
-                Quiz night every Thursday? Music bingo on Fridays? Set it up once, rebrand it
-                never, run it weekly from a phone.
-              </p>
-              <a
-                href="#contact"
-                className="text-foreground hover:text-foreground/80 inline-flex items-center gap-1.5 text-sm font-semibold"
-              >
-                Book a demo
-                <ArrowRight className="size-4" aria-hidden />
-              </a>
-            </NeoCard>
+          <Reveal delay={1} className="mk-aud mk-aud--outline">
+            <span className="mk-chip">Venues + hosts</span>
+            <h3>Quiz night, every Thursday</h3>
+            <p>
+              Music bingo on Fridays too. Set it up once, rebrand it never, run it weekly from a
+              phone.
+            </p>
+            <a className="mk-link" href="#contact">
+              Book a demo
+            </a>
           </Reveal>
         </div>
       </div>

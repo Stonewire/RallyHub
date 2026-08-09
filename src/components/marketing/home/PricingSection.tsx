@@ -1,7 +1,5 @@
-import { ArrowRight, Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { NeoCard } from '@/components/neo-minimal'
 import {
   getVisiblePlans,
   planFeatures,
@@ -22,63 +20,48 @@ export function PricingSection() {
   const plans = getVisiblePlans()
 
   return (
-    <section id="pricing" className="py-16 lg:py-24">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-12">
-        <Reveal className="max-w-2xl">
-          <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.05em]">
-            Simple, per-event pricing
-          </p>
-          <h2 className="text-foreground font-sans mt-3 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
-            Pick a plan.{' '}
-            <span className="text-muted-foreground">Pay per event on top.</span>
-          </h2>
-          <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+    <section id="pricing" className="scroll-mt-20">
+      <div className="mk-wrap mk-section">
+        <Reveal style={{ maxWidth: '44rem' }}>
+          <h2 className="mk-h2">Pick a plan. Pay per event on top.</h2>
+          <p className="mk-lead mk-muted" style={{ marginTop: '1.1rem' }}>
             Every plan includes every game type, the facilitator control room, the big-screen
             display and per-event branding.
           </p>
         </Reveal>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mk-price-grid">
           {plans.map((plan, i) => {
             const price = planPriceDisplay(plan)
             const cta = planCta(plan)
+            const hot = plan.id === 'pro'
             return (
-              <Reveal key={plan.id} delay={i % 3}>
-                <NeoCard className="flex h-full flex-col gap-4 p-8">
-                  <h3 className="text-foreground text-2xl font-bold">{plan.name}</h3>
-                  <div>
-                    <p className="text-foreground text-3xl font-bold tabular-nums">
-                      {price.headline}
-                    </p>
-                    {price.yearlyNote ? (
-                      <p className="text-muted-foreground mt-1 text-sm">{price.yearlyNote}</p>
-                    ) : null}
-                    {price.monthlyNote ? (
-                      <p className="text-muted-foreground text-sm">{price.monthlyNote}</p>
-                    ) : null}
-                  </div>
-                  <ul className="text-muted-foreground flex-1 space-y-2 text-sm">
-                    {planFeatures(plan).map((line) => (
-                      <li key={line} className="flex items-start gap-2">
-                        <Check className="text-foreground mt-0.5 size-4 shrink-0" aria-hidden />
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    to={cta.to}
-                    className="text-foreground hover:text-foreground/80 inline-flex items-center gap-1.5 text-sm font-semibold"
-                  >
-                    {cta.label}
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Link>
-                </NeoCard>
+              <Reveal key={plan.id} delay={i % 3} className={hot ? 'mk-price mk-price--hot' : 'mk-price'}>
+                <div className="flex items-center justify-between gap-2">
+                  <h3>{plan.name}</h3>
+                  {hot ? <span className="mk-chip mk-chip--yellow">Best rate</span> : null}
+                </div>
+                <div>
+                  <p className="mk-price-amount">{price.headline}</p>
+                  {price.yearlyNote ? <p className="mk-price-note">{price.yearlyNote}</p> : null}
+                  {price.monthlyNote ? <p className="mk-price-note">{price.monthlyNote}</p> : null}
+                </div>
+                <ul>
+                  {planFeatures(plan).map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                <Link to={cta.to} className="mk-link">
+                  {cta.label}
+                </Link>
               </Reveal>
             )
           })}
         </div>
 
-        <p className="text-muted-foreground mt-6 text-xs">{VAT_DISCLAIMER}</p>
+        <p className="mk-price-note" style={{ marginTop: '1.4rem' }}>
+          {VAT_DISCLAIMER}
+        </p>
       </div>
     </section>
   )
