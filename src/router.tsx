@@ -35,6 +35,8 @@ import { DisplayEventPage } from '@/pages/live/DisplayEventPage'
 import { FacilitatorLandingPage } from '@/pages/live/FacilitatorLandingPage'
 import { JoinEventPage } from '@/pages/live/JoinEventPage'
 import { TabletPage } from '@/pages/live/TabletPage'
+import { AdminSplashPage } from '@/pages/marketing/AdminSplashPage'
+import { AppSplashPage } from '@/pages/marketing/AppSplashPage'
 import { ContactPage } from '@/pages/marketing/ContactPage'
 import { MarketingLandingPage } from '@/pages/marketing/MarketingLandingPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -87,10 +89,19 @@ function RootPage() {
     return <Navigate to={{ pathname: '/admin', search }} replace />
   }
 
-  // admin.rallyhub.games is for super-admins — skip the marketing page.
+  // admin.rallyhub.games is for super-admins — skip the marketing page. This
+  // branch sits above the loading/user checks below, so it has to make them
+  // itself: without the `loading` guard an anonymous-looking first render would
+  // flash the splash page at a staff member who does have a session.
   const adminHost = import.meta.env.VITE_ADMIN_HOST
   if (adminHost && typeof window !== 'undefined' && window.location.hostname === adminHost) {
-    return <Navigate to="/admin" replace />
+    if (loading) {
+      return <AuthLoadingScreen label="Loading" />
+    }
+    if (user) {
+      return <Navigate to="/admin" replace />
+    }
+    return <AdminSplashPage />
   }
 
   if (loading) {
@@ -110,11 +121,16 @@ function RootPage() {
     return <Navigate to={resolvePostLoginPath(undefined, role)} replace />
   }
 
-  // On app.rallyhub.games, unauthenticated visitors go straight to login.
+  // On app.rallyhub.games, unauthenticated visitors get the portal splash page
+  // (its Sign in button takes them to /login) instead of an immediate bounce.
   // rallyhub.games (apex/marketing) keeps showing the landing page.
+  //
+  // No loading/user guards needed here: the three branches above already
+  // returned for every case where `loading` is true or a session exists, so
+  // anything reaching this line is a settled, anonymous visitor.
   const platformH = import.meta.env.VITE_PLATFORM_HOST
   if (platformH && typeof window !== 'undefined' && window.location.hostname === platformH) {
-    return <Navigate to="/login" replace />
+    return <AppSplashPage />
   }
 
   return <MarketingLandingPage />
