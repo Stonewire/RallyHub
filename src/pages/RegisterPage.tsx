@@ -18,6 +18,7 @@ import {
 } from '@/lib/subscription-plans'
 import { recordLegalAcceptanceForCurrentUser } from '@/hooks/use-legal-acceptance'
 import { isPlatformHost } from '@/lib/tenant'
+import { RESERVED_TENANT_SUBDOMAINS } from '@/lib/public-routes'
 
 // Custom is contact-sales only — getSelfServePlans() excludes it here so a
 // visitor can never pick a plan that then silently falls back to Free server-side.
@@ -59,6 +60,15 @@ export function RegisterPage() {
     }
     if (!turnstileToken) {
       setError('Please complete the verification below.')
+      return
+    }
+    // register-client auto-slugifies orgName server-side and does not let the
+    // user type a subdomain directly, so a DB-trigger rejection there would be
+    // a startling, hard-to-explain error (e.g. an org literally named "Admin").
+    // Catch the common case client-side before hitting the edge function.
+    const previewSlug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    if (RESERVED_TENANT_SUBDOMAINS.has(previewSlug)) {
+      setError(`"${orgName}" produces a reserved URL slug. Please choose a different organisation name.`)
       return
     }
     setPending(true)

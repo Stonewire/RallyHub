@@ -10,6 +10,12 @@ export type AssignableOrgUserRole = Extract<
 /** Landing page for a facilitator: the restricted admin events list. */
 export const FACILITATOR_HOME = '/admin/events'
 
+// NOTE: returns the unscoped /admin path for client roles, not /{slug}/admin.
+// The unscoped /admin mount still works (see router.tsx), so this is not
+// broken -- new logins just don't get the new URL scheme immediately, they
+// get it on their next visit via a link that already carries their slug
+// (e.g. from the admin sidebar). A synchronous role->path function can't do
+// an async org lookup; revisit if this becomes a real problem.
 export function defaultPathForRole(role: AppRole | null): string {
   if (!role) return '/login'
   if (role === 'facilitator') return FACILITATOR_HOME
