@@ -2,6 +2,8 @@ import { IconEvents, IconPlus, IconSearch } from '@/components/icons'
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableEventsGrid } from '@/components/admin/DraggableEventsGrid'
@@ -52,6 +54,7 @@ const EVENT_FILTERS: { value: 'all' | EventStatus; label: string }[] = [
 
 export function AdminEventsPage() {
   const organizationId = useOrganizationId()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const orgQuery = useOrganization(organizationId)
   const eventsQuery = useEvents(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
@@ -231,7 +234,7 @@ export function AdminEventsPage() {
       if (error) throw error
       const gameIds = (links ?? []).map((l) => l.game_id)
       const copy = await duplicateEvent.mutateAsync({ source: event, gameIds })
-      navigate(`/admin/events/${copy.id}`)
+      navigate(orgPath(clientSlug, `/admin/events/${copy.id}`))
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not duplicate event')
     }
@@ -265,7 +268,7 @@ export function AdminEventsPage() {
       actions={
         <>
           <NeoButton variant="surface" asChild>
-            <Link to="/admin/games">
+            <Link to={orgPath(clientSlug, '/admin/games')}>
               Games
             </Link>
           </NeoButton>
@@ -275,7 +278,7 @@ export function AdminEventsPage() {
             </NeoButton>
           ) : (
             <NeoButton variant="accent" asChild>
-              <Link to="/admin/events/new" data-tour="new-event-button">
+              <Link to={orgPath(clientSlug, '/admin/events/new')} data-tour="new-event-button">
                 <IconPlus className="size-3.5" />
                 Event
               </Link>
@@ -422,7 +425,7 @@ export function AdminEventsPage() {
               : undefined
           }
           onRestore={(id) => restoreEvent.mutateAsync(id)}
-          onOpen={(id) => navigate(`/admin/events/${id}`)}
+          onOpen={(id) => navigate(orgPath(clientSlug, `/admin/events/${id}`))}
           onDeletePermanently={(id) => {
             const event = trashedEventsQuery.data?.find((item) => item.id === id)
             if (event) setPermanentDeleteConfirmEvent(event)
@@ -447,7 +450,7 @@ export function AdminEventsPage() {
             </NeoButton>
           ) : (
             <NeoButton variant="accent" asChild className="mt-2">
-              <Link to="/admin/events/new">Create New Event</Link>
+              <Link to={orgPath(clientSlug, '/admin/events/new')}>Create New Event</Link>
             </NeoButton>
           )}
         </Card>

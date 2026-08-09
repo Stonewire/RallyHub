@@ -1,6 +1,8 @@
 import { IconBilling, IconDevice, IconDownload, IconExternal, IconUpload } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useSearchParams } from 'react-router-dom'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 import { NeoButton } from '@/components/neo-minimal'
 import {
@@ -87,6 +89,7 @@ function SettingsCardHeader({
 
 export function AdminSettingsPage() {
   const organizationId = useOrganizationId()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const [searchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
   const { role, profile } = useAuth()
@@ -345,13 +348,13 @@ export function AdminSettingsPage() {
         />
       ) : tab === 'team' ? (
         <>
-          <PlatformSettingsTabs active="team" />
+          <PlatformSettingsTabs active="team" clientSlug={clientSlug} />
           <RallyHubStaffPanel />
         </>
       ) : tab === 'account' ? (
         canManageStaff ? (
           <>
-            <PlatformSettingsTabs active="account" />
+            <PlatformSettingsTabs active="account" clientSlug={clientSlug} />
             <MyAccountPanel />
           </>
         ) : isDemo ? (
@@ -565,7 +568,7 @@ export function AdminSettingsPage() {
                   </div>
                 </div>
                 <Button type="button" variant="outline" className="w-full" asChild>
-                  <Link to="/admin/settings?tab=billing">
+                  <Link to={orgPath(clientSlug, '/admin/settings?tab=billing')}>
                     <IconBilling className="size-4" />
                     Manage Payment Details
                     <IconExternal className="size-3.5" />
@@ -771,7 +774,7 @@ export function AdminSettingsPage() {
 }
 
 /** My Account / Team switcher, platform owner only. */
-function PlatformSettingsTabs({ active }: { active: 'account' | 'team' }) {
+function PlatformSettingsTabs({ active, clientSlug }: { active: 'account' | 'team'; clientSlug: string | null }) {
   return (
     <div
       className="border-border mb-6 flex items-center justify-center gap-6 border-b"
@@ -780,8 +783,8 @@ function PlatformSettingsTabs({ active }: { active: 'account' | 'team' }) {
     >
       {(
         [
-          ['account', 'My Account', '/admin/settings?tab=account'],
-          ['team', 'Team', '/admin/settings?tab=team'],
+          ['account', 'My Account', orgPath(clientSlug, '/admin/settings?tab=account')],
+          ['team', 'Team', orgPath(clientSlug, '/admin/settings?tab=team')],
         ] as const
       ).map(([id, label, to]) => (
         <Link

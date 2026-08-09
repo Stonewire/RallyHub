@@ -1,6 +1,8 @@
 import { IconCheck, IconChevronDown, IconChevronRight, IconClose, IconPhoto, IconSearch, IconTrash } from '@/components/icons'
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 import { BinPanel } from '@/components/admin/BinPanel'
 import { DraggableGamesGrid } from '@/components/admin/DraggableGamesGrid'
@@ -179,6 +181,7 @@ function GroupHeader({
 
 export function AdminGamesPage() {
   const isPlatformLibrary = useIsPlatformGamesAdmin()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const gamesQuery = useAdminGames(organizationId, isPlatformLibrary)
@@ -215,7 +218,7 @@ export function AdminGamesPage() {
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
   /** Touch widths get the full-screen editor; the slide-over stays desktop. */
   function openGameEditor(id: string) {
-    if (window.matchMedia('(max-width: 1279px)').matches) navigate(`/admin/games/${id}`)
+    if (window.matchMedia('(max-width: 1279px)').matches) navigate(orgPath(clientSlug, `/admin/games/${id}`))
     else setEditingGameId(id)
   }
   const musicRef = useRef<MusicCatalogHandle>(null)
@@ -744,7 +747,7 @@ export function AdminGamesPage() {
                 setPurgeError(err instanceof Error ? err.message : 'Could not delete that game.')
               }
             }}
-            onOpen={(id) => navigate(`/admin/games/${id}`)}
+            onOpen={(id) => navigate(orgPath(clientSlug, `/admin/games/${id}`))}
           />
         </>
       ) : (

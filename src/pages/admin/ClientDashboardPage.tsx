@@ -6,10 +6,13 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { useDashboardStats, useRecentEvents } from '@/hooks/use-dashboard'
 import { useOrganizationId } from '@/hooks/use-organization-id'
+import { orgPath } from '@/lib/org-path'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 
 /** Client-admin Overview: stats, 30-day participation and recent activity. */
 export function ClientDashboardPage() {
   const organizationId = useOrganizationId()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const statsQuery = useDashboardStats(organizationId)
   const recentQuery = useRecentEvents(organizationId)
 
@@ -30,15 +33,15 @@ export function ClientDashboardPage() {
     {
       label: 'Available Games',
       value: stats?.totalGames,
-      to: '/admin/games',
+      to: orgPath(clientSlug, '/admin/games'),
       delta: stats?.gamesDelta,
     },
-    { label: 'Upcoming Events', value: stats?.upcomingEvents, to: '/admin/events' },
-    { label: 'Live Now', value: stats?.activeEvents, to: '/admin/events' },
+    { label: 'Upcoming Events', value: stats?.upcomingEvents, to: orgPath(clientSlug, '/admin/events') },
+    { label: 'Live Now', value: stats?.activeEvents, to: orgPath(clientSlug, '/admin/events') },
     {
       label: 'Total Events',
       value: stats?.totalEvents,
-      to: '/admin/events',
+      to: orgPath(clientSlug, '/admin/events'),
       delta: stats?.totalEventsDelta,
     },
   ]
