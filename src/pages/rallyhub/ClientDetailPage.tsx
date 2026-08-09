@@ -44,7 +44,7 @@ import {
 } from '@/lib/client-plans'
 import { normalizeEducationalStatus } from '@/lib/educational'
 import { organizationInitials } from '@/lib/org-avatar'
-import { getOrganizationOrigin } from '@/lib/tenant'
+import { platformHost } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 
 const STATUSES = ['active', 'suspended', 'trial'] as const
@@ -69,7 +69,7 @@ function loginPageRedirectUrl(org?: {
   custom_domain: string | null
 }) {
   if (org?.subdomain?.trim()) {
-    return `${getOrganizationOrigin(org)}/login`
+    return `https://${platformHost()}/login`
   }
   return `${window.location.origin}/login`
 }
@@ -342,12 +342,9 @@ export function RallyHubClientDetailPage() {
   const org = data?.org
   const tenantUrl = isCreateMode
     ? subdomain.trim()
-      ? getOrganizationOrigin({ subdomain: subdomain.trim().toLowerCase(), custom_domain: null })
+      ? `https://${platformHost()}/${subdomain.trim().toLowerCase()}/admin`
       : 'Set a subdomain to preview the tenant URL'
-    : getOrganizationOrigin({
-        subdomain: org!.subdomain,
-        custom_domain: org!.custom_domain,
-      })
+    : `https://${platformHost()}/${org!.subdomain}/admin`
   const displayName = orgName.trim() || (isCreateMode ? 'New client' : org!.name)
   const isDemoClient = org?.is_demo === true
   const ownerHere = isPlatformOwner(profile?.staff_role)
