@@ -114,23 +114,22 @@ export function BrandColourPicker({
           // past the card edge, where it clipped (CF3-5).
           className="border-border bg-card absolute top-11 left-0 z-40 w-56 rounded-lg border p-3 text-left shadow-xl"
         >
-          <div
-            className="mb-3 flex h-12 items-center justify-center rounded-md font-mono text-xs font-semibold"
+          {/* The swatch IS the button: pressing the colour opens the browser's
+              own wheel and eyedropper. A separate "Open colour wheel" row was
+              a second thing to aim at for no reason (Rumen, 9 Aug). */}
+          <label
+            className="relative mb-3 flex h-12 cursor-pointer items-center justify-center rounded-md font-mono text-xs font-semibold"
             style={{ backgroundColor: value, color: readableTextOn(value) }}
+            title="Open the colour wheel"
           >
             {value.toUpperCase()}
-          </div>
-
-          {/* The browser's own picker (wheel/eyedropper) — the sliders are
-              handy for nudging, but picking a colour wants the real thing. */}
-          <label className="border-border hover:bg-muted mb-3 flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border text-xs font-semibold">
             <input
               type="color"
               value={normalizeHex(value) ?? '#000000'}
               onChange={(event) => onChange(event.target.value)}
-              className="size-4 cursor-pointer appearance-none border-0 bg-transparent p-0"
+              aria-label={`${label} colour wheel`}
+              className="absolute inset-0 size-full cursor-pointer appearance-none border-0 bg-transparent p-0 opacity-0"
             />
-            Open colour wheel
           </label>
 
           <Label htmlFor={`${id}-hex`} className="text-muted-foreground text-[10px] uppercase">

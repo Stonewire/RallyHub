@@ -5,6 +5,14 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.15.4 - 2026-08-09
+
+- An uploaded event logo now shows at a size you can actually judge: a
+  proper preview box beside the upload button instead of a 36px chip that
+  only proved a file existed.
+- The colour picker lost its "Open colour wheel" row. Press the colour
+  itself and the wheel opens, which is what everyone tried first.
+
 ## V3.15.3 - 2026-08-09
 
 - The facilitator's submission review shows the correct answer again on text

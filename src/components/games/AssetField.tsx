@@ -99,12 +99,14 @@ export function AssetField({
         ) : null}
         {/* Only once there is something to show: an empty bordered square
             beside the upload button reads as a second button. */}
+        {/* Big enough to actually check the logo. A 36px chip told the
+            organiser a file existed, not whether it was the right one
+            (Rumen, 9 Aug). Wide logos keep their shape: fixed height, width
+            grows to fit. */}
         {inlinePreview && preview ? (
-          <img
-            src={preview}
-            alt=""
-            className="border-border size-9 shrink-0 rounded-md border object-contain"
-          />
+          <div className="border-border bg-background flex h-20 min-w-20 shrink-0 items-center justify-center rounded-lg border p-2">
+            <img src={preview} alt="" className="max-h-full max-w-56 object-contain" />
+          </div>
         ) : null}
       </div>
 
