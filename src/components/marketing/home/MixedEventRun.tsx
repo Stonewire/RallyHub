@@ -1,34 +1,53 @@
-import { ImageSlot } from './ImageSlot'
+import { useState } from 'react'
+
+import { DeviceMock } from './DeviceMock'
 import { Reveal } from './Reveal'
 
 const GAMES = [
   {
+    id: 'photo',
     title: 'Photo challenges',
     body: 'Send teams out with a brief. They bring back the proof.',
+    alt: 'A photo challenge on a tablet: the brief, a reference image and a Take photo button',
   },
   {
+    id: 'video',
     title: 'Video challenges',
     body: 'Give teams a prompt worth acting out on camera.',
+    alt: 'A video challenge on a tablet: a lip sync battle brief and a Take video button',
   },
   {
+    id: 'text',
     title: 'Text challenges',
-    body: 'Typed answers or multiple choice, right on their phone.',
+    body: 'Typed answers or multiple choice, on the app’s own keyboard.',
+    alt: 'A text challenge on a tablet: a question, a typed answer and the in-app number keyboard',
   },
   {
+    id: 'quiz',
     title: 'Live quizzes',
     body: 'Timed rounds, every team answering together, scored automatically.',
+    alt: 'A live quiz question on a tablet with four answers and a change-answer countdown',
   },
   {
+    id: 'puzzle',
     title: 'Puzzles',
     body: 'Crosswords, word games and matching rounds for a change of pace.',
+    alt: 'A crossword puzzle on a tablet with clues, a hint button and the in-app keyboard',
   },
   {
+    id: 'bingo',
     title: 'Music bingo',
     body: 'Play the clips. Every team gets its own shuffled card.',
+    alt: 'A music bingo card on a tablet with correct, wrong and missed tracks marked',
   },
 ] as const
 
+type GameId = (typeof GAMES)[number]['id']
+
 export function MixedEventRun() {
+  const [active, setActive] = useState<GameId>('photo')
+  const current = GAMES.find((g) => g.id === active) ?? GAMES[0]
+
   return (
     <section id="why" className="scroll-mt-20">
       <div className="mk-wrap mk-section">
@@ -38,31 +57,39 @@ export function MixedEventRun() {
           </h2>
           <p className="mk-lead mk-muted">
             Every format lives in the same app, on the same leaderboard, ready whenever your
-            event needs it.
+            event needs it. Hover a format to see what your teams get.
           </p>
         </Reveal>
 
         <div className="mk-games-grid">
           <Reveal as="ul" className="mk-games-list" aria-label="Game types available on RallyHub">
             {GAMES.map((game) => (
-              <li key={game.title}>
-                <h3>{game.title}</h3>
-                <p>{game.body}</p>
+              <li key={game.id} data-active={game.id === active}>
+                <button
+                  type="button"
+                  className="mk-game-btn"
+                  aria-pressed={game.id === active}
+                  onMouseEnter={() => setActive(game.id)}
+                  onFocus={() => setActive(game.id)}
+                  onClick={() => setActive(game.id)}
+                >
+                  <h3>{game.title}</h3>
+                  <p>{game.body}</p>
+                </button>
               </li>
             ))}
           </Reveal>
-          <Reveal delay={1} className="mk-games-side">
-            <ImageSlot
-              aspect="9 / 16"
-              label="Player quest board"
-              photo={{
-                base: '/marketing/app-quest-board',
-                widths: [420, 760],
-                alt: 'A player’s phone showing a quest board: photo, video, text and puzzle challenges with their point values',
-                sizes: '(max-width: 1024px) 70vw, 320px',
-              }}
-              caption="A real quest board on a player's phone. Four challenge types, one tap each."
+
+          <Reveal delay={1} className="mk-games-side" aria-live="polite">
+            <DeviceMock
+              key={active}
+              base={`/marketing/app-game-${active}`}
+              widths={[500, 900]}
+              alt={current.alt}
+              sizes="(max-width: 1024px) 78vw, 380px"
+              preload={GAMES.filter((g) => g.id !== active).map((g) => `/marketing/app-game-${g.id}`)}
             />
+            <p className="mk-caption">{current.title} as your teams see them, on a tablet or their own phone.</p>
           </Reveal>
         </div>
       </div>

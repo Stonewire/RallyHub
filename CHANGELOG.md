@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.0 - 2026-08-09 (real game screens, real clients, booking calendar)
+
+- The games section is now interactive: hovering or focusing a format swaps
+  the screen inside an iPad mini mock, showing the real photo, video, text,
+  quiz, crossword and music bingo screens players actually get.
+- Branding section shows three real branded events, Tiltwork, Lumenwild and
+  Northline, each with that client's logo and palette, swapped the same way.
+- Event builder and facilitator sections use the newer, fuller screenshots.
+- Every "Book a demo" button now opens the RallyHub Demo appointment
+  calendar so prospects pick a slot themselves.
+- The bottom section is now Contact us: same working form, reframed for
+  questions rather than booking, with the demo link alongside it.
+
 ## V3.15.4 - 2026-08-09
 
 - An uploaded event logo now shows at a size you can actually judge: a

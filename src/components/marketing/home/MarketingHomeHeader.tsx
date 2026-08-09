@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
+import { RALLYHUB_BOOKING_URL } from '@/constants/contact'
 
 /* Absolute so the header also works on /contact; same-path fragments still scroll in place. */
 const NAV = [
@@ -47,7 +48,12 @@ export function MarketingHomeHeader() {
           >
             Log in
           </Link>
-          <a className="mk-btn mk-btn--sm hidden sm:inline-flex" href="#contact">
+          <a
+            className="mk-btn mk-btn--sm hidden sm:inline-flex"
+            href={RALLYHUB_BOOKING_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
             Book a demo
           </a>
           <button
@@ -71,7 +77,13 @@ export function MarketingHomeHeader() {
           </a>
         ))}
         <div className="mt-3 grid gap-2">
-          <a className="mk-btn" href="#contact" onClick={() => setOpen(false)}>
+          <a
+            className="mk-btn"
+            href={RALLYHUB_BOOKING_URL}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setOpen(false)}
+          >
             Book a demo
           </a>
           <Link className="mk-btn mk-btn--ghost" to="/login" onClick={() => setOpen(false)}>

@@ -515,6 +515,73 @@
   top: 90px;
 }
 
+/* ─── Game list: hover/focus swaps the tablet screen ─── */
+.mk-game-btn {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.mk-game-btn:focus-visible {
+  outline: 3px solid var(--mk-yellow);
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+.mk-games-list li[data-active='true'] h3::before {
+  width: 22px;
+}
+.mk-games-list li[data-active='true'] p {
+  color: var(--mk-ink);
+}
+
+/* ─── iPad mini shell ─── */
+.mk-ipad {
+  position: relative;
+  margin-inline: auto;
+  max-width: 380px;
+  padding: 12px;
+  border-radius: 30px;
+  background: linear-gradient(160deg, #3a3630, #201d19 55%, #35302a);
+  box-shadow:
+    0 26px 60px -24px rgb(33 30 26 / 0.55),
+    inset 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+.mk-ipad-screen {
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--mk-coal);
+  line-height: 0;
+}
+.mk-ipad-screen img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.mk-ipad-cam {
+  position: absolute;
+  top: 50%;
+  right: 4.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4d4740;
+  transform: translateY(-50%);
+}
+.mk-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ─── Steps (Design. Adapt. Deliver.) ─── */
 .mk-steps-grid {
   display: grid;

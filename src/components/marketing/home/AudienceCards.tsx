@@ -1,3 +1,5 @@
+import { RALLYHUB_BOOKING_URL } from '@/constants/contact'
+
 import { Reveal } from './Reveal'
 
 export function AudienceCards() {
@@ -16,7 +18,13 @@ export function AudienceCards() {
               Build it yourself with the same tools the pros use, or grab a ready-made format and
               go. No event-planning degree required.
             </p>
-            <a className="mk-link" href="#contact" style={{ color: 'var(--mk-yellow)' }}>
+            <a
+              className="mk-link"
+              href={RALLYHUB_BOOKING_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--mk-yellow)' }}
+            >
               Book a demo
             </a>
           </Reveal>
@@ -28,7 +36,7 @@ export function AudienceCards() {
               Music bingo on Fridays too. Set it up once, rebrand it never, run it weekly from a
               phone.
             </p>
-            <a className="mk-link" href="#contact">
+            <a className="mk-link" href={RALLYHUB_BOOKING_URL} target="_blank" rel="noreferrer">
               Book a demo
             </a>
           </Reveal>

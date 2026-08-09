@@ -7,3 +7,9 @@
  * altogether. Everything that shows an address to a customer reads this.
  */
 export const RALLYHUB_CONTACT_EMAIL = 'support@rallyhub.games'
+
+/**
+ * Google Appointment Schedule ("RallyHub Demo"). Every "Book a demo" button
+ * opens this so prospects pick a real slot instead of waiting on a reply.
+ */
+export const RALLYHUB_BOOKING_URL = 'https://calendar.app.google/ie5L3QBXAvh47qyb9'

@@ -1,20 +1,32 @@
 import { useState } from 'react'
 
-import { ImageSlot } from './ImageSlot'
+import { DeviceMock } from './DeviceMock'
 import { Reveal } from './Reveal'
 
-type PaletteId = 'sunset' | 'ocean' | 'citrus'
+/** Real events built in RallyHub, each with that client's own logo and palette. */
+const CLIENTS = [
+  {
+    id: 'tiltwork',
+    label: 'Tiltwork Events',
+    colors: ['#002775', '#000000', '#1548EF'],
+  },
+  {
+    id: 'lumenwild',
+    label: 'Lumenwild Events',
+    colors: ['#28143F', '#F8BA9C', '#BFE12F'],
+  },
+  {
+    id: 'northline',
+    label: 'Northline Events',
+    colors: ['#112644', '#E6EAF1', '#FE4A3F'],
+  },
+] as const
 
-const PALETTES: Record<PaletteId, { label: string; a: string; b: string; c: string }> = {
-  sunset: { label: 'Sunset social', a: '#382064', b: '#a73c7c', c: '#f37e64' },
-  ocean: { label: 'Ocean offsite', a: '#0b3042', b: '#087e8b', c: '#6dd6c7' },
-  citrus: { label: 'Citrus summit', a: '#263a29', b: '#6d8d45', c: '#d4dc65' },
-}
-
-const ORDER: PaletteId[] = ['sunset', 'ocean', 'citrus']
+type ClientId = (typeof CLIENTS)[number]['id']
 
 export function BrandingPreview() {
-  const [active, setActive] = useState<PaletteId>('sunset')
+  const [active, setActive] = useState<ClientId>('tiltwork')
+  const current = CLIENTS.find((c) => c.id === active) ?? CLIENTS[0]
 
   return (
     <section id="branding" className="scroll-mt-20">
@@ -26,24 +38,22 @@ export function BrandingPreview() {
             events in a week and each one can look completely different. Want RallyHub’s name gone
             entirely? Branding removal is available as an option.
           </p>
-          <div
-            className="mt-8 grid gap-2.5"
-            role="group"
-            aria-label="Preview event colour palettes"
-          >
-            {ORDER.map((id) => (
+          <div className="mt-8 grid gap-2.5" role="group" aria-label="Preview client branding">
+            {CLIENTS.map((client) => (
               <button
-                key={id}
+                key={client.id}
                 type="button"
                 className="mk-palette-btn"
-                aria-pressed={active === id}
-                onClick={() => setActive(id)}
+                aria-pressed={active === client.id}
+                onMouseEnter={() => setActive(client.id)}
+                onFocus={() => setActive(client.id)}
+                onClick={() => setActive(client.id)}
               >
-                <span>{PALETTES[id].label}</span>
+                <span>{client.label}</span>
                 <span className="mk-palette-dots" aria-hidden>
-                  <i style={{ background: PALETTES[id].a }} />
-                  <i style={{ background: PALETTES[id].b }} />
-                  <i style={{ background: PALETTES[id].c }} />
+                  {client.colors.map((c) => (
+                    <i key={c} style={{ background: c }} />
+                  ))}
                 </span>
               </button>
             ))}
@@ -51,18 +61,17 @@ export function BrandingPreview() {
         </Reveal>
 
         <Reveal delay={1} aria-live="polite">
-          <ImageSlot
+          <DeviceMock
             key={active}
-            aspect="9 / 13"
-            label={`Player screen in the ${PALETTES[active].label} palette`}
-            photo={{
-              base: `/marketing/app-brand-${active}`,
-              widths: [420, 760],
-              alt: `The same RallyHub quest board on a player's phone, wearing the ${PALETTES[active].label} event colours`,
-              sizes: '(max-width: 1024px) 80vw, 420px',
-            }}
-            caption="The same event, the same screen, three different clients. This is what the players see."
+            base={`/marketing/app-client-${active}`}
+            widths={[500, 900]}
+            alt={`The same RallyHub challenge board wearing ${current.label} branding: their logo and their colours on every tile`}
+            sizes="(max-width: 1024px) 78vw, 380px"
+            preload={CLIENTS.filter((c) => c.id !== active).map((c) => `/marketing/app-client-${c.id}`)}
           />
+          <p className="mk-caption">
+            {current.label}. Same event, same screen, their brand.
+          </p>
         </Reveal>
       </div>
     </section>

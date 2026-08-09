@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import { LEGAL_LINKS } from '@/components/legal/LegalFooterLinks'
+import { RALLYHUB_BOOKING_URL } from '@/constants/contact'
 
 const PRODUCT_LINKS = [
   { label: 'Why RallyHub', href: '/#why' },
@@ -41,7 +42,12 @@ export function MarketingHomeFooter() {
             </p>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#contact">Book a demo</a>
+                <a href={RALLYHUB_BOOKING_URL} target="_blank" rel="noreferrer">
+                  Book a demo
+                </a>
+              </li>
+              <li>
+                <a href="/#contact">Contact us</a>
               </li>
               <li>
                 <Link to="/register">Register</Link>

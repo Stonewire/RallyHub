@@ -1,5 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 
+import { RALLYHUB_BOOKING_URL } from '@/constants/contact'
+
 import { Reveal } from './Reveal'
 
 export function MarketingHero() {
@@ -28,7 +30,7 @@ export function MarketingHero() {
           </h1>
           <p className="mk-lead mk-muted">Stronger Teams, one game at a time.</p>
           <div>
-            <a className="mk-btn" href="#contact">
+            <a className="mk-btn" href={RALLYHUB_BOOKING_URL} target="_blank" rel="noreferrer">
               Book a demo
               <ArrowRight aria-hidden />
             </a>

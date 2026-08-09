@@ -46,11 +46,11 @@ export function EventBuilderShowcase() {
           <Reveal delay={1}>
             <ImageSlot
               /* Matches the screenshot exactly so object-fit never crops the app chrome. */
-              aspect="1500 / 984"
+              aspect="4370 / 2392"
               label="Event builder"
               photo={{
-                base: '/marketing/app-event-builder',
-                widths: [900, 1500],
+                base: '/marketing/app-event-designer',
+                widths: [1000, 1700],
                 alt: 'The RallyHub event builder: a stage list with Quest, Quiz, Bingo and Break tabs and a drag-to-reorder set of challenges',
                 sizes: '(max-width: 1024px) 100vw, 620px',
               }}

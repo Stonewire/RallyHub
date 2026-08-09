@@ -24,11 +24,11 @@ export function FacilitatorShowcase() {
           <Reveal>
             <ImageSlot
               /* Matches the screenshot exactly so object-fit never crops the app chrome. */
-              aspect="1500 / 703"
+              aspect="2380 / 2322"
               label="Facilitator control room"
               photo={{
                 base: '/marketing/app-facilitator',
-                widths: [900, 1500],
+                widths: [1000, 1700],
                 alt: 'The RallyHub facilitator control room: event timer, stage tabs, display toggles, announcements and the submissions queue',
                 sizes: '(max-width: 1024px) 100vw, 620px',
               }}

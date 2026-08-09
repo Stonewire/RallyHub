@@ -1,4 +1,4 @@
-import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
+import { RALLYHUB_BOOKING_URL, RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { ArrowRight, Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
@@ -105,13 +105,19 @@ export function DemoContactSection() {
     <section id="contact" className="mk-dark scroll-mt-20">
       <div className="mk-wrap mk-section mk-form-grid">
         <Reveal>
-          <h2 className="mk-h2">See a real event, not a slideshow.</h2>
+          <h2 className="mk-h2">Contact us.</h2>
           <p className="mk-lead mk-muted" style={{ marginTop: '1.1rem' }}>
-            Book 30 minutes. We will build an event in front of you, brand it like one of your
-            clients, and run you through it as a player. If it is not obviously faster than how
-            you work today, no hard feelings.
+            Questions about pricing, a format you are not sure we cover, an event with an awkward
+            shape to it? Tell us and a person will write back.
           </p>
           <p className="mk-muted mt-6 text-sm font-semibold">
+            Ready to see it instead?{' '}
+            <a href={RALLYHUB_BOOKING_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--mk-yellow)' }}>
+              Book a demo
+            </a>{' '}
+            and pick a slot that suits you.
+          </p>
+          <p className="mk-muted mt-3 text-sm font-semibold">
             Already know what you want?{' '}
             <Link to="/register" style={{ color: 'var(--mk-yellow)' }}>
               Open an account
@@ -123,9 +129,9 @@ export function DemoContactSection() {
         <Reveal delay={1}>
           <div className="mk-form-card">
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h3 className="mk-h3">Book your RallyHub demo</h3>
+              <h3 className="mk-h3">Send us a message</h3>
               <span className="mk-chip mk-chip--ghost" style={{ color: 'var(--mk-mut-d)' }}>
-                ~30 min
+                We reply same day
               </span>
             </div>
 
@@ -141,7 +147,7 @@ export function DemoContactSection() {
                   Thanks{firstName ? `, ${firstName}` : ''}. Your request is in.
                 </p>
                 <p className="mk-muted text-sm leading-relaxed">
-                  We have your details and will be in touch shortly to set up your walkthrough.
+                  We have your message and will write back shortly.
                 </p>
               </div>
             ) : (
@@ -235,7 +241,7 @@ export function DemoContactSection() {
                     name="message"
                     className="mk-textarea"
                     rows={3}
-                    placeholder="Team size, timing, game ideas, or anything you want the event to feel like."
+                    placeholder="Team size, timing, game ideas, or whatever you want to ask us."
                     value={values.message}
                     onChange={(e) => update('message', e.target.value)}
                   />
@@ -266,10 +272,10 @@ export function DemoContactSection() {
 
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="mk-muted text-xs font-semibold">
-                    We will only use your details to arrange your demo.
+                    We will only use your details to reply to you.
                   </p>
                   <button className="mk-btn" type="submit" disabled={submitting}>
-                    {submitting ? 'Sending…' : 'Book my demo'}
+                    {submitting ? 'Sending…' : 'Send message'}
                     {submitting ? null : <ArrowRight aria-hidden />}
                   </button>
                 </div>
