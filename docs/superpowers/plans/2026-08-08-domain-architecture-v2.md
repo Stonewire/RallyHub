@@ -889,6 +889,235 @@ git commit -m "feat(router): add /:clientSlug/admin mount and shortened live-sur
 
 ---
 
+### Task 7b: Fix role-guard path matching for the slug-scoped admin mount
+
+**Added mid-execution, 2026-08-10.** Task 7's own review found this: it is
+NOT an implementer error, it is a gap in this plan itself. Task 7 built
+`/:clientSlug/admin/*` correctly per its own scope, but the role guards that
+restrict `facilitator` and `event_manager` accounts to specific admin
+sub-paths were never updated to recognize the new mount, and no task in the
+original 16 covered it. Not yet exploitable (nothing routes real users to
+the new mount until Tasks 8/9 land), but load-bearing before ship — a
+facilitator or event_manager who reaches `/{slug}/admin/games` today would
+not be blocked, where `/admin/games` correctly blocks them.
+
+**Files:**
+- Modify: `src/components/auth/RequireAuth.tsx` (full file, 58 lines)
+- Modify: `src/lib/auth-routes.ts:102-145` (`eventManagerAllowedAdminPath`,
+  `facilitatorAllowedAdminPath`, `facilitatorAllowedPath` — read-only path
+  checks, unchanged logic, just need to receive an already-normalized path)
+
+**Interfaces:**
+- Consumes: `orgPath(clientSlug, path)` (Task 3, already lands).
+- Produces: no new exports. `RequireAuth` gains internal slug-awareness;
+  every existing consumer of `eventManagerAllowedAdminPath` /
+  `facilitatorAllowedAdminPath` / `facilitatorAllowedPath` keeps calling
+  them with a plain pathname string exactly as before — those three
+  functions' signatures and logic do NOT change, only what `RequireAuth`
+  passes into them changes.
+
+- [ ] **Step 1: Add slug-stripping in `RequireAuth.tsx`**
+
+Current full file:
+
+```tsx
+import type { ReactNode } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
+
+import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
+import { useAuth } from '@/contexts/auth-context'
+import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole, eventManagerAllowedAdminPath, FACILITATOR_HOME } from '@/lib/auth-routes'
+import { isPublicLivePath } from '@/lib/public-routes'
+import { isPlatformHost } from '@/lib/tenant'
+
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading, profileLoading, role } = useAuth()
+  const location = useLocation()
+
+  if (isPublicLivePath(location.pathname)) {
+    return <>{children}</>
+  }
+
+  if (loading || (user && profileLoading)) {
+    return <AuthLoadingScreen label="Loading profile" />
+  }
+
+  if (!user) {
+    return (
+      <Navigate
+        to={{ pathname: '/login', search: location.search }}
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(location.pathname)) {
+    return <Navigate to={FACILITATOR_HOME} replace />
+  }
+
+  if (
+    role === 'event_manager' &&
+    location.pathname.startsWith('/admin') &&
+    !eventManagerAllowedAdminPath(location.pathname)
+  ) {
+    return <Navigate to="/admin/events" replace />
+  }
+
+  if (
+    isPlatformHost() &&
+    location.pathname.startsWith('/admin') &&
+    role !== null &&
+    !canAccessRallyHub(role) &&
+    !isClientRole(role) &&
+    !isFacilitatorOnlyRole(role)
+  ) {
+    return (
+      <Navigate
+        to={{ pathname: '/login', search: location.search }}
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  if (location.pathname.startsWith('/rallyhub')) {
+    return <Navigate to="/admin" replace />
+  }
+
+  return <>{children}</>
+}
+```
+
+Replace with:
+
+```tsx
+import type { ReactNode } from 'react'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
+
+import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
+import { useAuth } from '@/contexts/auth-context'
+import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole, eventManagerAllowedAdminPath, FACILITATOR_HOME } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
+import { isPublicLivePath } from '@/lib/public-routes'
+import { isPlatformHost } from '@/lib/tenant'
+
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { user, loading, profileLoading, role } = useAuth()
+  const location = useLocation()
+  // Only set when this guard renders under the new /:clientSlug/admin mount
+  // (Task 7); undefined under the existing unscoped /admin mount.
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
+
+  // The path-based guards below (eventManagerAllowedAdminPath, etc.) were
+  // written for the unscoped /admin/... shape and must not be rewritten --
+  // strip the slug here instead, so a single set of rules covers both
+  // mounts. Redirect targets are re-prefixed via orgPath() on the way out.
+  const relativePath =
+    clientSlug && location.pathname.startsWith(`/${clientSlug}/`)
+      ? location.pathname.slice(clientSlug.length + 1)
+      : location.pathname
+
+  if (isPublicLivePath(location.pathname)) {
+    return <>{children}</>
+  }
+
+  if (loading || (user && profileLoading)) {
+    return <AuthLoadingScreen label="Loading profile" />
+  }
+
+  if (!user) {
+    return (
+      <Navigate
+        to={{ pathname: '/login', search: location.search }}
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(relativePath)) {
+    return <Navigate to={orgPath(clientSlug, FACILITATOR_HOME)} replace />
+  }
+
+  if (
+    role === 'event_manager' &&
+    relativePath.startsWith('/admin') &&
+    !eventManagerAllowedAdminPath(relativePath)
+  ) {
+    return <Navigate to={orgPath(clientSlug, '/admin/events')} replace />
+  }
+
+  if (
+    isPlatformHost() &&
+    relativePath.startsWith('/admin') &&
+    role !== null &&
+    !canAccessRallyHub(role) &&
+    !isClientRole(role) &&
+    !isFacilitatorOnlyRole(role)
+  ) {
+    return (
+      <Navigate
+        to={{ pathname: '/login', search: location.search }}
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  if (relativePath.startsWith('/rallyhub')) {
+    return <Navigate to="/admin" replace />
+  }
+
+  return <>{children}</>
+}
+```
+
+Note `isPublicLivePath` and the `!user` branch deliberately keep using the
+FULL `location.pathname` (not `relativePath`) — those two checks need the
+real URL (public-path matching already handles the slug-prefixed shape per
+Task 4; the login redirect's `from` state must be the real URL the user
+tried to reach, restorable after login).
+
+- [ ] **Step 2: Do NOT touch `eventManagerAllowedAdminPath`, `facilitatorAllowedAdminPath`, or `facilitatorAllowedPath` in `auth-routes.ts`**
+
+Their logic is correct as-is; Step 1 makes `RequireAuth` normalize the path
+before calling them, so their `/admin`-relative string matching keeps
+working unchanged for both mounts. Confirm via `grep -rn
+"eventManagerAllowedAdminPath\|facilitatorAllowedAdminPath\|facilitatorAllowedPath"
+src` that `RequireAuth.tsx` is the only call site affected by this task —
+if another call site exists that also needs slug-awareness, stop and report
+NEEDS_CONTEXT rather than guessing at its context.
+
+- [ ] **Step 3: Build and test**
+
+Run: `npm run build` — zero TS errors.
+Run: `npm test -- --run` — full suite, expect the same pass count as before
+this task (no existing test should regress; this task has no dedicated
+test file of its own since `RequireAuth` has no existing test file to
+extend — note this as a ⚠️-worthy gap in your report rather than inventing
+a new test harness, unless you judge a small one is cheap and valuable).
+
+- [ ] **Step 4: Manual verification**
+
+In the dev server, confirm: visiting `/sharphawk/admin` while logged out
+still correctly redirects to `/login` with `from` preserved (unchanged
+behavior, sanity check that Step 1's early-return ordering wasn't
+disturbed). If you have a way to simulate a facilitator or event_manager
+session, confirm `/{slug}/admin/games` now redirects them away (to
+`/{slug}/admin/events`) the same way `/admin/games` already does today for
+the unscoped mount — if you cannot set up such a session, state so
+explicitly in your report rather than claiming unverified behavior.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/components/auth/RequireAuth.tsx
+git commit -m "fix(auth): role-guard path matching now recognizes the slug-scoped admin mount"
+```
+
+---
+
 ### Task 8: Redirect shim — old subdomain hosts and legacy paths
 
 **Files:**
