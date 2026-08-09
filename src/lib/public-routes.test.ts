@@ -28,4 +28,12 @@ describe('isPublicLivePath', () => {
       expect(RESERVED_TENANT_SUBDOMAINS.has(word)).toBe(true)
     }
   })
+
+  it('scopes trailing segment to join only (rejects display/facilitator with extra segments)', () => {
+    // display and facilitator must match exactly with no trailing segment
+    expect(isPublicLivePath('/sharphawk/summer-summit/display/extra')).toBe(false)
+    expect(isPublicLivePath('/sharphawk/summer-summit/facilitator/extra')).toBe(false)
+    // join still accepts optional trailing segment (team)
+    expect(isPublicLivePath('/sharphawk/summer-summit/join/red-team')).toBe(true)
+  })
 })

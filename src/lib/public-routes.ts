@@ -12,8 +12,8 @@ const PUBLIC_LIVE_PATTERNS = [
   // New primary slug-based routes: /{client}/{event}/{surface}. The client
   // and event slugs never collide with reserved words (Task 1's DB trigger
   // and this file's RESERVED_TENANT_SUBDOMAINS both block that), so a plain
-  // 3-segment match is unambiguous.
-  /^\/[^/]+\/[^/]+\/(join|display|facilitator)(\/[^/]+)?$/,
+  // 3-segment match is unambiguous. Only join accepts a trailing segment (team).
+  /^\/[^/]+\/[^/]+\/(?:display|facilitator)$|^\/[^/]+\/[^/]+\/join(\/[^/]+)?$/,
 ] as const
 
 export function isPublicLivePath(pathname: string): boolean {
