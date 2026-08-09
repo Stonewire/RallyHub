@@ -4,12 +4,13 @@ import { Link } from 'react-router-dom'
 
 import { RallyLogo } from '@/components/brand/RallyLogo'
 
+/* Absolute so the header also works on /contact; same-path fragments still scroll in place. */
 const NAV = [
-  { label: 'Why RallyHub', href: '#why' },
-  { label: 'Product', href: '#product' },
-  { label: 'Branding', href: '#branding' },
-  { label: 'Store', href: '#store' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Why RallyHub', href: '/#why' },
+  { label: 'Product', href: '/#product' },
+  { label: 'Branding', href: '/#branding' },
+  { label: 'Store', href: '/#store' },
+  { label: 'Pricing', href: '/#pricing' },
 ] as const
 
 export function MarketingHomeHeader() {

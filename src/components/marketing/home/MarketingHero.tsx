@@ -1,17 +1,25 @@
-import { ArrowRight, Camera } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { Reveal } from './Reveal'
 
 export function MarketingHero() {
   return (
     <section id="top" className="mk-hero mk-dark">
-      {/* Full-bleed background photo slot: over the facilitator's shoulder, room reacting. */}
-      <div className="mk-hero-bg" aria-hidden>
-        <span className="mk-hero-bg-label">
-          <Camera aria-hidden />
-          PHOTO, full bleed: over the facilitator&rsquo;s shoulder, the lit room reacting behind
-        </span>
-      </div>
+      <picture className="mk-hero-bg">
+        <source
+          type="image/webp"
+          srcSet="/marketing/hero-event-operator-1000.webp 1000w, /marketing/hero-event-operator-1600.webp 1600w"
+          sizes="100vw"
+        />
+        <img
+          src="/marketing/hero-event-operator-1600.jpg"
+          srcSet="/marketing/hero-event-operator-1000.jpg 1000w, /marketing/hero-event-operator-1600.jpg 1600w"
+          sizes="100vw"
+          alt="A facilitator watches her RallyHub control screen while the room behind her cheers a winning team"
+          fetchPriority="high"
+          decoding="async"
+        />
+      </picture>
 
       <div className="mk-wrap mk-hero-inner">
         <Reveal className="grid gap-6">

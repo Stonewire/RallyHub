@@ -24,8 +24,14 @@ export function StoreShowcase() {
 
         <Reveal delay={1}>
           <ImageSlot
-            aspect="4 / 3.2"
-            label="PHOTO: the physical kit on the host table, hands mid-handover, the order visible on a phone beside it"
+            aspect="3 / 2"
+            label="Store handover"
+            photo={{
+              base: '/marketing/store-handover',
+              widths: [800, 1200],
+              alt: 'A facilitator hands a RallyHub-banded build kit across the host table while the order shows on a player’s phone',
+              sizes: '(max-width: 1024px) 100vw, 520px',
+            }}
             caption="The moment points become glue. The one picture no competitor can take."
           />
         </Reveal>

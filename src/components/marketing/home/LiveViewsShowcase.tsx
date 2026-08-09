@@ -23,7 +23,13 @@ export function LiveViewsShowcase() {
         <Reveal>
           <ImageSlot
             aspect="21 / 9"
-            label="PHOTO: one wide frame of a real room — big screen behind, facilitator laptop mid-ground, phones in players' hands"
+            label="Wide room frame"
+            photo={{
+              base: '/marketing/room-panorama',
+              widths: [1100, 1900],
+              alt: 'One event room: the leaderboard on the big screen, the facilitator at his laptop, and teams playing on their phones',
+              sizes: '(max-width: 1200px) 100vw, 1200px',
+            }}
             caption="Three synced views, one room, one photograph. The host, the big screen and every phone on the same beat."
           />
         </Reveal>

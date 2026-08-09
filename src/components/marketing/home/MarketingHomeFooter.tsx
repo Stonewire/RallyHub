@@ -4,10 +4,10 @@ import { RallyLogo } from '@/components/brand/RallyLogo'
 import { LEGAL_LINKS } from '@/components/legal/LegalFooterLinks'
 
 const PRODUCT_LINKS = [
-  { label: 'Why RallyHub', href: '#why' },
-  { label: 'Event builder', href: '#product' },
-  { label: 'Branding', href: '#branding' },
-  { label: 'The store', href: '#store' },
+  { label: 'Why RallyHub', href: '/#why' },
+  { label: 'Event builder', href: '/#product' },
+  { label: 'Branding', href: '/#branding' },
+  { label: 'The store', href: '/#store' },
 ] as const
 
 export function MarketingHomeFooter() {

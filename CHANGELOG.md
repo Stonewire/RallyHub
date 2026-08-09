@@ -5,6 +5,24 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.14.0 - 2026-08-09 (real marketing photography, /contact, device pricing copy)
+
+- The three generated marketing photographs are in: full-bleed hero (the
+  facilitator at her control screen with the room cheering behind her), the
+  wide room frame showing all three live views at once, and the store
+  handover. Served as responsive WebP with JPEG fallbacks; source masters
+  kept in "Marketing Page Photos". ImageSlot now renders a real photo when
+  given one and keeps the placeholder frame otherwise.
+- /contact is a real page again: it reuses the working demo form in the new
+  marketing design instead of the old placeholder card. The pricing grid's
+  "Contact sales" and every legal-page Contact link now land on a working
+  form. Marketing header and footer section links are absolute so they work
+  from /contact too.
+- Plan feature copy now says devices, not teams: "5 devices included per
+  event · €10 per extra device". The homepage pricing cards contradicted the
+  pricing-maths section above them, which said devices. Shows on the
+  marketing pricing grid, the billing plan card and the signup plan summary.
+
 ## V3.13.3 - 2026-08-09
 
 - Demo form: portrait slot removed (multiple salespeople handle demos).

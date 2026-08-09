@@ -1,37 +1,23 @@
-import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
-import { Link } from 'react-router-dom'
-
-import { MarketingFooter } from '@/components/marketing/MarketingFooter'
-import { MarketingHeader } from '@/components/marketing/MarketingHeader'
 import { PageHead } from '@/components/marketing/PageHead'
-import { NeoButton, NeoCard } from '@/components/neo-minimal'
+import { DemoContactSection } from '@/components/marketing/home/DemoContactSection'
+import { MarketingHomeFooter } from '@/components/marketing/home/MarketingHomeFooter'
+import { MarketingHomeHeader } from '@/components/marketing/home/MarketingHomeHeader'
 
-/** Placeholder — full contact form coming next. */
+/** Standalone /contact: the same working demo form the home page uses. */
 export function ContactPage() {
   return (
-    <div className="neo-minimal-scope neo-minimal-inset flex min-h-svh flex-col">
+    <div className="mkt flex min-h-svh flex-col overflow-x-clip">
       <PageHead
-        title="Contact RallyHub"
-        description="Book a demo or get in touch with the RallyHub team about live team events, pricing, and agency partnerships."
+        title="Book a RallyHub demo"
+        description="Book 30 minutes with the RallyHub team. We will build an event in front of you, brand it like one of your clients, and run you through it as a player."
         path="/contact"
       />
-      <MarketingHeader />
-      <main className="flex flex-1 items-center justify-center px-6 py-16">
-        <NeoCard className="w-full max-w-lg space-y-4 p-8 text-center">
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">Book a demo</h1>
-          <p className="text-muted-foreground leading-relaxed">
-            Our contact form is on the way. For now, reach out and we will set up a walkthrough of
-            RallyHub for your team or agency.
-          </p>
-          <NeoButton variant="accent" asChild>
-            <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}`}>Email {RALLYHUB_CONTACT_EMAIL}</a>
-          </NeoButton>
-          <NeoButton variant="ghost" asChild>
-            <Link to="/">Back to home</Link>
-          </NeoButton>
-        </NeoCard>
+      <MarketingHomeHeader />
+      {/* Coal ground so the short page does not leave an ivory band above the footer. */}
+      <main id="main" className="flex-1" style={{ background: 'var(--mk-coal)' }}>
+        <DemoContactSection />
       </main>
-      <MarketingFooter />
+      <MarketingHomeFooter />
     </div>
   )
 }

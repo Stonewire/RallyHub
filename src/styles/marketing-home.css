@@ -246,6 +246,13 @@
   max-width: 34ch;
   line-height: 1.45;
 }
+.mk-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--mk-radius-lg);
+}
 .mk-caption {
   margin-top: 0.7rem;
   font-size: 0.86rem;
@@ -355,12 +362,19 @@
 .mk-hero-bg {
   position: absolute;
   inset: 0;
-  /* Placeholder texture until the shoot; the real photo replaces this layer. */
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent 0 16px,
-    rgb(250 247 242 / 0.035) 16px 32px
-  );
+  display: block;
+}
+.mk-hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% center;
+}
+@media (max-width: 860px) {
+  /* Portrait crops hard: pull left so the operator and her screen stay in frame. */
+  .mk-hero-bg img {
+    object-position: 45% center;
+  }
 }
 .mk-hero-bg::after {
   /* Legibility scrim: photo darkens toward the text. */
@@ -368,8 +382,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to top, rgb(23 20 17 / 0.94) 8%, rgb(23 20 17 / 0.45) 55%, rgb(23 20 17 / 0.2)),
-    linear-gradient(to right, rgb(23 20 17 / 0.55), transparent 60%);
+    linear-gradient(to top, rgb(23 20 17 / 0.92) 6%, rgb(23 20 17 / 0.4) 58%, rgb(23 20 17 / 0.22)),
+    linear-gradient(to right, rgb(23 20 17 / 0.86) 8%, rgb(23 20 17 / 0.5) 38%, transparent 66%);
 }
 .mk-hero-bg-label {
   position: absolute;

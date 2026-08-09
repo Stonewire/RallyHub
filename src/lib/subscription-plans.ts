@@ -216,12 +216,17 @@ export function formatPerEventPrice(plan: SubscriptionPlan): string {
   return `${formatEur(plan.perEventPriceEur)} per event`
 }
 
-/** Teams/players allowed per event on this plan, or unlimited. */
+/**
+ * Devices allowed to join per event on this plan, or unlimited.
+ * The meter is team slots, and one team slot is one device at a time, so the
+ * customer-facing wording is "devices": it makes clear that a tablet you hand
+ * out and a phone someone brings are charged the same.
+ */
 export function formatTeamLimit(plan: SubscriptionPlan): string {
-  if (plan.teamLimit === null) return 'Unlimited teams / players per event'
-  const base = `${plan.teamLimit} teams included per event`
+  if (plan.teamLimit === null) return 'Unlimited devices per event'
+  const base = `${plan.teamLimit} devices included per event`
   return plan.additionalTeamsAvailable
-    ? `${base} · additional teams ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} each`
+    ? `${base} · ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} per extra device`
     : base
 }
 
