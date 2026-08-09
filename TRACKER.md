@@ -46,7 +46,11 @@ Still open / untested (9 Aug review with Rumen):
 - Per-stage branding: tested by Rumen, works. Closed.
 - Store round three (partial completion, My Items, overlay): tested, works. Closed.
 - Bingo squares stay silent — Rumen's call, no select sound there.
-- NEXT UP: mobile/tablet redesign of admin + facilitator (Rumen briefing).
+- Mobile/tablet redesign in progress: V3.10.x hamburger nav + centred
+  toolbars, V3.12.0 full-screen game editor on tablet, back-gesture
+  auto-save (game + event editors, no unsaved-changes dialog), facilitator
+  single vertical flow with Preview popup and teams last. Next brief from
+  Rumen: app entry flow (login, then Admin / Facilitator / Team player).
 - H6 (teams joining mid-bingo) remains a live risk, unchanged.
 
 ## Session plan
