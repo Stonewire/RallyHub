@@ -24,6 +24,7 @@ import { PathTenantScope } from '@/components/routing/PathTenantScope'
 import { TenantScope } from '@/components/routing/TenantScope'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { useAuth } from '@/contexts/auth-context'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 import { LoginPage } from '@/pages/LoginPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
@@ -49,13 +50,38 @@ import { RallyHubClientEventViewPage } from '@/pages/rallyhub/ClientEventViewPag
 import { RallyHubClientsPage } from '@/pages/rallyhub/ClientsPage'
 import { RallyHubPaymentsPage } from '@/pages/rallyhub/PaymentsPage'
 import { RallyHubPromoCodesPage } from '@/pages/rallyhub/PromoCodesPage'
-import { resolvePostLoginPath } from '@/lib/auth-routes'
-import { isPlatformHost } from '@/lib/tenant'
+import { resolvePostLoginPath, wrongDomainRedirectUrl } from '@/lib/auth-routes'
+import { isDemoHost } from '@/lib/demo-sandbox'
+import { getTenantContext, isPlatformHost, isTenantHost, platformHost } from '@/lib/tenant'
 
 // eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
 function RootPage() {
   const { user, role, loading, profileLoading } = useAuth()
   const { search } = useLocation()
+  const tenant = useOptionalTenant()
+
+  // Legacy subdomain host (e.g. sharphawk.app.rallyhub.games) — forward to
+  // the new path-based URL instead of rendering here. Demo host is excluded:
+  // it's a synthetic tenant context (isDemoHost short-circuits it inside
+  // parseTenantFromHost) and stays fully host-based, out of scope per spec.
+  if (isTenantHost() && !isDemoHost() && typeof window !== 'undefined') {
+    const ctx = getTenantContext()
+    if (ctx.kind === 'tenant') {
+      // Hold the first render until the host's org has resolved. Without this
+      // the redirect below can never fire: the tenant query is still in flight
+      // on the first pass, so tenantOrg is null and we'd fall straight through
+      // to the /admin Navigate and render at the old host anyway.
+      if (tenant?.tenantLoading) {
+        return <AuthLoadingScreen label="Loading" />
+      }
+      if (tenant?.tenantOrg?.subdomain) {
+        window.location.replace(
+          `https://${platformHost()}/${tenant.tenantOrg.subdomain}/admin${search}`,
+        )
+        return <AuthLoadingScreen label="Redirecting" />
+      }
+    }
+  }
 
   if (!isPlatformHost()) {
     return <Navigate to={{ pathname: '/admin', search }} replace />
@@ -76,6 +102,11 @@ function RootPage() {
   }
 
   if (user && !profileLoading) {
+    const wrongDomain = wrongDomainRedirectUrl(role)
+    if (wrongDomain && typeof window !== 'undefined') {
+      window.location.replace(wrongDomain)
+      return <AuthLoadingScreen label="Redirecting" />
+    }
     return <Navigate to={resolvePostLoginPath(undefined, role)} replace />
   }
 
@@ -266,7 +297,19 @@ export const router = createBrowserRouter([
   },
   { path: '/:clientSlug/tablet', element: <TabletSlugRedirect />, errorElement: <RouteErrorBoundary /> },
 
-  { path: '/', element: <RootPage /> },
+  {
+    // TenantScope so RootPage's useOptionalTenant() has a provider above it:
+    // without one the legacy-subdomain redirect below never has an org to
+    // redirect with. Host-based resolution is exactly right here — this is the
+    // "someone visited an old subdomain host" case. Costs nothing on the
+    // marketing apex: useTenantOrganization() is disabled for platform hosts.
+    path: '/',
+    element: (
+      <TenantScope>
+        <RootPage />
+      </TenantScope>
+    ),
+  },
   { path: '/contact', element: <ContactPage /> },
   { path: '/privacy', element: <PrivacyPolicyPage /> },
   { path: '/terms', element: <TermsOfServicePage /> },
