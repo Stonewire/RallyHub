@@ -1,15 +1,28 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccessRallyHub, facilitatorAllowedPath, isClientRole, isFacilitatorOnlyRole, eventManagerAllowedAdminPath, FACILITATOR_HOME } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
 import { isPublicLivePath } from '@/lib/public-routes'
 import { isPlatformHost } from '@/lib/tenant'
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading, profileLoading, role } = useAuth()
   const location = useLocation()
+  // Only set when this guard renders under the new /:clientSlug/admin mount
+  // (Task 7); undefined under the existing unscoped /admin mount.
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
+
+  // The path-based guards below (eventManagerAllowedAdminPath, etc.) were
+  // written for the unscoped /admin/... shape and must not be rewritten --
+  // strip the slug here instead, so a single set of rules covers both
+  // mounts. Redirect targets are re-prefixed via orgPath() on the way out.
+  const relativePath =
+    clientSlug && location.pathname.startsWith(`/${clientSlug}/`)
+      ? location.pathname.slice(clientSlug.length + 1)
+      : location.pathname
 
   if (isPublicLivePath(location.pathname)) {
     return <>{children}</>
@@ -29,21 +42,21 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     )
   }
 
-  if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(location.pathname)) {
-    return <Navigate to={FACILITATOR_HOME} replace />
+  if (isFacilitatorOnlyRole(role) && !facilitatorAllowedPath(relativePath)) {
+    return <Navigate to={orgPath(clientSlug, FACILITATOR_HOME)} replace />
   }
 
   if (
     role === 'event_manager' &&
-    location.pathname.startsWith('/admin') &&
-    !eventManagerAllowedAdminPath(location.pathname)
+    relativePath.startsWith('/admin') &&
+    !eventManagerAllowedAdminPath(relativePath)
   ) {
-    return <Navigate to="/admin/events" replace />
+    return <Navigate to={orgPath(clientSlug, '/admin/events')} replace />
   }
 
   if (
     isPlatformHost() &&
-    location.pathname.startsWith('/admin') &&
+    relativePath.startsWith('/admin') &&
     role !== null &&
     !canAccessRallyHub(role) &&
     !isClientRole(role) &&
@@ -58,7 +71,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     )
   }
 
-  if (location.pathname.startsWith('/rallyhub')) {
+  if (relativePath.startsWith('/rallyhub')) {
     return <Navigate to="/admin" replace />
   }
 
