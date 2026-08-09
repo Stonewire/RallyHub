@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useAuth } from '@/contexts/auth-context'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import { buildSearchResults, type SearchResult } from '@/lib/global-search'
 import { queryKeys } from '@/lib/query-keys'
@@ -16,6 +17,7 @@ export function useGlobalSearch(query: string): {
 } {
   const organizationId = useOrganizationId()
   const { role } = useAuth()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const trimmed = query.trim()
   const enabled = Boolean(organizationId) && trimmed.length >= MIN_QUERY_LENGTH
 
@@ -58,6 +60,7 @@ export function useGlobalSearch(query: string): {
           tickets: ticketsRes.data ?? [],
         },
         role,
+        clientSlug,
       )
     },
   })

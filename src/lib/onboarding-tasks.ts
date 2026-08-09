@@ -1,3 +1,5 @@
+import { orgPath } from '@/lib/org-path'
+
 export type OnboardingStep = {
   id: string
   title: string
@@ -15,9 +17,18 @@ export type OnboardingStep = {
 }
 
 /** The tour a given role actually sees (event managers skip settings/billing). */
-export function onboardingStepsForRole(role: string | null): OnboardingStep[] {
-  if (role === 'client_admin') return ONBOARDING_STEPS
-  return ONBOARDING_STEPS.filter((s) => !s.clientAdminOnly)
+export function onboardingStepsForRole(role: string | null, clientSlug: string | null): OnboardingStep[] {
+  const steps = role === 'client_admin' ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter((s) => !s.clientAdminOnly)
+  return applyOrgPathToSteps(steps, clientSlug)
+}
+
+/** Apply orgPath to all route and skipIfPath fields in onboarding steps. */
+function applyOrgPathToSteps(steps: OnboardingStep[], clientSlug: string | null): OnboardingStep[] {
+  return steps.map((step) => ({
+    ...step,
+    route: orgPath(clientSlug, step.route),
+    skipIfPath: step.skipIfPath ? orgPath(clientSlug, step.skipIfPath) : undefined,
+  }))
 }
 
 /**

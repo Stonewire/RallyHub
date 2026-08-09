@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { TourSpotlight } from '@/components/admin/TourSpotlight'
 import { NeoButton } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
+import { useOptionalTenant } from '@/contexts/tenant-context'
 import {
   useCompleteOnboardingStep,
   useDismissOnboarding,
@@ -59,6 +60,7 @@ function usePanelSide(targetSelector: string | undefined, panelRef: React.RefObj
 export function OnboardingChecklist() {
   const { role, user } = useAuth()
   const userId = user?.id ?? null
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const onboardingQuery = useMyOnboarding(userId)
   const completeStep = useCompleteOnboardingStep(userId)
   const dismiss = useDismissOnboarding(userId)
@@ -70,7 +72,7 @@ export function OnboardingChecklist() {
   // null = automatic; true/false = the user toggled it for the current step.
   const [manualExpand, setManualExpand] = useState<boolean | null>(null)
 
-  const steps = useMemo(() => onboardingStepsForRole(role), [role])
+  const steps = useMemo(() => onboardingStepsForRole(role, clientSlug), [role, clientSlug])
   const stepIds = useMemo(() => new Set(steps.map((s) => s.id)), [steps])
 
   const completed = (onboardingQuery.data?.onboarding_completed_tasks ?? []).filter((id) =>

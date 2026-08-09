@@ -10,7 +10,7 @@ const input = {
 
 describe('buildSearchResults', () => {
   it('maps every source into tagged results with routes', () => {
-    const results = buildSearchResults(input, 'client_admin')
+    const results = buildSearchResults(input, 'client_admin', null)
 
     expect(results).toEqual([
       { id: 'g1', kind: 'game', label: 'Photo Hunt', to: '/admin/games/g1' },
@@ -25,7 +25,7 @@ describe('buildSearchResults', () => {
   })
 
   it('gives facilitators events only, since they cannot reach games or support', () => {
-    const results = buildSearchResults(input, 'facilitator')
+    const results = buildSearchResults(input, 'facilitator', null)
 
     expect(results).toEqual([
       { id: 'e1', kind: 'event', label: 'Summer Rally', to: '/admin/events/e1' },
@@ -34,7 +34,7 @@ describe('buildSearchResults', () => {
 
   it('returns an empty list when nothing matched', () => {
     expect(
-      buildSearchResults({ games: [], events: [], tickets: [] }, 'client_admin'),
+      buildSearchResults({ games: [], events: [], tickets: [] }, 'client_admin', null),
     ).toEqual([])
   })
 })

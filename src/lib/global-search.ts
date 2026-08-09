@@ -1,4 +1,5 @@
 import { isFacilitatorOnlyRole } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
 import type { AppRole } from '@/types/database'
 
 export type SearchKind = 'game' | 'event' | 'ticket'
@@ -23,6 +24,7 @@ export type SearchInput = {
 export function buildSearchResults(
   input: SearchInput,
   role: AppRole | null,
+  clientSlug: string | null,
 ): SearchResult[] {
   const facilitator = isFacilitatorOnlyRole(role)
 
@@ -34,14 +36,14 @@ export function buildSearchResults(
         label: game.name,
         // A real route, so a search hit opens the game rather than dumping the
         // user on the library to find it again.
-        to: `/admin/games/${game.id}`,
+        to: orgPath(clientSlug, `/admin/games/${game.id}`),
       }))
 
   const events: SearchResult[] = input.events.map((event) => ({
     id: event.id,
     kind: 'event' as const,
     label: event.name,
-    to: `/admin/events/${event.id}`,
+    to: orgPath(clientSlug, `/admin/events/${event.id}`),
   }))
 
   const tickets: SearchResult[] = facilitator
@@ -50,7 +52,7 @@ export function buildSearchResults(
         id: ticket.id,
         kind: 'ticket' as const,
         label: ticket.subject,
-        to: `/admin/support?ticket=${ticket.id}`,
+        to: orgPath(clientSlug, `/admin/support?ticket=${ticket.id}`),
       }))
 
   return [...games, ...events, ...tickets]
