@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.12.1 - 2026-08-09 (marketing accuracy + hero cleanup)
+
+- Marketing homepage now describes the real event model: quest stages are
+  free-roam challenge boards (photo, video, text, puzzles), quiz and bingo
+  stages are lock-step, breaks and the winner reveal sit in between, and the
+  facilitator jumps between stages in any order. The old numbered
+  stage-pipeline framing (with puzzles as a stage) was wrong.
+- Hero simplified to a single photo: removed the stacked screenshot floats
+  and orbit icons.
+- Event-builder mock shows stage kinds instead of made-up stage durations.
+
 ## V3.12.0 - 2026-08-09 (mobile/tablet, phase 2)
 
 - Game editor opens full screen on tablets and phones instead of the

@@ -1,4 +1,4 @@
-import { ArrowRight, Camera, Check, ListChecks, Music4 } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 
 import { NeoButton } from '@/components/neo-minimal'
 
@@ -67,7 +67,7 @@ export function MarketingHero() {
         <Reveal
           delay={1}
           className="relative"
-          aria-label="A RallyHub event across facilitator, display and participant screens"
+          aria-label="A live RallyHub team event in progress"
         >
           <div className="mkt-hero-photo">
             <img
@@ -80,63 +80,6 @@ export function MarketingHero() {
               decoding="async"
               alt="Colleagues cheering during a live phone-based team game while a facilitator hosts"
             />
-          </div>
-
-          <div className="mkt-orbit" aria-hidden>
-            <span>
-              <Camera aria-hidden />
-              Quest
-            </span>
-            <span>
-              <ListChecks aria-hidden />
-              Quiz
-            </span>
-            <span>
-              <Music4 aria-hidden />
-              Music bingo
-            </span>
-          </div>
-
-          <div className="mkt-float mkt-float-display" aria-hidden>
-            <div className="mkt-chrome">
-              <span className="mkt-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span>Audience display</span>
-            </div>
-            <img src="/marketing/rallyhub-display.jpg" alt="" loading="lazy" />
-          </div>
-
-          <div className="mkt-float mkt-float-control" aria-hidden>
-            <div className="mkt-fc-head">
-              <span>Facilitator</span>
-              <span className="mkt-live-chip">Live</span>
-            </div>
-            <div className="mkt-fc-stage">
-              <strong>Round 3 · Music bingo</strong>
-              <span>24 teams connected</span>
-            </div>
-            <div className="mkt-fc-timer">
-              <span>Round timer</span>
-              <b>08:42</b>
-            </div>
-            <div className="mkt-fc-btn">Play next track</div>
-          </div>
-
-          <div className="mkt-float mkt-float-phone" aria-hidden>
-            <div className="mkt-phone-screen">
-              <div className="mkt-notch" />
-              <p className="mkt-phone-kicker">Question 6 of 10</p>
-              <h3 className="text-foreground mt-1 text-sm font-bold">Which city never sleeps?</h3>
-              <div className="mkt-answer-grid">
-                <span>Paris</span>
-                <span>New York</span>
-                <span>Rome</span>
-                <span>Tokyo</span>
-              </div>
-            </div>
           </div>
         </Reveal>
       </div>

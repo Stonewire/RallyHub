@@ -34,9 +34,9 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
 ]
 
 const STAGES: { icon: LucideIcon; title: string; meta: string; time: string }[] = [
-  { icon: Camera, title: 'City Quest', meta: '8 challenges · Host review', time: '20 min' },
-  { icon: Trophy, title: 'Round the World Quiz', meta: '3 rounds · Auto scoring', time: '25 min' },
-  { icon: Music4, title: 'Golden Hits Bingo', meta: '25 tracks · Unique cards', time: '30 min' },
+  { icon: Camera, title: 'City Quest', meta: '8 challenges · Free roam', time: 'Quest' },
+  { icon: Trophy, title: 'Round the World Quiz', meta: '3 rounds · Auto scoring', time: 'Quiz' },
+  { icon: Music4, title: 'Golden Hits Bingo', meta: '25 tracks · Unique cards', time: 'Bingo' },
   { icon: Trophy, title: 'Final leaderboard', meta: 'Winner reveal · Podium', time: 'Live' },
 ]
 
