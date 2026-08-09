@@ -46,8 +46,14 @@ export function EventBuilderShowcase() {
           <Reveal delay={1}>
             <ImageSlot
               aspect="16 / 10"
-              label="SCREENSHOT: the real event builder — stage list on the left, event branding panel on the right"
-              caption="The actual builder. Stages, games and branding in one screen, saved as you go."
+              label="Event builder"
+              photo={{
+                base: '/marketing/app-event-builder',
+                widths: [900, 1500],
+                alt: 'The RallyHub event builder: a stage list with Quest, Quiz, Bingo and Break tabs and a drag-to-reorder set of challenges',
+                sizes: '(max-width: 1024px) 100vw, 620px',
+              }}
+              caption="The real builder. Drag your games into stages; the order is the order players see."
             />
           </Reveal>
         </div>

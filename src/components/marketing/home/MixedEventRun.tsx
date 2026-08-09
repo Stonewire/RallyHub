@@ -54,8 +54,14 @@ export function MixedEventRun() {
           <Reveal delay={1} className="mk-games-side">
             <ImageSlot
               aspect="9 / 16"
-              label="SCREENSHOTS: six real player-phone screens, one per game type, cycling"
-              caption="Shot on a player's phone, mid-game. No mockups."
+              label="Player quest board"
+              photo={{
+                base: '/marketing/app-quest-board',
+                widths: [420, 760],
+                alt: 'A player’s phone showing a quest board: photo, video, text and puzzle challenges with their point values',
+                sizes: '(max-width: 1024px) 70vw, 320px',
+              }}
+              caption="A real quest board on a player's phone. Four challenge types, one tap each."
             />
           </Reveal>
         </div>

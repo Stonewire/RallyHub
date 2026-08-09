@@ -5,6 +5,15 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.15.0 - 2026-08-09 (real product screenshots)
+
+- The last four image placeholders are now real screenshots captured from a
+  live event: the event builder with its stage list, the facilitator control
+  room, a player's quest board, and the same player screen in three different
+  event palettes. The branding palette buttons swap the real screenshots.
+- Captured on the demo build against a live event rather than mocked, so the
+  page shows the product as it actually looks.
+
 ## V3.14.0 - 2026-08-09 (real marketing photography, /contact, device pricing copy)
 
 - The three generated marketing photographs are in: full-bleed hero (the

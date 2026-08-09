@@ -52,9 +52,16 @@ export function BrandingPreview() {
 
         <Reveal delay={1} aria-live="polite">
           <ImageSlot
+            key={active}
             aspect="9 / 13"
-            label={`SCREENSHOT: what a player sees on their phone in the "${PALETTES[active].label}" branding — challenge board, event logo and colours`}
-            caption="The player's screen is where the branding lives. One screenshot per palette; the buttons will switch them."
+            label={`Player screen in the ${PALETTES[active].label} palette`}
+            photo={{
+              base: `/marketing/app-brand-${active}`,
+              widths: [420, 760],
+              alt: `The same RallyHub quest board on a player's phone, wearing the ${PALETTES[active].label} event colours`,
+              sizes: '(max-width: 1024px) 80vw, 420px',
+            }}
+            caption="The same event, the same screen, three different clients. This is what the players see."
           />
         </Reveal>
       </div>

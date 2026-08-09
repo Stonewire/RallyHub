@@ -23,9 +23,15 @@ export function FacilitatorShowcase() {
         <div className="mk-steps-grid" style={{ alignItems: 'start' }}>
           <Reveal>
             <ImageSlot
-              aspect="16 / 11"
-              label="SCREENSHOT: the live control room on a laptop in a real venue — stage tabs, timer, submissions queue"
-              caption="The facilitator screen during a real event. Every control, one place."
+              aspect="16 / 10"
+              label="Facilitator control room"
+              photo={{
+                base: '/marketing/app-facilitator',
+                widths: [900, 1500],
+                alt: 'The RallyHub facilitator control room: event timer, stage tabs, display toggles, announcements and the submissions queue',
+                sizes: '(max-width: 1024px) 100vw, 620px',
+              }}
+              caption="The live control room. Timer, stages, what each screen shows, and the approval queue."
             />
           </Reveal>
           <Reveal delay={1}>
