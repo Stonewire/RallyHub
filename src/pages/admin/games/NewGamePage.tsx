@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import {
   IconMusicBingo,
   IconPhoto,
@@ -64,6 +66,7 @@ function emptyQuestion(): QuizQuestion {
 
 export function AdminGamesNewPage() {
   const navigate = useNavigate()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const isPlatformLibrary = useIsPlatformGamesAdmin()
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
@@ -118,7 +121,7 @@ export function AdminGamesNewPage() {
       <AdminPageShell
         title="New game"
         subtitle="Create a new game."
-        backTo="/admin/games"
+        backTo={orgPath(clientSlug, '/admin/games')}
         backLabel="Back to games"
       >
         <QueryLoading rows={6} />
@@ -131,7 +134,7 @@ export function AdminGamesNewPage() {
       <AdminPageShell
         title="New game"
         subtitle="Create a new game."
-        backTo="/admin/games"
+        backTo={orgPath(clientSlug, '/admin/games')}
         backLabel="Back to games"
       >
         <p className="text-muted-foreground text-sm">
@@ -218,7 +221,7 @@ export function AdminGamesNewPage() {
           return
         }
       }
-      navigate('/admin/games', { replace: true })
+      navigate(orgPath(clientSlug, '/admin/games'), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save game')
     } finally {
@@ -226,7 +229,7 @@ export function AdminGamesNewPage() {
     }
   }
 
-  if (!gameType) return <Navigate to="/admin/games" replace />
+  if (!gameType) return <Navigate to={orgPath(clientSlug, '/admin/games')} replace />
 
   // Groups are held locally until save, since there is no game row to attach
   // them to yet. Editing writes through instead.
@@ -270,7 +273,7 @@ export function AdminGamesNewPage() {
       subtitle="Configure your game and save when ready."
       actions={
         <>
-          <NeoButton type="button" variant="surface" onClick={() => navigate('/admin/games')}>
+          <NeoButton type="button" variant="surface" onClick={() => navigate(orgPath(clientSlug, '/admin/games'))}>
             Cancel
           </NeoButton>
           <NeoButton type="button" variant="accent" disabled={saving} onClick={() => void handleSave()}>

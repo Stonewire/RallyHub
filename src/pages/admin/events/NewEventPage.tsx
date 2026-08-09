@@ -2,6 +2,8 @@ import { IconCheck, IconCopy } from '@/components/icons'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import { NeoButton } from '@/components/neo-minimal'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -28,6 +30,7 @@ import type { EventStatus } from '@/types/database'
 
 export function AdminEventsNewPage() {
   const navigate = useNavigate()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const organizationId = useOrganizationId()
   const orgQuery = useOrganization(organizationId)
   const gamesQuery = useGames(organizationId)
@@ -110,13 +113,13 @@ export function AdminEventsNewPage() {
     if (status === 'active') {
       activation.requestActivation(statusPrompt.eventId, statusPrompt.eventName, values.teamCount, async () => {
         await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
-        navigate('/admin/events', { replace: true })
+        navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
       })
       return
     }
     try {
       await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status })
-      navigate('/admin/events', { replace: true })
+      navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not set event status')
     }
@@ -136,7 +139,7 @@ export function AdminEventsNewPage() {
       <AdminPageShell
         title="New event"
         subtitle="Create a scheduled event."
-        backTo="/admin/events"
+        backTo={orgPath(clientSlug, '/admin/events')}
         backLabel="Back to events"
       >
         <p className="text-muted-foreground text-sm">No organization linked.</p>
@@ -149,7 +152,7 @@ export function AdminEventsNewPage() {
       <AdminPageShell
         title="Event created"
         subtitle="Choose a status and share your links."
-        backTo="/admin/events"
+        backTo={orgPath(clientSlug, '/admin/events')}
         backLabel="Back to events"
       >
         <Card className="border-border/80 mb-8 space-y-4 bg-card p-6 shadow-sm">
@@ -234,7 +237,7 @@ export function AdminEventsNewPage() {
     <AdminPageShell
       title="New event"
       subtitle="Schedule a live team event."
-      backTo="/admin/events"
+      backTo={orgPath(clientSlug, '/admin/events')}
       backLabel="Back to events"
       actions={
         <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>

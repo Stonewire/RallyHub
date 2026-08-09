@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 
+import { useOptionalTenant } from '@/contexts/tenant-context'
+import { orgPath } from '@/lib/org-path'
 import { NeoButton } from '@/components/neo-minimal'
 import {
   NoOrganizationMessage,
@@ -48,6 +50,7 @@ import type { EventStatus } from '@/types/database'
 export function AdminEventEditPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
+  const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const organizationId = useOrganizationId()
   const orgQuery = useOrganization(organizationId)
   const gamesQuery = useGames(organizationId)
@@ -162,7 +165,7 @@ export function AdminEventEditPage() {
       baselineRef.current = JSON.stringify(values)
       bypassBlockRef.current = true
       if (onSaved) onSaved()
-      else navigate('/admin/events', { replace: true })
+      else navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
       return true
     } catch (err) {
       const message = formatSupabaseError(err)
@@ -183,7 +186,7 @@ export function AdminEventEditPage() {
         source: eventQuery.data,
         gameIds: gameIdsQuery.data,
       })
-      navigate(`/admin/events/${copy.id}`, { replace: true })
+      navigate(orgPath(clientSlug, `/admin/events/${copy.id}`), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Duplicate failed')
     }
@@ -194,7 +197,7 @@ export function AdminEventEditPage() {
       <AdminPageShell
         title="Edit event"
         subtitle="Update event details."
-        backTo="/admin/events"
+        backTo={orgPath(clientSlug, '/admin/events')}
         backLabel="Back to events"
       >
         <NoOrganizationMessage />
@@ -226,7 +229,7 @@ export function AdminEventEditPage() {
     try {
       await deleteEvent.mutateAsync(eventId)
       notify('Event moved to Deleted events.')
-      navigate('/admin/events', { replace: true })
+      navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Could not delete event')
     }
@@ -240,7 +243,7 @@ export function AdminEventEditPage() {
           ? 'Archived event — view only. Duplicate it to run the setup again.'
           : 'Update event details, teams, games, and stages.'
       }
-      backTo="/admin/events"
+      backTo={orgPath(clientSlug, '/admin/events')}
       backLabel="Back to events"
       actions={
         <div className="flex flex-wrap items-center gap-2">
