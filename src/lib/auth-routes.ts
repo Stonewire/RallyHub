@@ -20,6 +20,37 @@ export function canAccessRallyHub(role: AppRole | null): boolean {
   return role === 'super_admin'
 }
 
+/**
+ * Where a just-authenticated user must be sent when their role doesn't match
+ * the domain they're on. Returns null when they're already in the right
+ * place. localhost is always allowed (dev has no domain separation).
+ *
+ * VITE_ADMIN_HOST / VITE_PLATFORM_HOST (same env vars router.tsx reads for
+ * this migration) let a deployment override the canonical hosts, e.g. for a
+ * preview URL. Neither is set locally, so this falls back to the production
+ * domains admin.rallyhub.games / app.rallyhub.games directly.
+ */
+export function wrongDomainRedirectUrl(role: AppRole | null): string | null {
+  if (typeof window === 'undefined') return null
+  const host = window.location.hostname
+  if (host === 'localhost' || host === '127.0.0.1') return null
+
+  const adminHost = import.meta.env.VITE_ADMIN_HOST || 'admin.rallyhub.games'
+  const appHost = import.meta.env.VITE_PLATFORM_HOST || 'app.rallyhub.games'
+
+  if (role === 'super_admin') {
+    if (host !== adminHost) {
+      return `https://${adminHost}/login`
+    }
+    return null
+  }
+
+  if (host === adminHost) {
+    return `https://${appHost}/login`
+  }
+  return null
+}
+
 export function isClientRole(role: AppRole | null): boolean {
   return role === 'client_admin' || role === 'event_manager'
 }

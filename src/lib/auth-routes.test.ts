@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { isAtLeastFacilitator } from '@/lib/auth-routes'
+import { isAtLeastFacilitator, wrongDomainRedirectUrl } from '@/lib/auth-routes'
 
 describe('isAtLeastFacilitator', () => {
   it('allows every organisation role that can run an event', () => {
@@ -12,5 +13,46 @@ describe('isAtLeastFacilitator', () => {
 
   it('does not allow an unknown or missing role', () => {
     expect(isAtLeastFacilitator(null)).toBe(false)
+  })
+})
+
+describe('wrongDomainRedirectUrl', () => {
+  const realLocation = window.location
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', { value: realLocation, writable: true })
+  })
+
+  function stubHost(hostname: string) {
+    Object.defineProperty(window, 'location', {
+      value: { ...realLocation, hostname },
+      writable: true,
+    })
+  }
+
+  it('rejects a super_admin session on the app domain', () => {
+    stubHost('app.rallyhub.games')
+    expect(wrongDomainRedirectUrl('super_admin')).toBe('https://admin.rallyhub.games/login')
+  })
+
+  it('rejects a client_admin session on the admin domain', () => {
+    stubHost('admin.rallyhub.games')
+    expect(wrongDomainRedirectUrl('client_admin')).toBe('https://app.rallyhub.games/login')
+  })
+
+  it('allows a super_admin session on the admin domain', () => {
+    stubHost('admin.rallyhub.games')
+    expect(wrongDomainRedirectUrl('super_admin')).toBeNull()
+  })
+
+  it('allows a client role session on the app domain', () => {
+    stubHost('app.rallyhub.games')
+    expect(wrongDomainRedirectUrl('facilitator')).toBeNull()
+  })
+
+  it('allows any role on localhost (dev)', () => {
+    stubHost('localhost')
+    expect(wrongDomainRedirectUrl('super_admin')).toBeNull()
+    expect(wrongDomainRedirectUrl('client_admin')).toBeNull()
   })
 })

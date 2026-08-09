@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
+import { WrongDomainError } from '@/components/auth/WrongDomainError'
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
-import { resolvePostLoginPath } from '@/lib/auth-routes'
+import { resolvePostLoginPath, wrongDomainRedirectUrl } from '@/lib/auth-routes'
 import { isPlatformHost } from '@/lib/tenant'
 import { isDemoHost } from '@/lib/demo-sandbox'
+import { supabase } from '@/lib/supabase'
 
 export function LoginPage() {
   const { user, role, loading, profileLoading, profile, signInWithIdentifier, authError } = useAuth()
@@ -35,11 +37,39 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  const postAuthReady = !loading && Boolean(user) && !profileLoading
+  const wrongDomain = postAuthReady ? wrongDomainRedirectUrl(role) : null
+
+  // Side effect (signing the wrong-domain session out) belongs in an effect,
+  // not inline during render — this keeps it from re-firing on every render
+  // while `wrongDomain` stays truthy and only runs once the value settles.
+  useEffect(() => {
+    if (wrongDomain) {
+      void supabase.auth.signOut({ scope: 'local' })
+    }
+  }, [wrongDomain])
+
   if (!loading && user && profileLoading) {
     return <AuthLoadingScreen label="Loading profile" />
   }
 
-  if (!loading && user && !profileLoading) {
+  if (postAuthReady) {
+    if (wrongDomain) {
+      return (
+        <AuthPageShell>
+          <NeoCard className="w-full max-w-sm space-y-4 p-8 text-center">
+            <WrongDomainError
+              message={
+                role === 'super_admin'
+                  ? 'Staff accounts sign in at admin.rallyhub.games.'
+                  : 'Client accounts sign in at app.rallyhub.games.'
+              }
+              targetUrl={wrongDomain}
+            />
+          </NeoCard>
+        </AuthPageShell>
+      )
+    }
     if (profile?.must_change_password) {
       return <Navigate to="/login/change-password" replace state={{ from }} />
     }
