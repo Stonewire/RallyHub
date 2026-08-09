@@ -71,6 +71,10 @@ export function RegisterPage() {
       setError(`"${orgName}" produces a reserved URL slug. Please choose a different organisation name.`)
       return
     }
+    if (previewSlug.length > 63) {
+      setError('Organisation name is too long for a URL. Please use a shorter organisation name.')
+      return
+    }
     setPending(true)
     try {
       const { data, error: fnError } = await supabase.functions.invoke('register-client', {
