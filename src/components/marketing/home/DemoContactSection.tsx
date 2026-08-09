@@ -1,9 +1,9 @@
 import { RALLYHUB_BOOKING_URL, RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { ArrowRight, Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 import { supabase } from '@/lib/supabase'
+import { APP_REGISTER_URL } from '@/lib/app-domain-links'
 
 import { Reveal } from './Reveal'
 
@@ -119,9 +119,9 @@ export function DemoContactSection() {
           </p>
           <p className="mk-muted mt-3 text-sm font-semibold">
             Already know what you want?{' '}
-            <Link to="/register" style={{ color: 'var(--mk-yellow)' }}>
+            <a href={APP_REGISTER_URL} style={{ color: 'var(--mk-yellow)' }}>
               Open an account
-            </Link>{' '}
+            </a>{' '}
             and explore the builder.
           </p>
         </Reveal>

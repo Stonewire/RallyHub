@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import { ThemeToggle } from '@/components/brand/ThemeToggle'
 import { NeoButton } from '@/components/neo-minimal'
+import { APP_LOGIN_URL } from '@/lib/app-domain-links'
 
 const NAV = [
   { label: 'Features', href: '#features' },
@@ -45,7 +46,7 @@ export function MarketingHeader() {
         <div className="order-2 flex shrink-0 items-center gap-2 sm:order-3">
           <ThemeToggle />
           <NeoButton variant="ghost" size="sm" asChild>
-            <Link to="/login">Login</Link>
+            <a href={APP_LOGIN_URL}>Login</a>
           </NeoButton>
           <NeoButton variant="accent" size="sm" asChild>
             <Link to="/contact">Book a Demo</Link>

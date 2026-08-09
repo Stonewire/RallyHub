@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { RallyLogo } from '@/components/brand/RallyLogo'
 import { LEGAL_LINKS } from '@/components/legal/LegalFooterLinks'
 import { RALLYHUB_BOOKING_URL } from '@/constants/contact'
+import { APP_LOGIN_URL, APP_REGISTER_URL } from '@/lib/app-domain-links'
 
 const PRODUCT_LINKS = [
   { label: 'Why RallyHub', href: '/#why' },
@@ -50,10 +51,10 @@ export function MarketingHomeFooter() {
                 <a href="/#contact">Contact us</a>
               </li>
               <li>
-                <Link to="/register">Register</Link>
+                <a href={APP_REGISTER_URL}>Register</a>
               </li>
               <li>
-                <Link to="/login">Log in</Link>
+                <a href={APP_LOGIN_URL}>Log in</a>
               </li>
             </ul>
           </nav>
