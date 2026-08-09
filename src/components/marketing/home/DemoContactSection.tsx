@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 
 import { supabase } from '@/lib/supabase'
 
-import { ImageSlot } from './ImageSlot'
 import { Reveal } from './Reveal'
 
 /** Fallback contact address shown if the submission endpoint errors. */
@@ -112,12 +111,6 @@ export function DemoContactSection() {
             clients, and run you through it as a player. If it is not obviously faster than how
             you work today, no hard feelings.
           </p>
-          <ImageSlot
-            className="mt-8"
-            aspect="16 / 7"
-            label="PHOTO: the actual person who answers these demo calls, named"
-            caption="You will be talking to a person who runs events, not a sales script."
-          />
           <p className="mk-muted mt-6 text-sm font-semibold">
             Already know what you want?{' '}
             <Link to="/register" style={{ color: 'var(--mk-yellow)' }}>

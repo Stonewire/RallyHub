@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.13.3 - 2026-08-09
+
+- Demo form: portrait slot removed (multiple salespeople handle demos).
+  AI photo-generation prompts for the three remaining photo slots added at
+  docs/marketing/photo-prompts.md.
+
 ## V3.13.2 - 2026-08-09
 
 - Hero subline is now the brand slogan: Stronger Teams, one game at a time.
