@@ -62,12 +62,14 @@ export function BrandingPreview() {
 
         <Reveal delay={1} aria-live="polite">
           <DeviceMock
-            key={active}
-            base={`/marketing/app-client-${active}`}
+            activeId={active}
+            screens={CLIENTS.map((c) => ({
+              id: c.id,
+              base: `/marketing/app-client-${c.id}`,
+              alt: `The same RallyHub challenge board wearing ${c.label} branding: their logo and their colours on every tile`,
+            }))}
             widths={[500, 900]}
-            alt={`The same RallyHub challenge board wearing ${current.label} branding: their logo and their colours on every tile`}
             sizes="(max-width: 1024px) 78vw, 380px"
-            preload={CLIENTS.filter((c) => c.id !== active).map((c) => `/marketing/app-client-${c.id}`)}
           />
           <p className="mk-caption">
             {current.label}. Same event, same screen, their brand.

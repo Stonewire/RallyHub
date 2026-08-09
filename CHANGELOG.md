@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.16.1 - 2026-08-09
+
+- Fixed the flicker when switching game types or client branding. The mock
+  was remounting on every switch, so the browser dropped the painted frame
+  before repainting. All screens now stay mounted and cross-fade on opacity.
+
 ## V3.16.0 - 2026-08-09 (real game screens, real clients, booking calendar)
 
 - The games section is now interactive: hovering or focusing a format swaps

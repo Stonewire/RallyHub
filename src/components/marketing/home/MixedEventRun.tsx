@@ -82,12 +82,14 @@ export function MixedEventRun() {
 
           <Reveal delay={1} className="mk-games-side" aria-live="polite">
             <DeviceMock
-              key={active}
-              base={`/marketing/app-game-${active}`}
+              activeId={active}
+              screens={GAMES.map((g) => ({
+                id: g.id,
+                base: `/marketing/app-game-${g.id}`,
+                alt: g.alt,
+              }))}
               widths={[500, 900]}
-              alt={current.alt}
               sizes="(max-width: 1024px) 78vw, 380px"
-              preload={GAMES.filter((g) => g.id !== active).map((g) => `/marketing/app-game-${g.id}`)}
             />
             <p className="mk-caption">{current.title} as your teams see them, on a tablet or their own phone.</p>
           </Reveal>

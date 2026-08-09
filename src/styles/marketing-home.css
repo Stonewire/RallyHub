@@ -553,15 +553,29 @@
     inset 0 0 0 1px rgb(255 255 255 / 0.07);
 }
 .mk-ipad-screen {
+  position: relative;
   overflow: hidden;
   border-radius: 20px;
   background: var(--mk-coal);
   line-height: 0;
+  /* Locked to the screenshots so the frame never resizes between screens. */
+  aspect-ratio: 1488 / 2266;
+}
+/* Screens stack; only opacity changes, so no frame is ever dropped. */
+.mk-ipad-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.22s var(--mk-ease);
+}
+.mk-ipad-layer[data-active='true'] {
+  opacity: 1;
 }
 .mk-ipad-screen img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
 }
 .mk-ipad-cam {
   position: absolute;
@@ -1144,7 +1158,8 @@
     display: none;
   }
   .mk-custom-row i,
-  .mk-custom-display {
+  .mk-custom-display,
+  .mk-ipad-layer {
     transition: none;
   }
 }
