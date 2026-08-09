@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.15.3 - 2026-08-09
+
+- The facilitator's submission review shows the correct answer again on text
+  games. The live event feed strips every game's answers before sending them
+  to the browser, so players cannot read them out of the network traffic, but
+  it was stripping them for the signed-in facilitator too, leaving the review
+  popup with the team's answer and nothing to check it against. Staff on the
+  event's own organisation now receive the real answers; players and the
+  display screen are anonymous and still get the stripped version.
+
 ## V3.15.2 - 2026-08-09
 
 - The facilitator panel on a computer is back to exactly the layout it had

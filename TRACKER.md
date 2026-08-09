@@ -597,6 +597,12 @@ Rumen approved pushing straight to main on 7 Aug (no events imminent).
       device is logged out via token rotation.
 - [x] CF2-9 Review cards and the submission modal show the team's answer,
       a correct/wrong verdict chip and the full expected answer (V3.2.x).
+      **Was silently broken by the live-feed answer redaction** and re-fixed
+      in V3.15.3: `get_live_event_games` stripped `text_correct_answer_id` /
+      `text_correct_answers` from every caller's config, facilitators
+      included, so the modal had nothing to compare against. Staff of the
+      event's org now get the unredacted config; anonymous players and the
+      display screen still get it stripped (proved both ways in the DB).
 - [ ] CF2-10 "Play slideshow" facilitator action: display cycles all
       submissions + team photos (end-of-event while packing).
 - [x] CF2-11 BUG root-caused: parseTextGameConfig silently fell back to
