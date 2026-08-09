@@ -93,26 +93,38 @@ export function AdminEventEditPage() {
     }
   }, [eventQuery.data, gameIdsQuery.data, hydrated])
 
-  // eslint-disable-next-line react-hooks/refs -- baselineRef is only ever set inside the hydrate effect above; comparing it during render is the intended unsaved-changes check
+   
   const dirty = hydrated && JSON.stringify(values) !== baselineRef.current
 
-  // #15: warn before leaving the editor with unsaved changes.
+  // Leaving with unsaved changes SAVES them (Rumen, 9 Aug): the device back
+  // button/gesture means "save and go back", not "ask me questions".
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       dirty &&
       !bypassBlockRef.current &&
       currentLocation.pathname !== nextLocation.pathname,
   )
+  const autoSavingRef = useRef(false)
+  useEffect(() => {
+    if (blocker.state !== 'blocked' || autoSavingRef.current) return
+    autoSavingRef.current = true
+    void (async () => {
+      const ok = await handleSave(() => blocker.proceed?.())
+      if (!ok) blocker.reset?.()
+      autoSavingRef.current = false
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per blocked transition; handleSave identity churns every render
+  }, [blocker.state])
 
-  async function handleSave(onSaved?: () => void) {
+  async function handleSave(onSaved?: () => void): Promise<boolean> {
     if (!organizationId || !eventId || !values.name.trim()) {
       setError('Event name is required.')
-      return
+      return false
     }
     const nonBreak = values.stages.filter((s) => s.type !== 'break')
     if (nonBreak.length === 0) {
       setError('Add at least one non-break stage.')
-      return
+      return false
     }
 
     setSaving(true)
@@ -151,11 +163,13 @@ export function AdminEventEditPage() {
       bypassBlockRef.current = true
       if (onSaved) onSaved()
       else navigate('/admin/events', { replace: true })
+      return true
     } catch (err) {
       const message = formatSupabaseError(err)
       logSupabaseFailure('AdminEventEditPage.handleSave', err)
       setError(message)
       notify(message)
+      return false
     } finally {
       setSaving(false)
     }
@@ -525,36 +539,6 @@ export function AdminEventEditPage() {
             </div>
           ) : null}
 
-          {blocker.state === 'blocked' ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-              <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
-                <div className="space-y-1">
-                  <h3 className="text-foreground font-semibold">Unsaved changes</h3>
-                  <p className="text-muted-foreground text-sm">
-                    You have unsaved changes to this event. Save them before leaving?
-                  </p>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <NeoButton variant="surface" onClick={() => blocker.reset?.()}>
-                    Cancel
-                  </NeoButton>
-                  <NeoButton
-                    variant="surface"
-                    onClick={() => blocker.proceed?.()}
-                  >
-                    Don't save
-                  </NeoButton>
-                  <NeoButton
-                    variant="primary"
-                    disabled={saving}
-                    onClick={() => void handleSave(() => blocker.proceed?.())}
-                  >
-                    {saving ? 'Saving…' : 'Save & leave'}
-                  </NeoButton>
-                </div>
-              </Card>
-            </div>
-          ) : null}
         </>
       )}
     </AdminPageShell>

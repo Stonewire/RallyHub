@@ -5,6 +5,18 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.11.0 - 2026-08-09 (mobile/tablet, phase 2)
+
+- Game editor opens full screen on tablets and phones instead of the
+  slide-over side panel. Laptops and desktops keep the panel.
+- Going back from the game or event editor (browser back button or swipe
+  gesture) now auto-saves your changes and leaves - no "unsaved changes"
+  dialog. Save Changes still saves and returns to the list.
+- Facilitator panel redesigned for a single vertical flow: the display
+  preview is now a Preview button in the top bar that opens a popup, and
+  the sections run control card, announcements, submissions and stage
+  controls, store orders, teams last.
+
 ## V3.10.1 - 2026-08-09
 
 - The hamburger menu closes itself when a section is chosen — it is a
