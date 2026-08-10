@@ -11,19 +11,26 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
-## Current state, 9 Aug 2026 (read this first)
+## Current state, 10 Aug 2026 (read this first)
 
-Production is **V3.12.0** on rallyhub.games. Working branch
-`feature/client-feedback-v3`, kept in sync with `main`.
+Production is **V3.17.0** on rallyhub.games / app.rallyhub.games /
+admin.rallyhub.games. Domain architecture v2 (see its own section below)
+landed from `feature/domain-architecture-v2`, merged to `main` overnight
+9-10 Aug. `feature/client-feedback-v3` (85 uncommitted marketing-related
+changes, 11 commits behind at the time) was abandoned in favour of a fresh
+branch off `main` — nothing on it was lost, it just wasn't picked back up;
+see git history if any of that work still needs recovering.
 
 **Done and live:** full admin redesign (V3.0.0, 3 Aug), camera overhaul
 (V3.1.0), the 7-9 Aug client-feedback marathon (V3.2.0-V3.9.0: event Store,
 camera gate, scoring guards, per-stage branding, NumberField, iOS perf +
 missed-paint fix, on-screen keyboard with purchased click pack), marketing
-homepage rework (V3.11.0), and mobile/tablet phases 1-2 (V3.10.x + V3.12.0:
+homepage rework (V3.11.0), mobile/tablet phases 1-2 (V3.10.x + V3.12.0:
 hamburger admin nav below 1280px, sticky save bar, centred toolbars,
 full-screen game editor on tablet, back-gesture auto-save in both editors,
-facilitator single vertical flow with Preview popup).
+facilitator single vertical flow with Preview popup), and domain
+architecture v2 (V3.17.0, 10 Aug: path-based client/admin URLs, wrong-domain
+login rejection, public splash pages, redirect shim for every old link).
 
 **Actively next:** mobile app entry flow per Rumen's brief — install as PWA,
 log in with an account, then choose Admin, or pick an event and enter as
@@ -31,7 +38,9 @@ Facilitator or Team player; tablet password stays for exiting an event and
 cross-device team sign-in. Android verification pass after that.
 
 **Biggest still-open items:** PAY-1 live Paddle launch (checklist in
-`docs/PADDLE-LIVE-CHECKLIST.md`), DATA-1 lifecycle deployment steps,
+`docs/PADDLE-LIVE-CHECKLIST.md`), PAY-3 Paddle webhook secret/replay for the
+RallyHub Gaming live test transaction, DOMAIN-1 apex redirect + manual
+verification checklist (below), DATA-1 lifecycle deployment steps,
 CONTENT-1's 159 cover images, CF2-1 Welcome stage, CF2-5 camera permission
 re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
 ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
@@ -52,6 +61,60 @@ Bump `APP_VERSION` in `src/lib/version.ts` + add a CHANGELOG entry on every main
 5. Every risky change lands as its own commit so a single `git revert` undoes exactly that change, not a whole batch. No more full rollbacks.
 
 ---
+
+## Domain architecture v2, 9-10 Aug 2026 (V3.16.6 -> V3.17.0, shipped)
+
+Full path-based multi-tenancy rewrite, driven by Paddle rejecting
+`app.rallyhub.games` for domain approval (partly citing the login wall) and
+needing both `app.rallyhub.games` and `admin.rallyhub.games` approved.
+Design spec: `docs/superpowers/specs/2026-08-03-domain-architecture-and-paddle-approval-design.md`.
+Plan (17 tasks, exact code, full execution ledger): `docs/superpowers/plans/2026-08-08-domain-architecture-v2.md`
+and `.superpowers/sdd/2026-08-08-domain-architecture-v2/progress.md`.
+
+**Shipped:** `app.rallyhub.games/{client}/admin/...` replaces
+`{client}.rallyhub.games`; live event links are
+`app.rallyhub.games/{client}/{event}/join|display|facilitator`. Super admins
+can only sign in on `admin.rallyhub.games`, client roles only on
+`app.rallyhub.games` — wrong domain shows an error with a jump link, not a
+silent redirect. Every old subdomain link keeps resolving through a redirect
+shim (tablet links unchanged, out of scope). New branded public splash pages
+at both domain roots. Reserved subdomain words rejected at signup and by a
+DB trigger. A final whole-branch review (after all 14 tasks individually
+shipped) caught and fixed one Critical issue (missing env var fallbacks for
+`VITE_ADMIN_HOST`/`VITE_PLATFORM_HOST` that could silently serve the wrong
+content on the wrong domain) and two Important ones (a fresh client login
+never actually reached their `/{slug}/admin` panel — the headline feature
+was inert; a live session on the wrong domain wasn't rejected, only fresh
+logins were).
+
+**Still open (not done tonight, explicitly deferred by the final review):**
+- **DOMAIN-1** Apex redirect: `rallyhub.games/admin*` and `/login*` should
+  hard-redirect to the same path on `app.rallyhub.games` per the spec, but
+  no task implemented it — currently a client bookmark to the marketing
+  apex's `/admin` still works there directly (its own separate login/session,
+  same "login wall" pattern Paddle flagged, just not on a domain Paddle is
+  reviewing tonight). ~20 min fix, low urgency since the apex is already
+  Paddle-approved.
+- Deep legacy paths (`sharphawk.app.rallyhub.games/admin/events`) don't get
+  the new-scheme redirect, only the bare `/` does — old host still resolves
+  them directly via the pre-existing host-based path, so nothing breaks,
+  it just doesn't modernise.
+- New registrations still land on the unscoped `/admin` panel on first
+  visit rather than `/{slug}/admin` immediately (a synchronous
+  role-to-path function can't do the async org lookup) — `HostAdminLayout`
+  now forwards them the moment they load any admin page, so this only
+  matters for the split second before that first redirect fires.
+- No `robots.txt`/`noindex` on the two new splash pages.
+- `src/components/demo/DemoSandboxBar.tsx` has two hard `/admin`
+  navigations the sweep didn't catch — confirmed inert (only reachable via
+  the demo host or with demo credentials), low priority.
+- **Task 15 (manual verification checklist) and Task 16 (Paddle domain
+  resubmission runbook)** in the plan are explicitly for Rumen to run after
+  deploying, not automated — resubmit `app.rallyhub.games` and
+  `admin.rallyhub.games` to Paddle once the splash pages are live, then
+  walk the manual checklist (login on both domains, wrong-domain rejection,
+  a live event's short links, at least one old subdomain link still
+  working).
 
 ## Client feedback marathon, 7-9 Aug 2026 (V3.2.0 -> V3.9.0, all shipped)
 
@@ -454,6 +517,18 @@ Plan: `docs/superpowers/plans/2026-07-30-new-design-shell-and-dashboard.md`.
 - [~] **DATA-1 Storage-first deletion lifecycle:** code promoted in V2.11.0; Supabase deployment remains. Event Bin expiry, six-month retention, manual permanent event deletion, super-admin client deletion, and client-requested 30-day account deletion converge on one private retry queue + `data-lifecycle` Edge worker. Storage prefixes are deleted through the API in 1,000-object batches before DB finalization; failures remain retryable. Client Organization Settings includes request/restore controls, Paddle renewal scheduling/undo, and a 30-day countdown. Deployment/Vault setup and destructive smoke checklist: `docs/DATA-LIFECYCLE.md`.
 - [ ] **DEV-DB1 Fresh local Supabase reset:** the historical migration chain cannot currently build a database from zero. Migrations 030/037 consume a newly added enum label in the same transaction, then 038 attempts to change `resolve_tenant_by_host`'s return type with `create or replace`. This predates DATA-1; the new lifecycle migration was instead applied and behavior-tested successfully against an isolated Supabase Postgres schema. Repair the historical chain separately without rewriting already-applied production state.
 - [ ] **PAY-1 live launch:** follow `docs/PADDLE-LIVE-CHECKLIST.md`: apply the pending billing/lifecycle migrations; deploy current Paddle Edge Functions and `data-lifecycle`; configure lifecycle Vault/cron secrets; audit and clear confirmed sandbox Paddle IDs; switch Supabase/Vercel to live Paddle credentials and production environment together; confirm production webhook subscriptions, VAT-exclusive tax setting, and the destructive lifecycle smoke checklist. Enable `VITE_ENABLE_PLAN_CHANGES` / `ENABLE_PLAN_CHANGES` only after the live smoke test.
+- [ ] **PAY-3 Live webhook secret + missed events (9 Aug):** a real live-mode
+  €1.80 test charge on RallyHub Gaming succeeded, but the live notification
+  destination's actual signing secret only surfaced via `GET
+  /notification-settings/{id}` (`endpoint_secret_key`) — the value pasted
+  into Supabase's `PADDLE_WEBHOOK_SECRET` was wrong, so webhook signature
+  verification failed (`401 Invalid signature`) and `transaction.completed`
+  / `subscription.created` never landed. Fix: confirm Rumen has pasted
+  `pdl_ntfset_01kympmfcjxd3mkphmd4xnxj3d_FGB10dFZO0rQaeJDHd3UyI4ikf2IUAa0`
+  into the Supabase secret, then replay those two events from Paddle's
+  dashboard so RallyHub Gaming's org row (`63e284db-9e4f-408b-83df-2e311fee968b`)
+  gets its `paddle_subscription_id`/`subscription_status` populated (both
+  still null despite the real charge).
 - [~] **CONTENT-1 Game catalogue:** **147 platform templates are live** in the
   RallyHub Game Library org (`is_platform_template = true`), installable by
   client orgs through the existing Install to clients flow.
