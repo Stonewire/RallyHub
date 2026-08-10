@@ -36,16 +36,14 @@ export function canAccessRallyHub(role: AppRole | null): boolean {
  * preview URL. Neither is set locally, so this falls back to the production
  * domains admin.rallyhub.games / app.rallyhub.games directly.
  *
- * NOTE: this deliberately reads VITE_PLATFORM_HOST directly instead of
- * calling `platformHost()` from '@/lib/tenant'. `platformHost()`'s own
- * fallback is still 'rallyhubapp.vercel.app' (tenant.ts, pre-dates this
- * migration and is out of scope to change here) — reusing it would make
- * this function's "wrong domain" redirect for client roles point at the
- * legacy Vercel host instead of app.rallyhub.games whenever the env var is
- * unset, which is exactly the case in local dev and in this file's own
- * tests. Once VITE_PLATFORM_HOST is actually configured (prod), both this
- * fallback and `platformHost()`'s default resolve to the same real value,
- * so there's no behavioral drift there — only in the unconfigured case.
+ * This reads VITE_PLATFORM_HOST directly rather than calling `platformHost()`
+ * from '@/lib/tenant' — historically that function's own fallback was the
+ * stale pre-migration 'rallyhubapp.vercel.app', which would have misdirected
+ * this function whenever the env var was unset. `platformHost()`'s fallback
+ * was corrected to 'app.rallyhub.games' in the final whole-branch review, so
+ * the two are equivalent now; this function keeps its own inline fallback
+ * rather than switching to `platformHost()`, since it's already correct and
+ * has its own test coverage against these exact literals.
  */
 export function wrongDomainRedirectUrl(role: AppRole | null): string | null {
   if (typeof window === 'undefined') return null

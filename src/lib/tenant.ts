@@ -34,11 +34,11 @@ export type TenantContext =
 const PLATFORM_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
-  import.meta.env.VITE_PLATFORM_HOST ?? 'rallyhubapp.vercel.app',
+  import.meta.env.VITE_PLATFORM_HOST ?? 'app.rallyhub.games',
 ])
 
 export function platformHost(): string {
-  return import.meta.env.VITE_PLATFORM_HOST ?? 'rallyhubapp.vercel.app'
+  return import.meta.env.VITE_PLATFORM_HOST ?? 'app.rallyhub.games'
 }
 
 /** Shared client host for multi-domain setups (optional; not used for redirects on Hobby). */

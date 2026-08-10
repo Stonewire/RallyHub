@@ -10,6 +10,6 @@ export function getCurrentAppOrigin(): string {
     return window.location.origin.replace(/\/$/, '')
   }
 
-  const platformHost = import.meta.env.VITE_PLATFORM_HOST ?? 'rallyhubapp.vercel.app'
+  const platformHost = import.meta.env.VITE_PLATFORM_HOST ?? 'app.rallyhub.games'
   return `https://${platformHost}`
 }
