@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.17.0 - 2026-08-10
+
+- Domain architecture rewrite: client panels move from subdomains
+  (`{client}.rallyhub.games`) to paths (`app.rallyhub.games/{client}/admin`).
+  Live event links follow the same shape, e.g.
+  `app.rallyhub.games/{client}/{event}/join`. Needed so Paddle can approve
+  `app.rallyhub.games` and `admin.rallyhub.games` as domains (the earlier
+  subdomain scheme couldn't be reviewed as a single site).
+- Super admins can only sign in on `admin.rallyhub.games`; client roles only
+  on `app.rallyhub.games`. Signing in on the wrong one shows an error with a
+  jump link to the right domain instead of silently redirecting.
+- Every old subdomain link keeps working forever through a redirect shim.
+  Tablet links are unchanged and out of scope.
+- New public splash pages at the root of both `app.rallyhub.games` and
+  `admin.rallyhub.games`, replacing what used to be a bare login wall on
+  each (Paddle's domain review flagged the login wall as a likely rejection
+  cause).
+- Reserved subdomains (`admin`, `login`, `api`, etc.) are now rejected at
+  signup and at the database level, not just in the UI.
+
 ## V3.16.6 - 2026-08-09
 
 - Store section: removed the claims "No other platform does this" and "the one
