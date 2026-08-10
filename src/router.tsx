@@ -54,6 +54,7 @@ import { RallyHubPaymentsPage } from '@/pages/rallyhub/PaymentsPage'
 import { RallyHubPromoCodesPage } from '@/pages/rallyhub/PromoCodesPage'
 import { resolvePostLoginPath, wrongDomainRedirectUrl } from '@/lib/auth-routes'
 import { isDemoHost } from '@/lib/demo-sandbox'
+import { supabase } from '@/lib/supabase'
 import { getTenantContext, isPlatformHost, isTenantHost, platformHost } from '@/lib/tenant'
 
 // eslint-disable-next-line react-refresh/only-export-components -- route-only component, this file also exports the router config
@@ -93,8 +94,8 @@ function RootPage() {
   // branch sits above the loading/user checks below, so it has to make them
   // itself: without the `loading` guard an anonymous-looking first render would
   // flash the splash page at a staff member who does have a session.
-  const adminHost = import.meta.env.VITE_ADMIN_HOST
-  if (adminHost && typeof window !== 'undefined' && window.location.hostname === adminHost) {
+  const adminHost = import.meta.env.VITE_ADMIN_HOST || 'admin.rallyhub.games'
+  if (typeof window !== 'undefined' && window.location.hostname === adminHost) {
     if (loading) {
       return <AuthLoadingScreen label="Loading" />
     }
@@ -115,6 +116,7 @@ function RootPage() {
   if (user && !profileLoading) {
     const wrongDomain = wrongDomainRedirectUrl(role)
     if (wrongDomain && typeof window !== 'undefined') {
+      void supabase.auth.signOut({ scope: 'local' })
       window.location.replace(wrongDomain)
       return <AuthLoadingScreen label="Redirecting" />
     }
@@ -128,8 +130,8 @@ function RootPage() {
   // No loading/user guards needed here: the three branches above already
   // returned for every case where `loading` is true or a session exists, so
   // anything reaching this line is a settled, anonymous visitor.
-  const platformH = import.meta.env.VITE_PLATFORM_HOST
-  if (platformH && typeof window !== 'undefined' && window.location.hostname === platformH) {
+  const platformH = import.meta.env.VITE_PLATFORM_HOST || 'app.rallyhub.games'
+  if (typeof window !== 'undefined' && window.location.hostname === platformH) {
     return <AppSplashPage />
   }
 
