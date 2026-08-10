@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 
 import { AuthLoadingScreen } from '@/components/auth/AuthLoadingScreen'
 import { useAuth } from '@/contexts/auth-context'
@@ -8,6 +8,7 @@ import {
   canManageOrgUsers,
   isFacilitatorOnlyRole,
 } from '@/lib/auth-routes'
+import { orgPath } from '@/lib/org-path'
 import { isPlatformHost } from '@/lib/tenant'
 import { AdminEventsPage } from '@/pages/admin/EventsPage'
 import { FacilitatorEventsPage } from '@/pages/admin/FacilitatorEventsPage'
@@ -33,10 +34,11 @@ function useIsSuperAdminOnPlatform() {
 
 export function AdminHomePage() {
   const { role, profileLoading } = useAuth()
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
   const mode = useIsSuperAdminOnPlatform()
   if (profileLoading || mode === null) return <AuthLoadingScreen label="Loading profile" />
   // Facilitators have no dashboard — their home is the events list.
-  if (isFacilitatorOnlyRole(role)) return <Navigate to="/admin/events" replace />
+  if (isFacilitatorOnlyRole(role)) return <Navigate to={orgPath(clientSlug, '/admin/events')} replace />
   return mode ? <RallyHubOverviewPage /> : <ClientDashboardPage />
 }
 
@@ -53,16 +55,18 @@ export function AdminSupportRoute() {
 }
 
 function SuperAdminOnly({ children }: { children: ReactNode }) {
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
   const mode = useIsSuperAdminOnPlatform()
   if (mode === null) return <AuthLoadingScreen label="Loading profile" />
-  if (!mode) return <Navigate to="/admin" replace />
+  if (!mode) return <Navigate to={orgPath(clientSlug, '/admin')} replace />
   return <>{children}</>
 }
 
 function ClientAdminOnly({ children }: { children: ReactNode }) {
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
   const mode = useIsSuperAdminOnPlatform()
   if (mode === null) return <AuthLoadingScreen label="Loading profile" />
-  if (mode) return <Navigate to="/admin" replace />
+  if (mode) return <Navigate to={orgPath(clientSlug, '/admin')} replace />
   return <>{children}</>
 }
 
@@ -103,6 +107,7 @@ export function ClientEventEditRoute() {
 
 export function ClientSettingsRoute() {
   const { role, profileLoading } = useAuth()
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
   const mode = useIsSuperAdminOnPlatform()
   if (profileLoading || mode === null) return <AuthLoadingScreen label="Loading profile" />
   // event_manager gets no org-wide Settings access (canAccessOrgSettings), but
@@ -112,7 +117,7 @@ export function ClientSettingsRoute() {
     return <FacilitatorSettingsPage />
   }
   if (!canAccessOrgSettings(role)) {
-    return <Navigate to="/admin/events" replace />
+    return <Navigate to={orgPath(clientSlug, '/admin/events')} replace />
   }
   // Platform super admins get Settings too (My Account, and Team for the
   // owner); the page itself coerces the org tab away since they have no org.
@@ -121,9 +126,10 @@ export function ClientSettingsRoute() {
 
 export function ClientTeamRoute() {
   const { role, profileLoading } = useAuth()
+  const { clientSlug } = useParams<{ clientSlug?: string }>()
   if (profileLoading) return <AuthLoadingScreen label="Loading profile" />
   if (!canManageOrgUsers(role)) {
-    return <Navigate to="/admin/events" replace />
+    return <Navigate to={orgPath(clientSlug, '/admin/events')} replace />
   }
   return (
     <ClientAdminOnly>
