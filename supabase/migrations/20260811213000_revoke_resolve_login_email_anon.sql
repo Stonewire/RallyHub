@@ -13,4 +13,10 @@
 -- calling resolve_login_email (V3.18.3) is live. If applied while an older
 -- frontend is still deployed, username login on that frontend breaks instantly
 -- (it would get "permission denied for function resolve_login_email").
+--
+-- NOTE: Postgres grants EXECUTE to PUBLIC by default on function creation, and
+-- anon/authenticated inherit PUBLIC. Revoking anon/authenticated alone leaves
+-- the function callable via PUBLIC, so PUBLIC must be revoked too (verified: the
+-- anon oracle stayed open until the PUBLIC revoke).
 revoke execute on function public.resolve_login_email(text) from anon, authenticated;
+revoke execute on function public.resolve_login_email(text) from public;

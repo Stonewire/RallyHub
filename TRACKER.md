@@ -277,9 +277,15 @@ only). The audit did surface these adjacent issues:
 - [x] **AUD-6 Signup captcha fails open** (low, config-dependent) FIXED V3.18.2.
   `register-client` skipped Turnstile if `TURNSTILE_SECRET_KEY` was unset. Now
   fails closed. Redeployed (v23). Rumen confirmed the secret is set in prod.
-- [~] **AUD-4 Username to email disclosure** (low) BUILT + SERVER-TESTED, awaiting
-  frontend deploy then the revoke. Rumen chose to fix it (build + test on QA
-  first). Done: two new edge functions deployed to prod, `login-identifier`
+- [x] **AUD-4 Username to email disclosure** (low) FULLY LIVE + VERIFIED 11 Aug
+  (V3.18.3). Frontend deployed, then anon+authenticated AND public execute
+  revoked on `resolve_login_email` (migrations `20260811213000`). Verified after
+  revoke: direct anon RPC now returns 401 "permission denied for function
+  resolve_login_email" (oracle closed), and `login-identifier` still returns a
+  session (login intact). Gotcha logged: Postgres grants EXECUTE to PUBLIC by
+  default, so revoking anon/authenticated alone left the oracle open via PUBLIC;
+  had to revoke PUBLIC too. Rumen chose to fix it (build + test on QA first).
+  Done: two new edge functions deployed to prod, `login-identifier`
   (username sign-in resolves + signs in server-side, returns only the session,
   never the email) and `request-password-reset` (forgot-password resolves +
   sends reset mail server-side, always generic `{ok:true}`). Client rewired
