@@ -113,6 +113,36 @@ export function useEvent(eventId: string | undefined) {
   })
 }
 
+/**
+ * Persists the event checklist's tick state. Kept off the event form's save
+ * path so ticking an item never marks the form dirty; writes the whole
+ * { teamCount, checked } blob and patches the cached event in place so the
+ * open checklist doesn't flicker on a refetch.
+ */
+export function useUpdateEventChecklistState(eventId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (checklistState: {
+      teamCount: number
+      checked: Record<string, boolean>
+    }) => {
+      if (!eventId) throw new Error('No event selected.')
+      const { error } = await supabase
+        .from('events')
+        .update({ checklist_state: checklistState })
+        .eq('id', eventId)
+      if (error) throw error
+      return checklistState
+    },
+    onSuccess: (checklistState) => {
+      if (!eventId) return
+      queryClient.setQueryData<EventRow>(queryKeys.event(eventId), (prev) =>
+        prev ? { ...prev, checklist_state: checklistState } : prev,
+      )
+    },
+  })
+}
+
 export function useEventGameIds(eventId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.eventGames(eventId ?? ''),

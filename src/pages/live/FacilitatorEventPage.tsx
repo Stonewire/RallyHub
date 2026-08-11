@@ -415,6 +415,19 @@ export function FacilitatorEventPage() {
         bingo_announced_winner_ids: [],
       })
     }
+    if (next?.type === 'open' || next?.type === 'quiz' || next?.type === 'bingo') {
+      // Resume play when (re)entering a game stage — e.g. after the End stage,
+      // which closes submissions. Reset the timer-ran flag so the timer-zero
+      // auto-close effect doesn't immediately re-close this fresh stage.
+      patch.submissions_open = true
+      mainEventTimerRanRef.current = false
+    }
+    if (next?.type === 'end') {
+      // A true freeze: close submissions and the store for every device, not
+      // just hide game UI. Winner reveal stays a separate control.
+      patch.submissions_open = false
+      patch.store_open = false
+    }
     void patchState(patch)
   }
 
@@ -1806,7 +1819,7 @@ export function FacilitatorEventPage() {
 
           {/* Whatever is running sits directly under the main control card, on
               the right, with the glow marking it as the live thing. */}
-          {stage && stage.type !== 'open' ? (
+          {stage && (stage.type === 'quiz' || stage.type === 'bingo' || stage.type === 'break') ? (
             // Green glow marks the live stage controls so the eye lands here.
             // `relative` so the bingo stage can corner its Restart button.
             <Card className="neo-card relative border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
@@ -2150,6 +2163,23 @@ export function FacilitatorEventPage() {
               </div>
             </div>
               ) : null}
+            </Card>
+          ) : null}
+
+          {stage && (stage.type === 'welcome' || stage.type === 'end') ? (
+            <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
+              <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
+                {stage.type === 'welcome' ? 'Welcome screen' : 'Event ended'}
+              </p>
+              <p className="mt-2 text-sm font-medium">
+                {stage.message ||
+                  (stage.type === 'welcome' ? 'Welcome' : 'Thanks for playing')}
+              </p>
+              <p className="text-muted-foreground mt-2 text-xs">
+                {stage.type === 'welcome'
+                  ? 'Teams see this while they wait. Move to the first game when ready.'
+                  : 'Play is frozen for everyone. Use the winner reveal controls to announce results.'}
+              </p>
             </Card>
           ) : null}
 

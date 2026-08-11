@@ -3,10 +3,38 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { profileDisplayName } from '@/lib/auth-routes'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
-import type { GameType } from '@/types/database'
+import type { GamePrepStatus, GameType } from '@/types/database'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
 
 export type GameRow = Tables<'games'>
+
+/** Order 'sort by status' surfaces first: work-needed statuses lead, done trails. */
+export const GAME_PREP_STATUS_ORDER: GamePrepStatus[] = [
+  'needs_attention',
+  'in_progress',
+  'draft',
+  'done',
+]
+
+export const GAME_PREP_STATUS_LABELS: Record<GamePrepStatus, string> = {
+  draft: 'Draft',
+  in_progress: 'In progress',
+  done: 'Done',
+  needs_attention: 'Needs attention',
+}
+
+/**
+ * Solid pills that sit on shadcn's outline Button trigger, so dark: variants are
+ * baked in (the button's own dark:bg-input/30 otherwise wins and leaves the label
+ * illegible). Mirrors EVENT_STATUS_PILL_CLASS in use-events.ts.
+ */
+export const GAME_PREP_STATUS_PILL_CLASS: Record<GamePrepStatus, string> = {
+  draft:
+    'bg-[#dcdcdf] text-[#3a3a3f] hover:bg-[#d0d0d4] dark:bg-[#3a3d44] dark:text-[#d7d9dd] dark:hover:bg-[#42454d]',
+  in_progress: 'bg-[var(--nm-yellow)] text-[#3a2f00] hover:bg-[#ecb100] dark:hover:bg-[#ecb100]',
+  done: 'bg-[#2f9e6e] text-white hover:bg-[#2a8c62] dark:hover:bg-[#2a8c62]',
+  needs_attention: 'bg-[#d64545] text-white hover:bg-[#c23c3c] dark:hover:bg-[#c23c3c]',
+}
 
 function invalidateGameListQueries(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -320,6 +348,30 @@ export function useUpdateGame(organizationId: string | null) {
         .single()
       if (error) throw error
       return data
+    },
+    onSuccess: (_data, { gameId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) })
+      invalidateGameListQueries(queryClient, organizationId)
+    },
+  })
+}
+
+export function useUpdateGamePrepStatus(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      gameId,
+      prepStatus,
+    }: {
+      gameId: string
+      prepStatus: GamePrepStatus
+    }) => {
+      const { error } = await supabase
+        .from('games')
+        .update({ prep_status: prepStatus })
+        .eq('id', gameId)
+      if (error) throw error
     },
     onSuccess: (_data, { gameId }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) })

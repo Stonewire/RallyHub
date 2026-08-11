@@ -64,9 +64,11 @@ export function AdminEventsNewPage() {
       setError('Event name is required.')
       return
     }
-    const nonBreak = values.stages.filter((s) => s.type !== 'break')
-    if (nonBreak.length === 0) {
-      setError('Add at least one non-break stage.')
+    const gameStages = values.stages.filter(
+      (s) => s.type === 'open' || s.type === 'quiz' || s.type === 'bingo',
+    )
+    if (gameStages.length === 0) {
+      setError('Add at least one game stage.')
       return
     }
 

@@ -54,6 +54,11 @@ export function quizTimerRunning(state: Tables<'event_state'>): boolean {
 export function submissionsAllowed(state: Tables<'event_state'>): boolean {
   return state.submissions_open !== false
 }
+
+/** The end stage freezes play: every surface hides game UI and shows the closing message. */
+export function stageFreezesPlay(stage: EventStage | null): boolean {
+  return stage?.type === 'end'
+}
 export type TeamStatus = 'idle' | 'active' | 'stopped'
 export type AnnouncementTarget = 'display' | 'participants' | 'both'
 

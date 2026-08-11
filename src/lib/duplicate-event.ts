@@ -1,5 +1,6 @@
 import {
   collectEventGameIds,
+  ensureBookendStages,
   unclaimedTeamSlots,
 } from '@/lib/event-form-utils'
 import type { EventStage } from '@/types/game-config'
@@ -17,9 +18,11 @@ export function buildDuplicateEventPayload(
   source: Tables<'events'>,
   gameIds: string[],
 ): { event: TablesInsert<'events'>; gameIds: string[] } {
-  const stages = Array.isArray(source.stages_config)
-    ? cloneStagesWithNewIds(source.stages_config as EventStage[])
-    : []
+  const stages = ensureBookendStages(
+    Array.isArray(source.stages_config)
+      ? cloneStagesWithNewIds(source.stages_config as EventStage[])
+      : [],
+  )
 
   const resolvedGameIds = collectEventGameIds(gameIds, stages)
 

@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 
 import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { NeoButton } from '@/components/neo-minimal'
-import { GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
+import { GAME_PREP_STATUS_ORDER, GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
+import { GamePrepStatusMenu } from '@/components/games/GamePrepStatusMenu'
+import type { GamePrepStatus } from '@/types/database'
 
 type DraggableGamesGridProps = {
   games: GameRow[]
@@ -18,6 +20,12 @@ type DraggableGamesGridProps = {
   onReorder: (gameId: string, index: number) => void
   onEdit: (gameId: string) => void
   onInstall?: (game: GameRow) => void
+  /** 'status' sorts by prep status and disables drag (manual order is list_order). */
+  sortMode?: 'manual' | 'status'
+  onPrepStatusChange?: (gameId: string, status: GamePrepStatus) => void
+  prepStatusPending?: boolean
+  /** Hidden on the platform template library, where prep tracking is meaningless. */
+  showPrepStatus?: boolean
 }
 
 export function DraggableGamesGrid({
@@ -29,6 +37,10 @@ export function DraggableGamesGrid({
   onReorder,
   onEdit,
   onInstall,
+  sortMode = 'manual',
+  onPrepStatusChange,
+  prepStatusPending,
+  showPrepStatus = false,
 }: DraggableGamesGridProps) {
   const [dragId, setDragId] = useState<string | null>(null)
   // Hovering anywhere on a card reveals its full group list after a beat. Held
@@ -52,13 +64,20 @@ export function DraggableGamesGrid({
   }
 
 
+  const dragEnabled = sortMode === 'manual'
+
   const sorted = [...games].sort((a, b) => {
+    if (sortMode === 'status') {
+      const ra = GAME_PREP_STATUS_ORDER.indexOf((a.prep_status ?? 'draft') as GamePrepStatus)
+      const rb = GAME_PREP_STATUS_ORDER.indexOf((b.prep_status ?? 'draft') as GamePrepStatus)
+      if (ra !== rb) return ra - rb
+    }
     if (a.list_order !== b.list_order) return a.list_order - b.list_order
     return a.name.localeCompare(b.name)
   })
 
   function handleDrop(targetId: string | null) {
-    if (!dragId) return
+    if (!dragEnabled || !dragId) return
     const without = sorted.filter((g) => g.id !== dragId)
     let index = without.length
     if (targetId) {
@@ -93,7 +112,7 @@ export function DraggableGamesGrid({
         return (
         <article
           key={game.id}
-          draggable
+          draggable={dragEnabled}
           onDragStart={(e) => {
             setDragId(game.id)
             e.dataTransfer.effectAllowed = 'move'
@@ -157,10 +176,12 @@ export function DraggableGamesGrid({
                 <IconCopy className="size-3.5" />
               </button>
             ) : null}
-            <IconGrip
-              className="absolute bottom-1.5 left-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
-              aria-hidden
-            />
+            {dragEnabled ? (
+              <IconGrip
+                className="absolute bottom-1.5 left-1.5 size-4 cursor-grab rounded bg-black/45 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+                aria-hidden
+              />
+            ) : null}
           </div>
           <div className="flex min-h-16 flex-1 flex-col items-center px-1.5 py-1.5 text-center">
             <p className="text-foreground line-clamp-2 min-h-8 text-xs font-semibold leading-4">
@@ -169,6 +190,17 @@ export function DraggableGamesGrid({
             <p className="mt-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
               {pointsLabel(game)}
             </p>
+            {showPrepStatus && onPrepStatusChange ? (
+              // Clicking the pill must not open the editor (the whole card is a
+              // click target), so swallow the click before it bubbles.
+              <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+                <GamePrepStatusMenu
+                  status={(game.prep_status ?? 'draft') as GamePrepStatus}
+                  disabled={prepStatusPending}
+                  onSelect={(status) => onPrepStatusChange(game.id, status)}
+                />
+              </div>
+            ) : null}
           </div>
           {/* Groups this game belongs to, as plain text. No edit button: the
               card itself opens the editor, so a pencil would be a second

@@ -10,6 +10,7 @@ import {
   QueryLoading,
 } from '@/components/admin/QueryState'
 import { EventActivityLog } from '@/components/admin/EventActivityLog'
+import { EventTasksPanel } from '@/components/events/EventTasksPanel'
 import { DangerZone } from '@/components/admin/DangerZone'
 import { EventForm } from '@/components/events/EventForm'
 import { EventLinksPanel, EventQrDownloadButton } from '@/components/events/EventLinksPanel'
@@ -80,7 +81,7 @@ export function AdminEventEditPage() {
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'settings' | 'log'>('settings')
+  const [activeTab, setActiveTab] = useState<'settings' | 'tasks' | 'log'>('settings')
 
   // Baseline snapshot of the form as loaded, for unsaved-change detection (#15).
   const baselineRef = useRef<string>('')
@@ -124,9 +125,11 @@ export function AdminEventEditPage() {
       setError('Event name is required.')
       return false
     }
-    const nonBreak = values.stages.filter((s) => s.type !== 'break')
-    if (nonBreak.length === 0) {
-      setError('Add at least one non-break stage.')
+    const gameStages = values.stages.filter(
+      (s) => s.type === 'open' || s.type === 'quiz' || s.type === 'bingo',
+    )
+    if (gameStages.length === 0) {
+      setError('Add at least one game stage.')
       return false
     }
 
@@ -297,7 +300,7 @@ export function AdminEventEditPage() {
       ) : (
         <>
           <div className="mb-6 flex gap-1 border-b border-border/60">
-            {(['settings', 'log'] as const).map((tab) => (
+            {(['settings', 'tasks', 'log'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -505,6 +508,14 @@ export function AdminEventEditPage() {
                   dirty={dirty}
                 />
               )}
+            </>
+          )}
+
+          {activeTab === 'tasks' && (
+            <>
+              {eventId ? (
+                <EventTasksPanel eventId={eventId} organizationId={organizationId} />
+              ) : null}
             </>
           )}
 

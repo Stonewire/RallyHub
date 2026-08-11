@@ -10,7 +10,7 @@ import {
 import { GameFields } from '@/components/games/GameFields'
 import { GamePreviewModal } from '@/components/games/GamePreviewModal'
 import { InstallGameModal } from '@/components/rallyhub/InstallGameModal'
-import { NeoButton } from '@/components/neo-minimal'
+import { NeoButton, NeoLabel, TagInput } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
@@ -421,6 +421,20 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         groupsCard={groupsCard}
         singleColumn={singleColumn}
       />
+
+      <Card className="mt-4 space-y-2 p-4 shadow-sm">
+        <NeoLabel htmlFor="game-prep-checklist">Prep checklist (optional)</NeoLabel>
+        <TagInput
+          id="game-prep-checklist"
+          value={config.checklist ?? []}
+          onChange={(next) => setConfig((c) => ({ ...c, checklist: next }))}
+          placeholder="Add an item, then comma…"
+        />
+        <p className="text-muted-foreground text-xs">
+          Physical items this game needs, per one team. Shown in the event checklist,
+          multiplied by the team count.
+        </p>
+      </Card>
 
       {installOpen && gameQuery.data ? (
         <InstallGameModal game={gameQuery.data} onClose={() => setInstallOpen(false)} />

@@ -268,6 +268,8 @@ export function JoinGameView({
   const showEventTimer =
     Boolean(state.show_timer_on_display) &&
     stage?.type !== 'break' &&
+    stage?.type !== 'welcome' &&
+    stage?.type !== 'end' &&
     state.winner_reveal_stage < 1
 
   const mySubs = submissions.filter((s) => s.team_id === teamId)
@@ -1178,6 +1180,19 @@ export function JoinGameView({
         myTeamId={teamId}
       />
     )
+  } else if (stage?.type === 'end') {
+    // Placed above the game branches so ending replaces any game UI at once.
+    // Winner reveal above still wins, so hosts can end first, reveal after.
+    body = (
+      <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Event ended
+        </p>
+        <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
+          {stage.message ?? 'Thanks for playing'}
+        </p>
+      </div>
+    )
   } else if (!live) {
     body = (
       <p className="px-6 py-16 text-center text-lg font-medium opacity-90">
@@ -1207,6 +1222,20 @@ export function JoinGameView({
               </li>
             ))}
         </ul>
+      </div>
+    )
+  } else if (stage?.type === 'welcome') {
+    body = (
+      <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Welcome
+        </p>
+        <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
+          {stage.message ?? 'Welcome'}
+        </p>
+        <p className="text-[clamp(0.8rem,3.4vw,1rem)] font-medium opacity-70">
+          Hang tight, the first game is about to begin.
+        </p>
       </div>
     )
   } else if (stage?.type === 'open') {
