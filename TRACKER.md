@@ -259,6 +259,42 @@ including the auto-approval migration (CF-18), applied to the shared project
 
 ## Open bugs / security
 
+### Auth-bypass audit, 11 Aug 2026 (6 confirmed findings, 1 refuted)
+
+Prompted by Rumen asking whether login-page injection ("type symbols / DROP
+TABLE / ignore-all-instructions and get in") was possible. Verdict: no. Supabase
+parameterises all queries, there is no dynamic string-built SQL, no hardcoded
+backdoor, and the app uses no AI so prompt injection has no surface. XSS is
+also covered (React escapes; the one raw-HTML sink is sanitised and organiser
+only). The audit did surface these adjacent issues:
+
+- [x] **AUD-3 Team name/photo overwrite** (medium) FIXED V3.18.2. Any participant
+  could rename another team and swap its photo (offensive image on the display),
+  because `teams_guard_participant_update` protected score/color/slot/status but
+  not name/photo, and the anon update policy only checked the shared event join
+  token. Guard now requires `x-team-token` ownership for name/photo edits on a
+  claimed team. Migration `20260811210000`, applied to prod and verified.
+- [x] **AUD-6 Signup captcha fails open** (low, config-dependent) FIXED V3.18.2.
+  `register-client` skipped Turnstile if `TURNSTILE_SECRET_KEY` was unset. Now
+  fails closed. Redeployed (v23). Rumen confirmed the secret is set in prod.
+- [ ] **AUD-4 Username to email disclosure** (low) DECISION PENDING. `resolve_login_email`
+  (anon RPC) returns the real email behind any username, an enumeration + PII
+  oracle. No login granted. Only clean fix is moving username login server-side
+  (new edge function so the email is never returned); that reroutes the
+  facilitator login path, so it is the one change that could affect event-day
+  logins for a low-severity leak. IP rate-limiting rejected: facilitators at one
+  venue share an IP and would lock each other out. Awaiting Rumen's go on the
+  login-path change.
+- [ ] **AUD-1/2/5 Tablet PIN weaknesses** (medium/low) WON'T FIX per Rumen
+  (11 Aug): default PIN `1234`, no forced change, anon-resolvable org id/slug,
+  org-scoped-only lockout. Rumen's call: org is responsible for setting a unique
+  PIN. One residual code gap worth a small future fix regardless of PIN strength:
+  `takeover_team_slot` (`20260807140000`) has NO lockout at all (unlike
+  `verify_tablet_password`), so its PIN check is unthrottled brute-forceable.
+- refuted: `get_tablet_events_for_org(uuid)` anon cross-tenant leak was real in
+  migration 042 but already dropped/replaced by `20260709165744` (two-arg,
+  token-gated). No action.
+
 - [x] **SEC-TEAM Participant writes are event-scoped, not team-owned** — **fully
   live 2026-07-29 (V2.19.0 + migrations 20260719130000, 20260729010000).**
   Merged from `feature/team-write-security` (2026-07-19) after re-verifying it

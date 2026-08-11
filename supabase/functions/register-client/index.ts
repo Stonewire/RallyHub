@@ -11,9 +11,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const RATE_LIMIT_MAX_ATTEMPTS = 5
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 
-// P2-5b: Turnstile verification. Set TURNSTILE_SECRET_KEY as an edge
-// function secret to turn this on — until it's set, signup works exactly
-// as before (no verification), so this deploys safely ahead of the secret.
+// P2-5b: Turnstile verification. FAIL CLOSED (audit 2026-08-11, finding 6):
+// the bot check is mandatory. If TURNSTILE_SECRET_KEY is not set the endpoint
+// refuses signups rather than silently letting a scripted loop create fake
+// orgs/accounts. The secret is configured in production.
 const TURNSTILE_SECRET_KEY = Deno.env.get('TURNSTILE_SECRET_KEY')
 
 async function verifyTurnstileToken(token: unknown, remoteIp: string): Promise<boolean> {
@@ -92,11 +93,13 @@ Deno.serve(async (req) => {
       return json({ error: 'Organization name, email and password are required.' }, 400)
     }
 
-    if (TURNSTILE_SECRET_KEY) {
-      const verified = await verifyTurnstileToken(turnstileToken, ip)
-      if (!verified) {
-        return json({ error: 'Verification failed. Please try again.' }, 400)
-      }
+    if (!TURNSTILE_SECRET_KEY) {
+      console.error('[register-client] TURNSTILE_SECRET_KEY not set — refusing signup (fail closed)')
+      return json({ error: 'Server misconfiguration' }, 500)
+    }
+    const verified = await verifyTurnstileToken(turnstileToken, ip)
+    if (!verified) {
+      return json({ error: 'Verification failed. Please try again.' }, 400)
     }
     if (typeof password !== 'string' || password.length < 8) {
       return json({ error: 'Password must be at least 8 characters.' }, 400)

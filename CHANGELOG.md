@@ -5,6 +5,21 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.18.2 - 2026-08-11
+
+Security hardening from the 11 Aug auth-bypass audit. No user-facing behaviour
+changes for legitimate use.
+
+- Team identity is now owner-only during live events. A participant could
+  rename any other team and swap any team's photo (only the shared event join
+  token was checked, never per-team ownership), so a joker could put a rude name
+  or an offensive image on the display screen. The participant guard now blocks
+  name and photo edits on a claimed team unless the device proves ownership with
+  its `x-team-token`. Naming a fresh slot at claim time is unaffected.
+- Self-serve signup captcha now fails closed. If `TURNSTILE_SECRET_KEY` is not
+  set the endpoint refuses signups instead of silently skipping the bot check,
+  closing a path to scripted fake org/account creation.
+
 ## V3.18.1 - 2026-08-11
 
 - `index.html` now serves real content to crawlers: a meta description, Open
