@@ -23,6 +23,9 @@ export type GameType = 'photo' | 'video' | 'quiz' | 'music_bingo' | 'text' | 'pu
 export type PointsType = 'static' | 'range'
 export type GameStatus = 'active' | 'draft' | 'archived' | 'ready'
 export type EventStatus = 'active' | 'demo' | 'ready' | 'draft' | 'archived'
+/** Internal readiness tracking for a game asset. Separate from GameStatus (publish). */
+export type GamePrepStatus = 'draft' | 'in_progress' | 'done' | 'needs_attention'
+export type EventTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done'
 
 type OrgRow = {
   id: string
@@ -223,6 +226,7 @@ export type Database = {
           solution_description: string | null
           solution_image_url: string | null
           status: string
+          prep_status: GamePrepStatus
           config: Json
           is_default_for_new_clients: boolean
           is_platform_template: boolean
@@ -247,6 +251,7 @@ export type Database = {
           solution_description?: string | null
           solution_image_url?: string | null
           status?: string
+          prep_status?: GamePrepStatus
           config?: Json
           is_default_for_new_clients?: boolean
           is_platform_template?: boolean
@@ -268,6 +273,7 @@ export type Database = {
           solution_description?: string | null
           solution_image_url?: string | null
           status?: string
+          prep_status?: GamePrepStatus
           config?: Json
           is_default_for_new_clients?: boolean
           is_platform_template?: boolean
@@ -386,6 +392,7 @@ export type Database = {
           teams_config: Json
           stages_config: Json
           store_config: Json
+          checklist_state: Json
           display_layout: string
           display_text_color: string
           list_order: number
@@ -414,6 +421,7 @@ export type Database = {
           teams_config?: Json
           stages_config?: Json
           store_config?: Json
+          checklist_state?: Json
           display_layout?: string
           display_text_color?: string
           list_order?: number
@@ -435,6 +443,7 @@ export type Database = {
           teams_config?: Json
           stages_config?: Json
           store_config?: Json
+          checklist_state?: Json
           display_layout?: string
           display_text_color?: string
           list_order?: number
@@ -442,6 +451,42 @@ export type Database = {
           invoiced_at?: string | null
           activated_at?: string | null
           deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      event_tasks: {
+        Row: {
+          id: string
+          event_id: string
+          organization_id: string
+          name: string
+          assignee: string | null
+          description: string | null
+          due_date: string | null
+          status: EventTaskStatus
+          list_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          organization_id: string
+          name: string
+          assignee?: string | null
+          description?: string | null
+          due_date?: string | null
+          status?: EventTaskStatus
+          list_order?: number
+        }
+        Update: {
+          name?: string
+          assignee?: string | null
+          description?: string | null
+          due_date?: string | null
+          status?: EventTaskStatus
+          list_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -882,6 +927,7 @@ export type Database = {
           points_cost: number
           image_url: string | null
           is_active: boolean
+          checklist_items: string[]
           created_at: string
           updated_at: string
         }
@@ -894,6 +940,7 @@ export type Database = {
           points_cost: number
           image_url?: string | null
           is_active?: boolean
+          checklist_items?: string[]
         }
         Update: {
           name?: string
@@ -901,6 +948,7 @@ export type Database = {
           points_cost?: number
           image_url?: string | null
           is_active?: boolean
+          checklist_items?: string[]
           updated_at?: string
         }
         Relationships: []

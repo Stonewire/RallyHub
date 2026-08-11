@@ -43,6 +43,7 @@ import {
   useDeleteGame,
   useDuplicateGame,
   useReorderGames,
+  useUpdateGamePrepStatus,
   usePermanentlyDeleteGame,
   useRestoreGame,
   useTrashedGames,
@@ -193,6 +194,7 @@ export function AdminGamesPage() {
   const renameGroup = useRenameGameGroup(organizationId)
   const deleteGroup = useDeleteGameGroup(organizationId)
   const reorderGames = useReorderGames(organizationId)
+  const updatePrepStatus = useUpdateGamePrepStatus(organizationId)
   const trashedGamesQuery = useTrashedGames(organizationId, isPlatformLibrary)
   const restoreGame = useRestoreGame(organizationId)
   const permanentlyDeleteGame = usePermanentlyDeleteGame(organizationId)
@@ -211,6 +213,7 @@ export function AdminGamesPage() {
   const navigate = useNavigate()
 
   const [view, setView] = useState<'games' | 'catalog' | 'inventory' | 'bin'>('games')
+  const [sortMode, setSortMode] = useState<'manual' | 'status'>('manual')
   const [filter, setFilter] = useState<'all' | GameType>('all')
   const [groupFilter, setGroupFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -796,6 +799,17 @@ export function AdminGamesPage() {
               <option key={group.id} value={group.id}>{group.name}</option>
             ))}
           </select>
+          {!isPlatformLibrary ? (
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as 'manual' | 'status')}
+              aria-label="Sort games"
+              className="border-input bg-card text-foreground h-9 min-w-40 rounded-md border px-3 text-xs font-semibold"
+            >
+              <option value="manual">Manual order</option>
+              <option value="status">Sort by status</option>
+            </select>
+          ) : null}
         </div>
       </div>
 
@@ -861,6 +875,12 @@ export function AdminGamesPage() {
                       onInstall={
                         isPlatformLibrary ? (game) => setInstallGame(game) : undefined
                       }
+                      sortMode={sortMode}
+                      showPrepStatus={!isPlatformLibrary}
+                      onPrepStatusChange={(id, status) =>
+                        void updatePrepStatus.mutateAsync({ gameId: id, prepStatus: status })
+                      }
+                      prepStatusPending={updatePrepStatus.isPending}
                     />
                   )
                 ) : null}
@@ -888,6 +908,12 @@ export function AdminGamesPage() {
                 onReorder={handleReorder}
                 onEdit={openGameEditor}
                 onInstall={isPlatformLibrary ? (game) => setInstallGame(game) : undefined}
+                sortMode={sortMode}
+                showPrepStatus={!isPlatformLibrary}
+                onPrepStatusChange={(id, status) =>
+                  void updatePrepStatus.mutateAsync({ gameId: id, prepStatus: status })
+                }
+                prepStatusPending={updatePrepStatus.isPending}
               />
             </section>
           ) : null}

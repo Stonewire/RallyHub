@@ -238,7 +238,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     (state.announcement_target === 'display' ||
       state.announcement_target === 'both')
   const variant =
-    stage?.type === 'break'
+    stage?.type === 'break' || stage?.type === 'welcome' || stage?.type === 'end'
       ? 'relaxed'
       : stage?.type === 'bingo'
         ? 'disco'
@@ -288,6 +288,36 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         layout={layout}
         textClass={textClass}
       />
+    )
+  } else if (stage.type === 'welcome') {
+    body = (
+      <div
+        className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
+      >
+        <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Welcome
+        </p>
+        <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
+          {stage.message ?? 'Welcome'}
+        </p>
+        {/* Scores hidden: at welcome this is a "who's here" list, not a leaderboard. */}
+        <div className="w-full max-w-4xl">
+          <Leaderboard teams={teams} showScores={false} layout={layout} textClass={textClass} />
+        </div>
+      </div>
+    )
+  } else if (stage.type === 'end') {
+    body = (
+      <div
+        className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
+      >
+        <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
+          Event ended
+        </p>
+        <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
+          {stage.message ?? 'Thanks for playing'}
+        </p>
+      </div>
     )
   } else if (stage.type === 'quiz' && state.quiz_state === 'ended' && quizGame) {
     body = (
@@ -455,6 +485,8 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   const showHeaderTimer =
     state.show_timer_on_display &&
     stage?.type !== 'break' &&
+    stage?.type !== 'welcome' &&
+    stage?.type !== 'end' &&
     state.winner_reveal_stage < 1
 
   // The timer is the one number the room checks repeatedly, so it reads as a

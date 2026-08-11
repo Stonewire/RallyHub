@@ -162,6 +162,12 @@ export type GameConfig = {
   puzzle_crossword_layout?: CrosswordLayout
   /** On-screen keyboard alphabet for Wordle/Crossword players. Answer-free. */
   puzzle_keyboard_alphabet?: 'latin' | 'cyrillic'
+  /**
+   * Optional prep checklist: physical items this game needs PER ONE TEAM. Used
+   * only in the admin (the event checklist multiplies by team count); never sent
+   * to live surfaces. Stored here to avoid a games column.
+   */
+  checklist?: string[]
 }
 
 export type EventTeam = {
@@ -184,7 +190,12 @@ export type EventStoreItem = {
 export type EventStage = {
   id: string
   name: string
-  type: 'open' | 'quiz' | 'bingo' | 'break'
+  /**
+   * 'welcome' and 'end' are the two always-on bookend stages. Welcome is pinned
+   * first (holding message shown before games start); end is pinned last (freezes
+   * play, shows a closing message). Both reuse the `message` field below.
+   */
+  type: 'open' | 'quiz' | 'bingo' | 'break' | 'welcome' | 'end'
   gameId?: string | null
   gameIds?: string[]
   message?: string

@@ -3,7 +3,7 @@ import { IconCheck, IconClose, IconCopy, IconDownload, IconEdit, IconInventory, 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
-import { NeoButton, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
+import { NeoButton, NeoInput, NeoLabel, NeoTextarea, TagInput } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -32,6 +32,7 @@ type ItemForm = {
   name: string
   description: string
   pointsCost: string
+  checklist: string[]
   image: File | null
   removeImage: boolean
 }
@@ -40,6 +41,7 @@ const EMPTY_FORM: ItemForm = {
   name: '',
   description: '',
   pointsCost: '',
+  checklist: [],
   image: null,
   removeImage: false,
 }
@@ -128,6 +130,7 @@ export const InventoryLibraryManager = forwardRef<
       name: item.name,
       description: item.description ?? '',
       pointsCost: String(item.points_cost),
+      checklist: item.checklist_items ?? [],
       image: null,
       removeImage: false,
     })
@@ -204,6 +207,7 @@ export const InventoryLibraryManager = forwardRef<
         name: form.name,
         description: form.description || null,
         pointsCost: cost,
+        checklistItems: form.checklist,
         image: form.image,
         removeImage: form.removeImage,
       })
@@ -530,6 +534,18 @@ export const InventoryLibraryManager = forwardRef<
             <div className="space-y-2">
               <NeoLabel htmlFor="inventory-points">Point cost *</NeoLabel>
               <NeoInput id="inventory-points" type="number" min={1} step={1} value={form.pointsCost} onChange={(event) => setForm((value) => ({ ...value, pointsCost: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <NeoLabel htmlFor="inventory-checklist">Kit needed (optional)</NeoLabel>
+              <TagInput
+                id="inventory-checklist"
+                value={form.checklist}
+                onChange={(next) => setForm((value) => ({ ...value, checklist: next }))}
+                placeholder="Add an item, then comma…"
+              />
+              <p className="text-muted-foreground text-xs">
+                What one team needs for this item. The event checklist multiplies it by the team count.
+              </p>
             </div>
             {groups.length > 0 ? (
               <div className="space-y-2">

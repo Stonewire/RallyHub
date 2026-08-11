@@ -27,6 +27,7 @@ import { uploadAsset } from '@/lib/storage'
 import {
   addStage,
   moveStage,
+  isBookendStage,
   defaultTeams,
   type EventFormValues,
 } from '@/lib/event-form-utils'
@@ -440,7 +441,20 @@ export function EventForm({
             Add stage
           </Button>
         </div>
-        {stages.map((stage, stageIndex) => (
+        {stages.map((stage, stageIndex) => {
+          const bookend = isBookendStage(stage)
+          const hasWelcome = stages[0]?.type === 'welcome'
+          const hasEnd = stages[stages.length - 1]?.type === 'end'
+          const firstMovable = hasWelcome ? 1 : 0
+          const lastMovable = hasEnd ? stages.length - 2 : stages.length - 1
+          const middleCount = stages.filter((s) => !isBookendStage(s)).length
+          const stageLabel =
+            stage.type === 'welcome'
+              ? 'Welcome · always first'
+              : stage.type === 'end'
+                ? 'End · always last'
+                : `Stage ${stages.slice(0, stageIndex).filter((s) => !isBookendStage(s)).length + 1}`
+          return (
           <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
             <div className="flex flex-wrap items-center gap-3">
               {/* A long event is a long page. Collapsing a finished stage keeps
@@ -467,58 +481,90 @@ export function EventForm({
                   <IconChevronDown className="size-4" />
                 )}
               </Button>
-              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">Stage {stageIndex + 1}</span>
-              <Input
-                value={stage.name}
-                onChange={(e) =>
-                  onChange((prev) => ({
-                    ...prev,
-                    stages: prev.stages.map((x) =>
-                      x.id === stage.id ? { ...x, name: e.target.value } : x,
-                    ),
-                  }))
-                }
-                className="bg-background h-8 min-w-40 flex-1 text-sm font-semibold"
-              />
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">{stageLabel}</span>
+              {bookend ? (
+                <span className="text-foreground min-w-40 flex-1 text-sm font-semibold">{stage.name}</span>
+              ) : (
+                <Input
+                  value={stage.name}
+                  onChange={(e) =>
+                    onChange((prev) => ({
+                      ...prev,
+                      stages: prev.stages.map((x) =>
+                        x.id === stage.id ? { ...x, name: e.target.value } : x,
+                      ),
+                    }))
+                  }
+                  className="bg-background h-8 min-w-40 flex-1 text-sm font-semibold"
+                />
+              )}
               {/* Running order changes constantly while planning, and
-                  rebuilding a stage just to move it was the only way. */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} earlier`}
-                disabled={stageIndex === 0}
-                onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, -1) }))}
-              >
-                <IconArrowUp className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} later`}
-                disabled={stageIndex === stages.length - 1}
-                onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, 1) }))}
-              >
-                <IconArrowDown className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Delete ${stage.name || `stage ${stageIndex + 1}`}`}
-                disabled={stages.length <= 1}
-                onClick={() =>
-                  onChange((prev) => ({
-                    ...prev,
-                    stages: prev.stages.filter((x) => x.id !== stage.id),
-                  }))
-                }
-              >
-                <IconTrash className="size-4" />
-              </Button>
+                  rebuilding a stage just to move it was the only way. Welcome
+                  and End are pinned, so they show no move/delete controls. */}
+              {bookend ? null : (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} earlier`}
+                    disabled={stageIndex <= firstMovable}
+                    onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, -1) }))}
+                  >
+                    <IconArrowUp className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} later`}
+                    disabled={stageIndex >= lastMovable}
+                    onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, 1) }))}
+                  >
+                    <IconArrowDown className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Delete ${stage.name || `stage ${stageIndex + 1}`}`}
+                    disabled={middleCount <= 1}
+                    onClick={() =>
+                      onChange((prev) => ({
+                        ...prev,
+                        stages: prev.stages.filter((x) => x.id !== stage.id),
+                      }))
+                    }
+                  >
+                    <IconTrash className="size-4" />
+                  </Button>
+                </>
+              )}
             </div>
-            {collapsedStages[stage.id] ? null : (
+            {collapsedStages[stage.id] ? null : bookend ? (
+              <label className="space-y-1.5 text-xs font-medium">
+                <span>{stage.type === 'welcome' ? 'Welcome message' : 'End message'}</span>
+                <textarea
+                  placeholder={stage.type === 'welcome' ? 'Welcome message' : 'End message'}
+                  value={stage.message ?? ''}
+                  onChange={(e) =>
+                    onChange((prev) => ({
+                      ...prev,
+                      stages: prev.stages.map((x) =>
+                        x.id === stage.id ? { ...x, message: e.target.value } : x,
+                      ),
+                    }))
+                  }
+                  rows={2}
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                />
+                <span className="text-muted-foreground block text-[11px] font-normal normal-case">
+                  {stage.type === 'welcome'
+                    ? 'Shown on team devices and the display before the first game starts.'
+                    : 'Ending freezes all play and shows this on every device. Winners are still announced separately.'}
+                </span>
+              </label>
+            ) : (
             <>
             <SegmentedPill
               aria-label="Stage type"
@@ -652,7 +698,8 @@ export function EventForm({
             </>
             )}
           </Card>
-        ))}
+          )
+        })}
         <Button
           type="button"
           variant="outline"

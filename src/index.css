@@ -285,3 +285,31 @@
   content: attr(data-placeholder);
   color: var(--muted-foreground);
 }
+
+/* Event checklist: print / Save-as-PDF only the checklist panel. Toggled by
+   adding .checklist-printing to <body> just before window.print(), removed on
+   afterprint. Tightly scoped so no other page ever picks up print rules. */
+@media print {
+  body.checklist-printing * {
+    visibility: hidden !important;
+  }
+  body.checklist-printing .checklist-print-root,
+  body.checklist-printing .checklist-print-root * {
+    visibility: visible !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+  body.checklist-printing .checklist-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+  body.checklist-printing .checklist-no-print {
+    display: none !important;
+  }
+}

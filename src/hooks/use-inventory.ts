@@ -82,6 +82,8 @@ export type SaveInventoryItemInput = {
   name: string
   description: string | null
   pointsCost: number
+  /** Physical kit this item needs, per one team. */
+  checklistItems: string[]
   image?: File | null
   removeImage?: boolean
 }
@@ -124,6 +126,7 @@ export function useSaveInventoryItem(organizationId: string | null) {
             name: input.name.trim(),
             description: input.description?.trim() || null,
             points_cost: input.pointsCost,
+            checklist_items: input.checklistItems,
             ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
           }
           const { data, error } = await supabase
@@ -143,6 +146,7 @@ export function useSaveInventoryItem(organizationId: string | null) {
           name: input.name.trim(),
           description: input.description?.trim() || null,
           points_cost: input.pointsCost,
+          checklist_items: input.checklistItems,
           image_url: imageUrl ?? null,
         }
         const { data, error } = await supabase
@@ -240,6 +244,7 @@ export function useDuplicateInventoryItem(organizationId: string | null) {
         name: `${item.name} (copy)`.slice(0, 120),
         description: item.description,
         points_cost: item.points_cost,
+        checklist_items: item.checklist_items,
         image_url: imageUrl,
       }
       const { data, error } = await supabase

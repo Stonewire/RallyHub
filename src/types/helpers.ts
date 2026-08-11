@@ -3,6 +3,8 @@ import type { Database } from '@/types/database'
 export type {
   AppRole,
   EventStatus,
+  EventTaskStatus,
+  GamePrepStatus,
   GameStatus,
   GameType,
   PointsType,

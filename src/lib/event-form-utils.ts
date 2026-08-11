@@ -58,8 +58,37 @@ export function unclaimedTeamSlots(count: number): EventTeam[] {
   }))
 }
 
+export const WELCOME_STAGE_MESSAGE = 'Welcome! Games starting soon, stay tuned.'
+export const END_STAGE_MESSAGE = "That's a wrap! Thanks for playing."
+
+export function isBookendStage(stage: EventStage): boolean {
+  return stage.type === 'welcome' || stage.type === 'end'
+}
+
+function makeWelcomeStage(): EventStage {
+  return { id: crypto.randomUUID(), name: 'Welcome', type: 'welcome', message: WELCOME_STAGE_MESSAGE }
+}
+
+function makeEndStage(): EventStage {
+  return { id: crypto.randomUUID(), name: 'End', type: 'end', message: END_STAGE_MESSAGE }
+}
+
+/**
+ * Guarantees exactly one welcome stage pinned first and one end stage pinned
+ * last, preserving any existing bookend's message. Run when loading an event
+ * into the editor and when building a new/duplicated event, so the pins are
+ * enforced at the one place that persists stages_config, never by rewriting a
+ * live event's array out from under its current_stage_index.
+ */
+export function ensureBookendStages(stages: EventStage[]): EventStage[] {
+  const welcome = stages.find((s) => s.type === 'welcome') ?? makeWelcomeStage()
+  const end = stages.find((s) => s.type === 'end') ?? makeEndStage()
+  const middle = stages.filter((s) => !isBookendStage(s))
+  return [welcome, ...middle, end]
+}
+
 export function defaultStages(): EventStage[] {
-  return [
+  return ensureBookendStages([
     {
       id: crypto.randomUUID(),
       name: 'Stage 1',
@@ -67,36 +96,44 @@ export function defaultStages(): EventStage[] {
       gameId: null,
       gameIds: [],
     },
-  ]
+  ])
 }
 
+/** Adds a new game stage just before the pinned end stage. */
 export function addStage(stages: EventStage[]): EventStage[] {
-  return [
-    ...stages,
-    {
-      id: crypto.randomUUID(),
-      name: `Stage ${stages.length + 1}`,
-      type: 'open',
-      gameId: null,
-      gameIds: [],
-    },
-  ]
+  const middleCount = stages.filter((s) => !isBookendStage(s)).length
+  const newStage: EventStage = {
+    id: crypto.randomUUID(),
+    name: `Stage ${middleCount + 1}`,
+    type: 'open',
+    gameId: null,
+    gameIds: [],
+  }
+  const endIndex = stages.findIndex((s) => s.type === 'end')
+  if (endIndex === -1) return [...stages, newStage]
+  const next = [...stages]
+  next.splice(endIndex, 0, newStage)
+  return next
 }
 
 /**
  * Moves one stage earlier or later in the running order.
  *
- * Returns the list unchanged when the move would fall off either end, so the
- * caller can wire it to a button without guarding the edges twice.
+ * Bookends (welcome/end) never move, and no other stage can be pushed above the
+ * welcome or below the end. Returns the list unchanged when a move is refused,
+ * so the caller can wire it to a button without guarding the edges twice.
  */
 export function moveStage(
   stages: EventStage[],
   index: number,
   delta: number,
 ): EventStage[] {
-  const target = index + delta
   if (index < 0 || index >= stages.length) return stages
-  if (target < 0 || target >= stages.length) return stages
+  if (isBookendStage(stages[index])) return stages
+  const lower = stages[0]?.type === 'welcome' ? 1 : 0
+  const upper = stages[stages.length - 1]?.type === 'end' ? stages.length - 2 : stages.length - 1
+  const target = index + delta
+  if (target < lower || target > upper) return stages
   const next = [...stages]
   const [moved] = next.splice(index, 1)
   next.splice(target, 0, moved)
@@ -121,9 +158,21 @@ export function eventToFormValues(
   const teams = Array.isArray(event.teams_config)
     ? (event.teams_config as EventTeam[])
     : defaultTeams(event.team_count)
-  const stages = Array.isArray(event.stages_config)
-    ? (event.stages_config as EventStage[])
-    : defaultStages()
+  const parsedStages =
+    Array.isArray(event.stages_config) && event.stages_config.length
+      ? (event.stages_config as EventStage[])
+      : defaultStages()
+  // Injecting a leading Welcome shifts every stage index by one. An event that
+  // is or has been live has event_state.current_stage_index pointing into the
+  // stored array, so reshaping it here (then persisting on the next save) would
+  // desync the running stage. Only inject bookends when safe: the event is a
+  // pre-live draft/ready never activated, OR it already carries them (in which
+  // case ensureBookendStages is idempotent and shifts nothing).
+  const alreadyBookended = parsedStages[0]?.type === 'welcome'
+  const safeToInject =
+    (event.status === 'draft' || event.status === 'ready') && event.activated_at == null
+  const stages =
+    safeToInject || alreadyBookended ? ensureBookendStages(parsedStages) : parsedStages
 
   return {
     name: event.name,
@@ -140,7 +189,7 @@ export function eventToFormValues(
     displayTextColor:
       event.display_text_color === 'black' ? 'black' : 'white',
     selectedGameIds: gameIds,
-    stages: stages.length ? stages : defaultStages(),
+    stages,
     store: parseStoreConfig(event.store_config),
   }
 }

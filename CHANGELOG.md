@@ -5,6 +5,28 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.18.0 - 2026-08-11
+
+- Always-on Welcome and End stages on every event. Welcome is pinned first and
+  shows a holding message on team devices and the display (teams appear on the
+  display as they join); End is pinned last, freezes all play at once, and shows
+  a closing message. Both messages are edited in the event's Stages section.
+  Winner announcement still runs separately after End. Existing draft events
+  pick up the two stages next time they are opened; live events are left
+  untouched so their running stage never shifts.
+- Per-game prep status (Draft, In progress, Done, Needs attention) shown on each
+  game card and changed straight from the card, plus a "Sort by status" option
+  in the games library. Internal readiness tracking, separate from anything
+  players see.
+- Optional prep checklist on any game and any store item: type an item, press
+  comma, and it locks into a tag. List what one team needs.
+- New Task list tab inside each event: tasks with an assignee, due date,
+  description and a status you can change inline.
+- Event checklist (opened from the Task list): every item across the event's
+  games and store, grouped and added up, multiplied by the team count, with a
+  per-item breakdown of which games need it. Tick items off as you pack;
+  changing the team count re-counts and clears the ticks. Print or save as PDF.
+
 ## V3.17.0 - 2026-08-10
 
 - Domain architecture rewrite: client panels move from subdomains

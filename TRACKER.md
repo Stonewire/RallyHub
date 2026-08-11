@@ -11,6 +11,31 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## In review, 11 Aug 2026 (feature/checklists-tasks-stages, not yet merged)
+
+New feature branch off `main`. Adds: always-on Welcome/End event stages
+(Welcome pinned first with a holding message + teams-joining on the display;
+End pinned last, freezes all play, custom closing message; winner reveal still
+separate); per-game prep status (draft / in_progress / done / needs_attention)
+on the library cards with a "Sort by status" option; an optional prep checklist
+tag field on games (stored in `games.config`) and store items
+(`inventory_items.checklist_items`); a per-event Task list tab in the event
+editor; and an aggregated Event checklist (grouped + summed × team count, tick
+state on `events.checklist_state` that resets on team-count change, browser
+print to PDF).
+
+Additive migration `20260811120000_checklists_tasks_prep_status` (games
+`prep_status`, inventory `checklist_items`, events `checklist_state`,
+`event_tasks` table + org RLS) is already applied to production via MCP (0
+active events at the time; backward-compatible). `APP_VERSION` set to V3.18.0
+pending merge.
+
+Adversarial multi-agent review caught and fixed three high-severity bugs before
+commit: (1) entering the End stage closed submissions but nothing reopened them
+on returning to a game stage; (2) injecting Welcome into a legacy live event's
+stages on save would shift `current_stage_index`; (3) the checklist print rule
+blanked the page. All three fixed and re-verified (build, lint, 292 tests).
+
 ## Current state, 10 Aug 2026 (read this first)
 
 Production is **V3.17.0** on rallyhub.games / app.rallyhub.games /
