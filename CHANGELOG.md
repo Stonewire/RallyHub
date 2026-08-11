@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.18.1 - 2026-08-11
+
+- `index.html` now serves real content to crawlers: a meta description, Open
+  Graph tags, and a static branded fallback inside `#root` (headline, tagline,
+  description, sign-in link). React wipes it on mount, so real users are
+  unaffected, but a bot that doesn't run JavaScript now sees a live, described
+  product instead of an empty page. Fixes Paddle's domain review reporting
+  `app.rallyhub.games` as "offline or under construction" (their crawler was
+  fetching the empty single-page-app shell). The site was always live over
+  HTTPS; the shell just looked blank without JS.
+
 ## V3.18.0 - 2026-08-11
 
 - Always-on Welcome and End stages on every event. Welcome is pinned first and

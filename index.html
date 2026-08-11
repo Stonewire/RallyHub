@@ -5,7 +5,20 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/pwa/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/brand/pwa/favicon-16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RallyHub</title>
+    <title>RallyHub — Team-building events platform</title>
+    <meta
+      name="description"
+      content="RallyHub is a team-building events platform. Build quest games, quizzes and music bingo, brand every event, and run it live from one screen."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RallyHub" />
+    <meta property="og:title" content="RallyHub — Team-building events platform" />
+    <meta
+      property="og:description"
+      content="RallyHub is a team-building events platform. Build quest games, quizzes and music bingo, brand every event, and run it live from one screen."
+    />
+    <meta property="og:image" content="/brand/pwa/apple-touch-icon-180.png" />
+    <meta name="twitter:card" content="summary" />
 
     <!-- Installable app. Chromium reads the manifest; Safari ignores most of it
          and needs the apple-* tags below to open standalone from the home
@@ -38,7 +51,59 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Static fallback for crawlers and slow loads. React (createRoot) wipes
+         #root on mount, so real users never see this once the app boots; it
+         only renders for clients that don't run JS. Kept brand-generic on
+         purpose: this same index.html serves every host (marketing, app,
+         admin, live event pages), so nothing host-specific belongs here. -->
+    <div id="root">
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          padding: 2rem;
+          text-align: center;
+          background: #211e1a;
+          color: #f4f1ea;
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        "
+      >
+        <h1 style="margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.01em">
+          RallyHub
+        </h1>
+        <p style="margin: 0; font-size: 1rem; color: #a89f92">
+          Stronger teams, one game at a time.
+        </p>
+        <p style="margin: 0.5rem 0 0; max-width: 34rem; font-size: 0.95rem; line-height: 1.5">
+          RallyHub is a team-building events platform. Build quest games, quizzes
+          and music bingo, brand every event, and run it live from one screen.
+        </p>
+        <a
+          href="/login"
+          style="
+            margin-top: 1rem;
+            display: inline-block;
+            padding: 0.65rem 1.4rem;
+            border-radius: 999px;
+            background: #f5c518;
+            color: #211e1a;
+            font-weight: 700;
+            text-decoration: none;
+          "
+          >Sign in</a
+        >
+        <noscript>
+          <p style="margin-top: 1rem; color: #a89f92">
+            RallyHub needs JavaScript enabled to run events. The site is live and
+            secured over HTTPS.
+          </p>
+        </noscript>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
