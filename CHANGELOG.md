@@ -5,6 +5,24 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.18.3 - 2026-08-11
+
+Security hardening from the 11 Aug auth-bypass audit (finding AUD-4). No change
+for legitimate users; username and email login behave exactly as before.
+
+- Username login and password-reset no longer expose the account's email to the
+  browser. Previously the client called `resolve_login_email`, an anon RPC that
+  returned the real email behind any username to anyone (a username-enumeration
+  and email-harvesting oracle; it never granted login by itself). Resolution now
+  happens server-side: username sign-in goes through a new `login-identifier`
+  edge function that resolves and signs in without ever returning the email, and
+  the forgot-password page goes through `request-password-reset`, which resolves
+  and sends the reset mail server-side. Both return the same generic response
+  whether or not the account exists. Email-shaped logins are unchanged.
+- Follow-up (not yet applied): once this frontend is live, revoke the anon grant
+  on `resolve_login_email` (migration `20260811213000`) to close the oracle
+  fully. See TRACKER AUD-4 for the ordering.
+
 ## V3.18.2 - 2026-08-11
 
 Security hardening from the 11 Aug auth-bypass audit. No user-facing behaviour

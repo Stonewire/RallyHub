@@ -1,0 +1,16 @@
+-- Security fix (audit 2026-08-11, finding AUD-4): resolve_login_email(text) is
+-- a SECURITY DEFINER RPC granted to anon that returns the real email behind any
+-- username to any unauthenticated caller. That is a username-enumeration and
+-- PII-harvesting oracle (it does not grant login by itself, GoTrue still checks
+-- the password, hence low severity).
+--
+-- Username login now resolves the email AND signs in inside the
+-- login-identifier edge function, so the browser never receives the email and
+-- the client no longer calls this RPC. Revoke anon/authenticated execute to
+-- close the oracle. The function is retained for service_role.
+--
+-- DEPLOYMENT ORDER (critical): apply this ONLY AFTER the frontend that stops
+-- calling resolve_login_email (V3.18.3) is live. If applied while an older
+-- frontend is still deployed, username login on that frontend breaks instantly
+-- (it would get "permission denied for function resolve_login_email").
+revoke execute on function public.resolve_login_email(text) from anon, authenticated;

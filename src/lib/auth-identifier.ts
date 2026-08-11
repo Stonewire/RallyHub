@@ -1,29 +1,12 @@
-import { supabase } from '@/lib/supabase'
-
 /** True when the login field should be treated as an email address. */
 export function looksLikeEmail(identifier: string): boolean {
   return identifier.trim().includes('@')
 }
 
-/**
- * Resolve a login identifier to the auth email Supabase expects.
- * Email-shaped input is lowercased; usernames are looked up via RPC.
- */
-export async function resolveLoginEmail(identifier: string): Promise<string | null> {
-  const trimmed = identifier.trim()
-  if (!trimmed) return null
-
-  if (looksLikeEmail(trimmed)) {
-    return trimmed.toLowerCase()
-  }
-
-  const { data, error } = await supabase.rpc('resolve_login_email', {
-    p_identifier: trimmed,
-  })
-  if (error) throw error
-  if (!data || typeof data !== 'string') return null
-  return data.toLowerCase()
-}
+// Username-to-email resolution used to live here as resolveLoginEmail (an anon
+// RPC). It leaked the real email behind any username to any caller (audit
+// AUD-4), so resolution + sign-in now happen server-side in the
+// login-identifier edge function. See src/contexts/auth-context.tsx.
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,32}$/
 

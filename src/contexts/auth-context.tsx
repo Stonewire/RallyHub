@@ -10,7 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 
 import { setLiveJoinToken, supabase } from '@/lib/supabase'
-import { resolveLoginEmail } from '@/lib/auth-identifier'
+import { looksLikeEmail } from '@/lib/auth-identifier'
 import { enterDemoSandbox, isDemoHost } from '@/lib/demo-sandbox'
 import type { AppRole } from '@/types/database'
 import type { Tables } from '@/types/helpers'
@@ -141,11 +141,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithIdentifier = useCallback(
     async (identifier: string, password: string) => {
-      const email = await resolveLoginEmail(identifier)
-      if (!email) {
+      const trimmed = identifier.trim()
+      if (!trimmed) {
         throw new Error('No account found for that username or email.')
       }
-      await signInWithPassword(email, password)
+      // Email-shaped input signs in directly. A username is resolved AND signed
+      // in server-side (the login-identifier edge function) so the account's
+      // email is never sent back to the browser (audit AUD-4: the old
+      // resolve_login_email RPC leaked it to any anonymous caller).
+      if (looksLikeEmail(trimmed)) {
+        await signInWithPassword(trimmed.toLowerCase(), password)
+        return
+      }
+      const { data, error } = await supabase.functions.invoke('login-identifier', {
+        body: { identifier: trimmed, password },
+      })
+      if (
+        error ||
+        !data?.session?.access_token ||
+        !data?.session?.refresh_token
+      ) {
+        throw new Error('No account found for that username or email, or the password is incorrect.')
+      }
+      const { error: setError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      })
+      if (setError) throw setError
     },
     [signInWithPassword],
   )

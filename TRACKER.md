@@ -277,14 +277,21 @@ only). The audit did surface these adjacent issues:
 - [x] **AUD-6 Signup captcha fails open** (low, config-dependent) FIXED V3.18.2.
   `register-client` skipped Turnstile if `TURNSTILE_SECRET_KEY` was unset. Now
   fails closed. Redeployed (v23). Rumen confirmed the secret is set in prod.
-- [ ] **AUD-4 Username to email disclosure** (low) DECISION PENDING. `resolve_login_email`
-  (anon RPC) returns the real email behind any username, an enumeration + PII
-  oracle. No login granted. Only clean fix is moving username login server-side
-  (new edge function so the email is never returned); that reroutes the
-  facilitator login path, so it is the one change that could affect event-day
-  logins for a low-severity leak. IP rate-limiting rejected: facilitators at one
-  venue share an IP and would lock each other out. Awaiting Rumen's go on the
-  login-path change.
+- [~] **AUD-4 Username to email disclosure** (low) BUILT + SERVER-TESTED, awaiting
+  frontend deploy then the revoke. Rumen chose to fix it (build + test on QA
+  first). Done: two new edge functions deployed to prod, `login-identifier`
+  (username sign-in resolves + signs in server-side, returns only the session,
+  never the email) and `request-password-reset` (forgot-password resolves +
+  sends reset mail server-side, always generic `{ok:true}`). Client rewired
+  (`auth-context.tsx`, `ForgotPasswordPage.tsx`); `resolveLoginEmail` removed
+  from `auth-identifier.ts`. Verified against the QA account by direct curl:
+  correct username -> 200 session with NO email in the body; wrong password,
+  unknown username and `%` wildcard all -> identical generic 401; email login
+  still works; reset endpoint returns generic `{ok:true}` for unknown/empty.
+  `npm run build` green. REMAINING (Rumen): push V3.18.3 so the new frontend is
+  live, THEN apply migration `20260811213000` to revoke anon execute on
+  `resolve_login_email`. Order matters: revoking before the new frontend is live
+  breaks username login on the old frontend.
 - [ ] **AUD-1/2/5 Tablet PIN weaknesses** (medium/low) WON'T FIX per Rumen
   (11 Aug): default PIN `1234`, no forced change, anon-resolvable org id/slug,
   org-scoped-only lockout. Rumen's call: org is responsible for setting a unique

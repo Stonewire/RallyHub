@@ -7,7 +7,6 @@ import {
   PASSWORD_RESET_REQUEST_CONFIRMATION,
   passwordResetRedirectUrl,
 } from '@/lib/auth-password-reset'
-import { resolveLoginEmail } from '@/lib/auth-identifier'
 import { supabase } from '@/lib/supabase'
 
 export function ForgotPasswordPage() {
@@ -27,30 +26,18 @@ export function ForgotPasswordPage() {
     }
 
     setPending(true)
-    let emailForReset: string | null
+    // Resolution + reset email happen server-side (request-password-reset edge
+    // function) so the account's email is never exposed to the browser (audit
+    // AUD-4). We always show the same generic confirmation, whether or not the
+    // account exists, so the page reveals nothing about which accounts exist.
     try {
-      emailForReset = await resolveLoginEmail(trimmed)
+      await supabase.functions.invoke('request-password-reset', {
+        body: { identifier: trimmed, redirectTo: passwordResetRedirectUrl() },
+      })
     } catch {
-      setPending(false)
-      setError('Could not look up that account.')
-      return
+      // Swallow: still show the generic confirmation rather than leak signal.
     }
-    if (!emailForReset) {
-      setPending(false)
-      setSent(true)
-      return
-    }
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailForReset, {
-      redirectTo: passwordResetRedirectUrl(),
-    })
     setPending(false)
-
-    if (resetError && /invalid/i.test(resetError.message)) {
-      setError('Enter a valid email address.')
-      return
-    }
-
     setSent(true)
   }
 
