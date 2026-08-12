@@ -57,10 +57,12 @@ facilitator single vertical flow with Preview popup), and domain
 architecture v2 (V3.17.0, 10 Aug: path-based client/admin URLs, wrong-domain
 login rejection, public splash pages, redirect shim for every old link).
 
-**Actively next:** mobile app entry flow per Rumen's brief — install as PWA,
-log in with an account, then choose Admin, or pick an event and enter as
-Facilitator or Team player; tablet password stays for exiting an event and
-cross-device team sign-in. Android verification pass after that.
+**Actively next:** OFFLINE-1, offline mode for quest play (own section below,
+briefed 12 Aug, starts next week). Then the mobile app entry flow per Rumen's
+earlier brief: install as PWA, log in with an account, then choose Admin, or
+pick an event and enter as Facilitator or Team player; tablet password stays
+for exiting an event and cross-device team sign-in. Android verification pass
+after that.
 
 **Biggest still-open items:** PAY-1 live Paddle launch (checklist in
 `docs/PADDLE-LIVE-CHECKLIST.md`), PAY-3 Paddle webhook secret/replay for the
@@ -70,6 +72,70 @@ CONTENT-1's 159 cover images, CF2-1 Welcome stage, CF2-5 camera permission
 re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
 ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
 local migration chain, HERMIT-ENCODE workaround in place.
+
+## OFFLINE-1 Offline mode for quest play (planned, next week)
+
+Rumen's brief, 12 Aug 2026. Not started, no credits left this week. Scope is
+quest stages only: quiz and music bingo are lock-step and need the network by
+nature, so they stay online-only and should say so if the connection drops.
+
+**The goal.** A team's device keeps playing through a dead spot. Venue wifi
+drops, a phone loses signal in a basement, the group walks out of range: the
+app stays usable and nothing the team did is lost.
+
+1. **Download on join.** When a team joins, the device pulls everything that
+   stage needs and stores it locally: game content, descriptions, cover and
+   instruction media, puzzle data, the store catalogue. After that the player
+   can open, read and play offline.
+   Download starts **only after the team has joined**, never before, so the
+   content is not fetchable by anyone who merely has the event link.
+2. **Background submissions.** Submitting never blocks the player. The result
+   screen and the return to the challenge list happen immediately, the upload
+   goes to a local queue and drains whenever the device is back online.
+   This is the behaviour **online too**, not just offline: nobody waits on an
+   upload, so it feels instant. It also removes the last of the CF4-4
+   waiting-on-submit complaints by design rather than by tuning.
+3. **Catch-up sync.** When the connection returns, queued submissions go up
+   and everything that changed while away comes down: approvals, points,
+   facilitator messages, announcements, stage changes.
+4. **Auto-scored games work offline.** Auto-approve text games and puzzles
+   need their answers in the downloaded package so scoring can run on the
+   device and the team gets its result immediately.
+5. **Store works offline.** The catalogue is part of the download so a team
+   can place an order without a connection; the order joins the same queue.
+
+**Decisions to make before building** (each one changes the design, worth
+half an hour with Rumen rather than guessing):
+
+- **Answers on the device contradict V3.15.3.** We deliberately strip correct
+  answers out of the player payload so they cannot be read from the network
+  traffic. Shipping them to the device for offline auto-scoring undoes that
+  for exactly those games. Options: accept it for auto-approve games only
+  (they are the low-stakes ones), ship hashes instead of plain answers (works
+  for exact-match text, not for puzzles), or keep auto-approve online-only
+  and queue those as pending. Recommend hashes for text, and accept plain
+  puzzle data since a puzzle's answer is derivable from playing it anyway.
+- **Store double-spend.** Points are server-authoritative and orders deduct on
+  completion. Two devices on the same team, both offline, can both order past
+  the balance. Simplest honest answer: queue the order offline, let the
+  server reject it on sync if the points are gone, and tell the team clearly.
+  Anything smarter needs a local balance ledger and is not worth it yet.
+- **Storage budget.** Video submissions are the problem, not the content. A
+  queued 1080p clip is tens of MB and iOS evicts browser storage under
+  pressure. Need a cap, a visible "waiting to send" state, and a rule for
+  what happens when a device is out of room.
+- **Join-token expiry.** Tokens are short-lived. A device offline for longer
+  than the token's life cannot sync on return without re-minting. Needs a
+  refresh path that does not force the team to rejoin.
+- **Queue ordering and retries.** Submissions must not double-submit on retry
+  (the client-generated id from P1-SUBMIT already covers this, reuse it) and
+  should keep their original timestamps so scoring and the log stay honest.
+
+**What already helps.** A service worker ships today (PWA work), the live
+bundle is already a single snapshot object (`LiveEventBundle`), patches
+already arrive as `LiveBundlePatch` messages, and submissions already carry
+client-generated ids for optimistic insert. The queue is the genuinely new
+piece; the rest is mostly plumbing what exists into local storage.
 
 **Versioning on main** (three numbers, MAJOR.MINOR.PATCH):
 - Patch (small fixes): 2.0.1, 2.0.2, ...
