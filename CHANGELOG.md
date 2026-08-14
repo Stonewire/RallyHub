@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.19.0 - 2026-08-14 (offline mode, phase 1: instant submit)
+
+First slice of offline mode (OFFLINE-1, quest stages). This one ships the
+instant-submit behaviour and works online only; the offline queue, download-on-
+join and offline scoring follow in later versions. Full plan in
+`docs/OFFLINE-MODE-SPEC.md`.
+
+- Submitting a quest challenge (photo, video or text) now returns you to the
+  challenge list immediately. The upload and save happen in the background, so
+  there is no more waiting on a video upload before you can carry on (CF4-4).
+  The submission still reconciles its approval/points exactly as before, and a
+  genuine failure is surfaced and retried rather than lost.
+
 ## V3.18.3 - 2026-08-11
 
 Security hardening from the 11 Aug auth-bypass audit (finding AUD-4). No change
