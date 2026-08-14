@@ -316,15 +316,17 @@ export function JoinGameView({
           mediaKind,
         })
       } catch (err) {
-        // A connectivity failure retries forever (NetworkSubmitError, uncapped);
-        // a size/validation failure is permanent (drop it and tell the player).
+        // Three tiers: connectivity failure retries forever (uncapped); a
+        // size/validation failure will never succeed with the same file, so
+        // drop it; any other upload failure (a transient storage 5xx) retries
+        // up to the cap via a plain Error.
         if (isLikelyNetworkError(err)) {
           throw new NetworkSubmitError('Upload failed, will retry', { cause: err })
         }
-        throw new PermanentSubmitError(
-          err instanceof Error ? err.message : 'Could not upload submission',
-          { cause: err },
-        )
+        if (err instanceof Error && /must be|too large|exceeds|under \d/i.test(err.message)) {
+          throw new PermanentSubmitError(err.message, { cause: err })
+        }
+        throw new Error(err instanceof Error ? err.message : 'Upload error, will retry')
       }
     }
     const { data, error } = await supabase
@@ -356,16 +358,21 @@ export function JoinGameView({
       return
     }
     if (error) {
-      // A genuine network error retries forever (uncapped); a rejected insert
-      // (closed event, expired token, RLS, constraint) will not succeed on
-      // retry, so drop it and surface it rather than loop.
+      // A genuine network error retries forever (uncapped). A Postgres-level
+      // rejection carries a SQLSTATE `code` (closed event, RLS, constraint) —
+      // a data reason that will not change on retry, so drop it. A server error
+      // with NO code (a 5xx/gateway blip) is transient: a plain Error retries it
+      // up to the cap before giving up, rather than dropping on the first blip.
       if (isLikelyNetworkError(error)) {
         throw new NetworkSubmitError('Submit failed, will retry', { cause: error })
       }
-      throw new PermanentSubmitError(
-        error.message || 'Could not submit — the event may have closed',
-        { cause: error },
-      )
+      if (error.code) {
+        throw new PermanentSubmitError(
+          error.message || 'Could not submit — the event may have closed',
+          { cause: error },
+        )
+      }
+      throw new Error(error.message || 'Server error, will retry')
     }
     if (data) {
       mergeOwnSubmissionRef.current('UPDATE', data)
