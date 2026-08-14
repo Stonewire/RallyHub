@@ -75,6 +75,34 @@ local migration chain, HERMIT-ENCODE workaround in place.
 
 ## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
 
+**STATUS 14 Aug: Stages 1-3 done on `feature/offline-mode`, verified in-app.
+Stage 1 (V3.19.0) is merged to LOCAL main but NOT pushed** — this session's
+`git push origin main` is blocked by a security-policy deny. Branch is backed up
+on `origin/feature/offline-mode`. The Stage 2 migration IS applied to prod
+(additive, unused by shipped code until the client ships). To deploy, from a
+shell that can push:
+```
+git checkout main && git pull --no-rebase origin main && git merge feature/offline-mode && git push origin main
+```
+Each stage was adversarially reviewed and verified before commit.
+- **Stage 1 (V3.19.0)** instant background submit — every quest submission
+  returns to the list immediately; upload+insert+reconcile run in a background
+  outbox (`src/lib/offline/outbox.ts`); retries transient, drops+surfaces
+  permanent, reconciles a dropped-response duplicate. Closes CF4-4. Reviewed
+  twice (7+1 findings fixed).
+- **Stage 2** download-on-join answer package — RPC `get_offline_event_package`
+  (migration `20260814100000`, APPLIED to prod) returns only the answer data
+  redaction strips (text as sha256 hashes, puzzles plaintext), gated on a valid
+  private team token. Client stores it in IndexedDB on join. Security-reviewed
+  SAFE; verified client sha256 == server hash, wrong-event/no-token return null.
+- **Stage 3** durable queue — outbox persists to IndexedDB + Cache API
+  (`outbox-persistence.ts`); `start()` rehydrates+drains on mount. Verified:
+  submit offline -> queued in IDB, no DB row -> reconnect -> same client-UUID
+  row lands, queue empties.
+
+Remaining: Stage 4 (offline scoring, from the downloaded keys), 5 (offline
+store), 6 (SW app-shell caching, highest risk), 7 (offline UI).
+
 Rumen's brief 12 Aug 2026, decisions locked 12 Aug, build started 12 Aug on
 `feature/offline-mode`. **Full design + grounded facts + 7-stage plan live in
 `docs/OFFLINE-MODE-SPEC.md` — read that first.** Scope is quest stages only:
