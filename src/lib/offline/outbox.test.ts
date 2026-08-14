@@ -138,6 +138,33 @@ describe('Outbox', () => {
     expect(box.hasPending()).toBe(false)
   })
 
+  it('kick() neutralizes a previously-armed retry timer (no overlap, no cap burn)', async () => {
+    const scheduled: Array<() => void> = []
+    let calls = 0
+    let fail = true
+    const box = new Outbox({
+      process: async () => {
+        calls += 1
+        if (fail) throw new Error('down')
+      },
+      backoffMs: [1000],
+      schedule: (fn) => void scheduled.push(fn),
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0)) // attempt 1 fails -> Timer A armed
+    expect(calls).toBe(1)
+    fail = false
+    box.kick() // reconnect: fresh generation, drain succeeds (attempt 2)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toBe(2)
+    expect(box.hasPending()).toBe(false)
+    // Fire the STALE Timer A: it belonged to the old generation, so it must be
+    // a no-op rather than a second overlapping drain.
+    scheduled.forEach((fn) => fn())
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toBe(2)
+  })
+
   it('rehydrates from persistence on start and drains', async () => {
     const store = [item('x'), item('y')]
     const sent: string[] = []

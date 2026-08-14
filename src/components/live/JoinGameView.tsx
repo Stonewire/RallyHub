@@ -194,6 +194,8 @@ export function JoinGameView({
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
   const [captureActive, setCaptureActive] = useState(false)
+  // Since the outbox made submit return instantly, this never goes true and its
+  // disable-guards are inert; kept as the seam for a future "sending" indicator.
   const [submitting, setSubmitting] = useState(false)
   // 0-100 while a photo/video upload reports progress, null otherwise.
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)

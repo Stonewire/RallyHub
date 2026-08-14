@@ -82,6 +82,10 @@ export class Outbox {
   private draining = false
   private failedRounds = 0
   private retryArmed = false
+  /** Bumped whenever the backoff is reset (kick). A scheduled retry captures the
+   *  generation it was armed under and no-ops if it has since been superseded,
+   *  so a kick() can never leave a stale timer firing alongside a fresh one. */
+  private retryGen = 0
   /** Per-item transient-failure counter, so one stuck item cannot loop forever. */
   private attempts = new Map<string, number>()
   private readonly hooks: OutboxHooks
@@ -127,6 +131,10 @@ export class Outbox {
    *  likely returned (window 'online'/focus). Resets the backoff so a reconnect
    *  retries now rather than waiting out the last delay. */
   kick(): void {
+    // Invalidate any pending retry timer so it cannot fire alongside the fresh
+    // drain and collapse the backoff (which would burn the per-item cap and
+    // drop a submission the reconnect was about to deliver).
+    this.retryGen += 1
     this.retryArmed = false
     this.failedRounds = 0
     void this.drain()
@@ -190,9 +198,13 @@ export class Outbox {
   private armRetry(): void {
     if (this.retryArmed) return
     this.retryArmed = true
+    const gen = this.retryGen
     const wait = this.backoff[Math.min(this.failedRounds, this.backoff.length - 1)]
     this.failedRounds += 1
     this.schedule(() => {
+      // A kick() (reconnect) since this timer was armed supersedes it — do
+      // nothing, the kick already restarted the drain on a fresh generation.
+      if (gen !== this.retryGen) return
       this.retryArmed = false
       void this.drain()
     }, wait)
