@@ -88,6 +88,8 @@ import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
 import { Outbox, PermanentSubmitError, type OutboxItem } from '@/lib/offline/outbox'
+import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
+import { getBlob } from '@/lib/offline/blob-cache'
 import { downloadOfflineAnswerKeys } from '@/lib/offline/package'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
@@ -294,7 +296,13 @@ export function JoinGameView({
     if (payload.mediaType === 'text') {
       mediaUrl = payload.textValue ?? ''
     } else {
-      const file = payload.file
+      // In-memory File on the fast path; after a reload/offline the File was
+      // moved to the Cache API, so reload it from the blob key.
+      let file = payload.file
+      if (!file && item.blobKey) {
+        const blob = await getBlob(item.blobKey)
+        if (blob) file = new File([blob], 'submission', { type: blob.type })
+      }
       if (!file || !payload.objectPath) throw new PermanentSubmitError('Missing media file')
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
       try {
@@ -364,6 +372,7 @@ export function JoinGameView({
       new Outbox({
         process: (item) => processOutboxItem(item),
         isOnline: () => navigator.onLine,
+        persistence: createOutboxPersistence(event.id),
         onDropped: (item, err) => {
           mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
           notify(err instanceof Error ? err.message : 'Could not submit')
@@ -380,6 +389,12 @@ export function JoinGameView({
     if (!event.id) return
     void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
   }, [event.id])
+
+  // Rehydrate any submissions queued before a reload/offline/app-kill and drain
+  // them. Runs once for this outbox instance.
+  useEffect(() => {
+    void outbox.start()
+  }, [outbox])
 
   // Flush the queue whenever connectivity likely returns — a submit made during
   // a brief drop would otherwise sit until the next submit. kick() ignores the
