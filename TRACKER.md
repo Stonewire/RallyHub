@@ -96,12 +96,25 @@ Each stage was adversarially reviewed and verified before commit.
   private team token. Client stores it in IndexedDB on join. Security-reviewed
   SAFE; verified client sha256 == server hash, wrong-event/no-token return null.
 - **Stage 3** durable queue — outbox persists to IndexedDB + Cache API
-  (`outbox-persistence.ts`); `start()` rehydrates+drains on mount. Verified:
-  submit offline -> queued in IDB, no DB row -> reconnect -> same client-UUID
-  row lands, queue empties.
+  (`outbox-persistence.ts`); `start()` rehydrates+drains on mount. Verified
+  twice in-app (submit offline -> queued in IDB, no DB row -> reconnect ->
+  same client-UUID row lands, queue empties). Hardened through THREE review
+  rounds: in-memory-first enqueue (persist failure never loses a submission),
+  150MB blob cap + headroom guard, NetworkSubmitError retries a real outage
+  forever while a server 5xx caps and a PG-code rejection drops, no dangling
+  blobKey, stale other-event prune. Accepted lows (Stage 7 / low-prob):
+  in-memory-only items (over cap) lack a "not saved offline" signal;
+  cross-tab prune race needs two events open on one device.
+- **Stage 4 groundwork** — `scoring.ts`: text offline verdict reproduces the
+  server's auto-approve exactly (choose_answer id compare; type_text sha256 of
+  btrim(input) vs shipped hashes), unit-tested, hash proven byte-identical.
+  NOT wired into the submit flow yet.
 
-Remaining: Stage 4 (offline scoring, from the downloaded keys), 5 (offline
-store), 6 (SW app-shell caching, highest risk), 7 (offline UI).
+Remaining: Stage 4 integration (score text+puzzles offline in the submit flow;
+puzzles need a server reconcile RPC since they score via dedicated RPCs, not a
+plain insert), 5 (offline store), 6 (SW app-shell caching, highest risk, cannot
+be prod-verified until the push unblocks), 7 (offline UI incl. the "not saved
+offline" signal).
 
 Rumen's brief 12 Aug 2026, decisions locked 12 Aug, build started 12 Aug on
 `feature/offline-mode`. **Full design + grounded facts + 7-stage plan live in
