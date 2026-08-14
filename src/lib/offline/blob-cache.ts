@@ -15,20 +15,29 @@ function keyToRequest(key: string): string {
   return `/__offline-blob/${encodeURIComponent(key)}`
 }
 
-export async function putBlob(key: string, blob: Blob): Promise<void> {
-  if (!hasCache()) return
-  const cache = await caches.open(CACHE_NAME)
-  // Preserve the content type so a retrieved video/photo uploads with the right
-  // mime; store the original size in a header for quota accounting.
-  await cache.put(
-    keyToRequest(key),
-    new Response(blob, {
-      headers: {
-        'content-type': blob.type || 'application/octet-stream',
-        'x-blob-size': String(blob.size),
-      },
-    }),
-  )
+/** Store a blob. Returns whether it was actually persisted — false when the
+ *  Cache API is unavailable or the write fails (quota). Callers MUST NOT record
+ *  a blobKey for a blob that was not stored, or a reload would rehydrate an item
+ *  pointing at nothing. */
+export async function putBlob(key: string, blob: Blob): Promise<boolean> {
+  if (!hasCache()) return false
+  try {
+    const cache = await caches.open(CACHE_NAME)
+    // Preserve the content type so a retrieved video/photo uploads with the
+    // right mime; store the original size in a header for quota accounting.
+    await cache.put(
+      keyToRequest(key),
+      new Response(blob, {
+        headers: {
+          'content-type': blob.type || 'application/octet-stream',
+          'x-blob-size': String(blob.size),
+        },
+      }),
+    )
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function getBlob(key: string): Promise<Blob | undefined> {

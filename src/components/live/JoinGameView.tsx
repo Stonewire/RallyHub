@@ -87,7 +87,7 @@ import {
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
-import { Outbox, PermanentSubmitError, type OutboxItem } from '@/lib/offline/outbox'
+import { Outbox, PermanentSubmitError, NetworkSubmitError, type OutboxItem } from '@/lib/offline/outbox'
 import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
 import { getBlob } from '@/lib/offline/blob-cache'
 import { downloadOfflineAnswerKeys } from '@/lib/offline/package'
@@ -303,7 +303,11 @@ export function JoinGameView({
         const blob = await getBlob(item.blobKey)
         if (blob) file = new File([blob], 'submission', { type: blob.type })
       }
-      if (!file || !payload.objectPath) throw new PermanentSubmitError('Missing media file')
+      if (!file || !payload.objectPath) {
+        // A rehydrated item whose blob was evicted has no bytes left to upload;
+        // there is nothing to retry, so drop it with a clear message.
+        throw new PermanentSubmitError('This upload could not be saved offline and was lost')
+      }
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
       try {
         // Mint a fresh signed URL and upload to the fixed path on every attempt,
@@ -312,9 +316,11 @@ export function JoinGameView({
           mediaKind,
         })
       } catch (err) {
-        // A network failure is transient (keep it queued, retry); a size or
-        // validation failure is permanent (drop it and tell the player).
-        if (isLikelyNetworkError(err)) throw err
+        // A connectivity failure retries forever (NetworkSubmitError, uncapped);
+        // a size/validation failure is permanent (drop it and tell the player).
+        if (isLikelyNetworkError(err)) {
+          throw new NetworkSubmitError('Upload failed, will retry', { cause: err })
+        }
         throw new PermanentSubmitError(
           err instanceof Error ? err.message : 'Could not upload submission',
           { cause: err },
@@ -350,10 +356,12 @@ export function JoinGameView({
       return
     }
     if (error) {
-      // A rejected insert (closed event, expired token, RLS, constraint) will
-      // not succeed on retry: drop it and surface it, rather than loop forever.
-      // Only a genuine network error is transient.
-      if (isLikelyNetworkError(error)) throw error
+      // A genuine network error retries forever (uncapped); a rejected insert
+      // (closed event, expired token, RLS, constraint) will not succeed on
+      // retry, so drop it and surface it rather than loop.
+      if (isLikelyNetworkError(error)) {
+        throw new NetworkSubmitError('Submit failed, will retry', { cause: error })
+      }
       throw new PermanentSubmitError(
         error.message || 'Could not submit — the event may have closed',
         { cause: error },

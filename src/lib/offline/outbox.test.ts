@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 
-import { Outbox, PermanentSubmitError, type OutboxItem } from './outbox'
+import { Outbox, PermanentSubmitError, NetworkSubmitError, type OutboxItem } from './outbox'
 
 function item(clientId: string, overrides: Partial<OutboxItem> = {}): OutboxItem {
   return {
@@ -136,6 +136,48 @@ describe('Outbox', () => {
     box.kick() // connectivity back: ignore the backoff, retry now
     await new Promise((r) => setTimeout(r, 0))
     expect(box.hasPending()).toBe(false)
+  })
+
+  it('does NOT count NetworkSubmitError toward maxAttempts (survives a long outage)', async () => {
+    const scheduled: Array<() => void> = []
+    const dropped: string[] = []
+    let calls = 0
+    const box = new Outbox({
+      process: async () => {
+        calls += 1
+        throw new NetworkSubmitError('connection down')
+      },
+      backoffMs: [1],
+      maxAttempts: 3,
+      schedule: (fn) => void scheduled.push(fn),
+      onDropped: (i) => void dropped.push(i.clientId),
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0))
+    for (let i = 0; i < 6 && scheduled.length; i++) {
+      scheduled.shift()!()
+      await new Promise((r) => setTimeout(r, 0))
+    }
+    expect(dropped).toEqual([]) // never dropped despite exceeding maxAttempts
+    expect(box.hasPending()).toBe(true) // still queued, still retrying
+    expect(calls).toBeGreaterThan(3)
+  })
+
+  it('enqueue keeps the item in memory and drains even if persistence.add rejects', async () => {
+    const sent: string[] = []
+    const box = new Outbox({
+      process: async (i) => void sent.push(i.clientId),
+      persistence: {
+        load: async () => [],
+        add: async () => {
+          throw new Error('QuotaExceeded')
+        },
+        remove: async () => {},
+      },
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(sent).toEqual(['a']) // drained despite the persistence failure
   })
 
   it('kick() neutralizes a previously-armed retry timer (no overlap, no cap burn)', async () => {

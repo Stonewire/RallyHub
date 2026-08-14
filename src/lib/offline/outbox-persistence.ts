@@ -5,31 +5,64 @@
 // WebKit has a memory-spike history with large blobs in IndexedDB — so a
 // photo/video File is moved to the Cache API (which streams to disk) keyed by
 // the item's clientId, and stripped from the persisted payload. On rehydrate the
-// item carries a blobKey; processOutboxItem reloads the blob from the cache.
+// item carries a blobKey; processOutboxItem reloads it from the cache.
 
 import { idbGetAll, idbSet, idbDelete } from './idb'
-import { putBlob, deleteBlob } from './blob-cache'
+import { putBlob, deleteBlob, totalBlobBytes, storageHeadroomBytes } from './blob-cache'
 import type { OutboxItem, OutboxPersistence } from './outbox'
+
+// Cap the durable media queue so a run of large videos cannot fill storage and
+// trigger origin-wide eviction of already-queued blobs. Over the cap, the item
+// stays in-memory only (drains this session) rather than being persisted.
+const MAX_QUEUE_BLOB_BYTES = 150 * 1024 * 1024
+// Keep at least this much headroom free after adding, so we never push the
+// origin to the edge of quota.
+const MIN_HEADROOM_BYTES = 50 * 1024 * 1024
+// Other events' undrained items older than this are pruned on load.
+const STALE_MS = 48 * 60 * 60 * 1000
 
 export function createOutboxPersistence(eventId: string): OutboxPersistence {
   return {
-    // Only this event's items: a device may hold queued items from a previous
-    // event that this JoinGameView must not adopt or reconcile into its bundle.
-    load: async () =>
-      (await idbGetAll<OutboxItem>('outbox')).filter((i) => i.eventId === eventId),
+    load: async () => {
+      const all = await idbGetAll<OutboxItem>('outbox')
+      const mine: OutboxItem[] = []
+      const now = Date.now()
+      for (const item of all) {
+        if (item.eventId === eventId) {
+          mine.push(item)
+          continue
+        }
+        // Prune a different event's leftover once it is clearly stale, freeing
+        // its record and blob so a reused device does not accumulate storage.
+        const age = now - Date.parse(item.createdAt || '')
+        if (Number.isFinite(age) && age > STALE_MS) {
+          await idbDelete('outbox', item.clientId)
+          if (item.blobKey) await deleteBlob(item.blobKey)
+        }
+      }
+      return mine
+    },
 
     add: async (item) => {
       const file = (item.payload as { file?: unknown }).file
-      if (file instanceof Blob) {
-        // Move the blob out of the payload and into the Cache API; store the
-        // rest of the item (a small, cleanly serialisable record) in IDB.
-        await putBlob(item.clientId, file)
-        const payload = { ...item.payload }
-        delete (payload as { file?: unknown }).file
-        await idbSet('outbox', item.clientId, { ...item, payload, blobKey: item.clientId })
-      } else {
+      if (!(file instanceof Blob)) {
         await idbSet('outbox', item.clientId, item)
+        return
       }
+      // Do not let the durable blob set grow without bound, and do not persist
+      // when storage is too tight — either way the item stays in memory only.
+      const [total, headroom] = await Promise.all([totalBlobBytes(), storageHeadroomBytes()])
+      const overCap = total + file.size > MAX_QUEUE_BLOB_BYTES
+      const tooTight = headroom !== null && headroom - file.size < MIN_HEADROOM_BYTES
+      if (overCap || tooTight) return
+
+      // Only record a blobKey once the blob is actually stored, so a reload can
+      // never rehydrate an item pointing at a blob that was never written.
+      const stored = await putBlob(item.clientId, file)
+      if (!stored) return
+      const payload = { ...item.payload }
+      delete (payload as { file?: unknown }).file
+      await idbSet('outbox', item.clientId, { ...item, payload, blobKey: item.clientId })
     },
 
     remove: async (clientId) => {

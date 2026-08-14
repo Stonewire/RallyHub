@@ -44,6 +44,18 @@ export class PermanentSubmitError extends Error {
   }
 }
 
+/** Thrown by process() for a genuine connectivity failure (offline, captive
+ *  portal, dead AP). Retried indefinitely with backoff and NEVER counted toward
+ *  the give-up cap — the whole point of the durable queue is to survive an
+ *  outage that outlasts a few retries. A plain Error means a server-side
+ *  transient, which DOES count toward the cap. */
+export class NetworkSubmitError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.name = 'NetworkSubmitError'
+  }
+}
+
 export type OutboxPersistence = {
   load: () => Promise<OutboxItem[]>
   add: (item: OutboxItem) => Promise<void>
@@ -121,9 +133,17 @@ export class Outbox {
    *  endpoint — the pending retry timer will pick the new items up. */
   async enqueue(item: OutboxItem): Promise<void> {
     if (this.queue.some((q) => q.clientId === item.clientId)) return
-    await this.hooks.persistence?.add(item)
+    // In-memory FIRST so a persistence failure (quota, no Cache API) can never
+    // lose the submission — it still drains this session. Persistence only adds
+    // cross-reload durability, and its failure degrades to in-memory-only.
     this.queue.push(item)
     this.hooks.onState?.(item.clientId, 'queued')
+    try {
+      await this.hooks.persistence?.add(item)
+    } catch {
+      // Keep going; the item is queued in memory and will drain while the app
+      // stays open. It just won't survive a reload.
+    }
     void this.drain()
   }
 
@@ -171,12 +191,17 @@ export class Outbox {
             this.dropHead(item, err)
             continue
           }
-          const n = (this.attempts.get(item.clientId) ?? 0) + 1
-          this.attempts.set(item.clientId, n)
-          if (n >= this.maxAttempts) {
-            // Given up: tell the player and free the queue rather than loop.
-            this.dropHead(item, err)
-            continue
+          // A genuine connectivity failure retries forever with backoff and is
+          // NEVER counted toward the give-up cap — a venue outage that outlasts
+          // a few retries must not discard the submission. Only a server-side
+          // transient (a plain Error) counts toward maxAttempts.
+          if (!(err instanceof NetworkSubmitError)) {
+            const n = (this.attempts.get(item.clientId) ?? 0) + 1
+            this.attempts.set(item.clientId, n)
+            if (n >= this.maxAttempts) {
+              this.dropHead(item, err)
+              continue
+            }
           }
           this.hooks.onState?.(item.clientId, 'failed', err)
           this.armRetry()
