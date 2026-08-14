@@ -1504,6 +1504,10 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: Database['public']['Tables']['games']['Row'][]
       }
+      get_offline_event_package: {
+        Args: { p_event_id: string }
+        Returns: Json
+      }
       score_current_quiz_question: {
         Args: { p_event_id: string; p_game_id: string; p_question_id: string }
         Returns: undefined
