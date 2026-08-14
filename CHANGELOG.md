@@ -5,6 +5,23 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.20.0 - 2026-08-14 (offline mode, phase 2: download + durable queue)
+
+OFFLINE-1 Stages 2-3. Quest submissions now survive going offline. Reviewed
+adversarially (Stage 3 over three rounds) and verified in-app; real-device
+offline testing still pending. Quiz and bingo remain online-only by nature.
+
+- On join, the device downloads the answer data needed to score text and
+  puzzles offline (text answers as sha256 hashes so they stay unreadable,
+  puzzle answers as-is), gated on a valid team token so it only works after
+  joining.
+- The submission queue is now durable: a photo, video or text submitted with
+  no connection is saved on the device (IndexedDB + Cache API) and sent
+  automatically when the connection returns, surviving a reload or the app
+  being closed. A real outage retries indefinitely; a genuine rejection (closed
+  event, bad file) is surfaced rather than retried forever; queued video is
+  capped so it cannot fill the device.
+
 ## V3.19.0 - 2026-08-14 (offline mode, phase 1: instant submit)
 
 First slice of offline mode (OFFLINE-1, quest stages). This one ships the
