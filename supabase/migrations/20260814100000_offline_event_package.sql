@@ -69,6 +69,12 @@ begin
         for ans in
           select jsonb_array_elements_text(coalesce(cfg -> 'text_correct_answers', '[]'::jsonb))
         loop
+          -- Skip blank entries, exactly as auto_approve_text_submission does
+          -- (its `and btrim(ans) <> ''` guard), so the offline-accepted set is
+          -- byte-identical to what the server will accept.
+          if btrim(ans) = '' then
+            continue;
+          end if;
           hashes := hashes || to_jsonb(encode(digest(btrim(ans), 'sha256'), 'hex'));
         end loop;
         if jsonb_array_length(hashes) > 0 then

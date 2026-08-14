@@ -88,6 +88,7 @@ import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
 import { Outbox, PermanentSubmitError, type OutboxItem } from '@/lib/offline/outbox'
+import { downloadOfflineAnswerKeys } from '@/lib/offline/package'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -370,6 +371,15 @@ export function JoinGameView({
         onSettled: (clientId) => setOpenSubmissionWrite(clientId, false),
       }),
   )
+
+  // Once we are in as a team, pull the offline answer package in the background
+  // (Stage 4 scores text and puzzles from it offline). Best-effort: the RPC
+  // returns nothing without a valid team token, so this is safe to fire and a
+  // failure just leaves offline scoring unavailable.
+  useEffect(() => {
+    if (!event.id) return
+    void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+  }, [event.id])
 
   // Flush the queue whenever connectivity likely returns — a submit made during
   // a brief drop would otherwise sit until the next submit. kick() ignores the
