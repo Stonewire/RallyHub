@@ -75,6 +75,28 @@ local migration chain, HERMIT-ENCODE workaround in place.
 
 ## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
 
+**STATUS 14 Aug: Stage 1 done + merged to LOCAL main as V3.19.0, NOT pushed.**
+This session's `git push origin main` is blocked by a security-policy deny, so
+V3.19.0 sits on local `main` (merge commit) and on `origin/feature/offline-mode`
+(pushed as backup). To deploy Stage 1, from a shell that can push:
+```
+git checkout main && git pull --no-rebase origin main && git push origin main
+```
+(local main already has the V3.19.0 merge; if origin/main moved, the pull merges
+it first). Stage 1 was adversarially reviewed twice (7 findings + 1 follow-up,
+all fixed) and the online submit path re-verified in the app. Stages 2-7 are
+still to build on the branch; `docs/OFFLINE-MODE-SPEC.md` is the plan.
+
+Stage 1 shipped (instant background submit): every quest submission (photo/
+video/text) returns to the challenge list immediately and the upload+insert+
+score-reconcile run in a background outbox (`src/lib/offline/outbox.ts`).
+Online-only for now (in-memory queue); it already retries transient failures
+with backoff, drops+surfaces permanent ones, reconciles on a dropped-response
+duplicate, and re-drains on reconnect (window online/focus). Directly closes
+the CF4-4 "waiting on a video upload" complaint. Groundwork for later stages
+landed too: `src/lib/offline/idb.ts` + `blob-cache.ts` (not wired yet).
+
+
 Rumen's brief 12 Aug 2026, decisions locked 12 Aug, build started 12 Aug on
 `feature/offline-mode`. **Full design + grounded facts + 7-stage plan live in
 `docs/OFFLINE-MODE-SPEC.md` — read that first.** Scope is quest stages only:
