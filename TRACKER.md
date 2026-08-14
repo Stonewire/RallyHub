@@ -75,15 +75,12 @@ local migration chain, HERMIT-ENCODE workaround in place.
 
 ## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
 
-**STATUS 14 Aug: Stages 1-3 done on `feature/offline-mode`, verified in-app.
-Stage 1 (V3.19.0) is merged to LOCAL main but NOT pushed** — this session's
-`git push origin main` is blocked by a security-policy deny. Branch is backed up
-on `origin/feature/offline-mode`. The Stage 2 migration IS applied to prod
-(additive, unused by shipped code until the client ships). To deploy, from a
-shell that can push:
-```
-git checkout main && git pull --no-rebase origin main && git merge feature/offline-mode && git push origin main
-```
+**STATUS 14 Aug: Stage 1 (V3.19.0) is LIVE in prod. Stages 2-3 are merged to
+LOCAL main (this commit), reviewed + verified in-app but NOT real-device tested,
+ready to push.** The Stage 2 migration is already applied to prod (additive,
+unused until this deploys). To ship Stages 2-3: `git push origin main` from a
+shell that can push. Consider a real-device offline test first — that is the one
+thing this build was not exercised on.
 Each stage was adversarially reviewed and verified before commit.
 - **Stage 1 (V3.19.0)** instant background submit — every quest submission
   returns to the list immediately; upload+insert+reconcile run in a background
