@@ -73,11 +73,21 @@ re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
 ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
 local migration chain, HERMIT-ENCODE workaround in place.
 
-## OFFLINE-1 Offline mode for quest play (planned, next week)
+## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
 
-Rumen's brief, 12 Aug 2026. Not started, no credits left this week. Scope is
-quest stages only: quiz and music bingo are lock-step and need the network by
-nature, so they stay online-only and should say so if the connection drops.
+Rumen's brief 12 Aug 2026, decisions locked 12 Aug, build started 12 Aug on
+`feature/offline-mode`. **Full design + grounded facts + 7-stage plan live in
+`docs/OFFLINE-MODE-SPEC.md` — read that first.** Scope is quest stages only:
+quiz and music bingo are lock-step and need the network by nature, so they stay
+online-only and say so if the connection drops.
+
+Locked decisions: text auto-approve scores offline via sha256 answer hashes
+(answers stay unreadable); puzzles ship un-redacted config so they score offline
+instantly (wordle + crossword answers readable, crossword hints work offline,
+accepted leak for a low-stakes team-building context); store order queues and
+the facilitator declines overspend at fulfilment; download happens only after
+join, gated on the private team token; ships to main stage by stage as each goes
+green + passes adversarial review, real-device offline test is Rumen's afterward.
 
 **The goal.** A team's device keeps playing through a dead spot. Venue wifi
 drops, a phone loses signal in a basement, the group walks out of range: the
