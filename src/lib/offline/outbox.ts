@@ -67,24 +67,32 @@ export type OutboxHooks = {
   persistence?: OutboxPersistence
   /** Backoff schedule in ms per consecutive failed round; last value repeats. */
   backoffMs?: number[]
+  /** Give up on an item after this many transient failures and drop it (so the
+   *  player is told and the queue frees) instead of retrying forever. */
+  maxAttempts?: number
   /** Injectable for tests; defaults to setTimeout. */
   schedule?: (fn: () => void, ms: number) => void
 }
 
 const DEFAULT_BACKOFF = [1_000, 4_000, 15_000, 30_000]
+const DEFAULT_MAX_ATTEMPTS = 8
 
 export class Outbox {
   private queue: OutboxItem[] = []
   private draining = false
   private failedRounds = 0
   private retryArmed = false
+  /** Per-item transient-failure counter, so one stuck item cannot loop forever. */
+  private attempts = new Map<string, number>()
   private readonly hooks: OutboxHooks
   private readonly backoff: number[]
+  private readonly maxAttempts: number
   private readonly schedule: (fn: () => void, ms: number) => void
 
   constructor(hooks: OutboxHooks) {
     this.hooks = hooks
     this.backoff = hooks.backoffMs ?? DEFAULT_BACKOFF
+    this.maxAttempts = hooks.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
     this.schedule = hooks.schedule ?? ((fn, ms) => void setTimeout(fn, ms))
   }
 
@@ -104,12 +112,23 @@ export class Outbox {
     return this.hooks.isOnline ? this.hooks.isOnline() : true
   }
 
-  /** Add an item and kick the drain. Resolves once persisted, not once sent. */
+  /** Add an item and kick the drain. Resolves once persisted, not once sent.
+   *  Respects an armed backoff so a burst of submits cannot hammer a failing
+   *  endpoint — the pending retry timer will pick the new items up. */
   async enqueue(item: OutboxItem): Promise<void> {
     if (this.queue.some((q) => q.clientId === item.clientId)) return
     await this.hooks.persistence?.add(item)
     this.queue.push(item)
     this.hooks.onState?.(item.clientId, 'queued')
+    void this.drain()
+  }
+
+  /** Force an immediate drain, ignoring any backoff — for when connectivity has
+   *  likely returned (window 'online'/focus). Resets the backoff so a reconnect
+   *  retries now rather than waiting out the last delay. */
+  kick(): void {
+    this.retryArmed = false
+    this.failedRounds = 0
     void this.drain()
   }
 
@@ -126,7 +145,9 @@ export class Outbox {
    *  retry the whole queue after a backoff. A permanent failure drops just that
    *  item and moves on. */
   async drain(): Promise<void> {
-    if (this.draining || !this.isOnline() || this.queue.length === 0) return
+    // Skip while a backoff retry is already armed (an enqueue during the window
+    // must not bypass it) or while offline; kick() clears the arm on reconnect.
+    if (this.draining || this.retryArmed || !this.isOnline() || this.queue.length === 0) return
     this.draining = true
     try {
       while (this.queue.length > 0 && this.isOnline()) {
@@ -134,12 +155,19 @@ export class Outbox {
         this.hooks.onState?.(item.clientId, 'sending')
         try {
           await this.hooks.process(item)
+          this.attempts.delete(item.clientId)
           await this.removeItem(item.clientId)
           this.failedRounds = 0
         } catch (err) {
           if (err instanceof PermanentSubmitError) {
-            await this.removeItem(item.clientId)
-            this.hooks.onDropped?.(item, err)
+            this.dropHead(item, err)
+            continue
+          }
+          const n = (this.attempts.get(item.clientId) ?? 0) + 1
+          this.attempts.set(item.clientId, n)
+          if (n >= this.maxAttempts) {
+            // Given up: tell the player and free the queue rather than loop.
+            this.dropHead(item, err)
             continue
           }
           this.hooks.onState?.(item.clientId, 'failed', err)
@@ -150,6 +178,13 @@ export class Outbox {
     } finally {
       this.draining = false
     }
+  }
+
+  private dropHead(item: OutboxItem, err: unknown): void {
+    this.attempts.delete(item.clientId)
+    this.failedRounds = 0
+    void this.removeItem(item.clientId)
+    this.hooks.onDropped?.(item, err)
   }
 
   private armRetry(): void {

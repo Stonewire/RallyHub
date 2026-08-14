@@ -113,12 +113,7 @@ import {
 import { verifyTabletPassword } from '@/lib/tenant'
 import { isPuzzleGame } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
-import {
-  mintParticipantUpload,
-  uploadParticipantAsset,
-  uploadToMintedParticipantUrl,
-  type MintedParticipantUpload,
-} from '@/lib/storage'
+import { uploadParticipantAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -230,15 +225,6 @@ export function JoinGameView({
     setStoreView('orders')
     setStoreOpen(true)
   }
-
-  // Mint a signed upload URL when a photo/video challenge opens, moving the
-  // authorization round trip out of the submit path. Key it by game id so one
-  // challenge never consumes another challenge's URL. A null result falls back to
-  // minting a fresh URL on submit.
-  const openUploadPrefetchRef = useRef<{
-    gameId: string
-    promise: Promise<MintedParticipantUpload | null>
-  } | null>(null)
   // Client-generated IDs let open-game submissions appear as pending as soon as
   // the database request is dispatched. The server remains authoritative: a
   // rejected write removes the optimistic row again. Track the short in-flight
@@ -297,25 +283,23 @@ export function JoinGameView({
       mediaType: 'text' | 'photo' | 'video'
       textValue?: string
       file?: File
-      minted?: Promise<MintedParticipantUpload | null> | null
+      // A stable storage path decided at submit time, reused on every retry so a
+      // re-upload OVERWRITES rather than orphaning a fresh object each attempt.
+      objectPath?: string
     }
     let mediaUrl: string
     if (payload.mediaType === 'text') {
       mediaUrl = payload.textValue ?? ''
     } else {
       const file = payload.file
-      if (!file) throw new PermanentSubmitError('Missing media file')
+      if (!file || !payload.objectPath) throw new PermanentSubmitError('Missing media file')
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
       try {
-        const minted = payload.minted ? await payload.minted : null
-        mediaUrl = minted
-          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind })
-          : await uploadParticipantAsset(
-              item.eventId,
-              `${item.eventId}/submissions/${item.teamId}/${crypto.randomUUID()}${payload.mediaType === 'video' ? '.mp4' : '.jpg'}`,
-              file,
-              { mediaKind },
-            )
+        // Mint a fresh signed URL and upload to the fixed path on every attempt,
+        // so a late retry never fails on an expired token or leaks a duplicate.
+        mediaUrl = await uploadParticipantAsset(item.eventId, payload.objectPath, file, {
+          mediaKind,
+        })
       } catch (err) {
         // A network failure is transient (keep it queued, retry); a size or
         // validation failure is permanent (drop it and tell the player).
@@ -339,10 +323,31 @@ export function JoinGameView({
       })
       .select()
       .single()
-    // A retried insert of the same client id is a duplicate-key no-op: the row
-    // already landed on an earlier attempt.
-    if (error && error.code === '23505') return
-    if (error) throw error
+    if (error && error.code === '23505') {
+      // The row already landed on an earlier attempt whose response we lost.
+      // Reconcile the authoritative row (its real media_url + auto-approve
+      // status/points) and re-broadcast so the facilitator is not missing it.
+      const { data: existing } = await supabase
+        .from('submissions')
+        .select()
+        .eq('id', item.clientId)
+        .single()
+      if (existing) {
+        mergeOwnSubmissionRef.current('UPDATE', existing)
+        void publishSubmissionChange(item.eventId, 'INSERT', existing)
+      }
+      return
+    }
+    if (error) {
+      // A rejected insert (closed event, expired token, RLS, constraint) will
+      // not succeed on retry: drop it and surface it, rather than loop forever.
+      // Only a genuine network error is transient.
+      if (isLikelyNetworkError(error)) throw error
+      throw new PermanentSubmitError(
+        error.message || 'Could not submit — the event may have closed',
+        { cause: error },
+      )
+    }
     if (data) {
       mergeOwnSubmissionRef.current('UPDATE', data)
       void publishSubmissionChange(item.eventId, 'INSERT', data)
@@ -363,6 +368,21 @@ export function JoinGameView({
         onSettled: (clientId) => setOpenSubmissionWrite(clientId, false),
       }),
   )
+
+  // Flush the queue whenever connectivity likely returns — a submit made during
+  // a brief drop would otherwise sit until the next submit. kick() ignores the
+  // backoff so a reconnect retries immediately rather than waiting it out.
+  useEffect(() => {
+    const kick = () => outbox.kick()
+    window.addEventListener('online', kick)
+    window.addEventListener('focus', kick)
+    document.addEventListener('visibilitychange', kick)
+    return () => {
+      window.removeEventListener('online', kick)
+      window.removeEventListener('focus', kick)
+      document.removeEventListener('visibilitychange', kick)
+    }
+  }, [outbox])
 
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
@@ -658,24 +678,6 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
-  // Authorize the participant upload as soon as a photo/video challenge opens,
-  // while the participant is reading the brief or framing the shot.
-  useEffect(() => {
-    const g = selectedGame
-    if (!event.id || !g || (g.type !== 'photo' && g.type !== 'video')) {
-      openUploadPrefetchRef.current = null
-      return
-    }
-    const path = `${event.id}/submissions/${teamId}/${Date.now()}${g.type === 'video' ? '.mp4' : '.jpg'}`
-    openUploadPrefetchRef.current = {
-      gameId: g.id,
-      // Swallow errors: a failed prefetch must never surface to the participant —
-      // submit falls back to a fresh mint.
-      promise: mintParticipantUpload(event.id, path).catch(() => null),
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- key off the selected game id only; re-running on every realtime bundle/games update would re-mint needlessly
-  }, [selectedGame?.id, event.id, teamId])
-
   function finishOpenSubmitOptimistically(timing?: {
     submitPressedAt: number
     mediaType: 'text' | 'photo' | 'video'
@@ -802,12 +804,13 @@ export function JoinGameView({
     }
     const submitPressedAt = nowMs()
     const mediaType = game.type === 'video' ? 'video' : 'photo'
-    // Consume the URL prefetched when this challenge opened; the outbox awaits
-    // it (or mints fresh) during the background upload. Null it out so a retry
-    // does not reuse a spent prefetch.
-    const prefetch = openUploadPrefetchRef.current
-    openUploadPrefetchRef.current = null
-    const minted = prefetch && prefetch.gameId === game.id ? prefetch.promise : null
+    // Decide the storage path once, here, so every upload attempt (including a
+    // retry after a dropped connection) writes to the same object rather than
+    // minting a new one and orphaning the last. The signed URL itself is minted
+    // fresh inside the outbox on each attempt, so it can never expire in queue.
+    const objectPath = `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${
+      mediaType === 'video' ? '.mp4' : '.jpg'
+    }`
     // Return to the challenge list immediately; the upload + insert run in the
     // background via the outbox (no more waiting on a video upload, CF4-4). The
     // pending card shows without media until the row reconciles.
@@ -822,7 +825,7 @@ export function JoinGameView({
       kind: 'open-submission',
       gameId: game.id,
       createdAt: optimistic.created_at,
-      payload: { mediaType, file, minted },
+      payload: { mediaType, file, objectPath },
     })
   }
 

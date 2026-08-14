@@ -93,6 +93,51 @@ describe('Outbox', () => {
     expect(box.pending()).toHaveLength(1)
   })
 
+  it('gives up after maxAttempts transient failures and drops the item', async () => {
+    const scheduled: Array<() => void> = []
+    const dropped: string[] = []
+    let attempts = 0
+    const box = new Outbox({
+      process: async () => {
+        attempts += 1
+        throw new Error('always down')
+      },
+      backoffMs: [1],
+      maxAttempts: 3,
+      schedule: (fn) => void scheduled.push(fn),
+      onDropped: (i) => void dropped.push(i.clientId),
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0))
+    let guard = 0
+    while (scheduled.length && guard++ < 10) {
+      scheduled.shift()!()
+      await new Promise((r) => setTimeout(r, 0))
+    }
+    expect(attempts).toBe(3)
+    expect(dropped).toEqual(['a'])
+    expect(box.hasPending()).toBe(false)
+  })
+
+  it('kick() forces a drain even while a retry is armed', async () => {
+    const scheduled: Array<() => void> = []
+    let fail = true
+    const box = new Outbox({
+      process: async () => {
+        if (fail) throw new Error('down')
+      },
+      backoffMs: [10_000],
+      schedule: (fn) => void scheduled.push(fn),
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(box.hasPending()).toBe(true) // failed once, armed for 10s
+    fail = false
+    box.kick() // connectivity back: ignore the backoff, retry now
+    await new Promise((r) => setTimeout(r, 0))
+    expect(box.hasPending()).toBe(false)
+  })
+
   it('rehydrates from persistence on start and drains', async () => {
     const store = [item('x'), item('y')]
     const sent: string[] = []
