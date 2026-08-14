@@ -21,7 +21,6 @@ import { questionMedia } from '@/lib/quiz-media'
 import { QUIZ_ANSWER_CHANGE_SECONDS } from '@/lib/quiz-auto-reveal'
 import { quizQuestionSeconds } from '@/lib/quiz-timing'
 import { OpenGameChallengeReview } from '@/components/live/OpenGameChallengeReview'
-import { OpenGameSubmittingScreen } from '@/components/live/OpenGameSubmittingScreen'
 import { EventStoreSheet } from '@/components/live/EventStoreSheet'
 import { parseStoreConfig } from '@/lib/event-form-utils'
 import { OpenGameTextChallenge } from '@/components/live/OpenGameTextChallenge'
@@ -41,10 +40,8 @@ import {
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
 import {
-  DiagnosticReportedError,
   nowMs,
   isLikelyNetworkError,
-  reportClientIssue,
   reportClientTiming,
 } from '@/lib/client-diagnostics'
 import { queryKeys } from '@/lib/query-keys'
@@ -90,6 +87,7 @@ import {
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
+import { Outbox, PermanentSubmitError, type OutboxItem } from '@/lib/offline/outbox'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -115,12 +113,7 @@ import {
 import { verifyTabletPassword } from '@/lib/tenant'
 import { isPuzzleGame } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
-import {
-  mintParticipantUpload,
-  uploadParticipantAsset,
-  uploadToMintedParticipantUrl,
-  type MintedParticipantUpload,
-} from '@/lib/storage'
+import { uploadParticipantAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -201,9 +194,10 @@ export function JoinGameView({
 
   const [selectedGame, setSelectedGame] = useState<Tables<'games'> | null>(null)
   const [captureActive, setCaptureActive] = useState(false)
+  // Since the outbox made submit return instantly, this never goes true and its
+  // disable-guards are inert; kept as the seam for a future "sending" indicator.
   const [submitting, setSubmitting] = useState(false)
   // 0-100 while a photo/video upload reports progress, null otherwise.
-  const [uploadPct, setUploadPct] = useState<number | null>(null)
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null)
   const [quizChangeLeft, setQuizChangeLeft] = useState<number | null>(null)
   const [quizLocked, setQuizLocked] = useState(false)
@@ -233,15 +227,6 @@ export function JoinGameView({
     setStoreView('orders')
     setStoreOpen(true)
   }
-
-  // Mint a signed upload URL when a photo/video challenge opens, moving the
-  // authorization round trip out of the submit path. Key it by game id so one
-  // challenge never consumes another challenge's URL. A null result falls back to
-  // minting a fresh URL on submit.
-  const openUploadPrefetchRef = useRef<{
-    gameId: string
-    promise: Promise<MintedParticipantUpload | null>
-  } | null>(null)
   // Client-generated IDs let open-game submissions appear as pending as soon as
   // the database request is dispatched. The server remains authoritative: a
   // rejected write removes the optimistic row again. Track the short in-flight
@@ -286,6 +271,121 @@ export function JoinGameView({
     },
     [setBundle],
   )
+
+  // --- Submission outbox (OFFLINE-1 Stage 1) --------------------------------
+  // Every open submission goes through a background queue so submit returns to
+  // the challenge list instantly; the upload + insert + score reconcile run
+  // after. Online this just feels instant (no waiting on a video upload, CF4-4).
+  // Stage 3 plugs persistence into the same queue so it survives going offline.
+  const mergeOwnSubmissionRef = useRef(mergeOwnSubmission)
+  mergeOwnSubmissionRef.current = mergeOwnSubmission
+
+  const processOutboxItem = useCallback(async (item: OutboxItem) => {
+    const payload = item.payload as {
+      mediaType: 'text' | 'photo' | 'video'
+      textValue?: string
+      file?: File
+      // A stable storage path decided at submit time, reused on every retry so a
+      // re-upload OVERWRITES rather than orphaning a fresh object each attempt.
+      objectPath?: string
+    }
+    let mediaUrl: string
+    if (payload.mediaType === 'text') {
+      mediaUrl = payload.textValue ?? ''
+    } else {
+      const file = payload.file
+      if (!file || !payload.objectPath) throw new PermanentSubmitError('Missing media file')
+      const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
+      try {
+        // Mint a fresh signed URL and upload to the fixed path on every attempt,
+        // so a late retry never fails on an expired token or leaks a duplicate.
+        mediaUrl = await uploadParticipantAsset(item.eventId, payload.objectPath, file, {
+          mediaKind,
+        })
+      } catch (err) {
+        // A network failure is transient (keep it queued, retry); a size or
+        // validation failure is permanent (drop it and tell the player).
+        if (isLikelyNetworkError(err)) throw err
+        throw new PermanentSubmitError(
+          err instanceof Error ? err.message : 'Could not upload submission',
+          { cause: err },
+        )
+      }
+    }
+    const { data, error } = await supabase
+      .from('submissions')
+      .insert({
+        id: item.clientId,
+        event_id: item.eventId,
+        team_id: item.teamId,
+        game_id: item.gameId,
+        media_url: mediaUrl,
+        media_type: payload.mediaType,
+        status: 'pending',
+      })
+      .select()
+      .single()
+    if (error && error.code === '23505') {
+      // The row already landed on an earlier attempt whose response we lost.
+      // Reconcile the authoritative row (its real media_url + auto-approve
+      // status/points) and re-broadcast so the facilitator is not missing it.
+      const { data: existing } = await supabase
+        .from('submissions')
+        .select()
+        .eq('id', item.clientId)
+        .single()
+      if (existing) {
+        mergeOwnSubmissionRef.current('UPDATE', existing)
+        void publishSubmissionChange(item.eventId, 'INSERT', existing)
+      }
+      return
+    }
+    if (error) {
+      // A rejected insert (closed event, expired token, RLS, constraint) will
+      // not succeed on retry: drop it and surface it, rather than loop forever.
+      // Only a genuine network error is transient.
+      if (isLikelyNetworkError(error)) throw error
+      throw new PermanentSubmitError(
+        error.message || 'Could not submit — the event may have closed',
+        { cause: error },
+      )
+    }
+    if (data) {
+      mergeOwnSubmissionRef.current('UPDATE', data)
+      void publishSubmissionChange(item.eventId, 'INSERT', data)
+    }
+  }, [])
+
+  // useState's lazy initializer builds the outbox exactly once and hands back a
+  // stable instance, without reading/writing a ref during render.
+  const [outbox] = useState(
+    () =>
+      new Outbox({
+        process: (item) => processOutboxItem(item),
+        isOnline: () => navigator.onLine,
+        onDropped: (item, err) => {
+          mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
+          notify(err instanceof Error ? err.message : 'Could not submit')
+        },
+        onSettled: (clientId) => setOpenSubmissionWrite(clientId, false),
+      }),
+  )
+
+  // Flush the queue whenever connectivity likely returns — a submit made during
+  // a brief drop would otherwise sit until the next submit. kick() ignores the
+  // backoff so a reconnect retries immediately rather than waiting it out.
+  useEffect(() => {
+    const kick = () => outbox.kick()
+    window.addEventListener('online', kick)
+    window.addEventListener('focus', kick)
+    document.addEventListener('visibilitychange', kick)
+    return () => {
+      window.removeEventListener('online', kick)
+      window.removeEventListener('focus', kick)
+      document.removeEventListener('visibilitychange', kick)
+    }
+  }, [outbox])
+
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
 
@@ -580,31 +680,6 @@ export function JoinGameView({
     else playQuizWrongSound()
   }, [state.quiz_state, state.quiz_correct_answer_id, currentQuizQ, mySubs, quizAnswer, stage?.gameId, state.current_question_index])
 
-  // Authorize the participant upload as soon as a photo/video challenge opens,
-  // while the participant is reading the brief or framing the shot.
-  useEffect(() => {
-    const g = selectedGame
-    if (!event.id || !g || (g.type !== 'photo' && g.type !== 'video')) {
-      openUploadPrefetchRef.current = null
-      return
-    }
-    const path = `${event.id}/submissions/${teamId}/${Date.now()}${g.type === 'video' ? '.mp4' : '.jpg'}`
-    openUploadPrefetchRef.current = {
-      gameId: g.id,
-      // Swallow errors: a failed prefetch must never surface to the participant —
-      // submit falls back to a fresh mint.
-      promise: mintParticipantUpload(event.id, path).catch(() => null),
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- key off the selected game id only; re-running on every realtime bundle/games update would re-mint needlessly
-  }, [selectedGame?.id, event.id, teamId])
-
-  function beginOpenSubmit() {
-    flushSync(() => {
-      setSubmitting(true)
-      setCaptureActive(false)
-    })
-  }
-
   function finishOpenSubmitOptimistically(timing?: {
     submitPressedAt: number
     mediaType: 'text' | 'photo' | 'video'
@@ -705,70 +780,22 @@ export function JoinGameView({
       return
     }
     const submitPressedAt = nowMs()
-    beginOpenSubmit()
-    let optimistic: Tables<'submissions'> | null = null
-    try {
-      optimistic = optimisticOpenSubmission(game, mediaUrl, 'text')
-      // Calling .then() starts the request now; the UI below does not await its
-      // response. RLS and the participant-write trigger still validate the real
-      // insert before the facilitator can ever receive it.
-      const write = supabase
-        .from('submissions')
-        .insert({
-          id: optimistic.id,
-          event_id: event.id,
-          team_id: teamId,
-          game_id: game.id,
-          media_url: mediaUrl,
-          media_type: 'text',
-          status: 'pending',
-        })
-        .select()
-        .single()
-        .then((result) => result)
-
-      setOpenSubmissionWrite(optimistic.id, true)
-      mergeOwnSubmission('INSERT', optimistic)
-      try {
-        finishOpenSubmitOptimistically({ submitPressedAt, mediaType: 'text', gameId: game.id })
-      } catch (err) {
-        const detail = reportClientIssue('text-submit', err, {
-          eventId: event.id,
-          teamId,
-          extra: { gameId: game.id },
-        })
-        throw new DiagnosticReportedError(`Could not finish submitting (${detail})`, { cause: err })
-      }
-
-      const { data, error } = await write
-      setOpenSubmissionWrite(optimistic.id, false)
-      if (error) throw error
-      if (data) {
-        // Reconcile the client timestamp/defaults with the authoritative row;
-        // matching by the client-generated id prevents any duplicate.
-        mergeOwnSubmission('UPDATE', data)
-        void publishSubmissionChange(event.id, 'INSERT', data)
-      }
-    } catch (err) {
-      if (optimistic) {
-        setOpenSubmissionWrite(optimistic.id, false)
-        mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
-        setSelectedGame(game)
-      }
-      const detail = reportClientIssue('text-submit', err, {
-        eventId: event.id,
-        teamId,
-        extra: { gameId: game.id },
-      })
-      const msg =
-        err instanceof DiagnosticReportedError
-          ? err.message
-          : isLikelyNetworkError(err)
-            ? 'No connection — check the wifi and tap Send again'
-            : `Couldn't submit (${detail}) — tap to retry`
-      notify(msg)
-      setSubmitting(false)
-    }
+    // Hand the submission to the outbox and return to the challenge list right
+    // away. The insert + score reconcile happen in the background as the queue
+    // drains (instantly while online). onSettled clears the Cancel guard.
+    const optimistic = optimisticOpenSubmission(game, mediaUrl, 'text')
+    setOpenSubmissionWrite(optimistic.id, true)
+    mergeOwnSubmission('INSERT', optimistic)
+    finishOpenSubmitOptimistically({ submitPressedAt, mediaType: 'text', gameId: game.id })
+    await outbox.enqueue({
+      clientId: optimistic.id,
+      eventId: event.id,
+      teamId,
+      kind: 'open-submission',
+      gameId: game.id,
+      createdAt: optimistic.created_at,
+      payload: { mediaType: 'text', textValue: mediaUrl },
+    })
   }
 
   async function submitOpenGame(file: File, game: Tables<'games'>) {
@@ -778,95 +805,30 @@ export function JoinGameView({
       return
     }
     const submitPressedAt = nowMs()
-    beginOpenSubmit()
-    let optimistic: Tables<'submissions'> | null = null
-    try {
-      const kind = game.type === 'video' ? 'video' : 'photo'
-      // Consume the URL prefetched when this challenge opened. Null it out so a
-      // retry mints fresh, and use the original mint+upload path if prefetch failed.
-      const prefetch = openUploadPrefetchRef.current
-      openUploadPrefetchRef.current = null
-      const minted = prefetch && prefetch.gameId === game.id ? await prefetch.promise : null
-
-      const uploadStartedAt = nowMs()
-      const onProgress = (fraction: number) =>
-        setUploadPct(Math.min(100, Math.round(fraction * 100)))
-      setUploadPct(0)
-      let url: string
-      try {
-        url = minted
-          ? await uploadToMintedParticipantUrl(minted, file, { mediaKind: kind, onProgress })
-          : await uploadParticipantAsset(
-              event.id,
-              `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${game.type === 'video' ? '.mp4' : '.jpg'}`,
-              file,
-              { mediaKind: kind, onProgress },
-            )
-      } catch (err) {
-        const detail = reportClientIssue('submission-upload', err, {
-          eventId: event.id,
-          teamId,
-          extra: { gameId: game.id, mediaType: kind },
-        })
-        throw new DiagnosticReportedError(`Could not upload submission (${detail})`, { cause: err })
-      } finally {
-        setUploadPct(null)
-      }
-      const mediaType = game.type === 'video' ? 'video' : 'photo'
-      optimistic = optimisticOpenSubmission(game, url, mediaType)
-      const write = supabase
-        .from('submissions')
-        .insert({
-          id: optimistic.id,
-          event_id: event.id,
-          team_id: teamId,
-          game_id: game.id,
-          media_url: url,
-          media_type: mediaType,
-          status: 'pending',
-        })
-        .select()
-        .single()
-        .then((result) => result)
-
-      setOpenSubmissionWrite(optimistic.id, true)
-      mergeOwnSubmission('INSERT', optimistic)
-      finishOpenSubmitOptimistically({
-        submitPressedAt,
-        mediaType,
-        gameId: game.id,
-        uploadMs: Math.round(nowMs() - uploadStartedAt),
-      })
-
-      const { data, error } = await write
-      setOpenSubmissionWrite(optimistic.id, false)
-      if (error) throw error
-      if (data) {
-        mergeOwnSubmission('UPDATE', data)
-        void publishSubmissionChange(event.id, 'INSERT', data)
-      }
-    } catch (err) {
-      if (optimistic) {
-        setOpenSubmissionWrite(optimistic.id, false)
-        mergeOwnSubmission('DELETE', undefined, { id: optimistic.id })
-        setSelectedGame(game)
-      }
-      const detail = reportClientIssue('submission-upload', err, {
-        eventId: event.id,
-        teamId,
-        extra: { gameId: game.id },
-      })
-      const msg =
-        err instanceof Error && err.message.includes('must be')
-          ? err.message
-          : err instanceof DiagnosticReportedError
-            ? err.message
-            : isLikelyNetworkError(err)
-              ? 'No connection — check the wifi and tap Submit again'
-              : `Couldn't submit (${detail}) — tap to retry`
-      notify(msg)
-      setSubmitting(false)
-    }
+    const mediaType = game.type === 'video' ? 'video' : 'photo'
+    // Decide the storage path once, here, so every upload attempt (including a
+    // retry after a dropped connection) writes to the same object rather than
+    // minting a new one and orphaning the last. The signed URL itself is minted
+    // fresh inside the outbox on each attempt, so it can never expire in queue.
+    const objectPath = `${event.id}/submissions/${teamId}/${crypto.randomUUID()}${
+      mediaType === 'video' ? '.mp4' : '.jpg'
+    }`
+    // Return to the challenge list immediately; the upload + insert run in the
+    // background via the outbox (no more waiting on a video upload, CF4-4). The
+    // pending card shows without media until the row reconciles.
+    const optimistic = optimisticOpenSubmission(game, '', mediaType)
+    setOpenSubmissionWrite(optimistic.id, true)
+    mergeOwnSubmission('INSERT', optimistic)
+    finishOpenSubmitOptimistically({ submitPressedAt, mediaType, gameId: game.id })
+    await outbox.enqueue({
+      clientId: optimistic.id,
+      eventId: event.id,
+      teamId,
+      kind: 'open-submission',
+      gameId: game.id,
+      createdAt: optimistic.created_at,
+      payload: { mediaType, file, objectPath },
+    })
   }
 
   async function submitQuizAnswer(answerId: string, gameId: string, questionId: string) {
@@ -1306,9 +1268,7 @@ export function JoinGameView({
           {/* Every challenge screen runs edge to edge and pads its own
               content, so covers behave the same on all of them. */}
           <div className="w-full">
-          {submitting ? (
-            <OpenGameSubmittingScreen accentColor={accent} progress={uploadPct} />
-          ) : isPuzzleGame(activeOpenGame) ? (
+          {isPuzzleGame(activeOpenGame) ? (
             // A solved puzzle keeps its own board and result on screen. The
             // generic review card would replace all of it with one line.
             <PuzzleGamePlayer
