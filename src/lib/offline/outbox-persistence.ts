@@ -21,14 +21,19 @@ const MIN_HEADROOM_BYTES = 50 * 1024 * 1024
 // Other events' undrained items older than this are pruned on load.
 const STALE_MS = 48 * 60 * 60 * 1000
 
-export function createOutboxPersistence(eventId: string): OutboxPersistence {
+export function createOutboxPersistence(eventId: string, teamId: string): OutboxPersistence {
   return {
     load: async () => {
       const all = await idbGetAll<OutboxItem>('outbox')
       const mine: OutboxItem[] = []
       const now = Date.now()
       for (const item of all) {
-        if (item.eventId === eventId) {
+        // Event AND team scoped: after a slot takeover the device may rejoin
+        // the same event as a different team, and draining the old team's
+        // items with the new team's token would be rejected by the write guard
+        // and destroy them. A stale own-event other-team item just waits (its
+        // token was rotated away, it can never send) until the prune.
+        if (item.eventId === eventId && item.teamId === teamId) {
           mine.push(item)
           continue
         }
@@ -60,6 +65,10 @@ export function createOutboxPersistence(eventId: string): OutboxPersistence {
       // never rehydrate an item pointing at a blob that was never written.
       const stored = await putBlob(item.clientId, file)
       if (!stored) return
+      // Mark the live queued item too, so the in-session drain can fall back to
+      // the cached blob if the in-memory File turns unreadable (iOS reclaims
+      // camera temp files under memory pressure).
+      item.blobKey = item.clientId
       const payload = { ...item.payload }
       delete (payload as { file?: unknown }).file
       await idbSet('outbox', item.clientId, { ...item, payload, blobKey: item.clientId })

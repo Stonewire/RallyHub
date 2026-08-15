@@ -98,6 +98,11 @@ export class Outbox {
    *  generation it was armed under and no-ops if it has since been superseded,
    *  so a kick() can never leave a stale timer firing alongside a fresh one. */
   private retryGen = 0
+  /** Set by stop(): this instance must never process another item. Guards the
+   *  unmount case — an armed retry timer or in-flight drain would otherwise
+   *  keep a zombie outbox alive after React tore the surface down, draining
+   *  under a stale auth context or racing a newer mount for the same items. */
+  private disposed = false
   /** Per-item transient-failure counter, so one stuck item cannot loop forever. */
   private attempts = new Map<string, number>()
   private readonly hooks: OutboxHooks
@@ -132,19 +137,38 @@ export class Outbox {
    *  Respects an armed backoff so a burst of submits cannot hammer a failing
    *  endpoint — the pending retry timer will pick the new items up. */
   async enqueue(item: OutboxItem): Promise<void> {
+    if (this.disposed) return
     if (this.queue.some((q) => q.clientId === item.clientId)) return
     // In-memory FIRST so a persistence failure (quota, no Cache API) can never
     // lose the submission — it still drains this session. Persistence only adds
     // cross-reload durability, and its failure degrades to in-memory-only.
     this.queue.push(item)
     this.hooks.onState?.(item.clientId, 'queued')
+    void this.drain()
     try {
       await this.hooks.persistence?.add(item)
+      // A fast drain can deliver the item while its blob was still being
+      // written; if the item already settled, undo the late write so the next
+      // load cannot resurrect an already-delivered submission. (Not after
+      // stop() — there the queue was cleared with items unsettled, and the
+      // persisted copy is exactly what the next mount must rehydrate.)
+      if (!this.disposed && !this.queue.some((q) => q.clientId === item.clientId)) {
+        await this.hooks.persistence?.remove(item.clientId)
+      }
     } catch {
       // Keep going; the item is queued in memory and will drain while the app
       // stays open. It just won't survive a reload.
     }
     void this.drain()
+  }
+
+  /** Permanently stop this instance: no further drains, retries, or enqueues.
+   *  Queued items stay persisted for the next mount to rehydrate. Call from the
+   *  owning component's unmount. */
+  stop(): void {
+    this.disposed = true
+    this.retryGen += 1 // neutralize any armed retry timer
+    this.queue = []
   }
 
   /** Force an immediate drain, ignoring any backoff — for when connectivity has
@@ -175,10 +199,11 @@ export class Outbox {
   async drain(): Promise<void> {
     // Skip while a backoff retry is already armed (an enqueue during the window
     // must not bypass it) or while offline; kick() clears the arm on reconnect.
+    if (this.disposed) return
     if (this.draining || this.retryArmed || !this.isOnline() || this.queue.length === 0) return
     this.draining = true
     try {
-      while (this.queue.length > 0 && this.isOnline()) {
+      while (this.queue.length > 0 && this.isOnline() && !this.disposed) {
         const item = this.queue[0]
         this.hooks.onState?.(item.clientId, 'sending')
         try {
@@ -235,9 +260,17 @@ export class Outbox {
     }, wait)
   }
 
+  /** Never rejects: a failed durable delete only risks a benign resurrect on
+   *  the next load, which the duplicate-key reconcile path already absorbs.
+   *  Rejecting here would misfile a DELIVERED item as a transient failure in
+   *  drain()'s catch and skip onSettled, wedging the caller's per-item UI. */
   private async removeItem(clientId: string): Promise<void> {
     this.queue = this.queue.filter((q) => q.clientId !== clientId)
-    await this.hooks.persistence?.remove(clientId)
+    try {
+      await this.hooks.persistence?.remove(clientId)
+    } catch {
+      // Ignore: record/blob may linger until the stale prune or next settle.
+    }
     this.hooks.onSettled?.(clientId)
   }
 }

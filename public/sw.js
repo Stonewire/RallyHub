@@ -17,6 +17,11 @@
 
 const CACHE = 'rallyhub-offline-v1'
 const OFFLINE_URL = '/offline.html'
+// The offline submission queue keeps captured photo/video bytes in Cache API
+// caches with this prefix (src/lib/offline/blob-cache.ts). The cleanup below
+// must NEVER delete them: they are a player's queued, not-yet-uploaded
+// submissions, and a service worker update mid-event would wipe them.
+const PROTECTED_PREFIX = 'rallyhub-offline-blobs'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -33,7 +38,11 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE && !key.startsWith(PROTECTED_PREFIX))
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   )

@@ -207,6 +207,53 @@ describe('Outbox', () => {
     expect(calls).toBe(2)
   })
 
+  it('stop() halts draining and neutralizes armed retries; queued items stay persisted', async () => {
+    const scheduled: Array<() => void> = []
+    const removed: string[] = []
+    let calls = 0
+    const box = new Outbox({
+      process: async () => {
+        calls += 1
+        throw new NetworkSubmitError('down')
+      },
+      backoffMs: [1],
+      schedule: (fn) => void scheduled.push(fn),
+      persistence: {
+        load: async () => [],
+        add: async () => {},
+        remove: async (id) => void removed.push(id),
+      },
+    })
+    await box.enqueue(item('a'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toBe(1) // failed once, retry armed
+    box.stop()
+    scheduled.forEach((fn) => fn()) // stale timer must no-op
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls).toBe(1) // no zombie drain
+    expect(removed).toEqual([]) // persisted copy left for the next mount
+  })
+
+  it('undoes a late persistence.add that lands after the item was delivered', async () => {
+    const removed: string[] = []
+    let releaseAdd: (() => void) | null = null
+    const box = new Outbox({
+      process: async () => {}, // delivers instantly
+      persistence: {
+        load: async () => [],
+        add: () => new Promise<void>((res) => (releaseAdd = res)), // slow blob write
+        remove: async (id) => void removed.push(id),
+      },
+    })
+    await Promise.race([box.enqueue(item('a')), new Promise((r) => setTimeout(r, 10))])
+    await new Promise((r) => setTimeout(r, 0))
+    expect(box.hasPending()).toBe(false) // drained via the in-memory copy
+    releaseAdd!() // the durable write lands late
+    await new Promise((r) => setTimeout(r, 0))
+    // removeItem ran once during drain, and the undo ran once after the late add
+    expect(removed.filter((id) => id === 'a').length).toBeGreaterThanOrEqual(2)
+  })
+
   it('rehydrates from persistence on start and drains', async () => {
     const store = [item('x'), item('y')]
     const sent: string[] = []

@@ -4,6 +4,10 @@
 // tens-of-MB video clips an offline queue can hold. Keyed by an opaque string
 // via a synthetic same-origin Request URL.
 
+// COUPLING: public/sw.js's activate cleanup deletes every cache it does not
+// recognise, and exempts this one by the 'rallyhub-offline-blobs' prefix. Keep
+// the prefix if this name ever changes, or a service worker update mid-event
+// would wipe players' queued submissions.
 const CACHE_NAME = 'rallyhub-offline-blobs-v1'
 
 function hasCache(): boolean {
@@ -48,30 +52,46 @@ export async function getBlob(key: string): Promise<Blob | undefined> {
   return res.blob()
 }
 
+/** Never rejects: `caches.open`/`delete` can throw SecurityError in private
+ *  browsing and reject under storage pressure, and a failed delete only means
+ *  the blob lingers until the stale prune. */
 export async function deleteBlob(key: string): Promise<void> {
   if (!hasCache()) return
-  const cache = await caches.open(CACHE_NAME)
-  await cache.delete(keyToRequest(key))
+  try {
+    const cache = await caches.open(CACHE_NAME)
+    await cache.delete(keyToRequest(key))
+  } catch {
+    // Leave it for the stale prune.
+  }
 }
 
 /** Total bytes currently held, from the stored size headers. Cheap enough to
- *  call before queuing another video to enforce the cap. */
+ *  call before queuing another video to enforce the cap. Never rejects; a
+ *  broken cache reads as "full" so the caller declines to persist more. */
 export async function totalBlobBytes(): Promise<number> {
   if (!hasCache()) return 0
-  const cache = await caches.open(CACHE_NAME)
-  const keys = await cache.keys()
-  let total = 0
-  for (const req of keys) {
-    const res = await cache.match(req)
-    total += Number(res?.headers.get('x-blob-size') ?? 0)
+  try {
+    const cache = await caches.open(CACHE_NAME)
+    const keys = await cache.keys()
+    let total = 0
+    for (const req of keys) {
+      const res = await cache.match(req)
+      total += Number(res?.headers.get('x-blob-size') ?? 0)
+    }
+    return total
+  } catch {
+    return Number.MAX_SAFE_INTEGER
   }
-  return total
 }
 
 /** Storage headroom via the Storage Manager estimate. Returns null when the API
- *  is missing (older Safari) so callers fall back to the byte cap alone. */
+ *  is missing or failing (older Safari) so callers fall back to the byte cap. */
 export async function storageHeadroomBytes(): Promise<number | null> {
   if (typeof navigator === 'undefined' || !navigator.storage?.estimate) return null
-  const { quota = 0, usage = 0 } = await navigator.storage.estimate()
-  return Math.max(0, quota - usage)
+  try {
+    const { quota = 0, usage = 0 } = await navigator.storage.estimate()
+    return Math.max(0, quota - usage)
+  } catch {
+    return null
+  }
 }

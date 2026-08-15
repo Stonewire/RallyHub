@@ -291,10 +291,16 @@ export function JoinGameView({
       // A stable storage path decided at submit time, reused on every retry so a
       // re-upload OVERWRITES rather than orphaning a fresh object each attempt.
       objectPath?: string
+      // Set after a successful upload so an insert-only retry skips re-uploading.
+      uploadedUrl?: string
     }
     let mediaUrl: string
     if (payload.mediaType === 'text') {
       mediaUrl = payload.textValue ?? ''
+    } else if (payload.uploadedUrl) {
+      // An earlier attempt already uploaded the bytes but failed at the insert;
+      // don't re-upload a whole video per retry, just redo the cheap insert.
+      mediaUrl = payload.uploadedUrl
     } else {
       // In-memory File on the fast path; after a reload/offline the File was
       // moved to the Cache API, so reload it from the blob key.
@@ -304,8 +310,18 @@ export function JoinGameView({
         if (blob) file = new File([blob], 'submission', { type: blob.type })
       }
       if (!file || !payload.objectPath) {
-        // A rehydrated item whose blob was evicted has no bytes left to upload;
-        // there is nothing to retry, so drop it with a clear message.
+        // No bytes left to upload (blob evicted). Before declaring it lost,
+        // check whether an earlier drain in fact delivered it — a racing
+        // instance may have sent it and cleaned the blob up already.
+        const { data: delivered } = await supabase
+          .from('submissions')
+          .select()
+          .eq('id', item.clientId)
+          .maybeSingle()
+        if (delivered) {
+          mergeOwnSubmissionRef.current('UPDATE', delivered)
+          return
+        }
         throw new PermanentSubmitError('This upload could not be saved offline and was lost')
       }
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
@@ -315,6 +331,8 @@ export function JoinGameView({
         mediaUrl = await uploadParticipantAsset(item.eventId, payload.objectPath, file, {
           mediaKind,
         })
+        // Remember on the live item so an insert-only retry skips the upload.
+        payload.uploadedUrl = mediaUrl
       } catch (err) {
         // Three tiers: connectivity failure retries forever (uncapped); a
         // size/validation failure will never succeed with the same file, so
@@ -326,7 +344,9 @@ export function JoinGameView({
         if (err instanceof Error && /must be|too large|exceeds|under \d/i.test(err.message)) {
           throw new PermanentSubmitError(err.message, { cause: err })
         }
-        throw new Error(err instanceof Error ? err.message : 'Upload error, will retry')
+        throw new Error(err instanceof Error ? err.message : 'Upload error, will retry', {
+          cause: err,
+        })
       }
     }
     const { data, error } = await supabase
@@ -339,6 +359,9 @@ export function JoinGameView({
         media_url: mediaUrl,
         media_type: payload.mediaType,
         status: 'pending',
+        // The moment the player pressed submit, not the moment the queue
+        // drained — an hour-offline batch must not land timestamped "now".
+        created_at: item.createdAt,
       })
       .select()
       .single()
@@ -387,7 +410,7 @@ export function JoinGameView({
       new Outbox({
         process: (item) => processOutboxItem(item),
         isOnline: () => navigator.onLine,
-        persistence: createOutboxPersistence(event.id),
+        persistence: createOutboxPersistence(event.id, teamId),
         onDropped: (item, err) => {
           mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
           notify(err instanceof Error ? err.message : 'Could not submit')
@@ -406,25 +429,54 @@ export function JoinGameView({
   }, [event.id])
 
   // Rehydrate any submissions queued before a reload/offline/app-kill and drain
-  // them. Runs once for this outbox instance.
+  // them. Rehydrated items must also reappear as pending cards with their Cancel
+  // guard restored — otherwise the challenge looks unsubmitted after a reload
+  // and the player can submit it AGAIN, creating a duplicate (and double points
+  // on an auto-approved game). Teardown stops the instance so an armed retry
+  // timer cannot keep a zombie draining after unmount (exit, team takeover).
   useEffect(() => {
-    void outbox.start()
+    void outbox.start().then(() => {
+      for (const item of outbox.pending()) {
+        if (item.kind !== 'open-submission') continue
+        const payload = item.payload as { mediaType?: 'text' | 'photo' | 'video'; textValue?: string }
+        const mediaType = payload.mediaType ?? 'text'
+        setOpenSubmissionWrite(item.clientId, true)
+        mergeOwnSubmissionRef.current('INSERT', {
+          id: item.clientId,
+          event_id: item.eventId,
+          team_id: item.teamId,
+          game_id: item.gameId,
+          media_url: mediaType === 'text' ? (payload.textValue ?? '') : '',
+          media_type: mediaType,
+          status: 'pending',
+          points_awarded: null,
+          created_at: item.createdAt,
+        })
+      }
+    })
+    return () => outbox.stop()
   }, [outbox])
 
   // Flush the queue whenever connectivity likely returns — a submit made during
   // a brief drop would otherwise sit until the next submit. kick() ignores the
-  // backoff so a reconnect retries immediately rather than waiting it out.
+  // backoff so a reconnect retries immediately rather than waiting it out. On a
+  // true reconnect also refresh the answer package, so an organiser's mid-event
+  // answer edits reach devices without a reload.
   useEffect(() => {
     const kick = () => outbox.kick()
-    window.addEventListener('online', kick)
+    const reconnect = () => {
+      kick()
+      if (event.id) void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+    }
+    window.addEventListener('online', reconnect)
     window.addEventListener('focus', kick)
     document.addEventListener('visibilitychange', kick)
     return () => {
-      window.removeEventListener('online', kick)
+      window.removeEventListener('online', reconnect)
       window.removeEventListener('focus', kick)
       document.removeEventListener('visibilitychange', kick)
     }
-  }, [outbox])
+  }, [outbox, event.id])
 
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)

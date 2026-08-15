@@ -737,6 +737,7 @@ export type Database = {
           media_type?: string | null
           status?: string
           points_awarded?: number | null
+          created_at?: string
         }
         Update: {
           media_url?: string | null
