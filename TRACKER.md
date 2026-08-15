@@ -75,12 +75,21 @@ local migration chain, HERMIT-ENCODE workaround in place.
 
 ## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
 
-**STATUS 14 Aug: Stage 1 (V3.19.0) is LIVE in prod. Stages 2-3 are merged to
-LOCAL main (this commit), reviewed + verified in-app but NOT real-device tested,
-ready to push.** The Stage 2 migration is already applied to prod (additive,
-unused until this deploys). To ship Stages 2-3: `git push origin main` from a
-shell that can push. Consider a real-device offline test first — that is the one
-thing this build was not exercised on.
+**STATUS 15 Aug: Stage 1 (V3.19.0) is LIVE in prod. Stages 2-3 sit on LOCAL
+main as V3.20.0, ready to push (`git push origin main`).** On 15 Aug a full
+five-lens review of all session work confirmed 13 findings (4 high), all fixed
+the same day: outbox teardown on unmount (no zombie drains after exit/team
+takeover), team-scoped rehydration (rejoining as another team can't destroy the
+old team's queue), reload-hydration (queued items reappear as pending cards, so
+a reload can't invite a duplicate submission and double points), original
+submit-time created_at preserved, the answer-package RPC now ships text keys
+ONLY for auto-approve games (migration 20260814180000 APPLIED to prod, verified
+both ways), answer keys refresh on reconnect, sw.js can no longer wipe the
+queued-media cache on a service worker update, no re-upload of already-uploaded
+video on retry, plus exactly-once settle and late-write-undo hardening in the
+queue. Offline round trip re-verified in-app INCLUDING a page reload (row lands
+with the original timestamp). Still not real-device tested — that remains the
+one open verification before/after shipping.
 Each stage was adversarially reviewed and verified before commit.
 - **Stage 1 (V3.19.0)** instant background submit — every quest submission
   returns to the list immediately; upload+insert+reconcile run in a background
