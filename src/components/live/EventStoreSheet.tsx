@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { useNotification } from '@/contexts/notification-context'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
+import { idbGet, idbSet } from '@/lib/offline/idb'
 import { supabase } from '@/lib/supabase'
 
 type StoreRow = {
@@ -38,6 +39,21 @@ type EventStoreSheetProps = {
   onOrderPlaced?: () => void
   /** 'store' browses and orders; 'orders' is the read-only My Items view. */
   view?: 'store' | 'orders'
+  /** Route the order through the offline outbox instead of calling the RPC
+   *  directly: works offline, retries safely (idempotent by the client order
+   *  id), and the 10s poll reconciles once it lands. */
+  onSubmitOrder?: (
+    items: { itemId: string; quantity: number }[],
+    clientOrderId: string,
+    display: { totalPoints: number; lines: { itemName: string; quantity: number }[] },
+  ) => Promise<void>
+  /** Orders still waiting in the offline queue, shown in My Items until the
+   *  server copy appears. */
+  queuedOrders?: {
+    clientId: string
+    totalPoints: number
+    lines: { itemName: string; quantity: number }[]
+  }[]
 }
 
 function rpcMessage(err: unknown, fallback: string): string {
@@ -54,7 +70,7 @@ function rpcMessage(err: unknown, fallback: string): string {
  * moves. Replaces scanning printed QR codes, which mixed up items when many
  * teams scanned at once (7 Aug 2026 event).
  */
-export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, view = 'store' }: EventStoreSheetProps) {
+export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, view = 'store', onSubmitOrder, queuedOrders = [] }: EventStoreSheetProps) {
   const { notify } = useNotification()
   const session = getCurrentParticipantSession()
   const token = session?.eventId === eventId ? (session.purchaseToken ?? '') : ''
@@ -75,11 +91,20 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
     ])
     if (storeRes.error) {
+      // Offline: show the last catalogue this device saw rather than an error.
+      // Stock/score numbers may be stale; the server re-validates every order.
+      const snap = await idbGet<{ rows: StoreRow[] }>('content', `store:${eventId}`)
+      if (snap?.rows) {
+        setLoadError(null)
+        setRows(snap.rows)
+        return
+      }
       setLoadError(rpcMessage(storeRes.error, 'Could not open the store.'))
       return
     }
     setLoadError(null)
     setRows((storeRes.data ?? []) as StoreRow[])
+    void idbSet('content', `store:${eventId}`, { rows: storeRes.data ?? [] })
     if (!ordersRes.error) setOrders((ordersRes.data ?? []) as OrderRow[])
   }, [eventId, token])
 
@@ -128,12 +153,22 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
     setPlacing(true)
     try {
       const items = Object.entries(basket).map(([itemId, quantity]) => ({ itemId, quantity }))
-      const { error } = await supabase.rpc('place_store_order', {
-        p_event_id: eventId,
-        p_purchase_token: token,
-        p_items: items,
-      })
-      if (error) throw error
+      if (onSubmitOrder) {
+        // Through the outbox: instant, works offline, retries idempotently.
+        const lines = items.map(({ itemId, quantity }) => ({
+          itemName: rows?.find((r) => r.item_id === itemId)?.name ?? 'Item',
+          quantity,
+        }))
+        await onSubmitOrder(items, crypto.randomUUID(), { totalPoints: basketTotal, lines })
+      } else {
+        const { error } = await supabase.rpc('place_store_order', {
+          p_event_id: eventId,
+          p_purchase_token: token,
+          p_items: items,
+          p_client_order_id: crypto.randomUUID(),
+        })
+        if (error) throw error
+      }
       setBasket({})
       // The job here is done; the next stop is a person, not this screen.
       onClose()
@@ -150,6 +185,10 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
 
   const pendingOrders = orders.filter((o) => o.status === 'pending')
   const doneOrders = orders.filter((o) => o.status === 'done')
+  // Hide a queued card as soon as the server copy shows up in the poll.
+  const visibleQueued = queuedOrders.filter(
+    (q) => !orders.some((o) => o.order_id === q.clientId),
+  )
 
   if (typeof document === 'undefined') return null
 
@@ -245,10 +284,32 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
           </ul>
         )}
 
-        {view === 'orders' && rows !== null && pendingOrders.length === 0 && doneOrders.length === 0 ? (
+        {view === 'orders' && rows !== null && pendingOrders.length === 0 && doneOrders.length === 0 && visibleQueued.length === 0 ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">
             Nothing bought yet. Order from the Store first.
           </p>
+        ) : null}
+
+        {/* Orders still in the offline queue: shown first, promoted to real
+            Waiting cards by the 10s poll once they land on the server. */}
+        {visibleQueued.length > 0 ? (
+          <div className="mx-auto mt-6 max-w-md space-y-2">
+            {visibleQueued.map((q) => (
+              <div key={q.clientId} className="xp-glass-panel rounded-xl bg-white/10 p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold">
+                    {q.lines.map((l) => `${l.quantity}× ${l.itemName}`).join(', ')}
+                  </p>
+                  <span className="ml-2 shrink-0 rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                    Waiting to send
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-white/60">
+                  {q.totalPoints} pts · sends automatically when you are back online
+                </p>
+              </div>
+            ))}
+          </div>
         ) : null}
 
         {pendingOrders.length > 0 || doneOrders.length > 0 ? (

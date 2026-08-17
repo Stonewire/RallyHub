@@ -12,6 +12,7 @@ import {
 } from '@/lib/live-event-access'
 import { fetchOrganizationTenantPublic } from '@/lib/organization-tenant'
 import { supabase } from '@/lib/supabase'
+import { saveBundleSnapshot, loadBundleSnapshot } from '@/lib/offline/bundle-snapshot'
 import type { Tables, TablesUpdate } from '@/types/helpers'
 
 const RELOAD_DEBOUNCE_MS = 280
@@ -158,14 +159,41 @@ export function useLiveEvent(eventId: string | undefined) {
     if (!eventId) return
     try {
       const data = await fetchBundle(eventId)
+      if (!data && !navigator.onLine) {
+        // Offline boot: access bootstrap or the event fetch failed with no
+        // network. Fall back to the last-good snapshot rather than a dead
+        // "Event not found" — the live data replaces it on reconnect.
+        const snap = await loadBundleSnapshot(eventId)
+        if (snap) {
+          setBundle(snap)
+          setError(null)
+          return
+        }
+      }
       setBundle(data)
       setError(data ? null : 'Event not found')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load event')
+      const snap = await loadBundleSnapshot(eventId).catch(() => null)
+      if (snap) {
+        // A fetch that died mid-flight (connection dropped) must not blank a
+        // surface we can still render from the snapshot.
+        setBundle((current) => current ?? snap)
+        setError(null)
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load event')
+      }
     } finally {
       setLoading(false)
     }
   }, [eventId])
+
+  // Persist the last-good bundle (debounced; submissions can be hundreds of
+  // rows) so a reload with no connection still has something to show.
+  useEffect(() => {
+    if (!eventId || !bundle) return
+    const t = setTimeout(() => void saveBundleSnapshot(eventId, bundle), 1000)
+    return () => clearTimeout(t)
+  }, [eventId, bundle])
 
   const scheduleReload = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)

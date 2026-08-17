@@ -90,7 +90,10 @@ import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadc
 import { Outbox, PermanentSubmitError, NetworkSubmitError, type OutboxItem } from '@/lib/offline/outbox'
 import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
 import { getBlob } from '@/lib/offline/blob-cache'
-import { downloadOfflineAnswerKeys } from '@/lib/offline/package'
+import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/package'
+import { useOnlineStatus } from '@/lib/offline/net'
+import { scoreOfflineText } from '@/lib/offline/scoring'
+import { getCurrentParticipantSession } from '@/lib/participant-session'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -283,7 +286,40 @@ export function JoinGameView({
   const mergeOwnSubmissionRef = useRef(mergeOwnSubmission)
   mergeOwnSubmissionRef.current = mergeOwnSubmission
 
+  // Store orders waiting in the offline queue, mirrored into React state so My
+  // Items can show them before they reach the server.
+  const [queuedStoreOrders, setQueuedStoreOrders] = useState<
+    { clientId: string; totalPoints: number; lines: { itemName: string; quantity: number }[] }[]
+  >([])
+
   const processOutboxItem = useCallback(async (item: OutboxItem) => {
+    if (item.kind === 'store-order') {
+      const payload = item.payload as { items: { itemId: string; quantity: number }[] }
+      // The purchase token is read fresh here, never persisted in the queue.
+      const session = getCurrentParticipantSession()
+      const token =
+        session && session.eventId === item.eventId && session.teamId === item.teamId
+          ? session.purchaseToken
+          : null
+      if (!token) throw new PermanentSubmitError('This phone is no longer signed in for that team')
+      const { error } = await supabase.rpc('place_store_order', {
+        p_event_id: item.eventId,
+        p_purchase_token: token,
+        p_items: payload.items,
+        p_client_order_id: item.clientId,
+      })
+      if (error) {
+        if (isLikelyNetworkError(error)) {
+          throw new NetworkSubmitError('Order failed, will retry', { cause: error })
+        }
+        // A validation rejection (sold out under you, not enough points) will
+        // not change on retry; drop it and tell the team.
+        throw new PermanentSubmitError(error.message || 'Could not place the order', {
+          cause: error,
+        })
+      }
+      return
+    }
     const payload = item.payload as {
       mediaType: 'text' | 'photo' | 'video'
       textValue?: string
@@ -412,10 +448,15 @@ export function JoinGameView({
         isOnline: () => navigator.onLine,
         persistence: createOutboxPersistence(event.id, teamId),
         onDropped: (item, err) => {
-          mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
+          if (item.kind === 'open-submission') {
+            mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
+          }
           notify(err instanceof Error ? err.message : 'Could not submit')
         },
-        onSettled: (clientId) => setOpenSubmissionWrite(clientId, false),
+        onSettled: (clientId) => {
+          setOpenSubmissionWrite(clientId, false)
+          setQueuedStoreOrders((current) => current.filter((q) => q.clientId !== clientId))
+        },
       }),
   )
 
@@ -437,6 +478,25 @@ export function JoinGameView({
   useEffect(() => {
     void outbox.start().then(() => {
       for (const item of outbox.pending()) {
+        if (item.kind === 'store-order') {
+          const p = item.payload as {
+            totalPoints?: number
+            lines?: { itemName: string; quantity: number }[]
+          }
+          setQueuedStoreOrders((current) =>
+            current.some((q) => q.clientId === item.clientId)
+              ? current
+              : [
+                  ...current,
+                  {
+                    clientId: item.clientId,
+                    totalPoints: p.totalPoints ?? 0,
+                    lines: p.lines ?? [],
+                  },
+                ],
+          )
+          continue
+        }
         if (item.kind !== 'open-submission') continue
         const payload = item.payload as { mediaType?: 'text' | 'photo' | 'video'; textValue?: string }
         const mediaType = payload.mediaType ?? 'text'
@@ -480,6 +540,7 @@ export function JoinGameView({
 
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
+  const online = useOnlineStatus()
 
   const quizRunning =
     stage?.type === 'quiz' &&
@@ -888,6 +949,30 @@ export function JoinGameView({
       createdAt: optimistic.created_at,
       payload: { mediaType: 'text', textValue: mediaUrl },
     })
+    // Offline auto-scoring (Stage 4): score the answer on the device from the
+    // downloaded keys so the team gets its verdict now instead of a pending
+    // card until reconnect. Provisional only — the server trigger re-scores the
+    // same answer on drain and the reconcile replaces this row. Team score
+    // moves on reconnect (server-authoritative).
+    if (!navigator.onLine) {
+      const cfg = (game.config ?? {}) as {
+        text_approval_mode?: string
+        text_answer_mode?: string
+      }
+      if ((cfg.text_approval_mode ?? 'review') === 'auto') {
+        const keys = await getOfflineAnswerKeys(event.id)
+        const key = keys?.[game.id]
+        if (key) {
+          const mode = cfg.text_answer_mode === 'choose_answer' ? 'choose_answer' : 'type_text'
+          const correct = await scoreOfflineText(mode, key, mediaUrl)
+          mergeOwnSubmissionRef.current('UPDATE', {
+            ...optimistic,
+            status: correct ? 'approved' : 'rejected',
+            points_awarded: correct ? (game.points_static ?? 0) : 0,
+          })
+        }
+      }
+    }
   }
 
   async function submitOpenGame(file: File, game: Tables<'games'>) {
@@ -1455,6 +1540,21 @@ export function JoinGameView({
         </div>
       )
     }
+  } else if (!online && (stage?.type === 'quiz' || stage?.type === 'bingo') && stage.gameId) {
+    // Quiz and music bingo are lock-step with the facilitator's screen, so they
+    // genuinely need a connection. Better one clear notice than live-looking
+    // buttons whose every tap fails. The 'online' event flips this straight
+    // back into the real stage.
+    body = (
+      <div className="mx-auto max-w-lg px-6 py-20 text-center">
+        <p className="text-2xl font-black">You're offline</p>
+        <p className="mt-3 text-base opacity-80">
+          {stage.type === 'quiz'
+            ? 'The quiz runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.'
+            : 'Music bingo runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.'}
+        </p>
+      </div>
+    )
   } else if (stage?.type === 'quiz' && stage.gameId) {
     const game = quizGame
     const q = currentQuizQ
@@ -1916,6 +2016,18 @@ export function JoinGameView({
           )
         : null}
       {header}
+      {/* Offline strip: fixed so nothing shifts, above content, below dialogs.
+          Hidden while the camera owns the screen. */}
+      {!online && !captureActive ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-0 z-[10001] flex justify-center px-3 pt-[calc(env(safe-area-inset-top)+8px)]"
+          role="status"
+        >
+          <div className="rounded-full bg-black/85 px-4 py-2 text-center text-xs font-bold text-white shadow-lg">
+            You're offline. Your work is saved and will send automatically.
+          </div>
+        </div>
+      ) : null}
       <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>
       {storeOpen ? (
         <EventStoreSheet
@@ -1924,6 +2036,22 @@ export function JoinGameView({
           view={storeView}
           onClose={() => setStoreOpen(false)}
           onOrderPlaced={() => setOrderSentOpen(true)}
+          queuedOrders={queuedStoreOrders}
+          onSubmitOrder={async (items, clientOrderId, display) => {
+            setQueuedStoreOrders((current) => [
+              ...current,
+              { clientId: clientOrderId, ...display },
+            ])
+            await outbox.enqueue({
+              clientId: clientOrderId,
+              eventId: event.id,
+              teamId,
+              kind: 'store-order',
+              gameId: '',
+              createdAt: new Date().toISOString(),
+              payload: { items, ...display },
+            })
+          }}
         />
       ) : null}
       {typeof document !== 'undefined' && !chatOpen && !captureActive

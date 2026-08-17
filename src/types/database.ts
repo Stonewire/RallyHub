@@ -1509,6 +1509,17 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: Json
       }
+      submit_offline_puzzle_result: {
+        Args: {
+          p_event_id: string
+          p_game_id: string
+          p_team_token: string
+          p_client_id: string
+          p_result: Json
+          p_created_at: string
+        }
+        Returns: Json
+      }
       score_current_quiz_question: {
         Args: { p_event_id: string; p_game_id: string; p_question_id: string }
         Returns: undefined
