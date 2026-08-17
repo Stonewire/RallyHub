@@ -77,7 +77,9 @@ begin
     return to_jsonb(v_existing);
   end if;
 
-  select g.config, coalesce(g.points_static, 0)
+  -- Same default the online puzzle RPCs use, so a puzzle with no explicit
+  -- points scores identically whichever path delivers it.
+  select g.config, greatest(coalesce(g.points_static, 100), 1)
     into v_config, v_points
   from public.games g
   join public.event_games eg on eg.game_id = g.id and eg.event_id = p_event_id

@@ -121,6 +121,7 @@ import { isPuzzleGame } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
 import { uploadParticipantAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
+import type { Json } from '@/types/json'
 import type { Tables } from '@/types/helpers'
 
 type JoinGameViewProps = {
@@ -320,6 +321,43 @@ export function JoinGameView({
       }
       return
     }
+    if (item.kind === 'puzzle-result') {
+      const payload = item.payload as { puzzleType: string; result: Json }
+      // The team token is read fresh here, never persisted in the queue.
+      const session = getCurrentParticipantSession()
+      const token =
+        session && session.eventId === item.eventId && session.teamId === item.teamId
+          ? session.purchaseToken
+          : null
+      if (!token) throw new PermanentSubmitError('This phone is no longer signed in for that team')
+      const { data, error } = await supabase.rpc('submit_offline_puzzle_result', {
+        p_event_id: item.eventId,
+        p_game_id: item.gameId,
+        p_team_token: token,
+        p_client_id: item.clientId,
+        p_result: payload.result,
+        p_created_at: item.createdAt,
+      })
+      if (error) {
+        if (isLikelyNetworkError(error)) {
+          throw new NetworkSubmitError('Puzzle result failed, will retry', { cause: error })
+        }
+        // A validation rejection (config changed, event no longer live) will
+        // not change on retry; drop it and tell the team.
+        throw new PermanentSubmitError(error.message || 'Could not submit the puzzle result', {
+          cause: error,
+        })
+      }
+      // The RPC hands back the authoritative submissions row (this result's,
+      // or a teammate's earlier finish); fold it into the bundle and tell the
+      // room, same as a landed open submission.
+      const row = data as unknown as Tables<'submissions'> | null
+      if (row) {
+        mergeOwnSubmissionRef.current('UPDATE', row)
+        void publishSubmissionChange(item.eventId, 'INSERT', row)
+      }
+      return
+    }
     const payload = item.payload as {
       mediaType: 'text' | 'photo' | 'video'
       textValue?: string
@@ -458,6 +496,16 @@ export function JoinGameView({
           setQueuedStoreOrders((current) => current.filter((q) => q.clientId !== clientId))
         },
       }),
+  )
+
+  // Handed to the puzzle players, which enqueue ONE locally-scored result per
+  // completion; the puzzle-result drain branch above replays it on the server.
+  // Memoized so the players' effects do not refire on every render.
+  const queuePuzzleResult = useCallback(
+    (item: OutboxItem) => {
+      void outbox.enqueue(item)
+    },
+    [outbox],
   )
 
   // Once we are in as a team, pull the offline answer package in the background
@@ -1454,6 +1502,7 @@ export function JoinGameView({
               game={activeOpenGame}
               accentColor={accent}
               onSolvedAutoClose={() => setSelectedGame(null)}
+              onQueuePuzzleResult={queuePuzzleResult}
             />
           ) : pending && latestSub ? (
             <OpenGameChallengeReview

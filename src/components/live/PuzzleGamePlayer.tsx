@@ -11,6 +11,18 @@ import {
   publishPuzzleProgressChange,
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
+import { getOfflineAnswerKeys, type OfflineAnswerKey } from '@/lib/offline/package'
+import type { OutboxItem } from '@/lib/offline/outbox'
+import {
+  applyLocalMatch,
+  applyLocalWordleGuess,
+  crosswordWordsFromKey,
+  freshLocalPuzzleProgress,
+  loadLocalPuzzleProgress,
+  matchingPairsFromKey,
+  saveLocalPuzzleProgress,
+  wordleAnswerFromKey,
+} from '@/lib/offline/puzzle-local'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import {
   liveMatchingItems,
@@ -34,6 +46,10 @@ type Props = {
   /** Called once the puzzle is solved, after the result has been on screen
    *  long enough to read; every puzzle type returns to the challenge list. */
   onSolvedAutoClose?: () => void
+  /** Queue a locally-scored puzzle result for the offline outbox to drain.
+   *  Local play only runs while the device is offline, this is provided, and
+   *  the game's answer key was downloaded; otherwise the server flow runs. */
+  onQueuePuzzleResult?: (item: OutboxItem) => void
 }
 
 /** How long the solved result stays up before the team is taken back
@@ -95,9 +111,11 @@ export function PuzzleGamePlayer({
   game,
   accentColor,
   onSolvedAutoClose,
+  onQueuePuzzleResult,
 }: Props) {
   const config = (game.config ?? {}) as GameConfig
   const type = puzzleType(config)
+  const maxPoints = Math.max(1, game.points_static ?? 100)
   const session = getCurrentParticipantSession()
   const teamToken =
     session?.eventId === eventId && session.teamId === teamId ? session.purchaseToken : undefined
@@ -114,12 +132,69 @@ export function PuzzleGamePlayer({
   const [selectedRight, setSelectedRight] = useState<string | null>(null)
   const [wrongSelection, setWrongSelection] = useState<{ left: string; right: string } | null>(null)
   const activeRowRef = useRef<HTMLDivElement | null>(null)
+  // The downloaded answer key decides whether this puzzle can play offline.
+  // State drives the interaction handlers; the ref lets loadProgress read the
+  // key without depending on it (a dep would refetch progress when it lands).
+  const [offlineKey, setOfflineKey] = useState<OfflineAnswerKey | null>(null)
+  const offlineKeyRef = useRef<OfflineAnswerKey | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void getOfflineAnswerKeys(eventId).then((keys) => {
+      if (cancelled) return
+      const key = keys?.[game.id] ?? null
+      offlineKeyRef.current = key
+      setOfflineKey(key)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [eventId, game.id])
+
+  const keyPlayable = useCallback(
+    (key: OfflineAnswerKey | null | undefined) =>
+      type === 'wordle'
+        ? Boolean(wordleAnswerFromKey(key))
+        : type === 'matching'
+          ? Boolean(matchingPairsFromKey(key))
+          : Boolean(crosswordWordsFromKey(key)),
+    [type],
+  )
+
+  /** Keep IndexedDB mirroring the shown progress when the key is on device, so
+   *  going offline mid-puzzle resumes the same board (and, for crosswords, the
+   *  same timer origin) instead of restarting the score clock. */
+  const mirrorProgressLocally = useCallback(
+    (next: PuzzleProgress) => {
+      if (keyPlayable(offlineKeyRef.current)) {
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+      }
+    },
+    [eventId, game.id, keyPlayable, teamId],
+  )
 
   const loadProgress = useCallback(async () => {
     if (!teamToken) {
       setError('Rejoin this event on this phone once to enable secure puzzle play.')
       setLoading(false)
       return
+    }
+    // Offline with a downloaded answer key: resume (or start) local play from
+    // IndexedDB instead of failing the server read. Keys absent, the server
+    // path below runs exactly as before.
+    if (!navigator.onLine && onQueuePuzzleResult) {
+      const key = (await getOfflineAnswerKeys(eventId))?.[game.id]
+      if (keyPlayable(key)) {
+        const local = await loadLocalPuzzleProgress(eventId, teamId, game.id)
+        // The crossword's first progress is created by CrosswordPlayer, which
+        // owns the solve-timer origin; wordle and matching start fresh here.
+        const next = local ?? (type === 'crossword' ? null : freshLocalPuzzleProgress(type))
+        if (!local && next) saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        setProgress(next)
+        setError(null)
+        setLoading(false)
+        return
+      }
     }
     const { data, error: loadError } = await supabase.rpc('get_team_puzzle_progress', {
       p_event_id: eventId,
@@ -129,11 +204,18 @@ export function PuzzleGamePlayer({
     if (loadError) {
       setError(puzzleErrorMessage(loadError))
     } else {
-      setProgress(parsePuzzleProgress(data as Json))
+      const next = parsePuzzleProgress(data as Json)
+      // A puzzle finished offline stays finished while its queued result
+      // drains: an empty server row must not reopen the board for a second
+      // (double-scoring) play. A server completed row still wins outright.
+      const local = next.completed ? null : await loadLocalPuzzleProgress(eventId, teamId, game.id)
+      const chosen = local?.completed ? local : next
+      setProgress(chosen)
+      mirrorProgressLocally(chosen)
       setError(null)
     }
     setLoading(false)
-  }, [eventId, game.id, teamToken])
+  }, [eventId, game.id, keyPlayable, mirrorProgressLocally, onQueuePuzzleResult, teamId, teamToken, type])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadProgress updates after an awaited server response, not synchronously in the effect
@@ -179,8 +261,41 @@ export function PuzzleGamePlayer({
     return () => window.clearTimeout(timer)
   }, [progress, solved, onSolvedAutoClose])
 
+  /** ONE queued item per completion; the server replays the raw inputs and
+   *  re-scores them authoritatively when the outbox drains. */
+  function queuePuzzleResult(result: Record<string, unknown>) {
+    onQueuePuzzleResult?.({
+      clientId: crypto.randomUUID(),
+      eventId,
+      teamId,
+      kind: 'puzzle-result',
+      gameId: game.id,
+      createdAt: new Date().toISOString(),
+      payload: { puzzleType: type, result },
+    })
+  }
+
   async function submitWordleGuess() {
     if (!teamToken || saving) return
+    // Offline with the answer on device: score the guess locally. Online (or
+    // without the key) the server flow below runs untouched.
+    const localAnswer = !navigator.onLine && onQueuePuzzleResult ? wordleAnswerFromKey(offlineKey) : null
+    if (localAnswer) {
+      try {
+        const base = progress ?? freshLocalPuzzleProgress('wordle')
+        const next = applyLocalWordleGuess(base, localAnswer, guess, maxPoints)
+        setProgress(next)
+        setGuess('')
+        setError(null)
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        if (next.completed && !base.completed) {
+          queuePuzzleResult({ guesses: next.guesses.map((row) => row.word) })
+        }
+      } catch (reason) {
+        setError(puzzleErrorMessage(reason))
+      }
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -193,6 +308,7 @@ export function PuzzleGamePlayer({
       if (submitError) throw submitError
       const next = parsePuzzleProgress(data as Json)
       setProgress(next)
+      mirrorProgressLocally(next)
       setGuess('')
       void publishPuzzleProgressChange(eventId, teamId, game.id)
       if (next.completed) void publishLiveBundleReload(eventId)
@@ -218,6 +334,30 @@ export function PuzzleGamePlayer({
 
   async function submitMatch(leftId: string, rightId: string) {
     if (!teamToken || saving) return
+    // Offline with the pair list on device: judge the match locally. Online
+    // (or without the key) the server flow below runs untouched.
+    const localPairs = !navigator.onLine && onQueuePuzzleResult ? matchingPairsFromKey(offlineKey) : null
+    if (localPairs) {
+      try {
+        const base = progress ?? freshLocalPuzzleProgress('matching')
+        const next = applyLocalMatch(base, localPairs, leftId, rightId, maxPoints)
+        if (next.lastMatchCorrect === false) {
+          setWrongSelection({ left: leftId, right: rightId })
+          window.setTimeout(() => setWrongSelection(null), 650)
+        }
+        setProgress(next)
+        setSelectedLeft(null)
+        setSelectedRight(null)
+        setError(null)
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        if (next.completed && !base.completed) {
+          queuePuzzleResult({ attempts: next.attempts, wrongMatches: next.wrongMatches })
+        }
+      } catch (reason) {
+        setError(puzzleErrorMessage(reason))
+      }
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -235,6 +375,7 @@ export function PuzzleGamePlayer({
         window.setTimeout(() => setWrongSelection(null), 650)
       }
       setProgress(next)
+      mirrorProgressLocally(next)
       setSelectedLeft(null)
       setSelectedRight(null)
       void publishPuzzleProgressChange(eventId, teamId, game.id)
@@ -427,7 +568,13 @@ export function PuzzleGamePlayer({
           ) : null}
         </div>
       ) : (
-        <CrosswordPlayer eventId={eventId} teamId={teamId} game={game} accentColor={accentColor} />
+        <CrosswordPlayer
+          eventId={eventId}
+          teamId={teamId}
+          game={game}
+          accentColor={accentColor}
+          onQueuePuzzleResult={onQueuePuzzleResult}
+        />
       )}
       </div>
     </div>

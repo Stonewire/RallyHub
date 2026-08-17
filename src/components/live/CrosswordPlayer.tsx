@@ -7,6 +7,17 @@ import {
   publishPuzzleProgressChange,
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
+import { getOfflineAnswerKeys } from '@/lib/offline/package'
+import type { OutboxItem } from '@/lib/offline/outbox'
+import {
+  applyLocalCrosswordCheck,
+  applyLocalCrosswordHint,
+  crosswordWordsFromKey,
+  freshLocalPuzzleProgress,
+  loadLocalPuzzleProgress,
+  saveLocalPuzzleProgress,
+} from '@/lib/offline/puzzle-local'
+import type { CrosswordWord } from '@/lib/offline/scoring'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import { crosswordScore, parsePuzzleProgress, type PuzzleProgress } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
@@ -19,6 +30,11 @@ type Props = {
   teamId: string
   game: Tables<'games'>
   accentColor: string
+  /** Queue a locally-scored puzzle result for the offline outbox to drain.
+   *  Local play only runs while the device is offline, this is provided, and
+   *  the crossword's answer key was downloaded; otherwise the server flow
+   *  runs. */
+  onQueuePuzzleResult?: (item: OutboxItem) => void
 }
 
 const GRID_SIZE = 6
@@ -36,7 +52,7 @@ function clueCells(clue: CrosswordClue): string[] {
   )
 }
 
-export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
+export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuzzleResult }: Props) {
   const config = (game.config ?? {}) as GameConfig
   const layout = config.puzzle_crossword_layout
   const maxPoints = Math.max(1, game.points_static ?? 100)
@@ -56,6 +72,12 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const [wrongFlash, setWrongFlash] = useState(false)
   const syncTimer = useRef<number | null>(null)
   const boardRef = useRef<HTMLDivElement | null>(null)
+  // The downloaded answer key's word list; set once on mount. Its presence is
+  // what makes this crossword playable (checked, hinted, scored) offline.
+  const offlineWordsRef = useRef<CrosswordWord[] | null>(null)
+  // Latest applied progress, for callbacks that must read it without keeping
+  // the whole progress object in their dependency lists.
+  const progressRef = useRef<PuzzleProgress | null>(null)
 
   const clues = useMemo(() => layout?.clues ?? [], [layout])
   const openKeys = useMemo(
@@ -105,14 +127,21 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     (clue) => !solvedWordIds.has(clue.id),
   )
 
-  const applyProgress = useCallback((next: PuzzleProgress) => {
-    setProgress(next)
-    setCells((current) =>
-      next.completed
-        ? next.filledCells
-        : { ...next.filledCells, ...current, ...next.revealedCells },
-    )
-  }, [])
+  const applyProgress = useCallback(
+    (next: PuzzleProgress) => {
+      progressRef.current = next
+      setProgress(next)
+      setCells((current) =>
+        next.completed
+          ? next.filledCells
+          : { ...next.filledCells, ...current, ...next.revealedCells },
+      )
+      // With the key on device, IndexedDB mirrors every applied progress so
+      // going offline mid-puzzle resumes the same board and timer origin.
+      if (offlineWordsRef.current) saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+    },
+    [eventId, game.id, teamId],
+  )
 
   const tokenMissing = !teamToken
 
@@ -129,6 +158,20 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         p_game_id: game.id,
         p_team_token: teamToken,
       }
+      const words = crosswordWordsFromKey((await getOfflineAnswerKeys(eventId))?.[game.id])
+      if (cancelled) return
+      offlineWordsRef.current = words
+      // Offline with the key on device: resume the persisted local board, or
+      // start one now — its startedAt is the local solve-timer origin. Keys
+      // absent, the server path below runs exactly as before.
+      if (!navigator.onLine && words && onQueuePuzzleResult) {
+        const local = await loadLocalPuzzleProgress(eventId, teamId, game.id)
+        if (cancelled) return
+        applyProgress(local ?? freshLocalPuzzleProgress('crossword'))
+        setError(null)
+        setLoading(false)
+        return
+      }
       const { data: existing, error: readError } = await supabase.rpc(
         'get_team_puzzle_progress',
         args,
@@ -140,6 +183,18 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         return
       }
       const parsed = parsePuzzleProgress(existing as Json)
+      // A crossword finished offline stays finished while its queued result
+      // drains: an empty (or older) server row must not reopen the board for a
+      // second play. A server completed row still wins outright.
+      const local =
+        words && !parsed.completed ? await loadLocalPuzzleProgress(eventId, teamId, game.id) : null
+      if (cancelled) return
+      if (local?.completed) {
+        applyProgress(local)
+        setError(null)
+        setLoading(false)
+        return
+      }
       if (parsed.startedAt) {
         applyProgress(parsed)
         setError(null)
@@ -162,7 +217,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     return () => {
       cancelled = true
     }
-  }, [applyProgress, eventId, game.id, teamToken])
+  }, [applyProgress, eventId, game.id, onQueuePuzzleResult, teamId, teamToken])
 
   useEffect(
     () =>
@@ -181,7 +236,12 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
                 p_team_token: teamToken,
               })
               .then(({ data }) => {
-                if (data) applyProgress(parsePuzzleProgress(data as Json))
+                if (!data) return
+                const next = parsePuzzleProgress(data as Json)
+                // A locally completed board only yields to a completed server
+                // row (the server never un-completes a puzzle).
+                if (progressRef.current?.completed && !next.completed) return
+                applyProgress(next)
               })
           }
         },
@@ -212,6 +272,20 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     (nextCells: Record<string, string>) => {
       if (!teamToken) return
       if (syncTimer.current !== null) window.clearTimeout(syncTimer.current)
+      // Offline the debounced write lands in IndexedDB instead of the fill
+      // RPC, so typed letters survive a reload mid-puzzle.
+      if (!navigator.onLine && offlineWordsRef.current) {
+        syncTimer.current = window.setTimeout(() => {
+          const current = progressRef.current
+          if (current && !current.completed) {
+            saveLocalPuzzleProgress(eventId, teamId, game.id, {
+              ...current,
+              filledCells: nextCells,
+            })
+          }
+        }, 700)
+        return
+      }
       syncTimer.current = window.setTimeout(() => {
         void supabase
           .rpc('update_crossword_fill', {
@@ -229,6 +303,37 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
   const checkWord = useCallback(
     async (nextCells: Record<string, string>, wordId: string) => {
       if (!teamToken || checking) return
+      // Offline with the key on device: validate against the local word list
+      // and, on a full solve, queue ONE result for the server to replay and
+      // re-score when the outbox drains.
+      const words = !navigator.onLine ? offlineWordsRef.current : null
+      if (words && onQueuePuzzleResult) {
+        const current = progressRef.current ?? freshLocalPuzzleProgress('crossword')
+        const next = applyLocalCrosswordCheck(current, words, nextCells, maxPoints)
+        applyProgress(next)
+        if (next.completed && !current.completed) {
+          onQueuePuzzleResult({
+            clientId: crypto.randomUUID(),
+            eventId,
+            teamId,
+            kind: 'puzzle-result',
+            gameId: game.id,
+            createdAt: new Date().toISOString(),
+            payload: {
+              puzzleType: 'crossword',
+              result: {
+                cells: next.filledCells,
+                solveSeconds: next.solveSeconds ?? 0,
+                hintsUsed: next.hintsUsed,
+              },
+            },
+          })
+        } else if (!next.completed && !next.solvedWordIds.includes(wordId)) {
+          setWrongFlash(true)
+          window.setTimeout(() => setWrongFlash(false), 900)
+        }
+        return
+      }
       setChecking(true)
       try {
         const { data, error: checkError } = await supabase.rpc('validate_crossword_grid', {
@@ -253,11 +358,19 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
         setChecking(false)
       }
     },
-    [applyProgress, checking, eventId, game.id, teamId, teamToken],
+    [applyProgress, checking, eventId, game.id, maxPoints, onQueuePuzzleResult, teamId, teamToken],
   )
 
   const useHint = useCallback(async () => {
     if (!teamToken) return
+    // Offline with the key on device: reveal from the local word list, exactly
+    // as the server would (one cell per unsolved word, crossings once).
+    const words = !navigator.onLine ? offlineWordsRef.current : null
+    if (words && onQueuePuzzleResult) {
+      const current = progressRef.current ?? freshLocalPuzzleProgress('crossword')
+      applyProgress(applyLocalCrosswordHint(current, words, cells))
+      return
+    }
     try {
       const { data, error: hintError } = await supabase.rpc('use_crossword_hint', {
         p_event_id: eventId,
@@ -271,7 +384,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor }: Props) {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not use a hint.')
     }
-  }, [applyProgress, cells, eventId, game.id, teamId, teamToken])
+  }, [applyProgress, cells, eventId, game.id, onQueuePuzzleResult, teamId, teamToken])
 
   function isLocked(key: string) {
     return solvedCellKeys.has(key) || revealedKeys.has(key)
