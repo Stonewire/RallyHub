@@ -5,6 +5,28 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.21.0 - 2026-08-18 (offline mode complete)
+
+OFFLINE-1 Stages 4-7: quest stages now play fully offline. Adversarially
+reviewed (14 confirmed findings across two rounds, all fixed); real-device
+dead-spot testing is the remaining check. Quiz and music bingo stay online by
+nature and now say so clearly when the connection drops.
+
+- Puzzles (Wordle, matching, crossword) play and score instantly offline from
+  the answers downloaded at join, hints included, resuming across reloads.
+  One result syncs on reconnect and the server re-validates and re-scores it,
+  locked so two devices of one team can never double-score.
+- Text games with auto-approve give their verdict instantly offline; the
+  server re-scores the same answer when the queue drains.
+- The store works offline: browse the cached catalogue, place an order, see
+  it as Waiting to send in My Items; it places itself on reconnect. Online
+  orders still validate before the Order sent screen, and a refused order
+  keeps a clear Not placed card instead of vanishing.
+- The app now BOOTS with no connection: reopen it in a dead spot and the
+  event renders from the device. First online visit primes this.
+- Offline UI: a You're offline pill on the player screen, and everything a
+  team does while offline sends itself when signal returns.
+
 ## V3.20.0 - 2026-08-14 (offline mode, phase 2: download + durable queue)
 
 OFFLINE-1 Stages 2-3. Quest submissions now survive going offline. Reviewed
