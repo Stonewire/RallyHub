@@ -7,6 +7,7 @@ import {
   publishLiveBundlePatch,
 } from '@/lib/live-broadcast'
 import {
+  clearLiveEventAccess,
   ensureLiveEventAccess,
   getStoredLiveJoinToken,
 } from '@/lib/live-event-access'
@@ -32,6 +33,24 @@ async function fetchEventSubmissions(eventId: string): Promise<Tables<'submissio
 }
 
 async function fetchBundle(eventId: string): Promise<LiveEventBundle | null> {
+  // An EXPIRED stored join token fails silently: ensureLiveEventAccess keeps
+  // trusting it, RLS filters every read to empty, and the app looks dead until
+  // the browser process restarts (seen on a phone reopening the event hours
+  // later). When a load comes back empty/broken while online with a stored
+  // token, drop the token, mint a fresh one, and retry once.
+  const staleTokenSuspect = () => navigator.onLine && Boolean(getStoredLiveJoinToken(eventId))
+  try {
+    const bundle = await fetchBundleOnce(eventId)
+    if (bundle) return bundle
+    if (!staleTokenSuspect()) return null
+  } catch (err) {
+    if (!staleTokenSuspect()) throw err
+  }
+  clearLiveEventAccess(eventId)
+  return fetchBundleOnce(eventId)
+}
+
+async function fetchBundleOnce(eventId: string): Promise<LiveEventBundle | null> {
   const access = await ensureLiveEventAccess(eventId)
   if (!access) return null
 

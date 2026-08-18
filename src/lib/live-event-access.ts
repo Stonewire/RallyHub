@@ -8,6 +8,17 @@ export function getStoredLiveJoinToken(eventId: string): string | null {
   return sessionStorage.getItem(joinTokenStorageKey(eventId))
 }
 
+/** Drop the cached join token (header + sessionStorage) so the next
+ *  ensureLiveEventAccess mints a fresh one. Used when reads come back empty
+ *  with a stored token: an expired token is filtered by RLS silently, and
+ *  without this the app stays dead until the browser process restarts. */
+export function clearLiveEventAccess(eventId: string): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(joinTokenStorageKey(eventId))
+  }
+  setLiveJoinToken(null)
+}
+
 /** Bootstrap or restore per-event join token for anon live panels (header + sessionStorage). */
 export async function ensureLiveEventAccess(eventId: string): Promise<boolean> {
   const stored = getStoredLiveJoinToken(eventId)

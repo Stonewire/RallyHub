@@ -5,7 +5,7 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
-## V3.21.1-V3.21.2 - 2026-08-18 (offline hardening after first device test)
+## V3.21.1-V3.21.3 - 2026-08-18 (offline hardening after first device test)
 
 Fixes from the first offline test on a phone, where puzzles showed a raw
 "TypeError: Load failed" instead of playing offline.
@@ -22,6 +22,10 @@ Fixes from the first offline test on a phone, where puzzles showed a raw
   (and refresh on reconnect), so the store browses offline even if the team
   never opened it online first. A first-open offline without the snapshot
   gets plain offline copy instead of a raw fetch error.
+- An expired join token no longer kills the app until a browser restart:
+  reads that come back empty while online with a stored token now drop the
+  token, mint a fresh one, and retry once (seen on a phone reopening the
+  event hours later as "Failed to load event").
 
 ## V3.21.0 - 2026-08-18 (offline mode complete)
 
