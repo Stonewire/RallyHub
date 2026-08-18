@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { useNotification } from '@/contexts/notification-context'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
-import { idbGet, idbSet } from '@/lib/offline/idb'
+import { downloadStoreSnapshot, getStoredStoreSnapshot } from '@/lib/offline/store-snapshot'
 import { supabase } from '@/lib/supabase'
 
 type StoreRow = {
@@ -88,34 +88,28 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       setLoadError('Join a team on this phone first, then open the store again.')
       return
     }
-    const [storeRes, ordersRes] = await Promise.all([
-      supabase.rpc('get_event_store', { p_event_id: eventId, p_purchase_token: token }),
-      supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
-    ])
-    if (storeRes.error) {
+    const fresh = await downloadStoreSnapshot(eventId, token)
+    if (!fresh) {
       // Offline: show the last catalogue AND orders this device saw rather
       // than an error. Stale numbers are fine; the server re-validates every
       // order, and hiding a team's real orders here invited double-ordering.
-      const snap = await idbGet<{ rows: StoreRow[]; orders?: OrderRow[] }>(
-        'content',
-        `store:${eventId}`,
-      )
-      if (snap?.rows) {
+      const snap = await getStoredStoreSnapshot(eventId)
+      if (snap) {
         setLoadError(null)
-        setRows(snap.rows)
-        setOrders(snap.orders ?? [])
+        setRows(snap.rows as StoreRow[])
+        setOrders((snap.orders ?? []) as OrderRow[])
         return
       }
-      setLoadError(rpcMessage(storeRes.error, 'Could not open the store.'))
+      setLoadError(
+        navigator.onLine
+          ? 'Could not open the store.'
+          : "You're offline and the store has not downloaded to this phone yet. It needs a connection right now.",
+      )
       return
     }
     setLoadError(null)
-    setRows((storeRes.data ?? []) as StoreRow[])
-    if (!ordersRes.error) setOrders((ordersRes.data ?? []) as OrderRow[])
-    void idbSet('content', `store:${eventId}`, {
-      rows: storeRes.data ?? [],
-      orders: ordersRes.error ? [] : (ordersRes.data ?? []),
-    })
+    setRows(fresh.rows as StoreRow[])
+    setOrders(fresh.orders as OrderRow[])
   }, [eventId, token])
 
   useEffect(() => {

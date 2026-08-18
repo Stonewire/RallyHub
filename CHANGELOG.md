@@ -18,6 +18,10 @@ Fixes from the first offline test on a phone, where puzzles showed a raw
 - Offline with no pack now reads "This puzzle is not downloaded for offline
   play yet. It needs a connection right now." instead of a raw fetch error,
   and network errors in puzzle play map to plain offline copy everywhere.
+- The store catalogue and the team's orders now download right after join
+  (and refresh on reconnect), so the store browses offline even if the team
+  never opened it online first. A first-open offline without the snapshot
+  gets plain offline copy instead of a raw fetch error.
 
 ## V3.21.0 - 2026-08-18 (offline mode complete)
 

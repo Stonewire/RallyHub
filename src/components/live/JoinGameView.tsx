@@ -91,6 +91,7 @@ import { Outbox, PermanentSubmitError, NetworkSubmitError, type OutboxItem } fro
 import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
 import { getBlob } from '@/lib/offline/blob-cache'
 import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/package'
+import { downloadStoreSnapshot } from '@/lib/offline/store-snapshot'
 import { useOnlineStatus } from '@/lib/offline/net'
 import { scoreOfflineText } from '@/lib/offline/scoring'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
@@ -547,13 +548,18 @@ export function JoinGameView({
     [outbox],
   )
 
-  // Once we are in as a team, pull the offline answer package in the background
-  // (Stage 4 scores text and puzzles from it offline). Best-effort: the RPC
-  // returns nothing without a valid team token, so this is safe to fire and a
-  // failure just leaves offline scoring unavailable.
+  // Once we are in as a team, pull the offline answer package and the store
+  // snapshot in the background (Stage 4 scores text and puzzles offline from
+  // the package; Stage 5 browses the store offline from the snapshot).
+  // Best-effort: both no-op without a valid team token, and a failure just
+  // leaves that offline feature unavailable until the reconnect refresh.
   useEffect(() => {
     if (!event.id) return
     void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+    const session = getCurrentParticipantSession()
+    if (session?.eventId === event.id && session.purchaseToken) {
+      void downloadStoreSnapshot(event.id, session.purchaseToken)
+    }
   }, [event.id])
 
   // Rehydrate any submissions queued before a reload/offline/app-kill and drain
@@ -613,7 +619,13 @@ export function JoinGameView({
     const kick = () => outbox.kick()
     const reconnect = () => {
       kick()
-      if (event.id) void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+      if (event.id) {
+        void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+        const session = getCurrentParticipantSession()
+        if (session?.eventId === event.id && session.purchaseToken) {
+          void downloadStoreSnapshot(event.id, session.purchaseToken)
+        }
+      }
     }
     window.addEventListener('online', reconnect)
     window.addEventListener('focus', kick)
