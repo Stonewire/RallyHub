@@ -1,4 +1,4 @@
-import { LogOut, MessageCircle, QrCode, ShoppingBag } from 'lucide-react'
+import { LogOut, MessageCircle, QrCode, ShoppingBag, WifiOff } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -2116,16 +2116,19 @@ export function JoinGameView({
           )
         : null}
       {header}
-      {/* Offline strip: fixed so nothing shifts, above content, below dialogs.
-          Hidden while the camera owns the screen. */}
+      {/* Offline marker: a small corner icon, not a banner (Rumen, 18 Aug:
+          gentle, no distraction). Fixed so nothing shifts, above content,
+          below dialogs. Hidden while the camera owns the screen. Top-left,
+          the only corner without a control: chat sits bottom-left, exit
+          bottom-right, score top-right. */}
       {!online && !captureActive ? (
         <div
-          className="pointer-events-none fixed inset-x-0 top-0 z-[10001] flex justify-center px-3 pt-[calc(env(safe-area-inset-top)+8px)]"
+          className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+20px)] z-[10001] flex size-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
           role="status"
+          aria-label="You're offline. Your work is saved and will send automatically."
+          title="You're offline. Your work is saved and will send automatically."
         >
-          <div className="rounded-full bg-black/85 px-4 py-2 text-center text-xs font-bold text-white shadow-lg">
-            You're offline. Your work is saved and will send automatically.
-          </div>
+          <WifiOff className="size-4" aria-hidden="true" />
         </div>
       ) : null}
       <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>

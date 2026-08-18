@@ -5,6 +5,12 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.21.4 - 2026-08-18 (offline marker becomes a corner icon)
+
+The full-width "You're offline" banner is now a small wifi-off icon in the
+top left corner: present but not distracting (Rumen's call after testing).
+The full explanation stays available to screen readers and as a tooltip.
+
 ## V3.21.1-V3.21.3 - 2026-08-18 (offline hardening after first device test)
 
 Fixes from the first offline test on a phone, where puzzles showed a raw
