@@ -25,6 +25,25 @@ import {
 const localKey = (eventId: string, teamId: string, gameId: string) =>
   `puzzle:${eventId}:${teamId}:${gameId}`
 
+// The fetch layer's own words for "no connection", per engine (Chrome: Failed
+// to fetch, Safari: Load failed, Firefox: NetworkError). Raw, they read like a
+// crash; players get plain copy instead.
+const NETWORK_ERROR_RE = /failed to fetch|load failed|networkerror|network request failed/i
+
+/** Player-facing message for a failed puzzle call: network failures (and any
+ *  failure while offline) become plain offline copy, real server messages pass
+ *  through, anything shapeless gets the caller's fallback. */
+export function puzzleOfflineErrorMessage(reason: unknown, fallback: string): string {
+  const message =
+    reason && typeof reason === 'object' && 'message' in reason
+      ? String((reason as { message?: unknown }).message ?? '')
+      : ''
+  if (NETWORK_ERROR_RE.test(message) || !navigator.onLine) {
+    return "You're offline. This puzzle needs a connection right now."
+  }
+  return message || fallback
+}
+
 type StoredLocalPuzzle = { progress: PuzzleProgress; savedAt: string; takeover?: boolean }
 
 export async function loadLocalPuzzleProgress(

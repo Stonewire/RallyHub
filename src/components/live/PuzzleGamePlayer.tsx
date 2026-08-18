@@ -11,7 +11,11 @@ import {
   publishPuzzleProgressChange,
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
-import { getOfflineAnswerKeys, type OfflineAnswerKey } from '@/lib/offline/package'
+import {
+  downloadOfflineAnswerKeys,
+  getOfflineAnswerKeys,
+  type OfflineAnswerKey,
+} from '@/lib/offline/package'
 import type { OutboxItem } from '@/lib/offline/outbox'
 import {
   applyLocalMatch,
@@ -21,6 +25,7 @@ import {
   hasLocalTakeover,
   loadLocalPuzzleProgress,
   matchingPairsFromKey,
+  puzzleOfflineErrorMessage,
   saveLocalPuzzleProgress,
   wordleAnswerFromKey,
 } from '@/lib/offline/puzzle-local'
@@ -58,11 +63,7 @@ type Props = {
 const RESULT_HOLD_MS = 1000
 
 function puzzleErrorMessage(reason: unknown): string {
-  if (reason && typeof reason === 'object' && 'message' in reason) {
-    const message = String(reason.message)
-    if (message && !message.toLowerCase().includes('failed to fetch')) return message
-  }
-  return 'Could not update the puzzle. Please try again.'
+  return puzzleOfflineErrorMessage(reason, 'Could not update the puzzle. Please try again.')
 }
 
 /**
@@ -144,9 +145,17 @@ export function PuzzleGamePlayer({
 
   useEffect(() => {
     let cancelled = false
-    void getOfflineAnswerKeys(eventId).then((keys) => {
+    void getOfflineAnswerKeys(eventId).then(async (keys) => {
       if (cancelled) return
-      const key = keys?.[game.id] ?? null
+      let key = keys?.[game.id] ?? null
+      // The join-time download is fire-and-forget and can fail silently (brief
+      // drop, flaky first IndexedDB open). Opening a puzzle online without its
+      // pack is the moment to self-heal, so the next offline window has it.
+      if (!key && navigator.onLine) {
+        const fresh = await downloadOfflineAnswerKeys(eventId, new Date().toISOString())
+        if (cancelled) return
+        key = fresh?.[game.id] ?? null
+      }
       offlineKeyRef.current = key
       setOfflineKey(key)
     })
@@ -201,6 +210,15 @@ export function PuzzleGamePlayer({
         localTakeoverRef.current = takeover
         setProgress(next)
         setError(null)
+        setLoading(false)
+        return
+      }
+      if (!navigator.onLine) {
+        // No pack on the device and no connection: the server call below can
+        // only die at the fetch layer. Say what is actually wrong instead.
+        setError(
+          'This puzzle is not downloaded for offline play yet. It needs a connection right now.',
+        )
         setLoading(false)
         return
       }

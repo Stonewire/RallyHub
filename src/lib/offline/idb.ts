@@ -22,7 +22,7 @@ function hasIndexedDB(): boolean {
 
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise
-  dbPromise = new Promise((resolve, reject) => {
+  const attempt = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = () => {
       const db = req.result
@@ -35,7 +35,15 @@ function openDb(): Promise<IDBDatabase> {
     // If another tab holds an upgrade open, don't hang forever.
     req.onblocked = () => reject(new Error('IndexedDB upgrade blocked by another tab'))
   })
-  return dbPromise
+  // Never cache a failed open: iOS Safari is known to flake on the first open
+  // after launch, and a cached rejection would poison every IDB call for the
+  // rest of the session (no answer keys, no queue persistence). Clearing the
+  // cache lets the next call retry with a fresh open.
+  attempt.catch(() => {
+    if (dbPromise === attempt) dbPromise = null
+  })
+  dbPromise = attempt
+  return attempt
 }
 
 function tx<T>(

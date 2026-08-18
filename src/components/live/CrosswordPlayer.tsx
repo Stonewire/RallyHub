@@ -7,7 +7,7 @@ import {
   publishPuzzleProgressChange,
   subscribeLiveBundleBroadcast,
 } from '@/lib/live-broadcast'
-import { getOfflineAnswerKeys } from '@/lib/offline/package'
+import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/package'
 import type { OutboxItem } from '@/lib/offline/outbox'
 import {
   applyLocalCrosswordCheck,
@@ -16,6 +16,7 @@ import {
   freshLocalPuzzleProgress,
   hasLocalTakeover,
   loadLocalPuzzleProgress,
+  puzzleOfflineErrorMessage,
   saveLocalPuzzleProgress,
 } from '@/lib/offline/puzzle-local'
 import type { CrosswordWord } from '@/lib/offline/scoring'
@@ -162,8 +163,16 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
         p_game_id: game.id,
         p_team_token: teamToken,
       }
-      const words = crosswordWordsFromKey((await getOfflineAnswerKeys(eventId))?.[game.id])
+      let words = crosswordWordsFromKey((await getOfflineAnswerKeys(eventId))?.[game.id])
       if (cancelled) return
+      // Join-time download is fire-and-forget and can fail silently. Opening
+      // the crossword online without its pack is the moment to self-heal, so
+      // the next offline window has it.
+      if (!words && navigator.onLine) {
+        const fresh = await downloadOfflineAnswerKeys(eventId, new Date().toISOString())
+        if (cancelled) return
+        words = crosswordWordsFromKey(fresh?.[game.id])
+      }
       offlineWordsRef.current = words
       // Local play runs when offline with the key on device, and STAYS local
       // once the local driver recorded play (a reconnect mid-grid must not
@@ -182,13 +191,22 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
         setLoading(false)
         return
       }
+      if (!navigator.onLine) {
+        // No pack on the device and no connection: the server call below can
+        // only die at the fetch layer. Say what is actually wrong instead.
+        setError(
+          'This puzzle is not downloaded for offline play yet. It needs a connection right now.',
+        )
+        setLoading(false)
+        return
+      }
       const { data: existing, error: readError } = await supabase.rpc(
         'get_team_puzzle_progress',
         args,
       )
       if (cancelled) return
       if (readError) {
-        setError(readError.message)
+        setError(puzzleOfflineErrorMessage(readError, 'Could not load the crossword.'))
         setLoading(false)
         return
       }
@@ -217,7 +235,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
         p_cells: {},
       })
       if (cancelled) return
-      if (startError) setError(startError.message)
+      if (startError) setError(puzzleOfflineErrorMessage(startError, 'Could not load the crossword.'))
       else {
         applyProgress(parsePuzzleProgress(data as Json))
         setError(null)
@@ -370,7 +388,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
           window.setTimeout(() => setWrongFlash(false), 900)
         }
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Could not check the crossword.')
+        setError(puzzleOfflineErrorMessage(reason, 'Could not check the crossword.'))
       } finally {
         setChecking(false)
       }
@@ -402,7 +420,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       applyProgress(parsePuzzleProgress(data as Json))
       void publishPuzzleProgressChange(eventId, teamId, game.id)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not use a hint.')
+      setError(puzzleOfflineErrorMessage(reason, 'Could not use a hint.'))
     }
   }, [applyProgress, cells, eventId, game.id, onQueuePuzzleResult, teamId, teamToken])
 

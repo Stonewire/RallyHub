@@ -5,6 +5,20 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.21.1 - 2026-08-18 (offline hardening after first device test)
+
+Fixes from the first offline test on a phone, where puzzles showed a raw
+"TypeError: Load failed" instead of playing offline.
+
+- A failed first IndexedDB open (an iOS Safari flake) was cached for the whole
+  session, silently blocking the answer-pack download at join. Failed opens now
+  retry on the next call.
+- Opening a puzzle online without its offline pack now re-downloads it on the
+  spot, so a failed join-time download self-heals before the next drop.
+- Offline with no pack now reads "This puzzle is not downloaded for offline
+  play yet. It needs a connection right now." instead of a raw fetch error,
+  and network errors in puzzle play map to plain offline copy everywhere.
+
 ## V3.21.0 - 2026-08-18 (offline mode complete)
 
 OFFLINE-1 Stages 4-7: quest stages now play fully offline. Adversarially
