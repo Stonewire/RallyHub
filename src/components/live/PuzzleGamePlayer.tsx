@@ -18,6 +18,7 @@ import {
   applyLocalWordleGuess,
   crosswordWordsFromKey,
   freshLocalPuzzleProgress,
+  hasLocalTakeover,
   loadLocalPuzzleProgress,
   matchingPairsFromKey,
   saveLocalPuzzleProgress,
@@ -137,6 +138,9 @@ export function PuzzleGamePlayer({
   // key without depending on it (a dep would refetch progress when it lands).
   const [offlineKey, setOfflineKey] = useState<OfflineAnswerKey | null>(null)
   const offlineKeyRef = useRef<OfflineAnswerKey | null>(null)
+  // True once the LOCAL driver has recorded play for this puzzle: play then
+  // stays local through reconnects until completion (see loadProgress).
+  const localTakeoverRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -179,10 +183,14 @@ export function PuzzleGamePlayer({
       setLoading(false)
       return
     }
-    // Offline with a downloaded answer key: resume (or start) local play from
-    // IndexedDB instead of failing the server read. Keys absent, the server
-    // path below runs exactly as before.
-    if (!navigator.onLine && onQueuePuzzleResult) {
+    // Local play runs when offline with a downloaded key, and STAYS local
+    // once the local driver has recorded guesses (a reconnect mid-puzzle must
+    // not flip back to server RPCs whose progress row never saw the offline
+    // play). Keys absent, the server path below runs exactly as before.
+    const takeover = onQueuePuzzleResult
+      ? await hasLocalTakeover(eventId, teamId, game.id)
+      : false
+    if ((!navigator.onLine || takeover) && onQueuePuzzleResult) {
       const key = (await getOfflineAnswerKeys(eventId))?.[game.id]
       if (keyPlayable(key)) {
         const local = await loadLocalPuzzleProgress(eventId, teamId, game.id)
@@ -190,6 +198,7 @@ export function PuzzleGamePlayer({
         // owns the solve-timer origin; wordle and matching start fresh here.
         const next = local ?? (type === 'crossword' ? null : freshLocalPuzzleProgress(type))
         if (!local && next) saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        localTakeoverRef.current = takeover
         setProgress(next)
         setError(null)
         setLoading(false)
@@ -277,17 +286,22 @@ export function PuzzleGamePlayer({
 
   async function submitWordleGuess() {
     if (!teamToken || saving) return
-    // Offline with the answer on device: score the guess locally. Online (or
-    // without the key) the server flow below runs untouched.
-    const localAnswer = !navigator.onLine && onQueuePuzzleResult ? wordleAnswerFromKey(offlineKey) : null
+    // Local scoring when offline OR once local play took this puzzle over (a
+    // reconnect mid-board must not hand a behind server row the next guess).
+    // Online without takeover, the server flow below runs untouched.
+    const localAnswer =
+      (!navigator.onLine || localTakeoverRef.current) && onQueuePuzzleResult
+        ? wordleAnswerFromKey(offlineKey)
+        : null
     if (localAnswer) {
       try {
         const base = progress ?? freshLocalPuzzleProgress('wordle')
         const next = applyLocalWordleGuess(base, localAnswer, guess, maxPoints)
+        localTakeoverRef.current = true
         setProgress(next)
         setGuess('')
         setError(null)
-        saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next, { takeover: true })
         if (next.completed && !base.completed) {
           queuePuzzleResult({ guesses: next.guesses.map((row) => row.word) })
         }
@@ -334,13 +348,17 @@ export function PuzzleGamePlayer({
 
   async function submitMatch(leftId: string, rightId: string) {
     if (!teamToken || saving) return
-    // Offline with the pair list on device: judge the match locally. Online
-    // (or without the key) the server flow below runs untouched.
-    const localPairs = !navigator.onLine && onQueuePuzzleResult ? matchingPairsFromKey(offlineKey) : null
+    // Local judging when offline OR once local play took this puzzle over.
+    // Online without takeover, the server flow below runs untouched.
+    const localPairs =
+      (!navigator.onLine || localTakeoverRef.current) && onQueuePuzzleResult
+        ? matchingPairsFromKey(offlineKey)
+        : null
     if (localPairs) {
       try {
         const base = progress ?? freshLocalPuzzleProgress('matching')
         const next = applyLocalMatch(base, localPairs, leftId, rightId, maxPoints)
+        localTakeoverRef.current = true
         if (next.lastMatchCorrect === false) {
           setWrongSelection({ left: leftId, right: rightId })
           window.setTimeout(() => setWrongSelection(null), 650)
@@ -349,7 +367,7 @@ export function PuzzleGamePlayer({
         setSelectedLeft(null)
         setSelectedRight(null)
         setError(null)
-        saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next, { takeover: true })
         if (next.completed && !base.completed) {
           queuePuzzleResult({ attempts: next.attempts, wrongMatches: next.wrongMatches })
         }

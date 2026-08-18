@@ -48,11 +48,13 @@ type EventStoreSheetProps = {
     display: { totalPoints: number; lines: { itemName: string; quantity: number }[] },
   ) => Promise<void>
   /** Orders still waiting in the offline queue, shown in My Items until the
-   *  server copy appears. */
+   *  server copy appears. A `failed` reason keeps the card as a durable trace
+   *  of an order the server refused. */
   queuedOrders?: {
     clientId: string
     totalPoints: number
     lines: { itemName: string; quantity: number }[]
+    failed?: string
   }[]
 }
 
@@ -91,12 +93,17 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
     ])
     if (storeRes.error) {
-      // Offline: show the last catalogue this device saw rather than an error.
-      // Stock/score numbers may be stale; the server re-validates every order.
-      const snap = await idbGet<{ rows: StoreRow[] }>('content', `store:${eventId}`)
+      // Offline: show the last catalogue AND orders this device saw rather
+      // than an error. Stale numbers are fine; the server re-validates every
+      // order, and hiding a team's real orders here invited double-ordering.
+      const snap = await idbGet<{ rows: StoreRow[]; orders?: OrderRow[] }>(
+        'content',
+        `store:${eventId}`,
+      )
       if (snap?.rows) {
         setLoadError(null)
         setRows(snap.rows)
+        setOrders(snap.orders ?? [])
         return
       }
       setLoadError(rpcMessage(storeRes.error, 'Could not open the store.'))
@@ -104,8 +111,11 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
     }
     setLoadError(null)
     setRows((storeRes.data ?? []) as StoreRow[])
-    void idbSet('content', `store:${eventId}`, { rows: storeRes.data ?? [] })
     if (!ordersRes.error) setOrders((ordersRes.data ?? []) as OrderRow[])
+    void idbSet('content', `store:${eventId}`, {
+      rows: storeRes.data ?? [],
+      orders: ordersRes.error ? [] : (ordersRes.data ?? []),
+    })
   }, [eventId, token])
 
   useEffect(() => {
@@ -300,12 +310,18 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
                   <p className="text-sm font-bold">
                     {q.lines.map((l) => `${l.quantity}× ${l.itemName}`).join(', ')}
                   </p>
-                  <span className="ml-2 shrink-0 rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
-                    Waiting to send
+                  <span
+                    className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      q.failed ? 'bg-rose-500 text-white' : 'bg-white/25 text-white'
+                    }`}
+                  >
+                    {q.failed ? 'Not placed' : 'Waiting to send'}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-white/60">
-                  {q.totalPoints} pts · sends automatically when you are back online
+                  {q.failed
+                    ? q.failed
+                    : `${q.totalPoints} pts · sends automatically when you are back online`}
                 </p>
               </div>
             ))}

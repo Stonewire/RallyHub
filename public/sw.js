@@ -19,8 +19,15 @@
  */
 
 const CACHE = 'rallyhub-offline-v2'
-const ASSETS = 'rallyhub-assets-v1'
-const SHELL = 'rallyhub-shell-v1'
+// SHELL and ASSETS share one version and MUST be bumped together, only ever
+// via OFFLINE_BOOT_VERSION: a shell that survives while its referenced hashed
+// assets are swept boots into a white screen offline, which is strictly worse
+// than offline.html. Bumping both at once degrades a stale offline boot to
+// offline.html until the next online load, which is the acceptable path. This
+// is also the cleanup for accumulated old assets (a few MB per deploy).
+const OFFLINE_BOOT_VERSION = 'v1'
+const ASSETS = 'rallyhub-assets-' + OFFLINE_BOOT_VERSION
+const SHELL = 'rallyhub-shell-' + OFFLINE_BOOT_VERSION
 const OFFLINE_URL = '/offline.html'
 // The offline submission queue keeps captured photo/video bytes in Cache API
 // caches with this prefix (src/lib/offline/blob-cache.ts). The cleanup below
@@ -61,15 +68,17 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
 
   // Hashed build assets: immutable by construction, so cache-first is safe and
-  // fast. Old hashes accumulate only until the next activate sweep of a
-  // renamed cache version.
+  // fast. Cleanup happens only via the coupled OFFLINE_BOOT_VERSION bump.
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.open(ASSETS).then(async (cache) => {
         const hit = await cache.match(request)
         if (hit) return hit
         const res = await fetch(request)
-        if (res.ok) void cache.put(request, res.clone())
+        if (res.ok) {
+          const copy = res.clone()
+          event.waitUntil(cache.put(request, copy))
+        }
         return res
       }),
     )
@@ -83,8 +92,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          if (res.ok) {
-            void caches.open(SHELL).then((cache) => cache.put('/__shell', res.clone()))
+          // Clone BEFORE the body is handed to the page, and only ever cache a
+          // real HTML document — an ok non-HTML navigation must not poison the
+          // boot shell. waitUntil keeps the worker alive through the put.
+          if (res.ok && (res.headers.get('content-type') ?? '').includes('text/html')) {
+            const copy = res.clone()
+            event.waitUntil(caches.open(SHELL).then((cache) => cache.put('/__shell', copy)))
           }
           return res
         })
@@ -96,4 +109,37 @@ self.addEventListener('fetch', (event) => {
         }),
     )
   }
+})
+
+// First-visit priming (the page posts this once after the worker activates):
+// without it, the fetch handler only caches what loads AFTER the worker
+// controls the page, so a player's very first session had no offline boot.
+self.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || data.type !== 'prime-offline-boot') return
+  event.waitUntil(
+    (async () => {
+      try {
+        const shellCache = await caches.open(SHELL)
+        const res = await fetch(new Request(data.url || '/', { cache: 'reload' }))
+        if (res.ok && (res.headers.get('content-type') ?? '').includes('text/html')) {
+          await shellCache.put('/__shell', res)
+        }
+        const assetCache = await caches.open(ASSETS)
+        for (const href of Array.isArray(data.assets) ? data.assets : []) {
+          try {
+            const u = new URL(href, self.location.origin)
+            if (u.origin !== self.location.origin || !u.pathname.startsWith('/assets/')) continue
+            if (await assetCache.match(u.href)) continue
+            const r = await fetch(u.href)
+            if (r.ok) await assetCache.put(u.href, r)
+          } catch {
+            // Skip an asset that will not fetch; the rest still prime.
+          }
+        }
+      } catch {
+        // Priming is best-effort; the runtime caching still covers later loads.
+      }
+    })(),
+  )
 })

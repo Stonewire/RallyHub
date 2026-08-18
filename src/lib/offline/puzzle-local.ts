@@ -25,7 +25,7 @@ import {
 const localKey = (eventId: string, teamId: string, gameId: string) =>
   `puzzle:${eventId}:${teamId}:${gameId}`
 
-type StoredLocalPuzzle = { progress: PuzzleProgress; savedAt: string }
+type StoredLocalPuzzle = { progress: PuzzleProgress; savedAt: string; takeover?: boolean }
 
 export async function loadLocalPuzzleProgress(
   eventId: string,
@@ -36,18 +36,45 @@ export async function loadLocalPuzzleProgress(
   return rec?.progress ?? null
 }
 
+/** Whether the LOCAL driver has recorded play for this puzzle (as opposed to a
+ *  mirror of server progress). Once true, play stays local until completion —
+ *  flipping back to the server RPCs mid-puzzle would replay against a progress
+ *  row that never saw the offline guesses, under-counting attempts and
+ *  discarding the board the team can see. */
+export async function hasLocalTakeover(
+  eventId: string,
+  teamId: string,
+  gameId: string,
+): Promise<boolean> {
+  const rec = await idbGet<StoredLocalPuzzle>('content', localKey(eventId, teamId, gameId))
+  return Boolean(rec?.takeover && !rec.progress.completed)
+}
+
 /** Fire-and-forget: a storage failure only costs resume-after-reload, never
- *  the play in front of the team. */
+ *  the play in front of the team. `takeover` marks progress written by the
+ *  LOCAL driver; a server mirror must never clear an existing takeover. */
 export function saveLocalPuzzleProgress(
   eventId: string,
   teamId: string,
   gameId: string,
   progress: PuzzleProgress,
+  options?: { takeover?: boolean },
 ): void {
-  void idbSet('content', localKey(eventId, teamId, gameId), {
-    progress,
-    savedAt: new Date().toISOString(),
-  } satisfies StoredLocalPuzzle).catch(() => undefined)
+  void (async () => {
+    const key = localKey(eventId, teamId, gameId)
+    const takeover = options?.takeover ?? false
+    if (!takeover) {
+      const existing = await idbGet<StoredLocalPuzzle>('content', key)
+      // A mirror write while a takeover is in force must not demote it, and
+      // must not overwrite the (ahead) local board with behind server state.
+      if (existing?.takeover && !existing.progress.completed) return
+    }
+    await idbSet('content', key, {
+      progress,
+      savedAt: new Date().toISOString(),
+      takeover,
+    } satisfies StoredLocalPuzzle)
+  })().catch(() => undefined)
 }
 
 /** startedAt is stamped the moment local play begins; for crosswords it is the

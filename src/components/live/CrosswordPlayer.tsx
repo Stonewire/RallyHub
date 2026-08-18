@@ -14,6 +14,7 @@ import {
   applyLocalCrosswordHint,
   crosswordWordsFromKey,
   freshLocalPuzzleProgress,
+  hasLocalTakeover,
   loadLocalPuzzleProgress,
   saveLocalPuzzleProgress,
 } from '@/lib/offline/puzzle-local'
@@ -75,6 +76,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
   // The downloaded answer key's word list; set once on mount. Its presence is
   // what makes this crossword playable (checked, hinted, scored) offline.
   const offlineWordsRef = useRef<CrosswordWord[] | null>(null)
+  // True once the LOCAL driver has recorded play for this grid: play then
+  // stays local through reconnects until completion.
+  const localTakeoverRef = useRef(false)
   // Latest applied progress, for callbacks that must read it without keeping
   // the whole progress object in their dependency lists.
   const progressRef = useRef<PuzzleProgress | null>(null)
@@ -161,10 +165,16 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       const words = crosswordWordsFromKey((await getOfflineAnswerKeys(eventId))?.[game.id])
       if (cancelled) return
       offlineWordsRef.current = words
-      // Offline with the key on device: resume the persisted local board, or
-      // start one now — its startedAt is the local solve-timer origin. Keys
-      // absent, the server path below runs exactly as before.
-      if (!navigator.onLine && words && onQueuePuzzleResult) {
+      // Local play runs when offline with the key on device, and STAYS local
+      // once the local driver recorded play (a reconnect mid-grid must not
+      // hand a behind server row the rest of the solve). Keys absent, the
+      // server path below runs exactly as before.
+      const takeover = onQueuePuzzleResult
+        ? await hasLocalTakeover(eventId, teamId, game.id)
+        : false
+      if (cancelled) return
+      localTakeoverRef.current = takeover
+      if ((!navigator.onLine || takeover) && words && onQueuePuzzleResult) {
         const local = await loadLocalPuzzleProgress(eventId, teamId, game.id)
         if (cancelled) return
         applyProgress(local ?? freshLocalPuzzleProgress('crossword'))
@@ -272,16 +282,20 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
     (nextCells: Record<string, string>) => {
       if (!teamToken) return
       if (syncTimer.current !== null) window.clearTimeout(syncTimer.current)
-      // Offline the debounced write lands in IndexedDB instead of the fill
-      // RPC, so typed letters survive a reload mid-puzzle.
-      if (!navigator.onLine && offlineWordsRef.current) {
+      // Offline (or after a local takeover) the debounced write lands in
+      // IndexedDB instead of the fill RPC, so typed letters survive a reload.
+      if ((!navigator.onLine || localTakeoverRef.current) && offlineWordsRef.current) {
         syncTimer.current = window.setTimeout(() => {
           const current = progressRef.current
           if (current && !current.completed) {
-            saveLocalPuzzleProgress(eventId, teamId, game.id, {
-              ...current,
-              filledCells: nextCells,
-            })
+            localTakeoverRef.current = true
+            saveLocalPuzzleProgress(
+              eventId,
+              teamId,
+              game.id,
+              { ...current, filledCells: nextCells },
+              { takeover: true },
+            )
           }
         }, 700)
         return
@@ -303,14 +317,17 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
   const checkWord = useCallback(
     async (nextCells: Record<string, string>, wordId: string) => {
       if (!teamToken || checking) return
-      // Offline with the key on device: validate against the local word list
-      // and, on a full solve, queue ONE result for the server to replay and
-      // re-score when the outbox drains.
-      const words = !navigator.onLine ? offlineWordsRef.current : null
+      // Offline (or after a local takeover) with the key on device: validate
+      // against the local word list and, on a full solve, queue ONE result for
+      // the server to replay and re-score when the outbox drains.
+      const words =
+        !navigator.onLine || localTakeoverRef.current ? offlineWordsRef.current : null
       if (words && onQueuePuzzleResult) {
         const current = progressRef.current ?? freshLocalPuzzleProgress('crossword')
         const next = applyLocalCrosswordCheck(current, words, nextCells, maxPoints)
+        localTakeoverRef.current = true
         applyProgress(next)
+        saveLocalPuzzleProgress(eventId, teamId, game.id, next, { takeover: true })
         if (next.completed && !current.completed) {
           onQueuePuzzleResult({
             clientId: crypto.randomUUID(),
@@ -363,12 +380,15 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
 
   const useHint = useCallback(async () => {
     if (!teamToken) return
-    // Offline with the key on device: reveal from the local word list, exactly
-    // as the server would (one cell per unsolved word, crossings once).
-    const words = !navigator.onLine ? offlineWordsRef.current : null
+    // Offline (or after a local takeover): reveal from the local word list
+    // with the live server algorithm (exactly one letter, crossing preferred).
+    const words = !navigator.onLine || localTakeoverRef.current ? offlineWordsRef.current : null
     if (words && onQueuePuzzleResult) {
       const current = progressRef.current ?? freshLocalPuzzleProgress('crossword')
-      applyProgress(applyLocalCrosswordHint(current, words, cells))
+      const next = applyLocalCrosswordHint(current, words, cells)
+      localTakeoverRef.current = true
+      applyProgress(next)
+      saveLocalPuzzleProgress(eventId, teamId, game.id, next, { takeover: true })
       return
     }
     try {

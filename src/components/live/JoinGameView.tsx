@@ -94,6 +94,7 @@ import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/p
 import { useOnlineStatus } from '@/lib/offline/net'
 import { scoreOfflineText } from '@/lib/offline/scoring'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
+import { ensureLiveEventAccess } from '@/lib/live-event-access'
 import { isTextGame, resolveGameFromList } from '@/lib/text-game'
 import {
   roundIndexForQuestion,
@@ -290,10 +291,27 @@ export function JoinGameView({
   // Store orders waiting in the offline queue, mirrored into React state so My
   // Items can show them before they reach the server.
   const [queuedStoreOrders, setQueuedStoreOrders] = useState<
-    { clientId: string; totalPoints: number; lines: { itemName: string; quantity: number }[] }[]
+    {
+      clientId: string
+      totalPoints: number
+      lines: { itemName: string; quantity: number }[]
+      failed?: string
+    }[]
   >([])
 
   const processOutboxItem = useCallback(async (item: OutboxItem) => {
+    // The join token lives in sessionStorage, which an offline boot starts
+    // without. Every drained request needs it in the header, so re-establish
+    // access first — a no-op when the token is already cached; a failure here
+    // means the network is not really back yet (retry), unless the event has
+    // genuinely left live status (bootstrap returns null while online).
+    const hasAccess = await ensureLiveEventAccess(item.eventId)
+    if (!hasAccess) {
+      // Offline: retry forever. Online but no access (event paused/archived or
+      // a server blip): capped retries, then surfaced — never an instant drop.
+      if (!navigator.onLine) throw new NetworkSubmitError('No event access yet, will retry')
+      throw new Error('Event access unavailable, will retry')
+    }
     if (item.kind === 'store-order') {
       const payload = item.payload as { items: { itemId: string; quantity: number }[] }
       // The purchase token is read fresh here, never persisted in the queue.
@@ -342,11 +360,15 @@ export function JoinGameView({
         if (isLikelyNetworkError(error)) {
           throw new NetworkSubmitError('Puzzle result failed, will retry', { cause: error })
         }
-        // A validation rejection (config changed, event no longer live) will
-        // not change on retry; drop it and tell the team.
-        throw new PermanentSubmitError(error.message || 'Could not submit the puzzle result', {
-          cause: error,
-        })
+        // A Postgres-level rejection (P0001 validation, event not live) will
+        // not change on retry; a code-less server blip (5xx/gateway) retries
+        // up to the cap instead of destroying the team's solve.
+        if (error.code) {
+          throw new PermanentSubmitError(error.message || 'Could not submit the puzzle result', {
+            cause: error,
+          })
+        }
+        throw new Error(error.message || 'Server error, will retry', { cause: error })
       }
       // The RPC hands back the authoritative submissions row (this result's,
       // or a teammate's earlier finish); fold it into the bundle and tell the
@@ -355,6 +377,11 @@ export function JoinGameView({
       if (row) {
         mergeOwnSubmissionRef.current('UPDATE', row)
         void publishSubmissionChange(item.eventId, 'INSERT', row)
+        if (row.id !== item.clientId) {
+          // A teammate finished this puzzle first; their score stands and this
+          // device's local completion card was provisional. Say so.
+          notify('A teammate already finished this puzzle, so their result counts')
+        }
       }
       return
     }
@@ -489,11 +516,23 @@ export function JoinGameView({
           if (item.kind === 'open-submission') {
             mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
           }
+          if (item.kind === 'store-order') {
+            // A toast is easy to miss; keep a durable failed card in My Items
+            // so the team can see the order did not happen and why.
+            const reason = err instanceof Error ? err.message : 'Could not place the order'
+            setQueuedStoreOrders((current) =>
+              current.map((q) => (q.clientId === item.clientId ? { ...q, failed: reason } : q)),
+            )
+          }
           notify(err instanceof Error ? err.message : 'Could not submit')
         },
         onSettled: (clientId) => {
           setOpenSubmissionWrite(clientId, false)
-          setQueuedStoreOrders((current) => current.filter((q) => q.clientId !== clientId))
+          // Successful orders leave the queue list (the server copy takes over
+          // in the poll); failed ones stay as their durable trace.
+          setQueuedStoreOrders((current) =>
+            current.filter((q) => q.clientId !== clientId || q.failed),
+          )
         },
       }),
   )
@@ -2087,6 +2126,27 @@ export function JoinGameView({
           onOrderPlaced={() => setOrderSentOpen(true)}
           queuedOrders={queuedStoreOrders}
           onSubmitOrder={async (items, clientOrderId, display) => {
+            // Online, validate BEFORE celebrating: the server's inline rejection
+            // ("sold out", "not enough points") must reach the team while the
+            // sheet is still open, exactly as before offline mode existed. The
+            // queue is for actual connectivity failures only.
+            if (navigator.onLine) {
+              const session = getCurrentParticipantSession()
+              const token =
+                session && session.eventId === event.id ? session.purchaseToken : null
+              if (token) {
+                const { error } = await supabase.rpc('place_store_order', {
+                  p_event_id: event.id,
+                  p_purchase_token: token,
+                  p_items: items,
+                  p_client_order_id: clientOrderId,
+                })
+                if (!error) return
+                if (!isLikelyNetworkError(error)) throw error
+                // Connection died mid-request: fall through to the queue; the
+                // idempotent client id makes a server-side landing harmless.
+              }
+            }
             setQueuedStoreOrders((current) => [
               ...current,
               { clientId: clientOrderId, ...display },
