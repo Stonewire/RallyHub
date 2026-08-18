@@ -240,11 +240,11 @@ export function applyLocalCrosswordCheck(
   }
 }
 
-/** Mirror of use_crossword_hint: for EACH unsolved word, reveal its first cell
- *  whose letter is wrong or empty and not already granted this pass (a shared
- *  crossing cell is granted once), then merge the reveals into both maps.
- *  Hints cap at 3 and count even when nothing was left to reveal, exactly as
- *  the server counts them. */
+/** Mirror of use_crossword_hint (20260720 rework): reveal exactly ONE letter
+ *  per hint. Candidates are every wrong/empty cell of every unsolved word;
+ *  prefer a cell shared by two or more unsolved crossing words (one hint helps
+ *  both), tie-broken by lowest "row-col" key like the server; otherwise the
+ *  lowest-key candidate. When nothing is revealable, no hint is burned. */
 export function applyLocalCrosswordHint(
   progress: PuzzleProgress,
   words: CrosswordWord[],
@@ -253,19 +253,30 @@ export function applyLocalCrosswordHint(
   if (progress.completed || progress.hintsUsed >= 3) return progress
   const filled = { ...cells }
   const solved = new Set(crosswordSolvedIdsLocal(words, filled))
-  const reveals: Record<string, string> = {}
+  const candidates: Record<string, string> = {}
+  const counts: Record<string, number> = {}
   for (const word of words) {
     if (solved.has(word.id)) continue
     const answer = (word.answer ?? '').toLowerCase()
     for (let i = 0; i < answer.length; i++) {
       const key =
         word.direction === 'down' ? `${word.row + i}-${word.col}` : `${word.row}-${word.col + i}`
-      if ((filled[key] ?? '').toLowerCase() !== answer[i] && !(key in reveals)) {
-        reveals[key] = answer[i].toUpperCase()
-        break
+      if ((filled[key] ?? '').toLowerCase() !== answer[i]) {
+        if (key in candidates) {
+          counts[key] = (counts[key] ?? 1) + 1
+        } else {
+          candidates[key] = answer[i].toUpperCase()
+          counts[key] = 1
+        }
       }
     }
   }
+  const crossing = Object.keys(counts)
+    .filter((key) => counts[key] >= 2)
+    .sort()
+  const pick = crossing[0] ?? Object.keys(candidates).sort()[0]
+  if (!pick) return progress
+  const reveals = { [pick]: candidates[pick] }
   const filledCells = { ...filled, ...reveals }
   return {
     ...progress,

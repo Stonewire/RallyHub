@@ -129,19 +129,25 @@ describe('crossword local drivers', () => {
     expect(full.pointsAwarded).toBe(100)
   })
 
-  it('hint reveals one wrong-or-empty cell per unsolved word, crossings once', () => {
+  it('hint reveals exactly ONE letter, preferring a crossing cell (server 20260720 algorithm)', () => {
     const start = freshLocalPuzzleProgress('crossword')
     const one = applyLocalCrosswordHint(start, words, {})
-    // Both words want 0-0 first; the shared cell is granted once, and the
-    // crossing word moves on to its own next missing letter.
-    expect(one.revealedCells).toEqual({ '0-0': 'C', '1-0': 'O' })
-    expect(one.filledCells).toEqual({ '0-0': 'C', '1-0': 'O' })
+    // 0-0 is shared by both unsolved words, so it wins over every other cell.
+    expect(one.revealedCells).toEqual({ '0-0': 'C' })
+    expect(one.filledCells).toEqual({ '0-0': 'C' })
     expect(one.hintsUsed).toBe(1)
 
     const two = applyLocalCrosswordHint(one, words, one.filledCells)
-    // The revealed cells are now correct, so each word moves further along.
-    expect(two.revealedCells).toEqual({ '0-0': 'C', '1-0': 'O', '0-1': 'A', '2-0': 'W' })
+    // No crossing candidates remain; the lowest "row-col" key wins.
+    expect(two.revealedCells).toEqual({ '0-0': 'C', '0-1': 'A' })
     expect(two.hintsUsed).toBe(2)
+  })
+
+  it('a hint with nothing to reveal burns no hint', () => {
+    const start = freshLocalPuzzleProgress('crossword')
+    const full = { '0-0': 'C', '0-1': 'A', '0-2': 'T', '1-0': 'O', '2-0': 'W' }
+    const after = applyLocalCrosswordHint(start, words, full)
+    expect(after).toBe(start)
   })
 
   it('a hint that finishes a word turns it solved immediately', () => {
