@@ -57,8 +57,7 @@ facilitator single vertical flow with Preview popup), and domain
 architecture v2 (V3.17.0, 10 Aug: path-based client/admin URLs, wrong-domain
 login rejection, public splash pages, redirect shim for every old link).
 
-**Actively next:** OFFLINE-1, offline mode for quest play (own section below,
-briefed 12 Aug, starts next week). Then the mobile app entry flow per Rumen's
+**Actively next:** the mobile app entry flow per Rumen's
 earlier brief: install as PWA, log in with an account, then choose Admin, or
 pick an event and enter as Facilitator or Team player; tablet password stays
 for exiting an event and cross-device team sign-in. Android verification pass
@@ -73,10 +72,25 @@ re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
 ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
 local migration chain, HERMIT-ENCODE workaround in place.
 
-## OFFLINE-1 Offline mode for quest play (IN PROGRESS, feature/offline-mode)
+## OFFLINE-1 Offline mode for quest play (SHIPPED V3.21.0-V3.21.3)
 
-**STATUS 15 Aug: Stage 1 (V3.19.0) is LIVE in prod. Stages 2-3 sit on LOCAL
-main as V3.20.0, ready to push (`git push origin main`).** On 15 Aug a full
+**STATUS 18 Aug: ALL SEVEN STAGES LIVE in prod (V3.21.0), plus a hardening
+round (V3.21.1-V3.21.3) from the first device test.** Verified end-to-end
+against production: offline wordle/matching solve -> queued result -> reconnect
+drain -> server re-score lands in submissions (90/80 pts, DB-checked); offline
+auto-text instant verdict matches the server on drain (case-sensitive btrim
+hash, verified both ways); offline store order shows the full-screen Order
+sent, sits as WAITING TO SEND in My Items, and drains to inventory_orders;
+crossword opens offline with the timer and the live one-letter crossing hint;
+offline BOOT proven on the iOS simulator (Safari killed, relaunched with no
+network, board renders from the SW shell + IDB snapshot with the offline pill).
+Hardening found by that test: a failed first IndexedDB open no longer poisons
+the session (iOS Safari flake), puzzle players re-download a missing answer
+pack when opened online and show plain offline copy instead of raw
+"TypeError: Load failed", the store snapshot downloads at join (not first
+open), and an expired join token now re-mints + retries instead of leaving
+"Failed to load event" until an app restart. Remaining check: Rumen's
+real-device dead-spot test. On 15 Aug a full
 five-lens review of all session work confirmed 13 findings (4 high), all fixed
 the same day: outbox teardown on unmount (no zombie drains after exit/team
 takeover), team-scoped rehydration (rejoining as another team can't destroy the
