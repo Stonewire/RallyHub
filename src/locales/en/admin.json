@@ -1020,7 +1020,11 @@
       "allGroups": "All Groups",
       "selectAll": "Select All",
       "deselectAll": "Deselect All",
-      "noGamesMatchFilters": "No available games match these filters."
+      "noGamesMatchFilters": "No available games match these filters.",
+      "multilingual": "Multilingual event",
+      "multilingualHelp": "Each team picks its own language when they join, before anything else. The display screen and the facilitator panel stay in the event language.",
+      "availableLanguages": "Languages teams can choose",
+      "availableLanguagesEventDefault": "(event language)"
     },
     "preview": {
       "title": "Event preview",

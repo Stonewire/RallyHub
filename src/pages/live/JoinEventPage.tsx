@@ -7,6 +7,7 @@ import { BrandBackground } from '@/components/live/BrandBackground'
 import { PageScopedManifest } from '@/components/pwa/PageScopedManifest'
 import { ParticipantInstallButton } from '@/components/pwa/ParticipantInstallButton'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
+import { ParticipantLanguagePicker } from '@/components/live/ParticipantLanguagePicker'
 import { ParticipantPrivacyNotice } from '@/components/legal/ParticipantPrivacyNotice'
 import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
@@ -45,12 +46,20 @@ import {
   saveCurrentParticipantSession,
 } from '@/lib/participant-session'
 import { shouldUseNativePhotoCapture } from '@/lib/capture-platform'
+import { setParticipantLanguage } from '@/lib/i18n'
 import { validateUploadFileSize } from '@/lib/upload-limits'
 import { downscalePhoto } from '@/lib/challenge-camera'
 import type { Tables } from '@/types/helpers'
 
 function teamKey(eventId: string) {
   return `${PARTICIPANT_TEAM_KEY}_${eventId}`
+}
+
+/** The language this device picked on a multilingual event. Kept locally as
+ *  well as on the team row, so the picker does not reappear before the team
+ *  is claimed, and so a rejoin is already in the right language. */
+function languageKey(eventId: string) {
+  return `${PARTICIPANT_TEAM_KEY}_${eventId}_language`
 }
 
 /** The team session_epoch this device joined at; an older value means a
@@ -102,6 +111,16 @@ export function JoinEventPage() {
   const [noticeAccepted, setNoticeAccepted] = useState(() =>
     eventId ? hasAcknowledgedParticipantNotice(eventId) : false,
   )
+  // Multilingual events only. Remembered per device so the picker is a
+  // one-time step, not something to clear on every refresh.
+  const [pickedLanguage, setPickedLanguage] = useState<string | null>(() =>
+    eventId ? localStorage.getItem(languageKey(eventId)) : null,
+  )
+  // Re-pin on every mount: the bundle sets the event language as soon as it
+  // loads, and without this a refresh would drop the team back to it.
+  useEffect(() => {
+    if (pickedLanguage) void setParticipantLanguage(pickedLanguage)
+  }, [pickedLanguage])
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
   // Taken-slot takeover (CF2-8): tap a claimed team, enter the org's tablet
@@ -243,6 +262,21 @@ export function JoinEventPage() {
     return <EventNotLiveScreen event={event} organization={organization} />
   }
 
+  // On a multilingual event the language comes first, before the notice: the
+  // consent text below is the first thing it has to translate.
+  if (eventId && event.multilingual && !pickedLanguage) {
+    return (
+      <ParticipantLanguagePicker
+        languages={event.available_languages}
+        onPick={(language) => {
+          localStorage.setItem(languageKey(eventId), language)
+          setPickedLanguage(language)
+          void setParticipantLanguage(language)
+        }}
+      />
+    )
+  }
+
   // Participants must see what is collected — above all, that they may be
   // photographed or filmed — and get a genuine chance to decline, BEFORE they can
   // enter a name or submit anything.
@@ -285,6 +319,7 @@ export function JoinEventPage() {
         score: row.score,
         status: row.status,
         slot_number: row.slot_number,
+        language: pickedLanguage,
         created_at: row.created_at,
         session_epoch: row.session_epoch,
       }
@@ -356,6 +391,22 @@ export function JoinEventPage() {
       if (updateError) throw updateError
       const claimed = claimResult?.[0]
       if (!claimed) throw new Error(t('join.claim.couldNotClaimTeam'))
+      // Persist the language choice against the team, so a replacement phone
+      // picking this slot back up starts in the same language. Best effort:
+      // the device already has it locally, so a failure here must not fail
+      // the join the player just completed.
+      if (pickedLanguage) {
+        const { error: languageError } = await supabase
+          .from('teams')
+          .update({ language: pickedLanguage })
+          .eq('id', claimSlot.id)
+        if (languageError) {
+          reportClientIssue('join-team-language', languageError, {
+            eventId,
+            teamId: claimSlot.id,
+          })
+        }
+      }
       const updatedTeam: Tables<'teams'> = {
         id: claimed.id,
         event_id: claimed.event_id,
@@ -365,6 +416,7 @@ export function JoinEventPage() {
         score: claimed.score,
         status: claimed.status,
         slot_number: claimed.slot_number,
+        language: pickedLanguage,
         created_at: claimed.created_at,
         session_epoch: claimSlot.session_epoch ?? 0,
       }

@@ -33,6 +33,8 @@ export function buildDuplicateEventPayload(
       event_date: source.event_date,
       status: 'draft',
       language: source.language,
+      multilingual: source.multilingual,
+      available_languages: source.available_languages,
       team_count: source.team_count,
       branding_enabled: source.branding_enabled,
       logo_url: source.logo_url,

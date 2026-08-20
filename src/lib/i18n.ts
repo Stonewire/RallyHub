@@ -77,12 +77,43 @@ export function initI18n(): Promise<void> {
   return initPromise
 }
 
-/** Loads and activates a language; unknown codes fall back to English. */
-export async function setAppLanguage(lang: string): Promise<void> {
-  await initI18n()
-  const target: AppLanguage = isAppLanguage(lang) ? lang : 'en'
+/**
+ * A team's own language on a multilingual event, pinned for this tab only.
+ *
+ * Live surfaces normally follow the event language, but on a multilingual
+ * event each team picks its own on the phone in front of it. The pin lets the
+ * participant choice win over the bundle's event language without the display
+ * screen or the facilitator panel, which are shared and stay on the event
+ * language, ever seeing it.
+ */
+let participantLanguage: AppLanguage | null = null
+
+/** Pins (or with null, clears) this tab's participant language. */
+export async function setParticipantLanguage(lang: string | null): Promise<void> {
+  participantLanguage = lang ? toAppLanguage(lang) : null
+  await applyLanguage(participantLanguage ?? 'en')
+}
+
+export function getParticipantLanguage(): AppLanguage | null {
+  return participantLanguage
+}
+
+/**
+ * Activates the event's language unless this tab has a participant pin, in
+ * which case the pin wins. Live surfaces call this whenever the bundle loads.
+ */
+export async function setLiveLanguage(eventLanguage: string): Promise<void> {
+  await applyLanguage(participantLanguage ?? toAppLanguage(eventLanguage))
+}
+
+async function applyLanguage(target: AppLanguage): Promise<void> {
   await loadLanguage(target)
   if (i18n.language !== target) await i18n.changeLanguage(target)
+}
+
+/** Loads and activates a language; unknown codes fall back to English. */
+export async function setAppLanguage(lang: string): Promise<void> {
+  await applyLanguage(toAppLanguage(lang))
 }
 
 /**

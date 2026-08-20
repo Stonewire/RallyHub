@@ -36,6 +36,7 @@ import { useGames } from '@/hooks/use-games'
 import { useOrganization } from '@/hooks/use-organization-settings'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 import {
+  availableLanguagesForSave,
   collectEventGameIds,
   emptyEventForm,
   eventToFormValues,
@@ -148,6 +149,8 @@ export function AdminEventEditPage() {
             ? new Date(values.eventDate).toISOString()
             : null,
           language: values.language,
+          multilingual: values.multilingual,
+          available_languages: availableLanguagesForSave(values),
           team_count: capTeamCountForEventStatus(values.teamCount, eventStatus),
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,

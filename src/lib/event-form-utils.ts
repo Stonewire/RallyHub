@@ -15,6 +15,10 @@ export type EventFormValues = {
   eventDate: string
   /** UI language for every live surface of this event (join, display, facilitator). */
   language: AppLanguage
+  /** Lets each team pick its own language at join, from availableLanguages. */
+  multilingual: boolean
+  /** Languages offered to teams when multilingual is on. */
+  availableLanguages: AppLanguage[]
   /** Free-text venue, shown on event cards. Display only, never parsed. */
   location: string
   teamCount: number
@@ -150,6 +154,18 @@ export function toLocalDatetime(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+/**
+ * The languages actually written to the event.
+ *
+ * The event language is always included: it is the fallback for a team that
+ * never picks one, so offering the picker without it could strand a team on a
+ * language the organiser did not choose. Returns [] when multilingual is off.
+ */
+export function availableLanguagesForSave(values: EventFormValues): string[] {
+  if (!values.multilingual) return []
+  return [...new Set([values.language, ...values.availableLanguages])]
+}
+
 export function parseBrandColors(raw: Json | null | undefined): [string, string, string] {
   return normalizeBrandColorTriple(raw, DEFAULT_BRAND_COLORS)
 }
@@ -181,6 +197,8 @@ export function eventToFormValues(
     name: event.name,
     eventDate: toLocalDatetime(event.event_date),
     language: toAppLanguage(event.language),
+    multilingual: event.multilingual ?? false,
+    availableLanguages: (event.available_languages ?? []).map(toAppLanguage),
     location: event.location ?? '',
     teamCount: event.team_count,
     teams,
@@ -242,6 +260,8 @@ export function emptyEventForm(): EventFormValues {
     name: '',
     eventDate: '',
     language: 'en',
+    multilingual: false,
+    availableLanguages: [],
     location: '',
     teamCount: INCLUDED_TEAMS_PER_EVENT,
     teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),

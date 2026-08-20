@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { i18n, setAppLanguage } from '@/lib/i18n'
+import { i18n, setLiveLanguage } from '@/lib/i18n'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   applyLiveBundlePatch,
@@ -174,10 +174,12 @@ export function useLiveEvent(eventId: string | undefined) {
   bundleRef.current = bundle
 
   // All live surfaces (join, display, facilitator, tablet via /join) follow
-  // the organizer's per-event language. Unknown codes fall back to English.
+  // the organizer's per-event language. On a multilingual event a participant
+  // tab pins its team's own choice, which setLiveLanguage lets win; the
+  // display and facilitator panel never pin, so they stay on the event.
   const eventLanguage = bundle?.event.language
   useEffect(() => {
-    if (eventLanguage) void setAppLanguage(eventLanguage)
+    if (eventLanguage) void setLiveLanguage(eventLanguage)
   }, [eventLanguage])
 
   const reload = useCallback(async () => {

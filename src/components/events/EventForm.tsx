@@ -229,6 +229,71 @@ export function EventForm({
               {t('events.form.eventLanguageHelp')}
             </p>
           </div>
+          <div className="space-y-2">
+            <label className="flex items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={values.multilingual}
+                onChange={(e) =>
+                  set({
+                    multilingual: e.target.checked,
+                    // Seed with the event language so turning this on always
+                    // leaves at least one choice on the picker.
+                    availableLanguages: e.target.checked
+                      ? values.availableLanguages.length
+                        ? values.availableLanguages
+                        : [values.language]
+                      : values.availableLanguages,
+                  })
+                }
+                className="border-input mt-0.5 size-4 rounded"
+              />
+              <span className="text-sm font-medium">
+                {t('events.form.multilingual')}
+              </span>
+            </label>
+            <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
+              {t('events.form.multilingualHelp')}
+            </p>
+            {values.multilingual ? (
+              <div className="border-border/80 mt-1 space-y-2 rounded-lg border p-3">
+                <p className="text-xs font-semibold">
+                  {t('events.form.availableLanguages')}
+                </p>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {APP_LANGUAGES.map(({ code, label }) => {
+                    const checked = values.availableLanguages.includes(code)
+                    // The event language is always offered: it is what a team
+                    // that never picks, or picks nothing valid, falls back to.
+                    const locked = code === values.language
+                    return (
+                      <label key={code} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked || locked}
+                          disabled={locked}
+                          onChange={(e) =>
+                            set({
+                              availableLanguages: e.target.checked
+                                ? [...values.availableLanguages, code]
+                                : values.availableLanguages.filter((c) => c !== code),
+                            })
+                          }
+                          className="border-input size-4 rounded disabled:opacity-60"
+                        />
+                        <span>{label}</span>
+                        {locked ? (
+                          <span className="text-muted-foreground text-[11px]">
+                            {t('events.form.availableLanguagesEventDefault')}
+                          </span>
+                        ) : null}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <PillPair
               label={t('events.form.displayLabel')}

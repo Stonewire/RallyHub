@@ -1020,7 +1020,11 @@
       "allGroups": "Todos los grupos",
       "selectAll": "Seleccionar todo",
       "deselectAll": "Deseleccionar todo",
-      "noGamesMatchFilters": "Ningún juego disponible coincide con estos filtros."
+      "noGamesMatchFilters": "Ningún juego disponible coincide con estos filtros.",
+      "multilingual": "Evento multilingüe",
+      "multilingualHelp": "Cada equipo elige su idioma al unirse, antes que nada. La pantalla y el panel del facilitador se quedan en el idioma del evento.",
+      "availableLanguages": "Idiomas que pueden elegir los equipos",
+      "availableLanguagesEventDefault": "(idioma del evento)"
     },
     "preview": {
       "title": "Vista previa del evento",

@@ -386,6 +386,8 @@ export type Database = {
           location: string | null
           status: string
           language: string
+          multilingual: boolean
+          available_languages: string[]
           team_count: number
           branding_enabled: boolean
           inventory_enabled: boolean
@@ -416,6 +418,8 @@ export type Database = {
           location?: string | null
           status?: string
           language?: string
+          multilingual?: boolean
+          available_languages?: string[]
           team_count?: number
           branding_enabled?: boolean
           inventory_enabled?: boolean
@@ -439,6 +443,8 @@ export type Database = {
           location?: string | null
           status?: string
           language?: string
+          multilingual?: boolean
+          available_languages?: string[]
           team_count?: number
           branding_enabled?: boolean
           inventory_enabled?: boolean
@@ -695,6 +701,8 @@ export type Database = {
           score: number
           status: string
           slot_number: number
+          /** Language this team picked on a multilingual event; null follows the event. */
+          language: string | null
           created_at: string
           /** Bumped by takeover_team_slot; devices holding an older value log out. */
           session_epoch: number
@@ -708,6 +716,7 @@ export type Database = {
           score?: number
           status?: string
           slot_number: number
+          language?: string | null
           session_epoch?: number
         }
         Update: {
@@ -716,6 +725,7 @@ export type Database = {
           photo_url?: string | null
           score?: number
           status?: string
+          language?: string | null
           session_epoch?: number
         }
         Relationships: []

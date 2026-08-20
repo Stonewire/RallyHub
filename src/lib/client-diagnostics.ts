@@ -4,6 +4,7 @@ import type { TablesInsert } from '@/types/helpers'
 
 export type DiagnosticContext =
   | 'join-team-photo'
+  | 'join-team-language'
   | 'submission-upload'
   | 'text-submit'
   | 'photo-capture'

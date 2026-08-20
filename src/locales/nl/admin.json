@@ -1020,7 +1020,11 @@
       "allGroups": "Alle groepen",
       "selectAll": "Alles selecteren",
       "deselectAll": "Selectie opheffen",
-      "noGamesMatchFilters": "Geen beschikbare games komen overeen met deze filters."
+      "noGamesMatchFilters": "Geen beschikbare games komen overeen met deze filters.",
+      "multilingual": "Meertalig evenement",
+      "multilingualHelp": "Elk team kiest bij het meedoen zijn eigen taal, nog voor alle andere stappen. Het scherm en het facilitatorpaneel blijven in de taal van het evenement.",
+      "availableLanguages": "Talen waaruit teams kunnen kiezen",
+      "availableLanguagesEventDefault": "(taal van het evenement)"
     },
     "preview": {
       "title": "Eventpreview",
