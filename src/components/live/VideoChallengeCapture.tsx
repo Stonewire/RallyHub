@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SwitchCamera, Video, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -70,6 +71,7 @@ export function VideoChallengeCapture({
   onClose,
   onFileReady,
 }: VideoChallengeCaptureProps) {
+  const { t } = useTranslation('live')
   const { notify } = useNotification()
   const maxSec = getMaxVideoDurationSeconds(config)
   const previewRef = useRef<HTMLVideoElement>(null)
@@ -258,8 +260,8 @@ export function VideoChallengeCapture({
     if (!stream) {
       notify(
         (await cameraPermissionDenied())
-          ? 'Camera is blocked for this site — enable it in your browser settings, then reload the page'
-          : 'Camera did not open — tap Record again and allow camera and microphone access',
+          ? t('join.capture.cameraBlocked')
+          : t('join.video.cameraDidNotOpen'),
       )
       return
     }
@@ -299,7 +301,11 @@ export function VideoChallengeCapture({
       vid.onloadedmetadata = () => {
         URL.revokeObjectURL(vid.src)
         if (vid.duration > maxSec + 0.5) {
-          notify(`Video must be ${formatVideoDurationLabel(maxSec)} or less`)
+          notify(
+            t('join.capture.videoMaxLength', {
+              duration: formatVideoDurationLabel(maxSec),
+            }),
+          )
           resolve(false)
         } else {
           resolve(true)
@@ -307,7 +313,7 @@ export function VideoChallengeCapture({
       }
       vid.onerror = () => {
         URL.revokeObjectURL(vid.src)
-        notify('Could not read video — try a different file')
+        notify(t('join.capture.couldNotReadVideo'))
         resolve(false)
       }
       vid.src = URL.createObjectURL(file)
@@ -401,7 +407,7 @@ export function VideoChallengeCapture({
       }, 200)
     } catch (err) {
       const detail = reportClientIssue('video-record', err, { eventId })
-      notify(`Could not start recording (${detail})`)
+      notify(t('join.video.couldNotStartRecordingDetail', { detail }))
     }
   }
 
@@ -435,7 +441,7 @@ export function VideoChallengeCapture({
       >
         {!recordedFile ? (
           <p className="text-sm font-medium text-white/80">
-            Max length: {formatVideoDurationLabel(maxSec)}
+            {t('join.video.maxLength', { duration: formatVideoDurationLabel(maxSec) })}
           </p>
         ) : (
           <span />
@@ -443,7 +449,7 @@ export function VideoChallengeCapture({
         <button
           type="button"
           onClick={cancelCapture}
-          aria-label="Close capture"
+          aria-label={t('join.capture.closeCapture')}
           className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm"
         >
           <X className="size-5" />
@@ -487,11 +493,11 @@ export function VideoChallengeCapture({
                   <button
                     type="button"
                     onClick={flipCamera}
-                    aria-label="Switch camera"
+                    aria-label={t('join.capture.switchCamera')}
                     className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm"
                   >
                     <SwitchCamera className="size-4" />
-                    Flip
+                    {t('join.capture.flip')}
                   </button>
                 </div>
               ) : null}
@@ -514,7 +520,7 @@ export function VideoChallengeCapture({
               className="min-h-12 flex-1 border-white/30 bg-white/10 text-base text-white"
               onClick={retake}
             >
-              Retake
+              {t('join.capture.retake')}
             </Button>
             <LiveAccentButton
               type="button"
@@ -523,7 +529,7 @@ export function VideoChallengeCapture({
               disabled={disabled}
               onClick={submitVideo}
             >
-              Submit
+              {t('join.capture.submit')}
             </LiveAccentButton>
           </div>
         ) : recording ? (
@@ -539,8 +545,10 @@ export function VideoChallengeCapture({
               onClick={() => recorderRef.current?.stop()}
             >
               <span className="mr-2 inline-block size-2.5 animate-pulse rounded-full bg-red-500" />
-              Stop recording
-              <span className="ml-2 font-mono tabular-nums">{remaining}s</span>
+              {t('join.video.stopRecording')}
+              <span className="ml-2 font-mono tabular-nums">
+                {t('join.countdown.seconds', { seconds: remaining })}
+              </span>
             </Button>
           </div>
         ) : previewReady ? (
@@ -552,7 +560,7 @@ export function VideoChallengeCapture({
             onClick={() => startRecording()}
           >
             <Video className="size-5" />
-            {resProbeActive ? 'Preparing camera…' : 'Record video'}
+            {resProbeActive ? t('join.video.preparingCamera') : t('join.video.recordVideo')}
           </LiveAccentButton>
         ) : null}
       </div>

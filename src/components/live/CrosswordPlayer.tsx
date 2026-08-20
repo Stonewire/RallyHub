@@ -1,5 +1,6 @@
 import { Check, Lightbulb, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
 import {
@@ -55,6 +56,7 @@ function clueCells(clue: CrosswordClue): string[] {
 }
 
 export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuzzleResult }: Props) {
+  const { t } = useTranslation('live')
   const config = (game.config ?? {}) as GameConfig
   const layout = config.puzzle_crossword_layout
   const maxPoints = Math.max(1, game.points_static ?? 100)
@@ -194,9 +196,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       if (!navigator.onLine) {
         // No pack on the device and no connection: the server call below can
         // only die at the fetch layer. Say what is actually wrong instead.
-        setError(
-          'This puzzle is not downloaded for offline play yet. It needs a connection right now.',
-        )
+        setError(t('puzzle.offlineNotDownloaded'))
         setLoading(false)
         return
       }
@@ -206,7 +206,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       )
       if (cancelled) return
       if (readError) {
-        setError(puzzleOfflineErrorMessage(readError, 'Could not load the crossword.'))
+        setError(puzzleOfflineErrorMessage(readError, t('puzzle.crosswordLoadError')))
         setLoading(false)
         return
       }
@@ -235,7 +235,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
         p_cells: {},
       })
       if (cancelled) return
-      if (startError) setError(puzzleOfflineErrorMessage(startError, 'Could not load the crossword.'))
+      if (startError) setError(puzzleOfflineErrorMessage(startError, t('puzzle.crosswordLoadError')))
       else {
         applyProgress(parsePuzzleProgress(data as Json))
         setError(null)
@@ -245,7 +245,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
     return () => {
       cancelled = true
     }
-  }, [applyProgress, eventId, game.id, onQueuePuzzleResult, teamId, teamToken])
+  }, [applyProgress, eventId, game.id, onQueuePuzzleResult, t, teamId, teamToken])
 
   useEffect(
     () =>
@@ -388,12 +388,12 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
           window.setTimeout(() => setWrongFlash(false), 900)
         }
       } catch (reason) {
-        setError(puzzleOfflineErrorMessage(reason, 'Could not check the crossword.'))
+        setError(puzzleOfflineErrorMessage(reason, t('puzzle.crosswordError')))
       } finally {
         setChecking(false)
       }
     },
-    [applyProgress, checking, eventId, game.id, maxPoints, onQueuePuzzleResult, teamId, teamToken],
+    [applyProgress, checking, eventId, game.id, maxPoints, onQueuePuzzleResult, t, teamId, teamToken],
   )
 
   const useHint = useCallback(async () => {
@@ -420,9 +420,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       applyProgress(parsePuzzleProgress(data as Json))
       void publishPuzzleProgressChange(eventId, teamId, game.id)
     } catch (reason) {
-      setError(puzzleOfflineErrorMessage(reason, 'Could not use a hint.'))
+      setError(puzzleOfflineErrorMessage(reason, t('puzzle.hintError')))
     }
-  }, [applyProgress, cells, eventId, game.id, onQueuePuzzleResult, teamId, teamToken])
+  }, [applyProgress, cells, eventId, game.id, onQueuePuzzleResult, t, teamId, teamToken])
 
   function isLocked(key: string) {
     return solvedCellKeys.has(key) || revealedKeys.has(key)
@@ -496,13 +496,13 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
   }
 
   if (!layout || openKeys.size === 0) {
-    return <p className="py-8 text-white/70">This crossword is not configured yet.</p>
+    return <p className="py-8 text-white/70">{t('puzzle.crosswordNotConfigured')}</p>
   }
 
   if (tokenMissing) {
     return (
       <p className="rounded-xl bg-red-950/70 px-4 py-3 text-sm text-red-100" role="alert">
-        Rejoin this event on this phone once to enable secure puzzle play.
+        {t('puzzle.tokenMissing')}
       </p>
     )
   }
@@ -510,7 +510,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-white/75">
-        <Loader2 className="size-5 animate-spin" /> Loading crossword…
+        <Loader2 className="size-5 animate-spin" /> {t('puzzle.crosswordLoading')}
       </div>
     )
   }
@@ -519,12 +519,14 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
     return (
       <div className="xp-glass-panel rounded-2xl bg-black/30 p-8 text-center">
         <Check className="mx-auto size-12 text-green-400" />
-        <p className="mt-3 text-2xl font-black">Crossword complete!</p>
+        <p className="mt-3 text-2xl font-black">{t('puzzle.crosswordComplete')}</p>
         <p className="mt-2 text-lg font-semibold" style={{ color: accentColor }}>
-          +{progress.pointsAwarded ?? 0} points
+          {t('puzzle.pointsAwarded', { points: progress.pointsAwarded ?? 0 })}
         </p>
         {progress.solveSeconds !== null ? (
-          <p className="mt-2 text-sm text-white/65">Solved in {formatClock(progress.solveSeconds)}</p>
+          <p className="mt-2 text-sm text-white/65">
+            {t('puzzle.solvedIn', { time: formatClock(progress.solveSeconds) })}
+          </p>
         ) : null}
       </div>
     )
@@ -545,13 +547,13 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className={`text-lg font-black tabular-nums md:text-2xl ${clockColor}`}>{formatClock(remaining)}</p>
-          <p className="text-[10px] text-white/60 md:text-xs">Time left</p>
+          <p className="text-[10px] text-white/60 md:text-xs">{t('puzzle.timeLeft')}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-black tabular-nums md:text-2xl" style={{ color: accentColor }}>
             {livePoints}
           </p>
-          <p className="text-[10px] text-white/60 md:text-xs">Points if solved now</p>
+          <p className="text-[10px] text-white/60 md:text-xs">{t('puzzle.pointsIfSolvedNow')}</p>
         </div>
         <button
           type="button"
@@ -560,7 +562,9 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
           className="flex flex-col items-center rounded-xl border border-white/25 bg-white/10 px-2.5 py-1.5 text-white disabled:opacity-40 md:px-3 md:py-2"
         >
           <Lightbulb className="size-4 md:size-5" />
-          <span className="mt-0.5 text-[10px] font-semibold md:text-xs">Hint {3 - hintsUsed}</span>
+          <span className="mt-0.5 text-[10px] font-semibold md:text-xs">
+            {t('puzzle.hint', { remaining: 3 - hintsUsed })}
+          </span>
         </button>
       </div>
 
@@ -575,7 +579,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
             {(['across', 'down'] as const).map((direction) => (
               <div key={direction} className="mb-4">
                 <p className="mb-1.5 text-xs font-black tracking-[0.16em] uppercase opacity-70">
-                  {direction}
+                  {direction === 'across' ? t('puzzle.across') : t('puzzle.down')}
                 </p>
                 <ul className="space-y-1">
                   {clues
@@ -624,7 +628,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
                   }`}
                 >
                   <span className="font-black tabular-nums">
-                    {clue.number} {clue.direction === 'across' ? 'Across' : 'Down'}
+                    {clue.number} {clue.direction === 'across' ? t('puzzle.across') : t('puzzle.down')}
                   </span>{' '}
                   {clue.clue}
                 </button>
@@ -632,7 +636,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
             </div>
           ) : (
             <p className="text-center text-xs text-white/60 md:hidden">
-              Tap any letter cell to read its clue, then type the answer.
+              {t('puzzle.crosswordTapTip')}
             </p>
           )}
         </div>
@@ -670,7 +674,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
                   type="button"
                   disabled={checking}
                   onClick={() => selectCell(key)}
-                  aria-label={`Row ${row + 1} column ${col + 1}`}
+                  aria-label={t('puzzle.cellPosition', { row: row + 1, col: col + 1 })}
                   className={`size-10 rounded-md border-2 text-center text-base font-black uppercase md:size-14 md:text-lg ${
                     solved
                       ? 'border-green-400/70 bg-green-500/25 text-green-100'
@@ -701,7 +705,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
                           activeClueId === clue.id ? { backgroundColor: accentColor } : undefined
                         }
                       >
-                        {clue.direction === 'across' ? 'Across' : 'Down'}
+                        {clue.direction === 'across' ? t('puzzle.across') : t('puzzle.down')}
                       </button>
                     ))}
                   </span>
@@ -715,7 +719,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       </div>
 
       {wrongFlash ? (
-        <p className="text-center text-sm font-semibold text-amber-300">Not quite. Try again.</p>
+        <p className="text-center text-sm font-semibold text-amber-300">{t('puzzle.notQuite')}</p>
       ) : null}
 
       {error ? (

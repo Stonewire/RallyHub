@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 type OpenGameSubmittingScreenProps = {
   accentColor: string
   /** 0-100 while an upload reports progress; null keeps the plain spinner. */
@@ -6,6 +8,7 @@ type OpenGameSubmittingScreenProps = {
 
 /** Full-screen loading state while an open-stage submission uploads/saves. */
 export function OpenGameSubmittingScreen({ accentColor, progress }: OpenGameSubmittingScreenProps) {
+  const { t } = useTranslation('live')
   const showProgress = typeof progress === 'number'
   return (
     <div
@@ -20,7 +23,7 @@ export function OpenGameSubmittingScreen({ accentColor, progress }: OpenGameSubm
         aria-hidden
       />
       <p className="mt-5 text-lg font-semibold text-white">
-        {showProgress ? `Uploading… ${progress}%` : 'Submitting…'}
+        {showProgress ? t('join.upload.uploadingPercent', { progress }) : t('join.submitting')}
       </p>
       {showProgress ? (
         <>
@@ -31,7 +34,7 @@ export function OpenGameSubmittingScreen({ accentColor, progress }: OpenGameSubm
             />
           </div>
           <p className="mt-3 text-sm text-white/70">
-            Videos can take a while on event wifi — keep this screen open.
+            {t('join.upload.wifiHint')}
           </p>
         </>
       ) : null}

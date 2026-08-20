@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useInstallPrompt } from '@/hooks/use-install-prompt'
 
@@ -12,13 +13,14 @@ import { useInstallPrompt } from '@/hooks/use-install-prompt'
  * dialog or reveals a single line telling them where the option lives, and it
  * disappears entirely once there is nothing left to offer.
  */
-const MANUAL_STEPS: Record<string, string> = {
-  ios: 'Tap the Share button at the bottom of Safari, then "Add to Home Screen".',
-  android: 'Open your browser menu, then tap "Add to Home screen".',
-  'macos-safari': 'In Safari, choose File, then "Add to Dock".',
+const MANUAL_STEP_KEYS: Record<string, string> = {
+  ios: 'install.manual.ios',
+  android: 'install.manual.android',
+  'macos-safari': 'install.manual.macosSafari',
 }
 
 export function ParticipantInstallButton({ className }: { className?: string }) {
+  const { t } = useTranslation('common')
   const { method, platform, promptInstall } = useInstallPrompt()
   const [showSteps, setShowSteps] = useState(false)
 
@@ -26,7 +28,7 @@ export function ParticipantInstallButton({ className }: { className?: string }) 
 
   // Chromium after a dismissed prompt reports 'guide' with no manual platform;
   // its own menu wording is the browser-menu one.
-  const steps = MANUAL_STEPS[platform ?? 'android']
+  const steps = t(MANUAL_STEP_KEYS[platform ?? 'android'])
 
   return (
     <div className={`flex flex-col items-center gap-2 text-center ${className ?? ''}`}>
@@ -43,7 +45,7 @@ export function ParticipantInstallButton({ className }: { className?: string }) 
         aria-expanded={method === 'prompt' ? undefined : showSteps}
       >
         <Download className="size-4" aria-hidden />
-        Add to home screen
+        {t('install.addToHomeScreen')}
       </button>
       {showSteps && method === 'guide' ? (
         <p className="max-w-xs text-sm font-semibold drop-shadow-sm">{steps}</p>

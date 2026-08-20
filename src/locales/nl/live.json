@@ -3,7 +3,8 @@
     "header": {
       "quizPoints": "{{points}} quizpunten",
       "scorePoints": "{{score}} punten",
-      "scorePointsShort": "{{score}} pt"
+      "scorePointsShort": "{{score}} pt",
+      "quizPtsUnit": "quizpunten"
     },
     "status": {
       "approved": "Goedgekeurd",
@@ -36,13 +37,18 @@
       "flip": "Omdraaien",
       "retake": "Opnieuw",
       "submit": "Versturen",
-      "previewAlt": "Voorbeeld"
+      "previewAlt": "Voorbeeld",
+      "cameraBlocked": "De camera is geblokkeerd voor deze site. Sta hem toe in je browserinstellingen en laad de pagina opnieuw",
+      "exampleVideo": "Voorbeeldvideo"
     },
     "photo": {
       "cameraAccessDenied": "Geen cameratoegang verleend. Sta cameratoegang toe wanneer de app opent",
       "couldNotCapturePhoto": "Kon de foto niet maken. Houd stil en probeer opnieuw",
       "couldNotProcessPhoto": "Kon de foto niet verwerken",
-      "capturing": "Bezig met opnemen…"
+      "capturing": "Bezig met opnemen…",
+      "cameraDidNotOpen": "De camera ging niet open. Tik nogmaals op Foto maken en sta cameratoegang toe",
+      "couldNotCapturePhotoDetail": "Kon de foto niet maken ({{detail}}). Houd stil en probeer opnieuw",
+      "preparing": "Voorbereiden…"
     },
     "video": {
       "cameraAccessDenied": "Geen cameratoegang verleend. Sta cameratoegang toe wanneer de app opent, of upload een video",
@@ -51,7 +57,10 @@
       "recording": "Bezig met opnemen",
       "stopRecording": "Opname stoppen",
       "recordVideo": "Video opnemen",
-      "uploadVideo": "Video uploaden"
+      "uploadVideo": "Video uploaden",
+      "cameraDidNotOpen": "De camera ging niet open. Tik nogmaals op Video opnemen en sta toegang tot camera en microfoon toe",
+      "couldNotStartRecordingDetail": "Kon de opname niet starten ({{detail}})",
+      "preparingCamera": "Camera voorbereiden…"
     },
     "inventory": {
       "scanTitle": "Scan een item",
@@ -69,7 +78,8 @@
       "title": "Chat met de facilitator",
       "messagePlaceholder": "Bericht…",
       "send": "Versturen",
-      "openChat": "Chat openen"
+      "openChat": "Chat openen",
+      "closeChat": "Chat sluiten"
     },
     "announcement": {
       "dismiss": "Sluiten"
@@ -94,7 +104,11 @@
       "closedNoSubmissions": "Evenement gesloten. Geen nieuwe inzendingen",
       "closedDetail": "Dit evenement is nu gesloten. Inzendingen worden niet meer geaccepteerd.",
       "gameOver": "Spel afgelopen",
-      "standBy": "Even geduld…"
+      "standBy": "Even geduld…",
+      "welcome": "Welkom",
+      "welcomeHint": "Even geduld, het eerste spel begint zo.",
+      "eventEnded": "Evenement afgelopen",
+      "thanksForPlaying": "Bedankt voor het meespelen"
     },
     "submission": {
       "waitingApproval": "Verzonden. Wacht op goedkeuring",
@@ -107,7 +121,12 @@
       "couldNotMarkCellRetry": "Vakje markeren mislukt. Tik om opnieuw te proberen",
       "pointsAwardedMusicBingo": "+{{points}} pt (Muziekbingo)",
       "pointsAwardedGame": "+{{points}} pt ({{game}})",
-      "notApproved": "{{game}} is niet goedgekeurd"
+      "notApproved": "{{game}} is niet goedgekeurd",
+      "couldNotSubmit": "Verzenden mislukt",
+      "couldNotSubmitEventClosed": "Verzenden mislukt. Het evenement is mogelijk gesloten",
+      "phoneNotSignedIn": "Deze telefoon is niet meer aangemeld voor dat team",
+      "teammateFinishedPuzzle": "Een teamgenoot heeft deze puzzel al opgelost, dus dat resultaat telt",
+      "uploadLostOffline": "Deze upload kon offline niet worden bewaard en is verloren gegaan"
     },
     "quiz": {
       "resultsTitle": "Jouw quizresultaten",
@@ -121,7 +140,8 @@
       "incorrect": "Incorrect",
       "answerLockedRevealing": "Antwoord vastgezet. Onthullen…",
       "timeRemaining": "{{time}} resterend",
-      "changeAnswer": "Antwoord wijzigen"
+      "changeAnswer": "Antwoord wijzigen",
+      "timeUp": "Tijd voorbij"
     },
     "bingo": {
       "fallbackName": "Muziekbingo",
@@ -137,7 +157,8 @@
       "exclaim": "BINGO!"
     },
     "break": {
-      "fallback": "Pauze"
+      "fallback": "Pauze",
+      "backShortly": "Zo weer terug"
     },
     "consent": {
       "title": "Voordat je meedoet",
@@ -154,7 +175,10 @@
       "dataRequest": "Om te vragen wat er over je wordt bewaard, of om het te laten verwijderen, neem eerst contact op met de organisator van het evenement, want die beslist wat ermee gebeurt. Je kunt ook het volledige",
       "privacyPolicyLink": "RallyHub Privacybeleid",
       "checkboxLabel": "Ik heb dit gelezen en ga akkoord met deelname.",
-      "continueButton": "Doorgaan naar het evenement"
+      "continueButton": "Doorgaan naar het evenement",
+      "cookieNote": "Deze app bewaart een beetje data op je telefoon zodat je team wordt onthouden. Geen analytics, geen tracking, geen optionele cookies.",
+      "cookiePolicyLink": "Cookiebeleid",
+      "acceptButton": "Ik heb dit gelezen, laat me erin"
     },
     "claim": {
       "documentTitle": "Teams",
@@ -169,7 +193,13 @@
       "joining": "Bezig met aansluiten…",
       "join": "Meedoen",
       "available": "Beschikbaar",
-      "teamFallback": "Team"
+      "teamFallback": "Team",
+      "eventNotFoundHint": "Controleer de link of de QR code bij degene die het evenement organiseert.",
+      "couldNotUploadPhoto": "Kon de teamfoto niet uploaden ({{detail}})",
+      "teamNamePlaceholder": "Jullie teamnaam",
+      "teamPhoto": "Teamfoto",
+      "takeTeamPhoto": "Teamfoto maken",
+      "retakeTeamPhoto": "Teamfoto opnieuw maken"
     },
     "countdown": {
       "seconds": "{{seconds}} s"
@@ -184,6 +214,40 @@
     "gameUnavailable": {
       "title": "Dit spel is niet beschikbaar",
       "standBy": "Wacht op de facilitator…"
+    },
+    "yourTask": "Jouw opdracht",
+    "yourTeam": "Jouw team",
+    "offline": {
+      "title": "Je bent offline",
+      "quizBody": "De quiz loopt live met de hele zaal, dus daar is verbinding voor nodig. Zodra je weer online bent, komt dit scherm vanzelf terug.",
+      "bingoBody": "Muziekbingo loopt live met de hele zaal, dus daar is verbinding voor nodig. Zodra je weer online bent, komt dit scherm vanzelf terug.",
+      "savedAutomatically": "Je bent offline. Je werk is opgeslagen en wordt automatisch verstuurd."
+    },
+    "upload": {
+      "uploadingPercent": "Uploaden… {{progress}}%",
+      "wifiHint": "Video's kunnen even duren op de wifi van het evenement. Houd dit scherm open."
+    },
+    "permission": {
+      "title": "Geef toegang tot je camera",
+      "body": "Uitdagingen gebruiken je camera en microfoon voor foto's en video's. Keur het nu één keer goed, dan wordt het je tijdens het spel niet meer gevraagd.",
+      "blockedHint": "De browser heeft het geblokkeerd. Open de site-instellingen van je browser, sta Camera en Microfoon toe voor deze pagina en probeer opnieuw.",
+      "waitingForBrowser": "Wachten op de browser…",
+      "tryAgain": "Opnieuw proberen",
+      "approve": "Camera toestaan",
+      "skip": "Nu overslaan. Foto en videospellen werken dan niet"
+    },
+    "takeover": {
+      "moveTitle": "“{{team}}” naar dit apparaat verplaatsen?",
+      "body": "Dit team speelt al op een ander apparaat. Voer het evenementwachtwoord van je facilitator in om hier verder te gaan. Het andere apparaat wordt afgemeld.",
+      "passwordPlaceholder": "Evenementwachtwoord",
+      "moving": "Verplaatsen…",
+      "moveHere": "Team hierheen verplaatsen",
+      "couldNotMove": "Kon dit team niet naar je apparaat verplaatsen.",
+      "signedOut": "Je team is naar een ander apparaat verplaatst. Vraag het je facilitator als jij dit niet was."
+    },
+    "store": {
+      "orderSent": "Bestelling verstuurd!",
+      "orderSentBody": "Haal je items op bij de facilitator. Je punten worden afgeschreven zodra je ze ophaalt."
     }
   },
   "display": {
@@ -198,7 +262,13 @@
     "breakTime": "Pauze",
     "tapToEnableSound": "Tik om geluid aan te zetten",
     "tapAnywhere": "Tik ergens om verder te gaan",
-    "enableAudioHint": "Zet geluid aan zodat het scherm de bingoviering, het gejuich en de muziek tijdens het evenement kan afspelen."
+    "enableAudioHint": "Zet geluid aan zodat het scherm de bingoviering, het gejuich en de muziek tijdens het evenement kan afspelen.",
+    "welcome": "Welkom",
+    "eventEnded": "Evenement afgelopen",
+    "backShortly": "Zo weer terug",
+    "allTeams": "Alle teams",
+    "noTeamsJoined": "Er hebben zich nog geen teams aangesloten.",
+    "teamsAnswered": "{{answered}} van {{count}} teams hebben geantwoord"
   },
   "winner": {
     "youAreWinner": "JULLIE ZIJN DE WINNAARS!",
@@ -212,7 +282,18 @@
     "place1": "1e plaats",
     "place2": "2e plaats",
     "place3": "3e plaats",
-    "announcing": "Het is tijd om de winnaars bekend te maken…"
+    "announcing": "Het is tijd om de winnaars bekend te maken…",
+    "announceIntro": "Het is",
+    "announceTime": "TIJD",
+    "announceMiddle": "voor de",
+    "announceWinner": "WINNAAR",
+    "winnerExclaim": "WINNAAR!",
+    "wellPlayed": "Goed gespeeld",
+    "youAreThe": "JULLIE ZIJN DE",
+    "youFinished": "JULLIE WERDEN",
+    "resultsWord": "UITSLAG",
+    "quizPointsLabel": "quizpunten",
+    "totalPointsLabel": "punten totaal"
   },
   "notLive": {
     "ended": "Dit evenement is afgelopen.",
@@ -221,7 +302,11 @@
     "startingBody": "Even geduld. Het spel begint zodra jullie gastheer het evenement start. Dit scherm wordt automatisch bijgewerkt."
   },
   "quizPanel": {
-    "defaultTitle": "Quizresultaten"
+    "defaultTitle": "Quizresultaten",
+    "wonQuiz": "Gefeliciteerd, jullie hebben de quiz gewonnen!",
+    "finishedSecond": "Gefeliciteerd, jullie zijn tweede geworden!",
+    "finishedThird": "Gefeliciteerd, jullie zijn derde geworden!",
+    "winnerAria": "Winnaar"
   },
   "tablet": {
     "documentTitle": "Tablet",
@@ -237,7 +322,10 @@
     "logOut": "Afmelden",
     "noEvents": "Er zijn nu geen actieve evenementen.",
     "bookmark": "Bladwijzer: {{path}}",
-    "passwordHint": "Voer het tabletwachtwoord in om actieve evenementen te bekijken."
+    "passwordHint": "Voer het tabletwachtwoord in om actieve evenementen te bekijken.",
+    "openLinkHint": "Open de tabletlink van je organisatie via Instellingen, of gebruik",
+    "install": "Installeren",
+    "installOnDevice": "Installeren op dit apparaat"
   },
   "inventory": {
     "pageTitle": "Inventaris",
@@ -300,10 +388,73 @@
     "wordGuesses": "Woordpogingen",
     "wordleHint": "Onbeperkt pogingen · elke extra poging verlaagt de resterende score met 10%",
     "wrongMatches_one": "{{count}} onjuist paar",
-    "wrongMatches_other": "{{count}} onjuiste paren"
+    "wrongMatches_other": "{{count}} onjuiste paren",
+    "couldNotSubmitResult": "Kon het puzzelresultaat niet versturen",
+    "cellPosition": "Rij {{row}} kolom {{col}}",
+    "characters": "Tekens",
+    "crosswordLoadError": "De kruiswoordpuzzel kon niet worden geladen.",
+    "crosswordTapTip": "Tik op een letterhokje om de omschrijving te lezen en typ het antwoord.",
+    "letters": "Letters",
+    "numbers": "Cijfers",
+    "offlineNotDownloaded": "Deze puzzel is nog niet gedownload voor offline spelen. Hier is nu verbinding voor nodig.",
+    "shift": "Shift",
+    "space": "Spatie"
   },
   "game": {
     "points": "{{points}} ptn",
     "pointsUpTo": "Tot {{points}}"
+  },
+  "bingoWin": {
+    "heading": "Bingo!",
+    "youGot": "Jullie hebben",
+    "bingoWord": "BINGO",
+    "completedLine": "Jullie hebben een rij compleet!",
+    "hasGotBingo": "heeft BINGO!"
+  },
+  "store": {
+    "couldNotPlaceOrder": "De bestelling kon niet worden geplaatst",
+    "title": "Winkel",
+    "myItems": "Mijn items",
+    "closeStore": "Winkel sluiten",
+    "opening": "Winkel openen…",
+    "empty": "De winkel is leeg voor dit evenement.",
+    "joinTeamFirst": "Sluit je op deze telefoon eerst aan bij een team en open de winkel daarna opnieuw.",
+    "couldNotOpen": "De winkel kon niet worden geopend.",
+    "offlineNotDownloaded": "Je bent offline en de winkel is nog niet naar deze telefoon gedownload. Hier is nu verbinding voor nodig.",
+    "couldNotSendOrder": "Je bestelling kon niet worden verstuurd. Probeer opnieuw.",
+    "itemFallback": "Item",
+    "soldOut": "Uitverkocht",
+    "stockLine": "nog {{left}} · max {{max}} per team",
+    "youHave": "je hebt er {{qty}}",
+    "fewerItem": "Minder {{name}}",
+    "moreItem": "Meer {{name}}",
+    "nothingBought": "Nog niets gekocht. Bestel eerst in de Winkel.",
+    "notPlaced": "Niet geplaatst",
+    "waitingToSend": "Wacht op verzending",
+    "queuedPointsLine": "{{points}} ptn · wordt automatisch verstuurd zodra je weer online bent",
+    "yourOrders": "Jouw bestellingen",
+    "collected": "Opgehaald",
+    "waiting": "Wachten",
+    "pointsCollectLine": "{{points}} ptn · ophalen bij de facilitator",
+    "sendingOrder": "Bestelling versturen…",
+    "pickSomeItems": "Kies een paar items",
+    "orderItems_one": "Bestel {{count}} item · {{points}} ptn",
+    "orderItems_other": "Bestel {{count}} items · {{points}} ptn"
+  },
+  "event": {
+    "notReady": "Het evenement is nog niet klaar. Vraag je facilitator om het facilitatorpaneel te openen.",
+    "loadFailed": "Evenement laden mislukt",
+    "accessDenied": "Toegang tot het evenement geweigerd"
+  },
+  "player": {
+    "play": "Afspelen",
+    "pause": "Pauzeren",
+    "questionVideo": "Video bij de vraag",
+    "videoPosition": "Videopositie",
+    "clipPosition": "Clippositie",
+    "audioPlaybackBlocked": "Audio afspelen geblokkeerd"
+  },
+  "poweredBy": {
+    "alt": "Powered by RallyHub"
   }
 }

@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { AccentButton } from '@/components/admin/AccentButton'
@@ -21,9 +22,6 @@ import type { Tables } from '@/types/helpers'
 
 const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
 
-const TABLET_NOT_FOUND_MESSAGE =
-  'Organization not found. Check your tablet link from Settings — the URL may be outdated.'
-
 async function fetchTabletEvents(
   organizationId: string,
   token: string,
@@ -37,6 +35,7 @@ async function fetchTabletEvents(
 }
 
 export function TabletPage() {
+  const { t } = useTranslation('live')
   const { orgSlug, tabletCode } = useParams<{
     orgSlug?: string
     tabletCode?: string
@@ -55,7 +54,7 @@ export function TabletPage() {
   const [checkingIn, setCheckingIn] = useState(false)
   const install = useInstallAction('tablet')
 
-  useDocumentTitle('Tablet', org?.name)
+  useDocumentTitle(t('tablet.documentTitle'), org?.name)
 
   const tabletPath =
     org != null
@@ -70,7 +69,7 @@ export function TabletPage() {
     const hasPath = Boolean((orgSlug && tabletCode) || legacyOrgParam)
     if (!hasPath) {
       setLoading(false)
-      setLoadError('Missing organization in URL.')
+      setLoadError(t('tablet.missingOrg'))
       return
     }
 
@@ -85,7 +84,7 @@ export function TabletPage() {
     if (!organization) {
       setOrg(null)
       setEvents([])
-      setLoadError(TABLET_NOT_FOUND_MESSAGE)
+      setLoadError(t('tablet.orgNotFound'))
       setLoading(false)
       return
     }
@@ -115,12 +114,12 @@ export function TabletPage() {
     try {
       setEvents(await fetchTabletEvents(organization.id, validToken))
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to load events')
+      setLoadError(err instanceof Error ? err.message : t('tablet.failedToLoad'))
       setEvents([])
     } finally {
       setLoading(false)
     }
-  }, [orgSlug, tabletCode, legacyOrgParam])
+  }, [orgSlug, tabletCode, legacyOrgParam, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/dependency-change pattern; loadData's setState calls happen after an await, not synchronously
@@ -135,7 +134,7 @@ export function TabletPage() {
     try {
       const token = await verifyTabletPassword(org.id, password)
       if (!token) {
-        setAuthError('Incorrect password')
+        setAuthError(t('tablet.incorrectPassword'))
         return
       }
       const nextEvents = await fetchTabletEvents(org.id, token)
@@ -146,7 +145,7 @@ export function TabletPage() {
       if (orgSlug && tabletCode) return
       navigate(getTabletLink(org), { replace: true })
     } catch {
-      setAuthError('Could not verify password or load events')
+      setAuthError(t('tablet.verifyFailed'))
     } finally {
       setCheckingIn(false)
     }
@@ -160,10 +159,10 @@ export function TabletPage() {
 
   if (!orgSlug && !tabletCode && !legacyOrgParam) {
     return (
-      <LivePanelShell title="Tablet">
+      <LivePanelShell title={t('tablet.fallbackTitle')}>
         <Card className="border-border/80 bg-card p-6 text-center shadow-sm">
           <p className="text-muted-foreground text-sm">
-            Open your organization tablet link from Settings, or use{' '}
+            {t('tablet.openLinkHint')}{' '}
             <code className="font-mono text-xs">/tablet/org-name/access-code</code>
           </p>
         </Card>
@@ -173,15 +172,15 @@ export function TabletPage() {
 
   if (loading) {
     return (
-      <LivePanelShell title="Tablet">
-        <p className="text-muted-foreground text-center text-sm">Loading…</p>
+      <LivePanelShell title={t('tablet.fallbackTitle')}>
+        <p className="text-muted-foreground text-center text-sm">{t('common:loading')}…</p>
       </LivePanelShell>
     )
   }
 
   if (loadError) {
     return (
-      <LivePanelShell title="Tablet">
+      <LivePanelShell title={t('tablet.fallbackTitle')}>
         <Card className="border-border/80 bg-card p-6 text-center shadow-sm">
           <p className="text-muted-foreground text-sm">{loadError}</p>
           <Button
@@ -191,7 +190,7 @@ export function TabletPage() {
             className="mt-4"
             onClick={() => void loadData()}
           >
-            Retry
+            {t('common:retry')}
           </Button>
         </Card>
       </LivePanelShell>
@@ -200,7 +199,7 @@ export function TabletPage() {
 
   if (!authed) {
     return (
-      <LivePanelShell title={org?.name ?? 'Tablet'}>
+      <LivePanelShell title={org?.name ?? t('tablet.fallbackTitle')}>
         <PageScopedManifest />
         {org?.logo_url ? (
           <img
@@ -211,11 +210,11 @@ export function TabletPage() {
         ) : null}
         <Card className="border-border/80 mx-auto max-w-sm space-y-4 bg-card p-6 shadow-sm">
           <p className="text-muted-foreground text-center text-sm">
-            Enter the tablet password to view active events.
+            {t('tablet.passwordHint')}
           </p>
           <form className="space-y-4" onSubmit={(e) => void handleTabletLogin(e)}>
             <div className="space-y-2">
-              <Label htmlFor="tablet-login-pw">Tablet password</Label>
+              <Label htmlFor="tablet-login-pw">{t('tablet.password')}</Label>
               <Input
                 id="tablet-login-pw"
                 type="password"
@@ -235,7 +234,7 @@ export function TabletPage() {
               className="w-full"
               disabled={checkingIn || !password.trim()}
             >
-              {checkingIn ? 'Signing in…' : 'Continue'}
+              {checkingIn ? t('tablet.signingIn') : t('tablet.continueButton')}
             </AccentButton>
           </form>
           {/* Offered before the password too: this screen is where a kiosk gets
@@ -249,7 +248,7 @@ export function TabletPage() {
               onClick={install.onClick}
             >
               <Download className="size-4" />
-              Install on this device
+              {t('tablet.installOnDevice')}
             </Button>
           ) : null}
           {install.guide}
@@ -259,7 +258,7 @@ export function TabletPage() {
   }
 
   return (
-    <LivePanelShell title={org?.name ?? 'Tablet'}>
+    <LivePanelShell title={org?.name ?? t('tablet.fallbackTitle')}>
       {/* A kiosk is a dedicated device, so its icon should reopen this exact
           tablet link rather than the app root. */}
       <PageScopedManifest />
@@ -267,11 +266,11 @@ export function TabletPage() {
         {install.method ? (
           <Button type="button" variant="outline" size="sm" onClick={install.onClick}>
             <Download className="size-4" />
-            Install
+            {t('tablet.install')}
           </Button>
         ) : null}
         <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
-          Log out
+          {t('tablet.logOut')}
         </Button>
       </div>
       {install.guide}
@@ -285,7 +284,7 @@ export function TabletPage() {
       <div className="mx-auto grid max-w-lg gap-3">
         {events.length === 0 ? (
           <p className="text-muted-foreground text-center text-sm">
-            No active events right now.
+            {t('tablet.noEvents')}
           </p>
         ) : (
           events.map((ev) => (
@@ -310,7 +309,7 @@ export function TabletPage() {
       </div>
       {tabletPath ? (
         <p className="text-muted-foreground mt-8 text-center text-xs">
-          Bookmark: {tabletPath}
+          {t('tablet.bookmark', { path: tabletPath })}
         </p>
       ) : null}
     </LivePanelShell>

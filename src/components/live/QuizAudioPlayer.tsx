@@ -1,5 +1,6 @@
 import { Pause, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /** Bars drawn across the box; enough to read as a waveform, few enough to tap through. */
 const BAR_COUNT = 64
@@ -63,6 +64,7 @@ export function QuizAudioPlayer({
   accentColor: string
   textColor: string
 }) {
+  const { t } = useTranslation('live')
   const audioRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -110,7 +112,7 @@ export function QuizAudioPlayer({
       <button
         type="button"
         onClick={toggle}
-        aria-label={playing ? 'Pause' : 'Play'}
+        aria-label={playing ? t('player.pause') : t('player.play')}
         className="xp-interactive flex size-16 shrink-0 items-center justify-center rounded-full shadow-lg active:scale-95 sm:size-20"
         style={{ backgroundColor: accentColor }}
       >

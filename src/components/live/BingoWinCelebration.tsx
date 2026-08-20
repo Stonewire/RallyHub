@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { textOnAccent } from '@/lib/live-event'
 
@@ -18,8 +19,6 @@ type BingoWinCelebrationProps = {
   onDismiss: () => void
 }
 
-const LETTERS = ['B', 'I', 'N', 'G', 'O']
-
 export function BingoWinCelebration({
   teamName,
   teamColor,
@@ -28,6 +27,9 @@ export function BingoWinCelebration({
   bonusPoints,
   onDismiss,
 }: BingoWinCelebrationProps) {
+  const { t } = useTranslation('live')
+  // Split so each letter can land on its own animation beat.
+  const letters = Array.from(t('bingoWin.bingoWord'))
   const accent = teamColor?.trim() || DEFAULT_ACCENT
   const onColor = textOnAccent(accent)
   const onDismissRef = useRef(onDismiss)
@@ -93,15 +95,15 @@ export function BingoWinCelebration({
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, type: 'spring', stiffness: 220, damping: 16 }}
         >
-          {mine ? 'You got' : 'Bingo!'}
+          {mine ? t('bingoWin.youGot') : t('bingoWin.heading')}
         </motion.p>
 
         <div className="flex items-center justify-center gap-2 sm:gap-4">
-          {LETTERS.map((letter, i) => (
+          {letters.map((letter, i) => (
             // Two layers: the letter lands once, and only the bounce loops.
             // Repeating the landing made each letter vanish and pop back.
             <motion.span
-              key={letter}
+              key={`${letter}-${i}`}
               className="inline-block"
               animate={{ y: [0, -10, 0, -14, 0] }}
               transition={{
@@ -145,7 +147,7 @@ export function BingoWinCelebration({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          {mine ? 'You completed a line!' : 'has got BINGO!'}
+          {mine ? t('bingoWin.completedLine') : t('bingoWin.hasGotBingo')}
         </motion.p>
 
         {mine && bonusPoints ? (
@@ -156,7 +158,7 @@ export function BingoWinCelebration({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 1, type: 'spring', stiffness: 240, damping: 12 }}
           >
-            +{bonusPoints} points
+            {t('puzzle.pointsAwarded', { points: bonusPoints })}
           </motion.p>
         ) : null}
       </motion.div>

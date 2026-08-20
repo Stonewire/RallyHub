@@ -1,5 +1,6 @@
 import { ArrowLeft, MessageCircle, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { FacilitatorButton } from '@/components/admin/FacilitatorButton'
 import { Button } from '@/components/ui/button'
@@ -120,6 +121,7 @@ export function FacilitatorChatBubble({
   disabled?: boolean
   onClick: () => void
 }) {
+  const { t } = useTranslation('facilitator')
   return (
     <FacilitatorButton
       type="button"
@@ -128,7 +130,7 @@ export function FacilitatorChatBubble({
       // players' screens: this is app furniture, not a branded control.
       className="text-nm-yellow hover:text-nm-yellow relative fixed right-4 bottom-4 z-40 size-12 rounded-full border-none bg-black p-0 shadow-lg hover:bg-black hover:brightness-110"
       onClick={onClick}
-      aria-label="Open team chat"
+      aria-label={t('chat.openTeamChatAria')}
     >
       <MessageCircle className="size-5" />
       {unreadCount > 0 ? (
@@ -163,16 +165,17 @@ export function FacilitatorChatDrawer({
   sendDisabled = false,
   onSend,
 }: FacilitatorChatDrawerProps) {
+  const { t } = useTranslation('facilitator')
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
 
   const safeTeams = useMemo(
-    () => teams.filter((t): t is Tables<'teams'> => Boolean(t?.id)),
+    () => teams.filter((team): team is Tables<'teams'> => Boolean(team?.id)),
     [teams],
   )
 
   const teamById = useMemo(
-    () => new Map(safeTeams.map((t) => [t.id, t])),
+    () => new Map(safeTeams.map((team) => [team.id, team])),
     [safeTeams],
   )
 
@@ -217,16 +220,18 @@ export function FacilitatorChatDrawer({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Back to team list"
+              aria-label={t('chat.backToTeamListAria')}
               onClick={() => onActiveTeamIdChange(null)}
             >
               <ArrowLeft className="size-4" />
             </Button>
           ) : null}
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{activeTeamId ? activeTeam?.name?.trim() || 'Team' : 'Team chat'}</p>
+            <p className="font-semibold">
+              {activeTeamId ? activeTeam?.name?.trim() || t('teamFallback') : t('chat.teamChatTitle')}
+            </p>
             <p className="text-muted-foreground truncate text-xs">
-              {activeTeamId ? 'Conversation with team' : 'Select a team to view messages'}
+              {activeTeamId ? t('chat.conversationWithTeam') : t('chat.selectTeamHint')}
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" onClick={closeDrawer}>
@@ -238,30 +243,30 @@ export function FacilitatorChatDrawer({
           <ul className="flex-1 overflow-auto p-2">
             {sortedTeams.length === 0 ? (
               <li className="text-muted-foreground px-3 py-8 text-center text-sm">
-                No teams have joined yet.
+                {t('chat.noTeamsJoined')}
               </li>
             ) : (
-              sortedTeams.map((t) => {
-                const unread = unreadByTeamId.get(t.id) ?? 0
-                const last = lastThreadMessage(messages, t.id)
+              sortedTeams.map((team) => {
+                const unread = unreadByTeamId.get(team.id) ?? 0
+                const last = lastThreadMessage(messages, team.id)
                 const preview = last
-                  ? `${last.sender}: ${last.message}`
-                  : 'No messages yet'
+                  ? t('chat.lastMessagePreview', { sender: last.sender, message: last.message })
+                  : t('chat.noMessagesPreview')
 
                 return (
-                  <li key={t.id}>
+                  <li key={team.id}>
                     <button
                       type="button"
                       className="hover:bg-muted/50 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left"
-                      onClick={() => onActiveTeamIdChange(t.id)}
+                      onClick={() => onActiveTeamIdChange(team.id)}
                     >
                       <span
                         className="size-2.5 shrink-0 rounded-full ring-1 ring-border"
-                        style={{ background: t.color ?? '#888' }}
+                        style={{ background: team.color ?? '#888' }}
                         aria-hidden
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{t.name}</p>
+                        <p className="truncate text-sm font-medium">{team.name}</p>
                         <p className="text-muted-foreground truncate text-xs">{preview}</p>
                       </div>
                       {unread > 0 ? (
@@ -279,7 +284,7 @@ export function FacilitatorChatDrawer({
           <>
             <ul ref={listRef} className="flex-1 space-y-2 overflow-auto p-4 text-sm">
               {threadMessages.length === 0 ? (
-                <p className="text-muted-foreground text-center text-xs">No messages yet.</p>
+                <p className="text-muted-foreground text-center text-xs">{t('chat.noMessagesThread')}</p>
               ) : (
                 threadMessages.map((m) => (
                   <li key={m.id}>
@@ -294,7 +299,7 @@ export function FacilitatorChatDrawer({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={
-                  sendDisabled ? 'Controls disabled until event is live' : 'Message team…'
+                  sendDisabled ? t('chat.placeholderDisabled') : t('chat.placeholderActive')
                 }
                 className="bg-background"
                 disabled={sendDisabled}
@@ -308,7 +313,7 @@ export function FacilitatorChatDrawer({
                 disabled={sendDisabled}
                 onClick={() => void send()}
               >
-                Send
+                {t('chat.send')}
               </FacilitatorButton>
             </div>
           </>

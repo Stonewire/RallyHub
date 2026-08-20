@@ -33,7 +33,8 @@
     "label": "Anuncio",
     "placeholder": "Mensaje… se borra después de 1 minuto",
     "live": "En directo: {{message}}",
-    "clear": "Borrar"
+    "clear": "Borrar",
+    "inputPlaceholder": "Escribe aquí tu anuncio… se borra después de 1 minuto"
   },
   "surface": {
     "display": "Pantalla",
@@ -58,7 +59,8 @@
     "revealFailed": "No se pudo mostrar la respuesta",
     "scoringFailed": "No se pudo puntuar el cuestionario. Verifica que la migración increment_team_score esté aplicada",
     "resetNotify": "Cuestionario reiniciado",
-    "finishedNotify": "Cuestionario finalizado en todas las pantallas"
+    "finishedNotify": "Cuestionario finalizado en todas las pantallas",
+    "questionCounter": "P {{current}} / {{total}}"
   },
   "bingo": {
     "runActive": "Partida activa · {{count}} canciones en la lista",
@@ -85,7 +87,10 @@
     "couldNotScoreAdvance": "No se pudo puntuar o avanzar la ronda de bingo",
     "couldNotScoreReveal": "No se pudo puntuar o mostrar la ronda de bingo",
     "couldNotLockSelections": "No se pudieron bloquear las selecciones de bingo",
-    "playbackFailed": "Fallo en la reproducción de audio: {{message}}"
+    "playbackFailed": "Fallo en la reproducción de audio: {{message}}",
+    "restart": "Reiniciar",
+    "runFinished": "Partida terminada",
+    "cueingNext": "Preparando la siguiente canción…"
   },
   "controls": {
     "start": "Iniciar",
@@ -119,7 +124,8 @@
     "resetting": "Reiniciando…",
     "resetTeamButton": "Reiniciar equipo",
     "resetSlotNotify": "Espacio de equipo {{number}} borrado. Disponible para un equipo nuevo",
-    "resetSlotFailed": "No se pudo reiniciar el espacio de equipo"
+    "resetSlotFailed": "No se pudo reiniciar el espacio de equipo",
+    "statusAria": "Estado del equipo"
   },
   "timer": {
     "countdownLabel": "Cuenta atrás del evento en la pantalla",
@@ -140,7 +146,11 @@
   },
   "toggles": {
     "showTimer": "Mostrar temporizador en la pantalla",
-    "showScores": "Mostrar puntuaciones en la pantalla"
+    "showScores": "Mostrar puntuaciones en la pantalla",
+    "timerOnDisplay": "Temporizador en la pantalla",
+    "rankOnDisplay": "Posición en la pantalla",
+    "pointsOnDisplay": "Puntos en la pantalla",
+    "purchaseItems": "Comprar artículos"
   },
   "purchases": {
     "heading": "Compras",
@@ -163,6 +173,22 @@
       "approved": "Aprobadas",
       "rejected": "Rechazadas",
       "cancelled": "Canceladas"
+    },
+    "filterAria": "Filtrar entregas",
+    "expectedLabel": "Esperado:",
+    "type": {
+      "photo": "Foto",
+      "video": "Vídeo",
+      "text": "Texto",
+      "quiz": "Quiz",
+      "bingo": "Bingo",
+      "puzzle": "Puzle",
+      "other": "Otro"
+    },
+    "verdict": {
+      "matches": "✓ Coincide",
+      "closeMatch": "≈ Coincide salvo mayúsculas o espacios",
+      "noMatch": "✗ No coincide"
     }
   },
   "claim": {
@@ -177,7 +203,8 @@
     "notStarted": "Sin empezar",
     "questsCompleted": "{{done}}/{{total}} misiones completadas",
     "slotFallback": "Espacio {{number}}",
-    "noQuestGames": "Este evento no tiene juegos de misiones."
+    "noQuestGames": "Este evento no tiene juegos de misiones.",
+    "closeTeamProgress": "Cerrar el progreso del equipo"
   },
   "chat": {
     "openTeamChatAria": "Abrir chat de equipo",
@@ -208,7 +235,15 @@
     "noAnswerSet": "Sin definir",
     "pointsLabel": "Puntos ({{min}} a {{max}})",
     "pointsRangeError": "Introduce un valor entre {{min}} y {{max}}",
-    "statusLabel": "Estado: {{status}}"
+    "statusLabel": "Estado: {{status}}",
+    "closeSubmission": "Cerrar la entrega",
+    "puzzleResult": "Resultado del puzle",
+    "pointsAwarded": "+{{points}} puntos",
+    "scoredAutomatically": "Puntuado automáticamente. No hay nada que aprobar.",
+    "correctAnswer": "Respuesta correcta",
+    "verdictMatches": "✓ La respuesta del equipo coincide",
+    "verdictClose": "≈ Coincide salvo mayúsculas o espacios",
+    "verdictNoMatch": "✗ La respuesta del equipo no coincide"
   },
   "winnerRouting": {
     "display": {
@@ -223,5 +258,53 @@
       "label": "Jugadores",
       "desc": "Cada teléfono de jugador reproduce el anuncio del ganador."
     }
+  },
+  "storeOrders": {
+    "heading": "Pedidos de la tienda",
+    "pendingCount": "{{count}} pendientes",
+    "emptyPending": "Nada en espera. Los equipos piden desde su Tienda.",
+    "handedOverCount": "{{done}}/{{total}} entregados",
+    "hideDone": "Ocultar completados ({{count}})",
+    "showDone": "Mostrar completados ({{count}})",
+    "doneBadge": "completado",
+    "orderDialogHint": "Pedido · los puntos se descuentan solo por los artículos que completes",
+    "selectAll": "Seleccionar todo",
+    "pointsEach": "{{points}} pts cada uno",
+    "handedOverPointsTaken": "entregado, puntos descontados",
+    "cancelOrder": "Cancelar pedido",
+    "completing": "Completando…",
+    "completeSelected": "Completar la selección y descontar {{points}} puntos",
+    "orderCompleted": "Pedido de {{team}} completado. {{points}} puntos descontados.",
+    "partialCompleted": "{{points}} puntos descontados. Los artículos sin marcar siguen en el pedido.",
+    "completeFailed": "No se pudo completar el pedido.",
+    "cancelConfirm": "¿Cancelar el pedido de {{team}}? Los artículos que aún no se han entregado vuelven a la venta; lo que ya se haya entregado sigue pagado.",
+    "cancelFailed": "No se pudo cancelar el pedido.",
+    "updateItemFailed": "No se pudo actualizar el artículo."
+  },
+  "landing": {
+    "title": "Facilitador",
+    "signedInAs": "Sesión iniciada como {{name}}",
+    "intro": "Abre el enlace de facilitador de un evento de tu organización para dirigir un evento en directo. Pega el enlace en tu navegador o usa el marcador de los ajustes del evento.",
+    "signIn": "Iniciar sesión",
+    "noAccess": "Tu cuenta no tiene acceso de facilitador. Pide una cuenta de facilitador al administrador de tu organización o usa un enlace de administrador."
+  },
+  "preview": {
+    "button": "Vista previa",
+    "dialogAria": "Vista previa de la pantalla"
+  },
+  "install": {
+    "button": "Instalar"
+  },
+  "stageCard": {
+    "welcomeLabel": "Pantalla de bienvenida",
+    "endedLabel": "Evento terminado",
+    "welcomeDefault": "Bienvenidos",
+    "endedDefault": "Gracias por jugar",
+    "welcomeHint": "Los equipos ven esto mientras esperan. Pasa al primer juego cuando estés listo.",
+    "endedHint": "El juego está congelado para todos. Usa los controles de revelación del ganador para anunciar los resultados."
+  },
+  "displayPreview": {
+    "title": "Vista previa de la pantalla",
+    "copyLink": "Copiar enlace de la pantalla"
   }
 }

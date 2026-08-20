@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,8 @@ export function ChallengeNativePreview({
   onSubmit,
   onClose,
 }: ChallengeNativePreviewProps) {
+  const { t } = useTranslation('live')
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -40,7 +43,7 @@ export function ChallengeNativePreview({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close preview"
+          aria-label={t('join.nativePreview.closePreview')}
           className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm"
         >
           <X className="size-5" />
@@ -52,7 +55,7 @@ export function ChallengeNativePreview({
           <div className="xp-media-frame mx-auto flex w-full max-w-lg items-center justify-center bg-black">
             <img
               src={previewUrl}
-              alt="Preview"
+              alt={t('join.nativePreview.previewAlt')}
               className={CHALLENGE_PREVIEW_MEDIA_CLASS}
             />
           </div>
@@ -82,7 +85,7 @@ export function ChallengeNativePreview({
             className="min-h-12 flex-1 border-white/30 bg-white/10 text-base text-white"
             onClick={onRetake}
           >
-            Retake
+            {t('join.nativePreview.retake')}
           </Button>
           <LiveAccentButton
             type="button"
@@ -91,7 +94,7 @@ export function ChallengeNativePreview({
             disabled={disabled}
             onClick={onSubmit}
           >
-            Submit
+            {t('join.nativePreview.submit')}
           </LiveAccentButton>
         </div>
       </div>

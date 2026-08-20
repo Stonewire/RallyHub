@@ -4,5 +4,51 @@
   "close": "Close",
   "loading": "Loading",
   "error": "Something went wrong. Please try again.",
-  "pts": "pts"
+  "pts": "pts",
+  "retry": "Retry",
+  "install": {
+    "addToHomeScreen": "Add to home screen",
+    "installApp": "Install app",
+    "manual": {
+      "ios": "Tap the Share button at the bottom of Safari, then \"Add to Home Screen\".",
+      "android": "Open your browser menu, then tap \"Add to Home screen\".",
+      "macosSafari": "In Safari, choose File, then \"Add to Dock\"."
+    },
+    "guide": {
+      "title": "Install RallyHub on your device",
+      "introTablet": "Adds a RallyHub icon to the home screen, Dock or desktop, so staff do not have to find the link each time. Chrome and Safari are the recommended browsers.",
+      "introApp": "Adds a RallyHub icon to the home screen, Dock or desktop, and opens it in its own window without the browser around it.",
+      "gotIt": "Got it",
+      "openedTablet": "the tablet link",
+      "openedApp": "RallyHub",
+      "pinStep": "Enter the 4-digit tablet password once.",
+      "resultTablet": "The device now has a RallyHub icon that opens straight to the score screen.",
+      "resultApp": "The device now has a RallyHub icon that opens in its own window, with no address bar.",
+      "android": {
+        "platform": "Android tablet or phone (Chrome)",
+        "open": "Open {{target}} in Chrome.",
+        "menu": "Tap the three dots in the top right.",
+        "add": "Tap \"Add to Home screen\", then \"Install\"."
+      },
+      "ios": {
+        "platform": "iPad or iPhone (Safari)",
+        "open": "Open {{target}} in Safari. This does not work in Chrome on iOS.",
+        "share": "Tap the Share button, the square with the arrow.",
+        "add": "Scroll down and tap \"Add to Home Screen\", then \"Add\"."
+      },
+      "mac": {
+        "platform": "Mac (Safari)",
+        "open": "Open {{target}} in Safari.",
+        "addToDock": "Choose File, then \"Add to Dock\".",
+        "result": "RallyHub opens from the Dock in its own window."
+      },
+      "desktop": {
+        "platform": "Windows or Mac (Chrome or Edge)",
+        "open": "Open {{target}} in Chrome or Edge.",
+        "addressBar": "Click the install icon at the right-hand end of the address bar.",
+        "menuFallback": "If it is not there, open the three dots menu, then \"Cast, save and share\", then \"Install page as app\".",
+        "result": "RallyHub opens from the desktop or taskbar in its own window."
+      }
+    }
+  }
 }

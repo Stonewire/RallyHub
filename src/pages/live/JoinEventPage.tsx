@@ -1,5 +1,6 @@
 import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { BrandBackground } from '@/components/live/BrandBackground'
@@ -66,6 +67,7 @@ export function JoinEventPage() {
   setLiveParticipantMode(true)
   useEffect(() => () => setLiveParticipantMode(false), [])
 
+  const { t } = useTranslation('live')
   const { eventId } = useParams<{ eventId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -74,7 +76,7 @@ export function JoinEventPage() {
   const tabletSlug = searchParams.get('slug')?.trim() ?? ''
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
-  useDocumentTitle('Teams', bundle?.event?.name)
+  useDocumentTitle(t('join.claim.documentTitle'), bundle?.event?.name)
 
   // Back-button trap. Scanning the join QR from a phone's camera app opens a
   // temporary browser sheet whose history starts empty, so one press of the
@@ -220,14 +222,14 @@ export function JoinEventPage() {
     return (
       <div className="experience-scope flex min-h-svh flex-col items-center justify-center gap-3 px-6 text-center">
         {loading ? (
-          <p className="text-2xl font-black opacity-70">Loading…</p>
+          <p className="text-2xl font-black opacity-70">{t('common:loading')}…</p>
         ) : (
           <>
             <p className="text-[clamp(1.75rem,7vw,3rem)] leading-tight font-black text-balance">
-              {error ?? 'Event not found'}
+              {error ?? t('join.claim.eventNotFound')}
             </p>
             <p className="max-w-sm text-base font-semibold opacity-65">
-              Check the link or the QR code with whoever is running the event.
+              {t('join.claim.eventNotFoundHint')}
             </p>
           </>
         )}
@@ -273,7 +275,7 @@ export function JoinEventPage() {
       })
       if (error) throw error
       const row = data?.[0]
-      if (!row) throw new Error('Could not move this team to your device.')
+      if (!row) throw new Error(t('join.takeover.couldNotMove'))
       const updatedTeam: Tables<'teams'> = {
         id: row.id,
         event_id: row.event_id,
@@ -305,7 +307,7 @@ export function JoinEventPage() {
       const msg =
         err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
           ? err.message
-          : 'Could not move this team to your device.'
+          : t('join.takeover.couldNotMove')
       setTakeoverError(msg)
     } finally {
       setTakeoverBusy(false)
@@ -319,7 +321,7 @@ export function JoinEventPage() {
       isEventDemoStatus(event.status) &&
       countClaimedTeams(joinTeams) >= DEMO_MAX_TEAMS
     ) {
-      setClaimError(`Demo events allow up to ${DEMO_MAX_TEAMS} teams.`)
+      setClaimError(t('join.claim.demoTeamsLimit', { count: DEMO_MAX_TEAMS }))
       return
     }
     setUploading(true)
@@ -339,7 +341,7 @@ export function JoinEventPage() {
             eventId,
             teamId: claimSlot.id,
           })
-          throw new Error(`Could not upload team photo (${detail})`, { cause: err })
+          throw new Error(t('join.claim.couldNotUploadPhoto', { detail }), { cause: err })
         }
       }
       const trimmed = claimName.trim()
@@ -353,7 +355,7 @@ export function JoinEventPage() {
 
       if (updateError) throw updateError
       const claimed = claimResult?.[0]
-      if (!claimed) throw new Error('Could not claim this team.')
+      if (!claimed) throw new Error(t('join.claim.couldNotClaimTeam'))
       const updatedTeam: Tables<'teams'> = {
         id: claimed.id,
         event_id: claimed.event_id,
@@ -409,7 +411,7 @@ export function JoinEventPage() {
         }
       })
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : 'Could not join team')
+      setClaimError(err instanceof Error ? err.message : t('join.claim.couldNotJoinTeam'))
     } finally {
       setUploading(false)
     }
@@ -431,17 +433,14 @@ export function JoinEventPage() {
         <div className="xp-card w-full max-w-sm space-y-4 bg-white p-6 text-center text-black">
           <Camera className="mx-auto size-12" style={{ color: accent }} />
           <div className="space-y-1">
-            <h2 className="text-xl font-bold">Allow your camera</h2>
+            <h2 className="text-xl font-bold">{t('join.permission.title')}</h2>
             <p className="text-sm text-black/70">
-              Challenges use your camera and microphone for photos and videos.
-              Approve it once now and you will not be asked again during the
-              game.
+              {t('join.permission.body')}
             </p>
           </div>
           {permissionDenied ? (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-              The browser blocked it. Open your browser's site settings, allow
-              Camera and Microphone for this page, then try again.
+              {t('join.permission.blockedHint')}
             </p>
           ) : null}
           <button
@@ -452,17 +451,17 @@ export function JoinEventPage() {
             onClick={() => void approveCamera()}
           >
             {permissionRequesting
-              ? 'Waiting for the browser…'
+              ? t('join.permission.waitingForBrowser')
               : permissionDenied
-                ? 'Try again'
-                : 'Approve camera'}
+                ? t('join.permission.tryAgain')
+                : t('join.permission.approve')}
           </button>
           <button
             type="button"
             className="text-xs font-medium text-black/50 underline"
             onClick={() => setPermissionGateOpen(false)}
           >
-            Skip for now — photo and video games will not work
+            {t('join.permission.skip')}
           </button>
         </div>
       </div>
@@ -473,7 +472,7 @@ export function JoinEventPage() {
       myTeam ??
       ({
         id: teamId,
-        name: 'Team',
+        name: t('join.claim.teamFallback'),
         score: 0,
         event_id: event.id,
         slot_number: 0,
@@ -499,7 +498,7 @@ export function JoinEventPage() {
         messages={messages}
         chatHistoryReady={chatHistoryReady}
         onSendMessage={(text) =>
-          void sendMessage((teamForView.name ?? 'Team').trim(), text, teamId)
+          void sendMessage((teamForView.name ?? t('join.claim.teamFallback')).trim(), text, teamId)
         }
         announcement={announcement}
         onDismissAnnouncement={() => setAnnouncement(null)}
@@ -588,7 +587,7 @@ export function JoinEventPage() {
                 />
               )}
               <span className="xp-wrap-text text-base font-bold">
-                {team.name?.trim() || 'Available'}
+                {team.name?.trim() || t('join.claim.available')}
               </span>
             </button>
           )
@@ -598,8 +597,7 @@ export function JoinEventPage() {
       {permissionGate}
       {signedOutByTakeover ? (
         <p className="mx-auto mt-4 max-w-sm rounded-lg bg-black/35 px-4 py-2 text-center text-sm font-semibold backdrop-blur-sm">
-          Your team was moved to another device. Ask your facilitator if this
-          was not you.
+          {t('join.takeover.signedOut')}
         </p>
       ) : null}
       {takeoverSlot ? (
@@ -607,12 +605,10 @@ export function JoinEventPage() {
           <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-4 overflow-y-auto bg-white p-6 text-black">
             <div className="space-y-1">
               <h2 className="text-lg font-bold">
-                Move “{takeoverSlot.name?.trim()}” to this device?
+                {t('join.takeover.moveTitle', { team: takeoverSlot.name?.trim() })}
               </h2>
               <p className="text-sm text-black/70">
-                This team is already playing on another device. Enter the event
-                password from your facilitator to continue here — the other
-                device will be signed out.
+                {t('join.takeover.body')}
               </p>
             </div>
             <input
@@ -620,7 +616,7 @@ export function JoinEventPage() {
               inputMode="numeric"
               autoFocus
               className="w-full rounded-lg border-2 border-black/15 px-3 py-2.5 text-base outline-none focus:border-black/40"
-              placeholder="Event password"
+              placeholder={t('join.takeover.passwordPlaceholder')}
               value={takeoverPassword}
               onChange={(e) => setTakeoverPassword(e.target.value)}
             />
@@ -636,7 +632,7 @@ export function JoinEventPage() {
                 onClick={() => setTakeoverSlot(null)}
                 disabled={takeoverBusy}
               >
-                Cancel
+                {t('common:cancel')}
               </button>
               <button
                 type="button"
@@ -645,7 +641,7 @@ export function JoinEventPage() {
                 disabled={takeoverBusy || !takeoverPassword.trim()}
                 onClick={() => void takeoverTeam()}
               >
-                {takeoverBusy ? 'Moving…' : 'Move team here'}
+                {takeoverBusy ? t('join.takeover.moving') : t('join.takeover.moveHere')}
               </button>
             </div>
           </div>
@@ -656,7 +652,7 @@ export function JoinEventPage() {
           <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto bg-white p-6 text-black">
             <div className="space-y-2">
               <label htmlFor="team-name" className="block text-sm font-bold">
-                Team name
+                {t('join.claim.teamNameLabel')}
               </label>
               <input
                 id="team-name"
@@ -676,7 +672,7 @@ export function JoinEventPage() {
                       }
                     : { borderColor: 'rgba(0,0,0,0.15)' }
                 }
-                placeholder="Your team name"
+                placeholder={t('join.claim.teamNamePlaceholder')}
                 value={claimName}
                 onChange={(e) => setClaimName(e.target.value)}
               />
@@ -722,14 +718,18 @@ export function JoinEventPage() {
                   }
                   setJoinCameraOpen(true)
                 }}
-                aria-label={photoPreview ? 'Retake team photo' : 'Take team photo'}
+                aria-label={
+                  photoPreview
+                    ? t('join.claim.retakeTeamPhoto')
+                    : t('join.claim.takeTeamPhoto')
+                }
               >
                 {photoPreview ? (
                   <img src={photoPreview} alt="" className="size-full object-cover" />
                 ) : (
                   <>
                     <Camera className="size-8" strokeWidth={1.75} />
-                    <span className="text-xs font-semibold">Team photo</span>
+                    <span className="text-xs font-semibold">{t('join.claim.teamPhoto')}</span>
                   </>
                 )}
               </button>
@@ -749,7 +749,7 @@ export function JoinEventPage() {
                 className="xp-card flex-1 border border-black/15 bg-white px-4 py-2.5 text-sm font-bold text-black"
                 onClick={() => setClaimSlot(null)}
               >
-                Cancel
+                {t('common:cancel')}
               </button>
               <button
                 type="button"
@@ -761,7 +761,7 @@ export function JoinEventPage() {
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void claimTeam()}
               >
-                {uploading ? 'Joining…' : 'Join'}
+                {uploading ? t('join.claim.joining') : t('join.claim.join')}
               </button>
             </div>
           </div>

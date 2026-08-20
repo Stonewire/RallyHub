@@ -1,5 +1,6 @@
 import { Check, Loader2, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { CrosswordPlayer } from '@/components/live/CrosswordPlayer'
 import { playQuizSelectSound } from '@/lib/sounds'
@@ -62,10 +63,6 @@ type Props = {
  *  (Rumen, 8 Aug: one second, on every game). */
 const RESULT_HOLD_MS = 1000
 
-function puzzleErrorMessage(reason: unknown): string {
-  return puzzleOfflineErrorMessage(reason, 'Could not update the puzzle. Please try again.')
-}
-
 /**
  * Space the fixed keyboard takes from the bottom of the screen: its own height
  * plus the gap it leaves for the chat, exit and RallyHub badge beneath it.
@@ -115,6 +112,7 @@ export function PuzzleGamePlayer({
   onSolvedAutoClose,
   onQueuePuzzleResult,
 }: Props) {
+  const { t } = useTranslation('live')
   const config = (game.config ?? {}) as GameConfig
   const type = puzzleType(config)
   const maxPoints = Math.max(1, game.points_static ?? 100)
@@ -188,7 +186,7 @@ export function PuzzleGamePlayer({
 
   const loadProgress = useCallback(async () => {
     if (!teamToken) {
-      setError('Rejoin this event on this phone once to enable secure puzzle play.')
+      setError(t('puzzle.tokenMissing'))
       setLoading(false)
       return
     }
@@ -216,9 +214,7 @@ export function PuzzleGamePlayer({
       if (!navigator.onLine) {
         // No pack on the device and no connection: the server call below can
         // only die at the fetch layer. Say what is actually wrong instead.
-        setError(
-          'This puzzle is not downloaded for offline play yet. It needs a connection right now.',
-        )
+        setError(t('puzzle.offlineNotDownloaded'))
         setLoading(false)
         return
       }
@@ -229,7 +225,7 @@ export function PuzzleGamePlayer({
       p_team_token: teamToken,
     })
     if (loadError) {
-      setError(puzzleErrorMessage(loadError))
+      setError(puzzleOfflineErrorMessage(loadError, t('puzzle.genericError')))
     } else {
       const next = parsePuzzleProgress(data as Json)
       // A puzzle finished offline stays finished while its queued result
@@ -242,7 +238,7 @@ export function PuzzleGamePlayer({
       setError(null)
     }
     setLoading(false)
-  }, [eventId, game.id, keyPlayable, mirrorProgressLocally, onQueuePuzzleResult, teamId, teamToken, type])
+  }, [eventId, game.id, keyPlayable, mirrorProgressLocally, onQueuePuzzleResult, t, teamId, teamToken, type])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadProgress updates after an awaited server response, not synchronously in the effect
@@ -324,7 +320,7 @@ export function PuzzleGamePlayer({
           queuePuzzleResult({ guesses: next.guesses.map((row) => row.word) })
         }
       } catch (reason) {
-        setError(puzzleErrorMessage(reason))
+        setError(puzzleOfflineErrorMessage(reason, t('puzzle.genericError')))
       }
       return
     }
@@ -345,7 +341,7 @@ export function PuzzleGamePlayer({
       void publishPuzzleProgressChange(eventId, teamId, game.id)
       if (next.completed) void publishLiveBundleReload(eventId)
     } catch (reason) {
-      setError(puzzleErrorMessage(reason))
+      setError(puzzleOfflineErrorMessage(reason, t('puzzle.genericError')))
     } finally {
       setSaving(false)
     }
@@ -390,7 +386,7 @@ export function PuzzleGamePlayer({
           queuePuzzleResult({ attempts: next.attempts, wrongMatches: next.wrongMatches })
         }
       } catch (reason) {
-        setError(puzzleErrorMessage(reason))
+        setError(puzzleOfflineErrorMessage(reason, t('puzzle.genericError')))
       }
       return
     }
@@ -417,7 +413,7 @@ export function PuzzleGamePlayer({
       void publishPuzzleProgressChange(eventId, teamId, game.id)
       if (next.completed) void publishLiveBundleReload(eventId)
     } catch (reason) {
-      setError(puzzleErrorMessage(reason))
+      setError(puzzleOfflineErrorMessage(reason, t('puzzle.genericError')))
     } finally {
       setSaving(false)
     }
@@ -460,7 +456,7 @@ export function PuzzleGamePlayer({
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-white/75">
-          <Loader2 className="size-5 animate-spin" /> Loading puzzle…
+          <Loader2 className="size-5 animate-spin" /> {t('puzzle.loading')}
         </div>
       ) : progress?.completed ? (
         // The solved board stays on screen under the result: the team wants to
@@ -468,18 +464,18 @@ export function PuzzleGamePlayer({
         <div className="space-y-5 pb-24">
           <div className="px-4 py-6">
             <Check className="mx-auto size-12 text-green-400" />
-            <p className="mt-3 text-2xl font-black">Puzzle complete!</p>
+            <p className="mt-3 text-2xl font-black">{t('puzzle.complete')}</p>
             <p className="mt-2 text-lg font-semibold" style={{ color: accentColor }}>
-              +{progress.pointsAwarded ?? 0} points
+              {t('puzzle.pointsAwarded', { points: progress.pointsAwarded ?? 0 })}
             </p>
             <p className="mt-2 text-sm text-white/65">
               {type === 'wordle'
-                ? `Solved in ${progress.attempts} ${progress.attempts === 1 ? 'guess' : 'guesses'}`
-                : `${progress.wrongMatches} incorrect ${progress.wrongMatches === 1 ? 'match' : 'matches'}`}
+                ? t('puzzle.solvedInGuesses', { count: progress.attempts })
+                : t('puzzle.wrongMatches', { count: progress.wrongMatches })}
             </p>
           </div>
           {type === 'wordle' ? (
-            <div className="flex flex-col space-y-2" aria-label="Word guesses">
+            <div className="flex flex-col space-y-2" aria-label={t('puzzle.wordGuesses')}>
               <WordleGuessRows guesses={progress.guesses} />
             </div>
           ) : null}
@@ -489,7 +485,7 @@ export function PuzzleGamePlayer({
           {/* The board starts under the brief and grows downwards: each guess
               adds a row beneath the last, and the row being typed is always
               the bottom one, scrolled into view. */}
-          <div className="flex flex-col space-y-2" aria-label="Word guesses">
+          <div className="flex flex-col space-y-2" aria-label={t('puzzle.wordGuesses')}>
             <WordleGuessRows guesses={progress?.guesses ?? []} />
             <div ref={activeRowRef} className="flex scroll-mb-[20rem] justify-center gap-1.5">
               {Array.from({ length: wordLength }, (_, index) => (
@@ -503,7 +499,7 @@ export function PuzzleGamePlayer({
             </div>
           </div>
           <p className="text-xs text-white/60">
-            Unlimited guesses · each extra guess reduces the remaining score by 10%
+            {t('puzzle.wordleHint')}
           </p>
           {/* The keyboard's own Submit is the only one — a second button below it
               was one more thing to reach for on a phone. */}
@@ -513,7 +509,7 @@ export function PuzzleGamePlayer({
             onBackspace={handleWordleBackspace}
             onSubmit={() => void submitWordleGuess()}
             submitDisabled={saving || Array.from(guess).length !== wordLength}
-            submitLabel={saving ? 'Checking…' : 'Submit'}
+            submitLabel={saving ? t('puzzle.checking') : t('puzzle.submit')}
             accentColor={accentColor}
             keyState={wordleKeyState}
             disabled={saving}
@@ -584,9 +580,9 @@ export function PuzzleGamePlayer({
             </div>
           </div>
           <div className="flex items-center justify-center gap-3 text-xs text-white/65">
-            <span>{matchedLeft.size}/{leftItems.length} matched</span>
+            <span>{t('puzzle.matched', { matched: matchedLeft.size, total: leftItems.length })}</span>
             <span>·</span>
-            <span>{progress?.wrongMatches ?? 0} mistakes</span>
+            <span>{t('puzzle.mistakes', { count: progress?.wrongMatches ?? 0 })}</span>
           </div>
           {(selectedLeft || selectedRight) && !saving ? (
             <Button
@@ -599,7 +595,7 @@ export function PuzzleGamePlayer({
                 setSelectedRight(null)
               }}
             >
-              <RotateCcw className="mr-1 size-3.5" /> Clear selection
+              <RotateCcw className="mr-1 size-3.5" /> {t('puzzle.clearSelection')}
             </Button>
           ) : null}
         </div>

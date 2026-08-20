@@ -33,7 +33,8 @@
     "label": "Announcement",
     "placeholder": "Message… clears after 1 minute",
     "live": "Live: {{message}}",
-    "clear": "Clear"
+    "clear": "Clear",
+    "inputPlaceholder": "Type your announcement here… clears after 1 minute"
   },
   "surface": {
     "display": "Display",
@@ -58,7 +59,8 @@
     "revealFailed": "Quiz reveal failed",
     "scoringFailed": "Quiz scoring failed. Verify increment_team_score migration is applied",
     "resetNotify": "Quiz reset",
-    "finishedNotify": "Quiz finished for all screens"
+    "finishedNotify": "Quiz finished for all screens",
+    "questionCounter": "Q {{current}} / {{total}}"
   },
   "bingo": {
     "runActive": "Run active · {{count}} songs in script",
@@ -85,7 +87,10 @@
     "couldNotScoreAdvance": "Could not score or advance the bingo round",
     "couldNotScoreReveal": "Could not score or reveal the bingo round",
     "couldNotLockSelections": "Could not lock bingo selections",
-    "playbackFailed": "Audio playback failed: {{message}}"
+    "playbackFailed": "Audio playback failed: {{message}}",
+    "restart": "Restart",
+    "runFinished": "Run finished",
+    "cueingNext": "Cueing the next song…"
   },
   "controls": {
     "start": "Start",
@@ -119,7 +124,8 @@
     "resetting": "Resetting…",
     "resetTeamButton": "Reset team",
     "resetSlotNotify": "Team slot {{number}} cleared. Available for a new team",
-    "resetSlotFailed": "Could not reset team slot"
+    "resetSlotFailed": "Could not reset team slot",
+    "statusAria": "Team status"
   },
   "timer": {
     "countdownLabel": "Event countdown on display",
@@ -140,7 +146,11 @@
   },
   "toggles": {
     "showTimer": "Show timer on display",
-    "showScores": "Show scores on display"
+    "showScores": "Show scores on display",
+    "timerOnDisplay": "Timer on display",
+    "rankOnDisplay": "Rank on display",
+    "pointsOnDisplay": "Points on display",
+    "purchaseItems": "Purchase items"
   },
   "purchases": {
     "heading": "Purchases",
@@ -163,6 +173,22 @@
       "approved": "Approved",
       "rejected": "Rejected",
       "cancelled": "Cancelled"
+    },
+    "filterAria": "Filter submissions",
+    "expectedLabel": "Expected:",
+    "type": {
+      "photo": "Photo",
+      "video": "Video",
+      "text": "Text",
+      "quiz": "Quiz",
+      "bingo": "Bingo",
+      "puzzle": "Puzzle",
+      "other": "Other"
+    },
+    "verdict": {
+      "matches": "✓ Matches",
+      "closeMatch": "≈ Matches except case/spaces",
+      "noMatch": "✗ Does not match"
     }
   },
   "claim": {
@@ -177,7 +203,8 @@
     "notStarted": "Not started",
     "questsCompleted": "{{done}}/{{total}} Quests completed",
     "slotFallback": "Slot {{number}}",
-    "noQuestGames": "This event has no Quest games."
+    "noQuestGames": "This event has no Quest games.",
+    "closeTeamProgress": "Close team progress"
   },
   "chat": {
     "openTeamChatAria": "Open team chat",
@@ -208,7 +235,15 @@
     "noAnswerSet": "Not set",
     "pointsLabel": "Points ({{min}} to {{max}})",
     "pointsRangeError": "Enter a value between {{min}} and {{max}}",
-    "statusLabel": "Status: {{status}}"
+    "statusLabel": "Status: {{status}}",
+    "closeSubmission": "Close submission",
+    "puzzleResult": "Puzzle result",
+    "pointsAwarded": "+{{points}} points",
+    "scoredAutomatically": "Scored automatically. Nothing to approve.",
+    "correctAnswer": "Correct answer",
+    "verdictMatches": "✓ Team answer matches",
+    "verdictClose": "≈ Matches except capitals or spaces",
+    "verdictNoMatch": "✗ Team answer does not match"
   },
   "winnerRouting": {
     "display": {
@@ -223,5 +258,53 @@
       "label": "Players",
       "desc": "Every player phone plays the winner announcement."
     }
+  },
+  "storeOrders": {
+    "heading": "Store orders",
+    "pendingCount": "{{count}} pending",
+    "emptyPending": "Nothing waiting. Teams order from their Store.",
+    "handedOverCount": "{{done}}/{{total}} handed over",
+    "hideDone": "Hide done ({{count}})",
+    "showDone": "Show done ({{count}})",
+    "doneBadge": "done",
+    "orderDialogHint": "Order · points are taken only for the items you complete",
+    "selectAll": "Select all",
+    "pointsEach": "{{points}} pts each",
+    "handedOverPointsTaken": "handed over, points taken",
+    "cancelOrder": "Cancel order",
+    "completing": "Completing…",
+    "completeSelected": "Complete selected and take {{points}} points",
+    "orderCompleted": "{{team}}'s order completed. {{points}} points taken.",
+    "partialCompleted": "{{points}} points taken. The unticked items stay in the order.",
+    "completeFailed": "Could not complete the order.",
+    "cancelConfirm": "Cancel {{team}}'s order? Items not yet handed over go back on sale; anything already handed over stays paid.",
+    "cancelFailed": "Could not cancel the order.",
+    "updateItemFailed": "Could not update the item."
+  },
+  "landing": {
+    "title": "Facilitator",
+    "signedInAs": "Signed in as {{name}}",
+    "intro": "Open an event facilitator link from your organization to run a live event. Paste the link in your browser or use the bookmark from your event settings.",
+    "signIn": "Sign in",
+    "noAccess": "Your account does not have facilitator access. Ask your organization admin for a facilitator account or use an admin link instead."
+  },
+  "preview": {
+    "button": "Preview",
+    "dialogAria": "Display preview"
+  },
+  "install": {
+    "button": "Install"
+  },
+  "stageCard": {
+    "welcomeLabel": "Welcome screen",
+    "endedLabel": "Event ended",
+    "welcomeDefault": "Welcome",
+    "endedDefault": "Thanks for playing",
+    "welcomeHint": "Teams see this while they wait. Move to the first game when ready.",
+    "endedHint": "Play is frozen for everyone. Use the winner reveal controls to announce results."
+  },
+  "displayPreview": {
+    "title": "Display preview",
+    "copyLink": "Copy display link"
   }
 }

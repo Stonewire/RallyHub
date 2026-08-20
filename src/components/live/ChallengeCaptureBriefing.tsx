@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Camera, Video } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
@@ -34,9 +35,11 @@ export function ChallengeCaptureBriefing({
   disabled,
   onStart,
 }: ChallengeCaptureBriefingProps) {
+  const { t } = useTranslation('live')
   const videoRef = useRef<HTMLVideoElement>(null)
   const [fast, setFast] = useState(false)
-  const cta = mediaType === 'video' ? 'Take video' : 'Take photo'
+  const cta =
+    mediaType === 'video' ? t('join.capture.takeVideo') : t('join.capture.takePhoto')
   const Icon = mediaType === 'video' ? Video : Camera
   const embedUrl = youTubeEmbedUrl(exampleVideoUrl)
 
@@ -64,7 +67,7 @@ export function ChallengeCaptureBriefing({
       {exampleVideoUrl ? (
         <div className="relative mt-5 w-full">
           <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
-            Example video
+            {t('join.capture.exampleVideo')}
           </p>
           {embedUrl ? (
             // A YouTube link cannot play in a <video> tag (dead black box on
@@ -72,7 +75,7 @@ export function ChallengeCaptureBriefing({
             // lives inside that player, so no 2x button here.
             <iframe
               src={embedUrl}
-              title="Example video"
+              title={t('join.capture.exampleVideo')}
               className="aspect-video w-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

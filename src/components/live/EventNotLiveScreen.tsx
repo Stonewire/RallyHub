@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { displayTextClass, logoForEvent } from '@/lib/live-event'
 import type { TenantPublicOrg } from '@/lib/tenant'
@@ -9,6 +11,7 @@ type EventNotLiveScreenProps = {
 }
 
 export function EventNotLiveScreen({ event, organization }: EventNotLiveScreenProps) {
+  const { t } = useTranslation('live')
   const logo = logoForEvent(event, organization)
   const textClass = displayTextClass(event)
   const ended = event.status === 'archived'
@@ -23,12 +26,10 @@ export function EventNotLiveScreen({ event, organization }: EventNotLiveScreenPr
           {event.name}
         </h1>
         <p className={`mt-8 font-sans text-2xl font-bold md:text-3xl ${textClass}`}>
-          {ended ? 'This event has ended.' : 'This event is starting soon'}
+          {ended ? t('notLive.ended') : t('notLive.startingSoon')}
         </p>
         <p className={`mt-4 max-w-md text-base opacity-90 md:text-lg ${textClass}`}>
-          {ended
-            ? 'Thanks for joining. This experience is no longer available.'
-            : 'Hang tight. The game will begin once your host starts the event, and this screen updates on its own.'}
+          {ended ? t('notLive.endedBody') : t('notLive.startingBody')}
         </p>
       </div>
     </BrandBackground>

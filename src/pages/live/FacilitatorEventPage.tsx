@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/FacilitatorButton'
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
@@ -127,35 +128,52 @@ const TEAM_STATUS_TONE: Record<string, string> = {
   stopped: 'archived',
 }
 
+/** Known event statuses mapped to their facilitator-catalog badge labels. */
+const EVENT_STATUS_KEY: Record<string, string> = {
+  active: 'eventStatus.active',
+  demo: 'eventStatus.demo',
+  ready: 'eventStatus.ready',
+  draft: 'eventStatus.draft',
+  archived: 'eventStatus.archived',
+}
+
+/** Submission statuses mapped to their badge labels. */
+const SUB_STATUS_KEY: Record<string, string> = {
+  pending: 'submissions.status.pending',
+  approved: 'submissions.status.approved',
+  rejected: 'submissions.status.rejected',
+  cancelled: 'submissions.status.cancelled',
+}
+
 // UI-1: parse a typed countdown — plain number = minutes, otherwise mm:ss / hh:mm:ss.
 /**
- * Short label for the kind of submission on a review card.
+ * Translation key for the short label of the kind of submission on a review card.
  *
  * Prefers the game's own type; falls back to the submission's media_type for
  * rows whose game has since been removed from the event. Quiz answers arrive
  * as "quiz:<questionId>", so the prefix is what matters, not the whole string.
  */
-function gameTypeLabel(
+function gameTypeLabelKey(
   gameType: string | null | undefined,
   mediaType: string | null | undefined,
 ): string {
   const key = gameType ?? (mediaType ?? '').split(':')[0]
   switch (key) {
     case 'photo':
-      return 'Photo'
+      return 'submissions.type.photo'
     case 'video':
-      return 'Video'
+      return 'submissions.type.video'
     case 'text':
-      return 'Text'
+      return 'submissions.type.text'
     case 'quiz':
-      return 'Quiz'
+      return 'submissions.type.quiz'
     case 'music_bingo':
     case 'bingo':
-      return 'Bingo'
+      return 'submissions.type.bingo'
     case 'puzzle':
-      return 'Puzzle'
+      return 'submissions.type.puzzle'
     default:
-      return 'Other'
+      return 'submissions.type.other'
   }
 }
 
@@ -169,14 +187,14 @@ function gameTypeLabel(
 /** How a text answer compares with the game's reference answer, as a chip. */
 const TEXT_VERDICT_CHIP: Record<
   Exclude<TextAnswerVerdict, 'unknown'>,
-  { label: string; className: string }
+  { labelKey: string; className: string }
 > = {
-  correct: { label: '✓ Matches', className: 'bg-emerald-600 text-white' },
+  correct: { labelKey: 'submissions.verdict.matches', className: 'bg-emerald-600 text-white' },
   close: {
-    label: '≈ Matches except case/spaces',
+    labelKey: 'submissions.verdict.closeMatch',
     className: 'bg-amber-500 text-black',
   },
-  wrong: { label: '✗ Does not match', className: 'bg-rose-600 text-white' },
+  wrong: { labelKey: 'submissions.verdict.noMatch', className: 'bg-rose-600 text-white' },
 }
 
 function parseTimerInput(raw: string): number | null {
@@ -194,13 +212,14 @@ export function FacilitatorEventPage() {
   setLiveParticipantMode(false)
 
   const { eventId } = useParams<{ eventId: string }>()
+  const { t } = useTranslation('facilitator')
   const { profile, user } = useAuth()
   const name =
     profileDisplayName(profile) ||
     user?.email?.split('@')[0] ||
-    'Facilitator'
+    t('facilitatorFallbackName')
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
-  useDocumentTitle('Facilitator', bundle?.event?.name)
+  useDocumentTitle(t('facilitatorFallbackName'), bundle?.event?.name)
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)
@@ -366,7 +385,7 @@ export function FacilitatorEventPage() {
       await updateState(patch)
       return true
     } catch (err) {
-      setStateError(err instanceof Error ? err.message : 'Update failed')
+      setStateError(err instanceof Error ? err.message : t('state.updateFailed'))
       return false
     }
   }
@@ -405,7 +424,7 @@ export function FacilitatorEventPage() {
           queryClient.setQueryData(queryKeys.bingoRun(eventId, index), row)
         })
         .catch((err) => {
-          setStateError(err instanceof Error ? err.message : 'Could not start bingo')
+          setStateError(err instanceof Error ? err.message : t('state.couldNotStartBingo'))
         })
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
@@ -557,11 +576,11 @@ export function FacilitatorEventPage() {
         notify(
           err instanceof Error
             ? err.message
-            : 'Quiz scoring failed — verify increment_team_score migration is applied',
+            : t('quiz.scoringFailed'),
         )
       }
     })()
-  }, [bundle, state, quizTimerDisplay, updateState, notify])
+  }, [bundle, state, quizTimerDisplay, updateState, notify, t])
 
   const breakSeconds =
     stage?.type === 'break'
@@ -644,9 +663,9 @@ export function FacilitatorEventPage() {
 
   if (loading || !bundle || !state) {
     return (
-      <FacilitatorPanelShell title="Facilitator" titleCentered>
+      <FacilitatorPanelShell title={t('facilitatorFallbackName')} titleCentered>
         <p className="text-muted-foreground text-center text-sm">
-          {loading ? 'Loading…' : (error ?? 'Event not found')}
+          {loading ? `${t('common:loading')}…` : (error ?? t('state.eventNotFound'))}
         </p>
       </FacilitatorPanelShell>
     )
@@ -730,7 +749,7 @@ export function FacilitatorEventPage() {
       const min = game.points_min ?? 0
       const max = game.points_max ?? 0
       if (points < min || points > max) {
-        notify(`Points must be ${min}–${max}`)
+        notify(t('submissions.pointsMustBeBetween', { min, max }))
         return
       }
     }
@@ -742,11 +761,11 @@ export function FacilitatorEventPage() {
       .select('*')
       .maybeSingle()
     if (error) {
-      notify(error.message || 'Could not approve submission')
+      notify(error.message || t('submissions.couldNotApprove'))
       return
     }
     if (!data) {
-      notify('Submission already processed')
+      notify(t('submissions.alreadyProcessed'))
       return
     }
     if (eventId) {
@@ -766,7 +785,7 @@ export function FacilitatorEventPage() {
         p_details: { points, game_name: game.name, team_name: team?.name ?? null },
       })
     }
-    notify(`Approved +${points} pts`)
+    notify(t('submissions.approvedNotify', { points }))
   }
 
   async function rejectSubmission(id: string) {
@@ -778,7 +797,7 @@ export function FacilitatorEventPage() {
       .select('*')
       .maybeSingle()
     if (error) {
-      notify(error.message || 'Could not reject submission')
+      notify(error.message || t('submissions.couldNotReject'))
       return
     }
     if (data && eventId) {
@@ -794,7 +813,7 @@ export function FacilitatorEventPage() {
         p_details: { game_name: game?.name ?? null, team_name: team?.name ?? null },
       })
     }
-    notify('Submission rejected')
+    notify(t('submissions.rejectedNotify'))
   }
 
   async function saveClaim() {
@@ -805,7 +824,7 @@ export function FacilitatorEventPage() {
       !claimSlot.name?.trim() &&
       countClaimedTeams(eventTeams) >= DEMO_MAX_TEAMS
     ) {
-      notify(`Demo events allow up to ${DEMO_MAX_TEAMS} teams.`)
+      notify(t('claim.demoLimit', { max: DEMO_MAX_TEAMS }))
       return
     }
     setUploading(true)
@@ -828,7 +847,7 @@ export function FacilitatorEventPage() {
       setClaimName('')
       setClaimPhoto(null)
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not save the team')
+      notify(err instanceof Error ? err.message : t('claim.couldNotSave'))
     } finally {
       setUploading(false)
     }
@@ -852,10 +871,10 @@ export function FacilitatorEventPage() {
       // Broadcast a full reload so display and player panels see the cleared
       // submissions immediately (submission deletes are not individually patched).
       if (eventId) await publishLiveBundleReload(eventId)
-      notify(`Team slot ${team.slot_number} cleared — available for a new team`)
+      notify(t('teams.resetSlotNotify', { number: team.slot_number }))
       setResetConfirmTeam(null)
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not reset team slot')
+      notify(err instanceof Error ? err.message : t('teams.resetSlotFailed'))
     } finally {
       setResettingTeam(false)
     }
@@ -911,7 +930,7 @@ export function FacilitatorEventPage() {
       await revealQuizAnswer(eventId, quizGame.id, question.id)
     } catch (err) {
       console.error('[quiz] reveal failed', err)
-      notify(err instanceof Error ? err.message : 'Quiz reveal failed')
+      notify(err instanceof Error ? err.message : t('quiz.revealFailed'))
       return
     }
     try {
@@ -921,7 +940,7 @@ export function FacilitatorEventPage() {
       notify(
         err instanceof Error
           ? err.message
-          : 'Quiz scoring failed — verify increment_team_score migration is applied',
+          : t('quiz.scoringFailed'),
       )
     }
     quizAutoRevealKey.current = `${liveState.current_stage_index}-${liveState.current_question_index}-reveal`
@@ -996,13 +1015,13 @@ export function FacilitatorEventPage() {
       quiz_timer_seconds: quizQuestionSeconds(quizBaseSeconds, questions[0]),
       quiz_timer_running: false,
     })
-    notify('Quiz reset')
+    notify(t('quiz.resetNotify'))
   }
 
   async function finishQuiz() {
     quizAutoRevealKey.current = ''
     await patchState({ quiz_state: 'ended', quiz_timer_running: false })
-    notify('Quiz finished for all screens')
+    notify(t('quiz.finishedNotify'))
   }
 
   /* eslint-disable react-hooks/refs -- action closures here are deferred to a later onClick, not invoked during this render; the functions they call (startQuizQuestion/patchState/goToNextQuestion) happen to read refs, but only once actually clicked */
@@ -1011,14 +1030,14 @@ export function FacilitatorEventPage() {
     if (liveState.quiz_state === 'round_intro') {
       const n = quizQuestionIndex + 1
       return {
-        label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
+        label: t('quiz.startQuestion', { number: n }),
         action: () => startQuizQuestion(quizQuestionIndex),
       }
     }
     if (liveState.quiz_state === 'idle' || liveState.quiz_state === 'waiting') {
       const n = quizQuestionIndex + 1
       return {
-        label: n === 1 ? 'Start Question 1' : `Start Question ${n}`,
+        label: t('quiz.startQuestion', { number: n }),
         action: () => startQuizQuestion(quizQuestionIndex),
       }
     }
@@ -1026,7 +1045,7 @@ export function FacilitatorEventPage() {
       const isLast = liveState.current_question_index >= questions.length - 1
       if (isLast && liveState.quiz_state === 'revealed') {
         return {
-          label: 'Reveal Quiz Results',
+          label: t('quiz.revealResults'),
           action: () => void patchState({ quiz_state: 'results', quiz_timer_running: false }),
         }
       }
@@ -1041,12 +1060,14 @@ export function FacilitatorEventPage() {
           liveState.current_question_index + 1,
         )
         return {
-          label: nextRound ? `Start ${nextRound.name}` : 'Start next round',
+          label: nextRound
+            ? t('quiz.startRound', { round: nextRound.name })
+            : t('quiz.startNextRound'),
           action: () => void goToNextQuestion(),
         }
       }
       return {
-        label: 'Next Question',
+        label: t('quiz.nextQuestion'),
         action: () => void goToNextQuestion(),
       }
     }
@@ -1149,7 +1170,7 @@ export function FacilitatorEventPage() {
 
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
-      notify('Audio player is not mounted — switch to bingo stage and try again')
+      notify(t('bingo.audioNotMountedHint'))
       bingoBusyRef.current = false
       return
     }
@@ -1164,7 +1185,7 @@ export function FacilitatorEventPage() {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
         } else {
-          notify('Could not start playback — check console for details')
+          notify(t('bingo.couldNotStartPlayback'))
         }
       }).finally(() => {
         setBingoAdvancing(false)
@@ -1192,14 +1213,14 @@ export function FacilitatorEventPage() {
           }
         }
         if (!url) {
-          notify('No playable track URL — ensure MP3 clips are uploaded for this bingo game')
+          notify(t('bingo.noPlayableTrack'))
           return
         }
         const played = await player.playFromUserGesture(url)
         if (played) {
           await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
-        } else notify('Run loaded — press Start again to play')
+        } else notify(t('bingo.runLoadedPressStart'))
       } finally {
         setBingoAdvancing(false)
         bingoBusyRef.current = false
@@ -1250,7 +1271,7 @@ export function FacilitatorEventPage() {
       bingo_state: 'revealed',
       bingo_revealed_track_ids: revealed,
     })
-    if (!locked) throw new Error('Could not lock bingo selections')
+    if (!locked) throw new Error(t('bingo.couldNotLockSelections'))
 
     const result = await scoreBingoRound({
       eventId,
@@ -1281,10 +1302,10 @@ export function FacilitatorEventPage() {
       try {
         const winnerWritten = await patchState(writePatch)
         if (!winnerWritten) throw new Error('Winner announcement state update failed')
-        if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
+        if (winnerName) notify(t('bingo.wonPausedNotify', { team: winnerName }))
       } catch (err) {
         console.error('Failed to write bingo winner fields (non-fatal)', err)
-        if (winnerName) notify(`🏆 Bingo! ${winnerName} won — game paused`)
+        if (winnerName) notify(t('bingo.wonPausedNotify', { team: winnerName }))
       }
     }
     return true
@@ -1297,13 +1318,13 @@ export function FacilitatorEventPage() {
     if (!stage?.gameId || !eventId) return
     const player = bingoAudioRef.current
     if (!player?.isMounted()) {
-      notify('Audio player is not mounted')
+      notify(t('bingo.audioNotMounted'))
       return
     }
     void player.primeAudioContext()
     const run = await ensureBingoRunReady()
     if (!run || normalizeBingoPlayOrder(run.playOrder).length === 0) {
-      notify('Bingo run is not ready')
+      notify(t('bingo.runNotReady'))
       return
     }
     setBingoAdvancing(true)
@@ -1355,7 +1376,7 @@ export function FacilitatorEventPage() {
       void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
       if (!nextUrl) setAudioPlayNonce((n) => n + 1)
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not score or advance the bingo round')
+      notify(err instanceof Error ? err.message : t('bingo.couldNotScoreAdvance'))
     } finally {
       setBingoAdvancing(false)
     }
@@ -1373,7 +1394,7 @@ export function FacilitatorEventPage() {
     setBingoAdvancing(true)
     const revealPromise = lockAndRevealBingoRound()
       .catch((err) => {
-        notify(err instanceof Error ? err.message : 'Could not score or reveal the bingo round')
+        notify(err instanceof Error ? err.message : t('bingo.couldNotScoreReveal'))
         return false
       })
       .finally(() => {
@@ -1439,7 +1460,7 @@ export function FacilitatorEventPage() {
                       setClaimName(team.name ?? '')
                     }}
                   >
-                    {team.name?.trim() || 'Available'}
+                    {team.name?.trim() || t('teams.available')}
                   </button>
                   <span className="text-sm tabular-nums">{team.score}</span>
                   <Button
@@ -1447,7 +1468,7 @@ export function FacilitatorEventPage() {
                     variant="ghost"
                     size="icon-sm"
                     className="shrink-0"
-                    title={`Reset slot ${team.slot_number}`}
+                    title={t('teams.resetSlotTitle', { number: team.slot_number })}
                     disabled={!controlsLive || !team.name?.trim()}
                     onClick={() => setResetConfirmTeam(team)}
                   >
@@ -1458,7 +1479,11 @@ export function FacilitatorEventPage() {
                     variant="ghost"
                     size="icon-sm"
                     className="shrink-0"
-                    title={`Chat with ${team.name?.trim() || `slot ${team.slot_number}`}`}
+                    title={
+                      team.name?.trim()
+                        ? t('teams.chatWithName', { name: team.name.trim() })
+                        : t('teams.chatWithSlot', { number: team.slot_number })
+                    }
                     onClick={() => {
                       setChatTeamId(team.id)
                       setChatOpen(true)
@@ -1474,16 +1499,16 @@ export function FacilitatorEventPage() {
                     onChange={(e) =>
                       void updateTeam(team.id, { status: e.target.value })
                     }
-                    aria-label="Team status"
+                    aria-label={t('teams.statusAria')}
                   >
-                    <option value="idle">Idle</option>
-                    <option value="active">Active</option>
-                    <option value="stopped">Stopped</option>
+                    <option value="idle">{t('teams.statusIdle')}</option>
+                    <option value="active">{t('teams.statusActive')}</option>
+                    <option value="stopped">{t('teams.statusStopped')}</option>
                   </select>
                   {prog ? (
                     <div className="flex w-full items-center gap-2 pl-6">
                       <span className="text-muted-foreground text-xs font-medium tabular-nums">
-                        {prog.doneCount}/{prog.total} Quests done
+                        {t('teams.questsDone', { done: prog.doneCount, total: prog.total })}
                       </span>
                       <Button
                         type="button"
@@ -1492,7 +1517,7 @@ export function FacilitatorEventPage() {
                         className="ml-auto h-7 px-2 text-xs"
                         onClick={() => setProgressTeam(team)}
                       >
-                        View Quests
+                        {t('teams.viewQuests')}
                       </Button>
                     </div>
                   ) : null}
@@ -1514,11 +1539,11 @@ export function FacilitatorEventPage() {
           {/* StatusIndicator prints the label itself; the console used to print
               it a second time alongside, reading "Ready Ready". */}
           <NeoStatusBadge tone={event.status as NeoStatusBadgeTone}>
-            {event.status === 'demo' ? 'Demo' : event.status}
+            {EVENT_STATUS_KEY[event.status] ? t(EVENT_STATUS_KEY[event.status]) : event.status}
           </NeoStatusBadge>
           {others.length > 0 ? (
             <span className="text-muted-foreground truncate text-xs">
-              Also viewing: {others.map((o) => o.name).join(', ')}
+              {t('presence.alsoViewing', { names: others.map((o) => o.name).join(', ') })}
             </span>
           ) : null}
         </div>
@@ -1529,18 +1554,18 @@ export function FacilitatorEventPage() {
           {isCompact ? (
             <FacilitatorButton size="sm" variant="outline" onClick={() => setPreviewOpen(true)}>
               <Eye className="size-4" />
-              Preview
+              {t('preview.button')}
             </FacilitatorButton>
           ) : null}
           {install.method ? (
             <FacilitatorButton size="sm" variant="outline" onClick={install.onClick}>
               <Download className="size-4" />
-              Install
+              {t('install.button')}
             </FacilitatorButton>
           ) : null}
           <FacilitatorButton size="sm" variant="outline" onClick={() => setLogOpen(true)}>
             <ScrollText className="size-4" />
-            View Log
+            {t('log.viewLog')}
           </FacilitatorButton>
           <FacilitatorButton
             size="sm"
@@ -1553,7 +1578,7 @@ export function FacilitatorEventPage() {
             aria-pressed={muted}
           >
             {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-            {muted ? 'Unmute' : 'Mute'}
+            {muted ? t('sound.unmute') : t('sound.mute')}
           </FacilitatorButton>
         </div>
       </div>
@@ -1563,9 +1588,7 @@ export function FacilitatorEventPage() {
           className="border-border/80 bg-muted/40 text-muted-foreground mb-4 rounded-lg border px-4 py-3 text-center text-sm"
           role="status"
         >
-          {event.status === 'archived'
-            ? 'This event has ended. Controls are disabled.'
-            : 'This event is not live yet. Controls are disabled until the event is active.'}
+          {event.status === 'archived' ? t('state.eventEnded') : t('state.eventNotLive')}
         </p>
       ) : null}
 
@@ -1588,14 +1611,14 @@ export function FacilitatorEventPage() {
                     value={timerEdit}
                     onChange={(e) => setTimerEdit(e.target.value)}
                     autoFocus
-                    placeholder="minutes or mm:ss"
+                    placeholder={t('timer.placeholder')}
                     className="bg-background max-w-[9rem] font-mono"
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') setTimerEdit(null)
                       if (e.key === 'Enter') {
                         const secs = parseTimerInput(timerEdit)
                         if (secs == null) {
-                          notify('Enter minutes (e.g. 45) or mm:ss')
+                          notify(t('timer.invalidInput'))
                           return
                         }
                         void patchState({ timer_seconds: secs })
@@ -1608,28 +1631,28 @@ export function FacilitatorEventPage() {
                     onClick={() => {
                       const secs = parseTimerInput(timerEdit)
                       if (secs == null) {
-                        notify('Enter minutes (e.g. 45) or mm:ss')
+                        notify(t('timer.invalidInput'))
                         return
                       }
                       void patchState({ timer_seconds: secs })
                       setTimerEdit(null)
                     }}
                   >
-                    Save
+                    {t('common:save')}
                   </FacilitatorButton>
                   <FacilitatorButton
                     size="sm"
                     variant="outline"
                     onClick={() => setTimerEdit(null)}
                   >
-                    Cancel
+                    {t('common:cancel')}
                   </FacilitatorButton>
                 </div>
               ) : (
                 <button
                   type="button"
                   disabled={state.timer_running}
-                  title={state.timer_running ? 'Pause to edit' : 'Click to set the countdown'}
+                  title={state.timer_running ? t('timer.pauseToEdit') : t('timer.clickToSet')}
                   className="block text-center font-mono text-3xl tabular-nums disabled:cursor-default"
                   onClick={() => setTimerEdit(String(Math.round(state.timer_seconds / 60)))}
                 >
@@ -1651,8 +1674,8 @@ export function FacilitatorEventPage() {
                 </FacilitatorButton>
                 <FacilitatorButton
                   size="sm"
-                  title={state.timer_running ? 'Pause' : 'Start'}
-                  aria-label={state.timer_running ? 'Pause the countdown' : 'Start the countdown'}
+                  title={state.timer_running ? t('controls.pause') : t('controls.start')}
+                  aria-label={state.timer_running ? t('timer.pauseAria') : t('timer.startAria')}
                   onClick={() =>
                     void patchState({ timer_running: !state.timer_running })
                   }
@@ -1672,7 +1695,7 @@ export function FacilitatorEventPage() {
             </div>
             <div className="flex flex-col justify-center gap-2">
               <FacilitatorButtonLarge className="w-full" onClick={handleRevealWinnerClick}>
-                Reveal Winner ({state.winner_reveal_stage}/2)
+                {t('winner.revealButton', { stage: state.winner_reveal_stage })}
               </FacilitatorButtonLarge>
               {/* Where the fanfare plays. These were behind a modal you had to
                   clear before the first reveal; now the answer is already on
@@ -1683,7 +1706,7 @@ export function FacilitatorEventPage() {
                     key={surface.id}
                     stacked
                     icon="sound"
-                    label={surface.label}
+                    label={t(`surface.${surface.id}`)}
                     checked={winnerSoundTargets.includes(surface.id)}
                     onChange={(next) => setWinnerSoundTarget(surface.id, next)}
                   />
@@ -1697,7 +1720,7 @@ export function FacilitatorEventPage() {
                   onClick={() => void patchState({ winner_reveal_stage: 0 })}
                 >
                   <RotateCcw className="size-4" />
-                  Reset winner
+                  {t('winner.resetWinner')}
                 </FacilitatorButton>
               ) : null}
             </div>
@@ -1706,13 +1729,13 @@ export function FacilitatorEventPage() {
               <div className={`grid gap-2 ${eventHasStore ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <FacilitatorToggle
                   stacked
-                  label="Timer on display"
+                  label={t('toggles.timerOnDisplay')}
                   checked={state.show_timer_on_display}
                   onChange={(next) => void patchState({ show_timer_on_display: next })}
                 />
                 <FacilitatorToggle
                   stacked
-                  label="Rank on display"
+                  label={t('toggles.rankOnDisplay')}
                   checked={state.show_scores}
                   onChange={(next) => void patchState({ show_scores: next })}
                 />
@@ -1720,7 +1743,7 @@ export function FacilitatorEventPage() {
                     negative hide_team_points underneath. */}
                 <FacilitatorToggle
                   stacked
-                  label="Points on display"
+                  label={t('toggles.pointsOnDisplay')}
                   checked={!state.hide_team_points}
                   onChange={(next) => void patchState({ hide_team_points: !next })}
                 />
@@ -1729,7 +1752,7 @@ export function FacilitatorEventPage() {
                 {eventHasStore ? (
                   <FacilitatorToggle
                     stacked
-                    label="Purchase items"
+                    label={t('toggles.purchaseItems')}
                     checked={state.store_open !== false}
                     onChange={(next) => void patchState({ store_open: next })}
                   />
@@ -1739,7 +1762,7 @@ export function FacilitatorEventPage() {
                   looking at, rather than in a card of their own. */}
               <div className="border-border/60 mt-1 space-y-2 border-t pt-3">
                 <SegmentedPill
-                  aria-label="Stage"
+                  aria-label={t('stages.heading')}
                   size="sm"
                   options={stages
                     .map((s, i) =>
@@ -1749,7 +1772,7 @@ export function FacilitatorEventPage() {
                             // The organiser named these; "Stage 3" tells the
                             // person running the room nothing about what is
                             // behind the tab.
-                            label: s.name?.trim() || `Stage ${i + 1}`,
+                            label: s.name?.trim() || t('stages.stageNumber', { number: i + 1 }),
                           }
                         : null,
                     )
@@ -1772,28 +1795,28 @@ export function FacilitatorEventPage() {
             <NeoInput
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
-              aria-label="Announcement"
-              placeholder="Type your announcement here… clears after 1 minute"
+              aria-label={t('announcement.label')}
+              placeholder={t('announcement.inputPlaceholder')}
               className="bg-background w-full"
             />
             {/* Same pill track as the stage selector, though each of these
                 sends rather than selects, so none of them stays lit. */}
             <div className="bg-nm-slate-800 dark:bg-nm-slate-200 grid grid-cols-3 gap-1 rounded-full p-1">
-              {(['display', 'participants', 'both'] as const).map((t) => (
+              {(['display', 'participants', 'both'] as const).map((target) => (
                 <button
-                  key={t}
+                  key={target}
                   type="button"
                   className="hover:bg-nm-yellow rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:text-black disabled:pointer-events-none dark:text-white"
-                  onClick={() => sendAnnouncement(t)}
+                  onClick={() => sendAnnouncement(target)}
                 >
-                  {t === 'display' ? 'Display' : t === 'participants' ? 'Participants' : 'Both'}
+                  {t(`surface.${target}`)}
                 </button>
               ))}
             </div>
             {state.announcement ? (
               <div className="border-border/80 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                 <span className="text-muted-foreground line-clamp-2 flex-1">
-                  Live: {state.announcement}
+                  {t('announcement.live', { message: state.announcement })}
                 </span>
                 <NeoButton
                   type="button"
@@ -1802,7 +1825,7 @@ export function FacilitatorEventPage() {
                   onClick={() => void clearAnnouncement()}
                 >
                   <X className="size-4" />
-                  Clear
+                  {t('announcement.clear')}
                 </NeoButton>
               </div>
             ) : null}
@@ -1841,7 +1864,7 @@ export function FacilitatorEventPage() {
                     variant="outline"
                     onClick={() => void skipQuizQuestion()}
                   >
-                    Skip
+                    {t('quiz.skip')}
                   </FacilitatorButton>
                 ) : null}
                 <FacilitatorButton
@@ -1849,11 +1872,11 @@ export function FacilitatorEventPage() {
                   variant="outline"
                   onClick={() => void restartQuiz()}
                 >
-                  Restart Quiz
+                  {t('quiz.restart')}
                 </FacilitatorButton>
                 {state.quiz_state === 'results' ? (
                   <FacilitatorButton size="sm" onClick={() => void finishQuiz()}>
-                    Finish Quiz
+                    {t('quiz.finish')}
                   </FacilitatorButton>
                 ) : null}
                 {/* Always rendered, so the row keeps its height whether or not
@@ -1864,7 +1887,7 @@ export function FacilitatorEventPage() {
                       ? ''
                       : 'opacity-30'
                   }`}
-                  aria-label="Question timer"
+                  aria-label={t('quiz.questionTimer')}
                 >
                   {formatTimer(
                     state.quiz_state === 'active' || state.quiz_state === 'revealed'
@@ -1875,7 +1898,10 @@ export function FacilitatorEventPage() {
               </div>
 
               <p className="text-muted-foreground text-center text-xs font-bold tracking-wide uppercase">
-                Q {state.current_question_index + 1} / {questions.length}
+                {t('quiz.questionCounter', {
+                  current: state.current_question_index + 1,
+                  total: questions.length,
+                })}
               </p>
               <p className="text-center text-base font-bold text-balance">{question.text}</p>
 
@@ -1919,8 +1945,7 @@ export function FacilitatorEventPage() {
 
               {state.quiz_state === 'active' && namedTeams.length === 0 ? (
                 <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-3 text-center text-sm">
-                  No teams have joined yet. Participants will not receive quiz answers until they
-                  join.
+                  {t('quiz.noTeamsJoined')}
                 </p>
               ) : null}
             </div>
@@ -1930,9 +1955,7 @@ export function FacilitatorEventPage() {
                   the only thing worth saying up here is when there is no run. */}
               {!effectiveBingoRun ? (
                 <p className="text-muted-foreground text-xs">
-                  {bingoRunQuery.isLoading
-                    ? 'Loading bingo run…'
-                    : 'No bingo run. Switch to this stage to activate one.'}
+                  {bingoRunQuery.isLoading ? t('bingo.loadingRun') : t('bingo.noRun')}
                 </p>
               ) : null}
               <div className="flex items-center justify-center">
@@ -1948,7 +1971,7 @@ export function FacilitatorEventPage() {
                     setBingoRestartOpen(true)
                   }}
                 >
-                  Restart
+                  {t('bingo.restart')}
                 </FacilitatorButton>
               </div>
               {/* One fixed line, always rendered. It used to appear only while a
@@ -1956,10 +1979,10 @@ export function FacilitatorEventPage() {
                   pushed everything below it up and back down again. */}
               <p className="flex min-h-[2.75rem] items-center justify-center text-center text-base font-bold text-balance">
                 {track && liveState.bingo_state === 'playing'
-                  ? `${track.title} — ${track.artist}`
+                  ? t('bingo.nowPlaying', { title: track.title, artist: track.artist })
                   : liveState.bingo_state === 'ended'
-                    ? 'Run finished'
-                    : 'Cueing the next song…'}
+                    ? t('bingo.runFinished')
+                    : t('bingo.cueingNext')}
               </p>
               {showBingoPlayer ? (
                 <BingoClipPlayer
@@ -1971,13 +1994,17 @@ export function FacilitatorEventPage() {
                   crossfadeSeconds={4}
                   onLockAndReveal={() => void handleBingoLockAndReveal()}
                   onAutoAdvance={() => void autoAdvanceBingoSong()}
-                  onPlaybackError={(message) => notify(`Audio playback failed: ${message}`)}
+                  onPlaybackError={(message) => notify(t('bingo.playbackFailed', { message }))}
                 />
               ) : null}
 
               {liveState.bingo_winner_team_id ? (
                 <div className="rounded-lg border border-yellow-400 bg-yellow-50 px-3 py-2 text-center text-sm font-bold text-yellow-900">
-                  🏆 Bingo! {teams.find((t) => t.id === liveState.bingo_winner_team_id)?.name ?? 'A team'} won. Press Continue to keep playing.
+                  {t('bingo.wonPausedBanner', {
+                    team:
+                      teams.find((tm) => tm.id === liveState.bingo_winner_team_id)?.name ??
+                      t('bingo.aTeamFallback'),
+                  })}
                 </div>
               ) : null}
               <div className="flex flex-wrap justify-center gap-2">
@@ -2001,10 +2028,10 @@ export function FacilitatorEventPage() {
                     }}
                   >
                     {liveState.bingo_state === 'waiting' || liveState.bingo_state === 'active'
-                      ? 'Start'
+                      ? t('controls.start')
                       : liveState.bingo_winner_team_id
-                        ? 'Continue'
-                        : 'Next Song'}
+                        ? t('bingo.continue')
+                        : t('bingo.nextSong')}
                   </NeoButton>
               </div>
               {/* Who has marked this round, in the same shape the quiz uses for
@@ -2043,10 +2070,10 @@ export function FacilitatorEventPage() {
                   <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
                     <div className="space-y-2">
                       <h3 id="bingo-restart-title" className="text-foreground font-semibold">
-                        Restart bingo run?
+                        {t('bingo.restartConfirmTitle')}
                       </h3>
                       <p className="text-muted-foreground text-sm leading-relaxed">
-                        Generates new cards and a new play order. Clears all marks and scores for this bingo game.
+                        {t('bingo.restartConfirmBody')}
                       </p>
                     </div>
                     <div className="flex justify-end gap-2">
@@ -2055,7 +2082,7 @@ export function FacilitatorEventPage() {
                         variant="surface"
                         onClick={() => setBingoRestartOpen(false)}
                       >
-                        Cancel
+                        {t('common:cancel')}
                       </NeoButton>
                       <NeoButton
                         type="button"
@@ -2075,7 +2102,7 @@ export function FacilitatorEventPage() {
                               })
                               setAudioPlayNonce((n) => n + 1)
                               bingoWinHaltRef.current = false
-                              notify('Bingo run restarted')
+                              notify(t('bingo.restarted'))
                               void patchState({
                                 current_question_index: 0,
                                 bingo_state: 'waiting',
@@ -2088,11 +2115,11 @@ export function FacilitatorEventPage() {
                               })
                           })
                           .catch((err) =>
-                            notify(err instanceof Error ? err.message : 'Restart failed'),
+                            notify(err instanceof Error ? err.message : t('bingo.restartFailed')),
                           )
                         }}
                       >
-                        Restart bingo run
+                        {t('bingo.restartRun')}
                       </NeoButton>
                     </div>
                   </Card>
@@ -2122,11 +2149,11 @@ export function FacilitatorEventPage() {
                 >
                   {state.break_timer_running ? (
                     <>
-                      <Pause className="size-4" /> Pause
+                      <Pause className="size-4" /> {t('controls.pause')}
                     </>
                   ) : (
                     <>
-                      <Play className="size-4" /> Start
+                      <Play className="size-4" /> {t('controls.start')}
                     </>
                   )}
                 </NeoButton>
@@ -2148,10 +2175,10 @@ export function FacilitatorEventPage() {
                 >
                   {breakHalted ? (
                     <>
-                      <RotateCcw className="size-4" /> Reset
+                      <RotateCcw className="size-4" /> {t('controls.reset')}
                     </>
                   ) : (
-                    'Stop'
+                    t('controls.stop')
                   )}
                 </FacilitatorButton>
                 </div>
@@ -2169,16 +2196,20 @@ export function FacilitatorEventPage() {
           {stage && (stage.type === 'welcome' || stage.type === 'end') ? (
             <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
               <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-                {stage.type === 'welcome' ? 'Welcome screen' : 'Event ended'}
+                {stage.type === 'welcome'
+                  ? t('stageCard.welcomeLabel')
+                  : t('stageCard.endedLabel')}
               </p>
               <p className="mt-2 text-sm font-medium">
                 {stage.message ||
-                  (stage.type === 'welcome' ? 'Welcome' : 'Thanks for playing')}
+                  (stage.type === 'welcome'
+                    ? t('stageCard.welcomeDefault')
+                    : t('stageCard.endedDefault'))}
               </p>
               <p className="text-muted-foreground mt-2 text-xs">
                 {stage.type === 'welcome'
-                  ? 'Teams see this while they wait. Move to the first game when ready.'
-                  : 'Play is frozen for everyone. Use the winner reveal controls to announce results.'}
+                  ? t('stageCard.welcomeHint')
+                  : t('stageCard.endedHint')}
               </p>
             </Card>
           ) : null}
@@ -2189,13 +2220,13 @@ export function FacilitatorEventPage() {
             <Card className="neo-card border-green-500/70 bg-card p-4 shadow-[0_0_14px_2px_rgba(34,197,94,0.35)]">
             <>
               <FilterChips
-                aria-label="Filter submissions"
+                aria-label={t('submissions.filterAria')}
                 className="mb-3"
                 options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'rejected', label: 'Rejected' },
+                  { value: 'all', label: t('submissions.status.all') },
+                  { value: 'pending', label: t('submissions.status.pending') },
+                  { value: 'approved', label: t('submissions.status.approved') },
+                  { value: 'rejected', label: t('submissions.status.rejected') },
                 ]}
                 value={subTab}
                 onChange={setSubTab}
@@ -2234,7 +2265,9 @@ export function FacilitatorEventPage() {
                         >
                           {sub.media_type === 'puzzle' ? (
                             <div className="bg-muted flex size-16 shrink-0 flex-col items-center justify-center rounded p-1 text-center">
-                              <span className="text-[10px] font-bold uppercase">Puzzle</span>
+                              <span className="text-[10px] font-bold uppercase">
+                                {t('submissions.type.puzzle')}
+                              </span>
                               <span className="text-muted-foreground text-[9px] leading-tight">
                                 {puzzleSubmissionStatLabel(sub.media_url)}
                               </span>
@@ -2266,7 +2299,7 @@ export function FacilitatorEventPage() {
                             <div className="bg-muted size-16 shrink-0 rounded" />
                           )}
                           <div className="min-w-0 flex-1 text-sm">
-                            <p className="font-medium">{team?.name ?? 'Team'}</p>
+                            <p className="font-medium">{team?.name ?? t('teamFallback')}</p>
                             <p className="text-muted-foreground truncate">{game?.name}</p>
                             {/* The thumbnail alone does not say what kind of
                                 submission this is: a video still and a photo
@@ -2275,7 +2308,7 @@ export function FacilitatorEventPage() {
                             <span
                               className={`${gameTypeTagClass(game?.type ?? (sub.media_type ?? '').split(':')[0])} mt-1 mr-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white`}
                             >
-                              {gameTypeLabel(game?.type, sub.media_type)}
+                              {t(gameTypeLabelKey(game?.type, sub.media_type))}
                             </span>
                             {/* Marking a text answer means comparing it with
                                 the right one, and an automatically marked game
@@ -2288,23 +2321,25 @@ export function FacilitatorEventPage() {
                               <span
                                 className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${TEXT_VERDICT_CHIP[textVerdict].className}`}
                               >
-                                {TEXT_VERDICT_CHIP[textVerdict].label}
+                                {t(TEXT_VERDICT_CHIP[textVerdict].labelKey)}
                               </span>
                             ) : null}
                             {expectedTextAnswer ? (
                               <p className="text-muted-foreground text-xs">
-                                Expected:{' '}
+                                {t('submissions.expectedLabel')}{' '}
                                 <span className="text-foreground font-semibold">
                                   {expectedTextAnswer}
                                 </span>
                               </p>
                             ) : null}
                             <NeoStatusBadge tone={statusTone} className="mt-1">
-                              {sub.status}
+                              {SUB_STATUS_KEY[sub.status]
+                                ? t(SUB_STATUS_KEY[sub.status])
+                                : sub.status}
                             </NeoStatusBadge>
                             {sub.media_type === 'puzzle' && sub.points_awarded !== null ? (
                               <span className="text-muted-foreground ml-2 text-xs font-semibold">
-                                +{sub.points_awarded} pts
+                                +{sub.points_awarded} {t('common:pts')}
                               </span>
                             ) : null}
                           </div>
@@ -2332,7 +2367,7 @@ export function FacilitatorEventPage() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Display preview"
+          aria-label={t('preview.dialogAria')}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => setPreviewOpen(false)}
         >
@@ -2344,7 +2379,7 @@ export function FacilitatorEventPage() {
             <div className="flex justify-end p-3">
               <FacilitatorButton size="sm" variant="outline" onClick={() => setPreviewOpen(false)}>
                 <X className="size-4" />
-                Close
+                {t('common:close')}
               </FacilitatorButton>
             </div>
           </Card>
@@ -2382,10 +2417,10 @@ export function FacilitatorEventPage() {
         <SubmissionDetailModal
           sub={selectedSub}
           teamName={
-            teams.find((t) => t.id === selectedSub.team_id)?.name ?? 'Team'
+            teams.find((tm) => tm.id === selectedSub.team_id)?.name ?? t('teamFallback')
           }
           gameName={
-            games.find((g) => g.id === selectedSub.game_id)?.name ?? 'Game'
+            games.find((g) => g.id === selectedSub.game_id)?.name ?? t('gameFallback')
           }
           game={games.find((g) => g.id === selectedSub.game_id)}
           pointsType={

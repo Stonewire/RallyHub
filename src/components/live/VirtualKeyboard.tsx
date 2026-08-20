@@ -1,5 +1,6 @@
 import { ArrowBigUp, CornerDownLeft, Delete } from 'lucide-react'
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { textOnAccent } from '@/lib/live-event'
 import { playKeyClickSound, type KeyClickKind } from '@/lib/sounds'
@@ -88,11 +89,13 @@ export function VirtualKeyboard({
   onBackspace,
   onSubmit,
   submitDisabled,
-  submitLabel = 'Submit',
+  submitLabel,
   accentColor,
   keyState,
   disabled,
 }: Props) {
+  const { t } = useTranslation('live')
+  const submitText = submitLabel ?? t('puzzle.submit')
   // Answers are compared exactly, so case is the player's to choose. Starts on
   // for the first letter, then releases itself, like a phone keyboard.
   const [shift, setShift] = useState(true)
@@ -216,7 +219,7 @@ export function VirtualKeyboard({
                     <ArrowBigUp className={`size-5 ${shift ? 'fill-current' : ''}`} />,
                     () => setShift((on) => !on),
                     1.5,
-                    'Shift',
+                    t('puzzle.shift'),
                     shift,
                   )
                 : null}
@@ -264,7 +267,7 @@ export function VirtualKeyboard({
                 )
               })}
               {lastRow
-                ? modifierKey(<Delete className="size-5" />, onBackspace, 1.5, 'Delete last letter', false, 'backspace')
+                ? modifierKey(<Delete className="size-5" />, onBackspace, 1.5, t('puzzle.deleteLastLetter'), false, 'backspace')
                 : null}
             </div>
           )
@@ -275,13 +278,13 @@ export function VirtualKeyboard({
               layer === 'letters' ? '123' : 'ABC',
               () => setLayer(layer === 'letters' ? 'numbers' : 'letters'),
               1.5,
-              layer === 'letters' ? 'Numbers' : 'Letters',
+              layer === 'letters' ? t('puzzle.numbers') : t('puzzle.letters'),
             )}
             {modifierKey(
               layer === 'symbols' ? '123' : '#+=',
               () => setLayer(layer === 'symbols' ? 'numbers' : 'symbols'),
               1.5,
-              'Characters',
+              t('puzzle.characters'),
             )}
             <button
               type="button"
@@ -290,7 +293,7 @@ export function VirtualKeyboard({
                 keyFeedback('space')
                 onKey(' ')
               }}
-              aria-label="Space"
+              aria-label={t('puzzle.space')}
               style={{
                 // Takes whatever the send key leaves, so the row always ends
                 // flush with the letters above it.
@@ -302,7 +305,7 @@ export function VirtualKeyboard({
                 onSubmit ? 'shrink-0' : 'flex-1'
               }`}
             >
-              Space
+              {t('puzzle.space')}
             </button>
             {onSubmit ? (
               <button
@@ -312,7 +315,7 @@ export function VirtualKeyboard({
                   keyFeedback('submit')
                   onSubmit()
                 }}
-                aria-label={submitLabel}
+                aria-label={submitText}
                 style={{
                   width: spanWidth(2.5),
                   // Keeps the accent even while inactive — it is the key that
@@ -323,7 +326,7 @@ export function VirtualKeyboard({
                 className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50 md:h-12"
               >
                 <CornerDownLeft className="size-4" />
-                {submitLabel}
+                {submitText}
               </button>
             ) : null}
           </div>

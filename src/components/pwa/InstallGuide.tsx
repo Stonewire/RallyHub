@@ -1,3 +1,6 @@
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
+
 import { IconClose } from '@/components/icons'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -15,52 +18,53 @@ import { Card } from '@/components/ui/card'
  */
 export type InstallGuideContext = 'tablet' | 'app'
 
-function stepsFor(context: InstallGuideContext): { platform: string; steps: string[] }[] {
+function stepsFor(
+  t: TFunction<'common'>,
+  context: InstallGuideContext,
+): { platform: string; steps: string[] }[] {
   const isTablet = context === 'tablet'
-  const opened = isTablet ? 'the tablet link' : 'RallyHub'
-  const pin = isTablet ? ['Enter the 4-digit tablet password once.'] : []
-  const result = isTablet
-    ? 'The device now has a RallyHub icon that opens straight to the score screen.'
-    : 'The device now has a RallyHub icon that opens in its own window, with no address bar.'
+  const target = isTablet ? t('install.guide.openedTablet') : t('install.guide.openedApp')
+  const pin = isTablet ? [t('install.guide.pinStep')] : []
+  const result = isTablet ? t('install.guide.resultTablet') : t('install.guide.resultApp')
 
   return [
     {
-      platform: 'Android tablet or phone (Chrome)',
+      platform: t('install.guide.android.platform'),
       steps: [
-        `Open ${opened} in Chrome.`,
+        t('install.guide.android.open', { target }),
         ...pin,
-        'Tap the three dots in the top right.',
-        'Tap "Add to Home screen", then "Install".',
+        t('install.guide.android.menu'),
+        t('install.guide.android.add'),
         result,
       ],
     },
     {
-      platform: 'iPad or iPhone (Safari)',
+      platform: t('install.guide.ios.platform'),
       steps: [
-        `Open ${opened} in Safari. This does not work in Chrome on iOS.`,
+        t('install.guide.ios.open', { target }),
         ...pin,
-        'Tap the Share button, the square with the arrow.',
-        'Scroll down and tap "Add to Home Screen", then "Add".',
+        t('install.guide.ios.share'),
+        t('install.guide.ios.add'),
         result,
       ],
     },
     {
-      platform: 'Mac (Safari)',
+      platform: t('install.guide.mac.platform'),
       steps: [
-        `Open ${opened} in Safari.`,
+        t('install.guide.mac.open', { target }),
         ...pin,
-        'Choose File, then "Add to Dock".',
-        'RallyHub opens from the Dock in its own window.',
+        t('install.guide.mac.addToDock'),
+        t('install.guide.mac.result'),
       ],
     },
     {
-      platform: 'Windows or Mac (Chrome or Edge)',
+      platform: t('install.guide.desktop.platform'),
       steps: [
-        `Open ${opened} in Chrome or Edge.`,
+        t('install.guide.desktop.open', { target }),
         ...pin,
-        'Click the install icon at the right-hand end of the address bar.',
-        'If it is not there, open the three dots menu, then "Cast, save and share", then "Install page as app".',
-        'RallyHub opens from the desktop or taskbar in its own window.',
+        t('install.guide.desktop.addressBar'),
+        t('install.guide.desktop.menuFallback'),
+        t('install.guide.desktop.result'),
       ],
     },
   ]
@@ -73,6 +77,8 @@ export function InstallGuide({
   onClose: () => void
   context?: InstallGuideContext
 }) {
+  const { t } = useTranslation('common')
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       {/* text-left explicitly: the modal is rendered inside whatever called it,
@@ -81,22 +87,24 @@ export function InstallGuide({
       <Card className="border-border/80 max-h-[85vh] w-full max-w-lg overflow-auto bg-card p-6 text-left shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-foreground text-lg font-semibold">
-              Install RallyHub on your device
-            </h2>
+            <h2 className="text-foreground text-lg font-semibold">{t('install.guide.title')}</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              {context === 'tablet'
-                ? 'Adds a RallyHub icon to the home screen, Dock or desktop, so staff do not have to find the link each time. Chrome and Safari are the recommended browsers.'
-                : 'Adds a RallyHub icon to the home screen, Dock or desktop, and opens it in its own window without the browser around it.'}
+              {context === 'tablet' ? t('install.guide.introTablet') : t('install.guide.introApp')}
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('close')}
+            onClick={onClose}
+          >
             <IconClose className="size-4" />
           </Button>
         </div>
 
         <div className="space-y-5">
-          {stepsFor(context).map(({ platform, steps }) => (
+          {stepsFor(t, context).map(({ platform, steps }) => (
             <div key={platform}>
               <h3 className="text-foreground text-sm font-bold">{platform}</h3>
               <ol className="text-muted-foreground mt-2 list-decimal space-y-1 pl-5 text-sm">
@@ -110,7 +118,7 @@ export function InstallGuide({
 
         <div className="mt-5 flex justify-end">
           <NeoButton type="button" variant="primary" size="sm" onClick={onClose}>
-            Got it
+            {t('install.guide.gotIt')}
           </NeoButton>
         </div>
       </Card>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useCookieConsent } from '@/contexts/cookie-consent-context'
 import { acknowledgeParticipantNotice } from '@/lib/legal-acceptance'
@@ -29,10 +30,11 @@ export function ParticipantPrivacyNotice({
   organizationName?: string | null
   onAccept: () => void
 }) {
+  const { t } = useTranslation('live')
   const [showFull, setShowFull] = useState(false)
   const { rejectNonEssential } = useCookieConsent()
 
-  const host = organizationName?.trim() || 'The event organiser'
+  const host = organizationName?.trim() || t('join.consent.defaultHost')
 
   function handleAccept() {
     acknowledgeParticipantNotice(eventId)
@@ -46,47 +48,44 @@ export function ParticipantPrivacyNotice({
       <div className="xp-card my-auto w-full max-w-md space-y-4 bg-white p-6 text-black">
         <div className="space-y-2">
           <h2 className="text-xl font-black">
-            Before you join
+            {t('join.consent.title')}
           </h2>
           <p className="text-sm leading-relaxed text-black/70">
-            {host} is running this event and decides what you are asked to do. RallyHub provides
-            the platform.
+            {t('join.consent.intro', { host })}
           </p>
         </div>
 
         <div className="space-y-2 rounded-xl bg-black/[0.06] p-3.5">
           <p className="text-sm font-bold">
-            What gets collected
+            {t('join.consent.whatCollectedTitle')}
           </p>
           <ul className="space-y-1 text-sm text-black/70">
-            <li>• The team name and player name you type in.</li>
+            <li>• {t('join.consent.collectTeamName')}</li>
             <li>
               •{' '}
               <span className="font-bold text-black">
-                Any photos or videos you submit
+                {t('join.consent.collectMediaBold')}
               </span>{' '}
-              during challenges. These may show you and other people.
+              {t('join.consent.collectMediaRest')}
             </li>
-            <li>• Your answers and your team&apos;s score.</li>
+            <li>• {t('join.consent.collectScore')}</li>
           </ul>
           <p className="text-sm text-black/70">
-            {host} can see everything your team submits. RallyHub stores it on their behalf and
-            deletes it when they delete the event.
+            {t('join.consent.hostSeesEverything', { host })}
           </p>
         </div>
 
         {/* The cookie half of what used to be a second banner. Essential only,
             so it is a statement rather than a question. */}
         <p className="text-xs leading-relaxed text-black/55">
-          This app keeps a little data on your phone so it remembers your team. No analytics, no
-          tracking, no optional cookies.{' '}
+          {t('join.consent.cookieNote')}{' '}
           <a
             href="/cookies"
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2"
           >
-            Cookie Policy
+            {t('join.consent.cookiePolicyLink')}
           </a>
           .
         </p>
@@ -96,20 +95,17 @@ export function ParticipantPrivacyNotice({
             className="space-y-2 text-xs leading-relaxed text-black/55"
           >
             <p>
-              You do not have to take part. If you would rather not be photographed or filmed, tell
-              the organiser. They can run the event without you, or give you a role that does not
-              involve submitting media.
+              {t('join.consent.notForced')}
             </p>
             <p>
-              To ask what is held about you, or to have it deleted, contact the event organiser
-              first, as they decide what happens to it. You can also read the full{' '}
+              {t('join.consent.dataRequest')}{' '}
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2"
               >
-                RallyHub Privacy Policy
+                {t('join.consent.privacyPolicyLink')}
               </a>
               .
             </p>
@@ -120,7 +116,7 @@ export function ParticipantPrivacyNotice({
             onClick={() => setShowFull(true)}
             className="text-sm font-bold underline underline-offset-2"
           >
-            Read more
+            {t('join.consent.readMore')}
           </button>
         )}
 
@@ -131,7 +127,7 @@ export function ParticipantPrivacyNotice({
           onClick={handleAccept}
           className="xp-card w-full bg-nm-yellow px-4 py-3 text-sm font-black text-black"
         >
-          I have read this, take me in
+          {t('join.consent.acceptButton')}
         </button>
       </div>
     </div>

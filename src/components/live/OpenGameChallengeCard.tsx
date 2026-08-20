@@ -1,6 +1,7 @@
 import { Camera, FileText, Puzzle, Video, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
-import { gamePointsDisplay } from '@/lib/live-event'
+import { gamePointsDisplayKey } from '@/lib/live-event'
 import { isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -34,32 +35,32 @@ function cardAppearance(
   status: SubmissionStatus | null | undefined,
   accentColor: string,
   textColor: string,
-): { backgroundColor: string; color: string; statusLabel: string | null } {
+): { backgroundColor: string; color: string; statusLabelKey: string | null } {
   if (status === 'approved') {
     return {
       backgroundColor: STATUS_APPROVED_BG,
       color: STATUS_LIGHT_TEXT,
-      statusLabel: 'Approved',
+      statusLabelKey: 'join.status.approved',
     }
   }
   if (status === 'rejected') {
     return {
       backgroundColor: STATUS_REJECTED_BG,
       color: STATUS_LIGHT_TEXT,
-      statusLabel: 'Rejected',
+      statusLabelKey: 'join.status.rejected',
     }
   }
   if (status === 'pending') {
     return {
       backgroundColor: STATUS_PENDING_BG,
       color: STATUS_PENDING_TEXT,
-      statusLabel: 'Pending',
+      statusLabelKey: 'join.status.pending',
     }
   }
   return {
     backgroundColor: accentColor,
     color: textColor,
-    statusLabel: null,
+    statusLabelKey: null,
   }
 }
 
@@ -71,12 +72,14 @@ export function OpenGameChallengeCard({
   canSubmit,
   onSelect,
 }: OpenGameChallengeCardProps) {
+  const { t } = useTranslation('live')
   const approved = submissionStatus === 'approved'
   const rejected = submissionStatus === 'rejected'
   const locked = approved || rejected
   const appearance = cardAppearance(submissionStatus, accentColor, textColor)
   const TypeIcon = challengeTypeIcon(game)
   const isPending = submissionStatus === 'pending'
+  const points = gamePointsDisplayKey(game)
 
   return (
     <button
@@ -107,10 +110,10 @@ export function OpenGameChallengeCard({
       <span className="xp-challenge-title xp-wrap-text line-clamp-3 w-full px-6">{game.name}</span>
 
       <span className="text-base leading-none font-black tabular-nums">
-        {gamePointsDisplay(game)}
+        {t(points.key, points.values)}
       </span>
 
-      {appearance.statusLabel ? (
+      {appearance.statusLabelKey ? (
         <span
           className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
             isPending
@@ -118,7 +121,7 @@ export function OpenGameChallengeCard({
               : 'bg-white/20 text-inherit'
           }`}
         >
-          {appearance.statusLabel}
+          {t(appearance.statusLabelKey)}
         </span>
       ) : null}
     </button>

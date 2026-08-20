@@ -1,5 +1,7 @@
+import i18n from 'i18next'
 import { Pause, Play } from 'lucide-react'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { shouldTriggerBingoLockAndReveal } from '@/lib/bingo-playback'
 
@@ -57,6 +59,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     }: BingoClipPlayerProps,
     ref,
   ) {
+    const { t } = useTranslation('live')
     const audioARef = useRef<HTMLAudioElement>(null)
     const audioBRef = useRef<HTMLAudioElement>(null)
     const activeRef = useRef<'a' | 'b'>('a')
@@ -86,7 +89,11 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         await el.play()
         return true
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Audio playback blocked'
+        // The i18n singleton, not the hook's `t`: keeping playElement free of
+        // reactive closure keeps the autoPlay effect's deps stable, so a
+        // re-render never restarts the clip mid-round.
+        const message =
+          err instanceof Error ? err.message : i18n.t('live:player.audioPlaybackBlocked')
         console.error(`Bingo audio playElement(${label}) failed`, err)
         onPlaybackErrorRef.current?.(message)
         return false
@@ -175,9 +182,9 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         const stepMs = ms / steps
         try {
           for (let i = 1; i <= steps; i++) {
-            const t = i / steps
-            from.volume = Math.max(0, 1 - t)
-            to.volume = Math.min(1, t)
+            const ratio = i / steps
+            from.volume = Math.max(0, 1 - ratio)
+            to.volume = Math.min(1, ratio)
             await sleep(stepMs)
           }
           from.pause()
@@ -301,7 +308,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
           <button
             type="button"
             onClick={toggle}
-            aria-label={playing ? 'Pause' : 'Play'}
+            aria-label={playing ? t('player.pause') : t('player.play')}
             className="bg-nm-yellow flex size-11 shrink-0 items-center justify-center rounded-full text-black transition-[filter] hover:brightness-105"
           >
             {playing ? (
@@ -317,7 +324,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
               max={Math.max(1, Math.floor(duration))}
               value={Math.floor(position)}
               onChange={(e) => seekTo(Number(e.target.value))}
-              aria-label="Clip position"
+              aria-label={t('player.clipPosition')}
               className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
               style={{
                 background: `linear-gradient(to right, var(--nm-yellow) ${progress}%, var(--nm-bg-inset) ${progress}%)`,

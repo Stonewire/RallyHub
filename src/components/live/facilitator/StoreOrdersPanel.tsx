@@ -1,6 +1,7 @@
 import { ShoppingBag } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, NeoStatusBadge } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -34,6 +35,7 @@ function errText(err: unknown, fallback: string): string {
  * pending pile only ever shows work left to do.
  */
 export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
+  const { t } = useTranslation('facilitator')
   const { notify } = useNotification()
   const ordersQuery = useEventStoreOrders(eventId)
   const fulfilItem = useFulfilOrderItem(eventId)
@@ -57,32 +59,32 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
       .reduce((sum, i) => sum + i.quantity * i.points_cost_each, 0)
 
   const teamName = (order: InventoryOrder) =>
-    teams.find((t) => t.id === order.team_id)?.name?.trim() || 'Team'
+    teams.find((team) => team.id === order.team_id)?.name?.trim() || t('teamFallback')
 
   async function complete(order: InventoryOrder) {
     try {
       const result = await completeOrder.mutateAsync(order.id)
       if (result?.order_done) {
         setOpenOrderId(null)
-        notify(`${teamName(order)}'s order completed — ${result.taken_points} points taken.`)
+        notify(t('storeOrders.orderCompleted', { team: teamName(order), points: result.taken_points }))
       } else {
         // Partial hand-over: the dialog stays open with the rest still pending.
-        notify(`${result?.taken_points ?? 0} points taken — the unticked items stay in the order.`)
+        notify(t('storeOrders.partialCompleted', { points: result?.taken_points ?? 0 }))
       }
     } catch (err) {
-      notify(errText(err, 'Could not complete the order.'))
+      notify(errText(err, t('storeOrders.completeFailed')))
     }
   }
 
   async function cancel(order: InventoryOrder) {
-    if (!window.confirm(`Cancel ${teamName(order)}'s order? Items not yet handed over go back on sale; anything already handed over stays paid.`)) {
+    if (!window.confirm(t('storeOrders.cancelConfirm', { team: teamName(order) }))) {
       return
     }
     try {
       await cancelOrder.mutateAsync(order.id)
       setOpenOrderId(null)
     } catch (err) {
-      notify(errText(err, 'Could not cancel the order.'))
+      notify(errText(err, t('storeOrders.cancelFailed')))
     }
   }
 
@@ -91,15 +93,15 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShoppingBag className="size-4 text-amber-500" />
-          <p className="font-medium">Store orders</p>
+          <p className="font-medium">{t('storeOrders.heading')}</p>
         </div>
         <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
-          {pending.length} pending
+          {t('storeOrders.pendingCount', { count: pending.length })}
         </span>
       </div>
 
       {pending.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing waiting. Teams order from their Store.</p>
+        <p className="text-muted-foreground text-sm">{t('storeOrders.emptyPending')}</p>
       ) : (
         <ul className="max-h-[32vh] space-y-2 overflow-auto">
           {pending.map((order) => (
@@ -121,10 +123,14 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="font-semibold tabular-nums">{order.total_points} pts</p>
+                  <p className="font-semibold tabular-nums">
+                    {order.total_points} {t('common:pts')}
+                  </p>
                   <p className="text-muted-foreground text-xs">
-                    {order.inventory_order_items.filter((i) => i.completed_at).length}/
-                    {order.inventory_order_items.length} handed over
+                    {t('storeOrders.handedOverCount', {
+                      done: order.inventory_order_items.filter((i) => i.completed_at).length,
+                      total: order.inventory_order_items.length,
+                    })}
                   </p>
                 </div>
               </button>
@@ -140,7 +146,9 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
             className="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
             onClick={() => setShowDone((v) => !v)}
           >
-            {showDone ? 'Hide' : 'Show'} done ({done.length})
+            {showDone
+              ? t('storeOrders.hideDone', { count: done.length })
+              : t('storeOrders.showDone', { count: done.length })}
           </button>
           {showDone ? (
             <ul className="mt-2 space-y-1.5">
@@ -155,7 +163,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                       .map((i) => `${i.quantity}× ${i.item_name}`)
                       .join(', ')}
                   </span>
-                  <NeoStatusBadge tone="active">done</NeoStatusBadge>
+                  <NeoStatusBadge tone="active">{t('storeOrders.doneBadge')}</NeoStatusBadge>
                 </li>
               ))}
             </ul>
@@ -175,7 +183,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                   <div>
                     <h3 className="text-foreground font-bold">{teamName(openOrder)}</h3>
                     <p className="text-muted-foreground text-xs">
-                      Order · points are taken only for the items you complete
+                      {t('storeOrders.orderDialogHint')}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -190,16 +198,16 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                               { orderItemId: item.id, fulfilled: true },
                               {
                                 onError: (err) =>
-                                  notify(errText(err, 'Could not update the item.')),
+                                  notify(errText(err, t('storeOrders.updateItemFailed'))),
                               },
                             ),
                           )
                       }
                     >
-                      Select all
+                      {t('storeOrders.selectAll')}
                     </NeoButton>
                     <NeoButton variant="ghost" size="sm" onClick={() => setOpenOrderId(null)}>
-                      Close
+                      {t('common:close')}
                     </NeoButton>
                   </div>
                 </div>
@@ -216,7 +224,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                             { orderItemId: item.id, fulfilled: e.target.checked },
                             {
                               onError: (err) =>
-                                notify(errText(err, 'Could not update the item.')),
+                                notify(errText(err, t('storeOrders.updateItemFailed'))),
                             },
                           )
                         }
@@ -226,8 +234,8 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                           {item.quantity}× {item.item_name}
                         </p>
                         <p className="text-muted-foreground text-xs">
-                          {item.points_cost_each} pts each
-                          {item.completed_at ? ' · handed over, points taken' : ''}
+                          {t('storeOrders.pointsEach', { points: item.points_cost_each })}
+                          {item.completed_at ? ` · ${t('storeOrders.handedOverPointsTaken')}` : ''}
                         </p>
                       </div>
                     </li>
@@ -241,7 +249,7 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                     disabled={cancelOrder.isPending || completeOrder.isPending}
                     onClick={() => void cancel(openOrder)}
                   >
-                    Cancel order
+                    {t('storeOrders.cancelOrder')}
                   </NeoButton>
                   <NeoButton
                     variant="primary"
@@ -251,8 +259,8 @@ export function StoreOrdersPanel({ eventId, teams }: StoreOrdersPanelProps) {
                     onClick={() => void complete(openOrder)}
                   >
                     {completeOrder.isPending
-                      ? 'Completing…'
-                      : `Complete selected and take ${selectedPoints(openOrder)} points`}
+                      ? t('storeOrders.completing')
+                      : t('storeOrders.completeSelected', { points: selectedPoints(openOrder) })}
                   </NeoButton>
                 </div>
               </div>

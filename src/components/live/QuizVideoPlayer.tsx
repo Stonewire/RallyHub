@@ -1,5 +1,6 @@
 import { Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { youtubeEmbedUrl } from '@/lib/youtube'
 
@@ -29,6 +30,7 @@ export function QuizVideoPlayer({
   accentColor: string
   textColor: string
 }) {
+  const { t } = useTranslation('live')
   const embed = youtubeEmbedUrl(url)
   const frameRef = useRef<HTMLIFrameElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -114,7 +116,7 @@ export function QuizVideoPlayer({
           <iframe
             ref={frameRef}
             src={`${embed}${embed.includes('?') ? '&' : '?'}enablejsapi=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`}
-            title="Question video"
+            title={t('player.questionVideo')}
             allow="accelerometer; autoplay; encrypted-media; gyroscope"
             className="pointer-events-none size-full"
           />
@@ -135,7 +137,7 @@ export function QuizVideoPlayer({
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? t('player.pause') : t('player.play')}
           // Opaque until it starts: that also covers YouTube's own poster, so
           // the team sees our player rather than a YouTube thumbnail.
           className={`absolute inset-0 flex items-center justify-center transition-opacity ${
@@ -166,7 +168,7 @@ export function QuizVideoPlayer({
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? t('player.pause') : t('player.play')}
           className="shrink-0 text-white"
         >
           {playing ? (
@@ -184,7 +186,7 @@ export function QuizVideoPlayer({
           max={Math.max(1, Math.floor(duration))}
           value={Math.floor(current)}
           onChange={(e) => seek(Number(e.target.value))}
-          aria-label="Video position"
+          aria-label={t('player.videoPosition')}
           className="h-1 min-w-0 flex-1 appearance-none rounded-full"
           style={{
             background: `linear-gradient(to right, ${accentColor} ${progress}%, ${textColor}59 ${progress}%)`,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { copyToClipboard } from '@/lib/event-links'
@@ -12,6 +13,7 @@ type DisplayPreviewFrameProps = {
 }
 
 export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
+  const { t } = useTranslation('facilitator')
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.2)
   const [copied, setCopied] = useState(false)
@@ -58,7 +60,7 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         }}
       >
         <iframe
-          title="Display preview"
+          title={t('displayPreview.title')}
           src={src}
           className="pointer-events-none border-0"
           style={{
@@ -73,7 +75,7 @@ export function DisplayPreviewFrame({ displayUrl }: DisplayPreviewFrameProps) {
         type="button"
         variant="outline"
         size="icon-sm"
-        title="Copy display link"
+        title={t('displayPreview.copyLink')}
         // The app's furniture button: black disc, yellow mark, same as the
         // chat and exit controls the players see.
         className="text-nm-yellow hover:text-nm-yellow absolute top-2 left-2 rounded-full border-none bg-black opacity-50 transition-opacity hover:bg-black hover:opacity-100 hover:brightness-110 focus-visible:opacity-100 group-hover:opacity-90"

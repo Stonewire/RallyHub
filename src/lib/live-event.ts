@@ -216,11 +216,14 @@ export function isEventLive(event: Tables<'events'>): boolean {
   return event.status === 'active' || event.status === 'demo'
 }
 
-export function gamePointsDisplay(game: Tables<'games'>): string {
+export function gamePointsDisplayKey(game: Tables<'games'>): {
+  key: 'game.pointsUpTo' | 'game.points'
+  values: { points: number }
+} {
   if (game.points_type === 'range') {
-    return `Up to ${game.points_max ?? 0}`
+    return { key: 'game.pointsUpTo', values: { points: game.points_max ?? 0 } }
   }
-  return `${game.points_static ?? 0} pts`
+  return { key: 'game.points', values: { points: game.points_static ?? 0 } }
 }
 
 export function formatTimer(seconds: number): string {

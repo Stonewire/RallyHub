@@ -1,6 +1,8 @@
 // Presentational modal/dialog components extracted from FacilitatorEventPage
 // (ENG1). Each is a leaf: it renders markup and calls back into the page, which
 // still owns all state and handlers. No behaviour change.
+import { useTranslation } from 'react-i18next'
+
 import { EventActivityLog } from '@/components/admin/EventActivityLog'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import { Input } from '@/components/ui/input'
@@ -26,15 +28,16 @@ export function TeamClaimModal({
   onCancel: () => void
   onSave: () => void
 }) {
+  const { t } = useTranslation('facilitator')
   if (!slot) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <NeoCard className="max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-6 shadow-lg">
-        <h3 className="font-semibold">Team slot {slot.slot_number}</h3>
+        <h3 className="font-semibold">{t('teams.slotLabel', { number: slot.slot_number })}</h3>
         <Input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
-          placeholder="Team name"
+          placeholder={t('claim.namePlaceholder')}
           className="bg-background"
         />
         <input
@@ -58,10 +61,10 @@ export function TeamClaimModal({
         />
         <div className="flex justify-end gap-2">
           <NeoButton variant="surface" onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton variant="primary" disabled={uploading} onClick={onSave}>
-            Save
+            {t('common:save')}
           </NeoButton>
         </div>
       </NeoCard>
@@ -80,6 +83,7 @@ export function ResetTeamModal({
   onCancel: () => void
   onConfirm: () => void
 }) {
+  const { t } = useTranslation('facilitator')
   if (!team) return null
   return (
     <div
@@ -90,22 +94,19 @@ export function ResetTeamModal({
     >
       <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
         <h3 id="reset-team-title" className="font-semibold">
-          Reset team slot {team.slot_number}?
+          {t('teams.resetConfirmTitle', { number: team.slot_number })}
         </h3>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Clears{' '}
-          <span className="text-foreground font-medium">
-            {team.name?.trim() || 'this team'}
-          </span>
-          , removes their photo, and sets score to 0. The slot becomes available for someone
-          new to join.
+          {t('teams.resetConfirmBody', {
+            team: team.name?.trim() || t('teams.thisTeamFallback'),
+          })}
         </p>
         <div className="flex justify-end gap-2">
           <NeoButton variant="surface" disabled={resetting} onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton variant="destructive" disabled={resetting} onClick={onConfirm}>
-            {resetting ? 'Resetting…' : 'Reset team'}
+            {resetting ? t('teams.resetting') : t('teams.resetTeamButton')}
           </NeoButton>
         </div>
       </NeoCard>
@@ -122,6 +123,7 @@ export function EventLogModal({
   eventId: string | undefined
   onClose: () => void
 }) {
+  const { t } = useTranslation('facilitator')
   if (!open) return null
   return (
     <div
@@ -133,9 +135,9 @@ export function EventLogModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Event log</h3>
+          <h3 className="font-semibold">{t('eventLog.title')}</h3>
           <NeoButton variant="surface" onClick={onClose}>
-            Close
+            {t('common:close')}
           </NeoButton>
         </div>
         {eventId ? <EventActivityLog eventId={eventId} /> : null}

@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import type { InstallGuideContext } from '@/components/pwa/InstallGuide'
 import { useInstallAction } from '@/components/pwa/use-install-action'
@@ -15,7 +16,8 @@ import { NeoButton, type NeoButtonSize, type NeoButtonVariant } from '@/componen
  */
 export function InstallAppButton({
   context = 'app',
-  label = 'Install app',
+  /** Overrides the default "Install app" wording; already translated. */
+  label,
   variant = 'surface',
   size = 'sm',
   /** Drop the text and the button styling, for icon rows like the admin header. */
@@ -29,14 +31,17 @@ export function InstallAppButton({
   iconOnly?: boolean
   className?: string
 }) {
+  const { t } = useTranslation('common')
   const { method, onClick, guide } = useInstallAction(context)
 
   if (!method) return null
 
+  const text = label ?? t('install.installApp')
+
   return (
     <>
       {iconOnly ? (
-        <button type="button" aria-label={label} className={className} onClick={onClick}>
+        <button type="button" aria-label={text} className={className} onClick={onClick}>
           <Download className="size-4" />
         </button>
       ) : (
@@ -48,7 +53,7 @@ export function InstallAppButton({
           onClick={onClick}
         >
           <Download className="size-4" aria-hidden />
-          {label}
+          {text}
         </NeoButton>
       )}
       {guide}

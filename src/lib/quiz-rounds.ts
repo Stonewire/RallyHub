@@ -1,3 +1,5 @@
+import i18n from 'i18next'
+
 import type { GameConfig, QuizQuestion, QuizRound } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -34,14 +36,16 @@ export function isLastQuestionInRound(game: Tables<'games'> | null, index: numbe
 export function roundIntroDisplay(
   round: QuizRound,
   roundIndex: number,
+  roundLabel?: string,
 ): { title: string; subtitle: string } {
+  const label = roundLabel ?? i18n.t('live:display.round')
   const name = round.name.trim()
   const numbered = name.match(/^round\s+(\d+)\s*(?::\s*(.+))?$/i)
   if (numbered) {
     const subtitle = numbered[2]?.trim() || name
-    return { title: `ROUND ${numbered[1]}`, subtitle }
+    return { title: `${label} ${numbered[1]}`, subtitle }
   }
-  return { title: `ROUND ${roundIndex + 1}`, subtitle: name }
+  return { title: `${label} ${roundIndex + 1}`, subtitle: name }
 }
 
 export function roundIndexForQuestion(game: Tables<'games'>, question: QuizQuestion | undefined): number {

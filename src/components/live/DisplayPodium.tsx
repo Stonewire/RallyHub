@@ -1,4 +1,5 @@
 import { Medal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { displayTextClass } from '@/lib/live-event'
 import type { Tables } from '@/types/helpers'
@@ -13,6 +14,7 @@ const PODIUM_ORDER = [1, 0, 2] as const
 const BAR_HEIGHTS = [140, 200, 110] as const
 
 export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
+  const { t } = useTranslation('live')
   const textClass = displayTextClass(event)
   const ranked = [...teams]
     .filter((t) => t.name?.trim())
@@ -62,7 +64,9 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
               <p className="max-w-full truncate text-center text-sm font-bold md:text-base">
                 {team.name}
               </p>
-              <p className="text-lg font-bold tabular-nums md:text-xl">{team.score} pts</p>
+              <p className="text-lg font-bold tabular-nums md:text-xl">
+                {t('game.points', { points: team.score })}
+              </p>
               <div
                 className="xp-podium-bar mt-1 flex w-full items-end justify-center rounded-t-lg bg-white/20 backdrop-blur-sm"
                 style={{ height: barH }}
@@ -80,7 +84,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
         <div className="w-full max-w-5xl border-t border-white/15 pt-8">
           <p className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide opacity-70">
             <Medal className="size-4" />
-            All teams
+            {t('display.allTeams')}
           </p>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {rest.map((team, i) => (
@@ -104,7 +108,7 @@ export function DisplayPodium({ event, teams }: DisplayPodiumProps) {
                   {team.name}
                 </span>
                 <span className="text-xs tabular-nums opacity-80">
-                  #{i + 4} · {team.score} pts
+                  #{i + 4} · {t('game.points', { points: team.score })}
                 </span>
               </li>
             ))}

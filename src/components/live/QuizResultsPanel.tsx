@@ -1,4 +1,5 @@
 import { Crown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import type { QuizLeaderboardEntry } from '@/lib/live-event'
 
@@ -22,14 +23,14 @@ const PODIUM_ROW: Record<number, string> = {
   2: 'bg-white/22 text-white',
 }
 
-const PODIUM_WORD = ['first', 'second', 'third']
-
 export function QuizResultsPanel({
-  title = 'Quiz results',
+  title,
   entries,
   highlightTeamId,
   large = false,
 }: QuizResultsPanelProps) {
+  const { t } = useTranslation('live')
+  const heading = title ?? t('quizPanel.defaultTitle')
   const myIndex = entries.findIndex((entry) => entry.team.id === highlightTeamId)
   const myEntry = myIndex >= 0 ? entries[myIndex] : null
 
@@ -40,7 +41,7 @@ export function QuizResultsPanel({
           large ? 'text-4xl md:text-6xl' : 'text-[clamp(1.6rem,5vw,2.5rem)]'
         }`}
       >
-        {title}
+        {heading}
       </h2>
 
       {/* Finishing on the podium is the moment worth marking, so it is said in
@@ -48,10 +49,12 @@ export function QuizResultsPanel({
       {myEntry ? (
         <p className="mt-2 mb-5 text-center text-base font-bold text-balance opacity-90 sm:text-lg">
           {myIndex === 0
-            ? 'Congratulations, you won the quiz!'
-            : myIndex < 3
-              ? `Congratulations, you finished ${PODIUM_WORD[myIndex]}!`
-              : `You finished #${myIndex + 1}`}
+            ? t('quizPanel.wonQuiz')
+            : myIndex === 1
+              ? t('quizPanel.finishedSecond')
+              : myIndex === 2
+                ? t('quizPanel.finishedThird')
+                : t('winner.finished', { rank: myIndex + 1 })}
         </p>
       ) : (
         <div className="mb-5" />
@@ -71,7 +74,7 @@ export function QuizResultsPanel({
               style={first ? { backgroundColor: WINNER_GREEN } : undefined}
             >
               {first ? (
-                <Crown className="size-6 shrink-0 fill-current sm:size-7" aria-label="Winner" />
+                <Crown className="size-6 shrink-0 fill-current sm:size-7" aria-label={t('quizPanel.winnerAria')} />
               ) : null}
               <span
                 className={`w-8 shrink-0 font-black tabular-nums ${

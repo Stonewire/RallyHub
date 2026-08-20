@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
@@ -14,6 +16,7 @@ export function PoweredByRallyHub({
   className,
   theme = 'dark',
 }: Props) {
+  const { t } = useTranslation('live')
   if (hidden) return null
 
   return (
@@ -35,7 +38,7 @@ export function PoweredByRallyHub({
               ? '/powered-by-rallyhub-light.svg?v=4'
               : '/powered-by-rallyhub-dark.svg?v=4'
           }
-          alt="Powered by RallyHub"
+          alt={t('poweredBy.alt')}
           className="h-6 w-auto"
         />
       </div>

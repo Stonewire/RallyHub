@@ -3,6 +3,7 @@
 // state and handlers. No behaviour change.
 import type { FormEvent } from 'react'
 import { X, ShoppingBag } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -26,15 +27,16 @@ export function ParticipantChatOverlay({
   onSend: () => void
   onClose: () => void
 }) {
+  const { t } = useTranslation('live')
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-white/15 p-4 text-white">
-        <span className="font-semibold">Chat with facilitator</span>
+        <span className="font-semibold">{t('join.chat.title')}</span>
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Close chat"
+          aria-label={t('join.chat.closeChat')}
           className="text-white hover:bg-white/10"
           onClick={onClose}
         >
@@ -54,12 +56,12 @@ export function ParticipantChatOverlay({
       <div className="flex gap-2 border-t border-white/15 p-4">
         <input
           className="xp-field flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-base text-white placeholder:text-white/50"
-          placeholder="Message…"
+          placeholder={t('join.chat.messagePlaceholder')}
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
         />
         <LiveAccentButton accentColor={accent} onClick={onSend}>
-          Send
+          {t('join.chat.send')}
         </LiveAccentButton>
       </div>
     </div>
@@ -75,13 +77,14 @@ export function ParticipantAnnouncementOverlay({
   accent: string
   onDismiss: () => void
 }) {
+  const { t } = useTranslation('live')
   if (!announcement) return null
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-6">
       <Card className="xp-card max-w-md space-y-4 p-6 text-center">
         <p className="text-lg">{announcement}</p>
         <LiveAccentButton accentColor={accent} onClick={onDismiss}>
-          Dismiss
+          {t('join.announcement.dismiss')}
         </LiveAccentButton>
       </Card>
     </div>
@@ -99,20 +102,20 @@ export function OrderSentOverlay({
   accent: string
   onClose: () => void
 }) {
+  const { t } = useTranslation('live')
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/70 p-6">
       <Card className="xp-card max-w-md space-y-5 p-6 text-center">
         <ShoppingBag className="mx-auto size-12" style={{ color: accent }} />
         <div className="space-y-2">
-          <p className="text-2xl font-black">Order sent!</p>
+          <p className="text-2xl font-black">{t('join.store.orderSent')}</p>
           <p className="text-base">
-            Collect your items from the facilitator. Your points are taken
-            when you pick them up.
+            {t('join.store.orderSentBody')}
           </p>
         </div>
         <LiveAccentButton accentColor={accent} className="min-h-12 w-full" onClick={onClose}>
-          Close
+          {t('common:close')}
         </LiveAccentButton>
       </Card>
     </div>
@@ -140,6 +143,7 @@ export function ParticipantExitDialog({
   onCancel: () => void
   onSubmit: (e: FormEvent) => void
 }) {
+  const { t } = useTranslation('live')
   if (!open) return null
   return (
     <div
@@ -150,10 +154,10 @@ export function ParticipantExitDialog({
     >
       <Card className="w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
         <h3 id="exit-dialog-title" className="font-semibold">
-          {mode === 'tablet' ? 'Return to events' : 'Leave team'}
+          {mode === 'tablet' ? t('join.exit.returnToEvents') : t('join.exit.leaveTeam')}
         </h3>
         <p className="text-muted-foreground text-sm">
-          Enter the tablet password to continue.
+          {t('join.exit.passwordHint')}
         </p>
         <form className="space-y-3" onSubmit={onSubmit}>
           <input
@@ -162,7 +166,7 @@ export function ParticipantExitDialog({
             // Dark text on the light card: the old white-on-white styling made
             // both the typed password and the Cancel button invisible (CF8).
             className="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg border px-3 py-2 text-base"
-            placeholder="Password"
+            placeholder={t('join.exit.passwordPlaceholder')}
             value={passwordValue}
             onChange={(e) => onPasswordChange(e.target.value)}
             autoFocus
@@ -177,7 +181,7 @@ export function ParticipantExitDialog({
               size="sm"
               onClick={onCancel}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
@@ -185,7 +189,7 @@ export function ParticipantExitDialog({
               disabled={verifying || !passwordValue.trim()}
               style={{ backgroundColor: accent, color: 'white' }}
             >
-              {verifying ? 'Checking…' : 'Continue'}
+              {verifying ? t('join.exit.checking') : t('join.exit.continue')}
             </Button>
           </div>
         </form>

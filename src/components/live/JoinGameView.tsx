@@ -2,6 +2,7 @@ import { LogOut, MessageCircle, QrCode, ShoppingBag, WifiOff } from 'lucide-reac
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { createPortal, flushSync } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { cameraProbeRequested } from '@/lib/challenge-camera'
 
@@ -70,7 +71,7 @@ import {
   formatBreakTimer,
   formatClockTimer,
   formatTimer,
-  gamePointsDisplay,
+  gamePointsDisplayKey,
   isEventLive,
   logoForEvent,
   submissionsAllowed,
@@ -248,6 +249,7 @@ export function JoinGameView({
   const [exitPasswordError, setExitPasswordError] = useState<string | null>(null)
   const [exitVerifying, setExitVerifying] = useState(false)
   const { notify } = useNotification()
+  const { t } = useTranslation('live')
   const [chatText, setChatText] = useState('')
 
   const breakSeconds =
@@ -321,7 +323,7 @@ export function JoinGameView({
         session && session.eventId === item.eventId && session.teamId === item.teamId
           ? session.purchaseToken
           : null
-      if (!token) throw new PermanentSubmitError('This phone is no longer signed in for that team')
+      if (!token) throw new PermanentSubmitError(t('join.submission.phoneNotSignedIn'))
       const { error } = await supabase.rpc('place_store_order', {
         p_event_id: item.eventId,
         p_purchase_token: token,
@@ -334,7 +336,7 @@ export function JoinGameView({
         }
         // A validation rejection (sold out under you, not enough points) will
         // not change on retry; drop it and tell the team.
-        throw new PermanentSubmitError(error.message || 'Could not place the order', {
+        throw new PermanentSubmitError(error.message || t('store.couldNotPlaceOrder'), {
           cause: error,
         })
       }
@@ -348,7 +350,7 @@ export function JoinGameView({
         session && session.eventId === item.eventId && session.teamId === item.teamId
           ? session.purchaseToken
           : null
-      if (!token) throw new PermanentSubmitError('This phone is no longer signed in for that team')
+      if (!token) throw new PermanentSubmitError(t('join.submission.phoneNotSignedIn'))
       const { data, error } = await supabase.rpc('submit_offline_puzzle_result', {
         p_event_id: item.eventId,
         p_game_id: item.gameId,
@@ -365,7 +367,7 @@ export function JoinGameView({
         // not change on retry; a code-less server blip (5xx/gateway) retries
         // up to the cap instead of destroying the team's solve.
         if (error.code) {
-          throw new PermanentSubmitError(error.message || 'Could not submit the puzzle result', {
+          throw new PermanentSubmitError(error.message || t('puzzle.couldNotSubmitResult'), {
             cause: error,
           })
         }
@@ -381,7 +383,7 @@ export function JoinGameView({
         if (row.id !== item.clientId) {
           // A teammate finished this puzzle first; their score stands and this
           // device's local completion card was provisional. Say so.
-          notify('A teammate already finished this puzzle, so their result counts')
+          notify(t('join.submission.teammateFinishedPuzzle'))
         }
       }
       return
@@ -424,7 +426,7 @@ export function JoinGameView({
           mergeOwnSubmissionRef.current('UPDATE', delivered)
           return
         }
-        throw new PermanentSubmitError('This upload could not be saved offline and was lost')
+        throw new PermanentSubmitError(t('join.submission.uploadLostOffline'))
       }
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
       try {
@@ -493,7 +495,7 @@ export function JoinGameView({
       }
       if (error.code) {
         throw new PermanentSubmitError(
-          error.message || 'Could not submit — the event may have closed',
+          error.message || t('join.submission.couldNotSubmitEventClosed'),
           { cause: error },
         )
       }
@@ -520,12 +522,12 @@ export function JoinGameView({
           if (item.kind === 'store-order') {
             // A toast is easy to miss; keep a durable failed card in My Items
             // so the team can see the order did not happen and why.
-            const reason = err instanceof Error ? err.message : 'Could not place the order'
+            const reason = err instanceof Error ? err.message : t('store.couldNotPlaceOrder')
             setQueuedStoreOrders((current) =>
               current.map((q) => (q.clientId === item.clientId ? { ...q, failed: reason } : q)),
             )
           }
-          notify(err instanceof Error ? err.message : 'Could not submit')
+          notify(err instanceof Error ? err.message : t('join.submission.couldNotSubmit'))
         },
         onSettled: (clientId) => {
           setOpenSubmissionWrite(clientId, false)
@@ -656,7 +658,7 @@ export function JoinGameView({
     () => messages.filter((m) => m.team_id == null || m.team_id === teamId),
     [messages, teamId],
   )
-  const teamSenderName = (team.name ?? 'Team').trim()
+  const teamSenderName = (team.name ?? t('join.claim.teamFallback')).trim()
 
   const incomingFacilitatorMessages = useMemo(
     () =>
@@ -820,7 +822,7 @@ export function JoinGameView({
     try {
       const token = await verifyTabletPassword(organization.id, exitPasswordValue)
       if (!token) {
-        setExitPasswordError('Incorrect password')
+        setExitPasswordError(t('join.exit.incorrectPassword'))
         return
       }
       setExitDialogOpen(false)
@@ -830,7 +832,7 @@ export function JoinGameView({
         onExitTeam()
       }
     } catch {
-      setExitPasswordError('Could not verify password')
+      setExitPasswordError(t('join.exit.couldNotVerifyPassword'))
     } finally {
       setExitVerifying(false)
     }
@@ -852,8 +854,15 @@ export function JoinGameView({
       if (!previous) continue
       if (previous === 'pending' && s.status === 'approved' && game && game.type !== 'quiz') {
         playPushNotificationSound()
-        if (game.type === 'music_bingo') notify(`+${s.points_awarded ?? 0} pts — Music bingo`)
-        else notify(`+${s.points_awarded ?? 0} pts — ${game.name}`)
+        if (game.type === 'music_bingo')
+          notify(t('join.submission.pointsAwardedMusicBingo', { points: s.points_awarded ?? 0 }))
+        else
+          notify(
+            t('join.submission.pointsAwardedGame', {
+              points: s.points_awarded ?? 0,
+              game: game.name,
+            }),
+          )
       }
       if (
         previous === 'pending' &&
@@ -863,11 +872,11 @@ export function JoinGameView({
         game.type !== 'music_bingo'
       ) {
         playPushNotificationSound()
-        notify(`${game.name} was not approved`)
+        notify(t('join.submission.notApproved', { game: game.name }))
       }
     }
     previousSubmissionStatusRef.current = nextStatusMap
-  }, [submissions, teamId, games, notify])
+  }, [submissions, teamId, games, notify, t])
 
   const lastAnnouncementRef = useRef<string | null>(null)
   useEffect(() => {
@@ -965,7 +974,7 @@ export function JoinGameView({
       requestAnimationFrame(() => nudge.remove())
     })
     playSubmitSound()
-    notify('Submitted — waiting for approval')
+    notify(t('join.submission.waitingApproval'))
     if (!timing) return
 
     // The iOS mystery is the screen visibly lingering AFTER this function has
@@ -1024,11 +1033,11 @@ export function JoinGameView({
   async function submitTextGame(mediaUrl: string, game: Tables<'games'>) {
     if (!event.id) return
     if (!canSubmit) {
-      notify('This event is now closed')
+      notify(t('join.state.closed'))
       return
     }
     if (!mediaUrl.length) {
-      notify('Enter or choose an answer first')
+      notify(t('join.submission.enterAnswerFirst'))
       return
     }
     const submitPressedAt = nowMs()
@@ -1077,7 +1086,7 @@ export function JoinGameView({
   async function submitOpenGame(file: File, game: Tables<'games'>) {
     if (!event.id) return
     if (!canSubmit) {
-      notify('This event is now closed')
+      notify(t('join.state.closed'))
       return
     }
     const submitPressedAt = nowMs()
@@ -1147,7 +1156,7 @@ export function JoinGameView({
           .single()
     if (error) {
       setQuizAnswer(previousAnswer)
-      notify("Couldn't submit answer — tap to retry")
+      notify(t('join.submission.couldNotSubmitAnswerRetry'))
       return
     }
     if (quizRow) {
@@ -1166,7 +1175,7 @@ export function JoinGameView({
         .select()
         .single()
       if (error) {
-        notify("Couldn't cancel submission — try again")
+        notify(t('join.submission.couldNotCancelRetry'))
         return
       }
       // Update our own view immediately (see submitTextGame) instead of waiting
@@ -1176,7 +1185,7 @@ export function JoinGameView({
         mergeOwnSubmission('UPDATE', cancelledRow)
         void publishSubmissionChange(event.id, 'UPDATE', cancelledRow)
       }
-      notify('Submission cancelled')
+      notify(t('join.submission.cancelled'))
       setSelectedGame(null)
       setCaptureActive(false)
     } finally {
@@ -1231,7 +1240,7 @@ export function JoinGameView({
           cardCells,
         )
         setBingoPick(idx >= 0 ? idx : null)
-        notify("Couldn't update selection — tap to retry")
+        notify(t('join.submission.couldNotUpdateSelectionRetry'))
       } else {
         mergeOwnSubmission('DELETE', undefined, { id: existingPending!.id })
         void publishSubmissionChange(event.id, 'DELETE', undefined, {
@@ -1263,7 +1272,7 @@ export function JoinGameView({
           .single()
         if (error) {
           revertBingoPick()
-          notify("Couldn't mark cell — tap to retry")
+          notify(t('join.submission.couldNotMarkCellRetry'))
           return
         }
         if (data) {
@@ -1289,7 +1298,7 @@ export function JoinGameView({
           .eq('id', existingSameCell.id)
         if (error) {
           revertBingoPick()
-          notify("Couldn't update selection — tap to retry")
+          notify(t('join.submission.couldNotUpdateSelectionRetry'))
         } else {
           mergeOwnSubmission('DELETE', undefined, { id: existingSameCell.id })
           void publishSubmissionChange(event.id, 'DELETE', undefined, {
@@ -1313,7 +1322,7 @@ export function JoinGameView({
         .single()
       if (error) {
         revertBingoPick()
-        notify("Couldn't mark cell — tap to retry")
+        notify(t('join.submission.couldNotMarkCellRetry'))
       } else if (bingoRow) {
         mergeOwnSubmission('INSERT', bingoRow)
         void publishSubmissionChange(event.id, 'INSERT', bingoRow)
@@ -1350,7 +1359,7 @@ export function JoinGameView({
             {quizLeaderboard(bundle.teams, submissions, stage.gameId).find(
               (e) => e.team.id === teamId,
             )?.quizPoints ?? 0}
-            <span className="ml-1.5 text-sm font-bold opacity-70">quiz pts</span>
+            <span className="ml-1.5 text-sm font-bold opacity-70">{t('join.header.quizPtsUnit')}</span>
           </p>
         ) : (
           // One slot, one size, always the same height: the verdict and the
@@ -1371,12 +1380,12 @@ export function JoinGameView({
           >
             {state.quiz_state === 'revealed'
               ? quizWasCorrect
-                ? 'Correct!'
+                ? t('join.quiz.correct')
                 : quizMyAnswerId
-                  ? 'Incorrect'
-                  : 'Time up'
+                  ? t('join.quiz.incorrect')
+                  : t('join.quiz.timeUp')
               : state.quiz_state === 'active' && quizChangeLeft != null && !quizLocked
-                ? `Change answer · ${quizChangeLeft}s`
+                ? `${t('join.quiz.changeAnswer')} · ${t('join.countdown.seconds', { seconds: quizChangeLeft })}`
                 : state.quiz_state === 'active' && quizRunning
                   ? formatTimer(quizTimerDisplay)
                   : ''}
@@ -1389,7 +1398,7 @@ export function JoinGameView({
       {state.hide_team_points ? null : (
         <p className="absolute top-2 right-3 text-lg leading-none font-black tabular-nums drop-shadow-sm sm:top-3">
           {team.score}
-          <span className="ml-1 text-xs font-bold opacity-70">pts</span>
+          <span className="ml-1 text-xs font-bold opacity-70">{t('common:pts')}</span>
         </p>
       )}
     </header>
@@ -1403,11 +1412,8 @@ export function JoinGameView({
     // Facilitator paused this team — block all gameplay with a friendly note.
     body = (
       <div className="mx-auto max-w-sm px-6 py-16 text-center">
-        <p className="text-2xl font-bold">Your game is paused</p>
-        <p className="mt-3 text-base opacity-90">
-          The event host has paused your team for a moment. Please check in with
-          your host to get back in the game.
-        </p>
+        <p className="text-2xl font-bold">{t('join.state.paused')}</p>
+        <p className="mt-3 text-base opacity-90">{t('join.state.pausedDetail')}</p>
       </div>
     )
   } else if (state.winner_reveal_stage >= 1) {
@@ -1424,29 +1430,29 @@ export function JoinGameView({
     body = (
       <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Event ended
+          {t('join.state.eventEnded')}
         </p>
         <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
-          {stage.message ?? 'Thanks for playing'}
+          {stage.message ?? t('join.state.thanksForPlaying')}
         </p>
       </div>
     )
   } else if (!live) {
     body = (
       <p className="px-6 py-16 text-center text-lg font-medium opacity-90">
-        Event starting soon…
+        {t('join.state.startingSoon')}
       </p>
     )
   } else if (live && !canSubmit && stage?.type === 'open') {
     body = (
       <p className="px-6 py-16 text-center text-lg font-semibold opacity-95">
-        This event is now closed. Submissions are no longer accepted.
+        {t('join.state.closedDetail')}
       </p>
     )
   } else if (event.status === 'archived') {
     body = (
       <div className="mx-auto max-w-md px-4 text-center">
-        <h2 className="mb-4 text-2xl font-bold">Game over</h2>
+        <h2 className="mb-4 text-2xl font-bold">{t('join.state.gameOver')}</h2>
         <ul className="space-y-2 text-left text-sm">
           {[...bundle.teams]
             .filter((t) => t.name)
@@ -1466,13 +1472,13 @@ export function JoinGameView({
     body = (
       <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Welcome
+          {t('join.state.welcome')}
         </p>
         <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
-          {stage.message ?? 'Welcome'}
+          {stage.message ?? t('join.state.welcome')}
         </p>
         <p className="text-[clamp(0.8rem,3.4vw,1rem)] font-medium opacity-70">
-          Hang tight, the first game is about to begin.
+          {t('join.state.welcomeHint')}
         </p>
       </div>
     )
@@ -1483,6 +1489,9 @@ export function JoinGameView({
       .map((id) => games.find((g) => g.id === id))
       .filter((g): g is (typeof games)[number] => g != null)
     const activeOpenGame = resolveGameFromList(games, selectedGame)
+    const activeOpenGamePoints = activeOpenGame
+      ? gamePointsDisplayKey(activeOpenGame)
+      : null
 
     if (openGameIds.length > 0 && openGames.length === 0 && !selectedGame) {
       body = <GameUnavailableFallback />
@@ -1511,13 +1520,15 @@ export function JoinGameView({
                   setCaptureActive(false)
                 }}
               >
-                ← Back
+                ← {t('join.back')}
               </Button>
               <span
                 className="text-lg leading-none font-black tabular-nums drop-shadow-sm sm:text-xl"
                 style={{ color: accent }}
               >
-                {gamePointsDisplay(activeOpenGame)}
+                {activeOpenGamePoints
+                  ? t(activeOpenGamePoints.key, activeOpenGamePoints.values)
+                  : null}
               </span>
               {!captureActive && inventoryEnabled ? (
                 <Button
@@ -1526,7 +1537,7 @@ export function JoinGameView({
                   className="text-nm-yellow w-fit justify-self-end gap-2 border-none bg-black px-4 py-2 font-semibold shadow-md hover:bg-black hover:brightness-110"
                   onClick={openBuyItems}
                 >
-                  <QrCode className="size-4" /> Buy Items
+                  <QrCode className="size-4" /> {t('join.inventory.buyItems')}
                 </Button>
               ) : (
                 <span />
@@ -1538,7 +1549,7 @@ export function JoinGameView({
               className="mb-3 text-center text-sm font-semibold"
               style={{ color: accent }}
             >
-              Event closed — no new submissions
+              {t('join.state.closedNoSubmissions')}
             </p>
           ) : null}
           {/* Every challenge screen runs edge to edge and pads its own
@@ -1606,7 +1617,7 @@ export function JoinGameView({
           {inventoryEnabled ? (
             <div className="mb-4 flex gap-3">
               <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
-                <QrCode className="size-5" /> Buy Items
+                <QrCode className="size-5" /> {t('join.inventory.buyItems')}
               </Button>
               {hasStore ? (
                 <Button
@@ -1614,7 +1625,7 @@ export function JoinGameView({
                   className="text-nm-yellow flex-1 gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110"
                   onClick={openMyItems}
                 >
-                  <ShoppingBag className="size-5" /> My Items
+                  <ShoppingBag className="size-5" /> {t('store.myItems')}
                 </Button>
               ) : null}
             </div>
@@ -1647,11 +1658,11 @@ export function JoinGameView({
     // back into the real stage.
     body = (
       <div className="mx-auto max-w-lg px-6 py-20 text-center">
-        <p className="text-2xl font-black">You're offline</p>
+        <p className="text-2xl font-black">{t('join.offline.title')}</p>
         <p className="mt-3 text-base opacity-80">
           {stage.type === 'quiz'
-            ? 'The quiz runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.'
-            : 'Music bingo runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.'}
+            ? t('join.offline.quizBody')
+            : t('join.offline.bingoBody')}
         </p>
       </div>
     )
@@ -1681,7 +1692,7 @@ export function JoinGameView({
     if (state.quiz_state === 'results') {
       body = (
         <QuizResultsPanel
-          title="Your quiz results"
+          title={t('join.quiz.resultsTitle')}
           entries={quizLeaderboard(bundle.teams, submissions, stage.gameId)}
           highlightTeamId={teamId}
         />
@@ -1689,8 +1700,8 @@ export function JoinGameView({
     } else if (state.quiz_state === 'ended' && quizGame) {
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="text-2xl font-bold">Quiz has ended</p>
-          <p className="mt-3 text-white/70">Thanks for playing!</p>
+          <p className="text-2xl font-bold">{t('join.quiz.ended')}</p>
+          <p className="mt-3 text-white/70">{t('join.quiz.thanksForPlaying')}</p>
         </div>
       )
     } else if (state.quiz_state === 'round_intro' && quizGame) {
@@ -1698,7 +1709,7 @@ export function JoinGameView({
       const q = quizQuestions(quizGame)[state.current_question_index]
       const intro = round
         ? roundIntroDisplay(round, roundIndexForQuestion(quizGame, q))
-        : { title: 'NEXT ROUND', subtitle: '' }
+        : { title: t('join.quiz.nextRound'), subtitle: '' }
       // The round's name is what the team is being told; its number is just
       // where they are in the quiz, so it sits above in small type.
       const introNameOnly =
@@ -1714,7 +1725,7 @@ export function JoinGameView({
             {introNameOnly ? intro.title : intro.subtitle}
           </p>
           <p className="mt-10 animate-pulse text-sm font-semibold opacity-60">
-            Waiting for the facilitator to start…
+            {t('join.quiz.waitingForFacilitator')}
           </p>
         </div>
       )
@@ -1727,16 +1738,16 @@ export function JoinGameView({
         // and reads from across a table rather than sitting in a corner.
         <div className="flex min-h-[70svh] flex-col items-center justify-center px-6 text-center">
           <p className="text-sm font-black tracking-[0.28em] uppercase opacity-70 sm:text-base">
-            Get ready for
+            {t('join.quiz.getReadyFor')}
           </p>
           <p className="mt-4 text-[clamp(2.25rem,9vw,5rem)] leading-[1.05] font-black text-balance drop-shadow-lg">
             {quizGame.name}
           </p>
           <p className="mt-5 text-lg font-black tracking-[0.28em] uppercase opacity-80 sm:text-xl">
-            Quiz
+            {t('join.quiz.label')}
           </p>
           <p className="mt-10 animate-pulse text-sm font-semibold opacity-60">
-            Waiting for the facilitator to start…
+            {t('join.quiz.waitingForFacilitator')}
           </p>
         </div>
       )
@@ -1838,22 +1849,16 @@ export function JoinGameView({
     if (!bingoRunQuery.data && !bingoCardQuery.data) {
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="text-lg font-bold text-white">{game?.name ?? 'Music Bingo'}</p>
-          <p className="mt-4 text-white/70">
-            Waiting for the facilitator to start this round…
-          </p>
+          <p className="text-lg font-bold text-white">{game?.name ?? t('join.bingo.fallbackName')}</p>
+          <p className="mt-4 text-white/70">{t('join.bingo.waitingRoundStart')}</p>
         </div>
       )
     } else if (bingoRunQuery.data && !bingoCardQuery.isLoading && !bingoCardQuery.data) {
       body = (
         <div className="mx-auto max-w-lg px-6 py-20 text-center">
-          <p className="text-lg font-bold text-white">{game?.name ?? 'Music Bingo'}</p>
-          <p className="mt-6 text-white/70">
-            This round started before you joined.
-          </p>
-          <p className="mt-2 text-white/50 text-sm">
-            You'll be included in the next round!
-          </p>
+          <p className="text-lg font-bold text-white">{game?.name ?? t('join.bingo.fallbackName')}</p>
+          <p className="mt-6 text-white/70">{t('join.bingo.startedBeforeJoin')}</p>
+          <p className="mt-2 text-white/50 text-sm">{t('join.bingo.includedNextRound')}</p>
         </div>
       )
     } else {
@@ -1932,13 +1937,13 @@ export function JoinGameView({
             // revealed. Explain the momentary no-op instead of making a tap
             // look as though the app failed to register it.
             <p className="shrink-0 animate-pulse text-xs font-bold sm:text-sm">
-              Locking answers…
+              {t('join.bingo.lockingAnswers')}
             </p>
           ) : null}
           {state.hide_team_points ? null : (
             <p className="shrink-0 text-lg font-black tabular-nums sm:text-xl">
               {team.score}
-              <span className="ml-1 text-xs font-bold opacity-70">pts</span>
+              <span className="ml-1 text-xs font-bold opacity-70">{t('common:pts')}</span>
             </p>
           )}
         </div>
@@ -1992,10 +1997,10 @@ export function JoinGameView({
           })}
         </div>
         <div className="mt-1.5 flex shrink-0 items-center justify-between px-1 text-[10px] font-semibold text-white/85 sm:text-xs">
-          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFC107]" />Your selection</span>
-          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-green-500" />Correct</span>
-          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-red-500" />Wrong</span>
-          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-gray-500" />Missed</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-[#FFC107]" />{t('join.bingo.legendSelection')}</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-green-500" />{t('join.bingo.legendCorrect')}</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-red-500" />{t('join.bingo.legendWrong')}</span>
+          <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-gray-500" />{t('join.bingo.legendMissed')}</span>
         </div>
       </div>
     )
@@ -2007,10 +2012,10 @@ export function JoinGameView({
       // fit without scrolling.
       <div className="xp-break-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Break
+          {t('join.break.fallback')}
         </p>
         <p className="text-[clamp(1.25rem,5.5vw,2rem)] leading-tight font-black text-balance">
-          {stage.message ?? 'Back shortly'}
+          {stage.message ?? t('join.break.backShortly')}
         </p>
         <LiveClock
           seconds={breakSeconds}
@@ -2021,7 +2026,7 @@ export function JoinGameView({
       </div>
     )
   } else {
-    body = <p className="py-16 text-center text-white/80">Stand by…</p>
+    body = <p className="py-16 text-center text-white/80">{t('join.state.standBy')}</p>
   }
 
   const winnerTeamId = state.bingo_winner_team_id ?? null
@@ -2083,7 +2088,7 @@ export function JoinGameView({
         ? createPortal(
             <BingoWinCelebration
               key={winnerTeamId}
-              teamName={team.name ?? 'Your team'}
+              teamName={team.name ?? t('join.yourTeam')}
               teamColor={team.color}
               mine
               bonusPoints={
@@ -2108,7 +2113,9 @@ export function JoinGameView({
               // app furniture, and on a dark accent they used to disappear.
               className="experience-scope xp-interactive text-nm-yellow fixed right-4 bottom-4 z-[9999] size-12 rounded-full border-none bg-black shadow-lg hover:bg-black hover:brightness-110"
               onClick={() => void handleExitTeam()}
-              aria-label={exitMode === 'tablet' ? 'Exit to events' : 'Leave team'}
+              aria-label={
+                exitMode === 'tablet' ? t('join.exit.exitToEvents') : t('join.exit.leaveTeam')
+              }
             >
               <LogOut className="size-4" />
             </Button>,
@@ -2125,8 +2132,8 @@ export function JoinGameView({
         <div
           className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+20px)] z-[10001] flex size-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
           role="status"
-          aria-label="You're offline. Your work is saved and will send automatically."
-          title="You're offline. Your work is saved and will send automatically."
+          aria-label={t('join.offline.savedAutomatically')}
+          title={t('join.offline.savedAutomatically')}
         >
           <WifiOff className="size-4" aria-hidden="true" />
         </div>
@@ -2191,7 +2198,7 @@ export function JoinGameView({
                 onClick={() => {
                   setChatOpen(true)
                 }}
-                aria-label="Open chat"
+                aria-label={t('join.chat.openChat')}
               >
                 <MessageCircle className="size-5" />
                 {unreadMessages > 0 ? (

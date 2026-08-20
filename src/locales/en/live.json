@@ -3,7 +3,8 @@
     "header": {
       "quizPoints": "{{points}} quiz pts",
       "scorePoints": "{{score}} points",
-      "scorePointsShort": "{{score}} pts"
+      "scorePointsShort": "{{score}} pts",
+      "quizPtsUnit": "quiz pts"
     },
     "status": {
       "approved": "Approved",
@@ -36,13 +37,18 @@
       "flip": "Flip",
       "retake": "Retake",
       "submit": "Submit",
-      "previewAlt": "Preview"
+      "previewAlt": "Preview",
+      "cameraBlocked": "Camera is blocked for this site. Enable it in your browser settings, then reload the page",
+      "exampleVideo": "Example video"
     },
     "photo": {
       "cameraAccessDenied": "Camera access not granted. Allow camera when the app opens",
       "couldNotCapturePhoto": "Could not capture photo. Hold steady and try again",
       "couldNotProcessPhoto": "Could not process photo",
-      "capturing": "Capturing…"
+      "capturing": "Capturing…",
+      "cameraDidNotOpen": "Camera did not open. Tap Take photo again and allow camera access",
+      "couldNotCapturePhotoDetail": "Could not capture photo ({{detail}}). Hold steady and try again",
+      "preparing": "Preparing…"
     },
     "video": {
       "cameraAccessDenied": "Camera access not granted. Allow camera when the app opens, or upload a video",
@@ -51,7 +57,10 @@
       "recording": "Recording",
       "stopRecording": "Stop recording",
       "recordVideo": "Record video",
-      "uploadVideo": "Upload video"
+      "uploadVideo": "Upload video",
+      "cameraDidNotOpen": "Camera did not open. Tap Record again and allow camera and microphone access",
+      "couldNotStartRecordingDetail": "Could not start recording ({{detail}})",
+      "preparingCamera": "Preparing camera…"
     },
     "inventory": {
       "scanTitle": "Scan an item",
@@ -69,7 +78,8 @@
       "title": "Chat with facilitator",
       "messagePlaceholder": "Message…",
       "send": "Send",
-      "openChat": "Open chat"
+      "openChat": "Open chat",
+      "closeChat": "Close chat"
     },
     "announcement": {
       "dismiss": "Dismiss"
@@ -94,7 +104,11 @@
       "closedNoSubmissions": "Event closed. No new submissions",
       "closedDetail": "This event is now closed. Submissions are no longer accepted.",
       "gameOver": "Game over",
-      "standBy": "Stand by…"
+      "standBy": "Stand by…",
+      "welcome": "Welcome",
+      "welcomeHint": "Hang tight, the first game is about to begin.",
+      "eventEnded": "Event ended",
+      "thanksForPlaying": "Thanks for playing"
     },
     "submission": {
       "waitingApproval": "Submitted. Waiting for approval",
@@ -107,7 +121,12 @@
       "couldNotMarkCellRetry": "Couldn't mark cell. Tap to retry",
       "pointsAwardedMusicBingo": "+{{points}} pts (Music bingo)",
       "pointsAwardedGame": "+{{points}} pts ({{game}})",
-      "notApproved": "{{game}} was not approved"
+      "notApproved": "{{game}} was not approved",
+      "couldNotSubmit": "Could not submit",
+      "couldNotSubmitEventClosed": "Could not submit. The event may have closed",
+      "phoneNotSignedIn": "This phone is no longer signed in for that team",
+      "teammateFinishedPuzzle": "A teammate already finished this puzzle, so their result counts",
+      "uploadLostOffline": "This upload could not be saved offline and was lost"
     },
     "quiz": {
       "resultsTitle": "Your quiz results",
@@ -121,7 +140,8 @@
       "incorrect": "Incorrect",
       "answerLockedRevealing": "Answer locked in. Revealing…",
       "timeRemaining": "{{time}} remaining",
-      "changeAnswer": "Change answer"
+      "changeAnswer": "Change answer",
+      "timeUp": "Time up"
     },
     "bingo": {
       "fallbackName": "Music Bingo",
@@ -137,7 +157,8 @@
       "exclaim": "BINGO!"
     },
     "break": {
-      "fallback": "Break"
+      "fallback": "Break",
+      "backShortly": "Back shortly"
     },
     "consent": {
       "title": "Before you join",
@@ -154,7 +175,10 @@
       "dataRequest": "To ask what is held about you, or to have it deleted, contact the event organiser first, as they decide what happens to it. You can also read the full",
       "privacyPolicyLink": "RallyHub Privacy Policy",
       "checkboxLabel": "I have read this and I am happy to take part.",
-      "continueButton": "Continue to the event"
+      "continueButton": "Continue to the event",
+      "cookieNote": "This app keeps a little data on your phone so it remembers your team. No analytics, no tracking, no optional cookies.",
+      "cookiePolicyLink": "Cookie Policy",
+      "acceptButton": "I have read this, take me in"
     },
     "claim": {
       "documentTitle": "Teams",
@@ -169,7 +193,13 @@
       "joining": "Joining…",
       "join": "Join",
       "available": "Available",
-      "teamFallback": "Team"
+      "teamFallback": "Team",
+      "eventNotFoundHint": "Check the link or the QR code with whoever is running the event.",
+      "couldNotUploadPhoto": "Could not upload team photo ({{detail}})",
+      "teamNamePlaceholder": "Your team name",
+      "teamPhoto": "Team photo",
+      "takeTeamPhoto": "Take team photo",
+      "retakeTeamPhoto": "Retake team photo"
     },
     "countdown": {
       "seconds": "{{seconds}}s"
@@ -184,6 +214,40 @@
     "gameUnavailable": {
       "title": "This game is unavailable",
       "standBy": "Stand by for the facilitator…"
+    },
+    "yourTask": "Your task",
+    "yourTeam": "Your team",
+    "offline": {
+      "title": "You're offline",
+      "quizBody": "The quiz runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.",
+      "bingoBody": "Music bingo runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.",
+      "savedAutomatically": "You're offline. Your work is saved and will send automatically."
+    },
+    "upload": {
+      "uploadingPercent": "Uploading… {{progress}}%",
+      "wifiHint": "Videos can take a while on event wifi. Keep this screen open."
+    },
+    "permission": {
+      "title": "Allow your camera",
+      "body": "Challenges use your camera and microphone for photos and videos. Approve it once now and you will not be asked again during the game.",
+      "blockedHint": "The browser blocked it. Open your browser's site settings, allow Camera and Microphone for this page, then try again.",
+      "waitingForBrowser": "Waiting for the browser…",
+      "tryAgain": "Try again",
+      "approve": "Approve camera",
+      "skip": "Skip for now. Photo and video games will not work"
+    },
+    "takeover": {
+      "moveTitle": "Move “{{team}}” to this device?",
+      "body": "This team is already playing on another device. Enter the event password from your facilitator to continue here. The other device will be signed out.",
+      "passwordPlaceholder": "Event password",
+      "moving": "Moving…",
+      "moveHere": "Move team here",
+      "couldNotMove": "Could not move this team to your device.",
+      "signedOut": "Your team was moved to another device. Ask your facilitator if this was not you."
+    },
+    "store": {
+      "orderSent": "Order sent!",
+      "orderSentBody": "Collect your items from the facilitator. Your points are taken when you pick them up."
     }
   },
   "display": {
@@ -198,7 +262,13 @@
     "breakTime": "Break time",
     "tapToEnableSound": "Tap to enable sound",
     "tapAnywhere": "Tap anywhere to continue",
-    "enableAudioHint": "Enable audio so the display can play the bingo celebration, cheers, and music during the event."
+    "enableAudioHint": "Enable audio so the display can play the bingo celebration, cheers, and music during the event.",
+    "welcome": "Welcome",
+    "eventEnded": "Event ended",
+    "backShortly": "Back shortly",
+    "allTeams": "All teams",
+    "noTeamsJoined": "No teams have joined yet.",
+    "teamsAnswered": "{{answered}} of {{count}} teams answered"
   },
   "winner": {
     "youAreWinner": "YOU ARE THE WINNER!",
@@ -212,7 +282,18 @@
     "place1": "1st place",
     "place2": "2nd place",
     "place3": "3rd place",
-    "announcing": "It is time to announce the winners…"
+    "announcing": "It is time to announce the winners…",
+    "announceIntro": "It is",
+    "announceTime": "TIME",
+    "announceMiddle": "to announce the",
+    "announceWinner": "WINNER",
+    "winnerExclaim": "WINNER!",
+    "wellPlayed": "Well played",
+    "youAreThe": "YOU ARE THE",
+    "youFinished": "YOU FINISHED",
+    "resultsWord": "RESULTS",
+    "quizPointsLabel": "quiz points",
+    "totalPointsLabel": "total points"
   },
   "notLive": {
     "ended": "This event has ended.",
@@ -221,7 +302,11 @@
     "startingBody": "Hang tight. The game will begin once your host starts the event. This screen will update automatically."
   },
   "quizPanel": {
-    "defaultTitle": "Quiz results"
+    "defaultTitle": "Quiz results",
+    "wonQuiz": "Congratulations, you won the quiz!",
+    "finishedSecond": "Congratulations, you finished second!",
+    "finishedThird": "Congratulations, you finished third!",
+    "winnerAria": "Winner"
   },
   "tablet": {
     "documentTitle": "Tablet",
@@ -237,7 +322,10 @@
     "logOut": "Log out",
     "noEvents": "No active events right now.",
     "bookmark": "Bookmark: {{path}}",
-    "passwordHint": "Enter the tablet password to view active events."
+    "passwordHint": "Enter the tablet password to view active events.",
+    "openLinkHint": "Open your organization tablet link from Settings, or use",
+    "install": "Install",
+    "installOnDevice": "Install on this device"
   },
   "inventory": {
     "pageTitle": "Inventory",
@@ -300,10 +388,73 @@
     "wordGuesses": "Word guesses",
     "wordleHint": "Unlimited guesses · each extra guess reduces the remaining score by 10%",
     "wrongMatches_one": "{{count}} incorrect match",
-    "wrongMatches_other": "{{count}} incorrect matches"
+    "wrongMatches_other": "{{count}} incorrect matches",
+    "couldNotSubmitResult": "Could not submit the puzzle result",
+    "cellPosition": "Row {{row}} column {{col}}",
+    "characters": "Characters",
+    "crosswordLoadError": "Could not load the crossword.",
+    "crosswordTapTip": "Tap any letter cell to read its clue, then type the answer.",
+    "letters": "Letters",
+    "numbers": "Numbers",
+    "offlineNotDownloaded": "This puzzle is not downloaded for offline play yet. It needs a connection right now.",
+    "shift": "Shift",
+    "space": "Space"
   },
   "game": {
     "points": "{{points}} pts",
     "pointsUpTo": "Up to {{points}}"
+  },
+  "bingoWin": {
+    "heading": "Bingo!",
+    "youGot": "You got",
+    "bingoWord": "BINGO",
+    "completedLine": "You completed a line!",
+    "hasGotBingo": "has got BINGO!"
+  },
+  "store": {
+    "couldNotPlaceOrder": "Could not place the order",
+    "title": "Store",
+    "myItems": "My Items",
+    "closeStore": "Close store",
+    "opening": "Opening the store…",
+    "empty": "The store is empty for this event.",
+    "joinTeamFirst": "Join a team on this phone first, then open the store again.",
+    "couldNotOpen": "Could not open the store.",
+    "offlineNotDownloaded": "You're offline and the store has not downloaded to this phone yet. It needs a connection right now.",
+    "couldNotSendOrder": "Could not send your order. Try again.",
+    "itemFallback": "Item",
+    "soldOut": "Sold out",
+    "stockLine": "{{left}} left · max {{max}} per team",
+    "youHave": "you have {{qty}}",
+    "fewerItem": "Fewer {{name}}",
+    "moreItem": "More {{name}}",
+    "nothingBought": "Nothing bought yet. Order from the Store first.",
+    "notPlaced": "Not placed",
+    "waitingToSend": "Waiting to send",
+    "queuedPointsLine": "{{points}} pts · sends automatically when you are back online",
+    "yourOrders": "Your orders",
+    "collected": "Collected",
+    "waiting": "Waiting",
+    "pointsCollectLine": "{{points}} pts · collect from the facilitator",
+    "sendingOrder": "Sending order…",
+    "pickSomeItems": "Pick some items",
+    "orderItems_one": "Order {{count}} item · {{points}} pts",
+    "orderItems_other": "Order {{count}} items · {{points}} pts"
+  },
+  "event": {
+    "notReady": "Event is not ready yet. Ask your facilitator to open the facilitator panel.",
+    "loadFailed": "Failed to load event",
+    "accessDenied": "Event access denied"
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "questionVideo": "Question video",
+    "videoPosition": "Video position",
+    "clipPosition": "Clip position",
+    "audioPlaybackBlocked": "Audio playback blocked"
+  },
+  "poweredBy": {
+    "alt": "Powered by RallyHub"
   }
 }

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { RichText } from '@/components/ui/rich-text'
 
 /**
@@ -10,11 +12,12 @@ export const CHALLENGE_LABEL_CLASS =
   'text-sm font-black tracking-[0.16em] uppercase opacity-75'
 
 export function ChallengeBrief({ html }: { html?: string | null }) {
+  const { t } = useTranslation('live')
   if (!html?.trim()) return null
 
   return (
     <div className="my-9 space-y-2 px-4">
-      <p className={CHALLENGE_LABEL_CLASS}>Your task:</p>
+      <p className={CHALLENGE_LABEL_CLASS}>{t('join.yourTask')}:</p>
       {/* No line clamp: a brief is the instructions for the task, and cutting
           it at four lines with no way to expand meant a longer challenge could
           not be read at all. The screen scrolls; the text does not need to. */}

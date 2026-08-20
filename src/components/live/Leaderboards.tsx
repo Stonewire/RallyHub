@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { readableTextOn } from '@/lib/hex-color'
 import type { Tables } from '@/types/helpers'
@@ -81,6 +82,7 @@ export function Leaderboard({
   layout,
   textClass = 'text-white',
 }: LeaderboardProps) {
+  const { t } = useTranslation('live')
   // Hiding scores has to hide the standing too. Sorted by score, the order
   // itself announces who is winning, so with scores off the teams sit in join
   // order (slot number) instead.
@@ -96,7 +98,7 @@ export function Leaderboard({
   if (ranked.length === 0) {
     return (
       <p className={`py-12 text-center text-sm opacity-60 ${textClass}`}>
-        No teams have joined yet.
+        {t('display.noTeamsJoined')}
       </p>
     )
   }

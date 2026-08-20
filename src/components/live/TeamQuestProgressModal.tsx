@@ -1,14 +1,15 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import type { QuestGameProgress, QuestGameStatus } from '@/lib/quest-progress'
 import type { Tables } from '@/types/helpers'
 
-const STATUS_META: Record<QuestGameStatus, { label: string; cls: string }> = {
-  approved: { label: 'Completed', cls: 'bg-green-100 text-green-800 border-green-300' },
-  pending: { label: 'Pending', cls: 'bg-yellow-100 text-yellow-900 border-yellow-300' },
-  rejected: { label: 'Rejected', cls: 'bg-red-100 text-red-800 border-red-300' },
-  none: { label: 'Not started', cls: 'bg-muted text-muted-foreground border-border' },
+const STATUS_META: Record<QuestGameStatus, { labelKey: string; cls: string }> = {
+  approved: { labelKey: 'quest.completed', cls: 'bg-green-100 text-green-800 border-green-300' },
+  pending: { labelKey: 'quest.pending', cls: 'bg-yellow-100 text-yellow-900 border-yellow-300' },
+  rejected: { labelKey: 'quest.rejected', cls: 'bg-red-100 text-red-800 border-red-300' },
+  none: { labelKey: 'quest.notStarted', cls: 'bg-muted text-muted-foreground border-border' },
 }
 
 type TeamQuestProgressModalProps = {
@@ -29,6 +30,7 @@ export function TeamQuestProgressModal({
   onClose,
   onOpenSubmission,
 }: TeamQuestProgressModalProps) {
+  const { t } = useTranslation('facilitator')
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
@@ -45,13 +47,13 @@ export function TeamQuestProgressModal({
         <div className="border-border/80 flex items-center justify-between border-b px-4 py-3">
           <div className="min-w-0 pr-2">
             <p id="quest-progress-title" className="truncate font-semibold">
-              {team.name?.trim() || `Slot ${team.slot_number}`}
+              {team.name?.trim() || t('quest.slotFallback', { number: team.slot_number })}
             </p>
             <p className="text-muted-foreground text-sm tabular-nums">
-              {doneCount}/{total} Quests completed
+              {t('quest.questsCompleted', { done: doneCount, total })}
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon" aria-label="Close team progress" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label={t('quest.closeTeamProgress')} onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>
@@ -73,7 +75,7 @@ export function TeamQuestProgressModal({
                   <span
                     className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${meta.cls}`}
                   >
-                    {meta.label}
+                    {t(meta.labelKey)}
                   </span>
                 </Row>
               </li>
@@ -81,7 +83,7 @@ export function TeamQuestProgressModal({
           })}
           {items.length === 0 ? (
             <li className="text-muted-foreground px-4 py-6 text-center text-sm">
-              This event has no Quest games.
+              {t('quest.noQuestGames')}
             </li>
           ) : null}
         </ul>

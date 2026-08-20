@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, SwitchCamera, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ export function PhotoChallengeCapture({
   onClose,
   onFileReady,
 }: PhotoChallengeCaptureProps) {
+  const { t } = useTranslation('live')
   const { notify } = useNotification()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -87,8 +89,8 @@ export function PhotoChallengeCapture({
     if (!stream) {
       notify(
         (await cameraPermissionDenied())
-          ? 'Camera is blocked for this site — enable it in your browser settings, then reload the page'
-          : 'Camera did not open — tap Take photo again and allow camera access',
+          ? t('join.capture.cameraBlocked')
+          : t('join.photo.cameraDidNotOpen'),
       )
       return
     }
@@ -163,7 +165,7 @@ export function PhotoChallengeCapture({
       promise.catch(() => {})
     } catch (err) {
       const detail = reportClientIssue('photo-capture', err, { eventId })
-      notify(`Could not capture photo (${detail}) — hold steady and try again`)
+      notify(t('join.photo.couldNotCapturePhotoDetail', { detail }))
     }
   }
 
@@ -187,7 +189,7 @@ export function PhotoChallengeCapture({
         const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
         onFileReady(file)
       })
-      .catch(() => notify('Could not process photo'))
+      .catch(() => notify(t('join.photo.couldNotProcessPhoto')))
       .then(() => setEncodePending(false))
   }
 
@@ -204,7 +206,7 @@ export function PhotoChallengeCapture({
         <button
           type="button"
           onClick={cancelCapture}
-          aria-label="Close capture"
+          aria-label={t('join.capture.closeCapture')}
           className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm"
         >
           <X className="size-5" />
@@ -236,11 +238,11 @@ export function PhotoChallengeCapture({
                   type="button"
                   onClick={flipCamera}
                   disabled={!ready}
-                  aria-label="Switch camera"
+                  aria-label={t('join.capture.switchCamera')}
                   className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm disabled:opacity-50"
                 >
                   <SwitchCamera className="size-4" />
-                  Flip
+                  {t('join.capture.flip')}
                 </button>
               </div>
             </>
@@ -262,7 +264,7 @@ export function PhotoChallengeCapture({
               className="min-h-12 flex-1 border-white/30 bg-white/10 text-base text-white"
               onClick={retake}
             >
-              Retake
+              {t('join.capture.retake')}
             </Button>
             <LiveAccentButton
               type="button"
@@ -271,7 +273,7 @@ export function PhotoChallengeCapture({
               disabled={disabled || encodePending}
               onClick={submitPhoto}
             >
-              {encodePending ? 'Preparing…' : 'Submit'}
+              {encodePending ? t('join.photo.preparing') : t('join.capture.submit')}
             </LiveAccentButton>
           </div>
         ) : (
@@ -283,7 +285,7 @@ export function PhotoChallengeCapture({
             onClick={capturePhoto}
           >
             <Camera className="size-5" />
-            Take photo
+            {t('join.capture.takePhoto')}
           </LiveAccentButton>
         )}
       </div>

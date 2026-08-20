@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, NeoStatusBadge } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,7 @@ export function SubmissionDetailModal({
   onApprove,
   onReject,
 }: SubmissionDetailModalProps) {
+  const { t } = useTranslation('facilitator')
   const isRange = pointsType === 'range'
   const min = pointsMin ?? 0
   const max = pointsMax ?? 0
@@ -121,7 +123,7 @@ export function SubmissionDetailModal({
             </p>
             <p className="text-muted-foreground truncate text-sm font-semibold">{gameName}</p>
           </div>
-          <Button type="button" variant="ghost" size="icon" aria-label="Close submission" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label={t('submissionDetail.closeSubmission')} onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>
@@ -129,7 +131,7 @@ export function SubmissionDetailModal({
           {game?.description?.trim() ? (
             <div className="border-border/80 mb-4 rounded-lg border bg-muted/20 px-4 py-3">
               <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                Challenge description
+                {t('submissionDetail.challengeDescription')}
               </p>
               <RichText
                 html={game.description}
@@ -140,7 +142,7 @@ export function SubmissionDetailModal({
           {game?.solution_description?.trim() ? (
             <div className="border-border/80 mb-4 rounded-lg border border-dashed bg-muted/20 px-4 py-3">
               <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                Expected answer / solution
+                {t('submissionDetail.expectedAnswer')}
               </p>
               <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {game.solution_description}
@@ -150,21 +152,23 @@ export function SubmissionDetailModal({
           {sub.media_type === 'puzzle' ? (
             <div className="rounded-lg border bg-muted/30 px-4 py-3">
               <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                Puzzle result
+                {t('submissionDetail.puzzleResult')}
               </p>
               <p className="mt-1 text-base font-semibold">
                 {puzzleSubmissionStatLabel(sub.media_url)}
-                {sub.points_awarded != null ? ` · +${sub.points_awarded} points` : ''}
+                {sub.points_awarded != null
+                  ? ` · ${t('submissionDetail.pointsAwarded', { points: sub.points_awarded })}`
+                  : ''}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
-                Scored automatically. Nothing to approve.
+                {t('submissionDetail.scoredAutomatically')}
               </p>
             </div>
           ) : isText && answerLabel ? (
             <div className="space-y-3">
               <div className="rounded-lg border bg-muted/30 px-4 py-3">
                 <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                  Team answer
+                  {t('submissionDetail.teamAnswer')}
                 </p>
                 <p className="mt-1 text-base font-semibold break-words">{answerLabel}</p>
               </div>
@@ -173,7 +177,7 @@ export function SubmissionDetailModal({
               {textReferenceLabel ? (
                 <div className="rounded-lg border bg-muted/30 px-4 py-3">
                   <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                    Correct answer
+                    {t('submissionDetail.correctAnswer')}
                   </p>
                   <p className="mt-1 text-base font-semibold break-words">
                     {textReferenceLabel}
@@ -189,10 +193,10 @@ export function SubmissionDetailModal({
                       }`}
                     >
                       {verdict === 'correct'
-                        ? '✓ Team answer matches'
+                        ? t('submissionDetail.verdictMatches')
                         : verdict === 'close'
-                          ? '≈ Matches except capitals or spaces'
-                          : '✗ Team answer does not match'}
+                          ? t('submissionDetail.verdictClose')
+                          : t('submissionDetail.verdictNoMatch')}
                     </p>
                   ) : null}
                 </div>
@@ -215,14 +219,14 @@ export function SubmissionDetailModal({
               />
             ) : null
           ) : (
-            <p className="text-muted-foreground text-sm">No media attached</p>
+            <p className="text-muted-foreground text-sm">{t('submissionDetail.noMedia')}</p>
           )}
           {sub.status === 'pending' && sub.media_type !== 'puzzle' ? (
             <div className="mt-4 space-y-4">
               {isRange ? (
                 <div className="space-y-2">
                   <Label htmlFor="sub-points">
-                    Points ({min}–{max})
+                    {t('submissionDetail.pointsLabel', { min, max })}
                   </Label>
                   <Input
                     id="sub-points"
@@ -235,7 +239,7 @@ export function SubmissionDetailModal({
                   />
                   {!rangeValid && points !== '' ? (
                     <p className="text-destructive text-xs">
-                      Enter a value between {min} and {max}
+                      {t('submissionDetail.pointsRangeError', { min, max })}
                     </p>
                   ) : null}
                 </div>
@@ -247,7 +251,7 @@ export function SubmissionDetailModal({
                   disabled={busy || (isRange && !rangeValid)}
                   onClick={() => void handleApprove()}
                 >
-                  Approve
+                  {t('submissions.approve')}
                 </NeoButton>
                 <NeoButton
                   type="button"
@@ -256,7 +260,7 @@ export function SubmissionDetailModal({
                   disabled={busy}
                   onClick={() => void handleReject()}
                 >
-                  Reject
+                  {t('submissions.reject')}
                 </NeoButton>
               </div>
             </div>
@@ -271,11 +275,11 @@ export function SubmissionDetailModal({
                       : 'ready'
                 }
               >
-                {sub.media_type === 'puzzle' ? 'approved' : sub.status}
+                {t(`submissions.status.${sub.media_type === 'puzzle' ? 'approved' : sub.status}`)}
               </NeoStatusBadge>
               {sub.points_awarded != null ? (
                 <span className="text-sm font-bold tabular-nums">
-                  {sub.points_awarded} pts
+                  {sub.points_awarded} {t('common:pts')}
                 </span>
               ) : null}
             </div>

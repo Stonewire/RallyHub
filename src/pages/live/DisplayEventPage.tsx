@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti'
 import { Volume2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
@@ -54,6 +55,7 @@ type DisplayEventPageProps = {
 }
 
 export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPageProps = {}) {
+  const { t } = useTranslation('live')
   const { eventId } = useParams<{ eventId: string }>()
   const [searchParams] = useSearchParams()
   const embedFromUrl = searchParams.get('embed') === '1'
@@ -70,7 +72,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   }, [embedded])
 
   const { bundle, loading, error } = useLiveEvent(eventId)
-  useDocumentTitle('Display', bundle?.event?.name)
+  useDocumentTitle(t('display.documentTitle'), bundle?.event?.name)
 
   const [dismissedWinnerId, setDismissedWinnerId] = useState<string | null>(null)
   // The display panel is a passive screen that may never be tapped again during
@@ -200,7 +202,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         className="flex min-h-screen items-center justify-center text-white"
         style={{ backgroundColor: '#6f6f6f' }}
       >
-        Loading…
+        {t('common:loading')}…
       </div>
     )
   }
@@ -211,7 +213,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         className="flex min-h-screen items-center justify-center text-white"
         style={{ backgroundColor: '#6f6f6f' }}
       >
-        {error ?? 'Event not found'}
+        {error ?? t('join.claim.eventNotFound')}
       </div>
     )
   }
@@ -274,7 +276,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         <p
           className={`animate-pulse text-center font-sans text-4xl font-bold md:text-6xl ${textClass}`}
         >
-          It is time to announce the winners…
+          {t('winner.announcing')}
         </p>
       </div>
     )
@@ -295,10 +297,10 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
       >
         <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Welcome
+          {t('display.welcome')}
         </p>
         <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
-          {stage.message ?? 'Welcome'}
+          {stage.message ?? t('display.welcome')}
         </p>
         {/* Scores hidden: at welcome this is a "who's here" list, not a leaderboard. */}
         <div className="w-full max-w-4xl">
@@ -312,18 +314,18 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
       >
         <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Event ended
+          {t('display.eventEnded')}
         </p>
         <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
-          {stage.message ?? 'Thanks for playing'}
+          {stage.message ?? t('display.thanksForPlaying')}
         </p>
       </div>
     )
   } else if (stage.type === 'quiz' && state.quiz_state === 'ended' && quizGame) {
     body = (
       <div className={`text-center ${textClass}`}>
-        <p className="font-sans text-4xl font-bold md:text-6xl">Quiz has ended</p>
-        <p className="mt-4 text-xl opacity-80">Thanks for playing!</p>
+        <p className="font-sans text-4xl font-bold md:text-6xl">{t('display.quizEnded')}</p>
+        <p className="mt-4 text-xl opacity-80">{t('display.thanksForPlaying')}</p>
       </div>
     )
   } else if (
@@ -334,20 +336,20 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     body = (
       <div className={`text-center ${textClass}`}>
         <p className="font-sans text-2xl font-bold opacity-80 md:text-4xl">
-          Get ready for
+          {t('display.getReadyFor')}
         </p>
         <p className="font-sans mt-4 text-4xl font-bold md:text-6xl">
           {quizGame.name}
         </p>
         <p className="font-sans mt-2 text-2xl font-bold opacity-90 md:text-4xl">
-          Quiz
+          {t('display.quiz')}
         </p>
       </div>
     )
   } else if (stage.type === 'quiz' && state.quiz_state === 'results' && stage.gameId) {
     body = (
       <QuizResultsPanel
-        title="Quiz leaderboard"
+        title={t('display.quizLeaderboard')}
         entries={quizResultsEntries}
         large
       />
@@ -363,7 +365,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           round,
           roundIndexForQuestion(quizGame, question),
         )
-      : { title: 'NEXT ROUND', subtitle: '' }
+      : { title: t('display.nextRound'), subtitle: '' }
     body = (
       <div className={`text-center ${textClass}`}>
         <p className="font-sans text-5xl font-bold md:text-7xl lg:text-8xl">{intro.title}</p>
@@ -413,7 +415,10 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         {state.quiz_state === 'active' ? (
           <div className="mt-8 space-y-3">
             <p className="text-lg font-semibold opacity-90 md:text-xl">
-              {quizAnsweredTeamIds.size} of {namedTeams.length} teams answered
+              {t('display.teamsAnswered', {
+                answered: quizAnsweredTeamIds.size,
+                count: namedTeams.length,
+              })}
             </p>
             <ul className="flex flex-wrap justify-center gap-2">
               {namedTeams.map((team) => {
@@ -461,10 +466,10 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         className={`xp-break-panel flex min-h-[78svh] flex-col items-center justify-center gap-6 px-8 text-center ${textClass}`}
       >
         <p className="text-[clamp(1rem,2.2vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          Break
+          {t('join.break.fallback')}
         </p>
         <p className="text-[clamp(1.75rem,4.5vw,4rem)] leading-tight font-black text-balance drop-shadow-sm">
-          {stage.message ?? 'Back shortly'}
+          {stage.message ?? t('display.backShortly')}
         </p>
         <p className="text-[clamp(5rem,20vw,16rem)] leading-[0.85] font-black tabular-nums drop-shadow-lg">
           {formatBreakTimer(breakDisplay)}
@@ -542,7 +547,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
       {showWinner && winnerTeam ? (
         <BingoWinCelebration
           key={winnerTeamId}
-          teamName={winnerTeam.name ?? 'Team'}
+          teamName={winnerTeam.name ?? t('join.claim.teamFallback')}
           teamColor={winnerTeam.color}
           onDismiss={() => setDismissedWinnerId(winnerTeamId)}
         />
@@ -555,16 +560,15 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
             setSoundEnabled(true)
           }}
           className="fixed inset-0 z-[10050] flex flex-col items-center justify-center gap-6 bg-black/90 px-8 text-center text-white"
-          aria-label="Tap to enable sound"
+          aria-label={t('display.tapToEnableSound')}
         >
           <Volume2 className="size-16 opacity-90" />
-          <span className="font-sans text-3xl font-bold md:text-5xl">Tap to enable sound</span>
+          <span className="font-sans text-3xl font-bold md:text-5xl">{t('display.tapToEnableSound')}</span>
           <span className="max-w-xl text-base text-white/70 md:text-lg">
-            Enable audio so the display can play the bingo celebration, cheers, and music
-            during the event.
+            {t('display.enableAudioHint')}
           </span>
           <span className="xp-interactive mt-2 rounded-full bg-white px-8 py-3 text-lg font-semibold text-black">
-            Tap anywhere to continue
+            {t('display.tapAnywhere')}
           </span>
         </button>
       ) : null}

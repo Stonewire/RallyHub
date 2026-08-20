@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 type WinnerRevealPanelProps = {
   stage: 1 | 2
@@ -52,12 +53,9 @@ const WINNER_OUTLINE = {
   paddingInline: '0.12em',
 } as const
 
-/** Split so each letter can land on its own beat, as the bingo win does. */
-const WINNER_LETTERS = ['W', 'I', 'N', 'N', 'E', 'R', '!']
-
 /** The placing, spelt out so it can land letter by letter like WINNER. */
-function rankLetters(rank: number): string[] {
-  if (rank <= 0) return Array.from('RESULTS')
+function rankLetters(rank: number, fallbackWord: string): string[] {
+  if (rank <= 0) return Array.from(fallbackWord)
   return Array.from(`#${rank}`)
 }
 
@@ -67,6 +65,9 @@ export function WinnerRevealPanel({
   myTeamId,
   quizPoints,
 }: WinnerRevealPanelProps) {
+  const { t } = useTranslation('live')
+  // Split so each letter can land on its own beat, as the bingo win does.
+  const winnerLetters = Array.from(t('winner.winnerExclaim'))
   const mine = ranked.find((r) => r.team.id === myTeamId)
   const myRank = mine?.rank ?? 0
   const isWinner = myRank === 1
@@ -110,20 +111,20 @@ export function WinnerRevealPanel({
     return (
       <div className="flex min-h-[78svh] flex-col items-center justify-center px-6 text-center">
         <p className="text-[clamp(1rem,3.5vw,1.75rem)] leading-none font-black tracking-[0.35em] uppercase opacity-60">
-          It is
+          {t('winner.announceIntro')}
         </p>
         <p className="mt-2 text-[clamp(3.5rem,17vw,10rem)] leading-[0.9] font-black drop-shadow-lg">
-          TIME
+          {t('winner.announceTime')}
         </p>
         <p className="mt-3 text-[clamp(1rem,3.5vw,1.75rem)] leading-tight font-black tracking-[0.22em] uppercase opacity-75">
-          to announce the
+          {t('winner.announceMiddle')}
         </p>
         {/* The word the room is waiting for, in the winning green. */}
         <p
           className="mt-2 animate-pulse text-[clamp(3rem,14vw,8.5rem)] leading-[0.9] font-black"
           style={{ color: WINNER_GREEN, ...WINNER_OUTLINE }}
         >
-          WINNER
+          {t('winner.announceWinner')}
         </p>
       </div>
     )
@@ -139,7 +140,11 @@ export function WinnerRevealPanel({
         animate={{ y: 0, opacity: 0.7 }}
         transition={{ type: 'spring', stiffness: 220, damping: 16 }}
       >
-        {isWinner ? 'Congratulations' : myRank > 0 ? 'Well played' : 'Results'}
+        {isWinner
+          ? t('winner.congratulations')
+          : myRank > 0
+            ? t('winner.wellPlayed')
+            : t('winner.results')}
       </motion.p>
 
       {isWinner ? (
@@ -150,14 +155,14 @@ export function WinnerRevealPanel({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 14 }}
           >
-            YOU ARE THE
+            {t('winner.youAreThe')}
           </motion.p>
 
           {/* The word sits dead centre; the lines above and the total below
               are pushed out to the ends of the screen. */}
           <div className="flex flex-1 items-center justify-center">
             <div className="flex items-end justify-center">
-              {WINNER_LETTERS.map((letter, i) => (
+              {winnerLetters.map((letter, i) => (
                 // Two layers: the letter lands once, then only the bounce
                 // loops. Repeating the landing made each letter vanish and pop
                 // back, so the word was never whole.
@@ -195,7 +200,7 @@ export function WinnerRevealPanel({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 14 }}
           >
-            YOU FINISHED
+            {t('winner.youFinished')}
           </motion.p>
 
           {/* Same shape as the winner's: the placing dead centre, outlined so
@@ -203,7 +208,7 @@ export function WinnerRevealPanel({
               than the winning green. */}
           <div className="flex flex-1 items-center justify-center">
             <div className="flex items-end justify-center">
-              {rankLetters(myRank).map((letter, i) => (
+              {rankLetters(myRank, t('winner.resultsWord')).map((letter, i) => (
                 <motion.span
                   key={`${letter}-${i}`}
                   className="inline-block"
@@ -243,7 +248,7 @@ export function WinnerRevealPanel({
             {totalPoints}
           </span>
           <span className="mt-2 text-[clamp(0.8rem,2.6vw,1.1rem)] font-black tracking-[0.28em] uppercase opacity-65">
-            {quizPoints != null ? 'quiz points' : 'total points'}
+            {quizPoints != null ? t('winner.quizPointsLabel') : t('winner.totalPointsLabel')}
           </span>
         </motion.div>
       ) : null}

@@ -1,3 +1,4 @@
+import i18n from 'i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { setAppLanguage } from '@/lib/i18n'
@@ -89,9 +90,7 @@ async function fetchBundleOnce(eventId: string): Promise<LiveEventBundle | null>
       if (!error && created) state = created
     }
     if (!state) {
-      throw new Error(
-        'Event is not ready yet. Ask your facilitator to open the facilitator panel.',
-      )
+      throw new Error(i18n.t('live:event.notReady'))
     }
   }
 
@@ -198,7 +197,7 @@ export function useLiveEvent(eventId: string | undefined) {
         }
       }
       setBundle(data)
-      setError(data ? null : 'Event not found')
+      setError(data ? null : i18n.t('live:join.claim.eventNotFound'))
     } catch (err) {
       const snap = await loadBundleSnapshot(eventId).catch(() => null)
       if (snap) {
@@ -207,7 +206,7 @@ export function useLiveEvent(eventId: string | undefined) {
         setBundle((current) => current ?? snap)
         setError(null)
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load event')
+        setError(err instanceof Error ? err.message : i18n.t('live:event.loadFailed'))
       }
     } finally {
       setLoading(false)
@@ -654,7 +653,7 @@ export function useChatMessages(eventId: string | undefined) {
       if (!trimmedSender || !trimmedMessage) return
 
       const access = await ensureLiveEventAccess(eventId)
-      if (!access) throw new Error('Event access denied')
+      if (!access) throw new Error(i18n.t('live:event.accessDenied'))
 
       const { data, error } = await supabase
         .from('chat_messages')

@@ -33,7 +33,8 @@
     "label": "Mededeling",
     "placeholder": "Bericht… verdwijnt na 1 minuut",
     "live": "Live: {{message}}",
-    "clear": "Wissen"
+    "clear": "Wissen",
+    "inputPlaceholder": "Typ hier je mededeling… verdwijnt na 1 minuut"
   },
   "surface": {
     "display": "Scherm",
@@ -58,7 +59,8 @@
     "revealFailed": "Antwoord tonen mislukt",
     "scoringFailed": "Quiz scoren mislukt. Controleer of de increment_team_score migratie is toegepast",
     "resetNotify": "Quiz opnieuw gestart",
-    "finishedNotify": "Quiz afgerond op alle schermen"
+    "finishedNotify": "Quiz afgerond op alle schermen",
+    "questionCounter": "Vraag {{current}} / {{total}}"
   },
   "bingo": {
     "runActive": "Ronde actief · {{count}} nummers in de lijst",
@@ -85,7 +87,10 @@
     "couldNotScoreAdvance": "Scoren of doorgaan naar de volgende bingoronde mislukt",
     "couldNotScoreReveal": "Scoren of tonen van de bingoronde mislukt",
     "couldNotLockSelections": "Vergrendelen van bingoselecties mislukt",
-    "playbackFailed": "Audio afspelen mislukt: {{message}}"
+    "playbackFailed": "Audio afspelen mislukt: {{message}}",
+    "restart": "Opnieuw starten",
+    "runFinished": "Ronde afgelopen",
+    "cueingNext": "Volgend nummer klaarzetten…"
   },
   "controls": {
     "start": "Start",
@@ -119,7 +124,8 @@
     "resetting": "Resetten…",
     "resetTeamButton": "Team resetten",
     "resetSlotNotify": "Teamplek {{number}} geleegd. Beschikbaar voor een nieuw team",
-    "resetSlotFailed": "Teamplek resetten mislukt"
+    "resetSlotFailed": "Teamplek resetten mislukt",
+    "statusAria": "Teamstatus"
   },
   "timer": {
     "countdownLabel": "Aftellen op het scherm",
@@ -140,7 +146,11 @@
   },
   "toggles": {
     "showTimer": "Timer tonen op het scherm",
-    "showScores": "Scores tonen op het scherm"
+    "showScores": "Scores tonen op het scherm",
+    "timerOnDisplay": "Timer op scherm",
+    "rankOnDisplay": "Positie op scherm",
+    "pointsOnDisplay": "Punten op scherm",
+    "purchaseItems": "Items kopen"
   },
   "purchases": {
     "heading": "Aankopen",
@@ -163,6 +173,22 @@
       "approved": "Goedgekeurd",
       "rejected": "Afgewezen",
       "cancelled": "Geannuleerd"
+    },
+    "filterAria": "Inzendingen filteren",
+    "expectedLabel": "Verwacht:",
+    "type": {
+      "photo": "Foto",
+      "video": "Video",
+      "text": "Tekst",
+      "quiz": "Quiz",
+      "bingo": "Bingo",
+      "puzzle": "Puzzel",
+      "other": "Overig"
+    },
+    "verdict": {
+      "matches": "✓ Komt overeen",
+      "closeMatch": "≈ Komt overeen op hoofdletters/spaties na",
+      "noMatch": "✗ Komt niet overeen"
     }
   },
   "claim": {
@@ -177,7 +203,8 @@
     "notStarted": "Niet gestart",
     "questsCompleted": "{{done}}/{{total}} quests voltooid",
     "slotFallback": "Plek {{number}}",
-    "noQuestGames": "Dit evenement heeft geen questspellen."
+    "noQuestGames": "Dit evenement heeft geen questspellen.",
+    "closeTeamProgress": "Teamvoortgang sluiten"
   },
   "chat": {
     "openTeamChatAria": "Teamchat openen",
@@ -208,7 +235,15 @@
     "noAnswerSet": "Niet ingesteld",
     "pointsLabel": "Punten ({{min}} tot {{max}})",
     "pointsRangeError": "Voer een waarde in tussen {{min}} en {{max}}",
-    "statusLabel": "Status: {{status}}"
+    "statusLabel": "Status: {{status}}",
+    "closeSubmission": "Inzending sluiten",
+    "puzzleResult": "Puzzelresultaat",
+    "pointsAwarded": "+{{points}} punten",
+    "scoredAutomatically": "Automatisch gescoord. Niets goed te keuren.",
+    "correctAnswer": "Juiste antwoord",
+    "verdictMatches": "✓ Antwoord van het team komt overeen",
+    "verdictClose": "≈ Komt overeen op hoofdletters of spaties na",
+    "verdictNoMatch": "✗ Antwoord van het team komt niet overeen"
   },
   "winnerRouting": {
     "display": {
@@ -223,5 +258,53 @@
       "label": "Spelers",
       "desc": "Elke spelerstelefoon speelt de winnaarsaankondiging af."
     }
+  },
+  "storeOrders": {
+    "heading": "Winkelbestellingen",
+    "pendingCount": "{{count}} open",
+    "emptyPending": "Niets in de wacht. Teams bestellen via hun Winkel.",
+    "handedOverCount": "{{done}}/{{total}} overhandigd",
+    "hideDone": "Afgeronde verbergen ({{count}})",
+    "showDone": "Afgeronde tonen ({{count}})",
+    "doneBadge": "klaar",
+    "orderDialogHint": "Bestelling · punten worden alleen afgeschreven voor de items die je afrondt",
+    "selectAll": "Alles selecteren",
+    "pointsEach": "{{points}} ptn per stuk",
+    "handedOverPointsTaken": "overhandigd, punten afgeschreven",
+    "cancelOrder": "Bestelling annuleren",
+    "completing": "Afronden…",
+    "completeSelected": "Selectie afronden en {{points}} punten afschrijven",
+    "orderCompleted": "Bestelling van {{team}} afgerond. {{points}} punten afgeschreven.",
+    "partialCompleted": "{{points}} punten afgeschreven. De niet aangevinkte items blijven in de bestelling.",
+    "completeFailed": "De bestelling kon niet worden afgerond.",
+    "cancelConfirm": "Bestelling van {{team}} annuleren? Items die nog niet overhandigd zijn gaan terug in de verkoop, wat al overhandigd is blijft betaald.",
+    "cancelFailed": "De bestelling kon niet worden geannuleerd.",
+    "updateItemFailed": "Het item kon niet worden bijgewerkt."
+  },
+  "landing": {
+    "title": "Facilitator",
+    "signedInAs": "Aangemeld als {{name}}",
+    "intro": "Open een facilitatorlink van een evenement van je organisatie om een live evenement te draaien. Plak de link in je browser of gebruik de bladwijzer uit je evenementinstellingen.",
+    "signIn": "Aanmelden",
+    "noAccess": "Je account heeft geen facilitatortoegang. Vraag de beheerder van je organisatie om een facilitatoraccount of gebruik in plaats daarvan een adminlink."
+  },
+  "preview": {
+    "button": "Voorbeeld",
+    "dialogAria": "Schermvoorbeeld"
+  },
+  "install": {
+    "button": "Installeren"
+  },
+  "stageCard": {
+    "welcomeLabel": "Welkomstscherm",
+    "endedLabel": "Evenement afgelopen",
+    "welcomeDefault": "Welkom",
+    "endedDefault": "Bedankt voor het meespelen",
+    "welcomeHint": "Teams zien dit terwijl ze wachten. Ga door naar het eerste spel wanneer je zover bent.",
+    "endedHint": "Het spel ligt voor iedereen stil. Gebruik de winnaarsonthulling om de uitslag bekend te maken."
+  },
+  "displayPreview": {
+    "title": "Voorbeeld van het scherm",
+    "copyLink": "Schermlink kopiëren"
   }
 }

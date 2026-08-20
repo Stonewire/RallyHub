@@ -4,5 +4,51 @@
   "close": "Затвори",
   "loading": "Зареждане",
   "error": "Нещо се обърка. Опитайте отново.",
-  "pts": "т."
+  "pts": "т.",
+  "retry": "Опитай отново",
+  "install": {
+    "addToHomeScreen": "Добави на началния екран",
+    "installApp": "Инсталирай приложението",
+    "manual": {
+      "ios": "Докосни бутона Share долу в Safari, после \"Add to Home Screen\".",
+      "android": "Отвори менюто на браузъра и докосни \"Add to Home screen\".",
+      "macosSafari": "В Safari избери File, после \"Add to Dock\"."
+    },
+    "guide": {
+      "title": "Инсталирайте RallyHub на устройството си",
+      "introTablet": "Добавя икона на RallyHub на началния екран, в Dock или на работния плот, за да не търси екипът връзката всеки път. Препоръчаните браузъри са Chrome и Safari.",
+      "introApp": "Добавя икона на RallyHub на началния екран, в Dock или на работния плот и отваря RallyHub в собствен прозорец, без лентите на браузъра около него.",
+      "gotIt": "Разбрах",
+      "openedTablet": "връзката за таблета",
+      "openedApp": "RallyHub",
+      "pinStep": "Въведете веднъж 4-цифрената парола за таблета.",
+      "resultTablet": "Устройството вече има икона на RallyHub, която отваря директно екрана с точките.",
+      "resultApp": "Устройството вече има икона на RallyHub, която се отваря в собствен прозорец, без адресна лента.",
+      "android": {
+        "platform": "Таблет или телефон с Android (Chrome)",
+        "open": "Отворете {{target}} в Chrome.",
+        "menu": "Докоснете трите точки горе вдясно.",
+        "add": "Докоснете \"Add to Home screen\", след това \"Install\"."
+      },
+      "ios": {
+        "platform": "iPad или iPhone (Safari)",
+        "open": "Отворете {{target}} в Safari. Това не работи в Chrome на iOS.",
+        "share": "Докоснете бутона Share, квадратчето със стрелката.",
+        "add": "Превъртете надолу и докоснете \"Add to Home Screen\", след това \"Add\"."
+      },
+      "mac": {
+        "platform": "Mac (Safari)",
+        "open": "Отворете {{target}} в Safari.",
+        "addToDock": "Изберете File, след това \"Add to Dock\".",
+        "result": "RallyHub се отваря от Dock в собствен прозорец."
+      },
+      "desktop": {
+        "platform": "Windows или Mac (Chrome или Edge)",
+        "open": "Отворете {{target}} в Chrome или Edge.",
+        "addressBar": "Кликнете иконата за инсталиране в десния край на адресната лента.",
+        "menuFallback": "Ако я няма, отворете менюто с трите точки, след това \"Cast, save and share\" и \"Install page as app\".",
+        "result": "RallyHub се отваря от работния плот или лентата на задачите в собствен прозорец."
+      }
+    }
+  }
 }

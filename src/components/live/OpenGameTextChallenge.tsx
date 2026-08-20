@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { VirtualKeyboard } from '@/components/live/VirtualKeyboard'
@@ -25,7 +26,11 @@ export function OpenGameTextChallenge({
   disabled,
   onSubmit,
 }: OpenGameTextChallengeProps) {
+  const { t, i18n } = useTranslation('live')
   const onAccent = textOnAccent(accentColor)
+  // Bulgarian is the only Cyrillic language in APP_LANGUAGES today; the
+  // keyboard simply follows the active UI language.
+  const alphabet = i18n.language === 'bg' ? 'cyrillic' : 'latin'
   const cfg = parseTextGameConfig(game.config)
   const [typed, setTyped] = useState('')
   const answerRef = useRef<HTMLDivElement | null>(null)
@@ -60,14 +65,14 @@ export function OpenGameTextChallenge({
       <div className="mx-auto w-full max-w-lg px-4">
       {cfg.mode === 'type_text' ? (
         <div ref={answerRef} className="scroll-mt-3 space-y-3">
-          <label className={`block ${CHALLENGE_LABEL_CLASS}`}>Your answer:</label>
+          <label className={`block ${CHALLENGE_LABEL_CLASS}`}>{t('join.review.yourAnswer')}:</label>
           {/* The app's own keyboard, so the answer field cannot be covered by
               the device one and the send key is always in the same place. */}
           <p
             className="xp-field min-h-[3.25rem] w-full rounded-lg border border-white/25 bg-white/10 px-3 py-3 text-left text-base break-words text-white"
             aria-live="polite"
           >
-            {typed || <span className="text-white/50">Type your answer…</span>}
+            {typed || <span className="text-white/50">{t('join.text.answerPlaceholder')}</span>}
             {/* The field is a paragraph, not an input, because the answer is
                 typed on the app's own keyboard. Without a caret it reads as a
                 label rather than something that is listening, and teams sat
@@ -80,20 +85,21 @@ export function OpenGameTextChallenge({
             )}
           </p>
           <VirtualKeyboard
-            alphabet="latin"            onKey={(char) => setTyped((current) => current + char)}
+            alphabet={alphabet}
+            onKey={(char) => setTyped((current) => current + char)}
             onBackspace={() => setTyped((current) => Array.from(current).slice(0, -1).join(''))}
             onSubmit={() => {
               if (!disabled && canSubmitTyped) onSubmit(typed)
             }}
             submitDisabled={disabled || !canSubmitTyped}
-            submitLabel="Send"
+            submitLabel={t('join.chat.send')}
             accentColor={accentColor}
             disabled={disabled}
           />
         </div>
       ) : (
         <div className="space-y-3">
-          <p className={CHALLENGE_LABEL_CLASS}>Choose one answer:</p>
+          <p className={CHALLENGE_LABEL_CLASS}>{t('join.text.chooseOneAnswer')}:</p>
           <div className="space-y-2">
             {(cfg.options ?? []).map((opt) => {
               const selected = selectedId === opt.id
@@ -127,7 +133,7 @@ export function OpenGameTextChallenge({
                 if (selectedId) onSubmit(selectedId)
               }}
             >
-              Submit answer
+              {t('join.text.submitAnswer')}
             </LiveAccentButton>
           </StickyChallengeAction>
         </div>

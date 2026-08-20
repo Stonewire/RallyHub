@@ -1,6 +1,7 @@
 import { Minus, Plus, ShoppingBag, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
 import { useNotification } from '@/contexts/notification-context'
@@ -73,6 +74,7 @@ function rpcMessage(err: unknown, fallback: string): string {
  * teams scanned at once (7 Aug 2026 event).
  */
 export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, view = 'store', onSubmitOrder, queuedOrders = [] }: EventStoreSheetProps) {
+  const { t } = useTranslation('live')
   const { notify } = useNotification()
   const session = getCurrentParticipantSession()
   const token = session?.eventId === eventId ? (session.purchaseToken ?? '') : ''
@@ -85,7 +87,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
 
   const reload = useCallback(async () => {
     if (!token) {
-      setLoadError('Join a team on this phone first, then open the store again.')
+      setLoadError(t('store.joinTeamFirst'))
       return
     }
     const fresh = await downloadStoreSnapshot(eventId, token)
@@ -102,15 +104,15 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       }
       setLoadError(
         navigator.onLine
-          ? 'Could not open the store.'
-          : "You're offline and the store has not downloaded to this phone yet. It needs a connection right now.",
+          ? t('store.couldNotOpen')
+          : t('store.offlineNotDownloaded'),
       )
       return
     }
     setLoadError(null)
     setRows(fresh.rows as StoreRow[])
     setOrders(fresh.orders as OrderRow[])
-  }, [eventId, token])
+  }, [eventId, token, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount pattern; setState happens after an await, not synchronously
@@ -160,7 +162,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       if (onSubmitOrder) {
         // Through the outbox: instant, works offline, retries idempotently.
         const lines = items.map(({ itemId, quantity }) => ({
-          itemName: rows?.find((r) => r.item_id === itemId)?.name ?? 'Item',
+          itemName: rows?.find((r) => r.item_id === itemId)?.name ?? t('store.itemFallback'),
           quantity,
         }))
         await onSubmitOrder(items, crypto.randomUUID(), { totalPoints: basketTotal, lines })
@@ -179,7 +181,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       onOrderPlaced?.()
       return
     } catch (err) {
-      notify(rpcMessage(err, 'Could not send your order. Try again.'))
+      notify(rpcMessage(err, t('store.couldNotSendOrder')))
       // Stock may have moved under us; show the fresh numbers.
       void reload()
     } finally {
@@ -204,16 +206,16 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
       >
         <div className="flex items-center gap-2">
           <ShoppingBag className="size-5" />
-          <h2 className="text-lg font-bold">{view === 'orders' ? 'My Items' : 'Store'}</h2>
+          <h2 className="text-lg font-bold">{view === 'orders' ? t('store.myItems') : t('store.title')}</h2>
         </div>
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-bold tabular-nums">
-            {teamScore - basketTotal} pts
+            {t('game.points', { points: teamScore - basketTotal })}
           </span>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close store"
+            aria-label={t('store.closeStore')}
             className="flex size-11 items-center justify-center rounded-full bg-white/15"
           >
             <X className="size-5" />
@@ -225,10 +227,10 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
         {loadError ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">{loadError}</p>
         ) : rows === null ? (
-          <p className="mx-auto mt-8 text-center text-sm text-white/70">Opening the store…</p>
+          <p className="mx-auto mt-8 text-center text-sm text-white/70">{t('store.opening')}</p>
         ) : view === 'orders' ? null : rows.length === 0 ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">
-            The store is empty for this event.
+            {t('store.empty')}
           </p>
         ) : (
           <ul className="mx-auto mt-3 max-w-md space-y-3">
@@ -249,18 +251,18 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="xp-wrap-text font-bold">{row.name}</p>
-                      <p className="text-sm text-white/80">{row.points_cost} pts</p>
+                      <p className="text-sm text-white/80">{t('game.points', { points: row.points_cost })}</p>
                       <p className="text-xs text-white/60">
                         {left === 0
-                          ? 'Sold out'
-                          : `${left} left · max ${row.per_team_limit} per team`}
-                        {row.my_team_qty > 0 ? ` · you have ${row.my_team_qty}` : ''}
+                          ? t('store.soldOut')
+                          : t('store.stockLine', { left, max: row.per_team_limit })}
+                        {row.my_team_qty > 0 ? ` · ${t('store.youHave', { qty: row.my_team_qty })}` : ''}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button
                         type="button"
-                        aria-label={`Fewer ${row.name}`}
+                        aria-label={t('store.fewerItem', { name: row.name })}
                         disabled={inBasket === 0}
                         onClick={() => adjust(row, -1)}
                         className="flex size-9 items-center justify-center rounded-full bg-white/15 disabled:opacity-40"
@@ -270,7 +272,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
                       <span className="w-5 text-center font-bold tabular-nums">{inBasket}</span>
                       <button
                         type="button"
-                        aria-label={`More ${row.name}`}
+                        aria-label={t('store.moreItem', { name: row.name })}
                         disabled={inBasket >= cap || !affordMore}
                         onClick={() => adjust(row, 1)}
                         className="flex size-9 items-center justify-center rounded-full bg-white/15 disabled:opacity-40"
@@ -290,7 +292,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
 
         {view === 'orders' && rows !== null && pendingOrders.length === 0 && doneOrders.length === 0 && visibleQueued.length === 0 ? (
           <p className="mx-auto mt-8 max-w-md text-center text-sm text-white/80">
-            Nothing bought yet. Order from the Store first.
+            {t('store.nothingBought')}
           </p>
         ) : null}
 
@@ -309,13 +311,13 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
                       q.failed ? 'bg-rose-500 text-white' : 'bg-white/25 text-white'
                     }`}
                   >
-                    {q.failed ? 'Not placed' : 'Waiting to send'}
+                    {q.failed ? t('store.notPlaced') : t('store.waitingToSend')}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-white/60">
                   {q.failed
                     ? q.failed
-                    : `${q.totalPoints} pts · sends automatically when you are back online`}
+                    : t('store.queuedPointsLine', { points: q.totalPoints })}
                 </p>
               </div>
             ))}
@@ -325,7 +327,7 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
         {pendingOrders.length > 0 || doneOrders.length > 0 ? (
           <div className="mx-auto mt-6 max-w-md space-y-2">
             <h3 className="text-sm font-bold tracking-wide text-white/70 uppercase">
-              Your orders
+              {t('store.yourOrders')}
             </h3>
             {[...pendingOrders, ...doneOrders]
               .reduce<{ id: string; status: string; items: OrderRow[] }[]>((groups, row) => {
@@ -347,12 +349,13 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
                           : 'bg-amber-400 text-black'
                       }`}
                     >
-                      {group.status === 'done' ? 'Collected' : 'Waiting'}
+                      {group.status === 'done' ? t('store.collected') : t('store.waiting')}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-white/60">
-                    {group.items[0]?.total_points ?? 0} pts
-                    {group.status === 'pending' ? ' · collect from the facilitator' : ''}
+                    {group.status === 'pending'
+                      ? t('store.pointsCollectLine', { points: group.items[0]?.total_points ?? 0 })
+                      : t('game.points', { points: group.items[0]?.total_points ?? 0 })}
                   </p>
                 </div>
               ))}
@@ -373,10 +376,10 @@ export function EventStoreSheet({ eventId, accentColor, onClose, onOrderPlaced, 
           onClick={() => void placeOrder()}
         >
           {placing
-            ? 'Sending order…'
+            ? t('store.sendingOrder')
             : basketCount === 0
-              ? 'Pick some items'
-              : `Order ${basketCount} item${basketCount === 1 ? '' : 's'} · ${basketTotal} pts`}
+              ? t('store.pickSomeItems')
+              : t('store.orderItems', { count: basketCount, points: basketTotal })}
         </LiveAccentButton>
       </div>
       )}

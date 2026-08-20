@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { ChallengeCaptureBriefing } from '@/components/live/ChallengeCaptureBriefing'
 import { ChallengeNativePreview } from '@/components/live/ChallengeNativePreview'
@@ -42,6 +43,7 @@ export function ChallengeMediaCaptureFlow({
   onFileReady,
   onCaptureActiveChange,
 }: ChallengeMediaCaptureFlowProps) {
+  const { t } = useTranslation('live')
   const { notify } = useNotification()
   const nativeInputRef = useRef<HTMLInputElement>(null)
   const nativePreviewUrlRef = useRef<string | null>(null)
@@ -91,7 +93,11 @@ export function ChallengeMediaCaptureFlow({
       vid.onloadedmetadata = () => {
         URL.revokeObjectURL(vid.src)
         if (vid.duration > maxSec + 0.5) {
-          notify(`Video must be ${formatVideoDurationLabel(maxSec)} or less`)
+          notify(
+            t('join.capture.videoMaxLength', {
+              duration: formatVideoDurationLabel(maxSec),
+            }),
+          )
           resolve(false)
         } else {
           resolve(true)
@@ -99,7 +105,7 @@ export function ChallengeMediaCaptureFlow({
       }
       vid.onerror = () => {
         URL.revokeObjectURL(vid.src)
-        notify('Could not read video — try a different file')
+        notify(t('join.capture.couldNotReadVideo'))
         resolve(false)
       }
       vid.src = URL.createObjectURL(file)

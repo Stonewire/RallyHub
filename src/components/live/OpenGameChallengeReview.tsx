@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Button } from '@/components/ui/button'
 import { ChallengeBrief } from '@/components/live/ChallengeBrief'
 import {
@@ -22,6 +24,7 @@ export function OpenGameChallengeReview({
   cancelling,
   onCancel,
 }: OpenGameChallengeReviewProps) {
+  const { t } = useTranslation('live')
   const pending = submission.status === 'pending'
   const approved = submission.status === 'approved'
   const rejected = submission.status === 'rejected'
@@ -31,11 +34,11 @@ export function OpenGameChallengeReview({
     : null
 
   const statusHeading = pending
-    ? 'Submission pending approval'
+    ? t('join.review.pendingHeading')
     : approved
-      ? 'Submission approved'
+      ? t('join.review.approvedHeading')
       : rejected
-        ? 'Submission rejected'
+        ? t('join.review.rejectedHeading')
         : null
 
   return (
@@ -61,7 +64,7 @@ export function OpenGameChallengeReview({
       {isText && answerLabel ? (
         <div className="xp-glass-panel mx-auto max-w-md rounded-xl bg-black/30 px-4 py-3 text-left">
           <p className="text-xs font-medium uppercase tracking-wide text-white/60">
-            Your answer
+            {t('join.review.yourAnswer')}
           </p>
           <p className="xp-wrap-text mt-1 text-base font-semibold text-white">{answerLabel}</p>
         </div>
@@ -78,7 +81,7 @@ export function OpenGameChallengeReview({
         ) : submission.media_type === 'photo' ? (
           <img
             src={submission.media_url}
-            alt="Your submission"
+            alt={t('join.review.yourSubmissionAlt')}
             className="mx-auto w-full max-w-md rounded-xl object-contain shadow-lg"
           />
         ) : null
@@ -92,10 +95,10 @@ export function OpenGameChallengeReview({
             disabled={cancelling}
             onClick={onCancel}
           >
-            {cancelling ? 'Cancelling…' : 'Cancel Submission'}
+            {cancelling ? t('join.review.cancelling') : t('join.review.cancelSubmission')}
           </Button>
           <p className="text-xs text-white/60">
-            Cancel to retake this challenge from scratch
+            {t('join.review.cancelRetakeHint')}
           </p>
         </div>
       ) : null}
