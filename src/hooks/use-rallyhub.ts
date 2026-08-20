@@ -210,6 +210,7 @@ export type ClientAdminUpdateInput = {
   address_state?: string
   address_postal?: string
   address_country?: string
+  default_language?: string
 }
 
 export function useCreateRallyHubClient() {
@@ -284,6 +285,7 @@ export function useUpdateClientAdmin() {
       address_state,
       address_postal,
       address_country,
+      default_language,
     }: ClientAdminUpdateInput) => {
       const trimmedEmail = email?.trim() ?? ''
       const trimmedPhone = phone?.trim() ?? ''
@@ -310,6 +312,7 @@ export function useUpdateClientAdmin() {
         address_country: address_country?.trim() || null,
         updated_at: new Date().toISOString(),
         ...(subdomain !== undefined ? { subdomain: subdomain.toLowerCase().trim() } : {}),
+        ...(default_language !== undefined ? { default_language } : {}),
       } satisfies TablesUpdate<'organizations'>
 
       const { data, error } = await supabase

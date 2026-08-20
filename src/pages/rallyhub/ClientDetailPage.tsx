@@ -44,6 +44,7 @@ import {
 } from '@/lib/client-plans'
 import { normalizeEducationalStatus } from '@/lib/educational'
 import { organizationInitials } from '@/lib/org-avatar'
+import { APP_LANGUAGES, toAppLanguage } from '@/lib/i18n'
 import { platformHost } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 
@@ -116,6 +117,7 @@ export function RallyHubClientDetailPage() {
   const [trialReviewNeeded, setTrialReviewNeeded] = useState(false)
   const [hidePlatformBranding, setHidePlatformBranding] = useState(false)
   const [educationalStatus, setEducationalStatus] = useState('none')
+  const [defaultLanguage, setDefaultLanguage] = useState('en')
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
   const [addressCity, setAddressCity] = useState('')
@@ -181,6 +183,7 @@ export function RallyHubClientDetailPage() {
     setTrialReviewNeeded(org.trial_review_needed ?? false)
     setHidePlatformBranding(org.hide_platform_branding ?? false)
     setEducationalStatus(normalizeEducationalStatus(org.educational_status))
+    setDefaultLanguage(toAppLanguage(org.default_language))
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
     setAddressCity(org.address_city ?? '')
@@ -277,6 +280,7 @@ export function RallyHubClientDetailPage() {
       trial_review_needed: trialReviewNeeded,
       hide_platform_branding: hidePlatformBranding,
       educational_status: educationalStatus,
+      default_language: defaultLanguage,
       logo_url: logo !== undefined ? logo : logoUrl,
       vat_number: vatNumber,
       address_street: addressStreet,
@@ -577,6 +581,25 @@ export function RallyHubClientDetailPage() {
                   <option value="pending">Pending review (requested)</option>
                   <option value="approved">Approved — 50% off subscriptions & events</option>
                 </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="client-default-language">Default language</NeoLabel>
+                <select
+                  id="client-default-language"
+                  value={defaultLanguage}
+                  onChange={(e) => setDefaultLanguage(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {APP_LANGUAGES.map(({ code, label }) => (
+                    <option key={code} value={code}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-muted-foreground text-xs">
+                  Pre-sets the org before handover. The client can change it later in
+                  their Settings; new events start in this language.
+                </p>
               </div>
               {accountStatus === 'trial' ? (
                 <div className="space-y-1.5 sm:col-span-2">
