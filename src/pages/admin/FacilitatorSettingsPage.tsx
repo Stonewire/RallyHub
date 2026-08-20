@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { MyAccountPanel } from '@/components/admin/MyAccountPanel'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 
 export function FacilitatorSettingsPage() {
+  const { t } = useTranslation('admin')
   const { profile } = useAuth()
   const orgId = profile?.organization_id ?? null
 
@@ -25,9 +27,11 @@ export function FacilitatorSettingsPage() {
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-8">
-        <h1 className="text-foreground text-2xl font-bold tracking-tight">Your profile</h1>
+        <h1 className="text-foreground text-2xl font-bold tracking-tight">
+          {t('settings.page.facilitatorProfileTitle')}
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Update your name, username, email, and password.
+          {t('settings.page.facilitatorProfileSubtitle')}
         </p>
       </header>
 

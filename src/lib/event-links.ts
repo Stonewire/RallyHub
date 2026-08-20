@@ -1,5 +1,6 @@
 
 import { getCurrentAppOrigin } from '@/lib/app-origin'
+import { i18n } from '@/lib/i18n'
 import { qrCodeDataUrl } from '@/lib/qr'
 
 export type EventLinkKey = 'facilitator' | 'display' | 'join'
@@ -10,10 +11,16 @@ export type EventLinks = Record<EventLinkKey, string>
 
 // Labels describe who the link is FOR, per the design. The keys stay as they
 // are: they map to routes and are referenced across the live surfaces.
-export const EVENT_LINK_LABELS: Record<EventLinkKey, string> = {
-  facilitator: 'Facilitator',
-  display: 'Display',
-  join: 'Join',
+// i18n keys, not text, so a language change re-resolves them.
+export const EVENT_LINK_LABEL_KEYS: Record<EventLinkKey, string> = {
+  facilitator: 'events.links.facilitator',
+  display: 'events.links.display',
+  join: 'events.links.join',
+}
+
+/** For callers with no t() in scope, such as the QR PDF canvas below. */
+export function eventLinkLabel(key: EventLinkKey): string {
+  return i18n.t(`admin:${EVENT_LINK_LABEL_KEYS[key]}`)
 }
 
 /**
@@ -143,7 +150,7 @@ export async function downloadAllEventQrsPdf(
     ctx.drawImage(qr, x, yBase, qrSize, qrSize)
     ctx.fillStyle = primary
     ctx.font = 'bold 22px Montserrat, sans-serif'
-    ctx.fillText(EVENT_LINK_LABELS[key], x + qrSize / 2, yBase + qrSize + 36)
+    ctx.fillText(eventLinkLabel(key), x + qrSize / 2, yBase + qrSize + 36)
     ctx.fillStyle = accent
     ctx.font = '14px monospace'
     const short = links[key].length > 42 ? `${links[key].slice(0, 40)}…` : links[key]

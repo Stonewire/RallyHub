@@ -149,7 +149,33 @@
     "activeEvents": "Eventos activos",
     "upcomingEvents": "Próximos eventos",
     "recentEvents": "Eventos recientes",
-    "noEventsYet": "Aún no hay eventos."
+    "noEventsYet": "Aún no hay eventos.",
+    "noChangeFromLastWeek": "Sin cambios desde la semana pasada",
+    "upFromLastWeek_one": "+{{count}} desde la semana pasada",
+    "upFromLastWeek_other": "+{{count}} desde la semana pasada",
+    "downFromLastWeek_one": "-{{count}} desde la semana pasada",
+    "downFromLastWeek_other": "-{{count}} desde la semana pasada",
+    "participation": "Participación",
+    "last30Days": "Últimos 30 días",
+    "metricSubmissions": "Envíos",
+    "metricTeams": "Equipos jugando",
+    "total": "Total",
+    "teamDays": "Días de equipo",
+    "busiestDay": "Día más activo",
+    "noActivityWindow": "Sin actividad en los últimos 30 días. Cuando los equipos empiecen a jugar, sus envíos aparecerán aquí.",
+    "chartAria": "{{metric}} en los últimos 30 días",
+    "recentActivity": "Actividad reciente",
+    "viewAll": "Ver todo",
+    "createFirstEvent": "Crea tu primer evento",
+    "timeJustNow": "ahora mismo",
+    "timeMinutesAgo_one": "hace {{count}} min",
+    "timeMinutesAgo_other": "hace {{count}} min",
+    "timeHoursAgo_one": "hace {{count}} h",
+    "timeHoursAgo_other": "hace {{count}} h",
+    "timeDaysAgo_one": "hace {{count}} d",
+    "timeDaysAgo_other": "hace {{count}} d",
+    "byGameType": "Por tipo de juego",
+    "nothingPlayedYet": "Aún no se ha jugado nada."
   },
   "overview": {
     "title": "Resumen",
@@ -218,7 +244,12 @@
     "unreadMessages_one": "{{count}} mensaje sin leer",
     "unreadMessages_other": "{{count}} mensajes sin leer",
     "attachments": "Archivos adjuntos",
-    "attachmentOpenFailed": "No se ha podido abrir ese archivo adjunto."
+    "attachmentOpenFailed": "No se ha podido abrir ese archivo adjunto.",
+    "status": {
+      "open": "Abierto",
+      "inProgress": "En curso",
+      "resolved": "Resuelto"
+    }
   },
   "onboarding": {
     "gettingStarted": "Primeros pasos",
@@ -1291,6 +1322,14 @@
         "actor": "Actor",
         "action": "Acción",
         "details": "Detalles"
+      },
+      "actions": {
+        "teamJoined": "Se ha unido al evento",
+        "facilitatorJoined": "Conectado como facilitador",
+        "stageChanged": "Ha pasado a la fase",
+        "submissionApproved": "Envío aprobado",
+        "submissionRejected": "Envío rechazado",
+        "winnerRevealed": "Revelación del ganador iniciada"
       }
     },
     "purgeFailed": "No se ha podido eliminar el evento de forma permanente.",
@@ -1409,7 +1448,9 @@
       "accountTitle": "Mi cuenta",
       "accountSubtitle": "Gestiona tu perfil personal y los ajustes de seguridad.",
       "teamTitle": "Equipo",
-      "teamSubtitle": "El personal de RallyHub y lo que puede hacer cada persona."
+      "teamSubtitle": "El personal de RallyHub y lo que puede hacer cada persona.",
+      "facilitatorProfileTitle": "Tu perfil",
+      "facilitatorProfileSubtitle": "Actualiza tu nombre, nombre de usuario, correo electrónico y contraseña."
     },
     "sectionsLabel": "Secciones de ajustes",
     "discard": "Descartar",

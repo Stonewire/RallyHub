@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { i18n } from '@/lib/i18n'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { EventTaskStatus } from '@/types/database'
@@ -14,11 +15,20 @@ export const EVENT_TASK_STATUS_ORDER: EventTaskStatus[] = [
   'done',
 ]
 
-export const EVENT_TASK_STATUS_LABELS: Record<EventTaskStatus, string> = {
-  todo: 'To do',
-  in_progress: 'In progress',
-  blocked: 'Blocked',
-  done: 'Done',
+/**
+ * i18n keys, not text: the label must re-resolve after a language change, so
+ * consumers call the component's own t() or eventTaskStatusLabel() below.
+ */
+export const EVENT_TASK_STATUS_LABEL_KEYS: Record<EventTaskStatus, string> = {
+  todo: 'events.tasks.statusTodo',
+  in_progress: 'events.tasks.statusInProgress',
+  blocked: 'events.tasks.statusBlocked',
+  done: 'events.tasks.statusDone',
+}
+
+/** For callers with no t() in scope. Resolves at call time, never at import. */
+export function eventTaskStatusLabel(status: EventTaskStatus): string {
+  return i18n.t(`admin:${EVENT_TASK_STATUS_LABEL_KEYS[status]}`)
 }
 
 /** Solid pills; dark: variants baked in for the outline-Button dropdown trigger. */

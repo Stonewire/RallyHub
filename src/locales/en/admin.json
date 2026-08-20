@@ -149,7 +149,33 @@
     "activeEvents": "Active Events",
     "upcomingEvents": "Upcoming Events",
     "recentEvents": "Recent Events",
-    "noEventsYet": "No events yet."
+    "noEventsYet": "No events yet.",
+    "noChangeFromLastWeek": "No change from last week",
+    "upFromLastWeek_one": "+{{count}} from last week",
+    "upFromLastWeek_other": "+{{count}} from last week",
+    "downFromLastWeek_one": "-{{count}} from last week",
+    "downFromLastWeek_other": "-{{count}} from last week",
+    "participation": "Participation",
+    "last30Days": "Last 30 days",
+    "metricSubmissions": "Submissions",
+    "metricTeams": "Teams playing",
+    "total": "Total",
+    "teamDays": "Team days",
+    "busiestDay": "Busiest day",
+    "noActivityWindow": "No activity in the last 30 days. Once teams start playing, their submissions show up here.",
+    "chartAria": "{{metric}} over the last 30 days",
+    "recentActivity": "Recent Activity",
+    "viewAll": "View All",
+    "createFirstEvent": "Create your first event",
+    "timeJustNow": "just now",
+    "timeMinutesAgo_one": "{{count}}m ago",
+    "timeMinutesAgo_other": "{{count}}m ago",
+    "timeHoursAgo_one": "{{count}}h ago",
+    "timeHoursAgo_other": "{{count}}h ago",
+    "timeDaysAgo_one": "{{count}}d ago",
+    "timeDaysAgo_other": "{{count}}d ago",
+    "byGameType": "By Game Type",
+    "nothingPlayedYet": "Nothing played yet."
   },
   "overview": {
     "title": "Overview",
@@ -218,7 +244,12 @@
     "unreadMessages_one": "{{count}} unread message",
     "unreadMessages_other": "{{count}} unread messages",
     "attachments": "Attachments",
-    "attachmentOpenFailed": "Could not open that attachment."
+    "attachmentOpenFailed": "Could not open that attachment.",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "resolved": "Resolved"
+    }
   },
   "onboarding": {
     "gettingStarted": "Getting started",
@@ -1291,6 +1322,14 @@
         "actor": "Actor",
         "action": "Action",
         "details": "Details"
+      },
+      "actions": {
+        "teamJoined": "Joined the event",
+        "facilitatorJoined": "Connected as facilitator",
+        "stageChanged": "Advanced to stage",
+        "submissionApproved": "Submission approved",
+        "submissionRejected": "Submission rejected",
+        "winnerRevealed": "Winner reveal started"
       }
     },
     "purgeFailed": "Could not permanently delete the event.",
@@ -1409,7 +1448,9 @@
       "accountTitle": "My Account",
       "accountSubtitle": "Manage your personal profile and security settings.",
       "teamTitle": "Team",
-      "teamSubtitle": "RallyHub staff and what each of them can do."
+      "teamSubtitle": "RallyHub staff and what each of them can do.",
+      "facilitatorProfileTitle": "Your profile",
+      "facilitatorProfileSubtitle": "Update your name, username, email, and password."
     },
     "sectionsLabel": "Settings sections",
     "discard": "Discard",

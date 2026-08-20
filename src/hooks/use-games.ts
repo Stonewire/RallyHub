@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { profileDisplayName } from '@/lib/auth-routes'
+import { i18n } from '@/lib/i18n'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { GamePrepStatus, GameType } from '@/types/database'
@@ -16,11 +17,20 @@ export const GAME_PREP_STATUS_ORDER: GamePrepStatus[] = [
   'done',
 ]
 
-export const GAME_PREP_STATUS_LABELS: Record<GamePrepStatus, string> = {
-  draft: 'Draft',
-  in_progress: 'In progress',
-  done: 'Done',
-  needs_attention: 'Needs attention',
+/**
+ * i18n keys, not text: the label must re-resolve after a language change, so
+ * consumers call the component's own t() or gamePrepStatusLabel() below.
+ */
+export const GAME_PREP_STATUS_LABEL_KEYS: Record<GamePrepStatus, string> = {
+  draft: 'games.prepStatus.draft',
+  in_progress: 'games.prepStatus.inProgress',
+  done: 'games.prepStatus.done',
+  needs_attention: 'games.prepStatus.needsAttention',
+}
+
+/** For callers with no t() in scope. Resolves at call time, never at import. */
+export function gamePrepStatusLabel(status: GamePrepStatus): string {
+  return i18n.t(`admin:${GAME_PREP_STATUS_LABEL_KEYS[status]}`)
 }
 
 /**
@@ -307,13 +317,22 @@ export function useCreateGameGroup(organizationId: string | null) {
   })
 }
 
-export const GAME_TYPE_LABELS: Record<GameType, string> = {
-  photo: 'Photo',
-  video: 'Video',
-  text: 'Text',
-  quiz: 'Quiz',
-  music_bingo: 'Music Bingo',
-  puzzle: 'Puzzle',
+/**
+ * i18n keys, not text: the tag must re-resolve after a language change, so
+ * consumers call the component's own t() or gameTypeLabel() below.
+ */
+export const GAME_TYPE_LABEL_KEYS: Record<GameType, string> = {
+  photo: 'games.types.photo',
+  video: 'games.types.video',
+  text: 'games.types.text',
+  quiz: 'games.types.quiz',
+  music_bingo: 'games.types.musicBingo',
+  puzzle: 'games.types.puzzle',
+}
+
+/** For callers with no t() in scope. Resolves at call time, never at import. */
+export function gameTypeLabel(type: GameType): string {
+  return i18n.t(`admin:${GAME_TYPE_LABEL_KEYS[type]}`)
 }
 
 export function useGame(gameId: string | undefined) {

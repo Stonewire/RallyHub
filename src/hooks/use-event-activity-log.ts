@@ -1,22 +1,37 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { i18n } from '@/lib/i18n'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/helpers'
 
 export type ActivityLogRow = Tables<'event_activity_log'>
 
-export const ACTION_LABELS: Record<string, string> = {
-  team_joined: 'Joined the event',
-  facilitator_joined: 'Connected as facilitator',
-  stage_changed: 'Advanced to stage',
-  submission_approved: 'Submission approved',
-  submission_rejected: 'Submission rejected',
-  winner_revealed: 'Winner reveal started',
+/**
+ * i18n keys, not text: the label must re-resolve after a language change.
+ * The map is deliberately partial. `action` is a free-form string column, so
+ * anything the log grows before this map does must still be readable.
+ */
+export const ACTION_LABEL_KEYS: Record<string, string> = {
+  team_joined: 'events.log.actions.teamJoined',
+  facilitator_joined: 'events.log.actions.facilitatorJoined',
+  stage_changed: 'events.log.actions.stageChanged',
+  submission_approved: 'events.log.actions.submissionApproved',
+  submission_rejected: 'events.log.actions.submissionRejected',
+  winner_revealed: 'events.log.actions.winnerRevealed',
+}
+
+/**
+ * An unmapped action falls back to the raw action string, exactly as before.
+ * Never pass it to t(): that would print the key itself.
+ */
+export function activityActionText(action: string): string {
+  const key = ACTION_LABEL_KEYS[action]
+  return key ? i18n.t(`admin:${key}`) : action
 }
 
 export function activityActionLabel(row: ActivityLogRow): string {
-  const base = ACTION_LABELS[row.action] ?? row.action
+  const base = activityActionText(row.action)
   if (row.action === 'stage_changed' && row.details) {
     const d = row.details as { stage_name?: string; stage_index?: number }
     const idx = d.stage_index !== undefined ? `#${d.stage_index + 1}` : ''
@@ -26,7 +41,7 @@ export function activityActionLabel(row: ActivityLogRow): string {
   if (row.action === 'submission_approved' && row.details) {
     const d = row.details as { points?: number; game_name?: string }
     const pts = d.points !== undefined ? ` (+${d.points} pts)` : ''
-    const game = d.game_name ? ` — ${d.game_name}` : ''
+    const game = d.game_name ? `, ${d.game_name}` : ''
     return `${base}${pts}${game}`
   }
   return base

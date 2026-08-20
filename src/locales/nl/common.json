@@ -52,5 +52,14 @@
     },
     "installRallyHubAsApp": "RallyHub als app installeren"
   },
-  "delete": "Verwijderen"
+  "delete": "Verwijderen",
+  "legal": {
+    "navLabel": "Juridisch",
+    "privacy": "Privacy",
+    "terms": "Voorwaarden",
+    "dpa": "DPA",
+    "cookies": "Cookies",
+    "imprint": "Colofon",
+    "cookiePreferences": "Cookievoorkeuren"
+  }
 }

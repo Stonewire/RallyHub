@@ -44,7 +44,9 @@ export function SupportTicketsWorkspace({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     loadCollapsedState(SUPPORT_COLLAPSED_STORAGE_KEY),
   )
-  const groups = useMemo(() => groupTicketsByStatus(tickets), [tickets])
+  // t in the deps so the group headings re-resolve on a language change,
+  // not just when the ticket list happens to change.
+  const groups = useMemo(() => groupTicketsByStatus(tickets), [tickets, t])
   const selected = tickets.find((t) => t.id === selectedId) ?? null
 
   function toggleGroup(status: string) {

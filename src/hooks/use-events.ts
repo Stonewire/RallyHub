@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { capTeamCountForEventStatus } from '@/lib/event-demo'
+import { i18n } from '@/lib/i18n'
 import { resetEventData } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { syncEventGameLinks } from '@/lib/sync-event-game-links'
@@ -15,12 +16,21 @@ export type EventRow = Tables<'events'>
 
 export const STATUS_ORDER: EventStatus[] = ['active', 'demo', 'ready', 'draft', 'archived']
 
-export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
-  active: 'Active',
-  demo: 'Demo',
-  ready: 'Ready',
-  draft: 'Draft',
-  archived: 'Archived',
+/**
+ * i18n keys, not text: the label must re-resolve after a language change, so
+ * consumers call the component's own t() or eventStatusLabel() below.
+ */
+export const EVENT_STATUS_LABEL_KEYS: Record<EventStatus, string> = {
+  active: 'events.status.active',
+  demo: 'events.status.demo',
+  ready: 'events.status.ready',
+  draft: 'events.status.draft',
+  archived: 'events.status.archived',
+}
+
+/** For callers with no t() in scope. Resolves at call time, never at import. */
+export function eventStatusLabel(status: EventStatus): string {
+  return i18n.t(`admin:${EVENT_STATUS_LABEL_KEYS[status]}`)
 }
 
 /**
@@ -49,7 +59,7 @@ export const EVENT_STATUS_PILL_CLASS: Record<EventStatus, string> = {
 export function groupEventsByStatus(events: EventRow[]) {
   return STATUS_ORDER.map((status) => ({
     status,
-    label: EVENT_STATUS_LABELS[status],
+    label: eventStatusLabel(status),
     events: events.filter((e) => e.status === status),
   })).filter((group) => group.events.length > 0)
 }

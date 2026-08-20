@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoCard } from '@/components/neo-minimal'
 import { useActivitySeries } from '@/hooks/use-dashboard'
@@ -12,9 +13,10 @@ import {
 const VIEW_W = 900
 const VIEW_H = 320
 
-const METRICS: { key: ActivityMetric; label: string }[] = [
-  { key: 'submissions', label: 'Submissions' },
-  { key: 'teams', label: 'Teams playing' },
+// i18n keys, not text: the toggle must re-resolve after a language change.
+const METRICS: { key: ActivityMetric; labelKey: string }[] = [
+  { key: 'submissions', labelKey: 'dashboard.metricSubmissions' },
+  { key: 'teams', labelKey: 'dashboard.metricTeams' },
 ]
 
 type ActivityChartProps = {
@@ -23,18 +25,24 @@ type ActivityChartProps = {
 
 /** 30-day activity chart, hand-rolled SVG so no charting dependency is needed. */
 export function ActivityChart({ organizationId }: ActivityChartProps) {
+  const { t } = useTranslation('admin')
   const [metric, setMetric] = useState<ActivityMetric>('submissions')
   const { data, isLoading } = useActivitySeries(organizationId, metric)
   const points = data ?? []
   const total = points.reduce((sum, point) => sum + point.value, 0)
   const peak = Math.max(...points.map((point) => point.value), 0)
+  const metricLabel = t(
+    metric === 'teams' ? 'dashboard.metricTeams' : 'dashboard.metricSubmissions',
+  )
 
   return (
     <NeoCard className="flex h-full min-h-55 flex-col p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold">Participation</h2>
-          <p className="text-nm-neutral-500 text-xs">Last 30 days</p>
+          <h2 className="text-sm font-bold">{t('dashboard.participation')}</h2>
+          <p className="text-nm-neutral-500 text-xs">
+            {t('dashboard.last30Days')}
+          </p>
         </div>
         {/* The slate ramp mirrors in dark mode, so slate-700 alone would flip to
             a light track and strand the white inactive label. slate-700 (light)
@@ -51,7 +59,7 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
                   : 'text-white/80 hover:text-white'
               }`}
             >
-              {option.label}
+              {t(option.labelKey)}
             </button>
           ))}
         </div>
@@ -59,12 +67,11 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
 
       {isLoading ? (
         <p className="text-nm-neutral-500 flex flex-1 items-center justify-center text-xs">
-          Loading…
+          {t('common:loading')}…
         </p>
       ) : total === 0 ? (
         <p className="text-nm-neutral-500 flex flex-1 items-center justify-center px-6 text-center text-xs">
-          No activity in the last 30 days. Once teams start playing, their
-          submissions show up here.
+          {t('dashboard.noActivityWindow')}
         </p>
       ) : (
         <>
@@ -74,13 +81,15 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
               <p className="text-nm-neutral-500 text-[10px] tracking-wider uppercase">
                 {/* Summing daily distinct teams counts team-days, not distinct
                     teams, so the label must not claim to be a total. */}
-                {metric === 'teams' ? 'Team days' : 'Total'}
+                {metric === 'teams'
+                  ? t('dashboard.teamDays')
+                  : t('dashboard.total')}
               </p>
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums">{peak}</p>
               <p className="text-nm-neutral-500 text-[10px] tracking-wider uppercase">
-                Busiest day
+                {t('dashboard.busiestDay')}
               </p>
             </div>
           </div>
@@ -91,7 +100,7 @@ export function ActivityChart({ organizationId }: ActivityChartProps) {
               preserveAspectRatio="none"
               className="h-full w-full"
               role="img"
-              aria-label={`${metric === 'teams' ? 'Teams playing' : 'Submissions'} over the last 30 days`}
+              aria-label={t('dashboard.chartAria', { metric: metricLabel })}
             >
               <path
                 d={buildAreaPath(points, VIEW_W, VIEW_H)}

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  GAME_PREP_STATUS_LABEL_KEYS,
   GAME_PREP_STATUS_ORDER,
   GAME_PREP_STATUS_PILL_CLASS,
 } from '@/hooks/use-games'
@@ -17,13 +18,6 @@ import type { GamePrepStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 /** Display labels live in the translations; the stored values stay as they are. */
-const PREP_STATUS_LABEL_KEY: Record<GamePrepStatus, string> = {
-  draft: 'games.prepStatus.draft',
-  in_progress: 'games.prepStatus.inProgress',
-  done: 'games.prepStatus.done',
-  needs_attention: 'games.prepStatus.needsAttention',
-}
-
 type GamePrepStatusMenuProps = {
   status: GamePrepStatus
   onSelect: (status: GamePrepStatus) => void
@@ -60,7 +54,7 @@ export function GamePrepStatusMenu({
             size === 'sm' && 'h-8 px-3',
           )}
         >
-          <span className="text-xs font-semibold">{t(PREP_STATUS_LABEL_KEY[status])}</span>
+          <span className="text-xs font-semibold">{t(GAME_PREP_STATUS_LABEL_KEYS[status])}</span>
           <IconChevronDown className="size-3.5 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
@@ -80,7 +74,7 @@ export function GamePrepStatusMenu({
                 GAME_PREP_STATUS_PILL_CLASS[s],
               )}
             >
-              {t(PREP_STATUS_LABEL_KEY[s])}
+              {t(GAME_PREP_STATUS_LABEL_KEYS[s])}
             </span>
           </DropdownMenuItem>
         ))}

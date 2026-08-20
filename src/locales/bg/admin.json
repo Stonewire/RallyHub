@@ -149,7 +149,33 @@
     "activeEvents": "Активни събития",
     "upcomingEvents": "Предстоящи събития",
     "recentEvents": "Скорошни събития",
-    "noEventsYet": "Все още няма събития."
+    "noEventsYet": "Все още няма събития.",
+    "noChangeFromLastWeek": "Без промяна спрямо миналата седмица",
+    "upFromLastWeek_one": "+{{count}} спрямо миналата седмица",
+    "upFromLastWeek_other": "+{{count}} спрямо миналата седмица",
+    "downFromLastWeek_one": "-{{count}} спрямо миналата седмица",
+    "downFromLastWeek_other": "-{{count}} спрямо миналата седмица",
+    "participation": "Участие",
+    "last30Days": "Последните 30 дни",
+    "metricSubmissions": "Предложения",
+    "metricTeams": "Играещи отбори",
+    "total": "Общо",
+    "teamDays": "Отборни дни",
+    "busiestDay": "Най-натоварен ден",
+    "noActivityWindow": "Няма активност през последните 30 дни. Щом отборите започнат да играят, предложенията им ще се появят тук.",
+    "chartAria": "{{metric}} през последните 30 дни",
+    "recentActivity": "Скорошна активност",
+    "viewAll": "Виж всички",
+    "createFirstEvent": "Създайте първото си събитие",
+    "timeJustNow": "току-що",
+    "timeMinutesAgo_one": "преди {{count}} мин",
+    "timeMinutesAgo_other": "преди {{count}} мин",
+    "timeHoursAgo_one": "преди {{count}} ч",
+    "timeHoursAgo_other": "преди {{count}} ч",
+    "timeDaysAgo_one": "преди {{count}} д",
+    "timeDaysAgo_other": "преди {{count}} д",
+    "byGameType": "По тип игра",
+    "nothingPlayedYet": "Още нищо не е играно."
   },
   "overview": {
     "title": "Обзор",
@@ -218,7 +244,12 @@
     "unreadMessages_one": "{{count}} непрочетено съобщение",
     "unreadMessages_other": "{{count}} непрочетени съобщения",
     "attachments": "Прикачени файлове",
-    "attachmentOpenFailed": "Прикаченият файл не можа да бъде отворен."
+    "attachmentOpenFailed": "Прикаченият файл не можа да бъде отворен.",
+    "status": {
+      "open": "Отворена",
+      "inProgress": "В процес",
+      "resolved": "Решена"
+    }
   },
   "onboarding": {
     "gettingStarted": "Първи стъпки",
@@ -412,8 +443,8 @@
       "optionFallback": "Опция",
       "prompt": {
         "photo": "Направи снимка по заданието",
-        "text": "Напиши отговора си",
         "video": "Запиши кратко видео",
+        "text": "Напиши отговора си",
         "quiz": "Избери правилния отговор",
         "musicBingo": "Слушай и отбележи картата си",
         "puzzle": "Реши пъзела"
@@ -1291,6 +1322,14 @@
         "actor": "Участник",
         "action": "Действие",
         "details": "Подробности"
+      },
+      "actions": {
+        "teamJoined": "Присъедини се към събитието",
+        "facilitatorJoined": "Свърза се като фасилитатор",
+        "stageChanged": "Премина към етап",
+        "submissionApproved": "Предложението е одобрено",
+        "submissionRejected": "Предложението е отхвърлено",
+        "winnerRevealed": "Започна обявяването на победителя"
       }
     },
     "purgeFailed": "Събитието не можа да бъде изтрито окончателно.",
@@ -1409,7 +1448,9 @@
       "accountTitle": "Моят профил",
       "accountSubtitle": "Управлявайте личния си профил и настройките за сигурност.",
       "teamTitle": "Екип",
-      "teamSubtitle": "Служителите в RallyHub и какво може всеки от тях."
+      "teamSubtitle": "Служителите в RallyHub и какво може всеки от тях.",
+      "facilitatorProfileTitle": "Вашият профил",
+      "facilitatorProfileSubtitle": "Обновете името, потребителското си име, имейла и паролата."
     },
     "sectionsLabel": "Секции с настройки",
     "discard": "Отхвърли",

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { NeoCard } from '@/components/neo-minimal'
@@ -16,6 +17,20 @@ type StatCardProps = {
 
 /** One Overview stat tile, with the design's week-over-week line when we have it. */
 export function StatCard({ label, value, to, delta }: StatCardProps) {
+  const { t } = useTranslation('admin')
+
+  // The sign lives in the key, not in the number, so a translation can put it
+  // wherever the language wants it. Both directions get an absolute count so
+  // plural forms resolve the same way up or down.
+  const trend =
+    delta === undefined
+      ? null
+      : delta === 0
+        ? t('dashboard.noChangeFromLastWeek')
+        : delta > 0
+          ? t('dashboard.upFromLastWeek', { count: delta })
+          : t('dashboard.downFromLastWeek', { count: -delta })
+
   return (
     <Link to={to}>
       <NeoCard interactive className="h-full p-4">
@@ -23,12 +38,8 @@ export function StatCard({ label, value, to, delta }: StatCardProps) {
           {label}
         </p>
         <p className="text-4xl font-bold tabular-nums">{value ?? 0}</p>
-        {delta === undefined ? null : (
-          <p className="text-nm-neutral-500 mt-1 text-xs">
-            {delta === 0
-              ? 'No change from last week'
-              : `${delta > 0 ? '+' : ''}${delta} from last week`}
-          </p>
+        {trend === null ? null : (
+          <p className="text-nm-neutral-500 mt-1 text-xs">{trend}</p>
         )}
       </NeoCard>
     </Link>

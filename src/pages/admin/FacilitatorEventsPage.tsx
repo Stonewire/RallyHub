@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
 import { useAuth } from '@/contexts/auth-context'
 import {
-  EVENT_STATUS_LABELS,
+  EVENT_STATUS_LABEL_KEYS,
   groupEventsByStatus,
   useEvents,
   type EventRow,
@@ -46,7 +46,7 @@ export function FacilitatorEventsPage() {
           {groups.map((group) => (
             <section key={group.status}>
               <h2 className="text-muted-foreground mb-3 text-xs font-bold uppercase tracking-wide">
-                {EVENT_STATUS_LABELS[group.status]}
+                {t(EVENT_STATUS_LABEL_KEYS[group.status])}
               </h2>
               <div className="space-y-3">
                 {group.events.map((event) => (

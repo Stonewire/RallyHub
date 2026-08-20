@@ -6,7 +6,7 @@ import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { Button } from '@/components/ui/button'
 import { downloadCsv, toCsv } from '@/lib/csv'
 import {
-  ACTION_LABELS,
+  ACTION_LABEL_KEYS,
   activityActionLabel,
   useEventActivityLog,
   type ActivityLogRow,
@@ -66,9 +66,13 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
   const actionOptions = useMemo(() => {
     const seen = new Set(rows.map((r) => r.action))
     return [...seen]
-      .map((action) => ({ action, label: ACTION_LABELS[action] ?? action }))
+      .map((action) => {
+        // Unmapped actions keep showing the raw string rather than a key.
+        const key = ACTION_LABEL_KEYS[action]
+        return { action, label: key ? t(key) : action }
+      })
       .sort((a, b) => a.label.localeCompare(b.label))
-  }, [rows])
+  }, [rows, t])
 
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
@@ -183,7 +187,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
                 <span className="text-foreground text-sm font-medium">
                   {row.actor_name ?? row.actor_type}
                 </span>
-                <span className="text-muted-foreground mx-1.5 text-sm">—</span>
+                <span className="text-muted-foreground mx-1.5 text-sm">·</span>
                 <span className="text-muted-foreground text-sm">{activityActionLabel(row)}</span>
               </div>
               <time className="text-muted-foreground shrink-0 text-xs tabular-nums">

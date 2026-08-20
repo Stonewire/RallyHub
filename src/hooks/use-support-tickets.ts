@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 
 import { useAuth } from '@/contexts/auth-context'
+import { i18n } from '@/lib/i18n'
 import { generateSupportTicketNumber } from '@/lib/support-ticket'
 import {
   appendSupportMessageToCache,
@@ -27,16 +28,25 @@ export { supportUnreadKey } from './support-query-keys'
 export const TICKET_STATUS_ORDER = ['open', 'in_progress', 'resolved'] as const
 export type TicketStatus = (typeof TICKET_STATUS_ORDER)[number]
 
-export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
-  open: 'Open',
-  in_progress: 'In Progress',
-  resolved: 'Resolved',
+/**
+ * i18n keys, not text: the badge must re-resolve after a language change, so
+ * consumers call the component's own t() or ticketStatusLabel() below.
+ */
+export const TICKET_STATUS_LABEL_KEYS: Record<TicketStatus, string> = {
+  open: 'support.status.open',
+  in_progress: 'support.status.inProgress',
+  resolved: 'support.status.resolved',
+}
+
+/** For callers with no t() in scope. Resolves at call time, never at import. */
+export function ticketStatusLabel(status: TicketStatus): string {
+  return i18n.t(`admin:${TICKET_STATUS_LABEL_KEYS[status]}`)
 }
 
 export function groupTicketsByStatus(tickets: SupportTicketRow[]) {
   return TICKET_STATUS_ORDER.map((status) => ({
     status,
-    label: TICKET_STATUS_LABELS[status],
+    label: ticketStatusLabel(status),
     tickets: tickets.filter((t) => t.status === status),
   }))
 }

@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 
 import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { NeoButton } from '@/components/neo-minimal'
-import { GAME_PREP_STATUS_ORDER, GAME_TYPE_LABELS, type GameRow } from '@/hooks/use-games'
+import { GAME_PREP_STATUS_ORDER, GAME_TYPE_LABEL_KEYS, type GameRow } from '@/hooks/use-games'
 import { GamePrepStatusMenu } from '@/components/games/GamePrepStatusMenu'
 import type { GamePrepStatus } from '@/types/database'
 
@@ -148,7 +148,7 @@ export function DraggableGamesGrid({
               </span>
             )}
             <span className={`absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-semibold text-white ${gameTypeTagClass(game.type)}`}>
-              {GAME_TYPE_LABELS[game.type]}
+              {t(GAME_TYPE_LABEL_KEYS[game.type])}
             </span>
             {/* Delete sits over the cover so the card footer is free for the
                 group list. Appears on hover, like the drag handle. */}

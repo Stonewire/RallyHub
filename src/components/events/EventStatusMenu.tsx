@@ -1,5 +1,6 @@
 import { IconChevronDown } from '@/components/icons'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { EVENT_STATUS_LABELS, EVENT_STATUS_PILL_CLASS } from '@/hooks/use-events'
+import { EVENT_STATUS_LABEL_KEYS, EVENT_STATUS_PILL_CLASS } from '@/hooks/use-events'
 import { getAllowedEventStatuses } from '@/lib/event-lifecycle'
 import type { EventStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ export function EventStatusMenu({
   disabled,
   size = 'sm',
 }: EventStatusMenuProps) {
+  const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
 
   const allowedStatuses = useMemo(
@@ -60,7 +62,7 @@ export function EventStatusMenu({
         >
           {/* Solid coloured pill carries the status, so no dot and no second
               label. Both used to render, which read as "Ready Ready". */}
-          <span className="text-xs font-semibold">{EVENT_STATUS_LABELS[status]}</span>
+          <span className="text-xs font-semibold">{t(EVENT_STATUS_LABEL_KEYS[status])}</span>
           {allowedStatuses.length > 0 ? (
             <IconChevronDown className="size-3.5 opacity-60" />
           ) : null}
@@ -84,7 +86,7 @@ export function EventStatusMenu({
                 EVENT_STATUS_PILL_CLASS[s],
               )}
             >
-              {EVENT_STATUS_LABELS[s]}
+              {t(EVENT_STATUS_LABEL_KEYS[s])}
             </span>
           </DropdownMenuItem>
         ))}

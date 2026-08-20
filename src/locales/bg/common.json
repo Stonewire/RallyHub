@@ -52,5 +52,14 @@
     },
     "installRallyHubAsApp": "Инсталирай RallyHub като приложение"
   },
-  "delete": "Изтрий"
+  "delete": "Изтрий",
+  "legal": {
+    "navLabel": "Правна информация",
+    "privacy": "Поверителност",
+    "terms": "Условия",
+    "dpa": "DPA",
+    "cookies": "Бисквитки",
+    "imprint": "Импресум",
+    "cookiePreferences": "Настройки за бисквитки"
+  }
 }

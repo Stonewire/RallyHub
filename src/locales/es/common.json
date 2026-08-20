@@ -52,5 +52,14 @@
     },
     "installRallyHubAsApp": "Instalar RallyHub como app"
   },
-  "delete": "Eliminar"
+  "delete": "Eliminar",
+  "legal": {
+    "navLabel": "Legal",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "dpa": "DPA",
+    "cookies": "Cookies",
+    "imprint": "Aviso legal",
+    "cookiePreferences": "Preferencias de cookies"
+  }
 }

@@ -149,7 +149,33 @@
     "activeEvents": "Actieve events",
     "upcomingEvents": "Komende events",
     "recentEvents": "Recente events",
-    "noEventsYet": "Nog geen events."
+    "noEventsYet": "Nog geen events.",
+    "noChangeFromLastWeek": "Gelijk aan vorige week",
+    "upFromLastWeek_one": "+{{count}} sinds vorige week",
+    "upFromLastWeek_other": "+{{count}} sinds vorige week",
+    "downFromLastWeek_one": "-{{count}} sinds vorige week",
+    "downFromLastWeek_other": "-{{count}} sinds vorige week",
+    "participation": "Deelname",
+    "last30Days": "Laatste 30 dagen",
+    "metricSubmissions": "Inzendingen",
+    "metricTeams": "Spelende teams",
+    "total": "Totaal",
+    "teamDays": "Teamdagen",
+    "busiestDay": "Drukste dag",
+    "noActivityWindow": "Geen activiteit in de laatste 30 dagen. Zodra teams gaan spelen, verschijnen hun inzendingen hier.",
+    "chartAria": "{{metric}} over de laatste 30 dagen",
+    "recentActivity": "Recente activiteit",
+    "viewAll": "Alles bekijken",
+    "createFirstEvent": "Maak je eerste event",
+    "timeJustNow": "zojuist",
+    "timeMinutesAgo_one": "{{count}} min geleden",
+    "timeMinutesAgo_other": "{{count}} min geleden",
+    "timeHoursAgo_one": "{{count}} uur geleden",
+    "timeHoursAgo_other": "{{count}} uur geleden",
+    "timeDaysAgo_one": "{{count}} dag geleden",
+    "timeDaysAgo_other": "{{count}} dagen geleden",
+    "byGameType": "Per gametype",
+    "nothingPlayedYet": "Nog niets gespeeld."
   },
   "overview": {
     "title": "Overzicht",
@@ -218,7 +244,12 @@
     "unreadMessages_one": "{{count}} ongelezen bericht",
     "unreadMessages_other": "{{count}} ongelezen berichten",
     "attachments": "Bijlagen",
-    "attachmentOpenFailed": "Kon die bijlage niet openen."
+    "attachmentOpenFailed": "Kon die bijlage niet openen.",
+    "status": {
+      "open": "Open",
+      "inProgress": "In behandeling",
+      "resolved": "Opgelost"
+    }
   },
   "onboarding": {
     "gettingStarted": "Aan de slag",
@@ -1291,6 +1322,14 @@
         "actor": "Actor",
         "action": "Actie",
         "details": "Details"
+      },
+      "actions": {
+        "teamJoined": "Deelgenomen aan het event",
+        "facilitatorJoined": "Verbonden als facilitator",
+        "stageChanged": "Doorgegaan naar onderdeel",
+        "submissionApproved": "Inzending goedgekeurd",
+        "submissionRejected": "Inzending afgewezen",
+        "winnerRevealed": "Winnaarsonthulling gestart"
       }
     },
     "purgeFailed": "Kon het event niet definitief verwijderen.",
@@ -1409,7 +1448,9 @@
       "accountTitle": "Mijn account",
       "accountSubtitle": "Beheer je persoonlijke profiel en beveiligingsinstellingen.",
       "teamTitle": "Team",
-      "teamSubtitle": "RallyHub-medewerkers en wat ieder van hen mag doen."
+      "teamSubtitle": "RallyHub-medewerkers en wat ieder van hen mag doen.",
+      "facilitatorProfileTitle": "Je profiel",
+      "facilitatorProfileSubtitle": "Werk je naam, gebruikersnaam, e-mailadres en wachtwoord bij."
     },
     "sectionsLabel": "Instellingensecties",
     "discard": "Verwerpen",

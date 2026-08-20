@@ -15,7 +15,7 @@ import {
   copyToClipboard,
   downloadAllEventQrsPdf,
   downloadQrPng,
-  EVENT_LINK_LABELS,
+  eventLinkLabel,
   EVENT_LINK_ORDER,
   getEventLinks,
   qrCodeUrl,
@@ -107,7 +107,7 @@ export function EventLinksPanel({
   const linkCards = [
     ...EVENT_LINK_ORDER.map((key) => ({
       key: key as string,
-      label: linkLabels[key] ?? EVENT_LINK_LABELS[key],
+      label: linkLabels[key] ?? eventLinkLabel(key),
       url: links[key],
     })),
     ...(organization?.subdomain
