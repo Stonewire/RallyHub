@@ -1,4 +1,5 @@
 import { IconAlert } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -16,6 +17,8 @@ export function EventResetConfirmDialog({
   onCancel,
   onConfirm,
 }: EventResetConfirmDialogProps) {
+  const { t } = useTranslation('admin')
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -32,21 +35,19 @@ export function EventResetConfirmDialog({
           />
           <div className="min-w-0 space-y-2">
             <h3 id="event-reset-title" className="text-foreground font-semibold">
-              Reset event data?
+              {t('events.reset.title')}
             </h3>
             <p className="text-muted-foreground text-sm">
               <span className="text-foreground font-medium">{eventName}</span>
             </p>
             <p id="event-reset-message" className="text-muted-foreground text-sm leading-relaxed">
-              This wipes all teams, submissions, scores, chat messages, bingo progress, and live
-              state for this event. The event setup, games, stages, and branding stay intact. This
-              cannot be undone.
+              {t('events.reset.message')}
             </p>
           </div>
         </div>
         <div className="flex justify-end gap-2">
           <NeoButton type="button" variant="surface" disabled={confirming} onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton
             type="button"
@@ -54,7 +55,7 @@ export function EventResetConfirmDialog({
             disabled={confirming}
             onClick={onConfirm}
           >
-            {confirming ? 'Resetting…' : 'Reset event data'}
+            {confirming ? t('events.reset.resetting') : t('events.reset.confirm')}
           </NeoButton>
         </div>
       </Card>

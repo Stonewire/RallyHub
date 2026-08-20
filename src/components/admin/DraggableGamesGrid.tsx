@@ -1,5 +1,6 @@
 import { IconCopy, IconDownload, IconGrip, IconTrash } from '@/components/icons'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { createPortal } from 'react-dom'
 
@@ -42,6 +43,7 @@ export function DraggableGamesGrid({
   prepStatusPending,
   showPrepStatus = false,
 }: DraggableGamesGridProps) {
+  const { t } = useTranslation('admin')
   const [dragId, setDragId] = useState<string | null>(null)
   // Hovering anywhere on a card reveals its full group list after a beat. Held
   // at grid level so there is one floating label rather than one per card.
@@ -90,9 +92,12 @@ export function DraggableGamesGrid({
 
   function pointsLabel(game: GameRow) {
     if (game.points_type === 'range') {
-      return `${game.points_min ?? 0}–${game.points_max ?? 0} pts`
+      return t('games.grid.pointsRange', {
+        min: game.points_min ?? 0,
+        max: game.points_max ?? 0,
+      })
     }
-    return `${game.points_static ?? 0} pts`
+    return t('games.grid.pointsStatic', { points: game.points_static ?? 0 })
   }
 
   return (
@@ -139,7 +144,7 @@ export function DraggableGamesGrid({
               />
             ) : (
               <span className="text-nm-slate-500 text-[9px] font-semibold uppercase tracking-[0.12em]">
-                Cover image
+                {t('games.grid.coverImage')}
               </span>
             )}
             <span className={`absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-semibold text-white ${gameTypeTagClass(game.type)}`}>
@@ -149,8 +154,8 @@ export function DraggableGamesGrid({
                 group list. Appears on hover, like the drag handle. */}
             <button
               type="button"
-              title="Delete game"
-              aria-label={`Delete ${game.name}`}
+              title={t('games.grid.deleteGame')}
+              aria-label={t('games.grid.deleteNamed', { name: game.name })}
               disabled={deleting}
               className="absolute left-1.5 top-1.5 rounded bg-black/45 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70 disabled:opacity-30"
               onClick={(event) => {
@@ -165,8 +170,8 @@ export function DraggableGamesGrid({
             {onDuplicate ? (
               <button
                 type="button"
-                title="Duplicate game"
-                aria-label={`Duplicate ${game.name}`}
+                title={t('games.grid.duplicateGame')}
+                aria-label={t('games.grid.duplicateNamed', { name: game.name })}
                 className="absolute left-9 top-1.5 rounded bg-black/45 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/70"
                 onClick={(event) => {
                   event.stopPropagation()
@@ -208,7 +213,7 @@ export function DraggableGamesGrid({
               hover, since a game can sit in several groups. */}
           <div className="border-border/60 mt-auto flex items-center gap-1 border-t px-1.5 py-1.5">
             <p className="text-muted-foreground min-w-0 flex-1 truncate text-[10px]">
-              {gameGroupNames.length > 0 ? gameGroupNames.join(', ') : 'No group'}
+              {gameGroupNames.length > 0 ? gameGroupNames.join(', ') : t('games.grid.noGroup')}
             </p>
             {onInstall ? (
               <NeoButton
@@ -216,7 +221,7 @@ export function DraggableGamesGrid({
                 variant="ghost"
                 size="sm"
                 className="size-6 shrink-0 p-0"
-                title="Install game"
+                title={t('games.grid.installGame')}
                 onClick={(event) => {
                   event.stopPropagation()
                   onInstall(game)

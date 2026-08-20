@@ -10,45 +10,47 @@
     "addToHomeScreen": "Ajouter à l'écran d'accueil",
     "installApp": "Installer l'application",
     "manual": {
-      "ios": "Touche le bouton Share en bas de Safari, puis \"Add to Home Screen\".",
-      "android": "Ouvre le menu de ton navigateur, puis touche \"Add to Home screen\".",
-      "macosSafari": "Dans Safari, choisis File, puis \"Add to Dock\"."
+      "ios": "Touchez le bouton Share en bas de Safari, puis \"Add to Home Screen\".",
+      "android": "Ouvrez le menu de votre navigateur, puis touchez \"Add to Home screen\".",
+      "macosSafari": "Dans Safari, choisissez File, puis \"Add to Dock\"."
     },
     "guide": {
-      "title": "Installer RallyHub sur ton appareil",
+      "title": "Installer RallyHub sur votre appareil",
       "introTablet": "Ajoute une icône RallyHub sur l'écran d'accueil, dans le Dock ou sur le bureau, pour que l'équipe n'ait pas à chercher le lien à chaque fois. Chrome et Safari sont les navigateurs recommandés.",
       "introApp": "Ajoute une icône RallyHub sur l'écran d'accueil, dans le Dock ou sur le bureau, et l'ouvre dans sa propre fenêtre, sans le navigateur autour.",
       "gotIt": "Compris",
       "openedTablet": "le lien de la tablette",
       "openedApp": "RallyHub",
-      "pinStep": "Saisis une seule fois le mot de passe à 4 chiffres de la tablette.",
+      "pinStep": "Saisissez une seule fois le mot de passe à 4 chiffres de la tablette.",
       "resultTablet": "L'appareil a maintenant une icône RallyHub qui ouvre directement l'écran des scores.",
       "resultApp": "L'appareil a maintenant une icône RallyHub qui s'ouvre dans sa propre fenêtre, sans barre d'adresse.",
       "android": {
         "platform": "Tablette ou téléphone Android (Chrome)",
-        "open": "Ouvre {{target}} dans Chrome.",
-        "menu": "Touche les trois points en haut à droite.",
-        "add": "Touche \"Add to Home screen\", puis \"Install\"."
+        "open": "Ouvrez {{target}} dans Chrome.",
+        "menu": "Touchez les trois points en haut à droite.",
+        "add": "Touchez \"Add to Home screen\", puis \"Install\"."
       },
       "ios": {
         "platform": "iPad ou iPhone (Safari)",
-        "open": "Ouvre {{target}} dans Safari. Cela ne fonctionne pas dans Chrome sur iOS.",
-        "share": "Touche le bouton Share, le carré avec la flèche.",
-        "add": "Fais défiler vers le bas et touche \"Add to Home Screen\", puis \"Add\"."
+        "open": "Ouvrez {{target}} dans Safari. Cela ne fonctionne pas dans Chrome sur iOS.",
+        "share": "Touchez le bouton Share, le carré avec la flèche.",
+        "add": "Faites défiler vers le bas et touchez \"Add to Home Screen\", puis \"Add\"."
       },
       "mac": {
         "platform": "Mac (Safari)",
-        "open": "Ouvre {{target}} dans Safari.",
-        "addToDock": "Choisis File, puis \"Add to Dock\".",
+        "open": "Ouvrez {{target}} dans Safari.",
+        "addToDock": "Choisissez File, puis \"Add to Dock\".",
         "result": "RallyHub s'ouvre depuis le Dock dans sa propre fenêtre."
       },
       "desktop": {
         "platform": "Windows ou Mac (Chrome ou Edge)",
-        "open": "Ouvre {{target}} dans Chrome ou Edge.",
-        "addressBar": "Clique sur l'icône d'installation, tout à droite de la barre d'adresse.",
-        "menuFallback": "Si elle n'y est pas, ouvre le menu à trois points, puis \"Cast, save and share\", puis \"Install page as app\".",
+        "open": "Ouvrez {{target}} dans Chrome ou Edge.",
+        "addressBar": "Cliquez sur l'icône d'installation, tout à droite de la barre d'adresse.",
+        "menuFallback": "Si elle n'y est pas, ouvrez le menu à trois points, puis \"Cast, save and share\", puis \"Install page as app\".",
         "result": "RallyHub s'ouvre depuis le bureau ou la barre des tâches dans sa propre fenêtre."
       }
-    }
-  }
+    },
+    "installRallyHubAsApp": "Installer RallyHub comme application"
+  },
+  "delete": "Supprimer"
 }

@@ -1,4 +1,5 @@
 import { IconBilling, IconDownload } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { NeoStatusBadge, type NeoStatusBadgeTone } from '@/components/neo-minimal'
@@ -33,11 +34,12 @@ export function EventInvoiceRow({
   onDownload,
   downloadingInvoiceId = null,
 }: EventInvoiceRowProps) {
+  const { t } = useTranslation('admin')
   // Paddle only issues a PDF for a real transaction. Comped/€0 events never had
   // one, so there is nothing to download for them.
   const canDownload =
     Boolean(onDownload) && invoice.status === 'paid' && Boolean(invoice.paddle_transaction_id)
-  const eventName = invoice.event?.name ?? 'Unknown event'
+  const eventName = invoice.event?.name ?? t('billing.unknownEvent')
   const eventDate = invoice.event?.event_date ?? null
   const teamCount = invoice.event?.team_count ?? 0
 
@@ -54,7 +56,7 @@ export function EventInvoiceRow({
           </NeoStatusBadge>
         </div>
         <p className="text-muted-foreground text-xs">
-          {formatEventDate(eventDate)} · {teamCount} team{teamCount === 1 ? '' : 's'}
+          {formatEventDate(eventDate)} · {t('billing.teamCount', { count: teamCount })}
         </p>
         <p className="text-muted-foreground text-xs">
           {formatInvoicePlanLine(
@@ -76,7 +78,7 @@ export function EventInvoiceRow({
           })}
         </p>
         <p className="text-muted-foreground text-xs">
-          Invoiced {formatInvoiceDate(invoice.created_at)}
+          {t('billing.invoicedOn', { date: formatInvoiceDate(invoice.created_at) })}
         </p>
         {canDownload ? (
           <NeoButton
@@ -86,7 +88,7 @@ export function EventInvoiceRow({
             disabled={downloadingInvoiceId === invoice.id}
           >
             <IconDownload className="size-3.5" aria-hidden />
-            {downloadingInvoiceId === invoice.id ? 'Opening…' : 'Invoice'}
+            {downloadingInvoiceId === invoice.id ? t('billing.opening') : t('billing.invoice')}
           </NeoButton>
         ) : null}
         {showPayIndicator && invoice.status === 'unpaid' ? (
@@ -98,7 +100,7 @@ export function EventInvoiceRow({
               disabled={payingInvoiceId === invoice.id}
             >
               <IconBilling className="size-3.5" aria-hidden />
-              {payingInvoiceId === invoice.id ? 'Opening checkout…' : 'Pay now'}
+              {payingInvoiceId === invoice.id ? t('billing.openingCheckout') : t('billing.payNow')}
             </NeoButton>
           ) : (
             <span
@@ -108,7 +110,7 @@ export function EventInvoiceRow({
               )}
             >
               <IconBilling className="size-3.5" aria-hidden />
-              Payment required
+              {t('billing.paymentRequired')}
             </span>
           )
         ) : null}
@@ -144,6 +146,8 @@ export function EventInvoiceList({
   downloadingInvoiceId = null,
   layout = 'cards',
 }: EventInvoiceListProps) {
+  const { t } = useTranslation('admin')
+
   if (invoices.length === 0) {
     return (
       <Card className="border-border/80 bg-muted/20 px-4 py-8 text-center shadow-sm">
@@ -158,8 +162,8 @@ export function EventInvoiceList({
         <table className="w-full min-w-[34rem] text-sm">
           <thead>
             <tr className="text-muted-foreground border-border border-b text-[10px] font-semibold tracking-[0.08em] uppercase">
-              <th className="py-2 pr-3 text-left font-semibold">Date</th>
-              <th className="py-2 pr-3 text-left font-semibold">Event name</th>
+              <th className="py-2 pr-3 text-left font-semibold">{t('billing.tableDate')}</th>
+              <th className="py-2 pr-3 text-left font-semibold">{t('billing.tableEventName')}</th>
               {/* Not the design's "Total (incl. VAT)". This number is
                   invoices.amount_due, computed by activate_event from the plan
                   price minus any promo discount; VAT is never part of that
@@ -168,10 +172,12 @@ export function EventInvoiceList({
                   own PDF, reachable from the Invoice button on each row.
                   Saying "excl." rather than nothing keeps the two numbers from
                   looking like a discrepancy once VAT is actually charged. */}
-              <th className="py-2 pr-3 text-right font-semibold">Total (excl. VAT)</th>
-              <th className="py-2 pr-3 text-left font-semibold">Status</th>
+              <th className="py-2 pr-3 text-right font-semibold">
+                {t('billing.tableTotalExclVat')}
+              </th>
+              <th className="py-2 pr-3 text-left font-semibold">{t('billing.tableStatus')}</th>
               <th className="py-2 text-right font-semibold">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t('billing.tableActions')}</span>
               </th>
             </tr>
           </thead>
@@ -187,7 +193,7 @@ export function EventInvoiceList({
                     {formatInvoiceDate(invoice.created_at)}
                   </td>
                   <td className="max-w-56 truncate py-2.5 pr-3">
-                    {invoice.event?.name ?? 'Unknown event'}
+                    {invoice.event?.name ?? t('billing.unknownEvent')}
                   </td>
                   <td className="py-2.5 pr-3 text-right font-semibold tabular-nums">
                     {formatInvoiceAmountLine({
@@ -212,14 +218,18 @@ export function EventInvoiceList({
                         disabled={payingInvoiceId === invoice.id}
                       >
                         <IconBilling className="size-3.5" aria-hidden />
-                        {payingInvoiceId === invoice.id ? 'Opening…' : 'Pay now'}
+                        {payingInvoiceId === invoice.id
+                          ? t('billing.opening')
+                          : t('billing.payNow')}
                       </NeoButton>
                     ) : canDownload ? (
                       <button
                         type="button"
                         onClick={() => onDownload?.(invoice.id)}
                         disabled={downloadingInvoiceId === invoice.id}
-                        aria-label={`Download invoice for ${invoice.event?.name ?? 'event'}`}
+                        aria-label={t('billing.downloadInvoiceFor', {
+                          name: invoice.event?.name ?? t('billing.unknownEvent'),
+                        })}
                         className="text-primary hover:bg-muted inline-flex size-7 items-center justify-center rounded-md disabled:opacity-50"
                       >
                         <IconDownload className="size-4" aria-hidden />

@@ -49,6 +49,8 @@
         "menuFallback": "Si no está, abre el menú de tres puntos, luego \"Cast, save and share\" y después \"Install page as app\".",
         "result": "RallyHub se abre desde el escritorio o la barra de tareas en su propia ventana."
       }
-    }
-  }
+    },
+    "installRallyHubAsApp": "Instalar RallyHub como app"
+  },
+  "delete": "Eliminar"
 }

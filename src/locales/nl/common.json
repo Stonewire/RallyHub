@@ -49,6 +49,8 @@
         "menuFallback": "Staat het er niet, open dan het menu met drie puntjes, dan \"Cast, save and share\" en daarna \"Install page as app\".",
         "result": "RallyHub opent vanaf het bureaublad of de taakbalk in een eigen venster."
       }
-    }
-  }
+    },
+    "installRallyHubAsApp": "RallyHub als app installeren"
+  },
+  "delete": "Verwijderen"
 }

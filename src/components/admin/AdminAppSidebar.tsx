@@ -1,4 +1,5 @@
 import { UserCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { IconUsers } from '@/components/icons'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
@@ -37,9 +38,9 @@ import { isAdminNavActive } from '@/lib/is-admin-nav-active'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
 const mainNav = [
-  { to: '/admin', label: 'Dashboard', icon: IconDashboard, end: true, tourId: 'nav-dashboard' },
-  { to: '/admin/games', label: 'Games', icon: IconGames, end: false, tourId: 'nav-games' },
-  { to: '/admin/events', label: 'Events', icon: IconEvents, end: false, tourId: 'nav-events' },
+  { to: '/admin', labelKey: 'nav.dashboard', icon: IconDashboard, end: true, tourId: 'nav-dashboard' },
+  { to: '/admin/games', labelKey: 'nav.games', icon: IconGames, end: false, tourId: 'nav-games' },
+  { to: '/admin/events', labelKey: 'nav.events', icon: IconEvents, end: false, tourId: 'nav-events' },
 ] as const
 
 // The new design shows Organisation and Billing as flat top-level items rather
@@ -49,14 +50,14 @@ const orgNav = [
   {
     to: '/admin/settings',
     search: '',
-    label: 'Organisation',
+    labelKey: 'nav.organisation',
     icon: IconOrganisation,
     tourId: 'nav-org-settings',
   },
   {
     to: '/admin/settings',
     search: '?tab=billing',
-    label: 'Billing',
+    labelKey: 'nav.billing',
     icon: IconBilling,
     tourId: 'nav-billing',
   },
@@ -65,6 +66,7 @@ const orgNav = [
 export function AdminAppSidebar() {
   // Choosing a section closes the mobile sheet — the menu is a launcher,
   // not a place to stay (Rumen, 9 Aug).
+  const { t } = useTranslation('admin')
   const { setOpenMobile } = useSidebar()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
@@ -127,17 +129,17 @@ export function AdminAppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
-              {visibleMainNav.map(({ to, label, icon: Icon, end, tourId }) => (
+              {visibleMainNav.map(({ to, labelKey, icon: Icon, end, tourId }) => (
                 <SidebarMenuItem key={to}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={label}
+                    tooltip={t(labelKey)}
                     isActive={isAdminNavActive(pathname, orgPath(clientSlug, to), end)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, to)} end={end} data-tour={tourId} onClick={() => setOpenMobile(false)}>
                       <Icon className="shrink-0" />
-                      <span className="font-medium">{label}</span>
+                      <span className="font-medium">{t(labelKey)}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -147,13 +149,13 @@ export function AdminAppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    tooltip="Profile"
+                    tooltip={t('nav.profile')}
                     isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/settings'), true)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, "/admin/settings")} onClick={() => setOpenMobile(false)}>
                       <UserCircle className="shrink-0" strokeWidth={1.75} />
-                      <span className="font-medium">Profile</span>
+                      <span className="font-medium">{t('nav.profile')}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -163,20 +165,20 @@ export function AdminAppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    tooltip="Team"
+                    tooltip={t('nav.team')}
                     isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/team'), true)}
                     className="text-sidebar-foreground"
                   >
                     <NavLink to={orgPath(clientSlug, "/admin/team")} onClick={() => setOpenMobile(false)}>
                       <IconUsers className="shrink-0" />
-                      <span className="font-medium">Team</span>
+                      <span className="font-medium">{t('nav.team')}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : null}
 
               {showOrgSettings
-                ? orgNav.map(({ to, search, label, icon: Icon, tourId }) => {
+                ? orgNav.map(({ to, search, labelKey, icon: Icon, tourId }) => {
                     const onSettings = pathname.startsWith(orgPath(clientSlug, '/admin/settings'))
                     const isActive =
                       search === '?tab=billing'
@@ -186,10 +188,10 @@ export function AdminAppSidebar() {
                           settingsTab !== 'account'
 
                     return (
-                      <SidebarMenuItem key={label}>
+                      <SidebarMenuItem key={labelKey}>
                         <SidebarMenuButton
                           asChild
-                          tooltip={label}
+                          tooltip={t(labelKey)}
                           isActive={isActive}
                           className="text-sidebar-foreground"
                         >
@@ -198,7 +200,7 @@ export function AdminAppSidebar() {
                             data-tour={tourId}
                           >
                             <Icon className="shrink-0" />
-                            <span className="font-medium">{label}</span>
+                            <span className="font-medium">{t(labelKey)}</span>
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -217,13 +219,13 @@ export function AdminAppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                tooltip="Support"
+                tooltip={t('nav.support')}
                 isActive={isAdminNavActive(pathname, orgPath(clientSlug, '/admin/support'), true)}
                 className="text-sidebar-foreground"
               >
                 <NavLink to={orgPath(clientSlug, "/admin/support")} data-tour="nav-support" className="justify-center" onClick={() => setOpenMobile(false)}>
                   <IconSupport className="size-4" />
-                  <span className="font-medium">Support</span>
+                  <span className="font-medium">{t('nav.support')}</span>
                 </NavLink>
               </SidebarMenuButton>
               {supportUnread > 0 ? (

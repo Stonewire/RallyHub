@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,6 +40,7 @@ export function BrandColourPicker({
   value,
   onChange,
 }: BrandColourPickerProps) {
+  const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   // null means "show the committed value". Only holds text while the user is
   // mid-edit, so a half-typed hex is not overwritten on every keystroke and no
@@ -87,7 +89,7 @@ export function BrandColourPicker({
         onClick={() => setOpen((previous) => !previous)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${label} colour, currently ${value}`}
+        aria-label={t('settings.brandColour.swatchLabel', { label, value })}
         className="border-border size-9 shrink-0 rounded-full border-2"
         style={{ backgroundColor: value }}
       />
@@ -99,7 +101,7 @@ export function BrandColourPicker({
         onChange={(event) => commitDraft(event.target.value)}
         onBlur={endEditing}
         className="h-6 w-full px-1.5 text-center font-mono text-[11px] uppercase"
-        aria-label={`${label} hex value`}
+        aria-label={t('settings.brandColour.hexValueLabel', { label })}
       />
       {description ? (
         <p className="text-muted-foreground text-[10px] leading-tight">{description}</p>
@@ -108,7 +110,7 @@ export function BrandColourPicker({
       {open ? (
         <div
           role="dialog"
-          aria-label={`${label} colour picker`}
+          aria-label={t('settings.brandColour.pickerLabel', { label })}
           // Anchored to the column's left edge and growing rightwards into
           // the card: centring a 14rem popover over a 5rem column pushed it
           // past the card edge, where it clipped (CF3-5).
@@ -120,20 +122,20 @@ export function BrandColourPicker({
           <label
             className="relative mb-3 flex h-12 cursor-pointer items-center justify-center rounded-md font-mono text-xs font-semibold"
             style={{ backgroundColor: value, color: readableTextOn(value) }}
-            title="Open the colour wheel"
+            title={t('settings.brandColour.openWheel')}
           >
             {value.toUpperCase()}
             <input
               type="color"
               value={normalizeHex(value) ?? '#000000'}
               onChange={(event) => onChange(event.target.value)}
-              aria-label={`${label} colour wheel`}
+              aria-label={t('settings.brandColour.wheelLabel', { label })}
               className="absolute inset-0 size-full cursor-pointer appearance-none border-0 bg-transparent p-0 opacity-0"
             />
           </label>
 
           <Label htmlFor={`${id}-hex`} className="text-muted-foreground text-[10px] uppercase">
-            Hex
+            {t('settings.brandColour.hex')}
           </Label>
           <Input
             id={`${id}-hex`}
@@ -154,7 +156,10 @@ export function BrandColourPicker({
                 max={255}
                 value={rgb[key]}
                 onChange={(event) => setChannel(key, Number(event.target.value))}
-                aria-label={`${label} ${channelLabel} channel`}
+                aria-label={t('settings.brandColour.channelLabel', {
+                  label,
+                  channel: channelLabel,
+                })}
                 className="accent-primary min-w-0 flex-1"
               />
               <span className="text-muted-foreground w-7 text-right text-[10px] tabular-nums">

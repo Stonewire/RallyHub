@@ -1,5 +1,6 @@
 import { IconBilling } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { EventInvoiceList } from '@/components/billing/EventInvoiceList'
@@ -53,6 +54,7 @@ export function BillingOverview({
   showAvailablePlans = false,
   showAdminSummary = false,
 }: BillingOverviewProps) {
+  const { t } = useTranslation('admin')
   const { notify } = useNotification()
   const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const [openingPortal, setOpeningPortal] = useState(false)
@@ -80,11 +82,11 @@ export function BillingOverview({
   async function handlePayInvoice(invoiceId: string) {
     try {
       const result = await payInvoice.mutateAsync(invoiceId)
-      if (result === 'completed') notify('Payment received — thank you!')
-      else if (result === 'closed') notify('Checkout closed — the invoice is still unpaid.')
-      else if (result === 'error') notify('Something went wrong with the payment. Please try again.')
+      if (result === 'completed') notify(t('billing.paymentReceived'))
+      else if (result === 'closed') notify(t('billing.checkoutClosedInvoice'))
+      else if (result === 'error') notify(t('billing.paymentFailed'))
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not start payment.')
+      notify(err instanceof Error ? err.message : t('billing.couldNotStartPayment'))
     }
   }
 
@@ -94,7 +96,7 @@ export function BillingOverview({
     try {
       await openInvoicePdf(organizationId, invoiceId, isDemo)
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not fetch the invoice.')
+      notify(err instanceof Error ? err.message : t('billing.couldNotFetchInvoice'))
     } finally {
       setDownloadingInvoiceId(null)
     }
@@ -106,7 +108,7 @@ export function BillingOverview({
     try {
       await openBillingPortal(organizationId, isDemo)
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not open billing details.')
+      notify(err instanceof Error ? err.message : t('billing.couldNotOpenBillingDetails'))
     } finally {
       setOpeningPortal(false)
     }
@@ -115,11 +117,11 @@ export function BillingOverview({
   async function handleStartSubscription() {
     try {
       const result = await startSubscription.mutateAsync({ planId, billingPeriod: period })
-      if (result === 'completed') notify('Subscription started — thank you!')
-      else if (result === 'closed') notify('Checkout closed — no subscription was started.')
-      else if (result === 'error') notify('Something went wrong starting checkout. Please try again.')
+      if (result === 'completed') notify(t('billing.subscriptionStarted'))
+      else if (result === 'closed') notify(t('billing.checkoutClosedSubscription'))
+      else if (result === 'error') notify(t('billing.checkoutFailed'))
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not start checkout.')
+      notify(err instanceof Error ? err.message : t('billing.couldNotStartCheckout'))
     }
   }
 
@@ -141,8 +143,10 @@ export function BillingOverview({
       {showAdminSummary && unpaid.length > 0 ? (
         <Card className="border-border/80 bg-muted/30 px-4 py-3 shadow-sm">
           <p className="text-foreground text-sm font-medium">
-            Outstanding: {formatEur(unpaidTotal)} across {unpaid.length} unpaid event
-            {unpaid.length === 1 ? '' : 's'}
+            {t('billing.outstandingSummary', {
+              count: unpaid.length,
+              amount: formatEur(unpaidTotal),
+            })}
           </p>
         </Card>
       ) : null}
@@ -159,29 +163,29 @@ export function BillingOverview({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase">
-                Current Plan
+                {t('billing.currentPlan')}
               </p>
               <p className="text-foreground text-lg font-bold">{formatPlanLabel(planId)}</p>
               <p className="text-muted-foreground text-sm">
                 {plan.freeSubscription
-                  ? 'No subscription'
+                  ? t('billing.noSubscription')
                   : plan.priceOnRequest
-                    ? 'Custom billing'
+                    ? t('billing.customBilling')
                     : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
-                {plan.hidden ? ' · Partner (comped)' : ''}
+                {plan.hidden ? ` · ${t('billing.partnerComped')}` : ''}
               </p>
             </div>
             {paddleSubscriptionId ? (
               <span className="rounded-full border border-[#1f9d55]/40 bg-[#1f9d55]/10 px-2 py-0.5 text-xs font-medium text-[#1f9d55]">
-                Active
+                {t('billing.statusActive')}
               </span>
             ) : plan.hidden ? (
               <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-                Comped
+                {t('billing.statusComped')}
               </span>
             ) : (
               <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-                Not started
+                {t('billing.statusNotStarted')}
               </span>
             )}
           </div>
@@ -196,20 +200,20 @@ export function BillingOverview({
           {plan.monthlyEventLimit !== null ? (
             <p className="text-muted-foreground text-sm">
               <span className="text-foreground font-medium tabular-nums">
-                {eventsUsed} of {plan.monthlyEventLimit}
+                {t('billing.eventsUsedOfLimit', {
+                  used: eventsUsed,
+                  limit: plan.monthlyEventLimit,
+                })}
               </span>{' '}
-              event{plan.monthlyEventLimit === 1 ? '' : 's'} activated this month
+              {t('billing.eventsActivatedThisMonth', { count: plan.monthlyEventLimit })}
               {eventsUsed >= plan.monthlyEventLimit
-                ? ' — you have reached your plan limit.'
-                : '.'}
+                ? ` ${t('billing.planLimitReached')}`
+                : ''}
             </p>
           ) : null}
 
           {plan.hidden ? (
-            <p className="text-muted-foreground text-sm">
-              Your Partner account is fully comped. Event activations are recorded at no
-              charge.
-            </p>
+            <p className="text-muted-foreground text-sm">{t('billing.partnerCompedNote')}</p>
           ) : null}
 
           <p className="text-muted-foreground text-xs">{VAT_DISCLAIMER}</p>
@@ -228,7 +232,9 @@ export function BillingOverview({
                     onClick={() => void handleStartSubscription()}
                     disabled={startSubscription.isPending}
                   >
-                    {startSubscription.isPending ? 'Opening checkout…' : 'Start subscription'}
+                    {startSubscription.isPending
+                      ? t('billing.openingCheckout')
+                      : t('billing.startSubscription')}
                   </NeoButton>
                 ) : null}
                 <NeoButton
@@ -242,7 +248,7 @@ export function BillingOverview({
                   {/* "Manage billing details" does not fit in half a card once
                       the icon is in front of it, and wrapping made the pair
                       uneven. The heading above already says Billing. */}
-                  {openingPortal ? 'Opening…' : 'Billing details'}
+                  {openingPortal ? t('billing.opening') : t('billing.billingDetails')}
                 </NeoButton>
               </div>
               <button
@@ -250,7 +256,7 @@ export function BillingOverview({
                 className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
                 onClick={() => setPlansOpen(true)}
               >
-                View other plans
+                {t('billing.viewOtherPlans')}
               </button>
             </div>
           ) : null}
@@ -273,11 +279,13 @@ export function BillingOverview({
         data-tour="billing-unpaid"
       >
         <div>
-          <h2 className="text-foreground text-base font-bold">Payments &amp; Invoices</h2>
+          <h2 className="text-foreground text-base font-bold">
+            {t('billing.paymentsAndInvoices')}
+          </h2>
           <p className="text-muted-foreground text-sm">
             {showAvailablePlans
-              ? 'Newest first. Anything unpaid can be paid here, and paid invoices can be downloaded.'
-              : 'Newest first. Payable from the client’s own settings.'}
+              ? t('billing.invoicesHintClient')
+              : t('billing.invoicesHintAdmin')}
           </p>
         </div>
         {invoicesQuery.isLoading ? (
@@ -287,7 +295,7 @@ export function BillingOverview({
         ) : (
           <EventInvoiceList
             invoices={allInvoices}
-            emptyMessage="No invoices yet."
+            emptyMessage={t('billing.noInvoices')}
             showPayIndicator
             onPay={showAvailablePlans ? handlePayInvoice : undefined}
             payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}

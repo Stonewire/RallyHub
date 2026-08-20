@@ -1,5 +1,6 @@
 import { IconArchive, IconChevronDown, IconCopy, IconEvents, IconEye, IconGrip, IconLink, IconLocation, IconTrash } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
@@ -10,16 +11,12 @@ import { useOptionalTenant } from '@/contexts/tenant-context'
 import { orgPath } from '@/lib/org-path'
 import type { EventStatus } from '@/types/database'
 
-function formatEventDate(iso: string | null) {
-  if (!iso) return 'Date not set'
+function formatEventDate(iso: string | null, notSetLabel: string) {
+  if (!iso) return notSetLabel
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(iso))
-}
-
-function displayLayoutLabel(value: string) {
-  return value === 'orbit_view' ? 'Orbit' : 'Rank list'
 }
 
 function eventBrandColors(event: EventRow) {
@@ -51,6 +48,7 @@ export function DraggableEventsGrid({
   onReorder,
   duplicating = false,
 }: DraggableEventsGridProps) {
+  const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const [dragId, setDragId] = useState<string | null>(null)
@@ -142,8 +140,12 @@ export function DraggableEventsGrid({
                   wording stops implying an event mid-play is being destroyed. */}
               <button
                 type="button"
-                title={isLive ? 'Archive event' : 'Delete event'}
-                aria-label={`${isLive ? 'Archive' : 'Delete'} ${event.name}`}
+                title={isLive ? t('events.card.archiveEvent') : t('events.card.deleteEvent')}
+                aria-label={
+                  isLive
+                    ? t('events.card.archiveAria', { name: event.name })
+                    : t('events.card.deleteAria', { name: event.name })
+                }
                 disabled={deleting}
                 className={`shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 ${isLive ? 'text-primary hover:bg-primary/10' : 'text-destructive hover:bg-destructive/10'}`}
                 onClick={() => onDelete(event)}
@@ -158,7 +160,7 @@ export function DraggableEventsGrid({
               />
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <p className="flex items-center gap-1.5"><IconEvents className="size-3.5" />{formatEventDate(event.event_date)}</p>
+              <p className="flex items-center gap-1.5"><IconEvents className="size-3.5" />{formatEventDate(event.event_date, t('events.card.dateNotSet'))}</p>
               {event.location ? (
                 <p className="flex min-w-0 items-center gap-1.5">
                   <IconLocation className="size-3.5 shrink-0" />
@@ -172,21 +174,25 @@ export function DraggableEventsGrid({
         {!compact ? (
           <div className="border-border/70 mt-3 grid grid-cols-4 gap-2 border-t pt-3 text-center">
             <div>
-              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Display</p>
-              <p className="text-foreground mt-1 truncate text-[11px] font-semibold">{displayLayoutLabel(event.display_layout)}</p>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">{t('events.card.display')}</p>
+              <p className="text-foreground mt-1 truncate text-[11px] font-semibold">
+                {event.display_layout === 'orbit_view'
+                  ? t('events.card.layoutOrbit')
+                  : t('events.card.layoutRankList')}
+              </p>
             </div>
             <div>
-              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">UI colour</p>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">{t('events.card.uiColour')}</p>
               <span className="border-border mx-auto mt-1 block size-3 rounded-full border" style={{ backgroundColor: event.display_text_color }} />
             </div>
             <div>
-              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Branding</p>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">{t('events.card.branding')}</p>
               <div className="mt-1.5 flex justify-center -space-x-0.5">
                 {colors.map((color, index) => <span key={`${color}-${index}`} className="border-card size-3 rounded-full border" style={{ backgroundColor: color }} />)}
               </div>
             </div>
             <div>
-              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">Teams</p>
+              <p className="text-muted-foreground text-[9px] font-semibold uppercase tracking-[0.06em]">{t('events.card.teams')}</p>
               <p className="text-foreground mt-1 text-[11px] font-semibold">{event.team_count}</p>
             </div>
           </div>
@@ -196,19 +202,19 @@ export function DraggableEventsGrid({
           {archivedEvent ? (
             <>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />View</Link>
+                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />{t('events.card.view')}</Link>
               </NeoButton>
               <NeoButton type="button" variant="surface" size="sm" className="flex-1" disabled={duplicating} onClick={() => onDuplicate(event)}>
-                <IconCopy className="size-3.5" />{duplicating ? 'Duplicating…' : 'Duplicate'}
+                <IconCopy className="size-3.5" />{duplicating ? t('events.duplicating') : t('events.card.duplicate')}
               </NeoButton>
             </>
           ) : (
             <>
               <NeoButton type="button" variant="surface" size="sm" className="flex-1" onClick={() => onViewLinks(event)}>
-                <IconLink className="size-3.5" />Event Links
+                <IconLink className="size-3.5" />{t('events.card.eventLinks')}
               </NeoButton>
               <NeoButton variant="surface" size="sm" className="flex-1" asChild>
-                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />View</Link>
+                <Link to={orgPath(clientSlug, `/admin/events/${event.id}`)}><IconEye className="size-3.5" />{t('events.card.view')}</Link>
               </NeoButton>
             </>
           )}
@@ -243,7 +249,7 @@ export function DraggableEventsGrid({
     <div className="space-y-8">
       {upcoming.length > 0 ? (
         <section>
-          {sectionHeader('Upcoming Events', upcoming.length, upcomingCollapsed, () =>
+          {sectionHeader(t('events.sections.upcoming'), upcoming.length, upcomingCollapsed, () =>
             setUpcomingCollapsed((value) => !value),
           )}
           {!upcomingCollapsed ? (
@@ -253,7 +259,7 @@ export function DraggableEventsGrid({
       ) : null}
       {archived.length > 0 ? (
         <section>
-          {sectionHeader('Past / Archived Events', archived.length, archivedCollapsed, () =>
+          {sectionHeader(t('events.sections.past'), archived.length, archivedCollapsed, () =>
             setArchivedCollapsed((value) => !value),
           )}
           {!archivedCollapsed ? (

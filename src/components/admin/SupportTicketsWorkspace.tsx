@@ -1,5 +1,6 @@
 import { SupportTicketAttachments } from '@/components/admin/SupportTicketAttachments'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   CollapsibleSection,
@@ -33,11 +34,12 @@ export function SupportTicketsWorkspace({
   selectedId,
   onSelectTicket,
   senderRole,
-  emptyMessage = 'No tickets yet.',
-  selectPrompt = 'Select a ticket to view the thread.',
+  emptyMessage,
+  selectPrompt,
   getOrgLabel,
   renderThreadHeader,
 }: SupportTicketsWorkspaceProps) {
+  const { t } = useTranslation('admin')
   const { data: unreadByTicket = {} } = useSupportTicketUnreadCounts(senderRole)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     loadCollapsedState(SUPPORT_COLLAPSED_STORAGE_KEY),
@@ -54,7 +56,11 @@ export function SupportTicketsWorkspace({
   }
 
   if (tickets.length === 0) {
-    return <p className="text-muted-foreground text-sm">{emptyMessage}</p>
+    return (
+      <p className="text-muted-foreground text-sm">
+        {emptyMessage ?? t('support.noTickets')}
+      </p>
+    )
   }
 
   return (
@@ -71,7 +77,7 @@ export function SupportTicketsWorkspace({
           >
             {group.tickets.length === 0 ? (
               <p className="text-muted-foreground py-2 text-xs">
-                No {group.label.toLowerCase()} tickets.
+                {t('support.noGroupTickets', { label: group.label.toLowerCase() })}
               </p>
             ) : (
               <div className="grid gap-3">
@@ -117,7 +123,9 @@ export function SupportTicketsWorkspace({
           <SupportTicketThread ticket={selected} senderRole={senderRole} />
         </Card>
       ) : (
-        <p className="text-muted-foreground text-sm">{selectPrompt}</p>
+        <p className="text-muted-foreground text-sm">
+          {selectPrompt ?? t('support.selectTicketPrompt')}
+        </p>
       )}
     </div>
   )

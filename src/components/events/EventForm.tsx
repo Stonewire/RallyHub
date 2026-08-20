@@ -8,6 +8,7 @@ import {
   IconTrash,
 } from '@/components/icons'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { AssetField } from '@/components/games/AssetField'
@@ -41,24 +42,11 @@ import {
   formatEur,
 } from '@/lib/subscription-plans'
 
-const BRAND_LABELS = ['Primary', 'Secondary', 'Accent'] as const
-
 /** The design caps event names so they fit the card and live display header. */
 export const EVENT_NAME_MAX_LENGTH = 40
 
-const STAGE_TYPE_OPTIONS: { value: EventStage['type']; label: string }[] = [
-  { value: 'open', label: 'Quest' },
-  { value: 'quiz', label: 'Quiz' },
-  { value: 'bingo', label: 'Bingo' },
-  { value: 'break', label: 'Break' },
-]
-
-const BRAND_COLOR_HELP: Record<(typeof BRAND_LABELS)[number], string> = {
-  Primary: 'Animated brand blobs on team join and display screens.',
-  Secondary: 'Base background behind the live gradient (join + display).',
-  Accent:
-    'Buttons, challenge cards, chat actions, and notification accents on team devices.',
-}
+/** Stage type values are stored on the event; only their labels are translated. */
+const STAGE_TYPE_VALUES: EventStage['type'][] = ['open', 'quiz', 'bingo', 'break']
 
 type EventFormProps = {
   organizationId: string
@@ -81,6 +69,7 @@ export function EventForm({
   orgDefaults,
   maxTeamCount = 20,
 }: EventFormProps) {
+  const { t } = useTranslation('admin')
   // Demo events are capped below the normal allowance, so the floor has to
   // give way rather than fight the cap.
   const minTeamCount = Math.min(INCLUDED_TEAMS_PER_EVENT, maxTeamCount)
@@ -109,6 +98,23 @@ export function EventForm({
 
   const set = (patch: Partial<EventFormValues>) =>
     onChange((prev) => ({ ...prev, ...patch }))
+
+  // Each colour says what it actually paints, because "secondary" means
+  // nothing until you know it is the base behind the blobs.
+  const brandFields = [
+    { label: t('events.form.brandPrimary'), help: t('events.form.brandPrimaryHelp') },
+    { label: t('events.form.brandSecondary'), help: t('events.form.brandSecondaryHelp') },
+    { label: t('events.form.brandAccent'), help: t('events.form.brandAccentHelp') },
+  ]
+
+  const stageTypeLabels: Record<EventStage['type'], string> = {
+    open: t('events.form.stageType.quest'),
+    quiz: t('events.form.stageType.quiz'),
+    bingo: t('events.form.stageType.bingo'),
+    break: t('events.form.stageType.break'),
+    welcome: t('events.form.stageType.welcome'),
+    end: t('events.form.stageType.end'),
+  }
 
   function onTeamCountChange(n: number) {
     const count = Math.max(minTeamCount, Math.min(maxTeamCount, n))
@@ -171,14 +177,14 @@ export function EventForm({
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
         <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
           <div className="border-border border-b pb-2">
-            <h2 className="text-foreground text-base font-bold">Primary</h2>
-            <p className="text-muted-foreground mt-1 text-xs">Event identity, schedule, and live display settings.</p>
+            <h2 className="text-foreground text-base font-bold">{t('events.form.primary')}</h2>
+            <p className="text-muted-foreground mt-1 text-xs">{t('events.form.primaryHelp')}</p>
           </div>
           <div className="space-y-2">
             <Label>
-              Event name{' '}
+              {t('events.form.eventName')}{' '}
               <span className="text-muted-foreground font-normal">
-                (max {EVENT_NAME_MAX_LENGTH} characters)
+                {t('events.form.maxCharacters', { count: EVENT_NAME_MAX_LENGTH })}
               </span>
             </Label>
             <Input
@@ -189,7 +195,7 @@ export function EventForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Event date & time</Label>
+            <Label>{t('events.form.eventDateTime')}</Label>
             <Input
               type="datetime-local"
               value={eventDate}
@@ -198,16 +204,16 @@ export function EventForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Location</Label>
+            <Label>{t('events.form.location')}</Label>
             <Input
               value={values.location}
               onChange={(e) => set({ location: e.target.value })}
-              placeholder="e.g. Valletta, MT"
+              placeholder={t('events.form.locationPlaceholder')}
               className="bg-background"
             />
           </div>
           <div className="space-y-2">
-            <Label>Event language</Label>
+            <Label>{t('events.form.eventLanguage')}</Label>
             <select
               value={values.language}
               onChange={(e) => set({ language: e.target.value as EventFormValues['language'] })}
@@ -220,47 +226,47 @@ export function EventForm({
               ))}
             </select>
             <p className="text-muted-foreground text-xs">
-              Player phones, the display, and the facilitator panel follow this language.
+              {t('events.form.eventLanguageHelp')}
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <PillPair
-              label="Display"
-              leftLabel="Rank list"
-              rightLabel="Orbit"
+              label={t('events.form.displayLabel')}
+              leftLabel={t('events.form.rankList')}
+              rightLabel={t('events.form.orbit')}
               rightSelected={values.displayLayout === 'orbit_view'}
               onChange={(rightSelected) => set({ displayLayout: rightSelected ? 'orbit_view' : 'rank_list' })}
             />
             <PillPair
-              label="UI colour"
-              leftLabel="White"
-              rightLabel="Black"
+              label={t('events.form.uiColour')}
+              leftLabel={t('events.form.white')}
+              rightLabel={t('events.form.black')}
               rightSelected={values.displayTextColor === 'black'}
               onChange={(rightSelected) => set({ displayTextColor: rightSelected ? 'black' : 'white' })}
             />
             <PillPair
-              label="Purchase items"
-              leftLabel="Off"
-              rightLabel="On"
+              label={t('events.form.purchaseItems')}
+              leftLabel={t('events.form.off')}
+              rightLabel={t('events.form.on')}
               rightSelected={inventoryEnabled}
               onChange={(rightSelected) => set({ inventoryEnabled: rightSelected })}
             />
           </div>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            Display and colour settings apply to the live host, audience, and player surfaces.
+            {t('events.form.displayHelp')}
           </p>
         </Card>
 
         <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
           <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b pb-2">
             <div>
-              <h2 className="text-foreground text-base font-bold">Branding</h2>
-              <p className="text-muted-foreground mt-1 text-xs">Optional visual overrides for this event.</p>
+              <h2 className="text-foreground text-base font-bold">{t('events.form.branding')}</h2>
+              <p className="text-muted-foreground mt-1 text-xs">{t('events.form.brandingHelp')}</p>
             </div>
             <PillPair
-              label="Custom branding"
-              leftLabel="Off"
-              rightLabel="On"
+              label={t('events.form.customBranding')}
+              leftLabel={t('events.form.off')}
+              rightLabel={t('events.form.on')}
               rightSelected={brandingEnabled}
               onChange={(rightSelected) => set({ brandingEnabled: rightSelected })}
             />
@@ -270,7 +276,7 @@ export function EventForm({
               {/* Upload only, with the logo shown beside the button: a logo is
                   a file the organiser has, never a URL they type. */}
               <AssetField
-                label="Event logo"
+                label={t('events.form.eventLogo')}
                 inlinePreview
                 preview={logoUrl}
                 onFile={async (file) => {
@@ -284,15 +290,13 @@ export function EventForm({
                   set({ logoUrl: url })
                 }}
               />
-              {/* Each colour says what it actually paints, because "secondary"
-                  means nothing until you know it is the base behind the blobs. */}
               <div className="space-y-3">
                 {brandColors.map((c, i) => (
-                  <div key={BRAND_LABELS[i]} className="flex items-center gap-3">
+                  <div key={`event-brand-${i}`} className="flex items-center gap-3">
                     <div className="w-20 shrink-0">
                       <BrandColourPicker
                         id={`event-brand-${i}`}
-                        label={BRAND_LABELS[i]}
+                        label={brandFields[i].label}
                         value={c}
                         onChange={(hex) => {
                           const next = [...brandColors] as [string, string, string]
@@ -302,7 +306,7 @@ export function EventForm({
                       />
                     </div>
                     <p className="text-muted-foreground min-w-0 flex-1 text-xs leading-relaxed">
-                      {BRAND_COLOR_HELP[BRAND_LABELS[i]]}
+                      {brandFields[i].help}
                     </p>
                   </div>
                 ))}
@@ -310,7 +314,7 @@ export function EventForm({
             </>
           ) : orgDefaults ? (
             <p className="text-muted-foreground text-sm">
-              Using organization logo and colors from Settings.
+              {t('events.form.usingOrgBranding')}
             </p>
           ) : null}
           <NeoButton
@@ -321,7 +325,7 @@ export function EventForm({
             onClick={() => setPreviewOpen(true)}
           >
             <IconEye className="size-3.5" aria-hidden />
-            Preview event
+            {t('events.form.previewEvent')}
           </NeoButton>
         </Card>
       </div>
@@ -333,14 +337,14 @@ export function EventForm({
       <Card className="border-border/80 flex flex-col space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="border-border flex flex-wrap items-end gap-4 border-b pb-3">
           <div className="mr-auto">
-            <h3 className="text-foreground text-base font-bold">Teams</h3>
-            <p className="text-muted-foreground mt-1 text-xs">Set team names and colours for the live event.</p>
+            <h3 className="text-foreground text-base font-bold">{t('events.form.teams')}</h3>
+            <p className="text-muted-foreground mt-1 text-xs">{t('events.form.teamsHelp')}</p>
           </div>
           <div className="space-y-2">
             <Label>
-              Number of teams{' '}
+              {t('events.form.numberOfTeams')}{' '}
               <span className="text-muted-foreground font-normal">
-                (minimum {minTeamCount})
+                {t('events.form.minimumTeams', { count: minTeamCount })}
               </span>
             </Label>
             <div className="flex items-center gap-1.5">
@@ -351,7 +355,7 @@ export function EventForm({
           </div>
           {maxTeamCount <= 2 ? (
             <p className="text-muted-foreground text-xs">
-              Demo events are limited to {maxTeamCount} teams.
+              {t('events.form.demoTeamLimit', { count: maxTeamCount })}
             </p>
           ) : null}
         </div>
@@ -359,18 +363,22 @@ export function EventForm({
           teamCharge.count > 0 ? (
             <div className="border-primary/40 bg-primary/5 rounded-lg border px-4 py-3 text-sm">
               <p className="text-foreground font-medium">
-                Additional-team charge: {formatEur(teamCharge.amountEur)}
+                {t('events.form.additionalTeamCharge', {
+                  amount: formatEur(teamCharge.amountEur),
+                })}
               </p>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                Five teams are included. {teamCharge.count} additional team
-                {teamCharge.count === 1 ? '' : 's'} × {formatEur(ADDITIONAL_TEAM_PRICE_EUR)} will
-                be added automatically to this event's bill when it is activated.
+                {t('events.form.additionalTeamNote', {
+                  count: teamCharge.count,
+                  price: formatEur(ADDITIONAL_TEAM_PRICE_EUR),
+                })}
               </p>
             </div>
           ) : (
             <p className="text-muted-foreground text-xs">
-              Five teams are included. Each additional team costs {formatEur(ADDITIONAL_TEAM_PRICE_EUR)}
-              {' '}and is added to the event bill on activation.
+              {t('events.form.teamsIncludedNote', {
+                price: formatEur(ADDITIONAL_TEAM_PRICE_EUR),
+              })}
             </p>
           )
         ) : null}
@@ -382,7 +390,9 @@ export function EventForm({
               <input
                 type="color"
                 value={team.color}
-                aria-label={`${team.name || `Team ${index + 1}`} colour`}
+                aria-label={t('events.form.teamColourAria', {
+                  team: team.name || t('events.teamNumber', { index: index + 1 }),
+                })}
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
@@ -395,7 +405,7 @@ export function EventForm({
               />
               <Input
                 value={team.name}
-                placeholder={`Team ${index + 1}`}
+                placeholder={t('events.teamNumber', { index: index + 1 })}
                 onChange={(e) =>
                   onChange((prev) => ({
                     ...prev,
@@ -417,7 +427,7 @@ export function EventForm({
                   variant="ghost"
                   size="icon-sm"
                   className="text-destructive shrink-0"
-                  title="Remove team"
+                  title={t('events.form.removeTeam')}
                   onClick={() =>
                     onChange((prev) => ({
                       ...prev,
@@ -446,8 +456,8 @@ export function EventForm({
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-foreground text-base font-bold">Stages</h3>
-            <p className="text-muted-foreground mt-1 text-xs">Build the running order for facilitators and players.</p>
+            <h3 className="text-foreground text-base font-bold">{t('events.form.stages')}</h3>
+            <p className="text-muted-foreground mt-1 text-xs">{t('events.form.stagesHelp')}</p>
           </div>
           <Button
             type="button"
@@ -456,7 +466,7 @@ export function EventForm({
             onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
           >
             <IconPlus className="size-4" />
-            Add stage
+            {t('events.form.addStage')}
           </Button>
         </div>
         {stages.map((stage, stageIndex) => {
@@ -468,10 +478,16 @@ export function EventForm({
           const middleCount = stages.filter((s) => !isBookendStage(s)).length
           const stageLabel =
             stage.type === 'welcome'
-              ? 'Welcome · always first'
+              ? t('events.form.welcomeStageLabel')
               : stage.type === 'end'
-                ? 'End · always last'
-                : `Stage ${stages.slice(0, stageIndex).filter((s) => !isBookendStage(s)).length + 1}`
+                ? t('events.form.endStageLabel')
+                : t('events.form.stageNumber', {
+                    index:
+                      stages.slice(0, stageIndex).filter((s) => !isBookendStage(s)).length + 1,
+                  })
+          // Used when the organiser has not named the stage yet.
+          const stageFallbackName =
+            stage.name || t('events.form.stageFallback', { index: stageIndex + 1 })
           return (
           <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
             <div className="flex flex-wrap items-center gap-3">
@@ -483,8 +499,8 @@ export function EventForm({
                 size="icon-sm"
                 aria-label={
                   collapsedStages[stage.id]
-                    ? `Expand ${stage.name || `stage ${stageIndex + 1}`}`
-                    : `Collapse ${stage.name || `stage ${stageIndex + 1}`}`
+                    ? t('events.form.expandStage', { stage: stageFallbackName })
+                    : t('events.form.collapseStage', { stage: stageFallbackName })
                 }
                 onClick={() =>
                   setCollapsedStages((current) => ({
@@ -525,7 +541,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} earlier`}
+                    aria-label={t('events.form.moveStageEarlier', { stage: stageFallbackName })}
                     disabled={stageIndex <= firstMovable}
                     onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, -1) }))}
                   >
@@ -535,7 +551,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Move ${stage.name || `stage ${stageIndex + 1}`} later`}
+                    aria-label={t('events.form.moveStageLater', { stage: stageFallbackName })}
                     disabled={stageIndex >= lastMovable}
                     onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, 1) }))}
                   >
@@ -545,7 +561,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Delete ${stage.name || `stage ${stageIndex + 1}`}`}
+                    aria-label={t('events.form.deleteStage', { stage: stageFallbackName })}
                     disabled={middleCount <= 1}
                     onClick={() =>
                       onChange((prev) => ({
@@ -561,9 +577,17 @@ export function EventForm({
             </div>
             {collapsedStages[stage.id] ? null : bookend ? (
               <label className="space-y-1.5 text-xs font-medium">
-                <span>{stage.type === 'welcome' ? 'Welcome message' : 'End message'}</span>
+                <span>
+                  {stage.type === 'welcome'
+                    ? t('events.form.welcomeMessage')
+                    : t('events.form.endMessage')}
+                </span>
                 <textarea
-                  placeholder={stage.type === 'welcome' ? 'Welcome message' : 'End message'}
+                  placeholder={
+                    stage.type === 'welcome'
+                      ? t('events.form.welcomeMessage')
+                      : t('events.form.endMessage')
+                  }
                   value={stage.message ?? ''}
                   onChange={(e) =>
                     onChange((prev) => ({
@@ -578,17 +602,17 @@ export function EventForm({
                 />
                 <span className="text-muted-foreground block text-[11px] font-normal normal-case">
                   {stage.type === 'welcome'
-                    ? 'Shown on team devices and the display before the first game starts.'
-                    : 'Ending freezes all play and shows this on every device. Winners are still announced separately.'}
+                    ? t('events.form.welcomeMessageHelp')
+                    : t('events.form.endMessageHelp')}
                 </span>
               </label>
             ) : (
             <>
             <SegmentedPill
-              aria-label="Stage type"
-              options={STAGE_TYPE_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
+              aria-label={t('events.form.stageTypeAria')}
+              options={STAGE_TYPE_VALUES.map((value) => ({
+                value,
+                label: stageTypeLabels[value],
               }))}
               value={stage.type}
               onChange={(next) => setStageType(stage.id, next)}
@@ -596,9 +620,9 @@ export function EventForm({
             {stage.type === 'break' ? (
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-end">
                 <label className="space-y-1.5 text-xs font-medium">
-                  <span>Break message</span>
+                  <span>{t('events.form.breakMessage')}</span>
                   <textarea
-                  placeholder="Break message"
+                  placeholder={t('events.form.breakMessage')}
                   value={stage.message ?? ''}
                   onChange={(e) =>
                     onChange((prev) => ({
@@ -614,12 +638,12 @@ export function EventForm({
                 </label>
                 <div className="space-y-1.5 text-xs font-medium">
                   <span className="text-muted-foreground block text-[10px] font-semibold tracking-wider uppercase">
-                    Duration
+                    {t('events.form.duration')}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <NumberField
                       min={0}
-                      aria-label="Break minutes"
+                      aria-label={t('events.form.breakMinutes')}
                       value={stage.durationMinutes ?? 0}
                       onChange={(n) =>
                         onChange((prev) => ({
@@ -631,11 +655,11 @@ export function EventForm({
                       }
                       className="bg-background w-16 text-center tabular-nums"
                     />
-                    <span className="text-muted-foreground">min</span>
+                    <span className="text-muted-foreground">{t('events.form.min')}</span>
                     <NumberField
                       min={0}
                       max={59}
-                      aria-label="Break seconds"
+                      aria-label={t('events.form.breakSeconds')}
                       value={stage.durationSeconds ?? 0}
                       onChange={(n) =>
                         onChange((prev) => ({
@@ -647,7 +671,7 @@ export function EventForm({
                       }
                       className="bg-background w-16 text-center tabular-nums"
                     />
-                    <span className="text-muted-foreground">sec</span>
+                    <span className="text-muted-foreground">{t('events.form.sec')}</span>
                   </div>
                 </div>
               </div>
@@ -678,7 +702,7 @@ export function EventForm({
                 }}
                 className="border-input bg-background w-full rounded-lg border px-2 py-1.5 text-sm"
               >
-                <option value="">Select game…</option>
+                <option value="">{t('events.form.selectGame')}</option>
                 {compatibleGames(stage.type).map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -690,14 +714,16 @@ export function EventForm({
               /* Which look the room wears during this stage: the event's own
                  branding, or the background designed inside the game (CF3-16). */
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-medium">Branding</span>
+                <span className="text-xs font-medium">{t('events.form.branding')}</span>
                 <SegmentedPill
                   size="sm"
                   className="w-64"
-                  aria-label={`Branding for ${stage.name || 'stage'}`}
+                  aria-label={t('events.form.brandingForStage', {
+                    stage: stage.name || t('events.form.stageWord'),
+                  })}
                   options={[
-                    { value: 'event', label: 'Event branding' },
-                    { value: 'game', label: 'Game branding' },
+                    { value: 'event', label: t('events.form.eventBranding') },
+                    { value: 'game', label: t('events.form.gameBranding') },
                   ]}
                   value={stage.branding ?? 'event'}
                   onChange={(next) =>
@@ -725,7 +751,7 @@ export function EventForm({
           onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
         >
           <IconPlus className="size-4" />
-          Add stage
+          {t('events.form.addStage')}
         </Button>
       </Card>
 
@@ -768,13 +794,8 @@ function PillPair({
 
 type QuestTypeFilter = 'photo' | 'video' | 'puzzle' | 'text' | null
 
-const QUEST_TYPE_FILTERS: { label: string; type: QuestTypeFilter }[] = [
-  { label: 'All', type: null },
-  { label: 'Photo', type: 'photo' },
-  { label: 'Video', type: 'video' },
-  { label: 'Puzzle', type: 'puzzle' },
-  { label: 'Text', type: 'text' },
-]
+/** Filter values stay raw (they match game types); labels are translated. */
+const QUEST_TYPE_FILTERS: QuestTypeFilter[] = [null, 'photo', 'video', 'puzzle', 'text']
 
 type QuestStageGamesProps = {
   stage: EventStage
@@ -786,6 +807,7 @@ type QuestStageGamesProps = {
 
 /** Quest stage games: ordered draggable list (= players' display order) + quick add. */
 function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGamesProps) {
+  const { t } = useTranslation('admin')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [selectedInStage, setSelectedInStage] = useState<Set<string>>(new Set())
   const [groupFilter, setGroupFilter] = useState('all')
@@ -825,6 +847,24 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
 
   const allFilteredChecked =
     filteredAvailable.length > 0 && filteredAvailable.every((g) => ids.includes(g.id))
+
+  // Game type values come from the database; only the badge label changes.
+  const gameTypeLabels: Record<string, string> = {
+    photo: t('events.form.gameType.photo'),
+    video: t('events.form.gameType.video'),
+    text: t('events.form.gameType.text'),
+    puzzle: t('events.form.gameType.puzzle'),
+    quiz: t('events.form.gameType.quiz'),
+    music_bingo: t('events.form.gameType.bingo'),
+  }
+
+  const questFilterLabels: Record<string, string> = {
+    all: t('events.form.questFilter.all'),
+    photo: t('events.form.questFilter.photo'),
+    video: t('events.form.questFilter.video'),
+    puzzle: t('events.form.questFilter.puzzle'),
+    text: t('events.form.questFilter.text'),
+  }
 
   /**
    * Ticking a game adds it to the stage there and then.
@@ -885,10 +925,10 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   )
                 }
               />
-              Select all ({inStage.length})
+              {t('events.form.selectAllCount', { count: inStage.length })}
             </label>
             <p className="text-muted-foreground mr-auto text-xs">
-              Drag to reorder — this is the order players see the challenges in.
+              {t('events.form.dragToReorder')}
             </p>
             {selectedInStage.size > 0 ? (
               <NeoButton
@@ -902,7 +942,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                 }}
               >
                 <IconTrash className="size-3.5" />
-                Remove {selectedInStage.size}
+                {t('events.form.removeCount', { count: selectedInStage.size })}
               </NeoButton>
             ) : null}
           </div>
@@ -934,7 +974,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                 <input
                   type="checkbox"
                   className="shrink-0"
-                  aria-label={`Select ${g.name}`}
+                  aria-label={t('events.form.selectGameAria', { name: g.name })}
                   checked={selectedInStage.has(g.id)}
                   // Stops the row's drag handler claiming the click.
                   onClick={(event) => event.stopPropagation()}
@@ -952,12 +992,12 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   {index + 1}.
                 </span>
                 <span className="min-w-0 flex-1 truncate">{g.name}</span>
-                <span className="text-muted-foreground shrink-0 text-xs capitalize">
-                  {g.type}
+                <span className="text-muted-foreground shrink-0 text-xs">
+                  {gameTypeLabels[g.type] ?? g.type}
                 </span>
                 <button
                   type="button"
-                  title="Remove from stage"
+                  title={t('events.form.removeFromStage')}
                   onClick={() => {
                     setStageIds(ids.filter((id) => id !== g.id))
                     setSelectedInStage((current) => {
@@ -974,15 +1014,13 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
           </ul>
         </div>
       ) : (
-        <p className="text-muted-foreground text-xs">
-          No games in this stage yet — add photo, video, text, or puzzle games below.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('events.form.noStageGames')}</p>
       )}
 
       {inStage.length > 0 && !pickerOpen && available.length > 0 ? (
         <NeoButton type="button" variant="surface" size="sm" onClick={() => setPickerOpen(true)}>
           <IconPlus className="size-3.5" />
-          Add More
+          {t('events.form.addMore')}
         </NeoButton>
       ) : null}
 
@@ -992,17 +1030,17 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
             <Input
               value={gameSearch}
               onChange={(event) => setGameSearch(event.target.value)}
-              placeholder="Search games…"
-              aria-label="Search available quest games"
+              placeholder={t('events.form.searchGames')}
+              aria-label={t('events.form.searchGamesAria')}
               className="bg-background h-8 min-w-44 flex-1 text-xs"
             />
             <select
               value={groupFilter}
               onChange={(event) => setGroupFilter(event.target.value)}
               className="border-input bg-background h-8 min-w-40 rounded-md border px-2 text-xs font-semibold"
-              aria-label="Filter available quest games by group"
+              aria-label={t('events.form.filterByGroupAria')}
             >
-              <option value="all">All Groups</option>
+              <option value="all">{t('events.form.allGroups')}</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>{group.name}</option>
               ))}
@@ -1022,14 +1060,14 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                 setStageIds([...ids, ...toAdd], toAdd)
               }}
             >
-              {allFilteredChecked ? 'Deselect All' : 'Select All'}
+              {allFilteredChecked ? t('events.form.deselectAll') : t('events.form.selectAll')}
             </Button>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
-            {QUEST_TYPE_FILTERS.map(({ label, type }) => (
+            {QUEST_TYPE_FILTERS.map((type) => (
               <button
-                key={label}
+                key={type ?? 'all'}
                 type="button"
                 onClick={() => setTypeFilter(type)}
                 className={cn(
@@ -1039,7 +1077,7 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                     : 'border-border text-muted-foreground hover:bg-muted/50 border',
                 )}
               >
-                {label}
+                {questFilterLabels[type ?? 'all']}
               </button>
             ))}
           </div>
@@ -1056,8 +1094,8 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                         onChange={() => togglePending(g.id)}
                       />
                       <span className="min-w-0 flex-1 truncate">{g.name}</span>
-                      <span className="text-muted-foreground shrink-0 text-xs capitalize">
-                        {g.type === 'music_bingo' ? 'Bingo' : g.type}
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        {gameTypeLabels[g.type] ?? g.type}
                       </span>
                     </label>
                   </li>
@@ -1070,12 +1108,14 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                   size="sm"
                   onClick={() => setPickerOpen(false)}
                 >
-                  Done
+                  {t('events.done')}
                 </NeoButton>
               </div>
             </>
           ) : available.length > 0 ? (
-            <p className="text-muted-foreground text-xs">No available games match these filters.</p>
+            <p className="text-muted-foreground text-xs">
+              {t('events.form.noGamesMatchFilters')}
+            </p>
           ) : null}
         </div>
       ) : null}

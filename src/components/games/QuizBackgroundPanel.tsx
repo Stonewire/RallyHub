@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AssetField } from '@/components/games/AssetField'
 import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { DEFAULT_QUIZ_BACKGROUND, quizBackgroundGradient } from '@/lib/quiz-media'
 import type { GameConfig } from '@/types/game-config'
 
-const CORNERS = ['Top left', 'Top right', 'Bottom right', 'Bottom left'] as const
+const CORNER_KEYS = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as const
 
 /**
  * A game's background: one photo, or four colours blended from the corners.
@@ -22,8 +23,8 @@ export function QuizBackgroundPanel({
   setConfig,
   quizName,
   onUploadBackground,
-  title = 'Quiz designer',
-  previewSubtitle = 'Question 1 of your quiz',
+  title,
+  previewSubtitle,
 }: {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
@@ -32,6 +33,9 @@ export function QuizBackgroundPanel({
   title?: string
   previewSubtitle?: string
 }) {
+  const { t } = useTranslation('admin')
+  const heading = title ?? t('games.background.quizDesigner')
+  const subtitle = previewSubtitle ?? t('games.background.quizPreviewSubtitle')
   const usingImage = config.background_mode
     ? config.background_mode === 'image'
     : Boolean(config.background_url)
@@ -61,14 +65,14 @@ export function QuizBackgroundPanel({
   return (
     <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-foreground text-sm font-bold">{title}</h3>
+        <h3 className="text-foreground text-sm font-bold">{heading}</h3>
         <SegmentedPill
           size="sm"
           className="w-44"
-          aria-label="Background type"
+          aria-label={t('games.background.backgroundType')}
           options={[
-            { value: 'image', label: 'Photo' },
-            { value: 'colours', label: 'Colours' },
+            { value: 'image', label: t('games.background.photo') },
+            { value: 'colours', label: t('games.background.colours') },
           ]}
           value={usingImage ? 'image' : 'colours'}
           onChange={(next) =>
@@ -81,7 +85,7 @@ export function QuizBackgroundPanel({
 
       {usingImage ? (
         <AssetField
-          label="Background photo"
+          label={t('games.background.backgroundPhoto')}
           preview={config.background_url ?? null}
           onFile={async (file) => {
             if (!file) return
@@ -94,13 +98,13 @@ export function QuizBackgroundPanel({
         />
       ) : (
         <div className="space-y-2">
-          <Label>Corner colours</Label>
+          <Label>{t('games.background.cornerColours')}</Label>
           <div className="grid grid-cols-2 gap-3">
-            {CORNERS.map((corner, index) => (
+            {CORNER_KEYS.map((corner, index) => (
               <BrandColourPicker
                 key={corner}
                 id={`quiz-bg-${index}`}
-                label={corner}
+                label={t(`games.background.corner.${corner}`)}
                 value={colours[index]}
                 onChange={(hex) => setCorner(index, hex)}
               />
@@ -111,7 +115,7 @@ export function QuizBackgroundPanel({
 
       <div>
         <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wider uppercase">
-          Live preview
+          {t('games.background.livePreview')}
         </p>
         <div
           className="flex aspect-video items-center justify-center rounded-md p-4 text-center"
@@ -119,9 +123,9 @@ export function QuizBackgroundPanel({
         >
           <div>
             <p className="text-base font-bold text-white drop-shadow">
-              {quizName.trim() || 'Untitled quiz'}
+              {quizName.trim() || t('games.background.untitledQuiz')}
             </p>
-            <p className="text-xs text-white/85 drop-shadow">{previewSubtitle}</p>
+            <p className="text-xs text-white/85 drop-shadow">{subtitle}</p>
           </div>
         </div>
       </div>

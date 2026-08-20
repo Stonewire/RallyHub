@@ -1,5 +1,6 @@
 import { IconCheck } from '@/components/icons'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card } from '@/components/ui/card'
 import {
@@ -34,6 +35,7 @@ export function PlanDetailsCard({
   className,
   action,
 }: PlanDetailsCardProps) {
+  const { t } = useTranslation('admin')
   const plan = getPlan(planId)
   const period = normalizeBillingPeriod(billingPeriod)
   const brandingNote = formatBrandingNote(plan)
@@ -53,10 +55,10 @@ export function PlanDetailsCard({
         {!compact ? (
           <p className="text-muted-foreground mt-0.5 text-sm">
             {plan.freeSubscription
-              ? 'No subscription'
+              ? t('billing.noSubscription')
               : plan.priceOnRequest
-                ? 'Contact us for a custom plan'
-                : `${formatBillingPeriodLabel(period)} billing`}
+                ? t('billing.contactForCustomPlan')
+                : t('billing.periodBilling', { period: formatBillingPeriodLabel(period) })}
           </p>
         ) : null}
       </div>

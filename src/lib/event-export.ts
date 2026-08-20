@@ -1,3 +1,4 @@
+import { i18n } from '@/lib/i18n'
 import JSZip from 'jszip'
 
 import { toCsv } from '@/lib/csv'
@@ -125,7 +126,12 @@ function pickSaveTarget(suggestedName: string): Promise<SaveTarget | null> {
   return picker
     .call(window, {
       suggestedName,
-      types: [{ description: 'ZIP archive', accept: { 'application/zip': ['.zip'] } }],
+      types: [
+        {
+          description: i18n.t('admin:events.export.zipArchive'),
+          accept: { 'application/zip': ['.zip'] },
+        },
+      ],
     })
     .then((handle: FileSystemFileHandle) => ({ kind: 'stream' as const, handle }))
     .catch((err: unknown) => {
@@ -253,7 +259,7 @@ export async function downloadEventPackage(
     .select('id')
     .eq('id', eventId)
     .single()
-  if (eErr || !event) throw new Error('Event not found')
+  if (eErr || !event) throw new Error(i18n.t('admin:events.export.eventNotFound'))
 
   const [teamsRes, subsRes, egRes] = await Promise.all([
     supabase.from('teams').select('*').eq('event_id', eventId).order('slot_number'),
@@ -284,7 +290,10 @@ export async function downloadEventPackage(
       url: team.photo_url,
       folder: 'teams',
       name: `${team.slot_number}-${safeFileName(team.name ?? 'team')}.${extFromUrl(team.photo_url, 'jpg')}`,
-      label: `Team ${team.slot_number} (${team.name ?? 'unnamed'}) photo`,
+      label: i18n.t('admin:events.export.teamPhotoLabel', {
+        slot: team.slot_number,
+        name: team.name ?? i18n.t('admin:events.export.unnamedTeam'),
+      }),
     })
   }
 
@@ -301,7 +310,7 @@ export async function downloadEventPackage(
       url: sub.media_url,
       folder: 'media',
       name: `${safeFileName(base)}.${ext}`,
-      label: `${team?.name ?? 'Unknown team'} - ${game?.name ?? 'Unknown game'} (${sub.media_type})`,
+      label: `${team?.name ?? i18n.t('admin:events.export.unknownTeam')} - ${game?.name ?? i18n.t('admin:events.export.unknownGame')} (${sub.media_type})`,
     })
   }
 
@@ -355,7 +364,17 @@ export async function downloadEventPackage(
         ]
       })
 
-    const csv = toCsv(['Team', 'Game', 'Type', 'Status', 'Points', 'Result'], rows)
+    const csv = toCsv(
+      [
+        i18n.t('admin:events.export.csv.team'),
+        i18n.t('admin:events.export.csv.game'),
+        i18n.t('admin:events.export.csv.type'),
+        i18n.t('admin:events.export.csv.status'),
+        i18n.t('admin:events.export.csv.points'),
+        i18n.t('admin:events.export.csv.result'),
+      ],
+      rows,
+    )
     zip.file('quiz-bingo-results.csv', csv)
   }
 
@@ -364,8 +383,11 @@ export async function downloadEventPackage(
     zip.file(
       'MISSING-FILES.txt',
       [
-        `${missing.length} of ${tasks.length} files could not be downloaded.`,
-        'They may have been deleted from storage, or the connection dropped.',
+        i18n.t('admin:events.export.missingHeader', {
+          missing: missing.length,
+          total: tasks.length,
+        }),
+        i18n.t('admin:events.export.missingHint'),
         '',
         ...missing.map((m) => `- ${m}`),
       ].join('\n'),

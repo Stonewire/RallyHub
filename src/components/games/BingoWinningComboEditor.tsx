@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { SegmentedPill } from '@/components/neo-minimal'
 import { Label } from '@/components/ui/label'
@@ -29,32 +30,31 @@ function clamp(n: number): number {
  * before this still plays the way it was set up.
  */
 export function BingoWinningComboEditor({ config, setConfig }: BingoWinningComboEditorProps) {
+  const { t } = useTranslation('admin')
   const win = resolveBingoWinConfig(config)
 
   function setLinesRequired(n: number) {
     setConfig((c) => ({ ...c, bingo_win_mode: 'lines', bingo_lines_required: clamp(n) }))
   }
 
-  const lineWord = win.linesRequired === 1 ? 'line' : 'lines'
-
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label>Winning conditions</Label>
+        <Label>{t('games.bingo.winningConditions')}</Label>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="border-border/80 hover:bg-muted/40 size-8 rounded-md border text-lg font-semibold disabled:opacity-40"
             disabled={win.linesRequired <= MIN_BINGO_LINES_REQUIRED}
             onClick={() => setLinesRequired(win.linesRequired - 1)}
-            aria-label="Decrease lines"
+            aria-label={t('games.bingo.decreaseLines')}
           >
             −
           </button>
           <NumberField
             min={MIN_BINGO_LINES_REQUIRED}
             max={MAX_BINGO_LINES_REQUIRED}
-            aria-label="Lines required to win"
+            aria-label={t('games.bingo.linesRequiredToWin')}
             className="bg-background h-8 w-16 text-center"
             value={win.linesRequired}
             onChange={setLinesRequired}
@@ -64,20 +64,22 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
             className="border-border/80 hover:bg-muted/40 size-8 rounded-md border text-lg font-semibold disabled:opacity-40"
             disabled={win.linesRequired >= MAX_BINGO_LINES_REQUIRED}
             onClick={() => setLinesRequired(win.linesRequired + 1)}
-            aria-label="Increase lines"
+            aria-label={t('games.bingo.increaseLines')}
           >
             +
           </button>
-          <span className="text-muted-foreground text-xs">{lineWord} to win</span>
+          <span className="text-muted-foreground text-xs">
+            {t('games.bingo.linesToWin', { count: win.linesRequired })}
+          </span>
 
-          <span className="text-muted-foreground ml-1 text-xs">Diagonals</span>
+          <span className="text-muted-foreground ml-1 text-xs">{t('games.bingo.diagonals')}</span>
           <SegmentedPill
             size="sm"
             className="w-24"
-            aria-label="Count diagonals as lines"
+            aria-label={t('games.bingo.countDiagonals')}
             options={[
-              { value: 'no', label: 'No' },
-              { value: 'yes', label: 'Yes' },
+              { value: 'no', label: t('games.no') },
+              { value: 'yes', label: t('games.yes') },
             ]}
             value={win.includeDiagonals ? 'yes' : 'no'}
             onChange={(next) =>
@@ -89,7 +91,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label>Bingo win points</Label>
+          <Label>{t('games.bingo.winPoints')}</Label>
           <NumberField
             min={0}
             className="bg-background h-8"
@@ -98,7 +100,7 @@ export function BingoWinningComboEditor({ config, setConfig }: BingoWinningCombo
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Points per correct song</Label>
+          <Label>{t('games.bingo.pointsPerCorrectSong')}</Label>
           <NumberField
             min={0}
             className="bg-background h-8"

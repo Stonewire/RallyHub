@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { NoOrganizationMessage } from '@/components/admin/QueryState'
 import { ActivityChart } from '@/components/dashboard/ActivityChart'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
@@ -11,6 +13,7 @@ import { useOptionalTenant } from '@/contexts/tenant-context'
 
 /** Client-admin Overview: stats, 30-day participation and recent activity. */
 export function ClientDashboardPage() {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const statsQuery = useDashboardStats(organizationId)
@@ -18,7 +21,7 @@ export function ClientDashboardPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Overview" subtitle="Your events at a glance.">
+      <AdminPageShell title={t('overview.title')} subtitle={t('overview.subtitle')}>
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -31,15 +34,27 @@ export function ClientDashboardPage() {
   // no delta rather than a made-up one.
   const cards = [
     {
-      label: 'Available Games',
+      id: 'availableGames',
+      label: t('overview.availableGames'),
       value: stats?.totalGames,
       to: orgPath(clientSlug, '/admin/games'),
       delta: stats?.gamesDelta,
     },
-    { label: 'Upcoming Events', value: stats?.upcomingEvents, to: orgPath(clientSlug, '/admin/events') },
-    { label: 'Live Now', value: stats?.activeEvents, to: orgPath(clientSlug, '/admin/events') },
     {
-      label: 'Total Events',
+      id: 'upcomingEvents',
+      label: t('overview.upcomingEvents'),
+      value: stats?.upcomingEvents,
+      to: orgPath(clientSlug, '/admin/events'),
+    },
+    {
+      id: 'liveNow',
+      label: t('overview.liveNow'),
+      value: stats?.activeEvents,
+      to: orgPath(clientSlug, '/admin/events'),
+    },
+    {
+      id: 'totalEvents',
+      label: t('overview.totalEvents'),
       value: stats?.totalEvents,
       to: orgPath(clientSlug, '/admin/events'),
       delta: stats?.totalEventsDelta,
@@ -48,16 +63,14 @@ export function ClientDashboardPage() {
 
   return (
     <div className="px-6 py-8 lg:px-8">
-      <h1 className="mb-1 text-3xl font-bold">Overview</h1>
-      <p className="text-nm-neutral-500 mb-6 text-sm">
-        Welcome back. Here's what's happening across your organisation today.
-      </p>
+      <h1 className="mb-1 text-3xl font-bold">{t('overview.title')}</h1>
+      <p className="text-nm-neutral-500 mb-6 text-sm">{t('overview.welcome')}</p>
 
       {/* Wide layout mirrors the design: stat tiles and panels stacked on the
           left, the chart occupying the tall right-hand region. */}
       <div className="grid gap-4 xl:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_minmax(0,2.2fr)]">
         {cards.map((card) => (
-          <div key={card.label} className="xl:col-span-1">
+          <div key={card.id} className="xl:col-span-1">
             <StatCard
               label={card.label}
               value={card.value}

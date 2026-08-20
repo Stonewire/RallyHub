@@ -1,5 +1,6 @@
 import { IconGrid, IconPlus, IconPuzzle, IconRows, IconTrash } from '@/components/icons'
 import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { CrosswordEditor } from '@/components/games/CrosswordEditor'
 import { SegmentedPill } from '@/components/neo-minimal'
@@ -17,29 +18,13 @@ const MAX_PAIRS = 12
 
 const SUBTYPES: {
   type: PuzzleType
-  name: string
-  description: string
+  nameKey: string
   icon: typeof IconGrid
   upcoming?: boolean
 }[] = [
-  {
-    type: 'wordle',
-    name: 'Wordle',
-    description: 'Teams guess your word. Fewer guesses earn more points.',
-    icon: IconGrid,
-  },
-  {
-    type: 'matching',
-    name: 'Matching',
-    description: 'Teams connect related values from two shuffled columns.',
-    icon: IconRows,
-  },
-  {
-    type: 'crossword',
-    name: 'Crossword',
-    description: 'Build a 6x6 crossword. Faster solves earn more points.',
-    icon: IconPuzzle,
-  },
+  { type: 'wordle', nameKey: 'games.puzzle.types.wordle', icon: IconGrid },
+  { type: 'matching', nameKey: 'games.puzzle.types.matching', icon: IconRows },
+  { type: 'crossword', nameKey: 'games.puzzle.types.crossword', icon: IconPuzzle },
 ]
 
 export function PuzzleEditor({
@@ -52,6 +37,7 @@ export function PuzzleEditor({
   /** 'settings' renders the type picker; 'designer' renders the builder. */
   section?: 'settings' | 'designer'
 }) {
+  const { t } = useTranslation('admin')
   const selected = puzzleType(config)
   const [wordleHint, setWordleHint] = useState<string | null>(null)
   const pairs = config.puzzle_matching_pairs ?? [
@@ -75,12 +61,12 @@ export function PuzzleEditor({
   if (section === 'settings') {
     return (
       <div className="space-y-2">
-        <Label>Puzzle type</Label>
+        <Label>{t('games.puzzle.typeLabel')}</Label>
         <SegmentedPill
-          aria-label="Puzzle style"
-          options={SUBTYPES.map(({ type, name, upcoming }) => ({
+          aria-label={t('games.puzzle.styleAria')}
+          options={SUBTYPES.map(({ type, nameKey, upcoming }) => ({
             value: type,
-            label: name,
+            label: t(nameKey),
             disabled: upcoming,
           }))}
           value={selected}
@@ -92,11 +78,11 @@ export function PuzzleEditor({
 
   return (
     <Card className="border-border/80 space-y-6 bg-card p-5 shadow-sm sm:p-6">
-      <h3 className="text-foreground text-sm font-bold">Puzzle designer</h3>
+      <h3 className="text-foreground text-sm font-bold">{t('games.puzzle.designerTitle')}</h3>
 
       {selected === 'wordle' || selected === 'crossword' ? (
         <div className="flex flex-wrap items-center gap-3">
-          <Label className="shrink-0">Player keyboard</Label>
+          <Label className="shrink-0">{t('games.puzzle.playerKeyboard')}</Label>
           <div className="bg-muted grid grid-cols-2 gap-1 rounded-full p-1">
             <Button
               type="button"
@@ -107,7 +93,7 @@ export function PuzzleEditor({
                 setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'latin' }))
               }
             >
-              Latin
+              {t('games.puzzle.latin')}
             </Button>
             <Button
               type="button"
@@ -118,7 +104,7 @@ export function PuzzleEditor({
                 setConfig((current) => ({ ...current, puzzle_keyboard_alphabet: 'cyrillic' }))
               }
             >
-              Cyrillic
+              {t('games.puzzle.cyrillic')}
             </Button>
           </div>
         </div>
@@ -128,7 +114,7 @@ export function PuzzleEditor({
         <div className="space-y-4">
           <div className="flex w-full flex-wrap items-center gap-3">
             <Label htmlFor="puzzle-wordle-answer" className="shrink-0">
-              Answer
+              {t('games.puzzle.answer')}
             </Label>
             <Input
               id="puzzle-wordle-answer"
@@ -151,20 +137,20 @@ export function PuzzleEditor({
                 // refusing the keystroke.
                 setWordleHint(
                   Array.from(cleaned).length >= WORDLE_MAX_LETTERS
-                    ? `${WORDLE_MAX_LETTERS} letters is the maximum.`
+                    ? t('games.puzzle.maxLetters', { max: WORDLE_MAX_LETTERS })
                     : null,
                 )
                 setConfig((current) => ({ ...current, puzzle_wordle_answer: cleaned }))
               }}
             />
             <span className="text-muted-foreground text-xs">
-              {wordleHint ?? `Up to ${WORDLE_MAX_LETTERS} letters.`}
+              {wordleHint ?? t('games.puzzle.upToLetters', { max: WORDLE_MAX_LETTERS })}
             </span>
           </div>
 
           <div className="border-border bg-muted/25 rounded-md border p-4">
             <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-[0.1em] uppercase">
-              Player preview
+              {t('games.puzzle.playerPreview')}
             </p>
             <div className="flex justify-center gap-2">
               {Array.from(config.puzzle_wordle_answer || 'TEAM').map((letter, index) => (
@@ -182,12 +168,12 @@ export function PuzzleEditor({
 
       {selected === 'matching' ? (
         <div className="space-y-4">
-          <Label>Matching pairs</Label>
+          <Label>{t('games.puzzle.matchingPairs')}</Label>
 
           <div className="border-border bg-muted/20 space-y-2 rounded-md border p-3">
             <div className="text-muted-foreground grid grid-cols-[1fr_1fr_2.5rem] gap-2 px-1 text-xs font-semibold uppercase tracking-wide">
-              <span>Left</span>
-              <span>Matches with</span>
+              <span>{t('games.puzzle.left')}</span>
+              <span>{t('games.puzzle.matchesWith')}</span>
               <span />
             </div>
             {pairs.map((pair, index) => (
@@ -196,7 +182,7 @@ export function PuzzleEditor({
                   value={pair.left}
                   maxLength={100}
                   className="bg-background"
-                  placeholder={`Left ${index + 1}`}
+                  placeholder={t('games.puzzle.leftNumbered', { number: index + 1 })}
                   onChange={(event) =>
                     setConfig((current) => ({
                       ...current,
@@ -210,7 +196,7 @@ export function PuzzleEditor({
                   value={pair.right}
                   maxLength={100}
                   className="bg-background"
-                  placeholder={`Right ${index + 1}`}
+                  placeholder={t('games.puzzle.rightNumbered', { number: index + 1 })}
                   onChange={(event) =>
                     setConfig((current) => ({
                       ...current,
@@ -225,7 +211,7 @@ export function PuzzleEditor({
                   variant="ghost"
                   size="icon-sm"
                   disabled={pairs.length <= 2}
-                  aria-label={`Remove pair ${index + 1}`}
+                  aria-label={t('games.puzzle.removePair', { number: index + 1 })}
                   onClick={() =>
                     setConfig((current) => ({
                       ...current,
@@ -257,7 +243,7 @@ export function PuzzleEditor({
                   }))
                 }
               >
-                <IconPlus className="mr-1 size-4" /> Add more
+                <IconPlus className="mr-1 size-4" /> {t('games.puzzle.addMore')}
               </Button>
             ) : null}
           </div>

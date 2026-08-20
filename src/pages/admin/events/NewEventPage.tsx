@@ -1,5 +1,6 @@
 import { IconCheck, IconCopy } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -30,6 +31,7 @@ import { toAppLanguage } from '@/lib/i18n'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventsNewPage() {
+  const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const organizationId = useOrganizationId()
@@ -71,14 +73,14 @@ export function AdminEventsNewPage() {
 
   async function handleSave() {
     if (!organizationId || !values.name.trim()) {
-      setError('Event name is required.')
+      setError(t('events.errors.nameRequired'))
       return
     }
     const gameStages = values.stages.filter(
       (s) => s.type === 'open' || s.type === 'quiz' || s.type === 'bingo',
     )
     if (gameStages.length === 0) {
-      setError('Add at least one game stage.')
+      setError(t('events.errors.addGameStage'))
       return
     }
 
@@ -115,7 +117,7 @@ export function AdminEventsNewPage() {
       })
       setStatusPrompt({ eventId: row.id, eventName: values.name.trim() })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save event')
+      setError(err instanceof Error ? err.message : t('events.errors.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -134,13 +136,13 @@ export function AdminEventsNewPage() {
       await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status })
       navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not set event status')
+      notify(err instanceof Error ? err.message : t('events.new.statusError'))
     }
   }
 
   async function copyLink(key: string, url: string) {
     if (!(await copyToClipboard(url))) {
-      notify('Could not copy — copy it manually')
+      notify(t('events.new.copyError'))
       return
     }
     setCopied(key)
@@ -150,12 +152,12 @@ export function AdminEventsNewPage() {
   if (!organizationId) {
     return (
       <AdminPageShell
-        title="New event"
-        subtitle="Create a scheduled event."
+        title={t('events.new.title')}
+        subtitle={t('events.new.subtitleCreate')}
         backTo={orgPath(clientSlug, '/admin/events')}
-        backLabel="Back to events"
+        backLabel={t('events.backToEvents')}
       >
-        <p className="text-muted-foreground text-sm">No organization linked.</p>
+        <p className="text-muted-foreground text-sm">{t('events.new.noOrganization')}</p>
       </AdminPageShell>
     )
   }
@@ -163,25 +165,25 @@ export function AdminEventsNewPage() {
   if (statusPrompt && links) {
     return (
       <AdminPageShell
-        title="Event created"
-        subtitle="Choose a status and share your links."
+        title={t('events.new.createdTitle')}
+        subtitle={t('events.new.createdSubtitle')}
         backTo={orgPath(clientSlug, '/admin/events')}
-        backLabel="Back to events"
+        backLabel={t('events.backToEvents')}
       >
         <Card className="border-border/80 mb-8 space-y-4 bg-card p-6 shadow-sm">
           <div>
-            <h3 className="text-foreground font-bold">Set event status</h3>
+            <h3 className="text-foreground font-bold">{t('events.new.setStatus')}</h3>
             <p className="text-muted-foreground mt-1 text-sm">
-              You can change it any time from the events list.
+              {t('events.new.setStatusHint')}
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {(
               [
-                ['draft', 'Draft', 'Keep working on it; nothing is live yet.'],
-                ['ready', 'Ready', 'Locked in and waiting for event day.'],
-                ['demo', 'Demo', 'A safe trial run with up to two teams.'],
-                ['active', 'Active', 'Go live now — teams can join and play.'],
+                ['draft', t('events.status.draft'), t('events.new.statusHints.draft')],
+                ['ready', t('events.status.ready'), t('events.new.statusHints.ready')],
+                ['demo', t('events.status.demo'), t('events.new.statusHints.demo')],
+                ['active', t('events.status.active'), t('events.new.statusHints.active')],
               ] as [EventStatus, string, string][]
             ).map(([s, label, hint]) => (
               <button
@@ -202,18 +204,17 @@ export function AdminEventsNewPage() {
         </Card>
         <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
           <div>
-            <h3 className="text-foreground font-bold">Share your links</h3>
+            <h3 className="text-foreground font-bold">{t('events.new.shareLinks')}</h3>
             <p className="text-muted-foreground mt-1 text-sm">
-              Each surface has its own link and QR code; find them again on the
-              event page.
+              {t('events.new.shareLinksHint')}
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
             {(
               [
-                ['facilitator', 'Facilitator', 'Runs the event from a phone or laptop.', links.facilitator],
-                ['display', 'Display', 'The big screen everyone watches.', links.display],
-                ['join', 'Universal join', 'Print or show this one to the teams.', links.join],
+                ['facilitator', t('events.new.links.facilitatorLabel'), t('events.new.links.facilitatorHint'), links.facilitator],
+                ['display', t('events.new.links.displayLabel'), t('events.new.links.displayHint'), links.display],
+                ['join', t('events.new.links.joinLabel'), t('events.new.links.joinHint'), links.join],
               ] as const
             ).map(([key, label, hint, url]) => (
               <div key={key} className="border-border/80 flex flex-col rounded-xl border p-4">
@@ -224,7 +225,7 @@ export function AdminEventsNewPage() {
                   </div>
                   <img
                     src={qrCodeUrl(url, 160)}
-                    alt={`${label} QR code`}
+                    alt={t('events.new.qrAlt', { label })}
                     width={72}
                     height={72}
                     className="border-border shrink-0 rounded-md border"
@@ -234,7 +235,7 @@ export function AdminEventsNewPage() {
                   <Input readOnly value={url} className="bg-background h-8 min-w-0 flex-1 font-mono text-[11px]" />
                   <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void copyLink(key, url)}>
                     {copied === key ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
-                    Copy
+                    {t('events.new.copy')}
                   </Button>
                 </div>
               </div>
@@ -248,13 +249,13 @@ export function AdminEventsNewPage() {
 
   return (
     <AdminPageShell
-      title="New event"
-      subtitle="Schedule a live team event."
+      title={t('events.new.title')}
+      subtitle={t('events.new.subtitle')}
       backTo={orgPath(clientSlug, '/admin/events')}
-      backLabel="Back to events"
+      backLabel={t('events.backToEvents')}
       actions={
         <NeoButton type="button" variant="primary" disabled={saving} onClick={() => void handleSave()}>
-          {saving ? 'Saving…' : 'Create Event'}
+          {saving ? t('events.saving') : t('events.createEvent')}
         </NeoButton>
       }
     >
@@ -274,7 +275,7 @@ export function AdminEventsNewPage() {
       <FormSaveFooter
         onSave={() => void handleSave()}
         saving={saving}
-        label="Create Event"
+        label={t('events.createEvent')}
       />
     </AdminPageShell>
   )

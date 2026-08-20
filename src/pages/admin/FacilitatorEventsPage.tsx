@@ -1,5 +1,6 @@
 import { IconCheck, IconCopy, IconExternal, IconQr } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { NeoButton, NeoCard } from '@/components/neo-minimal'
@@ -14,6 +15,7 @@ import { copyToClipboard, getEventLinks, qrCodeUrl } from '@/lib/event-links'
 import { profileDisplayName } from '@/lib/auth-routes'
 
 export function FacilitatorEventsPage() {
+  const { t } = useTranslation('admin')
   const { profile } = useAuth()
   const orgId = profile?.organization_id ?? null
   const { data: events = [], isLoading } = useEvents(orgId)
@@ -24,20 +26,20 @@ export function FacilitatorEventsPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-8">
-        <h1 className="text-foreground text-2xl font-bold tracking-tight">Events</h1>
+        <h1 className="text-foreground text-2xl font-bold tracking-tight">
+          {t('facilitatorEvents.title')}
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {name ? `Signed in as ${name}. ` : ''}Open the facilitator link to run an event, or
-          share the teams link and QR code so players can join.
+          {name ? `${t('facilitatorEvents.signedInAs', { name })} ` : ''}
+          {t('facilitatorEvents.intro')}
         </p>
       </header>
 
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading your events…</p>
+        <p className="text-muted-foreground text-sm">{t('facilitatorEvents.loading')}</p>
       ) : events.length === 0 ? (
         <NeoCard className="p-8 text-center">
-          <p className="text-muted-foreground text-sm">
-            No events yet. Once your organisation creates one, it will appear here.
-          </p>
+          <p className="text-muted-foreground text-sm">{t('facilitatorEvents.empty')}</p>
         </NeoCard>
       ) : (
         <div className="space-y-8">
@@ -60,6 +62,7 @@ export function FacilitatorEventsPage() {
 }
 
 function FacilitatorEventCard({ event }: { event: EventRow }) {
+  const { t } = useTranslation('admin')
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const links = getEventLinks(event.id)
@@ -91,7 +94,7 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
         </div>
         <NeoButton variant="primary" size="sm" asChild>
           <Link to={`/facilitator/${event.id}`}>
-            Open facilitator
+            {t('facilitatorEvents.openFacilitator')}
             <IconExternal className="size-4" aria-hidden />
           </Link>
         </NeoButton>
@@ -100,15 +103,15 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
       <div className="mt-4 flex flex-wrap gap-2">
         <NeoButton variant="surface" size="sm" onClick={() => void copy('facilitator', links.facilitator)}>
           {copied === 'facilitator' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
-          Facilitator link
+          {t('facilitatorEvents.facilitatorLink')}
         </NeoButton>
         <NeoButton variant="surface" size="sm" onClick={() => void copy('display', links.display)}>
           {copied === 'display' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
-          Display link
+          {t('facilitatorEvents.displayLink')}
         </NeoButton>
         <NeoButton variant="surface" size="sm" onClick={() => void copy('join', links.join)}>
           {copied === 'join' ? <IconCheck className="size-4" aria-hidden /> : <IconCopy className="size-4" aria-hidden />}
-          Teams link
+          {t('facilitatorEvents.teamsLink')}
         </NeoButton>
         <NeoButton
           variant="ghost"
@@ -117,7 +120,7 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
           aria-expanded={showQr}
         >
           <IconQr className="size-4" aria-hidden />
-          {showQr ? 'Hide QR' : 'Teams QR'}
+          {showQr ? t('facilitatorEvents.hideQr') : t('facilitatorEvents.teamsQr')}
         </NeoButton>
       </div>
 
@@ -125,7 +128,7 @@ function FacilitatorEventCard({ event }: { event: EventRow }) {
         <div className="mt-4 flex flex-col items-center gap-2 border-t border-[var(--nm-border)] pt-4">
           <img
             src={qrCodeUrl(links.join, 200)}
-            alt={`QR code for teams to join ${event.name}`}
+            alt={t('facilitatorEvents.qrAlt', { name: event.name })}
             width={200}
             height={200}
             className="rounded-lg bg-white p-2"

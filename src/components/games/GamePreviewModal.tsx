@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 
 import { IconClose } from '@/components/icons'
 
@@ -15,36 +17,43 @@ type GamePreviewModalProps = {
   config: GameConfig
 }
 
-const TYPE_PROMPT: Record<GameType, string> = {
-  photo: 'Take a photo that matches the brief',
-  video: 'Record a short video clip',
-  text: 'Type your answer',
-  quiz: 'Choose the correct answer',
-  music_bingo: 'Listen and mark your card',
-  puzzle: 'Solve the puzzle',
+const TYPE_PROMPT_KEY: Record<GameType, string> = {
+  photo: 'games.preview.prompt.photo',
+  video: 'games.preview.prompt.video',
+  text: 'games.preview.prompt.text',
+  quiz: 'games.preview.prompt.quiz',
+  music_bingo: 'games.preview.prompt.musicBingo',
+  puzzle: 'games.preview.prompt.puzzle',
 }
 
 /** Sample answers when the game has none yet, so the mock is never empty. */
-const PLACEHOLDER_OPTIONS = ['Option A', 'Option B', 'Option C', 'Option D']
+const PLACEHOLDER_OPTION_KEYS = [
+  'games.preview.optionA',
+  'games.preview.optionB',
+  'games.preview.optionC',
+  'games.preview.optionD',
+]
 
-function previewOptions(gameType: GameType, config: GameConfig): string[] {
+function previewOptions(gameType: GameType, config: GameConfig, t: TFunction): string[] {
   if (gameType === 'quiz') {
     const first = (config.questions ?? [])[0]
-    if (first?.answers?.length) return first.answers.map((a) => a.text || 'Answer')
+    if (first?.answers?.length) {
+      return first.answers.map((a) => a.text || t('games.preview.answerFallback'))
+    }
   }
   if (gameType === 'text' && config.text_answer_mode === 'choose_answer') {
     const options = config.text_options ?? []
-    if (options.length) return options.map((o) => o.text || 'Option')
+    if (options.length) return options.map((o) => o.text || t('games.preview.optionFallback'))
   }
-  return PLACEHOLDER_OPTIONS
+  return PLACEHOLDER_OPTION_KEYS.map((key) => t(key))
 }
 
-function previewQuestion(gameType: GameType, config: GameConfig): string {
+function previewQuestion(gameType: GameType, config: GameConfig, t: TFunction): string {
   if (gameType === 'quiz') {
     const first = (config.questions ?? [])[0]
     if (first?.text) return first.text
   }
-  return TYPE_PROMPT[gameType]
+  return t(TYPE_PROMPT_KEY[gameType])
 }
 
 /**
@@ -65,11 +74,12 @@ export function GamePreviewModal({
   coverUrl,
   config,
 }: GamePreviewModalProps) {
+  const { t } = useTranslation('admin')
   if (!open) return null
 
-  const title = name.trim() || 'Untitled game'
-  const question = previewQuestion(gameType, config)
-  const options = previewOptions(gameType, config)
+  const title = name.trim() || t('games.untitledGame')
+  const question = previewQuestion(gameType, config, t)
+  const options = previewOptions(gameType, config, t)
   const showOptions = gameType === 'quiz' || gameType === 'text'
   const coverStyle = coverUrl
     ? {
@@ -83,7 +93,7 @@ export function GamePreviewModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Preview of ${title}`}
+      aria-label={t('games.preview.ariaLabel', { name: title })}
       className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
@@ -92,26 +102,23 @@ export function GamePreviewModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-1 flex items-start justify-between gap-3">
-          <h2 className="text-base font-bold">Live preview: {title}</h2>
+          <h2 className="text-base font-bold">{t('games.preview.title', { name: title })}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close preview"
+            aria-label={t('games.preview.closeAria')}
             className="hover:bg-muted rounded-nm-md flex size-7 shrink-0 items-center justify-center"
           >
             <IconClose className="size-4" />
           </button>
         </div>
-        <p className="text-muted-foreground mb-4 text-xs">
-          How this game looks on a computer, a tablet and a phone. Each pane
-          scrolls on its own.
-        </p>
+        <p className="text-muted-foreground mb-4 text-xs">{t('games.preview.description')}</p>
 
         {/* Three frames side by side: computer, tablet, phone. Each pane
             scrolls on its own so a long description can be read in the frame
             it will actually appear in, rather than only at the top. */}
         <div className="grid items-start gap-5 lg:grid-cols-[1.35fr_1fr_.62fr]">
-          <DeviceFrame label="Computer" bezel="rounded-nm-lg p-2 pb-5" screen="aspect-video rounded-md">
+          <DeviceFrame label={t('games.preview.computer')} bezel="rounded-nm-lg p-2 pb-5" screen="aspect-video rounded-md">
             <ScreenContents
               style={coverStyle}
               title={title}
@@ -121,7 +128,7 @@ export function GamePreviewModal({
             />
           </DeviceFrame>
 
-          <DeviceFrame label="Tablet" bezel="rounded-2xl p-3" screen="aspect-4/3 rounded-lg">
+          <DeviceFrame label={t('games.preview.tablet')} bezel="rounded-2xl p-3" screen="aspect-4/3 rounded-lg">
             <ScreenContents
               style={coverStyle}
               title={title}
@@ -131,7 +138,7 @@ export function GamePreviewModal({
             />
           </DeviceFrame>
 
-          <DeviceFrame label="Phone" bezel="rounded-[20px] p-2.5" screen="aspect-9/16 rounded-xl">
+          <DeviceFrame label={t('games.preview.phone')} bezel="rounded-[20px] p-2.5" screen="aspect-9/16 rounded-xl">
             <ScreenContents
               style={coverStyle}
               title={title}
@@ -144,7 +151,7 @@ export function GamePreviewModal({
 
         <div className="mt-5 flex justify-end">
           <NeoButton type="button" variant="surface" onClick={onClose}>
-            Close
+            {t('common:close')}
           </NeoButton>
         </div>
       </div>

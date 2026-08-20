@@ -1,5 +1,6 @@
 import { IconCheck, IconClose, IconCopy, IconEdit, IconPlus, IconTrash } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
@@ -28,8 +29,11 @@ import {
 } from '@/lib/auth-routes'
 import { generateTempPassword } from '@/lib/temp-password'
 
-function formatUserRole(role: OrgUserRole): string {
-  return role.replace(/_/g, ' ')
+/** Display label for a role enum. The DB value itself never changes. */
+const ROLE_LABEL_KEYS: Record<OrgUserRole, string> = {
+  facilitator: 'team.role.facilitator',
+  event_manager: 'team.role.eventManager',
+  client_admin: 'team.role.clientAdmin',
 }
 
 function displayUserName(user: {
@@ -50,6 +54,7 @@ type TeamUsersPanelProps = {
 }
 
 export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps) {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const { role: actorRole, user: authUser } = useAuth()
   const { notify } = useNotification()
@@ -150,15 +155,15 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       !newLastName.trim() ||
       !newTempPassword.trim()
     ) {
-      setFormError('All user fields are required, including a temporary password.')
+      setFormError(t('team.errorAllFieldsRequired'))
       return
     }
     if (newTempPassword.trim().length < 8) {
-      setFormError('Temporary password must be at least 8 characters.')
+      setFormError(t('team.errorTempPasswordLength'))
       return
     }
     if (!canAssignOrgUserRole(actorRole, facilitatorsOnly ? 'facilitator' : newRole)) {
-      setFormError('You cannot assign that role.')
+      setFormError(t('team.errorCannotAssignRole'))
       return
     }
 
@@ -174,7 +179,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       })
       setCreatedUser(result)
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to create user.')
+      setFormError(err instanceof Error ? err.message : t('team.errorCreateFailed'))
     }
   }
 
@@ -186,11 +191,11 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       return
     }
     if (!editEmail.trim() || !editFirstName.trim() || !editLastName.trim()) {
-      setEditError('Username, email, first and last name are required.')
+      setEditError(t('team.errorNameFieldsRequired'))
       return
     }
     if (editPassword.trim() && editPassword.trim().length < 8) {
-      setEditError('Password must be at least 8 characters.')
+      setEditError(t('team.errorPasswordLength'))
       return
     }
     setEditError(null)
@@ -207,15 +212,18 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       })
       setEditUser(null)
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Could not save changes.')
+      setEditError(err instanceof Error ? err.message : t('team.errorSaveFailed'))
     }
   }
 
   async function handleCopyCredentials() {
     if (!createdUser) return
-    const text = `Username: ${createdUser.username}\nTemporary password: ${createdUser.temporary_password}`
+    const text = t('team.credentialsClipboard', {
+      username: createdUser.username,
+      password: createdUser.temporary_password,
+    })
     if (!(await copyToClipboard(text))) {
-      notify('Could not copy — copy the credentials manually before closing')
+      notify(t('team.copyFailed'))
       return
     }
     setCredentialsCopied(true)
@@ -229,14 +237,14 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
       setUserToRemove(null)
     } catch (err) {
       setUserToRemove(null)
-      notify(err instanceof Error ? err.message : 'Could not remove user')
+      notify(err instanceof Error ? err.message : t('team.removeFailed'))
     }
   }
 
-  const title = facilitatorsOnly ? 'Facilitators' : 'Team Management'
+  const title = facilitatorsOnly ? t('team.facilitatorsTitle') : t('team.managementTitle')
   const subtitle = facilitatorsOnly
-    ? 'Create facilitator accounts with a temporary password for first login.'
-    : 'Organization accounts with username login and a temporary password on first sign-in.'
+    ? t('team.facilitatorsSubtitle')
+    : t('team.managementSubtitle')
 
   return (
     <>
@@ -250,7 +258,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
               other settings cards. Adding a user happens under the list. */}
           {!facilitatorsOnly ? (
             <span className="rounded bg-[#d9efe3] px-2 py-1 text-[10px] font-semibold text-[#1f6b48] dark:bg-[#1d3d2d] dark:text-[#a6dcc0]">
-              Private
+              {t('settings.private')}
             </span>
           ) : null}
         </div>
@@ -260,7 +268,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
           <div className="p-5"><QueryError message={usersQuery.error.message} /></div>
         ) : (usersQuery.data?.length ?? 0) === 0 ? (
           <p className="text-muted-foreground p-5 text-sm">
-            {facilitatorsOnly ? 'No facilitators yet.' : 'No users yet.'}
+            {facilitatorsOnly ? t('team.emptyFacilitators') : t('team.emptyUsers')}
           </p>
         ) : (
           <div>
@@ -268,9 +276,9 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             ? 'text-muted-foreground border-border hidden grid-cols-[minmax(140px,1fr)_minmax(100px,.7fr)_minmax(170px,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid'
             : 'text-muted-foreground border-border hidden grid-cols-[minmax(0,1fr)_110px_76px] gap-3 border-b bg-muted/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid'}>
             {facilitatorsOnly ? (
-              <><span>Name</span><span>Username</span><span>Email</span><span>Role</span><span /></>
+              <><span>{t('team.colName')}</span><span>{t('team.colUsername')}</span><span>{t('team.colEmail')}</span><span>{t('team.colRole')}</span><span /></>
             ) : (
-              <><span>User</span><span>Role</span><span /></>
+              <><span>{t('team.colUser')}</span><span>{t('team.colRole')}</span><span /></>
             )}
           </div>
           <ul className="divide-border divide-y">
@@ -286,11 +294,11 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     {displayUserName(user)}
                     {user.id === currentUserId ? (
                       <span className="bg-primary/15 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
-                        You
+                        {t('team.you')}
                       </span>
                     ) : null}
                   </p>
-                  {user.must_change_password ? <p className="text-amber-600 mt-0.5 text-[10px] font-medium">Password change pending</p> : null}
+                  {user.must_change_password ? <p className="text-amber-600 mt-0.5 text-[10px] font-medium">{t('team.passwordChangePending')}</p> : null}
                   {!facilitatorsOnly ? (
                     <p className="text-muted-foreground mt-0.5 truncate text-[11px]">@{user.username} · {user.email}</p>
                   ) : null}
@@ -302,7 +310,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                   </>
                 ) : null}
                 <span className="bg-nm-slate-100 text-nm-slate-700 w-fit rounded px-2 py-1 text-[10px] font-semibold capitalize">
-                  {formatUserRole(user.role)}
+                  {t(ROLE_LABEL_KEYS[user.role])}
                 </span>
                 <div className="flex shrink-0 items-center justify-end gap-1">
                   {canEditUser(user) ? (
@@ -310,7 +318,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      title="Edit"
+                      title={t('team.edit')}
                       onClick={() => openEditModal(user)}
                     >
                       <IconEdit className="size-4" />
@@ -322,7 +330,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive"
-                      title="Delete"
+                      title={t('team.delete')}
                       disabled={removeUser.isPending}
                       onClick={() => setUserToRemove(user)}
                     >
@@ -345,7 +353,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             data-tour={facilitatorsOnly ? undefined : 'add-user-button'}
           >
             <IconPlus className="size-4" />
-            {facilitatorsOnly ? 'Add facilitator' : 'Add user'}
+            {facilitatorsOnly ? t('team.addFacilitator') : t('team.addUser')}
           </NeoButton>
         </div>
       </Card>
@@ -357,11 +365,11 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
               <h3 className="text-foreground font-semibold">
                 {createdUser
                   ? facilitatorsOnly
-                    ? 'Facilitator created'
-                    : 'User created'
+                    ? t('team.facilitatorCreated')
+                    : t('team.userCreated')
                   : facilitatorsOnly
-                    ? 'Add facilitator'
-                    : 'Add user'}
+                    ? t('team.addFacilitator')
+                    : t('team.addUser')}
               </h3>
               <Button type="button" variant="ghost" size="icon-sm" onClick={closeUserModal}>
                 <IconClose className="size-4" />
@@ -371,39 +379,38 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             {createdUser ? (
               <>
                 <p className="text-muted-foreground text-sm">
-                  Share these credentials with the user. They must change the password on first
-                  login.
+                  {t('team.shareCredentials')}
                 </p>
                 <div className="bg-muted/40 space-y-3 rounded-lg p-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Username</p>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">{t('team.username')}</p>
                     <p className="text-foreground font-mono">{createdUser.username}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs uppercase tracking-wide">
-                      Temporary password
+                      {t('team.temporaryPassword')}
                     </p>
                     <p className="text-foreground font-mono">{createdUser.temporary_password}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Role</p>
-                    <p className="text-foreground">{formatUserRole(createdUser.role)}</p>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide">{t('team.colRole')}</p>
+                    <p className="text-foreground">{t(ROLE_LABEL_KEYS[createdUser.role])}</p>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => void handleCopyCredentials()}>
                     {credentialsCopied ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
-                    Copy credentials
+                    {t('team.copyCredentials')}
                   </Button>
                   <NeoButton type="button" variant="primary" onClick={closeUserModal}>
-                    Done
+                    {t('team.done')}
                   </NeoButton>
                 </div>
               </>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="user-username">Username</Label>
+                  <Label htmlFor="user-username">{t('team.username')}</Label>
                   <Input
                     id="user-username"
                     value={newUsername}
@@ -413,7 +420,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="user-email">Email</Label>
+                  <Label htmlFor="user-email">{t('team.email')}</Label>
                   <Input
                     id="user-email"
                     type="email"
@@ -424,7 +431,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="user-first">First name</Label>
+                    <Label htmlFor="user-first">{t('team.firstName')}</Label>
                     <Input
                       id="user-first"
                       value={newFirstName}
@@ -433,7 +440,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="user-last">Surname</Label>
+                    <Label htmlFor="user-last">{t('team.surname')}</Label>
                     <Input
                       id="user-last"
                       value={newLastName}
@@ -444,12 +451,12 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 </div>
                 {facilitatorsOnly ? (
                   <div className="space-y-2">
-                    <Label>Role</Label>
-                    <p className="text-foreground text-sm">Facilitator</p>
+                    <Label>{t('team.colRole')}</Label>
+                    <p className="text-foreground text-sm">{t('team.role.facilitator')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="user-role">Role</Label>
+                    <Label htmlFor="user-role">{t('team.colRole')}</Label>
                     <select
                       id="user-role"
                       value={newRole}
@@ -458,14 +465,14 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     >
                       {assignableRoles.map((role) => (
                         <option key={role} value={role}>
-                          {formatUserRole(role)}
+                          {t(ROLE_LABEL_KEYS[role])}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="user-temp-password">Temporary password</Label>
+                  <Label htmlFor="user-temp-password">{t('team.temporaryPassword')}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="user-temp-password"
@@ -480,11 +487,11 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                       variant="outline"
                       onClick={() => setNewTempPassword(generateTempPassword())}
                     >
-                      Generate
+                      {t('team.generate')}
                     </Button>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Minimum 8 characters. The user must change this on first login.
+                    {t('team.tempPasswordHint')}
                   </p>
                 </div>
                 {formError ? (
@@ -494,7 +501,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 ) : null}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={closeUserModal}>
-                    Cancel
+                    {t('common:cancel')}
                   </Button>
                   <NeoButton
                     type="button"
@@ -502,7 +509,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                     disabled={createUser.isPending}
                     onClick={() => void handleCreateUser()}
                   >
-                    {createUser.isPending ? 'Creating…' : 'Create user'}
+                    {createUser.isPending ? t('team.creating') : t('team.createUser')}
                   </NeoButton>
                 </div>
               </>
@@ -516,7 +523,9 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
           <Card className="border-border/80 max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto bg-card p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-foreground font-semibold">
-                Edit {editUser.id === currentUserId ? 'your details' : displayUserName(editUser)}
+                {editUser.id === currentUserId
+                  ? t('team.editYourDetails')
+                  : t('team.editUserTitle', { name: displayUserName(editUser) })}
               </h3>
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => setEditUser(null)}>
                 <IconClose className="size-4" />
@@ -524,7 +533,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-username">Username</Label>
+              <Label htmlFor="edit-username">{t('team.username')}</Label>
               <Input
                 id="edit-username"
                 value={editUsername}
@@ -534,7 +543,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">{t('team.email')}</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -545,7 +554,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="edit-first">First name</Label>
+                <Label htmlFor="edit-first">{t('team.firstName')}</Label>
                 <Input
                   id="edit-first"
                   value={editFirstName}
@@ -554,7 +563,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-last">Surname</Label>
+                <Label htmlFor="edit-last">{t('team.surname')}</Label>
                 <Input
                   id="edit-last"
                   value={editLastName}
@@ -564,7 +573,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="edit-role">{t('team.colRole')}</Label>
               {editRoleEditable ? (
                 <select
                   id="edit-role"
@@ -574,21 +583,21 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 >
                   {assignableRoles.map((role) => (
                     <option key={role} value={role}>
-                      {formatUserRole(role)}
+                      {t(ROLE_LABEL_KEYS[role])}
                     </option>
                   ))}
                 </select>
               ) : (
                 <p className="text-foreground text-sm capitalize">
-                  {formatUserRole(editRole)}
+                  {t(ROLE_LABEL_KEYS[editRole])}
                   <span className="text-muted-foreground">
-                    {editUser.id === currentUserId ? ' · you cannot change your own role' : ''}
+                    {editUser.id === currentUserId ? ` · ${t('team.cannotChangeOwnRole')}` : ''}
                   </span>
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-password">New password</Label>
+              <Label htmlFor="edit-password">{t('team.newPassword')}</Label>
               <div className="flex gap-2">
                 <Input
                   id="edit-password"
@@ -596,7 +605,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
                   autoComplete="new-password"
-                  placeholder="Leave blank to keep current"
+                  placeholder={t('team.leaveBlankToKeep')}
                   className="bg-background flex-1 font-mono text-sm"
                 />
                 <Button
@@ -604,7 +613,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                   variant="outline"
                   onClick={() => setEditPassword(generateTempPassword())}
                 >
-                  Generate
+                  {t('team.generate')}
                 </Button>
               </div>
               <label className="flex items-center gap-2 text-sm">
@@ -614,7 +623,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                   disabled={!editPassword.trim()}
                   onChange={(e) => setEditRequireChange(e.target.checked)}
                 />
-                Require user to update password on next login
+                {t('team.requirePasswordUpdate')}
               </label>
             </div>
             {editError ? (
@@ -624,7 +633,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
             ) : null}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditUser(null)}>
-                Cancel
+                {t('common:cancel')}
               </Button>
               <NeoButton
                 type="button"
@@ -632,7 +641,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 disabled={updateUser.isPending}
                 onClick={() => void handleSaveEdit()}
               >
-                {updateUser.isPending ? 'Saving…' : 'Save changes'}
+                {updateUser.isPending ? t('form.saving') : t('team.saveChanges')}
               </NeoButton>
             </div>
           </Card>
@@ -648,15 +657,15 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
         >
           <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
             <h3 id="remove-user-title" className="text-foreground font-semibold">
-              Remove {facilitatorsOnly ? 'facilitator' : 'user'}?
+              {facilitatorsOnly ? t('team.removeFacilitatorTitle') : t('team.removeUserTitle')}
             </h3>
             <p className="text-muted-foreground text-sm">
               <span className="text-foreground font-medium">{displayUserName(userToRemove)}</span>{' '}
-              (@{userToRemove.username}) will lose access to this organization. This cannot be undone.
+              {t('team.removeBody', { username: userToRemove.username })}
             </p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setUserToRemove(null)}>
-                Cancel
+                {t('common:cancel')}
               </Button>
               <NeoButton
                 type="button"
@@ -664,7 +673,7 @@ export function TeamUsersPanel({ facilitatorsOnly = false }: TeamUsersPanelProps
                 disabled={removeUser.isPending}
                 onClick={() => void confirmRemoveUser()}
               >
-                {removeUser.isPending ? 'Removing…' : 'Remove'}
+                {removeUser.isPending ? t('team.removing') : t('team.remove')}
               </NeoButton>
             </div>
           </Card>

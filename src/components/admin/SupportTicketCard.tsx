@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { SupportTicketStatusBadge } from '@/components/admin/SupportTicketStatusBadge'
 import { SupportUnreadBadge } from '@/components/admin/SupportUnreadBadge'
 import type { SupportTicketRow, TicketStatus } from '@/hooks/use-support-tickets'
@@ -25,6 +27,8 @@ export function SupportTicketCard({
   orgLabel,
   unreadCount = 0,
 }: SupportTicketCardProps) {
+  const { t } = useTranslation('admin')
+
   return (
     <article
       role="button"
@@ -45,7 +49,7 @@ export function SupportTicketCard({
         <SupportUnreadBadge
           count={unreadCount}
           className="absolute right-2 top-2"
-          label={`${unreadCount} unread message${unreadCount === 1 ? '' : 's'}`}
+          label={t('support.unreadMessages', { count: unreadCount })}
         />
       ) : null}
       <div className="min-w-0 pr-6">

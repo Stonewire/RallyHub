@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { AssetField } from '@/components/games/AssetField'
 import { PointsEditor } from '@/components/games/PointsEditor'
 import { Card } from '@/components/ui/card'
@@ -58,6 +60,7 @@ export type PhotoVideoFieldsProps = {
  * change.
  */
 export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
+  const { t } = useTranslation('admin')
   const {
     gameType, name, setName, description, setDescription,
     coverUrl, setCoverUrl, onUploadCover,
@@ -79,17 +82,17 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
       }
     >
             <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-              <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+              <h3 className="text-foreground text-sm font-bold">{t('games.primarySettings')}</h3>
           <div className="space-y-2">
-            <Label>Game name</Label>
+            <Label>{t('games.gameName')}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-background" />
           </div>
           <div className="space-y-2">
-            <Label>Description</Label>
+            <Label>{t('games.description')}</Label>
             <RichTextEditor value={description} onChange={setDescription} />
           </div>
               <AssetField
-                label="Cover image"
+                label={t('games.coverImage')}
                 cropCover
                 preview={coverUrl}
                 onFile={async (file) => {
@@ -113,32 +116,32 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                 /* Label and both boxes on one line, like Points. The total in
                    seconds was restating the two numbers above it. */
                 <div className="flex w-full flex-wrap items-center gap-3">
-                  <Label className="shrink-0">Max video duration</Label>
+                  <Label className="shrink-0">{t('games.maxVideoDuration')}</Label>
                   <div className="flex items-center gap-2">
                     <NumberField
                       min={0}
                       max={59}
-                      aria-label="Minutes"
+                      aria-label={t('games.minutes')}
                       value={videoMaxMinutes}
                       onChange={setVideoMaxMinutes}
                       className="bg-background h-8 w-20"
                     />
-                    <span className="text-muted-foreground text-sm">min</span>
+                    <span className="text-muted-foreground text-sm">{t('games.minShort')}</span>
                     <NumberField
                       min={0}
                       max={59}
-                      aria-label="Seconds"
+                      aria-label={t('games.seconds')}
                       value={videoMaxSeconds}
                       onChange={setVideoMaxSeconds}
                       className="bg-background h-8 w-20"
                     />
-                    <span className="text-muted-foreground text-sm">sec</span>
+                    <span className="text-muted-foreground text-sm">{t('games.secShort')}</span>
                   </div>
                 </div>
               ) : null}
               {gameType === 'video' ? (
                 <AssetField
-                  label="Example video (visible to participants)"
+                  label={t('games.exampleVideo')}
                   accept="video/*"
                   preview={exampleVideoUrl}
                   onFile={async (file) => {
@@ -146,14 +149,14 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                     setExampleVideoUrl(await onUploadVideo(file))
                   }}
                   onUrl={setExampleVideoUrl}
-                  urlPlaceholder="or paste a YouTube link…"
+                  urlPlaceholder={t('games.pasteYouTubeLink')}
                 />
               ) : (
                 /* Link only on a photo game: the field is for pointing at a
                    YouTube video, and an upload control invites a file that has
                    nowhere useful to go. */
                 <div className="space-y-2">
-                  <Label>Instructional video link (optional, visible to participants)</Label>
+                  <Label>{t('games.instructionalVideoLink')}</Label>
                   <Input
                     value={exampleVideoUrl ?? ''}
                     placeholder="https://youtube.com/…"
@@ -161,15 +164,14 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                     className="bg-background"
                   />
                   <p className="text-muted-foreground text-xs">
-                    YouTube link. Unlisted is fine; private videos will not play
-                    for participants.
+                    {t('games.instructionalVideoHint')}
                   </p>
                   {/* The same player participants get, so the organiser sees
                       whether the link actually works (CF3-2). */}
                   {youTubeEmbedUrl(exampleVideoUrl) ? (
                     <iframe
                       src={youTubeEmbedUrl(exampleVideoUrl)!}
-                      title="Video preview"
+                      title={t('games.videoPreview')}
                       className="aspect-video w-full max-w-md rounded-lg"
                       allow="encrypted-media; picture-in-picture"
                       allowFullScreen
@@ -182,10 +184,10 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
             <div className="flex flex-col gap-6">
             <Card className="border-border/80 space-y-4 border-dashed bg-muted/20 p-6 shadow-sm">
               <h3 className="text-foreground text-sm font-semibold uppercase tracking-wider">
-                Facilitator only
+                {t('games.facilitatorOnly')}
               </h3>
               <div className="space-y-2">
-                <Label>Solution description</Label>
+                <Label>{t('games.solutionDescription')}</Label>
                 <textarea
                   value={solutionDescription}
                   onChange={(e) => setSolutionDescription(e.target.value)}
@@ -195,7 +197,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
               </div>
               {gameType === 'video' ? (
                 <div className="space-y-2">
-                  <Label>Solution video link</Label>
+                  <Label>{t('games.solutionVideoLink')}</Label>
                   <Input
                     value={config.solution_video_url ?? ''}
                     placeholder="https://…"
@@ -208,13 +210,12 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                     className="bg-background"
                   />
                   <p className="text-muted-foreground text-xs">
-                    Facilitators only. Stripped from the live payload, so
-                    players never receive it.
+                    {t('games.solutionVideoHint')}
                   </p>
                 </div>
               ) : null}
               <AssetField
-                label="Solution image"
+                label={t('games.solutionImage')}
                 preview={solutionImageUrl}
                 onFile={async (file) => {
                   if (!file) return
@@ -222,7 +223,7 @@ export function PhotoVideoFields(props: PhotoVideoFieldsProps) {
                 }}
                 onUrl={setSolutionImageUrl}
                 showPreviewPanel
-                previewLabel="Solution preview"
+                previewLabel={t('games.solutionPreview')}
               />
             </Card>
               {groupsCard}

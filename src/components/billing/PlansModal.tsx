@@ -1,5 +1,6 @@
 import { RALLYHUB_CONTACT_EMAIL } from '@/constants/contact'
 import { IconClose } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 import { PlanDetailsCard } from '@/components/billing/PlanDetailsCard'
 import { NeoButton } from '@/components/neo-minimal'
@@ -26,6 +27,7 @@ type PlansModalProps = {
  * someone is comparing and out of the way when they are not.
  */
 export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModalProps) {
+  const { t } = useTranslation('admin')
   const plans = getVisiblePlans()
 
   return (
@@ -33,12 +35,18 @@ export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModal
       <Card className="border-border/80 max-h-[88vh] w-full max-w-4xl overflow-auto bg-card p-6 shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-foreground text-lg font-semibold">Plans</h2>
+            <h2 className="text-foreground text-lg font-semibold">{t('billing.plansTitle')}</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Your current plan is marked. {VAT_DISCLAIMER}
+              {t('billing.currentPlanMarked')} {VAT_DISCLAIMER}
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('common:close')}
+            onClick={onClose}
+          >
             <IconClose className="size-4" />
           </Button>
         </div>
@@ -53,11 +61,13 @@ export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModal
               action={
                 plan.id === currentPlanId ? (
                   <NeoButton variant="surface" size="sm" className="w-full" disabled>
-                    Current plan
+                    {t('billing.currentPlanAction')}
                   </NeoButton>
                 ) : plan.priceOnRequest ? (
                   <NeoButton variant="surface" size="sm" className="w-full" asChild>
-                    <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}?subject=Custom%20plan`}>Contact us</a>
+                    <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}?subject=Custom%20plan`}>
+                      {t('billing.contactUs')}
+                    </a>
                   </NeoButton>
                 ) : (
                   // Self-serve switching is gated behind PLAN_CHANGES_ENABLED, so
@@ -65,7 +75,7 @@ export function PlansModal({ currentPlanId, billingPeriod, onClose }: PlansModal
                   // an upgrade path that is not wired up.
                   <NeoButton variant="surface" size="sm" className="w-full" asChild>
                     <a href={`mailto:${RALLYHUB_CONTACT_EMAIL}?subject=Switch%20to%20${encodeURIComponent(plan.name)}`}>
-                      Ask us to switch
+                      {t('billing.askToSwitch')}
                     </a>
                   </NeoButton>
                 )

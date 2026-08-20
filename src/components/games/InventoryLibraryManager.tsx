@@ -1,6 +1,7 @@
 import { ImagePlus } from 'lucide-react'
 import { IconCheck, IconClose, IconCopy, IconDownload, IconEdit, IconInventory, IconLayers, IconSearch, IconTrash } from '@/components/icons'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton, NeoInput, NeoLabel, NeoTextarea, TagInput } from '@/components/neo-minimal'
@@ -55,6 +56,7 @@ export const InventoryLibraryManager = forwardRef<
   InventoryLibraryHandle,
   { organizationId: string }
 >(function InventoryLibraryManager({ organizationId }, ref) {
+  const { t } = useTranslation('admin')
   const itemsQuery = useInventoryItems(organizationId)
   const organizationQuery = useOrganization(organizationId)
   const saveItem = useSaveInventoryItem(organizationId)
@@ -148,16 +150,16 @@ export const InventoryLibraryManager = forwardRef<
   async function submitGroup() {
     const name = newGroupName.trim()
     if (!name) {
-      setError('Enter a group name.')
+      setError(t('inventory.errors.groupNameRequired'))
       return
     }
     setError(null)
     try {
       await createGroup.mutateAsync({ name, itemIds: [...newGroupPicks] })
       setCreateGroupOpen(false)
-      setMessage(`Group "${name}" created.`)
+      setMessage(t('inventory.messages.groupCreated', { name }))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not create the group.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.createGroupFailed'))
     }
   }
 
@@ -168,9 +170,9 @@ export const InventoryLibraryManager = forwardRef<
       await deleteGroup.mutateAsync(pendingGroupDelete)
       if (activeGroup === pendingGroupDelete) setActiveGroup(null)
       setPendingGroupDelete(null)
-      setMessage('Group deleted. The items themselves are untouched.')
+      setMessage(t('inventory.messages.groupDeleted'))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not delete the group.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.deleteGroupFailed'))
     }
   }
 
@@ -184,20 +186,20 @@ export const InventoryLibraryManager = forwardRef<
       if (groupIds.length > 0 && copy?.id) {
         await setItemGroups.mutateAsync({ itemId: copy.id, groupIds })
       }
-      setMessage(`"${item.name}" duplicated with its own QR code.`)
+      setMessage(t('inventory.messages.itemDuplicated', { name: item.name }))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not duplicate the item.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.duplicateFailed'))
     }
   }
 
   async function submit() {
     const cost = Number(form.pointsCost)
     if (!form.name.trim()) {
-      setError('Enter an item name.')
+      setError(t('inventory.errors.nameRequired'))
       return
     }
     if (!Number.isInteger(cost) || cost <= 0) {
-      setError('Point cost must be a whole number greater than zero.')
+      setError(t('inventory.errors.costInvalid'))
       return
     }
     setError(null)
@@ -215,9 +217,11 @@ export const InventoryLibraryManager = forwardRef<
         await setItemGroups.mutateAsync({ itemId: saved.id, groupIds: [...formGroups] })
       }
       setEditing(undefined)
-      setMessage(editing ? 'Item updated.' : 'Item created and QR code generated.')
+      setMessage(
+        editing ? t('inventory.messages.itemUpdated') : t('inventory.messages.itemCreated'),
+      )
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not save the item.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.saveFailed'))
     }
   }
 
@@ -227,9 +231,9 @@ export const InventoryLibraryManager = forwardRef<
     try {
       await deleteItem.mutateAsync(pendingDelete)
       setPendingDelete(null)
-      setMessage('Item deleted. Existing purchase records remain in the event history.')
+      setMessage(t('inventory.messages.itemDeleted'))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not delete the item.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.deleteFailed'))
     }
   }
 
@@ -241,9 +245,9 @@ export const InventoryLibraryManager = forwardRef<
         exportItems,
         organizationQuery.data?.name ?? 'RallyHub',
       )
-      setMessage(`${exportItems.length} QR code${exportItems.length === 1 ? '' : 's'} exported.`)
+      setMessage(t('inventory.messages.qrExported', { count: exportItems.length }))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not export QR codes.')
+      setError(reason instanceof Error ? reason.message : t('inventory.errors.exportFailed'))
     } finally {
       setExporting(false)
     }
@@ -259,7 +263,7 @@ export const InventoryLibraryManager = forwardRef<
       {message ? (
         <div className="border-border bg-card flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
           <span className="flex items-center gap-2"><IconCheck className="size-4 text-emerald-600" />{message}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setMessage(null)}><IconClose className="size-4" /></button>
+          <button type="button" aria-label={t('inventory.dismiss')} onClick={() => setMessage(null)}><IconClose className="size-4" /></button>
         </div>
       ) : null}
       {error && editing === undefined && !pendingDelete ? (
@@ -282,7 +286,7 @@ export const InventoryLibraryManager = forwardRef<
             onClick={() => void exportPdf(filtered)}
           >
             <IconDownload className="size-3.5" aria-hidden />
-            {exporting ? 'Preparing…' : 'Download QR Codes'}
+            {exporting ? t('inventory.preparing') : t('inventory.downloadQrCodes')}
           </NeoButton>
           {groups.length > 0 ? (
             <>
@@ -315,7 +319,7 @@ export const InventoryLibraryManager = forwardRef<
                       .catch((reason) => setError(String(reason)))
                   }
                 >
-                  Save
+                  {t('common:save')}
                 </NeoButton>
                 <NeoButton
                   type="button"
@@ -323,7 +327,7 @@ export const InventoryLibraryManager = forwardRef<
                   size="sm"
                   onClick={() => setRenamingGroup(null)}
                 >
-                  Cancel
+                  {t('common:cancel')}
                 </NeoButton>
               </>
             ) : activeGroup ? (
@@ -337,7 +341,7 @@ export const InventoryLibraryManager = forwardRef<
                     setRenamingGroup(activeGroup)
                   }}
                 >
-                  Rename
+                  {t('inventory.rename')}
                 </NeoButton>
                 <NeoButton
                   type="button"
@@ -346,7 +350,7 @@ export const InventoryLibraryManager = forwardRef<
                   className="text-destructive"
                   onClick={() => setPendingGroupDelete(activeGroup)}
                 >
-                  Delete group
+                  {t('inventory.deleteGroup')}
                 </NeoButton>
               </>
             ) : null}
@@ -360,19 +364,19 @@ export const InventoryLibraryManager = forwardRef<
             <NeoInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search inventory…"
+              placeholder={t('inventory.searchPlaceholder')}
               className="bg-card h-9 pl-8 text-xs"
             />
           </div>
           <select
-            aria-label="Filter by group"
+            aria-label={t('inventory.filterByGroup')}
             value={activeGroup ?? 'all'}
             onChange={(event) =>
               setActiveGroup(event.target.value === 'all' ? null : event.target.value)
             }
             className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
           >
-            <option value="all">All Groups</option>
+            <option value="all">{t('inventory.allGroups')}</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>
                 {group.name}
@@ -385,14 +389,14 @@ export const InventoryLibraryManager = forwardRef<
       {items.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center gap-3 px-6 py-16 text-center">
           <IconInventory className="text-muted-foreground size-11" />
-          <h3 className="font-semibold">No inventory items yet</h3>
-          <p className="text-muted-foreground max-w-md text-sm">
-            Add your first physical item. Its reusable purchase link and QR code are created automatically.
-          </p>
-          <NeoButton type="button" variant="accent" onClick={openCreate}>Add first item</NeoButton>
+          <h3 className="font-semibold">{t('inventory.empty.title')}</h3>
+          <p className="text-muted-foreground max-w-md text-sm">{t('inventory.empty.body')}</p>
+          <NeoButton type="button" variant="accent" onClick={openCreate}>
+            {t('inventory.empty.action')}
+          </NeoButton>
         </Card>
       ) : filtered.length === 0 ? (
-        <Card className="p-10 text-center"><p className="text-muted-foreground text-sm">No matching items.</p></Card>
+        <Card className="p-10 text-center"><p className="text-muted-foreground text-sm">{t('inventory.noMatches')}</p></Card>
       ) : (
         // Same grid as the Games Library so the two tabs read as one system.
         // Actions are icons for the same reason a game card uses icons: four
@@ -416,7 +420,7 @@ export const InventoryLibraryManager = forwardRef<
                   )}
                   <img
                     src={qrCodeUrl(link, 120)}
-                    alt={`QR code for ${item.name}`}
+                    alt={t('inventory.qrCodeAlt', { name: item.name })}
                     className="absolute right-1 bottom-1 size-9 rounded border bg-white p-0.5"
                   />
                 </div>
@@ -430,27 +434,27 @@ export const InventoryLibraryManager = forwardRef<
                   {/* Red, and labelled Cost, because this DEDUCTS a team's points.
                       Shares the destructive colour deliberately. */}
                   <span className="text-destructive text-xs font-bold">
-                    Cost {item.points_cost} pts
+                    {t('inventory.cost', { points: item.points_cost })}
                   </span>
                   <div className="mt-auto flex items-center justify-between pt-1">
                     <button
                       type="button"
-                      title="Copy item link"
-                      aria-label={`Copy link for ${item.name}`}
+                      title={t('inventory.copyLink')}
+                      aria-label={t('inventory.copyLinkFor', { name: item.name })}
                       className="text-muted-foreground hover:text-foreground p-1"
                       onClick={(event) => {
                         event.stopPropagation()
                         void navigator.clipboard.writeText(link)
-                          .then(() => setMessage('Item link copied.'))
-                          .catch(() => setError('Could not copy the item link.'))
+                          .then(() => setMessage(t('inventory.messages.linkCopied')))
+                          .catch(() => setError(t('inventory.errors.copyLinkFailed')))
                       }}
                     >
                       <IconCopy className="size-3.5" />
                     </button>
                     <button
                       type="button"
-                      title="Download QR PNG"
-                      aria-label={`Download QR code for ${item.name}`}
+                      title={t('inventory.downloadQrPng')}
+                      aria-label={t('inventory.downloadQrFor', { name: item.name })}
                       className="text-muted-foreground hover:text-foreground p-1"
                       onClick={(event) => {
                         event.stopPropagation()
@@ -461,8 +465,8 @@ export const InventoryLibraryManager = forwardRef<
                     </button>
                     <button
                       type="button"
-                      title="Duplicate item"
-                      aria-label={`Duplicate ${item.name}`}
+                      title={t('inventory.duplicateItem')}
+                      aria-label={t('inventory.duplicateFor', { name: item.name })}
                       className="text-muted-foreground hover:text-foreground p-1 disabled:opacity-40"
                       disabled={duplicateItem.isPending}
                       onClick={(event) => {
@@ -474,8 +478,8 @@ export const InventoryLibraryManager = forwardRef<
                     </button>
                     <button
                       type="button"
-                      title="Edit item"
-                      aria-label={`Edit ${item.name}`}
+                      title={t('inventory.editItem')}
+                      aria-label={t('inventory.editFor', { name: item.name })}
                       className="text-muted-foreground hover:text-foreground p-1"
                       onClick={(event) => {
                         event.stopPropagation()
@@ -486,8 +490,8 @@ export const InventoryLibraryManager = forwardRef<
                     </button>
                     <button
                       type="button"
-                      title="Delete item"
-                      aria-label={`Delete ${item.name}`}
+                      title={t('inventory.deleteItem')}
+                      aria-label={t('inventory.deleteFor', { name: item.name })}
                       className="text-destructive p-1 hover:opacity-70"
                       onClick={(event) => {
                         event.stopPropagation()
@@ -516,40 +520,38 @@ export const InventoryLibraryManager = forwardRef<
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 id="inventory-item-title" className="text-lg font-semibold">{editing ? 'Edit item' : 'Add inventory item'}</h3>
-                <p className="text-muted-foreground mt-1 text-sm">The QR code will always use the current name, description, and point cost.</p>
+                <h3 id="inventory-item-title" className="text-lg font-semibold">{editing ? t('inventory.editItem') : t('inventory.addTitle')}</h3>
+                <p className="text-muted-foreground mt-1 text-sm">{t('inventory.form.qrNote')}</p>
               </div>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={() => setEditing(undefined)}>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={t('common:close')} onClick={() => setEditing(undefined)}>
                 <IconClose className="size-4" />
               </Button>
             </div>
             <div className="space-y-2">
-              <NeoLabel htmlFor="inventory-name">Name *</NeoLabel>
+              <NeoLabel htmlFor="inventory-name">{t('inventory.form.name')}</NeoLabel>
               <NeoInput id="inventory-name" maxLength={120} value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} autoFocus />
             </div>
             <div className="space-y-2">
-              <NeoLabel htmlFor="inventory-description">Description (optional)</NeoLabel>
+              <NeoLabel htmlFor="inventory-description">{t('inventory.form.description')}</NeoLabel>
               <NeoTextarea id="inventory-description" maxLength={1000} rows={4} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} />
             </div>
             <div className="space-y-2">
-              <NeoLabel htmlFor="inventory-points">Point cost *</NeoLabel>
+              <NeoLabel htmlFor="inventory-points">{t('inventory.form.pointCost')}</NeoLabel>
               <NeoInput id="inventory-points" type="number" min={1} step={1} value={form.pointsCost} onChange={(event) => setForm((value) => ({ ...value, pointsCost: event.target.value }))} />
             </div>
             <div className="space-y-2">
-              <NeoLabel htmlFor="inventory-checklist">Kit needed (optional)</NeoLabel>
+              <NeoLabel htmlFor="inventory-checklist">{t('inventory.form.kit')}</NeoLabel>
               <TagInput
                 id="inventory-checklist"
                 value={form.checklist}
                 onChange={(next) => setForm((value) => ({ ...value, checklist: next }))}
-                placeholder="Add an item, then comma…"
+                placeholder={t('inventory.form.kitPlaceholder')}
               />
-              <p className="text-muted-foreground text-xs">
-                What one team needs for this item. The event checklist multiplies it by the team count.
-              </p>
+              <p className="text-muted-foreground text-xs">{t('inventory.form.kitHelp')}</p>
             </div>
             {groups.length > 0 ? (
               <div className="space-y-2">
-                <NeoLabel>Groups</NeoLabel>
+                <NeoLabel>{t('inventory.form.groups')}</NeoLabel>
                 <div className="border-border grid gap-1.5 rounded-lg border p-3">
                   {groups.map((group) => (
                     <label key={group.id} className="flex items-center gap-2 text-sm">
@@ -572,16 +574,16 @@ export const InventoryLibraryManager = forwardRef<
               </div>
             ) : null}
             <div className="space-y-2">
-              <NeoLabel htmlFor="inventory-image">Photo (optional)</NeoLabel>
+              <NeoLabel htmlFor="inventory-image">{t('inventory.form.photo')}</NeoLabel>
               <label htmlFor="inventory-image" className="border-border bg-muted/30 flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-4">
                 <ImagePlus className="text-muted-foreground size-5" />
-                <span className="text-sm">{form.image?.name ?? 'Choose an image'}</span>
+                <span className="text-sm">{form.image?.name ?? t('inventory.form.chooseImage')}</span>
               </label>
               <input id="inventory-image" type="file" accept="image/*" className="sr-only" onChange={(event) => setForm((value) => ({ ...value, image: event.target.files?.[0] ?? null, removeImage: false }))} />
               {(preview || (editing?.image_url && !form.removeImage)) ? (
                 <div className="flex items-center gap-3">
-                  <img src={preview ?? editing?.image_url ?? ''} alt="Item preview" className="size-24 rounded-lg object-cover" />
-                  <NeoButton type="button" size="sm" variant="ghost" onClick={() => setForm((value) => ({ ...value, image: null, removeImage: true }))}>Remove photo</NeoButton>
+                  <img src={preview ?? editing?.image_url ?? ''} alt={t('inventory.form.imageAlt')} className="size-24 rounded-lg object-cover" />
+                  <NeoButton type="button" size="sm" variant="ghost" onClick={() => setForm((value) => ({ ...value, image: null, removeImage: true }))}>{t('inventory.form.removePhoto')}</NeoButton>
                 </div>
               ) : null}
             </div>
@@ -589,11 +591,11 @@ export const InventoryLibraryManager = forwardRef<
                 is no link to encode and nothing to download. */}
             {editing ? (
               <div className="border-border space-y-2 border-t pt-4">
-                <NeoLabel>QR code</NeoLabel>
+                <NeoLabel>{t('inventory.form.qrCode')}</NeoLabel>
                 <div className="flex items-center gap-4">
                   <img
                     src={qrCodeUrl(getInventoryItemLink(editing.public_code), 220)}
-                    alt={`QR code for ${editing.name}`}
+                    alt={t('inventory.qrCodeAlt', { name: editing.name })}
                     className="size-28 rounded border bg-white p-1"
                   />
                   <NeoButton
@@ -602,15 +604,15 @@ export const InventoryLibraryManager = forwardRef<
                     onClick={() => void downloadInventoryQrPng(editing).catch((reason) => setError(String(reason)))}
                   >
                     <IconDownload className="size-4" />
-                    Download QR PNG
+                    {t('inventory.downloadQrPng')}
                   </NeoButton>
                 </div>
               </div>
             ) : null}
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
             <div className="flex justify-end gap-2">
-              <NeoButton type="button" variant="surface" disabled={saveItem.isPending} onClick={() => setEditing(undefined)}>Cancel</NeoButton>
-              <NeoButton type="button" variant="primary" disabled={saveItem.isPending} onClick={() => void submit()}>{saveItem.isPending ? 'Saving…' : 'Save item'}</NeoButton>
+              <NeoButton type="button" variant="surface" disabled={saveItem.isPending} onClick={() => setEditing(undefined)}>{t('common:cancel')}</NeoButton>
+              <NeoButton type="button" variant="primary" disabled={saveItem.isPending} onClick={() => void submit()}>{saveItem.isPending ? t('inventory.saving') : t('inventory.saveItem')}</NeoButton>
             </div>
           </div>
         </div>
@@ -619,17 +621,15 @@ export const InventoryLibraryManager = forwardRef<
       {createGroupOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true">
           <Card className="flex max-h-[80vh] w-full max-w-lg flex-col gap-3 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold">New inventory group</h3>
+            <h3 className="text-lg font-semibold">{t('inventory.group.newTitle')}</h3>
             <NeoInput
               value={newGroupName}
               onChange={(event) => setNewGroupName(event.target.value)}
-              placeholder="Group name"
+              placeholder={t('inventory.group.namePlaceholder')}
               maxLength={80}
               autoFocus
             />
-            <p className="text-muted-foreground text-xs">
-              Pick the items to start it with. You can change this later from any item.
-            </p>
+            <p className="text-muted-foreground text-xs">{t('inventory.group.pickHelp')}</p>
             <ul className="border-border min-h-0 flex-1 space-y-1 overflow-auto rounded-lg border p-2">
               {items.map((item) => (
                 <li key={item.id}>
@@ -647,20 +647,22 @@ export const InventoryLibraryManager = forwardRef<
                       }
                     />
                     <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                    <span className="text-muted-foreground text-xs">{item.points_cost} pts</span>
+                    <span className="text-muted-foreground text-xs">{item.points_cost} {t('common:pts')}</span>
                   </label>
                 </li>
               ))}
               {items.length === 0 ? (
-                <li className="text-muted-foreground px-2 py-1.5 text-sm">No items yet.</li>
+                <li className="text-muted-foreground px-2 py-1.5 text-sm">{t('inventory.group.noItems')}</li>
               ) : null}
             </ul>
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
             <div className="flex items-center justify-between">
-              <p className="text-muted-foreground text-xs">{newGroupPicks.size} selected</p>
+              <p className="text-muted-foreground text-xs">
+                {t('inventory.group.selected', { total: newGroupPicks.size })}
+              </p>
               <div className="flex gap-2">
                 <NeoButton type="button" variant="surface" onClick={() => setCreateGroupOpen(false)}>
-                  Cancel
+                  {t('common:cancel')}
                 </NeoButton>
                 <NeoButton
                   type="button"
@@ -668,7 +670,7 @@ export const InventoryLibraryManager = forwardRef<
                   disabled={!newGroupName.trim() || createGroup.isPending}
                   onClick={() => void submitGroup()}
                 >
-                  {createGroup.isPending ? 'Creating…' : 'Create group'}
+                  {createGroup.isPending ? t('inventory.group.creating') : t('inventory.group.create')}
                 </NeoButton>
               </div>
             </div>
@@ -680,15 +682,15 @@ export const InventoryLibraryManager = forwardRef<
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="alertdialog" aria-modal="true">
           <Card className="w-full max-w-md space-y-4 p-6 shadow-xl">
             <h3 className="text-lg font-semibold">
-              Delete {groups.find((g) => g.id === pendingGroupDelete)?.name}?
+              {t('inventory.group.deleteTitle', {
+                name: groups.find((g) => g.id === pendingGroupDelete)?.name ?? '',
+              })}
             </h3>
-            <p className="text-muted-foreground text-sm">
-              Only the group goes. Every item in it stays in your inventory.
-            </p>
+            <p className="text-muted-foreground text-sm">{t('inventory.group.deleteBody')}</p>
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
             <div className="flex justify-end gap-2">
-              <NeoButton type="button" variant="surface" disabled={deleteGroup.isPending} onClick={() => setPendingGroupDelete(null)}>Cancel</NeoButton>
-              <NeoButton type="button" variant="destructive" disabled={deleteGroup.isPending} onClick={() => void confirmGroupDelete()}>{deleteGroup.isPending ? 'Deleting…' : 'Delete group'}</NeoButton>
+              <NeoButton type="button" variant="surface" disabled={deleteGroup.isPending} onClick={() => setPendingGroupDelete(null)}>{t('common:cancel')}</NeoButton>
+              <NeoButton type="button" variant="destructive" disabled={deleteGroup.isPending} onClick={() => void confirmGroupDelete()}>{deleteGroup.isPending ? t('inventory.deleting') : t('inventory.deleteGroup')}</NeoButton>
             </div>
           </Card>
         </div>
@@ -697,12 +699,14 @@ export const InventoryLibraryManager = forwardRef<
       {pendingDelete ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="alertdialog" aria-modal="true">
           <Card className="w-full max-w-md space-y-4 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold">Delete {pendingDelete.name}?</h3>
-            <p className="text-muted-foreground text-sm">Its QR code will stop working. Past purchase records will be kept for event history.</p>
+            <h3 className="text-lg font-semibold">
+              {t('inventory.deleteTitle', { name: pendingDelete.name })}
+            </h3>
+            <p className="text-muted-foreground text-sm">{t('inventory.deleteBody')}</p>
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
             <div className="flex justify-end gap-2">
-              <NeoButton type="button" variant="surface" disabled={deleteItem.isPending} onClick={() => setPendingDelete(null)}>Cancel</NeoButton>
-              <NeoButton type="button" variant="destructive" disabled={deleteItem.isPending} onClick={() => void confirmDelete()}>{deleteItem.isPending ? 'Deleting…' : 'Delete item'}</NeoButton>
+              <NeoButton type="button" variant="surface" disabled={deleteItem.isPending} onClick={() => setPendingDelete(null)}>{t('common:cancel')}</NeoButton>
+              <NeoButton type="button" variant="destructive" disabled={deleteItem.isPending} onClick={() => void confirmDelete()}>{deleteItem.isPending ? t('inventory.deleting') : t('inventory.deleteItem')}</NeoButton>
             </div>
           </Card>
         </div>

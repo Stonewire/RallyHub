@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export type DangerZoneRow = {
   id: string
@@ -9,6 +10,7 @@ export type DangerZoneRow = {
 }
 
 type DangerZoneProps = {
+  /** Defaults to the translated "Danger Zone" heading. */
   title?: string
   rows: DangerZoneRow[]
   /** Optional status or error text shown above the rows. */
@@ -21,7 +23,8 @@ type DangerZoneProps = {
  * right. Shared by Organisation, My Account and the event editor so the
  * pattern stays identical across all three.
  */
-export function DangerZone({ title = 'Danger Zone', rows, notice }: DangerZoneProps) {
+export function DangerZone({ title, rows, notice }: DangerZoneProps) {
+  const { t } = useTranslation('admin')
   return (
     <section
       className="rounded-nm-lg bg-nm-surface border-[1.5px] p-5"
@@ -33,7 +36,7 @@ export function DangerZone({ title = 'Danger Zone', rows, notice }: DangerZonePr
         className="text-base font-bold"
         style={{ color: 'var(--nm-danger)' }}
       >
-        {title}
+        {title ?? t('dangerZone.title')}
       </h2>
 
       {notice ? <div className="mt-2 text-sm">{notice}</div> : null}

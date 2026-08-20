@@ -1,5 +1,6 @@
 import { IconEdit, IconUpload } from '@/components/icons'
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, NeoCard, NeoInput, NeoLabel } from '@/components/neo-minimal'
 import { DangerZone } from '@/components/admin/DangerZone'
@@ -32,6 +33,7 @@ export function MyAccountPanel({
    */
   demo?: boolean
 }) {
+  const { t } = useTranslation('admin')
   const { user, profile, refreshProfile } = useAuth()
   const orgId = profile?.organization_id ?? null
 
@@ -89,11 +91,11 @@ export function MyAccountPanel({
       if (error) throw error
       setAvatarUrl(busted)
       await refreshProfile()
-      setStatus({ kind: 'ok', msg: 'Profile photo updated.' })
+      setStatus({ kind: 'ok', msg: t('account.photoUpdated') })
     } catch (err) {
       setStatus({
         kind: 'error',
-        msg: err instanceof Error ? err.message : 'Could not upload your photo.',
+        msg: err instanceof Error ? err.message : t('account.photoUploadFailed'),
       })
     } finally {
       setAvatarUploading(false)
@@ -103,11 +105,7 @@ export function MyAccountPanel({
   /** Revokes every refresh token for this user, on every device. */
   async function handleLogOutAllDevices() {
     if (loggingOutAll) return
-    if (
-      !window.confirm(
-        'Log out of every device? You will need to sign in again everywhere, including here.',
-      )
-    ) {
+    if (!window.confirm(t('account.logOutAllConfirm'))) {
       return
     }
     setLoggingOutAll(true)
@@ -119,7 +117,7 @@ export function MyAccountPanel({
     } catch (err) {
       setStatus({
         kind: 'error',
-        msg: err instanceof Error ? err.message : 'Could not log out of all devices.',
+        msg: err instanceof Error ? err.message : t('account.logOutAllFailed'),
       })
       setLoggingOutAll(false)
     }
@@ -133,7 +131,7 @@ export function MyAccountPanel({
       setDeleteConfirmOpen(false)
       setStatus({
         kind: 'error',
-        msg: 'This login cannot be deleted: it is the shared public demo account, and the sandbox resets itself every 30 minutes.',
+        msg: t('account.demoCannotDelete'),
       })
       return
     }
@@ -148,13 +146,14 @@ export function MyAccountPanel({
       setDeleteConfirmOpen(false)
       setStatus({
         kind: 'error',
-        msg: err instanceof Error ? err.message : 'Could not delete your account.',
+        msg: err instanceof Error ? err.message : t('account.deleteFailed'),
       })
       setDeleting(false)
     }
   }
 
-  const displayName = [firstName, lastName].filter(Boolean).join(' ') || username || 'My account'
+  const displayName =
+    [firstName, lastName].filter(Boolean).join(' ') || username || t('account.fallbackName')
   const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || username.slice(0, 2).toUpperCase()
   const dirty = Boolean(
     firstName !== (profile?.first_name ?? '') ||
@@ -184,24 +183,24 @@ export function MyAccountPanel({
     if (saving || !profile || !orgId || !user) return
 
     if (!firstName.trim() || !lastName.trim()) {
-      setStatus({ kind: 'error', msg: 'Please enter your first and last name.' })
+      setStatus({ kind: 'error', msg: t('account.errorNameRequired') })
       return
     }
     if (!username.trim()) {
-      setStatus({ kind: 'error', msg: 'Please enter a username.' })
+      setStatus({ kind: 'error', msg: t('account.errorUsernameRequired') })
       return
     }
     if (!email.trim()) {
-      setStatus({ kind: 'error', msg: 'Please enter an email.' })
+      setStatus({ kind: 'error', msg: t('account.errorEmailRequired') })
       return
     }
     if (password) {
       if (password.length < 8) {
-        setStatus({ kind: 'error', msg: 'Password must be at least 8 characters.' })
+        setStatus({ kind: 'error', msg: t('account.errorPasswordLength') })
         return
       }
       if (password !== confirmPassword) {
-        setStatus({ kind: 'error', msg: 'Passwords do not match.' })
+        setStatus({ kind: 'error', msg: t('account.errorPasswordsMismatch') })
         return
       }
     }
@@ -221,7 +220,7 @@ export function MyAccountPanel({
         },
       })
       if (error) {
-        let msg = 'Could not save your changes. Please try again.'
+        let msg = t('account.saveFailed')
         try {
           const body = await (
             error as { context?: { json?: () => Promise<{ error?: string }> } }
@@ -246,9 +245,9 @@ export function MyAccountPanel({
       await refreshProfile()
       setPassword('')
       setConfirmPassword('')
-      setStatus({ kind: 'ok', msg: 'Your account has been updated.' })
+      setStatus({ kind: 'ok', msg: t('account.updated') })
     } catch {
-      setStatus({ kind: 'error', msg: 'Could not save your changes. Please try again.' })
+      setStatus({ kind: 'error', msg: t('account.saveFailed') })
     } finally {
       setSaving(false)
     }
@@ -258,22 +257,22 @@ export function MyAccountPanel({
     <form onSubmit={onSubmit}>
       {dirty ? <div className="mb-4 flex justify-end gap-2">
           <NeoButton variant="surface" type="button" disabled={saving} onClick={discardChanges}>
-            Discard
+            {t('settings.discard')}
           </NeoButton>
           <NeoButton variant="primary" type="submit" disabled={saving || !passwordsMatch}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t('form.saving') : t('common:save')}
           </NeoButton>
       </div> : null}
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <div className="flex flex-col gap-4">
           <NeoCard className="space-y-4 p-4">
-            <h2 className="text-foreground text-sm font-bold">Profile Photo</h2>
+            <h2 className="text-foreground text-sm font-bold">{t('account.profilePhoto')}</h2>
             <div className="flex items-center gap-4">
               {/* The whole circle is the file picker, as in the design. */}
               <label
                 className={`group relative shrink-0 cursor-pointer`}
-                title={avatarUploading ? 'Uploading…' : 'Change profile photo'}
+                title={avatarUploading ? t('settings.uploading') : t('account.changePhoto')}
               >
                 <input
                   type="file"
@@ -308,13 +307,13 @@ export function MyAccountPanel({
               <div className="min-w-0 flex-1">
                 {editingName ? (
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <NeoInput id="acct-first" value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} aria-label="First name" autoFocus />
-                    <NeoInput id="acct-last" value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} aria-label="Last name" onBlur={() => setEditingName(false)} />
+                    <NeoInput id="acct-first" value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} aria-label={t('account.firstName')} autoFocus />
+                    <NeoInput id="acct-last" value={lastName} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} aria-label={t('account.lastName')} onBlur={() => setEditingName(false)} />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <p className="text-foreground truncate text-xl font-bold">{displayName}</p>
-                    <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label="Edit name" onClick={() => setEditingName(true)}>
+                    <button type="button" className="text-muted-foreground hover:text-foreground rounded p-1" aria-label={t('account.editName')} onClick={() => setEditingName(true)}>
                       <IconEdit className="size-3.5" />
                     </button>
                   </div>
@@ -325,30 +324,30 @@ export function MyAccountPanel({
           </NeoCard>
 
           <NeoCard className="space-y-4 p-4">
-            <h2 className="text-foreground text-sm font-bold">Personal Details</h2>
+            <h2 className="text-foreground text-sm font-bold">{t('account.personalDetails')}</h2>
             <div className="grid gap-1.5">
-              <NeoLabel htmlFor="acct-username">Username</NeoLabel>
+              <NeoLabel htmlFor="acct-username">{t('account.username')}</NeoLabel>
               <NeoInput id="acct-username" value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <NeoLabel htmlFor="acct-email">Email</NeoLabel>
+              <NeoLabel htmlFor="acct-email">{t('account.email')}</NeoLabel>
               <NeoInput id="acct-email" disabled={demo} type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <NeoLabel htmlFor="acct-phone">Phone</NeoLabel>
+              <NeoLabel htmlFor="acct-phone">{t('account.phone')}</NeoLabel>
               <NeoInput
                 id="acct-phone"
                
                 type="tel"
                 value={phone}
                 autoComplete="tel"
-                placeholder="Optional"
+                placeholder={t('account.optional')}
                 onChange={(event) => setPhone(event.target.value)}
               />
             </div>
             {orgName !== undefined ? (
               <div className="grid gap-1.5">
-                <NeoLabel htmlFor="acct-org">Organisation</NeoLabel>
+                <NeoLabel htmlFor="acct-org">{t('account.organisation')}</NeoLabel>
                 <NeoInput id="acct-org" value={orgName ?? '—'} readOnly disabled />
               </div>
             ) : null}
@@ -358,22 +357,22 @@ export function MyAccountPanel({
         <div className="flex flex-col gap-4">
           <NeoCard className="space-y-4 p-4">
             <div>
-              <h2 className="text-foreground text-sm font-bold">Password</h2>
-              <p className="text-muted-foreground mt-1 text-xs">Leave both fields empty to keep your current password.</p>
+              <h2 className="text-foreground text-sm font-bold">{t('account.password')}</h2>
+              <p className="text-muted-foreground mt-1 text-xs">{t('account.passwordHint')}</p>
             </div>
             <div className="grid gap-1.5">
-              <NeoLabel htmlFor="acct-password">New Password</NeoLabel>
+              <NeoLabel htmlFor="acct-password">{t('account.newPassword')}</NeoLabel>
               <NeoInput id="acct-password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <NeoLabel htmlFor="acct-password-confirm">Confirm New Password</NeoLabel>
+              <NeoLabel htmlFor="acct-password-confirm">{t('account.confirmNewPassword')}</NeoLabel>
               <NeoInput id="acct-password-confirm" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
             </div>
             {!passwordsMatch && confirmPassword ? (
-              <p className="text-destructive text-xs font-medium" role="alert">Passwords do not match.</p>
+              <p className="text-destructive text-xs font-medium" role="alert">{t('account.errorPasswordsMismatch')}</p>
             ) : null}
             <NeoButton variant="primary" type="submit" size="sm" className="w-fit" disabled={!password || password.length < 8 || !passwordsMatch || saving}>
-              {saving ? 'Updating…' : 'Update Password'}
+              {saving ? t('account.updating') : t('account.updatePassword')}
             </NeoButton>
           </NeoCard>
 
@@ -381,9 +380,8 @@ export function MyAccountPanel({
             rows={[
               {
                 id: 'logout-all-devices',
-                label: 'Log out of all devices',
-                description:
-                  'Ends every active session, including this one. Use this if you have signed in somewhere you no longer trust.',
+                label: t('account.logOutAllLabel'),
+                description: t('account.logOutAllDescription'),
                 action: (
                   <NeoButton
                     type="button"
@@ -391,15 +389,14 @@ export function MyAccountPanel({
                     disabled={loggingOutAll}
                     onClick={() => void handleLogOutAllDevices()}
                   >
-                    {loggingOutAll ? 'Logging out…' : 'Log Out All'}
+                    {loggingOutAll ? t('account.loggingOut') : t('account.logOutAll')}
                   </NeoButton>
                 ),
               },
               {
                 id: 'delete-personal-account',
-                label: 'Delete my account',
-                description:
-                  'Permanently removes your personal login. Your organisation and its events, games and media are unaffected. This cannot be undone.',
+                label: t('account.deleteLabel'),
+                description: t('account.deleteDescription'),
                 action: (
                   <NeoButton
                     type="button"
@@ -407,7 +404,7 @@ export function MyAccountPanel({
                     disabled={deleting}
                     onClick={() => setDeleteConfirmOpen(true)}
                   >
-                    Delete
+                    {t('settings.delete')}
                   </NeoButton>
                 ),
               },
@@ -432,12 +429,10 @@ export function MyAccountPanel({
           <NeoCard className="w-full max-w-md space-y-4 p-6 shadow-lg">
             <div className="space-y-2">
               <h2 id="delete-own-account-title" className="text-foreground font-semibold">
-                Delete your account?
+                {t('account.deleteConfirmTitle')}
               </h2>
               <p className="text-muted-foreground text-sm">
-                This permanently deletes your personal login and cannot be undone. Your
-                organisation and all of its events, games and media stay exactly as they
-                are. You will be signed out immediately.
+                {t('account.deleteConfirmBody')}
               </p>
             </div>
             <div className="flex justify-end gap-2">
@@ -447,7 +442,7 @@ export function MyAccountPanel({
                 disabled={deleting}
                 onClick={() => setDeleteConfirmOpen(false)}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -455,7 +450,7 @@ export function MyAccountPanel({
                 disabled={deleting}
                 onClick={() => void handleDeleteAccount()}
               >
-                {deleting ? 'Deleting…' : 'Delete my account'}
+                {deleting ? t('account.deleting') : t('account.deleteLabel')}
               </NeoButton>
             </div>
           </NeoCard>

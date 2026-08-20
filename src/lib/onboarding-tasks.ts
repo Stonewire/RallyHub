@@ -2,8 +2,10 @@ import { orgPath } from '@/lib/org-path'
 
 export type OnboardingStep = {
   id: string
-  title: string
-  body: string[]
+  /** i18n key (admin namespace) for the step heading. */
+  titleKey: string
+  /** i18n keys (admin namespace), one per bullet line. */
+  bodyKeys: string[]
   /** Path (+ query) where the target element lives, for the "take me there" fallback. */
   route: string
   /** Matches a data-tour="..." attribute in the DOM. Omit for text-only steps. */
@@ -33,218 +35,220 @@ function applyOrgPathToSteps(steps: OnboardingStep[], clientSlug: string | null)
 
 /**
  * Client-admin onboarding tour, ordered like a real working session:
- * dashboard → org settings (profile, users, billing, promo codes) → games
- * (create a real test game) → events (create a real test event) → support.
+ * dashboard, org settings (profile, users, billing, promo codes), games
+ * (create a real test game), events (create a real test event), support.
+ *
+ * Copy lives in the admin locale files under onboarding.steps.*; the
+ * checklist resolves titleKey/bodyKeys at render time so a language switch
+ * applies straight away.
  */
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'dashboard',
-    title: 'Your dashboard',
+    titleKey: 'onboarding.steps.dashboard.title',
     route: '/admin',
     target: 'nav-dashboard',
     advanceOn: 'click',
     skipIfPath: '/admin',
-    body: [
-      'Stat cards jump straight to Events or Games.',
-      'Recent events shows status and date at a glance.',
-      'Quick links reach Games, Team, Settings and Support.',
+    bodyKeys: [
+      'onboarding.steps.dashboard.body1',
+      'onboarding.steps.dashboard.body2',
+      'onboarding.steps.dashboard.body3',
     ],
   },
   {
     id: 'org-settings-nav',
     clientAdminOnly: true,
-    title: 'Open Org Settings',
+    titleKey: 'onboarding.steps.orgSettingsNav.title',
     route: '/admin/settings',
     target: 'nav-org-settings',
     advanceOn: 'click',
     skipIfPath: '/admin/settings',
-    body: ['Start by setting up your organisation — this is what participants see on screen.'],
+    bodyKeys: ['onboarding.steps.orgSettingsNav.body1'],
   },
   {
     id: 'org-profile',
     clientAdminOnly: true,
-    title: 'Your organisation profile',
+    titleKey: 'onboarding.steps.orgProfile.title',
     route: '/admin/settings',
     target: 'org-profile-form',
     advanceOn: 'manual',
-    body: [
-      'Name, logo and brand colours appear on join screens and displays.',
-      'Company details and VAT go on your invoices.',
-      'Tablet Password is the shared PIN for the tablet kiosk if you use score entry.',
+    bodyKeys: [
+      'onboarding.steps.orgProfile.body1',
+      'onboarding.steps.orgProfile.body2',
+      'onboarding.steps.orgProfile.body3',
     ],
   },
   {
     id: 'team-users',
     clientAdminOnly: true,
-    title: 'Team and users',
+    titleKey: 'onboarding.steps.teamUsers.title',
     route: '/admin/settings',
     target: 'add-user-button',
     advanceOn: 'manual',
-    body: [
-      'Add user creates an account with a temporary password for their first login.',
-      'Client Admin — full access including settings and billing.',
-      'Event Manager — runs events and games, no settings or billing.',
-      'Facilitator — signs into one live event to run it, no admin access.',
+    bodyKeys: [
+      'onboarding.steps.teamUsers.body1',
+      'onboarding.steps.teamUsers.body2',
+      'onboarding.steps.teamUsers.body3',
+      'onboarding.steps.teamUsers.body4',
     ],
   },
   {
     id: 'billing-tab',
     clientAdminOnly: true,
-    title: 'Open Billing',
+    titleKey: 'onboarding.steps.billingTab.title',
     route: '/admin/settings',
     // Billing moved from a tab on the settings page to a top-level sidebar
     // item in the new design, so this step targets the nav entry.
     target: 'nav-billing',
     advanceOn: 'click',
-    body: ['Open Billing in the sidebar to see your plan, invoices and promo codes.'],
+    bodyKeys: ['onboarding.steps.billingTab.body1'],
   },
   {
     id: 'billing-plan',
     clientAdminOnly: true,
-    title: 'Your current plan',
+    titleKey: 'onboarding.steps.billingPlan.title',
     route: '/admin/settings?tab=billing',
     target: 'billing-plan',
     advanceOn: 'manual',
-    body: [
-      'Shows your plan, billing period and what each event activation costs.',
-      'Plan changes will be available here once online billing is enabled.',
+    bodyKeys: [
+      'onboarding.steps.billingPlan.body1',
+      'onboarding.steps.billingPlan.body2',
     ],
   },
   {
     id: 'billing-unpaid',
     clientAdminOnly: true,
-    title: 'Unpaid events',
+    titleKey: 'onboarding.steps.billingUnpaid.title',
     route: '/admin/settings?tab=billing',
     target: 'billing-unpaid',
     advanceOn: 'manual',
-    body: [
-      'Every event you activate creates an invoice that lands here until paid.',
-      'Pay online any time with the "Pay now" button.',
+    bodyKeys: [
+      'onboarding.steps.billingUnpaid.body1',
+      'onboarding.steps.billingUnpaid.body2',
     ],
   },
   {
     id: 'billing-history',
     clientAdminOnly: true,
-    title: 'Payment history',
+    titleKey: 'onboarding.steps.billingHistory.title',
     route: '/admin/settings?tab=billing',
     target: 'billing-history',
     advanceOn: 'manual',
-    body: ['Paid and comped event invoices, most recent first.'],
+    bodyKeys: ['onboarding.steps.billingHistory.body1'],
   },
   {
     id: 'billing-subscription',
     clientAdminOnly: true,
-    title: 'Subscription',
+    titleKey: 'onboarding.steps.billingSubscription.title',
     route: '/admin/settings?tab=billing',
     target: 'billing-subscription',
     advanceOn: 'manual',
-    body: [
-      'Your recurring plan fee — separate from the per-event charges above.',
-    ],
+    bodyKeys: ['onboarding.steps.billingSubscription.body1'],
   },
   {
     id: 'promo-codes',
     clientAdminOnly: true,
-    title: 'Promo codes',
+    titleKey: 'onboarding.steps.promoCodes.title',
     route: '/admin/settings?tab=billing',
     target: 'promo-code-input',
     advanceOn: 'manual',
-    body: [
-      'Got a code? Enter it here and click Add code — nothing to add right now.',
-      'Event codes apply automatically on your next event activation; subscription codes on recurring billing.',
+    bodyKeys: [
+      'onboarding.steps.promoCodes.body1',
+      'onboarding.steps.promoCodes.body2',
     ],
   },
   {
     id: 'games-nav',
-    title: 'Open Games',
+    titleKey: 'onboarding.steps.gamesNav.title',
     route: '/admin/games',
     target: 'nav-games',
     advanceOn: 'click',
     skipIfPath: '/admin/games',
-    body: ['Your game library — build a game once, reuse it across events.'],
+    bodyKeys: ['onboarding.steps.gamesNav.body1'],
   },
   {
     id: 'create-game',
-    title: 'Create a test game',
+    titleKey: 'onboarding.steps.createGame.title',
     route: '/admin/games',
     target: 'new-game-button',
     advanceOn: 'click',
-    body: ["Let's build one for real. Click Create New Game."],
+    bodyKeys: ['onboarding.steps.createGame.body1'],
   },
   {
     id: 'game-types',
-    title: 'Pick a game type',
+    titleKey: 'onboarding.steps.gameTypes.title',
     route: '/admin/games/new',
     target: 'game-type-picker',
     advanceOn: 'click',
-    body: [
-      'Photo — teams submit a photo for the challenge.',
-      'Video — same idea, video submissions.',
-      'Text — a written answer or task.',
-      'Quiz — multiple choice questions, scored automatically.',
-      'Music Bingo — each team gets a 5×5 card from your music catalogue; clips play live.',
-      'Pick Photo to keep the test simple — click a type to continue.',
+    bodyKeys: [
+      'onboarding.steps.gameTypes.body1',
+      'onboarding.steps.gameTypes.body2',
+      'onboarding.steps.gameTypes.body3',
+      'onboarding.steps.gameTypes.body4',
+      'onboarding.steps.gameTypes.body5',
+      'onboarding.steps.gameTypes.body6',
     ],
   },
   {
     id: 'save-game',
-    title: 'Fill it in and save',
+    titleKey: 'onboarding.steps.saveGame.title',
     route: '/admin/games/new',
     target: 'form-save-button',
     advanceOn: 'click',
-    body: [
-      'Give it a name like "Test game", a short description, and set the points.',
-      'Hit Save when you are done — it lands in your library.',
+    bodyKeys: [
+      'onboarding.steps.saveGame.body1',
+      'onboarding.steps.saveGame.body2',
     ],
   },
   {
     id: 'events-nav',
-    title: 'Open Events',
+    titleKey: 'onboarding.steps.eventsNav.title',
     route: '/admin/events',
     target: 'nav-events',
     advanceOn: 'click',
     skipIfPath: '/admin/events',
-    body: ['Events are the live sessions your teams join.'],
+    bodyKeys: ['onboarding.steps.eventsNav.body1'],
   },
   {
     id: 'create-event',
-    title: 'Create a test event',
+    titleKey: 'onboarding.steps.createEvent.title',
     route: '/admin/events',
     target: 'new-event-button',
     advanceOn: 'click',
-    body: ['Click Create New Event to set one up.'],
+    bodyKeys: ['onboarding.steps.createEvent.body1'],
   },
   {
     id: 'save-event',
-    title: 'Set it up and create',
+    titleKey: 'onboarding.steps.saveEvent.title',
     route: '/admin/events/new',
     target: 'form-save-button',
     advanceOn: 'click',
-    body: [
-      'Name it "Test event", pick a date, and attach the test game you just made.',
-      'Click Create Event at the bottom when ready.',
+    bodyKeys: [
+      'onboarding.steps.saveEvent.body1',
+      'onboarding.steps.saveEvent.body2',
     ],
   },
   {
     id: 'event-status',
-    title: 'Event status — read this before your first real event',
+    titleKey: 'onboarding.steps.eventStatus.title',
     route: '/admin/events',
     target: 'event-status-menu',
     advanceOn: 'manual',
-    body: [
-      'Draft and Ready are safe to edit freely — nothing is billed yet.',
-      'Active makes the join and display links work for participants — it starts billing and is one-way (only Archived after).',
-      'Participant links only work for 24 hours after activation, so activate shortly before the event starts, not days ahead.',
-      'Feel free to delete the test event afterwards — it is a draft, so nothing is billed.',
+    bodyKeys: [
+      'onboarding.steps.eventStatus.body1',
+      'onboarding.steps.eventStatus.body2',
+      'onboarding.steps.eventStatus.body3',
+      'onboarding.steps.eventStatus.body4',
     ],
   },
   {
     id: 'support-nav',
-    title: 'Reach out to support',
+    titleKey: 'onboarding.steps.supportNav.title',
     route: '/admin/support',
     target: 'nav-support',
     advanceOn: 'click',
     skipIfPath: '/admin/support',
-    body: ['Send us a message any time — we reply in the same thread.'],
+    bodyKeys: ['onboarding.steps.supportNav.body1'],
   },
 ]

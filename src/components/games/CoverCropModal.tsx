@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import {
@@ -20,6 +21,7 @@ type CoverCropModalProps = {
 }
 
 export function CoverCropModal({ cover, onCancel, onCropped }: CoverCropModalProps) {
+  const { t } = useTranslation('admin')
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -91,7 +93,7 @@ export function CoverCropModal({ cover, onCancel, onCropped }: CoverCropModalPro
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Frame the cover"
+      aria-label={t('games.cover.title')}
       className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4"
       onClick={onCancel}
     >
@@ -99,9 +101,9 @@ export function CoverCropModal({ cover, onCancel, onCropped }: CoverCropModalPro
         className="bg-nm-surface border-border rounded-nm-lg w-full max-w-xl space-y-3 border p-5 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="text-base font-bold">Frame the cover</h2>
+        <h2 className="text-base font-bold">{t('games.cover.title')}</h2>
         <p className="text-muted-foreground text-xs">
-          Drag to move, zoom to fill. {COVER_SIZE_HINT}.
+          {t('games.cover.hint', { size: COVER_SIZE_HINT })}
         </p>
         <div
           className="bg-muted relative mx-auto w-full max-w-[520px] cursor-grab touch-none overflow-hidden rounded-lg active:cursor-grabbing"
@@ -140,7 +142,7 @@ export function CoverCropModal({ cover, onCancel, onCropped }: CoverCropModalPro
           ) : null}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-muted-foreground text-xs font-semibold">Zoom</span>
+          <span className="text-muted-foreground text-xs font-semibold">{t('games.cover.zoom')}</span>
           <input
             type="range"
             min={1}
@@ -157,10 +159,10 @@ export function CoverCropModal({ cover, onCancel, onCropped }: CoverCropModalPro
         </div>
         <div className="flex justify-end gap-2">
           <NeoButton type="button" variant="ghost" onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton type="button" disabled={busy || !natural} onClick={() => void save()}>
-            {busy ? 'Saving…' : 'Use this crop'}
+            {busy ? t('games.cover.saving') : t('games.cover.useCrop')}
           </NeoButton>
         </div>
       </div>

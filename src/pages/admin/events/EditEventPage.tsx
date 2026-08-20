@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -49,6 +50,7 @@ import { brandColorsForEvent, brandColorsFromOrg, logoForEvent } from '@/lib/liv
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventEditPage() {
+  const { t } = useTranslation('admin')
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
@@ -122,14 +124,14 @@ export function AdminEventEditPage() {
 
   async function handleSave(onSaved?: () => void): Promise<boolean> {
     if (!organizationId || !eventId || !values.name.trim()) {
-      setError('Event name is required.')
+      setError(t('events.errors.nameRequired'))
       return false
     }
     const gameStages = values.stages.filter(
       (s) => s.type === 'open' || s.type === 'quiz' || s.type === 'bingo',
     )
     if (gameStages.length === 0) {
-      setError('Add at least one game stage.')
+      setError(t('events.errors.addGameStage'))
       return false
     }
 
@@ -192,17 +194,17 @@ export function AdminEventEditPage() {
       })
       navigate(orgPath(clientSlug, `/admin/events/${copy.id}`), { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Duplicate failed')
+      setError(err instanceof Error ? err.message : t('events.errors.duplicateFailed'))
     }
   }
 
   if (!organizationId) {
     return (
       <AdminPageShell
-        title="Edit event"
-        subtitle="Update event details."
+        title={t('events.edit.title')}
+        subtitle={t('events.edit.subtitleShort')}
         backTo={orgPath(clientSlug, '/admin/events')}
-        backLabel="Back to events"
+        backLabel={t('events.backToEvents')}
       >
         <NoOrganizationMessage />
       </AdminPageShell>
@@ -222,9 +224,9 @@ export function AdminEventEditPage() {
     try {
       await resetEventDataMutation.mutateAsync(eventId)
       setResetDialogOpen(false)
-      notify('Event data reset — teams and live progress cleared')
+      notify(t('events.edit.resetSuccess'))
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not reset event data')
+      notify(err instanceof Error ? err.message : t('events.edit.resetError'))
     }
   }
 
@@ -232,23 +234,23 @@ export function AdminEventEditPage() {
     if (!eventId) return
     try {
       await deleteEvent.mutateAsync(eventId)
-      notify('Event moved to Deleted events.')
+      notify(t('events.edit.deleteSuccess'))
       navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not delete event')
+      notify(err instanceof Error ? err.message : t('events.edit.deleteError'))
     }
   }
 
   return (
     <AdminPageShell
-      title={isArchived ? 'View event' : 'Edit event'}
+      title={isArchived ? t('events.edit.viewTitle') : t('events.edit.title')}
       subtitle={
         isArchived
-          ? 'Archived event — view only. Duplicate it to run the setup again.'
-          : 'Update event details, teams, games, and stages.'
+          ? t('events.edit.subtitleArchived')
+          : t('events.edit.subtitle')
       }
       backTo={orgPath(clientSlug, '/admin/events')}
-      backLabel="Back to events"
+      backLabel={t('events.backToEvents')}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {!isArchived && (
@@ -279,7 +281,9 @@ export function AdminEventEditPage() {
             disabled={duplicateEvent.isPending || loading}
             onClick={() => void handleDuplicate()}
           >
-            {duplicateEvent.isPending ? 'Duplicating…' : 'Duplicate event'}
+            {duplicateEvent.isPending
+              ? t('events.duplicating')
+              : t('events.edit.duplicateEvent')}
           </NeoButton>
           {!isArchived && (
             <NeoButton
@@ -288,7 +292,7 @@ export function AdminEventEditPage() {
               disabled={saving || loading}
               onClick={() => void handleSave()}
             >
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? t('events.saving') : t('events.saveChanges')}
             </NeoButton>
           )}
         </div>
@@ -301,18 +305,22 @@ export function AdminEventEditPage() {
       ) : (
         <>
           <div className="mb-6 flex gap-1 border-b border-border/60">
-            {(['settings', 'tasks', 'log'] as const).map((tab) => (
+            {([
+              ['settings', t('events.tabs.settings')],
+              ['tasks', t('events.tabs.tasks')],
+              ['log', t('events.tabs.log')],
+            ] as const).map(([tab, tabLabel]) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab
                     ? 'border-foreground text-foreground'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab}
+                {tabLabel}
               </button>
             ))}
           </div>
@@ -321,18 +329,16 @@ export function AdminEventEditPage() {
             <>
               {isArchived ? (
                 <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
-                  <p className="text-foreground font-medium">Archived — read only</p>
+                  <p className="text-foreground font-medium">{t('events.edit.archivedReadOnly')}</p>
                   <p className="text-muted-foreground mt-1">
-                    This event is archived and cannot be edited. Use "Duplicate event" to create
-                    a fresh copy with the same setup.
+                    {t('events.edit.archivedReadOnlyHint')}
                   </p>
                 </Card>
               ) : activated ? (
                 <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
-                  <p className="text-foreground font-medium">This event has been activated</p>
+                  <p className="text-foreground font-medium">{t('events.edit.activatedTitle')}</p>
                   <p className="text-muted-foreground mt-1">
-                    Billed events can only be archived. To run the same setup again, duplicate
-                    this event to create a fresh copy that can be activated separately.
+                    {t('events.edit.activatedHint')}
                   </p>
                 </Card>
               ) : null}
@@ -360,9 +366,9 @@ export function AdminEventEditPage() {
                 <Card className="border-border/80 mt-8 space-y-4 bg-card p-6 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-foreground text-lg font-semibold">Event links</h2>
+                      <h2 className="text-foreground text-lg font-semibold">{t('events.links.title')}</h2>
                       <p className="text-muted-foreground text-sm">
-                        QR codes and URLs for facilitator, display, and team join.
+                        {t('events.links.subtitle')}
                       </p>
                     </div>
                     {/* Top right and yellow: this is the one thing an organiser
@@ -416,11 +422,11 @@ export function AdminEventEditPage() {
                   rows={[
                     {
                       id: 'download-event-files',
-                      label: 'Download all event files',
+                      label: t('events.danger.downloadLabel'),
                       description: downloadStatus ? (
                         <span aria-live="polite">{downloadStatus}</span>
                       ) : (
-                        'Export the event package, uploaded media, and QR-code PDF.'
+                        t('events.danger.downloadDescription')
                       ),
                       action: (
                         // Large events take minutes to export; a silent disabled
@@ -440,8 +446,14 @@ export function AdminEventEditPage() {
                               (p) =>
                                 setDownloadStatus(
                                   p.phase === 'downloading'
-                                    ? `Downloading ${p.done} of ${p.total} files (${formatMb(p.bytes)})`
-                                    : `Saving archive… ${p.done}%`,
+                                    ? t('events.danger.downloadProgress', {
+                                        done: p.done,
+                                        total: p.total,
+                                        size: formatMb(p.bytes),
+                                      })
+                                    : t('events.danger.savingArchive', {
+                                        percent: p.done,
+                                      }),
                                 ),
                             )
                               .then((result) => {
@@ -451,30 +463,36 @@ export function AdminEventEditPage() {
                                 }
                                 setDownloadStatus(
                                   result.missing.length > 0
-                                    ? `Saved, but ${result.missing.length} file(s) could not be downloaded, see MISSING-FILES.txt in the archive`
-                                    : 'Saved',
+                                    ? t('events.danger.savedWithMissing', {
+                                        count: result.missing.length,
+                                      })
+                                    : t('events.danger.saved'),
                                 )
                               })
                               .catch((err: unknown) => {
                                 setDownloadStatus(null)
                                 setError(
                                   err instanceof Error
-                                    ? `Export failed: ${err.message}`
-                                    : 'Export failed',
+                                    ? t('events.danger.exportFailedWithMessage', {
+                                        message: err.message,
+                                      })
+                                    : t('events.danger.exportFailed'),
                                 )
                               })
                               .finally(() => setDownloading(false))
                           }}
                         >
-                          {downloading ? 'Exporting…' : 'Download'}
+                          {downloading
+                            ? t('events.danger.exporting')
+                            : t('events.danger.download')}
                         </NeoButton>
                       ),
                     },
                     ...(resetAllowed && !isArchived
                       ? [{
                           id: 'reset-event-data',
-                          label: 'Reset event data',
-                          description: 'Clear teams, submissions, scores, chat, and live progress while keeping games, stages, and branding.',
+                          label: t('events.danger.resetLabel'),
+                          description: t('events.danger.resetDescription'),
                           action: (
                             <NeoButton
                               type="button"
@@ -482,18 +500,18 @@ export function AdminEventEditPage() {
                               disabled={resetEventDataMutation.isPending || loading}
                               onClick={() => setResetDialogOpen(true)}
                             >
-                              Reset
+                              {t('events.danger.reset')}
                             </NeoButton>
                           ),
                         }]
                       : []),
                     {
                       id: 'delete-event',
-                      label: 'Delete this event',
-                      description: 'Move this event to Deleted events. It can be restored before permanent removal.',
+                      label: t('events.danger.deleteLabel'),
+                      description: t('events.danger.deleteDescription'),
                       action: (
                         <NeoButton type="button" variant="destructive" disabled={deleteEvent.isPending} onClick={() => setDeleteDialogOpen(true)}>
-                          Delete
+                          {t('common:delete')}
                         </NeoButton>
                       ),
                     },
@@ -505,7 +523,7 @@ export function AdminEventEditPage() {
                 <FormSaveFooter
                   onSave={() => void handleSave()}
                   saving={saving}
-                  label="Save Changes"
+                  label={t('events.saveChanges')}
                   dirty={dirty}
                 />
               )}
@@ -539,15 +557,15 @@ export function AdminEventEditPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
               <Card className="border-nm-slate-800 w-full max-w-sm space-y-4 border-2 bg-card p-6 shadow-xl">
                 <div>
-                  <h3 className="text-foreground font-semibold">Delete this event?</h3>
+                  <h3 className="text-foreground font-semibold">{t('events.edit.deleteDialogTitle')}</h3>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    {eventQuery.data.name} will move to Deleted events and can be restored before permanent removal.
+                    {t('events.edit.deleteDialogBody', { name: eventQuery.data.name })}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <NeoButton type="button" variant="surface" disabled={deleteEvent.isPending} onClick={() => setDeleteDialogOpen(false)}>Cancel</NeoButton>
+                  <NeoButton type="button" variant="surface" disabled={deleteEvent.isPending} onClick={() => setDeleteDialogOpen(false)}>{t('common:cancel')}</NeoButton>
                   <NeoButton type="button" variant="destructive" disabled={deleteEvent.isPending} onClick={() => void handleDeleteEvent()}>
-                    {deleteEvent.isPending ? 'Deleting…' : 'Delete event'}
+                    {deleteEvent.isPending ? t('events.deleting') : t('events.card.deleteEvent')}
                   </NeoButton>
                 </div>
               </Card>

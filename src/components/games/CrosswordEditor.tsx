@@ -1,6 +1,7 @@
 import { IconCheck, IconClose, IconTrash } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -61,6 +62,7 @@ export function CrosswordEditor({
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
 }) {
+  const { t } = useTranslation('admin')
   // Lazy initial state, read once. useState rather than a ref because reading
   // a ref during render is exactly what it looks like: a purity bug waiting.
   const [seed] = useState(() => initialState(config))
@@ -194,7 +196,7 @@ export function CrosswordEditor({
     setMessage(null)
     if (tool === 'block') {
       if (placed[key]) {
-        setMessage('Clear the letter before blocking this cell.')
+        setMessage(t('games.crossword.clearBeforeBlock'))
         return
       }
       setBlocked((current) =>
@@ -212,7 +214,9 @@ export function CrosswordEditor({
     // cell and commits the direction. Checked here rather than left to a
     // disabled button, because there is no longer a second step to disable.
     if (runCells(cell, tool).length < 2) {
-      setMessage(`No room for a word going ${tool} from there.`)
+      setMessage(
+        t(tool === 'across' ? 'games.crossword.noRoomAcross' : 'games.crossword.noRoomDown'),
+      )
       return
     }
     setStart(cell)
@@ -223,7 +227,7 @@ export function CrosswordEditor({
 
   function confirmWord(): boolean {
     if (!dir || !start || draftChars.length < 1) {
-      setMessage('Words need at least 2 letters.')
+      setMessage(t('games.crossword.minLetters'))
       return false
     }
     let lastFilled = -1
@@ -232,7 +236,7 @@ export function CrosswordEditor({
     })
     const wordSlots = slots.slice(0, lastFilled + 1)
     if (wordSlots.some((slot) => !slot.letter)) {
-      setMessage('Fill every square up to the end of the word.')
+      setMessage(t('games.crossword.fillEverySquare'))
       return false
     }
     const next = { ...placed }
@@ -240,7 +244,7 @@ export function CrosswordEditor({
       const letter = slot.letter.toLocaleLowerCase()
       const existing = next[slot.key]
       if (existing && existing !== letter) {
-        setMessage('That letter clashes with a crossing word.')
+        setMessage(t('games.crossword.letterClash'))
         return false
       }
       next[slot.key] = letter
@@ -317,22 +321,18 @@ export function CrosswordEditor({
   return (
     <div className="space-y-5">
       <div>
-        <Label>Crossword grid</Label>
-        <p className="text-muted-foreground mt-1 text-xs">
-          Choose Across or Down, click the cell the word starts from, then type it.
-          Every straight run of 2 or more letters becomes a word and needs a clue.
-          Use Block to seal cells you do not want used.
-        </p>
+        <Label>{t('games.crossword.gridLabel')}</Label>
+        <p className="text-muted-foreground mt-1 text-xs">{t('games.crossword.gridHelp')}</p>
       </div>
 
       <div className="mx-auto w-fit min-w-64">
         <SegmentedPill
           size="sm"
-          aria-label="Crossword tool"
+          aria-label={t('games.crossword.toolAria')}
           options={[
-            { value: 'across', label: 'Across' },
-            { value: 'down', label: 'Down' },
-            { value: 'block', label: 'Block' },
+            { value: 'across', label: t('games.crossword.across') },
+            { value: 'down', label: t('games.crossword.down') },
+            { value: 'block', label: t('games.crossword.block') },
           ]}
           value={tool}
           onChange={(next) => {
@@ -374,7 +374,10 @@ export function CrosswordEditor({
             <button
               key={key}
               type="button"
-              aria-label={`Cell row ${row + 1}, column ${colLetter(col)}`}
+              aria-label={t('games.crossword.cellAria', {
+                row: row + 1,
+                column: colLetter(col),
+              })}
               onClick={() => onCellClick({ row, col })}
               className={`relative flex size-11 items-center justify-center rounded-md border text-base font-black uppercase transition-colors ${
                 isBlocked
@@ -418,7 +421,7 @@ export function CrosswordEditor({
             maxLength={freeCount}
             autoComplete="off"
             spellCheck={false}
-            aria-label="Type the word"
+            aria-label={t('games.crossword.typeWordAria')}
             /* Invisible but still in normal flow, right where it sits in the
                layout. sr-only positions it off screen, so focusing it made the
                browser scroll sideways to reach it and the page jumped. Zero
@@ -441,10 +444,10 @@ export function CrosswordEditor({
             }
           />
           <Button type="button" size="sm" disabled={draftChars.length < 2} onClick={confirmWord}>
-            <IconCheck className="mr-1 size-4" /> Confirm
+            <IconCheck className="mr-1 size-4" /> {t('games.crossword.confirm')}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={cancelDraft}>
-            <IconClose className="mr-1 size-4" /> Cancel
+            <IconClose className="mr-1 size-4" /> {t('common:cancel')}
           </Button>
         </div>
       ) : null}
@@ -453,19 +456,21 @@ export function CrosswordEditor({
       {clueTarget ? (
         <div className="space-y-2 rounded-lg border p-3">
           <Label>
-            Clue for {wordByRunKey.get(clueTarget)?.answer ?? 'this word'}
+            {t('games.crossword.clueFor', {
+              word: wordByRunKey.get(clueTarget)?.answer ?? t('games.crossword.thisWord'),
+            })}
           </Label>
           <div className="flex gap-2">
             <Input
               value={clueDraft}
               maxLength={CLUE_LIMIT}
               autoFocus
-              placeholder="Write the clue"
+              placeholder={t('games.crossword.cluePlaceholder')}
               className="flex-1 bg-background"
               onChange={(event) => setClueDraft(event.target.value)}
             />
             <Button type="button" size="sm" disabled={!clueDraft.trim()} onClick={saveClue}>
-              Save
+              {t('common:save')}
             </Button>
           </div>
         </div>
@@ -476,10 +481,10 @@ export function CrosswordEditor({
       {words.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Words and clues</Label>
+            <Label>{t('games.crossword.wordsAndClues')}</Label>
             {needsClue.length > 0 ? (
               <Button type="button" size="sm" variant="outline" onClick={startSweep}>
-                Add missing clues ({needsClue.length})
+                {t('games.crossword.addMissingClues', { total: needsClue.length })}
               </Button>
             ) : null}
           </div>
@@ -502,13 +507,13 @@ export function CrosswordEditor({
                   {word.answer}
                 </button>
                 <span className="text-muted-foreground min-w-0 flex-1 truncate">
-                  {missing ? 'Needs a clue' : word.clue}
+                  {missing ? t('games.crossword.needsClue') : word.clue}
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Remove ${word.answer}`}
+                  aria-label={t('games.crossword.removeWord', { word: word.answer })}
                   onClick={() => removeWord(word)}
                 >
                   <IconTrash className="size-4" />

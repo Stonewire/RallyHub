@@ -1,4 +1,5 @@
 import type * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Outlet } from 'react-router-dom'
 
 import { AdminAppSidebar } from '@/components/admin/AdminAppSidebar'
@@ -6,12 +7,16 @@ import { OnboardingChecklist } from '@/components/admin/OnboardingChecklist'
 import { AppLegalFooter } from '@/components/legal/AppLegalFooter'
 import { AdminHeader } from '@/components/shell/AdminHeader'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { useAdminLanguage } from '@/hooks/use-admin-language'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { cn } from '@/lib/utils'
 import { DemoSandboxBar } from '@/components/demo/DemoSandboxBar'
 
 export function AdminLayout() {
-  useDocumentTitle('Admin')
+  // The whole panel follows the org's default language, set in Settings.
+  useAdminLanguage()
+  const { t } = useTranslation('admin')
+  useDocumentTitle(t('shell.documentTitle'))
   return (
     <SidebarProvider
       className="neo-minimal-scope"
@@ -28,7 +33,7 @@ export function AdminLayout() {
         href="#admin-main"
         className="bg-primary text-primary-foreground focus:top-2 fixed -top-20 left-2 z-[100] rounded-md px-3 py-2 text-sm font-semibold shadow-lg transition-[top]"
       >
-        Skip to main content
+        {t('shell.skipToMainContent')}
       </a>
       <AdminAppSidebar />
       <SidebarInset

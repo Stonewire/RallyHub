@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import {
@@ -45,6 +46,7 @@ export function EventQrDownloadButton({
   EventLinksPanelProps,
   'eventId' | 'eventName' | 'eventSlug' | 'organization' | 'branding'
 >) {
+  const { t } = useTranslation('admin')
   const [downloading, setDownloading] = useState(false)
   const links = getEventLinks(eventId, {
     clientSlug: organization?.subdomain,
@@ -63,7 +65,7 @@ export function EventQrDownloadButton({
       }}
     >
       <IconDownload className="size-4" />
-      {downloading ? 'Building PDF…' : 'Download all QR codes (PDF)'}
+      {downloading ? t('events.links.buildingPdf') : t('events.links.downloadAllQrPdf')}
     </NeoButton>
   )
 }
@@ -77,12 +79,21 @@ export function EventLinksPanel({
   compact,
   hideDownloadAll,
 }: EventLinksPanelProps) {
+  const { t } = useTranslation('admin')
   const links = getEventLinks(eventId, {
     clientSlug: organization?.subdomain,
     eventSlug,
   })
   const [copied, setCopied] = useState<string | null>(null)
   const [downloadingAll, setDownloadingAll] = useState(false)
+
+  // Labels describe who the link is for. The keys stay raw (they map to
+  // routes); only what the organiser reads is translated.
+  const linkLabels: Record<string, string> = {
+    facilitator: t('events.links.facilitator'),
+    display: t('events.links.display'),
+    join: t('events.links.join'),
+  }
 
   /**
    * The three event links, plus the org's tablet kiosk when we know the
@@ -96,14 +107,14 @@ export function EventLinksPanel({
   const linkCards = [
     ...EVENT_LINK_ORDER.map((key) => ({
       key: key as string,
-      label: EVENT_LINK_LABELS[key],
+      label: linkLabels[key] ?? EVENT_LINK_LABELS[key],
       url: links[key],
     })),
     ...(organization?.subdomain
       ? [
           {
             key: 'tablet',
-            label: 'Tablet',
+            label: t('events.links.tablet'),
             url: getTabletLink({ subdomain: organization.subdomain }),
           },
         ]
@@ -134,7 +145,7 @@ export function EventLinksPanel({
             </Label>
             <img
               src={qrCodeUrl(url, 200)}
-              alt={`QR code for ${label}`}
+              alt={t('events.links.qrAlt', { label })}
               width={200}
               height={200}
               className="mx-auto rounded-lg bg-white p-2"
@@ -160,12 +171,12 @@ export function EventLinksPanel({
                 ) : (
                   <IconCopy className="size-3.5" />
                 )}
-                {copied === key ? 'Copied' : 'Copy link'}
+                {copied === key ? t('events.links.copied') : t('events.links.copyLink')}
               </NeoButton>
               <NeoButton type="button" size="sm" variant="surface" className="w-full justify-center" asChild>
                 <Link to={url} target="_blank" rel="noreferrer">
                   <IconExternal className="size-3.5" />
-                  Open
+                  {t('events.links.open')}
                 </Link>
               </NeoButton>
               <NeoButton
@@ -173,13 +184,13 @@ export function EventLinksPanel({
                 size="sm"
                 variant="surface"
                 className="w-full justify-center"
-                title="Download this QR as a PNG"
+                title={t('events.links.downloadQrTitle')}
                 onClick={() =>
                   void downloadQrPng(url, `rallyhub-${key}-${eventId}.png`)
                 }
               >
                 <IconQr className="size-3.5" />
-                Download QR
+                {t('events.links.downloadQr')}
               </NeoButton>
             </div>
           </div>
@@ -198,7 +209,7 @@ export function EventLinksPanel({
           }}
         >
           <IconDownload className="size-4" />
-          {downloadingAll ? 'Building PDF…' : 'Download all QR codes (PDF)'}
+          {downloadingAll ? t('events.links.buildingPdf') : t('events.links.downloadAllQrPdf')}
         </NeoButton>
       )}
     </div>

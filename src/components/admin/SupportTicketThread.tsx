@@ -1,5 +1,6 @@
 import { IconDownload, IconSend } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
@@ -33,6 +34,7 @@ export function SupportTicketThread({
   senderName,
   className,
 }: SupportTicketThreadProps) {
+  const { t } = useTranslation('admin')
   const { data: messages, isLoading, isError, error } = useTicketMessages(ticket.id)
   const sendMessage = useSendTicketMessage()
   const { mutate: markTicketRead } = useMarkSupportTicketRead()
@@ -82,7 +84,7 @@ export function SupportTicketThread({
     <div className={cn('flex min-h-0 flex-col gap-3', className)}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {ticket.ticket_number ? `Ref ${ticket.ticket_number}` : null}
+          {ticket.ticket_number ? t('support.ref', { number: ticket.ticket_number }) : null}
         </p>
         <NeoButton
           type="button"
@@ -92,7 +94,7 @@ export function SupportTicketThread({
           onClick={handleExport}
         >
           <IconDownload className="size-3.5" aria-hidden />
-          Export
+          {t('support.export')}
         </NeoButton>
       </div>
 
@@ -106,7 +108,7 @@ export function SupportTicketThread({
             <QueryError message={error?.message} />
           </div>
         ) : !messages?.length ? (
-          <p className="text-muted-foreground p-4 text-sm">No messages yet.</p>
+          <p className="text-muted-foreground p-4 text-sm">{t('support.noMessages')}</p>
         ) : (
           <ul ref={listRef} className="flex max-h-80 flex-col gap-3 overflow-y-auto p-4">
             {messages.map((m) => {
@@ -137,7 +139,9 @@ export function SupportTicketThread({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`reply-${ticket.id}`} className="sr-only">Reply</Label>
+        <Label htmlFor={`reply-${ticket.id}`} className="sr-only">
+          {t('support.reply')}
+        </Label>
         <div className="border-border bg-card flex items-end gap-2 rounded-2xl border p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
         <textarea
           id={`reply-${ticket.id}`}
@@ -145,7 +149,7 @@ export function SupportTicketThread({
           onChange={(e) => setDraft(e.target.value)}
           rows={2}
           className="max-h-32 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm outline-none"
-          placeholder="Write a message…"
+          placeholder={t('support.messagePlaceholder')}
           onKeyDown={(e) => {
             // Plain Enter sends, matching the design's chat-input pattern;
             // Shift+Enter still inserts a newline for longer replies.
@@ -164,7 +168,7 @@ export function SupportTicketThread({
           onClick={() => void handleSend()}
         >
           <IconSend className="size-3.5" />
-          {sendMessage.isPending ? 'Sending…' : 'Send'}
+          {sendMessage.isPending ? t('support.sending') : t('support.send')}
         </NeoButton>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { IconChip, IconDisplay, IconDownload, IconRefresh, IconShield, IconUsers } from '@/components/icons'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -11,11 +12,11 @@ import {
   type ActivityLogRow,
 } from '@/hooks/use-event-activity-log'
 
-const ACTOR_TYPE_LABELS: Record<ActivityLogRow['actor_type'], string> = {
-  team: 'Team',
-  facilitator: 'Facilitator',
-  admin: 'Admin',
-  system: 'System',
+const ACTOR_TYPE_LABEL_KEYS: Record<ActivityLogRow['actor_type'], string> = {
+  team: 'events.log.actorType.team',
+  facilitator: 'events.log.actorType.facilitator',
+  admin: 'events.log.actorType.admin',
+  system: 'events.log.actorType.system',
 }
 
 function actorIcon(actorType: ActivityLogRow['actor_type']) {
@@ -42,6 +43,7 @@ const ALL = '__all__'
 const EMPTY_ROWS: ActivityLogRow[] = []
 
 export function EventActivityLog({ eventId }: { eventId: string }) {
+  const { t } = useTranslation('admin')
   const query = useEventActivityLog(eventId)
   const rows = query.data ?? EMPTY_ROWS
   const [actorFilter, setActorFilter] = useState(ALL)
@@ -52,15 +54,14 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
     for (const r of rows) {
       const key = `${r.actor_type}:${r.actor_name ?? ''}`
       if (seen.has(key)) continue
-      const label = r.actor_name
-        ? `${ACTOR_TYPE_LABELS[r.actor_type]}: ${r.actor_name}`
-        : ACTOR_TYPE_LABELS[r.actor_type]
+      const typeLabel = t(ACTOR_TYPE_LABEL_KEYS[r.actor_type])
+      const label = r.actor_name ? `${typeLabel}: ${r.actor_name}` : typeLabel
       seen.set(key, { actorType: r.actor_type, label })
     }
     return [...seen.entries()]
       .map(([key, v]) => ({ key, ...v }))
       .sort((a, b) => a.label.localeCompare(b.label))
-  }, [rows])
+  }, [rows, t])
 
   const actionOptions = useMemo(() => {
     const seen = new Set(rows.map((r) => r.action))
@@ -83,7 +84,13 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
 
   function handleDownload() {
     const csv = toCsv(
-      ['Time', 'Actor type', 'Actor', 'Action', 'Details'],
+      [
+        t('events.log.csv.time'),
+        t('events.log.csv.actorType'),
+        t('events.log.csv.actor'),
+        t('events.log.csv.action'),
+        t('events.log.csv.details'),
+      ],
       filteredRows.map((r) => [
         new Date(r.created_at).toISOString(),
         r.actor_type,
@@ -99,7 +106,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
-          Real-time log of who joined, stage changes, submissions, and key actions.
+          {t('events.log.description')}
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button
@@ -109,7 +116,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             onClick={handleDownload}
           >
             <IconDownload className="mr-1.5 size-3.5" />
-            Download CSV
+            {t('events.log.downloadCsv')}
           </Button>
           <Button
             variant="outline"
@@ -118,7 +125,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             onClick={() => void query.refetch()}
           >
             <IconRefresh className={`mr-1.5 size-3.5 ${query.isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('events.log.refresh')}
           </Button>
         </div>
       </div>
@@ -130,7 +137,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             onChange={(e) => setActorFilter(e.target.value)}
             className="border-input bg-background rounded-lg border px-3 py-1.5 text-sm"
           >
-            <option value={ALL}>All teams &amp; facilitators</option>
+            <option value={ALL}>{t('events.log.allTeamsAndFacilitators')}</option>
             {actorOptions.map((o) => (
               <option key={o.key} value={o.key}>
                 {o.label}
@@ -142,7 +149,7 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
             onChange={(e) => setActionFilter(e.target.value)}
             className="border-input bg-background rounded-lg border px-3 py-1.5 text-sm"
           >
-            <option value={ALL}>All actions</option>
+            <option value={ALL}>{t('events.log.allActions')}</option>
             {actionOptions.map((o) => (
               <option key={o.action} value={o.action}>
                 {o.label}
@@ -158,14 +165,14 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
         <QueryError message={query.error.message} />
       ) : !rows.length ? (
         <div className="rounded-lg border border-border/60 bg-muted/20 py-12 text-center">
-          <p className="text-muted-foreground text-sm">No activity recorded yet.</p>
+          <p className="text-muted-foreground text-sm">{t('events.log.emptyTitle')}</p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Activity is logged when teams join, stages advance, and submissions are reviewed.
+            {t('events.log.emptyHint')}
           </p>
         </div>
       ) : !filteredRows.length ? (
         <div className="rounded-lg border border-border/60 bg-muted/20 py-12 text-center">
-          <p className="text-muted-foreground text-sm">No activity matches these filters.</p>
+          <p className="text-muted-foreground text-sm">{t('events.log.noMatch')}</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border/60 bg-card divide-y divide-border/50 overflow-hidden">
@@ -188,7 +195,10 @@ export function EventActivityLog({ eventId }: { eventId: string }) {
       )}
       {filtersActive && filteredRows.length > 0 ? (
         <p className="text-muted-foreground text-xs">
-          Showing {filteredRows.length} of {rows.length} events.
+          {t('events.log.showing', {
+            shown: filteredRows.length,
+            total: rows.length,
+          })}
         </p>
       ) : null}
     </div>

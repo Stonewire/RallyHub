@@ -1,4 +1,4 @@
-import i18n from 'i18next'
+import { i18n } from '@/lib/i18n'
 
 import type { GameConfig, QuizQuestion, QuizRound } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'

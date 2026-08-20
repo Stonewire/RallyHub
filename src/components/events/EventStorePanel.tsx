@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { IconSearch, IconTrash } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ const DEFAULT_PER_TEAM_LIMIT = 1
  * behave alike.
  */
 export function EventStorePanel({ organizationId, store, onChange }: EventStorePanelProps) {
+  const { t } = useTranslation('admin')
   const itemsQuery = useInventoryItems(organizationId)
   const groupsQuery = useInventoryGroups(organizationId)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -82,21 +84,16 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
     <>
       <div className="border-border flex flex-wrap items-end gap-4 border-b pb-3">
         <div className="mr-auto">
-          <h3 className="text-foreground text-base font-bold">Store</h3>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Items teams can buy with their points during this event.
-          </p>
+          <h3 className="text-foreground text-base font-bold">{t('events.store.title')}</h3>
+          <p className="text-muted-foreground mt-1 text-xs">{t('events.store.help')}</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-          + Add items
+          {t('events.store.addItems')}
         </Button>
       </div>
 
       {store.length === 0 ? (
-        <p className="text-muted-foreground text-xs">
-          No items yet. Add them from your inventory library, then set how many
-          you brought and how many one team may take.
-        </p>
+        <p className="text-muted-foreground text-xs">{t('events.store.empty')}</p>
       ) : (
         <ul className="divide-border/60 divide-y">
           {store.map((row) => {
@@ -116,15 +113,17 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                   <p className="truncate text-sm font-semibold">
                     {/* An item deleted from the library still has a row here
                         until the organiser removes it. */}
-                    {item?.name ?? 'Item no longer in your library'}
+                    {item?.name ?? t('events.store.missingItem')}
                   </p>
                   {item ? (
-                    <p className="text-muted-foreground text-xs">{item.points_cost} points</p>
+                    <p className="text-muted-foreground text-xs">
+                      {t('events.store.pointsCost', { count: item.points_cost })}
+                    </p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <label className="text-muted-foreground text-[10px] font-semibold uppercase">
-                    <span className="block">Have</span>
+                    <span className="block">{t('events.store.have')}</span>
                     <NumberField
                       min={0}
                       value={row.totalStock}
@@ -133,7 +132,7 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                     />
                   </label>
                   <label className="text-muted-foreground text-[10px] font-semibold uppercase">
-                    <span className="block">Per team</span>
+                    <span className="block">{t('events.store.perTeam')}</span>
                     <NumberField
                       min={1}
                       value={row.perTeamLimit}
@@ -146,7 +145,7 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                     variant="ghost"
                     size="icon-sm"
                     className="text-destructive"
-                    title="Remove from store"
+                    title={t('events.store.removeFromStore')}
                     onClick={() => onChange(store.filter((s) => s.itemId !== row.itemId))}
                   >
                     <IconTrash className="size-4" />
@@ -162,9 +161,9 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="border-border/80 bg-card flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border shadow-xl">
             <div className="border-border flex items-center justify-between border-b p-4">
-              <h4 className="text-foreground font-bold">Add items to the store</h4>
+              <h4 className="text-foreground font-bold">{t('events.store.pickerTitle')}</h4>
               <Button type="button" variant="ghost" size="sm" onClick={() => setPickerOpen(false)}>
-                Done
+                {t('events.done')}
               </Button>
             </div>
             <div className="border-border flex flex-wrap gap-2 border-b p-3">
@@ -173,7 +172,7 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search items…"
+                  placeholder={t('events.store.searchItems')}
                   className="bg-background h-9 pl-8"
                 />
               </div>
@@ -182,7 +181,7 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                 onChange={(e) => setGroupId(e.target.value)}
                 className="border-input bg-background h-9 rounded-md border px-2 text-sm"
               >
-                <option value="all">All groups</option>
+                <option value="all">{t('events.store.allGroups')}</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -190,13 +189,13 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                 ))}
               </select>
               <Button type="button" variant="outline" size="sm" onClick={addAllShown}>
-                Add all shown
+                {t('events.store.addAllShown')}
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {pickerItems.length === 0 ? (
                 <p className="text-muted-foreground p-6 text-center text-sm">
-                  No items match. Add items in the Inventory Library first.
+                  {t('events.store.noMatches')}
                 </p>
               ) : (
                 <ul className="divide-border/60 divide-y">
@@ -222,7 +221,7 @@ export function EventStorePanel({ organizationId, store, onChange }: EventStoreP
                             {item.name}
                           </span>
                           <span className="text-muted-foreground block text-xs">
-                            {item.points_cost} points
+                            {t('events.store.pointsCost', { count: item.points_cost })}
                           </span>
                         </span>
                       </label>

@@ -1,5 +1,6 @@
 import { IconCheck, IconChevronDown, IconChevronRight, IconClose, IconPhoto, IconSearch, IconTrash } from '@/components/icons'
 import { useMemo, useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { orgPath } from '@/lib/org-path'
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -56,14 +57,14 @@ import {
 import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import type { GameType } from '@/types/database'
 
-const FILTERS: { value: 'all' | GameType; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'photo', label: 'Photo' },
-  { value: 'video', label: 'Video' },
-  { value: 'text', label: 'Text' },
-  { value: 'quiz', label: 'Quiz' },
-  { value: 'music_bingo', label: 'Music Bingo' },
-  { value: 'puzzle', label: 'Puzzle' },
+const FILTERS: { value: 'all' | GameType; labelKey: string }[] = [
+  { value: 'all', labelKey: 'games.types.all' },
+  { value: 'photo', labelKey: 'games.types.photo' },
+  { value: 'video', labelKey: 'games.types.video' },
+  { value: 'text', labelKey: 'games.types.text' },
+  { value: 'quiz', labelKey: 'games.types.quiz' },
+  { value: 'music_bingo', labelKey: 'games.types.musicBingo' },
+  { value: 'puzzle', labelKey: 'games.types.puzzle' },
 ]
 
 function GroupHeader({
@@ -93,6 +94,7 @@ function GroupHeader({
   onDelete: () => void
   onInstall?: () => void
 }) {
+  const { t } = useTranslation('admin')
   return (
     <div className="border-border/70 mb-3 flex items-center gap-2 border-b pb-2">
       <button
@@ -135,8 +137,8 @@ function GroupHeader({
             variant="ghost"
             size="sm"
             className="size-8 p-0"
-            aria-label={`Save the new name for ${name}`}
-            title="Save"
+            aria-label={t('games.groups.saveNameAria', { name })}
+            title={t('common:save')}
             onClick={onSaveRename}
           >
             <IconCheck className="size-4" />
@@ -146,8 +148,8 @@ function GroupHeader({
             variant="ghost"
             size="sm"
             className="size-8 p-0"
-            aria-label={`Cancel renaming ${name}`}
-            title="Cancel"
+            aria-label={t('games.groups.cancelRenameAria', { name })}
+            title={t('common:cancel')}
             onClick={onCancelRename}
           >
             <IconClose className="size-4" />
@@ -157,19 +159,19 @@ function GroupHeader({
         <>
           {onInstall ? (
             <NeoButton type="button" variant="surface" size="sm" onClick={onInstall}>
-              Install group
+              {t('games.groups.installGroup')}
             </NeoButton>
           ) : null}
           <NeoButton type="button" variant="ghost" size="sm" onClick={onStartRename}>
-            Rename
+            {t('games.groups.rename')}
           </NeoButton>
           <NeoButton
             type="button"
             variant="destructive"
             size="sm"
             className="size-8 p-0"
-            aria-label={`Delete group ${name}`}
-            title={`Delete group ${name}`}
+            aria-label={t('games.groups.deleteGroupAria', { name })}
+            title={t('games.groups.deleteGroupAria', { name })}
             onClick={onDelete}
           >
             <IconTrash className="size-4" />
@@ -181,6 +183,7 @@ function GroupHeader({
 }
 
 export function AdminGamesPage() {
+  const { t } = useTranslation('admin')
   const isPlatformLibrary = useIsPlatformGamesAdmin()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const organizationId = useAdminOrganizationId()
@@ -207,7 +210,7 @@ export function AdminGamesPage() {
     try {
       await duplicateGame.mutateAsync(game)
     } catch (err) {
-      setDialogError(err instanceof Error ? err.message : 'Could not duplicate that game')
+      setDialogError(err instanceof Error ? err.message : t('games.errors.duplicateFailed'))
     }
   }
   const navigate = useNavigate()
@@ -258,6 +261,12 @@ export function AdminGamesPage() {
   const [addToGroupType, setAddToGroupType] = useState<'all' | GameType>('all')
   const [addToGroupSearch, setAddToGroupSearch] = useState('')
   const [dialogError, setDialogError] = useState<string | null>(null)
+
+  /** Display label for a game type; unknown types fall back to the raw value. */
+  function gameTypeLabel(type: string): string {
+    const entry = FILTERS.find((item) => item.value === type)
+    return entry ? t(entry.labelKey) : type
+  }
 
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data])
   const allGames = useMemo(() => gamesQuery.data ?? [], [gamesQuery.data])
@@ -373,7 +382,7 @@ export function AdminGamesPage() {
   async function confirmCreateGroup() {
     const name = newGroupName.trim()
     if (!name) {
-      setDialogError('Enter a group name.')
+      setDialogError(t('games.errors.enterGroupName'))
       return
     }
     setDialogError(null)
@@ -387,7 +396,7 @@ export function AdminGamesPage() {
       setNewGroupName('')
       setCreateGroupSelection(new Set())
     } catch (err) {
-      setDialogError(err instanceof Error ? err.message : 'Could not create group')
+      setDialogError(err instanceof Error ? err.message : t('games.errors.createGroupFailed'))
     }
   }
 
@@ -456,7 +465,7 @@ export function AdminGamesPage() {
       setAddToGroupOpen(false)
       setAddToGroupSelection(new Set())
     } catch (err) {
-      setDialogError(err instanceof Error ? err.message : 'Could not add games to group')
+      setDialogError(err instanceof Error ? err.message : t('games.errors.addToGroupFailed'))
     }
   }
 
@@ -467,7 +476,7 @@ export function AdminGamesPage() {
       await deleteGame.mutateAsync(pendingDeleteGame.id)
       setPendingDeleteGame(null)
     } catch (err) {
-      setDialogError(err instanceof Error ? err.message : 'Could not delete game')
+      setDialogError(err instanceof Error ? err.message : t('games.errors.deleteGameFailed'))
     }
   }
 
@@ -479,7 +488,7 @@ export function AdminGamesPage() {
       if (editingGroupId === pendingDeleteGroup.id) setEditingGroupId(null)
       setPendingDeleteGroup(null)
     } catch (err) {
-      setDialogError(err instanceof Error ? err.message : 'Could not delete group')
+      setDialogError(err instanceof Error ? err.message : t('games.errors.deleteGroupFailed'))
     }
   }
 
@@ -507,11 +516,11 @@ export function AdminGamesPage() {
   if (orgLoading) {
     return (
       <AdminPageShell
-        title="Games"
+        title={t('games.title')}
         subtitle={
           isPlatformLibrary
-            ? 'Platform game templates for all clients.'
-            : 'List and manage game templates.'
+            ? t('games.subtitlePlatform')
+            : t('games.subtitleShort')
         }
       >
         <QueryLoading rows={6} />
@@ -521,7 +530,7 @@ export function AdminGamesPage() {
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Games" subtitle="List and manage game templates.">
+      <AdminPageShell title={t('games.title')} subtitle={t('games.subtitleShort')}>
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -536,11 +545,7 @@ export function AdminGamesPage() {
   async function purgeSelectedGames() {
     const ids = [...binSelected]
     if (ids.length === 0) return
-    if (
-      !window.confirm(
-        `Permanently delete ${ids.length} game${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
-      )
-    ) {
+    if (!window.confirm(t('games.bin.confirmPurge', { count: ids.length }))) {
       return
     }
     setPurgeError(null)
@@ -549,7 +554,7 @@ export function AdminGamesPage() {
       try {
         await permanentlyDeleteGame.mutateAsync(id)
       } catch (err) {
-        failures.push(err instanceof Error ? err.message : 'Could not delete a game.')
+        failures.push(err instanceof Error ? err.message : t('games.errors.deleteAGame'))
       }
     }
     setBinSelected(new Set())
@@ -572,33 +577,29 @@ export function AdminGamesPage() {
 
   return (
     <AdminPageShell
-      title="Games"
-      subtitle={
-        isPlatformLibrary
-          ? 'Platform game templates for all clients.'
-          : 'Build and organise your game templates, upload music for bingo, create inventory items teams can buy with points, and restore anything you have deleted.'
-      }
+      title={t('games.title')}
+      subtitle={isPlatformLibrary ? t('games.subtitlePlatform') : t('games.subtitle')}
       actions={
         view === 'catalog' ? <>
           {/* Platform-only, and a page action like every other primary verb
               rather than a button floating above the card. */}
           {isPlatformLibrary ? (
             <NeoButton type="button" variant="surface" onClick={() => setInstallMusicOpen(true)}>
-              Install to clients
+              {t('games.actions.installToClients')}
             </NeoButton>
           ) : null}
           <NeoButton type="button" variant="surface" onClick={() => musicRef.current?.openCreatePlaylist()}>
-            New Playlist
+            {t('games.actions.newPlaylist')}
           </NeoButton>
           <NeoButton type="button" variant="accent" onClick={() => musicRef.current?.openUpload()}>
-            Upload Music
+            {t('games.actions.uploadMusic')}
           </NeoButton>
         </> : view === 'inventory' && !isPlatformLibrary ? <>
           <NeoButton type="button" variant="surface" onClick={() => inventoryRef.current?.openCreateGroup()}>
-            New Group
+            {t('games.actions.newGroup')}
           </NeoButton>
           <NeoButton type="button" variant="accent" onClick={() => inventoryRef.current?.openCreate()}>
-            New Item
+            {t('games.actions.newItem')}
           </NeoButton>
         </> : view === 'bin' ? (
           <NeoButton
@@ -607,21 +608,23 @@ export function AdminGamesPage() {
             disabled={binSelected.size === 0}
             onClick={() => void purgeSelectedGames()}
           >
-            Delete Selected{binSelected.size ? ` (${binSelected.size})` : ''}
+            {binSelected.size
+              ? t('games.actions.deleteSelectedCount', { count: binSelected.size })
+              : t('games.actions.deleteSelected')}
           </NeoButton>
         ) : view === 'games' ? <>
           {/* Only when one group is selected: in the All Groups view there is no
               single target to add to. */}
           {activeGroup ? (
             <NeoButton type="button" variant="surface" onClick={openAddToGroupDialog}>
-              New Games in Group
+              {t('games.actions.newGamesInGroup')}
             </NeoButton>
           ) : null}
           <NeoButton type="button" variant="surface" onClick={() => setImportOpen(true)}>
-            Import
+            {t('games.actions.import')}
           </NeoButton>
           <NeoButton type="button" variant="surface" onClick={openCreateGroupDialog}>
-            New Group
+            {t('games.actions.newGroup')}
           </NeoButton>
           <NeoButton
             variant="accent"
@@ -629,12 +632,12 @@ export function AdminGamesPage() {
             data-tour="new-game-button"
             onClick={() => setNewGameOpen(true)}
           >
-            New Game
+            {t('games.actions.newGame')}
           </NeoButton>
         </> : undefined
       }
     >
-      <div className="border-border mb-5 flex items-center justify-center gap-6 border-b" role="tablist" aria-label="Game libraries">
+      <div className="border-border mb-5 flex items-center justify-center gap-6 border-b" role="tablist" aria-label={t('games.tabs.ariaLabel')}>
         <button
           type="button"
           role="tab"
@@ -642,7 +645,7 @@ export function AdminGamesPage() {
           className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'games' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('games')}
         >
-          Games Library
+          {t('games.tabs.gamesLibrary')}
         </button>
         <button
           type="button"
@@ -651,7 +654,7 @@ export function AdminGamesPage() {
           className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'catalog' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('catalog')}
         >
-          Music Library
+          {t('games.tabs.musicLibrary')}
         </button>
         {!isPlatformLibrary ? (
           <button
@@ -661,7 +664,7 @@ export function AdminGamesPage() {
             className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'inventory' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
             onClick={() => setView('inventory')}
           >
-            Inventory Library
+            {t('games.tabs.inventoryLibrary')}
           </button>
         ) : null}
         <button
@@ -671,7 +674,9 @@ export function AdminGamesPage() {
           className={`relative px-1 pb-3 text-sm font-semibold transition-colors ${view === 'bin' ? 'text-foreground after:bg-primary after:absolute after:inset-x-0 after:-bottom-px after:h-0.5' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setView('bin')}
         >
-          Deleted Games {trashedGamesQuery.data?.length ? `(${trashedGamesQuery.data.length})` : ''}
+          {trashedGamesQuery.data?.length
+            ? t('games.tabs.deletedGamesCount', { count: trashedGamesQuery.data.length })
+            : t('games.tabs.deletedGames')}
         </button>
       </div>
 
@@ -685,14 +690,14 @@ export function AdminGamesPage() {
             {/* Identical to the Games Library toolbar: same pill styling and
                 height, same filters / search / group order. */}
             <div className="flex flex-wrap gap-2 max-xl:justify-center">
-              {FILTERS.map(({ value, label }) => (
+              {FILTERS.map(({ value, labelKey }) => (
                 <button
                   key={value}
                   type="button"
                   className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${filter === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
                   onClick={() => setFilter(value)}
                 >
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -702,7 +707,7 @@ export function AdminGamesPage() {
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search deleted games…"
+                  placeholder={t('games.bin.searchPlaceholder')}
                   className="bg-card h-9 pl-8 text-xs"
                 />
               </div>
@@ -711,7 +716,7 @@ export function AdminGamesPage() {
                 onChange={(event) => setGroupFilter(event.target.value)}
                 className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
               >
-                <option value="all">All Groups</option>
+                <option value="all">{t('games.filters.allGroups')}</option>
                 {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
               </select>
             </div>
@@ -727,7 +732,7 @@ export function AdminGamesPage() {
               name: g.name,
               deletedAt: g.deleted_at!,
               coverUrl: g.cover_url,
-              typeLabel: FILTERS.find((f) => f.value === g.type)?.label ?? g.type,
+              typeLabel: gameTypeLabel(g.type),
               groups: groups
                 .filter((group) => group.items.some((i) => i.game_id === g.id))
                 .map((group) => group.name),
@@ -736,7 +741,7 @@ export function AdminGamesPage() {
               // remains, which is exactly how we know they were removed.
               deletedByRemoved: Boolean(g.deleted_by_name) && !g.deleted_by,
             }))}
-            emptyLabel={(trashedGamesQuery.data ?? []).length === 0 ? 'No deleted games.' : 'No deleted games match these filters.'}
+            emptyLabel={(trashedGamesQuery.data ?? []).length === 0 ? t('games.bin.empty') : t('games.bin.emptyFiltered')}
             restoringId={restoreGame.isPending ? restoreGame.variables : undefined}
             deletingId={permanentlyDeleteGame.isPending ? permanentlyDeleteGame.variables : undefined}
             selectedIds={binSelected}
@@ -747,7 +752,7 @@ export function AdminGamesPage() {
               try {
                 await permanentlyDeleteGame.mutateAsync(id)
               } catch (err) {
-                setPurgeError(err instanceof Error ? err.message : 'Could not delete that game.')
+                setPurgeError(err instanceof Error ? err.message : t('games.errors.deleteThatGame'))
               }
             }}
             onOpen={(id) => navigate(orgPath(clientSlug, `/admin/games/${id}`))}
@@ -763,14 +768,14 @@ export function AdminGamesPage() {
         {/* Type filters, search, then group selector. Every control here is h-9
             so the row reads as one band rather than three different sizes. */}
         <div className="flex flex-wrap gap-2 max-xl:justify-center">
-          {FILTERS.map(({ value, label }) => (
+          {FILTERS.map(({ value, labelKey }) => (
             <button
               key={value}
               type="button"
               className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${filter === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
               onClick={() => setFilter(value)}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -780,7 +785,7 @@ export function AdminGamesPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search games…"
+              placeholder={t('games.searchPlaceholder')}
               className="bg-card h-9 pl-8 text-xs"
             />
           </div>
@@ -794,7 +799,7 @@ export function AdminGamesPage() {
             }}
             className="border-primary bg-primary text-primary-foreground h-9 min-w-44 rounded-md border px-3 text-xs font-semibold"
           >
-            <option value="all">All Groups</option>
+            <option value="all">{t('games.filters.allGroups')}</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>{group.name}</option>
             ))}
@@ -803,11 +808,11 @@ export function AdminGamesPage() {
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as 'manual' | 'status')}
-              aria-label="Sort games"
+              aria-label={t('games.sort.ariaLabel')}
               className="border-input bg-card text-foreground h-9 min-w-40 rounded-md border px-3 text-xs font-semibold"
             >
-              <option value="manual">Manual order</option>
-              <option value="status">Sort by status</option>
+              <option value="manual">{t('games.sort.manual')}</option>
+              <option value="status">{t('games.sort.byStatus')}</option>
             </select>
           ) : null}
         </div>
@@ -820,9 +825,9 @@ export function AdminGamesPage() {
       ) : filtered.length === 0 && groups.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <IconPhoto className="text-muted-foreground size-10 opacity-60" />
-          <p className="text-foreground font-medium">No games yet</p>
+          <p className="text-foreground font-medium">{t('games.emptyTitle')}</p>
           <NeoButton variant="accent" type="button" className="mt-2" onClick={() => setNewGameOpen(true)}>
-            Create New Game
+            {t('games.createNewGame')}
           </NeoButton>
         </Card>
       ) : (
@@ -859,7 +864,7 @@ export function AdminGamesPage() {
                 />
                 {!collapsed ? (
                   groupGames.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No games in this group.</p>
+                    <p className="text-muted-foreground text-sm">{t('games.groups.emptyGroup')}</p>
                   ) : (
                     <DraggableGamesGrid
                       games={groupGames}
@@ -891,7 +896,7 @@ export function AdminGamesPage() {
           {groupFilter === 'all' && ungrouped.length > 0 ? (
             <section>
               <h2 className="text-foreground mb-2 text-sm font-semibold">
-                Ungrouped
+                {t('games.groups.ungrouped')}
                 <span className="bg-muted text-muted-foreground ml-2 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
                   {ungrouped.length}
                 </span>
@@ -958,14 +963,14 @@ export function AdminGamesPage() {
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
             <div className="space-y-2">
               <h3 id="create-group-title" className="text-foreground font-semibold">
-                New game group
+                {t('games.createGroup.title')}
               </h3>
               <p className="text-muted-foreground text-sm">
-                Name the group, then optionally choose games to add now.
+                {t('games.createGroup.description')}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-group-name">Group name</Label>
+              <Label htmlFor="new-group-name">{t('games.createGroup.nameLabel')}</Label>
               <Input
                 id="new-group-name"
                 value={newGroupName}
@@ -974,7 +979,7 @@ export function AdminGamesPage() {
                   if (e.key === 'Enter') void confirmCreateGroup()
                   if (e.key === 'Escape') setCreateGroupOpen(false)
                 }}
-                placeholder="e.g. Icebreakers"
+                placeholder={t('games.createGroup.namePlaceholder')}
                 className="bg-background"
                 autoFocus
               />
@@ -985,10 +990,10 @@ export function AdminGamesPage() {
                   <select
                     value={createGroupSource}
                     onChange={(event) => setCreateGroupSource(event.target.value)}
-                    aria-label="Draw games from group"
+                    aria-label={t('games.createGroup.sourceAriaLabel')}
                     className="border-input bg-background h-9 min-w-40 rounded-md border px-2 text-xs font-semibold"
                   >
-                    <option value="all">All Groups</option>
+                    <option value="all">{t('games.filters.allGroups')}</option>
                     {groups.map((group) => (
                       <option key={group.id} value={group.id}>
                         {group.name}
@@ -996,14 +1001,14 @@ export function AdminGamesPage() {
                     ))}
                   </select>
                   <div className="flex flex-wrap gap-1.5">
-                    {FILTERS.map(({ value, label }) => (
+                    {FILTERS.map(({ value, labelKey }) => (
                       <button
                         key={value}
                         type="button"
                         className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${createGroupType === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                         onClick={() => setCreateGroupType(value)}
                       >
-                        {label}
+                        {t(labelKey)}
                       </button>
                     ))}
                   </div>
@@ -1012,7 +1017,7 @@ export function AdminGamesPage() {
                     <Input
                       value={createGroupSearch}
                       onChange={(event) => setCreateGroupSearch(event.target.value)}
-                      placeholder="Search games…"
+                      placeholder={t('games.searchPlaceholder')}
                       className="h-9 pl-8 text-xs"
                     />
                   </div>
@@ -1026,7 +1031,7 @@ export function AdminGamesPage() {
                     }
                     onChange={toggleAllCreateGroupGames}
                   />
-                  Select all visible ({createGroupCandidates.length})
+                  {t('games.selectAllVisible', { count: createGroupCandidates.length })}
                 </label>
                 <div className="divide-border max-h-64 overflow-y-auto rounded-md border">
                   {createGroupCandidates.map((game) => {
@@ -1041,19 +1046,21 @@ export function AdminGamesPage() {
                         <span className="min-w-0 flex-1">
                           <span className="text-foreground block truncate text-sm font-semibold">{game.name}</span>
                           <span className="text-muted-foreground block text-xs">
-                            {FILTERS.find((item) => item.value === game.type)?.label ?? game.type}
-                            {currentGroup ? ` · Currently in ${currentGroup.name}` : ' · Ungrouped'}
+                            {gameTypeLabel(game.type)}
+                            {currentGroup
+                              ? ` · ${t('games.currentlyIn', { name: currentGroup.name })}`
+                              : ` · ${t('games.groups.ungrouped')}`}
                           </span>
                         </span>
                       </label>
                     )
                   })}
                   {createGroupCandidates.length === 0 ? (
-                    <p className="text-muted-foreground px-4 py-8 text-center text-sm">No games match these filters.</p>
+                    <p className="text-muted-foreground px-4 py-8 text-center text-sm">{t('games.noGamesMatchFilters')}</p>
                   ) : null}
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Games stay in any group they are already in.
+                  {t('games.createGroup.membershipNote')}
                 </p>
               </div>
             ) : null}
@@ -1064,7 +1071,7 @@ export function AdminGamesPage() {
             ) : null}
             </div>
             <div className="border-border flex items-center justify-between gap-3 border-t p-5">
-              <p className="text-muted-foreground text-xs">{createGroupSelection.size} games selected</p>
+              <p className="text-muted-foreground text-xs">{t('games.createGroup.selectedCount', { count: createGroupSelection.size })}</p>
               <div className="flex gap-2">
               <NeoButton
                 type="button"
@@ -1075,7 +1082,7 @@ export function AdminGamesPage() {
                   setCreateGroupOpen(false)
                 }}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -1083,7 +1090,9 @@ export function AdminGamesPage() {
                 disabled={createGroup.isPending || addGamesToGroup.isPending}
                 onClick={() => void confirmCreateGroup()}
               >
-                {createGroup.isPending || addGamesToGroup.isPending ? 'Creating…' : 'Create group'}
+                {createGroup.isPending || addGamesToGroup.isPending
+                  ? t('games.createGroup.creating')
+                  : t('games.createGroup.submit')}
               </NeoButton>
               </div>
             </div>
@@ -1104,16 +1113,15 @@ export function AdminGamesPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 id="add-games-to-group-title" className="text-foreground font-semibold">
-                    Add games to {activeGroup.name}
+                    {t('games.addToGroup.title', { name: activeGroup.name })}
                   </h3>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    A game can sit in several groups, so this adds without taking it
-                    out of the groups it is already in.
+                    {t('games.addToGroup.description')}
                   </p>
                 </div>
                 <button
                   type="button"
-                  aria-label="Close"
+                  aria-label={t('common:close')}
                   className="text-muted-foreground hover:text-foreground rounded-md p-1"
                   onClick={() => setAddToGroupOpen(false)}
                 >
@@ -1122,14 +1130,14 @@ export function AdminGamesPage() {
               </div>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <div className="flex flex-wrap gap-1.5">
-                  {FILTERS.map(({ value, label }) => (
+                  {FILTERS.map(({ value, labelKey }) => (
                     <button
                       key={value}
                       type="button"
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${addToGroupType === value ? 'border-nm-slate-800 bg-nm-slate-800 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       onClick={() => setAddToGroupType(value)}
                     >
-                      {label}
+                      {t(labelKey)}
                     </button>
                   ))}
                 </div>
@@ -1138,7 +1146,7 @@ export function AdminGamesPage() {
                   <Input
                     value={addToGroupSearch}
                     onChange={(event) => setAddToGroupSearch(event.target.value)}
-                    placeholder="Search games…"
+                    placeholder={t('games.searchPlaceholder')}
                     className="h-9 pl-8 text-xs"
                   />
                 </div>
@@ -1154,7 +1162,7 @@ export function AdminGamesPage() {
                   }
                   onChange={toggleAllAddToGroupGames}
                 />
-                Select all visible ({addToGroupCandidates.length})
+                {t('games.selectAllVisible', { count: addToGroupCandidates.length })}
               </label>
               <div className="divide-border overflow-hidden rounded-md border">
                 {addToGroupCandidates.map((game) => {
@@ -1169,8 +1177,10 @@ export function AdminGamesPage() {
                       <span className="min-w-0 flex-1">
                         <span className="text-foreground block truncate text-sm font-semibold">{game.name}</span>
                         <span className="text-muted-foreground block text-xs">
-                          {FILTERS.find((item) => item.value === game.type)?.label ?? game.type}
-                          {currentGroup ? ` · Currently in ${currentGroup.name}` : ' · Ungrouped'}
+                          {gameTypeLabel(game.type)}
+                          {currentGroup
+                            ? ` · ${t('games.currentlyIn', { name: currentGroup.name })}`
+                            : ` · ${t('games.groups.ungrouped')}`}
                         </span>
                       </span>
                     </label>
@@ -1178,19 +1188,21 @@ export function AdminGamesPage() {
                 })}
                 {addToGroupCandidates.length === 0 ? (
                   <p className="text-muted-foreground px-4 py-10 text-center text-sm">
-                    No games match these filters.
+                    {t('games.noGamesMatchFilters')}
                   </p>
                 ) : null}
               </div>
             </div>
             <div className="border-border flex items-center justify-between gap-3 border-t p-5">
-              <p className="text-muted-foreground text-xs">{addToGroupSelection.size} selected</p>
+              <p className="text-muted-foreground text-xs">{t('games.addToGroup.selectedCount', { count: addToGroupSelection.size })}</p>
               <div className="flex gap-2">
                 <NeoButton type="button" variant="surface" disabled={addGamesToGroup.isPending} onClick={() => setAddToGroupOpen(false)}>
-                  Cancel
+                  {t('common:cancel')}
                 </NeoButton>
                 <NeoButton type="button" variant="primary" disabled={addToGroupSelection.size === 0 || addGamesToGroup.isPending} onClick={() => void confirmAddToGroup()}>
-                  {addGamesToGroup.isPending ? 'Adding…' : `Add ${addToGroupSelection.size || ''} game${addToGroupSelection.size === 1 ? '' : 's'}`}
+                  {addGamesToGroup.isPending
+                    ? t('games.addToGroup.adding')
+                    : t('games.addToGroup.submit', { count: addToGroupSelection.size })}
                 </NeoButton>
               </div>
             </div>
@@ -1209,12 +1221,15 @@ export function AdminGamesPage() {
           <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
             <div className="space-y-2">
               <h3 id="delete-game-title" className="text-foreground font-semibold">
-                Delete game?
+                {t('games.deleteGame.title')}
               </h3>
               <p id="delete-game-message" className="text-muted-foreground text-sm leading-relaxed">
-                Delete{' '}
-                <span className="text-foreground font-medium">{pendingDeleteGame.name}</span>?
-                It'll move to the Bin and be permanently deleted in 30 days.
+                <Trans
+                  t={t}
+                  i18nKey="games.deleteGame.message"
+                  values={{ name: pendingDeleteGame.name }}
+                  components={{ strong: <span className="text-foreground font-medium" /> }}
+                />
               </p>
             </div>
             {dialogError ? (
@@ -1232,7 +1247,7 @@ export function AdminGamesPage() {
                   setPendingDeleteGame(null)
                 }}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -1240,7 +1255,7 @@ export function AdminGamesPage() {
                 disabled={deleteGame.isPending}
                 onClick={() => void confirmDeleteGame()}
               >
-                {deleteGame.isPending ? 'Deleting…' : 'Delete game'}
+                {deleteGame.isPending ? t('games.deleting') : t('games.deleteGame.submit')}
               </NeoButton>
             </div>
           </Card>
@@ -1258,12 +1273,15 @@ export function AdminGamesPage() {
           <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
             <div className="space-y-2">
               <h3 id="delete-group-title" className="text-foreground font-semibold">
-                Delete game group?
+                {t('games.deleteGroup.title')}
               </h3>
               <p id="delete-group-message" className="text-muted-foreground text-sm leading-relaxed">
-                Delete group{' '}
-                <span className="text-foreground font-medium">{pendingDeleteGroup.name}</span>? Games
-                in this group will move to Ungrouped. This cannot be undone.
+                <Trans
+                  t={t}
+                  i18nKey="games.deleteGroup.message"
+                  values={{ name: pendingDeleteGroup.name }}
+                  components={{ strong: <span className="text-foreground font-medium" /> }}
+                />
               </p>
             </div>
             {dialogError ? (
@@ -1281,7 +1299,7 @@ export function AdminGamesPage() {
                   setPendingDeleteGroup(null)
                 }}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -1289,7 +1307,7 @@ export function AdminGamesPage() {
                 disabled={deleteGroup.isPending}
                 onClick={() => void confirmDeleteGroup()}
               >
-                {deleteGroup.isPending ? 'Deleting…' : 'Delete group'}
+                {deleteGroup.isPending ? t('games.deleting') : t('games.deleteGroup.submit')}
               </NeoButton>
             </div>
           </Card>

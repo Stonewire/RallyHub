@@ -1,3 +1,5 @@
+import { i18n } from '@/lib/i18n'
+
 import { supabase } from '@/lib/supabase'
 
 export type OrganizationDeletionRequest = {
@@ -38,7 +40,7 @@ export async function requestOrganizationDeletion(
 ): Promise<{ request: OrganizationDeletionRequest; warning: string | null }> {
   return invokeLifecycle(
     { action: 'request_organization_deletion', organizationId },
-    'Could not request account deletion.',
+    i18n.t('admin:settings.deletionRequestFailed'),
   )
 }
 
@@ -47,17 +49,19 @@ export async function cancelOrganizationDeletion(
 ): Promise<CancelOrganizationDeletionResult> {
   return invokeLifecycle(
     { action: 'cancel_organization_deletion', organizationId },
-    'Could not restore the account.',
+    i18n.t('admin:settings.restoreFailed'),
   )
 }
 
 export async function permanentlyDeleteEvent(eventId: string): Promise<void> {
   await invokeLifecycle(
     { action: 'purge_event', eventId },
-    'Could not permanently delete the event.',
+    i18n.t('admin:events.purgeFailed'),
   )
 }
 
+// English on purpose: purging a client is a super-admin-only action, and the
+// RallyHub platform surfaces are not translated.
 export async function permanentlyDeleteOrganization(organizationId: string): Promise<void> {
   await invokeLifecycle(
     { action: 'purge_organization', organizationId },

@@ -1,4 +1,5 @@
 import { IconAlert } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -19,6 +20,8 @@ export function EventActivationConfirmDialog({
   onCancel,
   onConfirm,
 }: EventActivationConfirmDialogProps) {
+  const { t } = useTranslation('admin')
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -47,10 +50,10 @@ export function EventActivationConfirmDialog({
         </div>
         <div className="flex justify-end gap-2">
           <NeoButton type="button" variant="surface" disabled={confirming} onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton type="button" variant="primary" disabled={confirming} onClick={onConfirm}>
-            {confirming ? 'Activating…' : warning.confirmLabel}
+            {confirming ? t('events.activate.activating') : warning.confirmLabel}
           </NeoButton>
         </div>
       </Card>

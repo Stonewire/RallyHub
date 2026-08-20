@@ -1,5 +1,6 @@
 import { IconPlus, IconTrash } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { SegmentedPill } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ export function TextGameEditor({
   /** 'settings' renders the mode pills; 'designer' renders the answer editor. */
   section?: 'settings' | 'designer'
 }) {
+  const { t } = useTranslation('admin')
   const mode: TextAnswerMode = config.text_answer_mode ?? 'type_text'
   const correctAnswers = config.text_correct_answers ?? ['']
   const options = config.text_options ?? defaultOptions()
@@ -53,28 +55,28 @@ export function TextGameEditor({
     return (
       <div className="border-border mt-2 space-y-4 border-t pt-4">
         <div className="flex w-full items-center gap-3">
-          <Label className="w-24 shrink-0">Game style</Label>
+          <Label className="w-24 shrink-0">{t('games.gameStyle')}</Label>
           <SegmentedPill
             size="sm"
             className="flex-1"
-            aria-label="Game style"
+            aria-label={t('games.gameStyle')}
             options={[
-              { value: 'type_text', label: 'Typing' },
-              { value: 'choose_answer', label: 'Selection' },
+              { value: 'type_text', label: t('games.gameStyleTyping') },
+              { value: 'choose_answer', label: t('games.gameStyleSelection') },
             ]}
             value={mode}
             onChange={(next) => setMode(next as typeof mode)}
           />
         </div>
         <div className="flex w-full items-center gap-3">
-          <Label className="w-24 shrink-0">Approval</Label>
+          <Label className="w-24 shrink-0">{t('games.approval')}</Label>
           <SegmentedPill
             size="sm"
             className="flex-1"
-            aria-label="Approval"
+            aria-label={t('games.approval')}
             options={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'review', label: 'Review' },
+              { value: 'auto', label: t('games.approvalAuto') },
+              { value: 'review', label: t('games.approvalReview') },
             ]}
             value={config.text_approval_mode === 'auto' ? 'auto' : 'review'}
             onChange={(next) =>
@@ -84,8 +86,8 @@ export function TextGameEditor({
         </div>
         <p className="text-muted-foreground text-xs">
           {config.text_approval_mode === 'auto'
-            ? 'Auto: answers are checked and scored the moment a team submits. An exact match scores the full points, anything else scores zero.'
-            : 'Review: every answer waits for a facilitator to score it.'}
+            ? t('games.approvalAutoHint')
+            : t('games.approvalReviewHint')}
         </p>
       </div>
     )
@@ -96,18 +98,16 @@ export function TextGameEditor({
       {mode === 'type_text' ? (
         <div className="space-y-3">
           <div>
-            <Label>{judged ? 'Answer notes (optional)' : 'Correct answers'}</Label>
+            <Label>{judged ? t('games.answerNotes') : t('games.correctAnswers')}</Label>
             <p className="text-muted-foreground mt-1 text-xs">
-              {judged
-                ? 'This game is judged: teams type a free answer and the facilitator awards points inside the range. Anything you add here is shown to the facilitator as a guide, not checked automatically.'
-                : 'Teams type their answer. Capital letters, lowercase, numbers, and symbols must match exactly when the facilitator checks submissions.'}
+              {judged ? t('games.answerNotesHint') : t('games.correctAnswersHint')}
             </p>
           </div>
           {correctAnswers.map((answer, i) => (
             <div key={i} className="flex items-center gap-2">
               <Input
                 value={answer}
-                placeholder={`Correct answer ${i + 1}`}
+                placeholder={t('games.correctAnswerPlaceholder', { index: i + 1 })}
                 onChange={(e) =>
                   setConfig((c) => {
                     const list = [...(c.text_correct_answers ?? [''])]
@@ -146,15 +146,15 @@ export function TextGameEditor({
             }
           >
             <IconPlus className="mr-1 size-4" />
-            Add answer
+            {t('games.addAnswer')}
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
           <div>
-            <Label>Answer options (2–6)</Label>
+            <Label>{t('games.answerOptions')}</Label>
             <p className="text-muted-foreground mt-1 text-xs">
-              Teams pick one option. Mark the correct answer for facilitator reference.
+              {t('games.answerOptionsHint')}
             </p>
           </div>
           {options.map((opt, i) => (
@@ -169,7 +169,7 @@ export function TextGameEditor({
               />
               <Input
                 value={opt.text}
-                placeholder={`Option ${i + 1}`}
+                placeholder={t('games.optionPlaceholder', { index: i + 1 })}
                 onChange={(e) =>
                   setConfig((c) => ({
                     ...c,
@@ -223,7 +223,7 @@ export function TextGameEditor({
               }
             >
               <IconPlus className="mr-1 size-4" />
-              Add option
+              {t('games.addOption')}
             </Button>
           ) : null}
         </div>
@@ -232,6 +232,7 @@ export function TextGameEditor({
   )
 }
 
+/** Returns an admin-namespace translation key for the first problem, or null. */
 // eslint-disable-next-line react-refresh/only-export-components -- validation helper for TextGameEditor's config shape
 export function validateTextGameConfig(
   config: GameConfig,
@@ -242,24 +243,24 @@ export function validateTextGameConfig(
   if (mode === 'type_text') {
     if (judged) return null
     const answers = (config.text_correct_answers ?? []).filter((a) => a.length > 0)
-    if (answers.length === 0) return 'Add at least one correct answer.'
+    if (answers.length === 0) return 'games.validation.addCorrectAnswer'
     return null
   }
   const options = config.text_options ?? []
   if (options.length < 2 || options.length > 6) {
-    return 'Choose-answer games need between 2 and 6 options.'
+    return 'games.validation.optionsRange'
   }
   if (options.some((o) => !o.text.trim())) {
-    return 'Every answer option needs text.'
+    return 'games.validation.optionNeedsText'
   }
   // A judged game still needs its options (they are what the team picks from),
   // but there is no right answer to mark.
   if (judged) return null
   if (!config.text_correct_answer_id) {
-    return 'Mark the correct answer option.'
+    return 'games.validation.markCorrectOption'
   }
   if (!options.some((o) => o.id === config.text_correct_answer_id)) {
-    return 'Mark the correct answer option.'
+    return 'games.validation.markCorrectOption'
   }
   return null
 }

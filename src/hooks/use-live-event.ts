@@ -1,7 +1,6 @@
-import i18n from 'i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { setAppLanguage } from '@/lib/i18n'
+import { i18n, setAppLanguage } from '@/lib/i18n'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   applyLiveBundlePatch,

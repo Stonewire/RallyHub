@@ -1,5 +1,6 @@
 import { IconEye } from '@/components/icons'
 import type { Dispatch, SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AssetField } from '@/components/games/AssetField'
 import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
@@ -8,9 +9,9 @@ import { Card } from '@/components/ui/card'
 import type { GameConfig } from '@/types/game-config'
 
 const COLOUR_FIELDS = [
-  { key: 'primary_color', label: 'Primary' },
-  { key: 'secondary_color', label: 'Secondary' },
-  { key: 'accent_color', label: 'Accent' },
+  { key: 'primary_color', labelKey: 'games.background.primary' },
+  { key: 'secondary_color', labelKey: 'games.background.secondary' },
+  { key: 'accent_color', labelKey: 'games.background.accent' },
 ] as const
 
 const DEFAULT_COLOURS: Record<(typeof COLOUR_FIELDS)[number]['key'], string> = {
@@ -49,15 +50,16 @@ export function BackgroundDesigner({
   onOpenPreview,
   previewSubtitle,
 }: BackgroundDesignerProps) {
+  const { t } = useTranslation('admin')
   // Stored, with the old derivation as the fallback so games saved before
   // background_mode existed keep the appearance they already had.
   const usingImage = config.background_mode
     ? config.background_mode === 'image'
     : Boolean(config.background_url)
 
-  const colours = COLOUR_FIELDS.map(({ key, label }) => ({
+  const colours = COLOUR_FIELDS.map(({ key, labelKey }) => ({
     key,
-    label,
+    label: t(labelKey),
     value: config[key] ?? DEFAULT_COLOURS[key],
   }))
 
@@ -71,19 +73,19 @@ export function BackgroundDesigner({
         backgroundImage: `linear-gradient(135deg, ${colours[1].value}, ${colours[0].value})`,
       }
 
-  const title = gameName.trim() || 'Untitled game'
+  const title = gameName.trim() || t('games.untitledGame')
 
   return (
     <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-foreground text-sm font-bold">Background Designer</h3>
+        <h3 className="text-foreground text-sm font-bold">{t('games.background.title')}</h3>
         <SegmentedPill
           size="sm"
           className="w-44"
-          aria-label="Background type"
+          aria-label={t('games.background.typeAria')}
           options={[
-            { value: 'image', label: 'Image' },
-            { value: 'colours', label: 'Colours' },
+            { value: 'image', label: t('games.background.image') },
+            { value: 'colours', label: t('games.background.colours') },
           ]}
           value={usingImage ? 'image' : 'colours'}
           onChange={(next) =>
@@ -96,7 +98,7 @@ export function BackgroundDesigner({
 
       {usingImage ? (
         <AssetField
-          label="Background image"
+          label={t('games.background.imageLabel')}
           preview={config.background_url ?? null}
           onFile={async (file) => {
             if (!file) return
@@ -123,7 +125,7 @@ export function BackgroundDesigner({
 
       <div>
         <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wider uppercase">
-          Live preview
+          {t('games.background.livePreview')}
         </p>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -138,7 +140,7 @@ export function BackgroundDesigner({
                 ) : null}
               </div>
             </div>
-            <p className="text-muted-foreground mt-1 text-center text-[10px]">Host / TV</p>
+            <p className="text-muted-foreground mt-1 text-center text-[10px]">{t('games.background.hostTv')}</p>
           </div>
           <div className="w-20 shrink-0">
             <div
@@ -147,7 +149,7 @@ export function BackgroundDesigner({
             >
               <p className="text-[9px] font-bold text-white drop-shadow">{title}</p>
             </div>
-            <p className="text-muted-foreground mt-1 text-center text-[10px]">Player</p>
+            <p className="text-muted-foreground mt-1 text-center text-[10px]">{t('games.background.player')}</p>
           </div>
         </div>
       </div>
@@ -161,7 +163,7 @@ export function BackgroundDesigner({
           onClick={onOpenPreview}
         >
           <IconEye className="size-3.5" aria-hidden />
-          Click to preview
+          {t('games.background.clickToPreview')}
         </NeoButton>
       ) : null}
     </Card>

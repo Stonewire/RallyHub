@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -43,6 +44,16 @@ const TYPES: {
   { type: 'puzzle', label: 'Puzzle', icon: IconPuzzle, description: 'Wordle, matching, and upcoming puzzle formats' },
 ]
 
+/** Display labels only. The stored type values stay as they are. */
+const GAME_TYPE_LABEL_KEYS: Record<GameType, string> = {
+  photo: 'games.types.photo',
+  video: 'games.types.video',
+  text: 'games.types.text',
+  quiz: 'games.types.quiz',
+  music_bingo: 'games.types.musicBingo',
+  puzzle: 'games.types.puzzle',
+}
+
 function defaultGameName(type: GameType | null): string {
   if (type === 'quiz') return 'New Quiz'
   if (type === 'music_bingo') return 'Music Bingo'
@@ -65,6 +76,7 @@ function emptyQuestion(): QuizQuestion {
 }
 
 export function AdminGamesNewPage() {
+  const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const isPlatformLibrary = useIsPlatformGamesAdmin()
@@ -83,7 +95,7 @@ export function AdminGamesNewPage() {
   // picker lives, rather than showing a second copy of it.
   const [searchParams] = useSearchParams()
   const requestedType = searchParams.get('type')
-  const initialType = TYPES.some((t) => t.type === requestedType)
+  const initialType = TYPES.some((entry) => entry.type === requestedType)
     ? (requestedType as GameType)
     : null
   const gameType = initialType
@@ -119,10 +131,10 @@ export function AdminGamesNewPage() {
   if (orgLoading) {
     return (
       <AdminPageShell
-        title="New game"
-        subtitle="Create a new game."
+        title={t('games.newGame')}
+        subtitle={t('games.newGameSubtitle')}
         backTo={orgPath(clientSlug, '/admin/games')}
-        backLabel="Back to games"
+        backLabel={t('games.backToGames')}
       >
         <QueryLoading rows={6} />
       </AdminPageShell>
@@ -132,13 +144,13 @@ export function AdminGamesNewPage() {
   if (!organizationId) {
     return (
       <AdminPageShell
-        title="New game"
-        subtitle="Create a new game."
+        title={t('games.newGame')}
+        subtitle={t('games.newGameSubtitle')}
         backTo={orgPath(clientSlug, '/admin/games')}
-        backLabel="Back to games"
+        backLabel={t('games.backToGames')}
       >
         <p className="text-muted-foreground text-sm">
-          Link your profile to an organization in Supabase first.
+          {t('games.linkProfileToOrg')}
         </p>
       </AdminPageShell>
     )
@@ -147,20 +159,20 @@ export function AdminGamesNewPage() {
   async function handleSave() {
     if (!organizationId) return
     if (!gameType || !name.trim()) {
-      setError('Game name is required.')
+      setError(t('games.nameRequired'))
       return
     }
     if (gameType === 'text') {
       const textErr = validateTextGameConfig(config, pointsType === 'range')
       if (textErr) {
-        setError(textErr)
+        setError(t(textErr))
         return
       }
     }
     if (gameType === 'puzzle') {
       const puzzleError = validatePuzzleConfig(config)
       if (puzzleError) {
-        setError(puzzleError)
+        setError(t(puzzleError))
         return
       }
     }
@@ -216,14 +228,14 @@ export function AdminGamesNewPage() {
             groupIds: [...selectedGroupIds],
           })
         } catch {
-          setError('Game saved, but its groups could not be set. Add them from the editor.')
+          setError(t('games.groupsNotSet'))
           setSaving(false)
           return
         }
       }
       navigate(orgPath(clientSlug, '/admin/games'), { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save game')
+      setError(err instanceof Error ? err.message : t('games.saveGameFailed'))
     } finally {
       setSaving(false)
     }
@@ -235,10 +247,10 @@ export function AdminGamesNewPage() {
   // them to yet. Editing writes through instead.
   const groupsCard = (
     <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
-      <h3 className="text-foreground text-sm font-bold">Groups</h3>
+      <h3 className="text-foreground text-sm font-bold">{t('games.groups.heading')}</h3>
       {availableGroups.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          No groups yet. Create one from the Games library.
+          {t('games.noGroupsYet')}
         </p>
       ) : (
         <div className="min-h-[17rem] flex-1 space-y-0.5 overflow-auto">
@@ -269,15 +281,15 @@ export function AdminGamesNewPage() {
 
   return (
     <AdminPageShell
-      title={`New ${TYPES.find((t) => t.type === gameType)?.label ?? 'game'}`}
-      subtitle="Configure your game and save when ready."
+      title={t('games.newTypeTitle', { type: t(GAME_TYPE_LABEL_KEYS[gameType]) })}
+      subtitle={t('games.newGameConfigureSubtitle')}
       actions={
         <>
           <NeoButton type="button" variant="surface" onClick={() => navigate(orgPath(clientSlug, '/admin/games'))}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton type="button" variant="accent" disabled={saving} onClick={() => void handleSave()}>
-            {saving ? 'Saving…' : 'Save game'}
+            {saving ? t('games.saving') : t('games.saveGame')}
           </NeoButton>
         </>
       }

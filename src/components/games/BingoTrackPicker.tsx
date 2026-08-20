@@ -1,5 +1,6 @@
 import { IconMusic, IconPause, IconPlay, IconTrash } from '@/components/icons'
 import { useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
@@ -77,6 +78,7 @@ export function BingoTrackPicker({
   onAdd,
   onRemove,
 }: BingoTrackPickerProps) {
+  const { t } = useTranslation('admin')
   const catalogQuery = useMusicCatalog(organizationId)
   const playlistsQuery = useMusicPlaylists(organizationId)
   const membershipsQuery = usePlaylistMemberships(organizationId)
@@ -160,14 +162,18 @@ export function BingoTrackPicker({
 
   if (catalogQuery.isLoading) return <QueryLoading rows={4} />
   if (catalogQuery.isError) {
-    return <QueryError message={catalogQuery.error?.message ?? 'Could not load the music library'} />
+    return (
+      <QueryError
+        message={catalogQuery.error?.message ?? t('games.music.loadLibraryError')}
+      />
+    )
   }
 
   return (
     <Card className="border-border/80 overflow-hidden bg-card p-0 shadow-sm">
       <div className="border-border flex flex-wrap items-center gap-2 border-b p-3">
         <select
-          aria-label="Select playlist"
+          aria-label={t('games.music.selectPlaylist')}
           value={playlistId}
           onChange={(e) => {
             setPlaylistId(e.target.value)
@@ -175,7 +181,7 @@ export function BingoTrackPicker({
           }}
           className="bg-nm-yellow text-nm-charcoal h-8 rounded-md px-2.5 text-xs font-semibold"
         >
-          <option value="all">All tracks ({allRows.length})</option>
+          <option value="all">{t('games.music.allTracksCount', { count: allRows.length })}</option>
           {playlists.map((pl) => (
             <option key={pl.id} value={pl.id}>
               {pl.name} ({tracksByPlaylist.get(pl.id)?.size ?? 0})
@@ -184,8 +190,8 @@ export function BingoTrackPicker({
         </select>
 
         <span className="text-muted-foreground text-xs">
-          {gameTracks.length} on this game
-          {selected.size > 0 ? ` · ${selected.size} selected` : ''}
+          {t('games.bingo.onThisGame', { count: gameTracks.length })}
+          {selected.size > 0 ? ` · ${t('games.selectedCount', { count: selected.size })}` : ''}
         </span>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -203,7 +209,7 @@ export function BingoTrackPicker({
             }}
           >
             {isPlaying ? <IconPause className="size-3.5" /> : <IconPlay className="size-3.5" />}
-            {isPlaying ? 'Pause' : 'Play playlist'}
+            {isPlaying ? t('games.music.pause') : t('games.music.playPlaylist')}
           </NeoButton>
           <NeoButton
             type="button"
@@ -214,7 +220,9 @@ export function BingoTrackPicker({
               setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)))
             }
           >
-            {allSelected ? 'Clear selection' : `Select all (${rows.length})`}
+            {allSelected
+              ? t('games.clearSelection')
+              : t('games.selectAllCount', { count: rows.length })}
           </NeoButton>
           {selectedOnGame.length > 0 ? (
             <NeoButton
@@ -228,7 +236,7 @@ export function BingoTrackPicker({
               }}
             >
               <IconTrash className="size-3.5" />
-              Remove {selectedOnGame.length}
+              {t('games.removeCount', { count: selectedOnGame.length })}
             </NeoButton>
           ) : null}
           <NeoButton
@@ -241,7 +249,9 @@ export function BingoTrackPicker({
               setSelected(new Set())
             }}
           >
-            Add {selectedToAdd.length || ''} to bingo
+            {selectedToAdd.length
+              ? t('games.bingo.addCountToBingo', { count: selectedToAdd.length })
+              : t('games.bingo.addToBingo')}
           </NeoButton>
         </div>
       </div>
@@ -255,12 +265,12 @@ export function BingoTrackPicker({
       <div className="p-3">
         <div className="text-muted-foreground hidden grid-cols-[28px_minmax(160px,1fr)_84px_minmax(110px,0.7fr)_90px_70px_60px] gap-3 border-b pb-2 text-[10px] font-semibold tracking-[0.08em] uppercase xl:grid">
           <span />
-          <span>Title / Artist</span>
-          <span>Status</span>
-          <span>Playlists</span>
-          <span>Added</span>
-          <span>Duration</span>
-          <span className="text-right">Actions</span>
+          <span>{t('games.music.colTitleArtist')}</span>
+          <span>{t('games.music.colStatus')}</span>
+          <span>{t('games.music.colPlaylists')}</span>
+          <span>{t('games.music.colAdded')}</span>
+          <span>{t('games.music.colDuration')}</span>
+          <span className="text-right">{t('games.music.colActions')}</span>
         </div>
 
         <ul className="divide-border/50 divide-y text-sm">
@@ -292,14 +302,14 @@ export function BingoTrackPicker({
                   className="relative shrink-0"
                   checked={selected.has(row.id)}
                   onChange={() => toggle(row.id)}
-                  aria-label={`Select ${row.title}`}
+                  aria-label={t('games.music.selectTrack', { title: row.title })}
                 />
 
                 <button
                   type="button"
                   className="group relative min-w-0 text-left"
                   onClick={() => playRow(row)}
-                  aria-label={`Play ${row.title} by ${row.artist}`}
+                  aria-label={t('games.music.playTrack', { title: row.title, artist: row.artist })}
                 >
                   <span className="text-foreground flex min-w-0 items-center gap-1.5 text-xs font-semibold">
                     {playingId === row.id && isPlaying ? (
@@ -322,13 +332,13 @@ export function BingoTrackPicker({
                     clip at this length, so it is ready to play. */}
                 <span className="relative">
                   {cutting ? (
-                    <StatusTag tone="pending">Cutting</StatusTag>
+                    <StatusTag tone="pending">{t('games.bingo.statusCutting')}</StatusTag>
                   ) : !onGame ? (
                     <span className="text-muted-foreground text-xs">—</span>
                   ) : onGame.clipUrl && onGame.clipDurationSeconds === clipLength ? (
-                    <StatusTag tone="ready">Ready</StatusTag>
+                    <StatusTag tone="ready">{t('games.bingo.statusReady')}</StatusTag>
                   ) : (
-                    <StatusTag tone="pending">No clip</StatusTag>
+                    <StatusTag tone="pending">{t('games.bingo.statusNoClip')}</StatusTag>
                   )}
                 </span>
 
@@ -348,7 +358,7 @@ export function BingoTrackPicker({
                   {onGame ? (
                     <button
                       type="button"
-                      aria-label={`Remove ${row.title} from this game`}
+                      aria-label={t('games.bingo.removeTrackFromGame', { title: row.title })}
                       className="text-muted-foreground hover:text-destructive flex size-7 items-center justify-center rounded-md"
                       onClick={() => onRemove([row.id])}
                     >
@@ -357,7 +367,7 @@ export function BingoTrackPicker({
                   ) : (
                     <button
                       type="button"
-                      aria-label={`Add ${row.title} to this game`}
+                      aria-label={t('games.bingo.addTrackToGame', { title: row.title })}
                       className="text-muted-foreground hover:text-foreground flex size-7 items-center justify-center rounded-md"
                       disabled={jobs.running}
                       onClick={() => onAdd([catalogRowToTrack(row)])}
@@ -372,15 +382,14 @@ export function BingoTrackPicker({
           {rows.length === 0 ? (
             <li className="text-muted-foreground py-4 text-sm">
               {allRows.length === 0
-                ? 'No music yet. Upload songs in Games → Music Library, then pick them here.'
-                : 'This playlist is empty.'}
+                ? t('games.bingo.noMusicYet')
+                : t('games.music.playlistEmpty')}
             </li>
           ) : null}
         </ul>
 
         <p className="text-muted-foreground mt-3 text-xs">
-          Playback uses this game's {clipLength}s clip once it exists, so what you hear is what
-          teams hear.
+          {t('games.bingo.playbackNote', { seconds: clipLength })}
         </p>
       </div>
 

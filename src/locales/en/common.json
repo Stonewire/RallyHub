@@ -49,6 +49,8 @@
         "menuFallback": "If it is not there, open the three dots menu, then \"Cast, save and share\", then \"Install page as app\".",
         "result": "RallyHub opens from the desktop or taskbar in its own window."
       }
-    }
-  }
+    },
+    "installRallyHubAsApp": "Install RallyHub as an app"
+  },
+  "delete": "Delete"
 }

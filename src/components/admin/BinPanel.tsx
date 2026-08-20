@@ -1,5 +1,6 @@
 import { IconRestore, IconTrash } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -51,6 +52,7 @@ export function BinPanel({
   selectedIds?: Set<string>
   onSelectedIdsChange?: (next: Set<string>) => void
 }) {
+  const { t } = useTranslation('admin')
   const [internalSelected, setInternalSelected] = useState<Set<string>>(new Set())
   const controlled = selectedIds !== undefined
   const selected = selectedIds ?? internalSelected
@@ -101,11 +103,7 @@ export function BinPanel({
     if (!onDeletePermanently) return
     const ids = items.filter((item) => selected.has(item.id)).map((item) => item.id)
     if (ids.length === 0) return
-    if (
-      !window.confirm(
-        `Permanently delete ${ids.length} item${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
-      )
-    ) {
+    if (!window.confirm(t('bin.confirmDeletePermanently', { count: ids.length }))) {
       return
     }
     setDeletingBulk(true)
@@ -136,12 +134,14 @@ export function BinPanel({
       <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
         <label className="flex items-center gap-2 text-xs font-semibold">
           <input type="checkbox" checked={allRestorableSelected} onChange={toggleAll} />
-          Select all restorable ({restorableItems.length})
+          {t('bin.selectAllRestorable', { total: restorableItems.length })}
         </label>
         {selectedCount > 0 ? (
           <NeoButton type="button" variant="surface" size="sm" disabled={restoringBulk} onClick={() => void restoreSelected()}>
             <IconRestore className="mr-1.5 size-3.5" />
-            {restoringBulk ? 'Restoring…' : `Restore ${selectedCount} selected`}
+            {restoringBulk
+              ? t('bin.restoring')
+              : t('bin.restoreSelected', { total: selectedCount })}
           </NeoButton>
         ) : null}
         {selectedCount > 0 && onDeletePermanently && !controlled ? (
@@ -153,20 +153,22 @@ export function BinPanel({
             onClick={() => void deleteSelectedPermanently()}
           >
             <IconTrash className="mr-1.5 size-3.5" />
-            {deletingBulk ? 'Deleting…' : `Delete ${selectedCount} permanently`}
+            {deletingBulk
+              ? t('bin.deleting')
+              : t('bin.deleteSelectedPermanently', { total: selectedCount })}
           </NeoButton>
         ) : null}
       </div>
       <div className="text-muted-foreground border-border hidden grid-cols-[28px_44px_minmax(0,1fr)_90px_minmax(0,1fr)_140px_120px_100px_320px] gap-4 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] md:grid">
         <span />
-        <span>Cover</span>
-        <span>Name</span>
-        <span>Type</span>
-        <span>Groups</span>
-        <span>Deleted by</span>
-        <span>Deleted on</span>
-        <span>Restore in</span>
-        <span className="text-right">Actions</span>
+        <span>{t('bin.columns.cover')}</span>
+        <span>{t('bin.columns.name')}</span>
+        <span>{t('bin.columns.type')}</span>
+        <span>{t('bin.columns.groups')}</span>
+        <span>{t('bin.columns.deletedBy')}</span>
+        <span>{t('bin.columns.deletedOn')}</span>
+        <span>{t('bin.columns.restoreIn')}</span>
+        <span className="text-right">{t('bin.columns.actions')}</span>
       </div>
       {items.map((item) => {
         const remaining = daysRemaining(item.deletedAt)
@@ -180,7 +182,7 @@ export function BinPanel({
               checked={selected.has(item.id)}
               disabled={remaining <= 0 || restoringBulk}
               onChange={() => toggleSelected(item.id)}
-              aria-label={`Select ${item.name}`}
+              aria-label={t('bin.selectItem', { name: item.name })}
             />
             <div className="hidden md:block">
               {item.coverUrl ? (
@@ -201,30 +203,32 @@ export function BinPanel({
               >
                 {item.name}
               </button>
-              <p className="text-muted-foreground mt-0.5 text-xs md:hidden">Deleted {formatDeletedDate(item.deletedAt)}</p>
+              <p className="text-muted-foreground mt-0.5 text-xs md:hidden">
+                {t('bin.deletedOnDate', { date: formatDeletedDate(item.deletedAt) })}
+              </p>
             </div>
             <p className="text-muted-foreground hidden truncate text-xs md:block">
               {item.typeLabel ?? '—'}
             </p>
             <p className="text-muted-foreground hidden truncate text-xs md:block">
-              {item.groups?.length ? item.groups.join(', ') : 'Ungrouped'}
+              {item.groups?.length ? item.groups.join(', ') : t('bin.ungrouped')}
             </p>
             <p className="text-muted-foreground hidden truncate text-xs md:block">
               {/* Attribution survives the account being deleted via the
                   deleted_by_name snapshot; only pre-column rows are unknown. */}
               {item.deletedByName
                 ? item.deletedByRemoved
-                  ? `${item.deletedByName} (account removed)`
+                  ? t('bin.accountRemoved', { name: item.deletedByName })
                   : item.deletedByName
-                : 'Unknown'}
+                : t('bin.unknownUser')}
             </p>
             <p className="text-muted-foreground hidden text-xs md:block">{formatDeletedDate(item.deletedAt)}</p>
             <p className="text-muted-foreground text-xs">
-              {remaining > 0 ? `${remaining} day${remaining === 1 ? '' : 's'}` : 'Deleting soon'}
+              {remaining > 0 ? t('bin.daysLeft', { count: remaining }) : t('bin.deletingSoon')}
             </p>
             <div className="flex shrink-0 flex-wrap justify-start gap-2 md:flex-nowrap md:justify-end">
               <NeoButton type="button" variant="surface" size="sm" onClick={() => onOpen(item.id)}>
-                Open
+                {t('bin.open')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -234,7 +238,7 @@ export function BinPanel({
                 onClick={() => void onRestore(item.id)}
               >
                 <IconRestore className="mr-1.5 size-3.5 shrink-0" />
-                <span className="whitespace-nowrap">Restore</span>
+                <span className="whitespace-nowrap">{t('bin.restore')}</span>
               </NeoButton>
               {onDeletePermanently ? (
                 <NeoButton
@@ -246,7 +250,7 @@ export function BinPanel({
                 >
                   <IconTrash className="mr-1.5 size-3.5 shrink-0" />
                   <span className="whitespace-nowrap">
-                    {deletingId === item.id ? 'Deleting…' : 'Delete permanently'}
+                    {deletingId === item.id ? t('bin.deleting') : t('bin.deletePermanently')}
                   </span>
                 </NeoButton>
               ) : null}

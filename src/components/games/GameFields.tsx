@@ -1,4 +1,5 @@
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AssetField } from '@/components/games/AssetField'
 import { GameFormLayout } from '@/components/games/GameFormLayout'
@@ -97,13 +98,14 @@ export function GameFields({
   groupsCard,
   singleColumn,
 }: GameFieldsProps) {
+  const { t } = useTranslation('admin')
   const [deleteRoundId, setDeleteRoundId] = useState<string | null>(null)
   const [moveTargetId, setMoveTargetId] = useState<string>('')
 
   const designerCard =
     gameType === 'text' ? (
       <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-        <h3 className="text-foreground text-sm font-bold">Game designer</h3>
+        <h3 className="text-foreground text-sm font-bold">{t('games.gameDesigner')}</h3>
         <TextGameEditor
           config={config}
           setConfig={setConfig}
@@ -207,8 +209,8 @@ export function GameFields({
                   config={config}
                   setConfig={setConfig}
                   quizName={name}
-                  title="Bingo designer"
-                  previewSubtitle="Listen and mark your card"
+                  title={t('games.bingoDesigner')}
+                  previewSubtitle={t('games.bingoPreviewSubtitle')}
                   onUploadBackground={(file) =>
                     uploadGameFile(organizationId, `bingo/bg-${assetId}`, file)
                   }
@@ -256,9 +258,9 @@ export function GameFields({
           >
             {gameType === 'quiz' ? (
               <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-                <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+                <h3 className="text-foreground text-sm font-bold">{t('games.primarySettings')}</h3>
                 <div className="space-y-2">
-                  <Label>Quiz name</Label>
+                  <Label>{t('games.quizName')}</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -266,11 +268,11 @@ export function GameFields({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label>{t('games.description')}</Label>
                   <RichTextEditor value={description} onChange={setDescription} />
                 </div>
                 <AssetField
-                  label="Cover image"
+                  label={t('games.coverImage')}
                 cropCover
                   preview={coverUrl}
                   onFile={async (file) => {
@@ -284,7 +286,7 @@ export function GameFields({
                     do not need a row apiece. */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="quiz-points">Points / correct</Label>
+                    <Label htmlFor="quiz-points">{t('games.pointsPerCorrect')}</Label>
                     <NumberField
                       id="quiz-points"
                       min={0}
@@ -294,7 +296,7 @@ export function GameFields({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="quiz-timer">Time / question (sec)</Label>
+                    <Label htmlFor="quiz-timer">{t('games.timePerQuestion')}</Label>
                     <NumberField
                       id="quiz-timer"
                       min={5}
@@ -304,7 +306,7 @@ export function GameFields({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="quiz-rounds">Rounds</Label>
+                    <Label htmlFor="quiz-rounds">{t('games.rounds')}</Label>
                     <NumberField
                       id="quiz-rounds"
                       min={1}
@@ -317,9 +319,9 @@ export function GameFields({
               </Card>
             ) : (
               <Card className="border-border/80 space-y-4 bg-card p-6 shadow-sm">
-                <h3 className="text-foreground text-sm font-bold">Primary settings</h3>
+                <h3 className="text-foreground text-sm font-bold">{t('games.primarySettings')}</h3>
                 <div className="space-y-2">
-                  <Label>Game name</Label>
+                  <Label>{t('games.gameName')}</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -327,7 +329,7 @@ export function GameFields({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label>{t('games.description')}</Label>
                   <RichTextEditor value={description} onChange={setDescription} />
                 </div>
                 {gameType === 'music_bingo' ? (
@@ -344,7 +346,7 @@ export function GameFields({
                 {gameType === 'text' || gameType === 'puzzle' ? (
                   <>
                     <AssetField
-                      label="Cover image"
+                      label={t('games.coverImage')}
                 cropCover
                       preview={coverUrl}
                       onFile={async (file) => {
@@ -371,7 +373,7 @@ export function GameFields({
                     ) : (
                       <>
                         <div className="flex w-full items-center gap-3">
-                          <Label className="shrink-0">Maximum points</Label>
+                          <Label className="shrink-0">{t('games.maximumPoints')}</Label>
                           <NumberField
                             min={1}
                             value={pointsStatic}
@@ -379,7 +381,7 @@ export function GameFields({
                             className="bg-background h-8 w-24"
                           />
                           <span className="text-muted-foreground text-xs">
-                            Reduced by the puzzle scoring rule.
+                            {t('games.puzzleScoringHint')}
                           </span>
                         </div>
                         <PuzzleEditor config={config} setConfig={setConfig} section="settings" />
@@ -401,30 +403,32 @@ export function GameFields({
         >
           <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-xl">
             <h3 className="text-foreground font-semibold">
-              Delete {roundBeingDeleted.name || 'this round'}?
+              {t('games.deleteRoundTitle', {
+                name: roundBeingDeleted.name || t('games.thisRound'),
+              })}
             </h3>
             {doomedQuestions.length > 0 ? (
               <>
                 <p className="text-muted-foreground text-sm">
-                  It holds {doomedQuestions.length} question
-                  {doomedQuestions.length === 1 ? '' : 's'}. Move them to another round, or leave
-                  this blank to delete them with it.
+                  {t('games.roundHoldsQuestions', { count: doomedQuestions.length })}
                 </p>
                 <select
                   value={moveTargetId}
                   onChange={(event) => setMoveTargetId(event.target.value)}
                   className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
                 >
-                  <option value="">Delete the questions</option>
+                  <option value="">{t('games.deleteTheQuestions')}</option>
                   {moveTargets(config, roundBeingDeleted.id).map((round) => (
                     <option key={round.id} value={round.id}>
-                      Move to {round.name || 'unnamed round'}
+                      {t('games.moveToRound', {
+                        name: round.name || t('games.unnamedRound'),
+                      })}
                     </option>
                   ))}
                 </select>
               </>
             ) : (
-              <p className="text-muted-foreground text-sm">This round is empty.</p>
+              <p className="text-muted-foreground text-sm">{t('games.roundIsEmpty')}</p>
             )}
             <div className="flex justify-end gap-2">
               <NeoButton
@@ -434,10 +438,10 @@ export function GameFields({
                   setMoveTargetId('')
                 }}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton variant="destructive" onClick={confirmDeleteRound}>
-                Delete round
+                {t('games.deleteRound')}
               </NeoButton>
             </div>
           </Card>

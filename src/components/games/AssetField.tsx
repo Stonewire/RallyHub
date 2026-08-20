@@ -1,5 +1,6 @@
 import { IconUpload } from '@/components/icons'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { CoverCropModal } from '@/components/games/CoverCropModal'
 import { readCoverFile, type PendingCover } from '@/lib/cover-image'
@@ -49,16 +50,19 @@ export function AssetField({
   preview,
   onFile,
   onUrl,
-  urlPlaceholder = 'or paste an image link…',
+  urlPlaceholder,
   showPreviewPanel = false,
-  previewLabel = 'Cover preview',
+  previewLabel,
   inlinePreview = false,
   cropCover = false,
 }: AssetFieldProps) {
+  const { t } = useTranslation('admin')
   const inputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [pendingCrop, setPendingCrop] = useState<PendingCover | null>(null)
   const isVideo = accept.startsWith('video')
+  const urlHint = urlPlaceholder ?? t('games.asset.urlPlaceholder')
+  const emptyPanelLabel = previewLabel ?? t('games.asset.coverPreview')
 
   return (
     <div className="space-y-2">
@@ -87,12 +91,12 @@ export function AssetField({
           className="border-input bg-background hover:bg-muted flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold"
         >
           <IconUpload className="size-3.5" />
-          <span className="max-w-40 truncate">{fileName ?? 'No File'}</span>
+          <span className="max-w-40 truncate">{fileName ?? t('games.asset.noFile')}</span>
         </button>
         {onUrl ? (
           <Input
             value={preview ?? ''}
-            placeholder={urlPlaceholder}
+            placeholder={urlHint}
             onChange={(event) => onUrl(event.target.value.trim() || null)}
             className="bg-background min-w-0 flex-1"
           />
@@ -123,7 +127,7 @@ export function AssetField({
                 // dead box (CF3-3).
                 <iframe
                   src={youTubeEmbedUrl(preview)!}
-                  title="Video preview"
+                  title={t('games.asset.videoPreview')}
                   className="aspect-video w-full"
                   allow="encrypted-media; picture-in-picture"
                   allowFullScreen
@@ -135,7 +139,7 @@ export function AssetField({
               <img src={preview} alt="" className="max-h-72 object-contain" />
             )
           ) : (
-            previewLabel
+            emptyPanelLabel
           )}
         </div>
       ) : preview && !inlinePreview ? (
@@ -143,7 +147,7 @@ export function AssetField({
           youTubeEmbedUrl(preview) ? (
             <iframe
               src={youTubeEmbedUrl(preview)!}
-              title="Video preview"
+              title={t('games.asset.videoPreview')}
               className="aspect-video w-full max-w-md rounded-lg"
               allow="encrypted-media; picture-in-picture"
               allowFullScreen

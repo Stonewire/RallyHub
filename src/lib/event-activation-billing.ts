@@ -1,3 +1,5 @@
+import { i18n } from '@/lib/i18n'
+
 import {
   ADDITIONAL_TEAM_PRICE_EUR,
   additionalTeamCharge,
@@ -43,12 +45,12 @@ export function getEventActivationWarning(
       extraTeamCount: 0,
       extraTeamChargeEur: 0,
       isComped: true,
-      title: 'Activate event',
-      message:
-        `Activating this event will record it in your billing history on the ${formatPlanLabel(planId)} plan. ` +
-        'Your Partner plan includes events at no cost (100% discount). ' +
-        'If you have not started the event yet, keep it at Ready status until you are ready to go live.',
-      confirmLabel: 'Activate at no cost',
+      title: i18n.t('admin:events.activate.title'),
+      message: [
+        i18n.t('admin:events.activate.partnerMessage', { plan: formatPlanLabel(planId) }),
+        i18n.t('admin:events.activate.readyUntilLive'),
+      ].join(' '),
+      confirmLabel: i18n.t('admin:events.activate.confirmFree'),
     }
   }
 
@@ -61,12 +63,12 @@ export function getEventActivationWarning(
       extraTeamCount: 0,
       extraTeamChargeEur: 0,
       isComped: true,
-      title: 'Activate event',
-      message:
-        'Activating this event will record it in your billing history on the Custom plan. ' +
-        'Your Custom billing is arranged directly, so this does not generate a per-event charge here. ' +
-        'If you have not started the event yet, keep it at Ready status until you are ready to go live.',
-      confirmLabel: 'Activate event',
+      title: i18n.t('admin:events.activate.title'),
+      message: [
+        i18n.t('admin:events.activate.customMessage'),
+        i18n.t('admin:events.activate.readyUntilLive'),
+      ].join(' '),
+      confirmLabel: i18n.t('admin:events.activate.title'),
     }
   }
 
@@ -90,33 +92,46 @@ export function getEventActivationWarning(
       extraTeamCount,
       extraTeamChargeEur,
       isComped: true,
-      title: 'Activate event',
-      message:
-        `A promo code makes this event free (${discountPct}% off the ${formatEur(baseAmount)} ${formatPlanLabel(planId)} per-event price). ` +
-        'Activating records a €0 invoice. If you have not started the event yet, keep it at Ready status until you are ready to go live.',
-      confirmLabel: 'Activate at no cost',
+      title: i18n.t('admin:events.activate.title'),
+      message: [
+        i18n.t('admin:events.activate.freeByPromoMessage', {
+          percent: discountPct,
+          price: formatEur(baseAmount),
+          plan: formatPlanLabel(planId),
+        }),
+        i18n.t('admin:events.activate.readyUntilLive'),
+      ].join(' '),
+      confirmLabel: i18n.t('admin:events.activate.confirmFree'),
     }
   }
 
   const priceLabel = formatEur(billAmountEur)
   const promoNote =
     discountPct > 0
-      ? ` A promo code applies ${discountPct}% off the ${formatEur(baseAmount)} event fee.`
+      ? i18n.t('admin:events.activate.promoNote', {
+          percent: discountPct,
+          price: formatEur(baseAmount),
+        })
       : ''
   const educationalNote = educationalApproved
-    ? ' The approved educational discount applies to the remaining event fee.'
+    ? i18n.t('admin:events.activate.educationalNote')
     : ''
-  const teamChargeNote = extraTeamCount > 0
-    ? ` This includes ${formatEur(extraTeamChargeEur)} for ${extraTeamCount} additional team${extraTeamCount === 1 ? '' : 's'} at ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} each.`
-    : ' Five teams are included at no additional charge.'
+  const teamChargeNote =
+    extraTeamCount > 0
+      ? i18n.t('admin:events.activate.extraTeamsNote', {
+          count: extraTeamCount,
+          amount: formatEur(extraTeamChargeEur),
+          each: formatEur(ADDITIONAL_TEAM_PRICE_EUR),
+        })
+      : i18n.t('admin:events.activate.teamsIncludedNote')
 
-  // Pay Per Event has no subscription, so it usually has no card on file — it
+  // Pay Per Event has no subscription, so it usually has no card on file: it
   // pays the invoice afterwards. If a card IS saved, the charge happens
   // automatically, same as the paid plans.
   const paymentNote =
     planId === 'rookie'
-      ? 'You can pay it from Settings → Billing, or it is charged automatically if you have a card saved. Your next event needs this one settled first.'
-      : 'We will charge the card saved with your subscription.'
+      ? i18n.t('admin:events.activate.payPerEventNote')
+      : i18n.t('admin:events.activate.subscriptionCardNote')
 
   return {
     planId,
@@ -124,13 +139,22 @@ export function getEventActivationWarning(
     extraTeamCount,
     extraTeamChargeEur,
     isComped: false,
-    title: 'Activate event — billing confirmation',
-    message:
-      `Activating this event will generate a bill of ${priceLabel} based on your ${formatPlanLabel(planId)} plan.${teamChargeNote}${promoNote}${educationalNote} ` +
-      `${paymentNote} ` +
-      'If you have not started the event yet, keep it at Ready status to avoid being billed. ' +
-      'Once activated, an event cannot be run again — duplicate it to schedule another session.',
-    confirmLabel: `Activate and bill ${priceLabel}`,
+    title: i18n.t('admin:events.activate.billingTitle'),
+    message: [
+      i18n.t('admin:events.activate.billMessage', {
+        price: priceLabel,
+        plan: formatPlanLabel(planId),
+      }),
+      teamChargeNote,
+      promoNote,
+      educationalNote,
+      paymentNote,
+      i18n.t('admin:events.activate.readyToAvoidBilling'),
+      i18n.t('admin:events.activate.cannotRunAgain'),
+    ]
+      .filter(Boolean)
+      .join(' '),
+    confirmLabel: i18n.t('admin:events.activate.confirmBill', { price: priceLabel }),
   }
 }
 
@@ -162,31 +186,33 @@ export function friendlyActivationError(raw: string | null | undefined): string 
   const message = raw ?? ''
 
   if (message.includes('SUBSCRIPTION_REQUIRED')) {
-    return 'Your subscription is not active. Start (or renew) your plan in Settings → Billing, then activate this event.'
+    return i18n.t('admin:events.activate.errors.subscriptionRequired')
   }
   if (message.includes('UNPAID_INVOICE')) {
-    return 'You have an unpaid event invoice. Settle it in Settings → Billing before activating another event.'
+    return i18n.t('admin:events.activate.errors.unpaidInvoice')
   }
   if (message.includes('EVENT_LIMIT_REACHED')) {
     // The DB message already carries the plan's actual number.
     const limit = message.match(/allows (\d+) event/)?.[1]
-    const resets = formatLimitResetDate()
     const used = limit
-      ? `You have used all ${limit} of your events this month.`
-      : 'You have used all your events for this month.'
-    return `${used} Your next event can be activated from ${resets}. Upgrade your plan to run more now.`
+      ? i18n.t('admin:events.activate.errors.eventLimitUsed', { limit })
+      : i18n.t('admin:events.activate.errors.eventLimitUsedUnknown')
+    const next = i18n.t('admin:events.activate.errors.eventLimitResets', {
+      date: formatLimitResetDate(),
+    })
+    return `${used} ${next}`
   }
   if (message.includes('TEAM_LIMIT_EXCEEDED')) {
     const limit = message.match(/allows (\d+) teams/)?.[1]
     return limit
-      ? `This event has more teams than your plan includes (${limit} per event). Remove some teams or purchase additional team capacity.`
-      : 'This event has more teams than your plan includes. Remove some teams or purchase additional team capacity.'
+      ? i18n.t('admin:events.activate.errors.teamLimitWithNumber', { limit })
+      : i18n.t('admin:events.activate.errors.teamLimit')
   }
   if (message.includes('ORG_SUSPENDED')) {
-    return 'This organisation is suspended, so events cannot be activated. Contact support.'
+    return i18n.t('admin:events.activate.errors.orgSuspended')
   }
 
-  return message || 'Could not activate this event.'
+  return message || i18n.t('admin:events.activate.errors.generic')
 }
 
 /**

@@ -1,5 +1,6 @@
 import { IconSignOut } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import {
@@ -34,6 +35,7 @@ function Divider({ className = '' }: { className?: string }) {
 
 /** The admin header. Composition only, owns no data of its own. */
 export function AdminHeader() {
+  const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const { toggleSidebar, state, isMobile } = useSidebar()
   const { resolvedTheme, toggleTheme } = useTheme()
@@ -69,7 +71,13 @@ export function AdminHeader() {
         <button
           type="button"
           onClick={toggleSidebar}
-          aria-label={isMobile ? 'Open menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={
+            isMobile
+              ? t('shell.header.openMenu')
+              : collapsed
+                ? t('shell.header.expandSidebar')
+                : t('shell.header.collapseSidebar')
+          }
           className={`${ICON_BUTTON} opacity-70 hover:opacity-100`}
         >
           {/* Touch devices get the hamburger everyone recognises; the docked
@@ -96,19 +104,19 @@ export function AdminHeader() {
               <button
                 type="button"
                 onClick={() => setNewGameOpen(true)}
-                aria-label="New Game"
+                aria-label={t('games.actions.newGame')}
                 className="border-input bg-nm-surface hover:bg-muted rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 border px-2 text-xs font-semibold whitespace-nowrap sm:px-3"
               >
                 <IconGames className="size-4" />
-                <span className="hidden sm:inline">New Game</span>
+                <span className="hidden sm:inline">{t('games.actions.newGame')}</span>
               </button>
               <Link
                 to={orgPath(clientSlug, '/admin/events/new')}
-                aria-label="New Event"
+                aria-label={t('events.newEvent')}
                 className="bg-nm-yellow text-nm-charcoal rounded-nm-md flex h-8 shrink-0 items-center gap-1.5 px-2 text-xs font-semibold whitespace-nowrap sm:px-3"
               >
                 <IconEvents className="size-4" />
-                <span className="hidden sm:inline">New Event</span>
+                <span className="hidden sm:inline">{t('events.newEvent')}</span>
               </Link>
             </>
           ) : null}
@@ -118,7 +126,9 @@ export function AdminHeader() {
             type="button"
             onClick={toggleTheme}
             aria-label={
-              resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+              resolvedTheme === 'dark'
+                ? t('shell.header.switchToLightMode')
+                : t('shell.header.switchToDarkMode')
             }
             className={ICON_BUTTON}
           >
@@ -133,7 +143,7 @@ export function AdminHeader() {
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            aria-label="Help"
+            aria-label={t('shell.header.help')}
             className={ICON_BUTTON}
           >
             <IconHelp className="size-4" />
@@ -142,7 +152,7 @@ export function AdminHeader() {
               row does not carry a button that would do nothing. */}
           <InstallAppButton
             iconOnly
-            label="Install RallyHub as an app"
+            label={t('common:install.installRallyHubAsApp')}
             className={ICON_BUTTON}
           />
           {/* The public demo has no real session to end, so it hides Exit,
@@ -151,7 +161,7 @@ export function AdminHeader() {
             <button
               type="button"
               onClick={() => setExitOpen(true)}
-              aria-label="Exit"
+              aria-label={t('shell.header.exit')}
               className={ICON_BUTTON}
             >
               <IconSignOut className="size-3.5" />

@@ -1,5 +1,7 @@
 import { IconChevronDown, IconGrip, IconPlus, IconTrash } from '@/components/icons'
+import { i18n } from '@/lib/i18n'
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { IconUpload } from '@/components/icons'
 
@@ -19,7 +21,7 @@ function newId() {
 function emptyQuestion(roundId?: string): QuizQuestion {
   const answers = [1, 2, 3, 4].map((n) => ({
     id: newId(),
-    text: `Answer ${n}`,
+    text: i18n.t('admin:games.quiz.answerNumber', { number: n }),
   }))
   return {
     id: newId(),
@@ -49,6 +51,7 @@ function QuestionCard({
     onDragEnd: () => void
   }
 }) {
+  const { t } = useTranslation('admin')
   return (
     <Card
       className="border-border/80 space-y-3 p-4"
@@ -59,21 +62,21 @@ function QuestionCard({
       <div className="flex items-center justify-between gap-2">
         <div className="text-muted-foreground flex items-center gap-2 text-sm">
           {dragProps ? <IconGrip className="size-4 shrink-0 cursor-grab" /> : null}
-          Question {index + 1}
+          {t('games.quiz.questionNumber', { number: index + 1 })}
         </div>
         <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`Remove question ${index + 1}`}
-            title="Remove question"
+            aria-label={t('games.quiz.removeQuestionNumber', { number: index + 1 })}
+            title={t('games.quiz.removeQuestion')}
             onClick={onRemove}
           >
           <IconTrash className="size-4" />
         </Button>
       </div>
       <Input
-        placeholder="Question text"
+        placeholder={t('games.quiz.questionTextPlaceholder')}
         value={q.text}
         onChange={(e) => onUpdate({ text: e.target.value })}
         className="bg-background"
@@ -88,7 +91,7 @@ function QuestionCard({
           />
           <Input
             value={a.text}
-            placeholder={`Answer ${ai + 1}`}
+            placeholder={t('games.quiz.answerNumber', { number: ai + 1 })}
             onChange={(e) =>
               onUpdate({
                 answers: q.answers.map((ans) =>
@@ -122,6 +125,7 @@ function QuestionMedia({
   onUpdate: (patch: Partial<QuizQuestion>) => void
   onUploadMedia: (file: File) => Promise<string>
 }) {
+  const { t } = useTranslation('admin')
   const { kind, url } = questionMedia(q)
   const [busy, setBusy] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -148,16 +152,18 @@ function QuestionMedia({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Label className="shrink-0 text-xs">Attach</Label>
+        <Label className="shrink-0 text-xs">{t('games.quiz.attach')}</Label>
         <SegmentedPill
           size="sm"
           className="w-64"
-          aria-label={`Media for question ${q.text || 'question'}`}
+          aria-label={t('games.quiz.mediaForQuestion', {
+            question: q.text || t('games.quiz.questionFallback'),
+          })}
           options={[
-            { value: 'none', label: 'None' },
-            { value: 'photo', label: 'Photo' },
-            { value: 'video', label: 'Video' },
-            { value: 'audio', label: 'Audio' },
+            { value: 'none', label: t('games.quiz.mediaNone') },
+            { value: 'photo', label: t('games.quiz.mediaPhoto') },
+            { value: 'video', label: t('games.quiz.mediaVideo') },
+            { value: 'audio', label: t('games.quiz.mediaAudio') },
           ]}
           value={kind}
           onChange={(next) =>
@@ -183,11 +189,11 @@ function QuestionMedia({
           {/* A linked video cannot be measured from here, and the question's
               timer adds this on so teams are not watching on their own time. */}
           <div className="flex items-center gap-2">
-            <Label className="shrink-0 text-xs">Length</Label>
+            <Label className="shrink-0 text-xs">{t('games.quiz.length')}</Label>
             <NumberField
               min={0}
               value={q.mediaDurationSeconds ?? 0}
-              placeholder="sec"
+              placeholder={t('games.quiz.secondsShort')}
               className="bg-background w-20"
               onChange={(n) => onUpdate({ mediaDurationSeconds: n })}
             />
@@ -227,7 +233,7 @@ function QuestionMedia({
           >
             <IconUpload className="size-3.5" />
             <span className="max-w-40 truncate">
-              {busy ? 'Uploading…' : (fileName ?? 'No File')}
+              {busy ? t('games.uploading') : (fileName ?? t('games.noFile'))}
             </span>
           </button>
         </div>
@@ -244,7 +250,7 @@ function QuestionMedia({
           rel="noreferrer"
           className="text-primary block text-xs underline"
         >
-          Open the video to check it
+          {t('games.quiz.openVideoToCheck')}
         </a>
       ) : null}
     </div>
@@ -268,6 +274,7 @@ export function QuizEditor({
   onUploadQuestionPhoto,
   onDeleteRound,
 }: QuizEditorProps) {
+  const { t } = useTranslation('admin')
   const questions = config.questions ?? []
   const rounds = config.rounds ?? []
   // Rounds start closed: a quiz with several rounds is unreadable otherwise.
@@ -465,9 +472,9 @@ export function QuizEditor({
                 type="checkbox"
                 checked={selectedQuestions.has(q.id)}
                 onChange={() => toggleQuestionSelected(q.id)}
-                aria-label={`Select question ${i + 1}`}
+                aria-label={t('games.quiz.selectQuestionNumber', { number: i + 1 })}
               />
-              <span className="text-muted-foreground">Select</span>
+              <span className="text-muted-foreground">{t('games.quiz.select')}</span>
             </label>
             <QuestionCard
               q={q}
@@ -516,7 +523,7 @@ export function QuizEditor({
             onClick={() => addQuestion(roundId)}
           >
             <IconPlus className="size-4" />
-            New question
+            {t('games.quiz.newQuestion')}
           </Button>
         </div>
       </div>
@@ -530,7 +537,16 @@ export function QuizEditor({
         <div className="space-y-8">
           {/* No Add round button: rounds come from the count in Primary
               settings, so there is one place that decides how many there are. */}
-          {(rounds.length ? rounds : [{ id: newId(), name: 'Round 1', questionIds: [] }]).map(
+          {(rounds.length
+            ? rounds
+            : [
+                {
+                  id: newId(),
+                  name: t('games.quiz.roundNumber', { number: 1 }),
+                  questionIds: [],
+                },
+              ]
+          ).map(
             (round, roundIndex) => {
               const collapsed = collapsedRounds[round.id] ?? true
               const count = questions.filter((q) => q.roundId === round.id).length
@@ -543,7 +559,11 @@ export function QuizEditor({
                     <button
                       type="button"
                       aria-expanded={!collapsed}
-                      aria-label={`${collapsed ? 'Expand' : 'Collapse'} round ${roundIndex + 1}`}
+                      aria-label={
+                        collapsed
+                          ? t('games.quiz.expandRound', { number: roundIndex + 1 })
+                          : t('games.quiz.collapseRound', { number: roundIndex + 1 })
+                      }
                       onClick={() =>
                         setCollapsedRounds((current) => ({
                           ...current,
@@ -555,7 +575,7 @@ export function QuizEditor({
                       <IconChevronDown
                         className={`size-4 transition-transform ${collapsed ? '-rotate-90' : ''}`}
                       />
-                      Round {roundIndex + 1}
+                      {t('games.quiz.roundNumber', { number: roundIndex + 1 })}
                     </button>
                     <Input
                       value={round.name}
@@ -567,11 +587,11 @@ export function QuizEditor({
                           ),
                         }))
                       }
-                      placeholder="Enter a name for this round"
+                      placeholder={t('games.quiz.roundNamePlaceholder')}
                       className="bg-background h-9 min-w-0 flex-1"
                     />
                     <span className="text-muted-foreground shrink-0 text-xs">
-                      {count} question{count === 1 ? '' : 's'}
+                      {t('games.quiz.questionCount', { count })}
                     </span>
                     {/* Bulk actions appear only with a selection, so the header
                         stays quiet until there is something to act on. */}
@@ -579,7 +599,9 @@ export function QuizEditor({
                       <label className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
                         <input
                           type="checkbox"
-                          aria-label={`Select every question in round ${roundIndex + 1}`}
+                          aria-label={t('games.quiz.selectEveryQuestionInRound', {
+                            number: roundIndex + 1,
+                          })}
                           checked={selectedIn(round.id).length === count}
                           onChange={(event) =>
                             setSelectedQuestions((current) => {
@@ -592,7 +614,7 @@ export function QuizEditor({
                             })
                           }
                         />
-                        Select all
+                        {t('games.selectAll')}
                       </label>
                     ) : null}
                     {selectedIn(round.id).length > 0 ? (
@@ -604,7 +626,7 @@ export function QuizEditor({
                           className="shrink-0"
                           onClick={() => duplicateSelected(round.id)}
                         >
-                          Duplicate {selectedIn(round.id).length}
+                          {t('games.duplicateCount', { count: selectedIn(round.id).length })}
                         </Button>
                         <Button
                           type="button"
@@ -613,7 +635,7 @@ export function QuizEditor({
                           className="text-destructive shrink-0"
                           onClick={() => deleteSelected(round.id)}
                         >
-                          Delete {selectedIn(round.id).length}
+                          {t('games.deleteCount', { count: selectedIn(round.id).length })}
                         </Button>
                       </>
                     ) : null}
@@ -622,7 +644,7 @@ export function QuizEditor({
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive shrink-0"
-                      aria-label={`Delete round ${roundIndex + 1}`}
+                      aria-label={t('games.quiz.deleteRound', { number: roundIndex + 1 })}
                       onClick={() => onDeleteRound?.(round.id)}
                     >
                       <IconTrash className="size-4" />
@@ -653,20 +675,21 @@ export function QuizEditor({
 // eslint-disable-next-line react-refresh/only-export-components -- validation helper for QuizEditor's config shape
 export function validateQuizConfig(config: GameConfig): string | null {
   const questions = config.questions ?? []
-  if (questions.length === 0) return 'Add at least one question.'
+  if (questions.length === 0) return i18n.t('admin:games.quiz.errorNoQuestions')
 
   const blank = questions.findIndex((q) => !q.text?.trim())
-  if (blank >= 0) return `Question ${blank + 1} needs its text.`
+  if (blank >= 0) return i18n.t('admin:games.quiz.errorQuestionNeedsText', { number: blank + 1 })
 
   const thin = questions.findIndex(
     (q) => (q.answers ?? []).filter((a) => a.text?.trim()).length < 2,
   )
-  if (thin >= 0) return `Question ${thin + 1} needs at least two answers.`
+  if (thin >= 0) return i18n.t('admin:games.quiz.errorQuestionNeedsAnswers', { number: thin + 1 })
 
   const unanswered = questions.findIndex(
     (q) => !q.correctAnswerId || !(q.answers ?? []).some((a) => a.id === q.correctAnswerId),
   )
-  if (unanswered >= 0) return `Mark the correct answer for question ${unanswered + 1}.`
+  if (unanswered >= 0)
+    return i18n.t('admin:games.quiz.errorMarkCorrectAnswer', { number: unanswered + 1 })
 
   return null
 }

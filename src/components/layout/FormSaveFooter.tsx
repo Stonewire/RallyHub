@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { cn } from '@/lib/utils'
@@ -28,10 +29,11 @@ type FormSaveFooterProps = {
 export function FormSaveFooter({
   onSave,
   saving = false,
-  label = 'Save',
+  label,
   className,
   dirty,
 }: FormSaveFooterProps) {
+  const { t } = useTranslation('admin')
   const [saved, setSaved] = useState(false)
   const prevSaving = useRef(saving)
 
@@ -50,8 +52,8 @@ export function FormSaveFooter({
   // Uncontrolled fallback: auto-revert after a short delay.
   useEffect(() => {
     if (!saved || dirty !== undefined) return
-    const t = setTimeout(() => setSaved(false), 2500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setSaved(false), 2500)
+    return () => clearTimeout(timer)
   }, [saved, dirty])
 
   return (
@@ -75,7 +77,7 @@ export function FormSaveFooter({
         onClick={onSave}
         data-tour="form-save-button"
       >
-        {saving ? 'Saving…' : saved ? 'Saved!' : label}
+        {saving ? t('form.saving') : saved ? t('form.saved') : (label ?? t('common:save'))}
       </NeoButton>
     </div>
   )

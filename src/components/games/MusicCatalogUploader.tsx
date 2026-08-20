@@ -1,5 +1,6 @@
 import { IconUpload } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AccentButton } from '@/components/admin/AccentButton'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ export function MusicCatalogUploader({
   organizationId,
   onTracksReady,
 }: MusicCatalogUploaderProps) {
+  const { t } = useTranslation('admin')
   const { user } = useAuth()
   const insertCatalog = useInsertMusicCatalog(organizationId)
   const [licenseOk, setLicenseOk] = useState(false)
@@ -58,7 +60,7 @@ export function MusicCatalogUploader({
       })
     }
     if (next.length === 0) {
-      setError('No supported audio files found. Use MP3, M4A, or WAV.')
+      setError(t('games.music.unsupportedFiles'))
       return
     }
     setError(null)
@@ -66,11 +68,11 @@ export function MusicCatalogUploader({
   }
 
   const uploadBlockers: string[] = []
-  if (!licenseOk) uploadBlockers.push('confirm usage rights')
+  if (!licenseOk) uploadBlockers.push(t('games.music.blockerUsageRights'))
 
   async function confirmUpload() {
     if (!licenseOk) {
-      setError('Confirm you have rights to use these recordings.')
+      setError(t('games.music.confirmRightsError'))
       return
     }
     if (pending.length === 0) return
@@ -109,7 +111,7 @@ export function MusicCatalogUploader({
       onTracksReady(gameTracks)
       setPending([])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(err instanceof Error ? err.message : t('games.music.uploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -118,11 +120,8 @@ export function MusicCatalogUploader({
   return (
     <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
       <div>
-        <h3 className="text-foreground font-semibold">Upload music</h3>
-        <p className="text-muted-foreground text-sm">
-          We match filenames like &quot;Artist - Title.mp3&quot;. Low-confidence rows need a quick
-          review. Full tracks are stored here; each game cuts its own clip later.
-        </p>
+        <h3 className="text-foreground font-semibold">{t('games.music.uploadMusic')}</h3>
+        <p className="text-muted-foreground text-sm">{t('games.music.uploadHelp')}</p>
       </div>
 
       <label className="flex items-start gap-2 text-sm">
@@ -131,14 +130,12 @@ export function MusicCatalogUploader({
           checked={licenseOk}
           onChange={(e) => setLicenseOk(e.target.checked)}
         />
-        <span>
-          I confirm our organization has the rights to use these recordings in live events.
-        </span>
+        <span>{t('games.music.licenseConfirm')}</span>
       </label>
 
       <label className="border-border/80 hover:bg-muted/30 flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed p-6">
         <IconUpload className="text-muted-foreground size-8" />
-        <span className="text-sm font-medium">Drop MP3 files or click to browse</span>
+        <span className="text-sm font-medium">{t('games.music.dropFiles')}</span>
         <input
           type="file"
           accept="audio/*,.mp3,.m4a,.wav"
@@ -160,7 +157,7 @@ export function MusicCatalogUploader({
             >
               <Input
                 value={item.artist}
-                placeholder="Artist"
+                placeholder={t('games.music.artist')}
                 className="bg-background h-8 text-sm"
                 onChange={(e) =>
                   setPending((list) =>
@@ -172,7 +169,7 @@ export function MusicCatalogUploader({
               />
               <Input
                 value={item.title}
-                placeholder="Title"
+                placeholder={t('games.music.title')}
                 className="bg-background h-8 text-sm"
                 onChange={(e) =>
                   setPending((list) =>
@@ -185,7 +182,7 @@ export function MusicCatalogUploader({
               <p className="text-muted-foreground col-span-full truncate text-xs">
                 {item.file.name}
                 {item.needsReview ? (
-                  <span className="text-amber-600"> · please verify</span>
+                  <span className="text-amber-600"> · {t('games.music.pleaseVerify')}</span>
                 ) : null}
               </p>
             </li>
@@ -203,7 +200,9 @@ export function MusicCatalogUploader({
         <div className="space-y-2">
           {uploadBlockers.length > 0 ? (
             <p className="text-muted-foreground text-xs">
-              Before uploading: {uploadBlockers.join(' and ')}.
+              {t('games.music.beforeUploading', {
+                items: uploadBlockers.join(` ${t('games.music.and')} `),
+              })}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
@@ -212,10 +211,12 @@ export function MusicCatalogUploader({
               disabled={uploading}
               onClick={() => void confirmUpload()}
             >
-              {uploading ? 'Uploading…' : `Add ${pending.length} to game`}
+              {uploading
+                ? t('games.uploading')
+                : t('games.music.addCountToGame', { count: pending.length })}
             </AccentButton>
             <Button type="button" variant="outline" onClick={() => setPending([])}>
-              Clear
+              {t('games.clear')}
             </Button>
           </div>
         </div>

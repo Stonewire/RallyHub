@@ -1,5 +1,6 @@
 import { IconCheck, IconChevronDown, IconChevronUp, IconSparkle } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { TourSpotlight } from '@/components/admin/TourSpotlight'
@@ -58,6 +59,7 @@ function usePanelSide(targetSelector: string | undefined, panelRef: React.RefObj
  * always-visible "Mark complete" escape hatch.
  */
 export function OnboardingChecklist() {
+  const { t } = useTranslation('admin')
   const { role, user } = useAuth()
   const userId = user?.id ?? null
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
@@ -135,7 +137,7 @@ export function OnboardingChecklist() {
         <div className="fixed right-4 bottom-4 z-[80] flex items-center gap-2 rounded-full border border-border/80 bg-card py-1.5 pr-1.5 pl-3 shadow-xl">
           <IconSparkle className="text-accent size-4 shrink-0" />
           <span className="text-foreground max-w-56 truncate text-xs font-medium">
-            {completed.length + 1}/{steps.length} · {activeStep.title}
+            {completed.length + 1}/{steps.length} · {t(activeStep.titleKey)}
           </span>
           <NeoButton
             variant="surface"
@@ -143,11 +145,11 @@ export function OnboardingChecklist() {
             disabled={completeStep.isPending}
             onClick={() => markComplete(activeStep.id)}
           >
-            Mark complete
+            {t('onboarding.markComplete')}
           </NeoButton>
           <button
             type="button"
-            aria-label="Show the full tour"
+            aria-label={t('onboarding.showFullTour')}
             className="hover:bg-muted/50 rounded-full p-1.5"
             onClick={() => setManualExpand(true)}
           >
@@ -164,14 +166,19 @@ export function OnboardingChecklist() {
         >
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h2 className="text-foreground text-sm font-semibold">Getting started</h2>
+              <h2 className="text-foreground text-sm font-semibold">
+                {t('onboarding.gettingStarted')}
+              </h2>
               <p className="text-muted-foreground text-xs">
-                {completed.length} of {steps.length} done
+                {t('onboarding.progress', {
+                  completed: completed.length,
+                  total: steps.length,
+                })}
               </p>
             </div>
             <button
               type="button"
-              aria-label="Minimise the tour"
+              aria-label={t('onboarding.minimise')}
               className="hover:bg-muted/50 rounded-full p-1.5"
               onClick={() => setManualExpand(false)}
             >
@@ -215,7 +222,7 @@ export function OnboardingChecklist() {
                         // and point the spotlight at it again.
                         <button
                           type="button"
-                          title="Show me this again"
+                          title={t('onboarding.showAgain')}
                           className={cn(
                             'text-left font-medium underline-offset-2 hover:underline',
                             isRevisit ? 'text-foreground' : 'text-muted-foreground',
@@ -226,7 +233,7 @@ export function OnboardingChecklist() {
                             navigate(step.route)
                           }}
                         >
-                          {step.title}
+                          {t(step.titleKey)}
                         </button>
                       ) : (
                         <p
@@ -235,7 +242,7 @@ export function OnboardingChecklist() {
                             isActive ? 'text-foreground' : 'text-muted-foreground',
                           )}
                         >
-                          {step.title}
+                          {t(step.titleKey)}
                         </p>
                       )}
                     </div>
@@ -243,8 +250,8 @@ export function OnboardingChecklist() {
                     {isOpen ? (
                       <div className="mt-1.5 pl-6">
                         <ul className="text-muted-foreground list-disc space-y-1 pl-4 text-xs">
-                          {step.body.map((line) => (
-                            <li key={line}>{line}</li>
+                          {step.bodyKeys.map((bodyKey) => (
+                            <li key={bodyKey}>{t(bodyKey)}</li>
                           ))}
                         </ul>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -254,7 +261,7 @@ export function OnboardingChecklist() {
                               size="sm"
                               onClick={() => setRevisitId(null)}
                             >
-                              Back to the tour
+                              {t('onboarding.backToTour')}
                             </NeoButton>
                           ) : step.advanceOn === 'manual' ? (
                             <NeoButton
@@ -263,13 +270,13 @@ export function OnboardingChecklist() {
                               disabled={completeStep.isPending}
                               onClick={() => markComplete(step.id)}
                             >
-                              Mark complete
+                              {t('onboarding.markComplete')}
                             </NeoButton>
                           ) : (
                             <>
                               {!onRoute ? (
                                 <NeoButton variant="surface" size="sm" asChild>
-                                  <Link to={step.route}>Take me there</Link>
+                                  <Link to={step.route}>{t('onboarding.takeMeThere')}</Link>
                                 </NeoButton>
                               ) : null}
                               <NeoButton
@@ -278,14 +285,14 @@ export function OnboardingChecklist() {
                                 disabled={completeStep.isPending}
                                 onClick={() => markComplete(step.id)}
                               >
-                                Mark complete
+                                {t('onboarding.markComplete')}
                               </NeoButton>
                             </>
                           )}
                         </div>
                         {isActive && step.advanceOn === 'click' && onRoute ? (
                           <p className="text-muted-foreground mt-1 text-xs italic">
-                            Click the highlighted button to continue.
+                            {t('onboarding.clickHighlighted')}
                           </p>
                         ) : null}
                       </div>
@@ -304,7 +311,7 @@ export function OnboardingChecklist() {
               disabled={dismiss.isPending}
               onClick={() => dismiss.mutate()}
             >
-              All completed
+              {t('onboarding.allCompleted')}
             </NeoButton>
           </div>
         </div>
@@ -314,7 +321,7 @@ export function OnboardingChecklist() {
         <TourSpotlight
           key={`${shownStep.id}-${revisitStep ? 'revisit' : 'live'}`}
           targetSelector={shownStep.target}
-          label={shownStep.title}
+          label={t(shownStep.titleKey)}
           waitingForClick={!revisitStep && shownStep.advanceOn === 'click'}
           onTargetClick={() => markComplete(shownStep.id)}
         />

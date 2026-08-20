@@ -1,5 +1,6 @@
 import { IconChevronDown, IconClose, IconEdit, IconTrash } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, NeoInput, NeoLabel, NeoTextarea } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -13,7 +14,6 @@ import {
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { EventChecklist } from '@/components/events/EventChecklist'
 import {
-  EVENT_TASK_STATUS_LABELS,
   EVENT_TASK_STATUS_ORDER,
   EVENT_TASK_STATUS_PILL_CLASS,
   useDeleteEventTask,
@@ -55,8 +55,16 @@ function TaskStatusMenu({
   status: EventTaskStatus
   onSelect: (status: EventTaskStatus) => void
 }) {
+  const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   const others = EVENT_TASK_STATUS_ORDER.filter((s) => s !== status)
+  // Values stay raw for the database; only what the organiser reads changes.
+  const statusLabels: Record<EventTaskStatus, string> = {
+    todo: t('events.tasks.statusTodo'),
+    in_progress: t('events.tasks.statusInProgress'),
+    blocked: t('events.tasks.statusBlocked'),
+    done: t('events.tasks.statusDone'),
+  }
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -66,7 +74,7 @@ function TaskStatusMenu({
           size="sm"
           className={cn('h-8 gap-1.5 rounded-full px-3', EVENT_TASK_STATUS_PILL_CLASS[status])}
         >
-          <span className="text-xs font-semibold">{EVENT_TASK_STATUS_LABELS[status]}</span>
+          <span className="text-xs font-semibold">{statusLabels[status]}</span>
           <IconChevronDown className="size-3.5 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
@@ -85,7 +93,7 @@ function TaskStatusMenu({
                 EVENT_TASK_STATUS_PILL_CLASS[s],
               )}
             >
-              {EVENT_TASK_STATUS_LABELS[s]}
+              {statusLabels[s]}
             </span>
           </DropdownMenuItem>
         ))}
@@ -100,6 +108,7 @@ type EventTasksPanelProps = {
 }
 
 export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProps) {
+  const { t } = useTranslation('admin')
   const tasksQuery = useEventTasks(eventId)
   const saveTask = useSaveEventTask(organizationId, eventId)
   const deleteTask = useDeleteEventTask(eventId)
@@ -128,7 +137,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
   async function submit() {
     if (!draft) return
     if (!draft.name.trim()) {
-      setError('Task name is required.')
+      setError(t('events.tasks.nameRequired'))
       return
     }
     setError(null)
@@ -143,7 +152,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
       })
       setDraft(null)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not save the task.')
+      setError(reason instanceof Error ? reason.message : t('events.tasks.saveFailed'))
     }
   }
 
@@ -159,7 +168,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
         status,
       })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not update the task.')
+      setError(reason instanceof Error ? reason.message : t('events.tasks.updateFailed'))
     }
   }
 
@@ -169,16 +178,14 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
     <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-bold">Task list</h3>
-          <p className="text-muted-foreground text-xs">
-            Plan and assign the prep for this event.
-          </p>
+          <h3 className="text-base font-bold">{t('events.tasks.title')}</h3>
+          <p className="text-muted-foreground text-xs">{t('events.tasks.help')}</p>
         </div>
         <NeoButton type="button" variant="surface" size="sm" onClick={() => setChecklistOpen(true)}>
-          View checklist
+          {t('events.tasks.viewChecklist')}
         </NeoButton>
         <NeoButton type="button" variant="accent" size="sm" onClick={startAdd}>
-          Add task
+          {t('events.tasks.addTask')}
         </NeoButton>
       </div>
 
@@ -192,20 +199,20 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
         <Card className="border-border/80 space-y-3 bg-background p-4 shadow-none">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-              {draft.id ? 'Edit task' : 'New task'}
+              {draft.id ? t('events.tasks.editTask') : t('events.tasks.newTask')}
             </span>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Cancel"
+              aria-label={t('common:cancel')}
               onClick={() => setDraft(null)}
             >
               <IconClose className="size-4" />
             </Button>
           </div>
           <div className="space-y-1.5">
-            <NeoLabel htmlFor="task-name">Task *</NeoLabel>
+            <NeoLabel htmlFor="task-name">{t('events.tasks.taskFieldLabel')}</NeoLabel>
             <NeoInput
               id="task-name"
               value={draft.name}
@@ -216,17 +223,17 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <NeoLabel htmlFor="task-assignee">Assignee</NeoLabel>
+              <NeoLabel htmlFor="task-assignee">{t('events.tasks.assignee')}</NeoLabel>
               <NeoInput
                 id="task-assignee"
                 value={draft.assignee}
                 maxLength={120}
-                placeholder="Who's on it?"
+                placeholder={t('events.tasks.assigneePlaceholder')}
                 onChange={(e) => setDraft({ ...draft, assignee: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <NeoLabel htmlFor="task-due">Due date</NeoLabel>
+              <NeoLabel htmlFor="task-due">{t('events.tasks.dueDate')}</NeoLabel>
               <NeoInput
                 id="task-due"
                 type="date"
@@ -236,7 +243,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
             </div>
           </div>
           <div className="space-y-1.5">
-            <NeoLabel htmlFor="task-description">Description</NeoLabel>
+            <NeoLabel htmlFor="task-description">{t('events.tasks.description')}</NeoLabel>
             <NeoTextarea
               id="task-description"
               rows={2}
@@ -247,7 +254,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <NeoLabel className="mb-0">Status</NeoLabel>
+              <NeoLabel className="mb-0">{t('events.tasks.status')}</NeoLabel>
               <TaskStatusMenu
                 status={draft.status}
                 onSelect={(status) => setDraft({ ...draft, status })}
@@ -255,7 +262,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
             </div>
             <div className="flex gap-2">
               <NeoButton type="button" variant="ghost" size="sm" onClick={() => setDraft(null)}>
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -264,7 +271,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
                 disabled={saveTask.isPending}
                 onClick={() => void submit()}
               >
-                {draft.id ? 'Save task' : 'Add task'}
+                {draft.id ? t('events.tasks.saveTask') : t('events.tasks.addTask')}
               </NeoButton>
             </div>
           </div>
@@ -277,17 +284,19 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
         <QueryError message={tasksQuery.error.message} />
       ) : tasks.length === 0 ? (
         <p className="text-muted-foreground py-6 text-center text-sm">
-          No tasks yet. Add one to start planning.
+          {t('events.tasks.empty')}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="text-muted-foreground text-left text-[10px] font-semibold uppercase tracking-[0.1em]">
-                <th className="border-border border-b px-2 pb-2">Task</th>
-                <th className="border-border border-b px-2 pb-2">Assignee</th>
-                <th className="border-border border-b px-2 pb-2">Due</th>
-                <th className="border-border border-b px-2 pb-2">Status</th>
+                <th className="border-border border-b px-2 pb-2">{t('events.tasks.colTask')}</th>
+                <th className="border-border border-b px-2 pb-2">
+                  {t('events.tasks.colAssignee')}
+                </th>
+                <th className="border-border border-b px-2 pb-2">{t('events.tasks.colDue')}</th>
+                <th className="border-border border-b px-2 pb-2">{t('events.tasks.colStatus')}</th>
                 <th className="border-border border-b px-2 pb-2" />
               </tr>
             </thead>
@@ -301,7 +310,9 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
                     ) : null}
                   </td>
                   <td className="text-muted-foreground px-2 py-3">
-                    {task.assignee || <span className="opacity-60">Unassigned</span>}
+                    {task.assignee || (
+                      <span className="opacity-60">{t('events.tasks.unassigned')}</span>
+                    )}
                   </td>
                   <td className="text-muted-foreground px-2 py-3 whitespace-nowrap tabular-nums">
                     {formatDue(task.due_date) || '—'}
@@ -315,7 +326,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Edit ${task.name}`}
+                        aria-label={t('events.tasks.editAria', { name: task.name })}
                         onClick={() => startEdit(task)}
                       >
                         <IconEdit className="size-4" />
@@ -324,7 +335,7 @@ export function EventTasksPanel({ eventId, organizationId }: EventTasksPanelProp
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Delete ${task.name}`}
+                        aria-label={t('events.tasks.deleteAria', { name: task.name })}
                         className="text-destructive"
                         disabled={deleteTask.isPending}
                         onClick={() => void deleteTask.mutateAsync(task.id)}

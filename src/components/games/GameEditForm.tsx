@@ -1,5 +1,6 @@
 import { IconEye } from '@/components/icons'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useBlocker } from 'react-router-dom'
 
 import {
@@ -14,7 +15,7 @@ import { NeoButton, NeoLabel, TagInput } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useGameGroups, useSetGameGroups } from '@/hooks/use-game-groups'
-import { GAME_TYPE_LABELS, useGame, useUpdateGame } from '@/hooks/use-games'
+import { useGame, useUpdateGame } from '@/hooks/use-games'
 import {
   useAdminOrganizationId,
   useAdminOrganizationLoading,
@@ -56,7 +57,18 @@ function snapshot(values: Record<string, unknown>): string {
   return JSON.stringify(values)
 }
 
+/** Display labels only. The stored type values stay as they are. */
+const GAME_TYPE_LABEL_KEYS: Record<GameType, string> = {
+  photo: 'games.types.photo',
+  video: 'games.types.video',
+  text: 'games.types.text',
+  quiz: 'games.types.quiz',
+  music_bingo: 'games.types.musicBingo',
+  puzzle: 'games.types.puzzle',
+}
+
 export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children }: GameEditFormProps) {
+  const { t } = useTranslation('admin')
   const organizationId = useAdminOrganizationId()
   const orgLoading = useAdminOrganizationLoading()
   const gameQuery = useGame(gameId)
@@ -159,7 +171,7 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
 
   if (orgLoading || gameQuery.isLoading || !hydrated) {
     return children({
-      headerTitle: 'Edit game',
+      headerTitle: t('games.editGame'),
       headerSubtitle: '',
       headerActions: null,
       body: <QueryLoading rows={6} />,
@@ -168,7 +180,7 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
 
   if (!organizationId) {
     return children({
-      headerTitle: 'Edit game',
+      headerTitle: t('games.editGame'),
       headerSubtitle: '',
       headerActions: null,
       body: <NoOrganizationMessage />,
@@ -177,10 +189,10 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
 
   if (gameQuery.isError || !gameQuery.data) {
     return children({
-      headerTitle: 'Edit game',
+      headerTitle: t('games.editGame'),
       headerSubtitle: '',
       headerActions: null,
-      body: <QueryError message={gameQuery.error?.message ?? 'Game not found'} />,
+      body: <QueryError message={gameQuery.error?.message ?? t('games.gameNotFound')} />,
     })
   }
 
@@ -189,31 +201,31 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
 
   async function handleSave(options?: { silent?: boolean }): Promise<boolean> {
     if (!name.trim()) {
-      setError('Game name is required.')
+      setError(t('games.nameRequired'))
       return false
     }
     if (gameType === 'music_bingo' && tracks.length < 5) {
-      setError('Music bingo needs at least 5 tracks.')
+      setError(t('games.bingoNeedsTracks'))
       return false
     }
     if (gameType === 'text') {
       const textErr = validateTextGameConfig(config, pointsType === 'range')
       if (textErr) {
-        setError(textErr)
+        setError(t(textErr))
         return false
       }
     }
     if (gameType === 'puzzle') {
       const puzzleError = validatePuzzleConfig(config)
       if (puzzleError) {
-        setError(puzzleError)
+        setError(t(puzzleError))
         return false
       }
     }
     if (gameType === 'quiz') {
       const quizError = validateQuizConfig(config)
       if (quizError) {
-        setError(quizError)
+        setError(t(quizError))
         return false
       }
     }
@@ -272,11 +284,11 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
                   : config,
         },
       })
-      notify('Game saved')
+      notify(t('games.saved'))
       if (!options?.silent) onSaved?.()
       return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setError(err instanceof Error ? err.message : t('games.saveFailed'))
       return false
     } finally {
       setSaving(false)
@@ -311,16 +323,16 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
           into the Facilitator Only card that photo and video alone render. */}
       <NeoButton type="button" variant="surface" onClick={() => setPreviewOpen(true)}>
         <IconEye className="size-3.5" aria-hidden />
-        Preview
+        {t('games.preview.action')}
       </NeoButton>
       {isPlatformLibrary && gameQuery.data.is_platform_template ? (
         <Button type="button" variant="outline" onClick={() => setInstallOpen(true)}>
-          Install to clients
+          {t('games.installToClients')}
         </Button>
       ) : null}
       {onCancel ? (
         <NeoButton type="button" variant="surface" onClick={onCancel}>
-          Cancel
+          {t('common:cancel')}
         </NeoButton>
       ) : null}
       <NeoButton
@@ -329,18 +341,18 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
         disabled={saving || !dirty}
         onClick={() => void handleSave()}
       >
-        {saving ? 'Saving…' : 'Save changes'}
+        {saving ? t('games.saving') : t('games.saveChanges')}
       </NeoButton>
     </>
   )
 
   const groupsCard = (
     <Card className="border-border/80 flex min-h-0 flex-1 flex-col gap-3 bg-card p-6 shadow-sm">
-      <h3 className="text-foreground text-sm font-bold">Groups</h3>
+      <h3 className="text-foreground text-sm font-bold">{t('games.groups.heading')}</h3>
           <div className="space-y-2">
             {gameGroups.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                No groups yet. Create one from the Games library.
+                {t('games.noGroupsYet')}
               </p>
             ) : (
               <div className="min-h-[17rem] flex-1 space-y-0.5 overflow-auto">
@@ -359,7 +371,9 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
                         void setGameGroups
                           .mutateAsync({ gameId, groupIds: [...next] })
                           .catch((err) =>
-                            setError(err instanceof Error ? err.message : 'Could not update groups'),
+                            setError(
+                              err instanceof Error ? err.message : t('games.groupsUpdateFailed'),
+                            ),
                           )
                       }}
                     />
@@ -423,16 +437,15 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
       />
 
       <Card className="mt-4 space-y-2 p-4 shadow-sm">
-        <NeoLabel htmlFor="game-prep-checklist">Prep checklist (optional)</NeoLabel>
+        <NeoLabel htmlFor="game-prep-checklist">{t('games.prepChecklist')}</NeoLabel>
         <TagInput
           id="game-prep-checklist"
           value={config.checklist ?? []}
           onChange={(next) => setConfig((c) => ({ ...c, checklist: next }))}
-          placeholder="Add an item, then comma…"
+          placeholder={t('games.prepChecklistPlaceholder')}
         />
         <p className="text-muted-foreground text-xs">
-          Physical items this game needs, per one team. Shown in the event checklist,
-          multiplied by the team count.
+          {t('games.prepChecklistHint')}
         </p>
       </Card>
 
@@ -443,7 +456,7 @@ export function GameEditForm({ gameId, onSaved, onCancel, singleColumn, children
   )
 
   return children({
-    headerTitle: `Edit ${GAME_TYPE_LABELS[gameType]}`,
+    headerTitle: t('games.editTypeTitle', { type: t(GAME_TYPE_LABEL_KEYS[gameType]) }),
     headerSubtitle: gameQuery.data.name,
     headerActions,
     body,

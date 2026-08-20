@@ -1,5 +1,6 @@
 import { IconBilling, IconDevice, IconDownload, IconExternal, IconUpload } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 import { orgPath } from '@/lib/org-path'
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -57,10 +58,10 @@ import {
 
 type SettingsTab = 'profile' | 'billing' | 'account' | 'team'
 
-const BRAND_COLOUR_COPY = {
-  primary_color: 'Buttons, highlights & active states',
-  secondary_color: 'Headers, nav & body text',
-  accent_color: 'Borders, muted text & dividers',
+const BRAND_COLOUR_KEYS = {
+  primary_color: 'settings.colourPrimaryHint',
+  secondary_color: 'settings.colourSecondaryHint',
+  accent_color: 'settings.colourAccentHint',
 } as const
 
 function SettingsCardHeader({
@@ -70,6 +71,7 @@ function SettingsCardHeader({
   title: string
   visibility: 'Public' | 'Private'
 }) {
+  const { t } = useTranslation('admin')
   return (
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-foreground text-sm font-bold">{title}</h2>
@@ -82,13 +84,14 @@ function SettingsCardHeader({
             : 'bg-[#d9efe3] text-[#1f6b48] dark:bg-[#1d3d2d] dark:text-[#a6dcc0]'
         }`}
       >
-        {visibility}
+        {visibility === 'Public' ? t('settings.public') : t('settings.private')}
       </span>
     </div>
   )
 }
 
 export function AdminSettingsPage() {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const [searchParams] = useSearchParams()
@@ -120,7 +123,9 @@ export function AdminSettingsPage() {
   const [form, setForm] = useState<OrganizationFormState>(EMPTY_ORG_FORM)
   const [installGuideOpen, setInstallGuideOpen] = useState(false)
   const postcodeError = validatePostcode(form.address_country, form.address_postal)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<
+    { kind: 'ok' | 'error'; text: string } | null
+  >(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deletionMessage, setDeletionMessage] = useState<string | null>(null)
@@ -155,7 +160,10 @@ export function AdminSettingsPage() {
   // Team) do not need one, so the guard only applies to client admins.
   if (!organizationId && !isPlatformSuperAdmin) {
     return (
-      <AdminPageShell title="Org Settings" subtitle="Manage your organization.">
+      <AdminPageShell
+        title={t('settings.orgSettingsTitle')}
+        subtitle={t('settings.orgSettingsSubtitle')}
+      >
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -175,18 +183,19 @@ export function AdminSettingsPage() {
     if (tabletCodeChanged) {
       const tabletErr = validateTabletCode(form.tablet_slug)
       if (tabletErr) {
-        setSaveMessage(tabletErr)
+        setSaveMessage({ kind: 'error', text: tabletErr })
         return
       }
     }
     try {
       await saveOrg.mutateAsync(form)
-      setSaveMessage('Settings saved.')
+      setSaveMessage({ kind: 'ok', text: t('settings.saved') })
       onSaved?.()
     } catch (err) {
-      setSaveMessage(
-        err instanceof Error ? err.message : 'Failed to save settings.',
-      )
+      setSaveMessage({
+        kind: 'error',
+        text: err instanceof Error ? err.message : t('settings.saveFailed'),
+      })
     }
   }
 
@@ -196,7 +205,7 @@ export function AdminSettingsPage() {
     // than letting Storage reject it with an opaque error.
     const problem = validateImageUpload(file, 'logo')
     if (problem) {
-      setSaveMessage(problem)
+      setSaveMessage({ kind: 'error', text: problem })
       return
     }
     setLogoUploading(true)
@@ -206,9 +215,10 @@ export function AdminSettingsPage() {
       setForm((f) => ({ ...f, logo_url: url }))
       await saveLogo.mutateAsync(url)
     } catch (err) {
-      setSaveMessage(
-        err instanceof Error ? err.message : 'Failed to upload logo.',
-      )
+      setSaveMessage({
+        kind: 'error',
+        text: err instanceof Error ? err.message : t('settings.logoUploadFailed'),
+      })
     } finally {
       setLogoUploading(false)
     }
@@ -221,9 +231,7 @@ export function AdminSettingsPage() {
     // the button, so there is one place to be sure the RPC is never reached.
     if (isDemo) {
       setDeleteConfirmOpen(false)
-      setDeletionMessage(
-        'This account cannot be deleted: it is the public demo, and it resets itself every 30 minutes.',
-      )
+      setDeletionMessage(t('settings.demoCannotDelete'))
       return
     }
     try {
@@ -231,12 +239,12 @@ export function AdminSettingsPage() {
       setDeleteConfirmOpen(false)
       setDeletionMessage(
         result.warning
-          ? `Deletion is scheduled, but subscription cancellation needs attention: ${result.warning}`
-          : 'Account deletion is scheduled. You can restore the account during the next 30 days.',
+          ? t('settings.deletionScheduledWithWarning', { warning: result.warning })
+          : t('settings.deletionScheduledMessage'),
       )
     } catch (err) {
       setDeletionMessage(
-        err instanceof Error ? err.message : 'Could not request account deletion.',
+        err instanceof Error ? err.message : t('settings.deletionRequestFailed'),
       )
     }
   }
@@ -246,19 +254,17 @@ export function AdminSettingsPage() {
     try {
       const result = await cancelDeletion.mutateAsync()
       if (result.restartSubscriptionRequired) {
-        setDeletionMessage(
-          'Account restored. The Paddle subscription had already ended, so start a new subscription from Billing before activating more events.',
-        )
+        setDeletionMessage(t('settings.restoredRestartSubscription'))
       } else if (result.warning) {
         setDeletionMessage(
-          `Account restored. Check Billing because automatic renewal could not be restored: ${result.warning}`,
+          t('settings.restoredCheckBilling', { warning: result.warning }),
         )
       } else {
-        setDeletionMessage('Account restored and automatic deletion canceled.')
+        setDeletionMessage(t('settings.restored'))
       }
     } catch (err) {
       setDeletionMessage(
-        err instanceof Error ? err.message : 'Could not restore the account.',
+        err instanceof Error ? err.message : t('settings.restoreFailed'),
       )
     }
   }
@@ -266,9 +272,7 @@ export function AdminSettingsPage() {
   async function handleDownloadData() {
     if (!organizationId) return
     if (isDemo) {
-      setSaveMessage(
-        'Exporting is disabled in the public demo. On a real account this downloads every game, event, submission and uploaded file.',
-      )
+      setSaveMessage({ kind: 'error', text: t('settings.demoExportDisabled') })
       return
     }
     setSaveMessage(null)
@@ -276,7 +280,10 @@ export function AdminSettingsPage() {
     try {
       await downloadClientPackage(organizationId)
     } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : 'Could not download your data.')
+      setSaveMessage({
+        kind: 'error',
+        text: err instanceof Error ? err.message : t('settings.downloadFailed'),
+      })
     } finally {
       setExportingData(false)
     }
@@ -291,20 +298,20 @@ export function AdminSettingsPage() {
   // itself after whichever surface is active.
   const PAGE_COPY: Record<SettingsTab, { title: string; subtitle: string }> = {
     profile: {
-      title: 'Organisation',
-      subtitle: 'Brand identity, company details, team and tablet access.',
+      title: t('settings.page.profileTitle'),
+      subtitle: t('settings.page.profileSubtitle'),
     },
     billing: {
-      title: 'Billing',
-      subtitle: 'Manage your plan and invoices.',
+      title: t('settings.page.billingTitle'),
+      subtitle: t('settings.page.billingSubtitle'),
     },
     account: {
-      title: 'My Account',
-      subtitle: 'Manage your personal profile and security settings.',
+      title: t('settings.page.accountTitle'),
+      subtitle: t('settings.page.accountSubtitle'),
     },
     team: {
-      title: 'Team',
-      subtitle: 'RallyHub staff and what each of them can do.',
+      title: t('settings.page.teamTitle'),
+      subtitle: t('settings.page.teamSubtitle'),
     },
   }
 
@@ -321,7 +328,7 @@ export function AdminSettingsPage() {
               disabled={!dirty || saveOrg.isPending || !orgQuery.data}
               onClick={() => orgQuery.data && setForm(orgToForm(orgQuery.data))}
             >
-              Discard
+              {t('settings.discard')}
             </NeoButton>
             <NeoButton
               type="button"
@@ -329,7 +336,7 @@ export function AdminSettingsPage() {
               disabled={!dirty || saveOrg.isPending}
               onClick={() => void handleSave()}
             >
-              {saveOrg.isPending ? 'Saving…' : 'Save'}
+              {saveOrg.isPending ? t('form.saving') : t('common:save')}
             </NeoButton>
           </>
         ) : null
@@ -368,10 +375,7 @@ export function AdminSettingsPage() {
           <div className="space-y-4">
             <Card className="border-border/80 bg-muted/20 px-4 py-3 shadow-sm">
               <p className="text-muted-foreground text-sm">
-                This is a real account and your changes save, so try it. The
-                sandbox resets every 30 minutes. Two things are held back: the
-                email address, because the demo sign-in looks the account up by
-                it, and deleting the login, which everyone here shares.
+                {t('settings.demoAccountNotice')}
               </p>
             </Card>
             <MyAccountPanel demo />
@@ -383,21 +387,18 @@ export function AdminSettingsPage() {
         <div className="space-y-8">
           {!orgQuery.data ? (
             <p className="text-muted-foreground text-sm">
-              Organization record not found. Saving will update once the record
-              exists in Supabase.
+              {t('settings.orgRecordMissing')}
             </p>
           ) : null}
           {saveMessage ? (
             <p
               className={cn(
                 'text-sm',
-                saveMessage.includes('saved')
-                  ? 'text-foreground'
-                  : 'text-destructive',
+                saveMessage.kind === 'ok' ? 'text-foreground' : 'text-destructive',
               )}
               role="status"
             >
-              {saveMessage}
+              {saveMessage.text}
             </p>
           ) : null}
 
@@ -407,14 +408,14 @@ export function AdminSettingsPage() {
                 className="border-border/80 space-y-4 bg-card p-4 shadow-sm"
                 data-tour="org-profile-form"
               >
-                <SettingsCardHeader title="Brand Identity" visibility="Public" />
+                <SettingsCardHeader title={t('settings.brandIdentity')} visibility="Public" />
                 <div className="space-y-1.5">
-                  <Label htmlFor="org-name">Organisation Name</Label>
+                  <Label htmlFor="org-name">{t('settings.organisationName')}</Label>
                   <Input
                     id="org-name"
                     value={form.name}
                     onChange={(event) => setForm({ ...form, name: event.target.value })}
-                    placeholder="Your Organisation's Name"
+                    placeholder={t('settings.organisationNamePlaceholder')}
                   />
                 </div>
 
@@ -453,43 +454,46 @@ export function AdminSettingsPage() {
                   )}
                 >
                   {form.logo_url ? (
-                    <img src={form.logo_url} alt="Organization logo" className="max-h-20 max-w-48 object-contain" />
+                    <img src={form.logo_url} alt={t('settings.logoAlt')} className="max-h-20 max-w-48 object-contain" />
                   ) : (
                     <IconUpload className="size-5" />
                   )}
                   <span>
                     {logoUploading
-                      ? 'Uploading…'
+                      ? t('settings.uploading')
                       : logoDragging
-                        ? 'Drop to upload'
+                        ? t('settings.logoDropToUpload')
                         : form.logo_url
-                          ? 'Click or drop to replace your logo'
-                          : 'Drag & drop your logo here'}
+                          ? t('settings.logoReplace')
+                          : t('settings.logoDragDrop')}
                   </span>
                   {/* SVG is intentionally absent: the bucket is public and an
                       SVG can carry script, so it is blocked server side too. */}
                   <span className="text-[10px]">
-                    {ALLOWED_IMAGE_UPLOAD_LABEL} (Max {formatUploadMaxLabel(UPLOAD_MAX_PHOTO_BYTES)})
+                    {t('settings.uploadLimit', {
+                      types: ALLOWED_IMAGE_UPLOAD_LABEL,
+                      max: formatUploadMaxLabel(UPLOAD_MAX_PHOTO_BYTES),
+                    })}
                   </span>
                 </button>
 
                 <div>
                   <p className="text-muted-foreground mb-2.5 text-center text-[11px] font-semibold tracking-[0.06em] uppercase">
-                    Brand Colours
+                    {t('settings.brandColours')}
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     {(
                       [
-                        ['primary_color', 'Primary'],
-                        ['secondary_color', 'Secondary'],
-                        ['accent_color', 'Accent'],
+                        ['primary_color', t('settings.colourPrimary')],
+                        ['secondary_color', t('settings.colourSecondary')],
+                        ['accent_color', t('settings.colourAccent')],
                       ] as const
                     ).map(([key, label]) => (
                       <BrandColourPicker
                         key={key}
                         id={key}
                         label={label}
-                        description={BRAND_COLOUR_COPY[key]}
+                        description={t(BRAND_COLOUR_KEYS[key])}
                         value={form[key]}
                         onChange={(hex) => setForm({ ...form, [key]: hex })}
                       />
@@ -499,9 +503,9 @@ export function AdminSettingsPage() {
               </Card>
 
               <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-                <SettingsCardHeader title="Language" visibility="Public" />
+                <SettingsCardHeader title={t('settings.languageCard')} visibility="Public" />
                 <div className="space-y-1.5">
-                  <Label htmlFor="default-language">Default language</Label>
+                  <Label htmlFor="default-language">{t('settings.defaultLanguage')}</Label>
                   <select
                     id="default-language"
                     value={form.default_language}
@@ -521,26 +525,24 @@ export function AdminSettingsPage() {
                     ))}
                   </select>
                   <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-                    New events start in this language (you can still change it per
-                    event). Also used for org-level screens not tied to one event,
-                    like the tablet kiosk.
+                    {t('settings.defaultLanguageHint')}
                   </p>
                 </div>
               </Card>
 
               <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-                <SettingsCardHeader title="Legal & Billing Details" visibility="Private" />
+                <SettingsCardHeader title={t('settings.legalBilling')} visibility="Private" />
                 <div className="space-y-1.5">
-                  <Label htmlFor="vat">Tax / VAT ID</Label>
+                  <Label htmlFor="vat">{t('settings.vatId')}</Label>
                   <Input id="vat" value={form.vat_number} onChange={(event) => setForm({ ...form, vat_number: event.target.value })} placeholder="MT12341234" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="address-street">Street</Label>
-                  <Input id="address-street" value={form.address_street} onChange={(event) => setForm({ ...form, address_street: event.target.value })} placeholder="Number and street name" />
+                  <Label htmlFor="address-street">{t('settings.street')}</Label>
+                  <Input id="address-street" value={form.address_street} onChange={(event) => setForm({ ...form, address_street: event.target.value })} placeholder={t('settings.streetPlaceholder')} />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="address-city">City</Label>
+                    <Label htmlFor="address-city">{t('settings.city')}</Label>
                     {/* Same control as Country, with nothing to suggest yet:
                         there is no city list in the app and no honest static one
                         to ship. Work plan covers what it would take. */}
@@ -554,7 +556,7 @@ export function AdminSettingsPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="address-country">Country</Label>
+                    <Label htmlFor="address-country">{t('settings.country')}</Label>
                     {/* Our own combobox rather than a native datalist, whose
                         popup the browser styles and positions itself. Typing
                         filters; free text is still accepted. */}
@@ -568,18 +570,18 @@ export function AdminSettingsPage() {
                       // anyway, and prepending made half-typed text appear as a
                       // suggestion of itself.
                       options={COUNTRIES}
-                      placeholder="Start typing or pick from the list"
+                      placeholder={t('settings.countryPlaceholder')}
                       autoComplete="country-name"
                     />
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="address-state">State or Region</Label>
+                    <Label htmlFor="address-state">{t('settings.stateRegion')}</Label>
                     <Input id="address-state" value={form.address_state} onChange={(event) => setForm({ ...form, address_state: event.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="address-postal">Post Code</Label>
+                    <Label htmlFor="address-postal">{t('settings.postCode')}</Label>
                     {/* Format checked against the chosen country. Advisory, not
                         blocking: it catches a UK code typed into a German
                         address, but a real postcode lookup is a separate job. */}
@@ -601,7 +603,7 @@ export function AdminSettingsPage() {
                 <Button type="button" variant="outline" className="w-full" asChild>
                   <Link to={orgPath(clientSlug, '/admin/settings?tab=billing')}>
                     <IconBilling className="size-4" />
-                    Manage Payment Details
+                    {t('settings.managePaymentDetails')}
                     <IconExternal className="size-3.5" />
                   </Link>
                 </Button>
@@ -610,12 +612,12 @@ export function AdminSettingsPage() {
 
             <div className="flex flex-col gap-4">
               <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-                <SettingsCardHeader title="Organisation Device Access" visibility="Public" />
+                <SettingsCardHeader title={t('settings.deviceAccess')} visibility="Public" />
                 {orgQuery.data ? (
                   <TabletLinkEditor subdomain={orgQuery.data.subdomain} disabled={tabletPinIsDefault} />
                 ) : null}
                 <div className="space-y-1.5">
-                  <Label htmlFor="tablet-password">Tablet Password (4 digits)</Label>
+                  <Label htmlFor="tablet-password">{t('settings.tabletPassword')}</Label>
                   <Input
                     id="tablet-password"
                     type="text"
@@ -628,7 +630,7 @@ export function AdminSettingsPage() {
                   />
                   {tabletPinIsDefault ? (
                     <p className="text-destructive text-xs font-medium" role="alert">
-                      Change the default password before sharing the tablet link.
+                      {t('settings.tabletPasswordDefaultWarning')}
                     </p>
                   ) : null}
                 </div>
@@ -639,11 +641,11 @@ export function AdminSettingsPage() {
                   onClick={() => setInstallGuideOpen(true)}
                 >
                   <IconDevice className="size-3.5" />
-                  Instructions on how to install RallyHub on your device
+                  {t('settings.installInstructions')}
                 </NeoButton>
                 {tabletDirty ? (
                   <NeoButton type="button" variant="primary" size="sm" disabled={saveOrg.isPending} onClick={() => void handleSave()}>
-                    {saveOrg.isPending ? 'Saving…' : 'Save'}
+                    {saveOrg.isPending ? t('form.saving') : t('common:save')}
                   </NeoButton>
                 ) : null}
               </Card>
@@ -664,9 +666,9 @@ export function AdminSettingsPage() {
               <>
                 {deletionRequestQuery.data?.paddle_cancellation_error ? (
                   <p className="text-destructive" role="alert">
-                    Subscription cancellation will be retried automatically. You can also
-                    check it now from Billing:{' '}
-                    {deletionRequestQuery.data.paddle_cancellation_error}
+                    {t('settings.subscriptionCancellationRetry', {
+                      error: deletionRequestQuery.data.paddle_cancellation_error,
+                    })}
                   </p>
                 ) : null}
                 {deletionMessage ? (
@@ -679,23 +681,23 @@ export function AdminSettingsPage() {
             rows={[
               {
                 id: 'download-organisation-data',
-                label: 'Download all your data',
-                description: 'Export every game, event, submission, payment record and uploaded file tied to this account.',
+                label: t('settings.downloadDataLabel'),
+                description: t('settings.downloadDataDescription'),
                 action: (
                   <NeoButton type="button" variant="surface" disabled={exportingData} onClick={() => void handleDownloadData()}>
                     <IconDownload className="size-3.5" />
-                    {exportingData ? 'Preparing…' : 'Download All Data'}
+                    {exportingData ? t('settings.preparing') : t('settings.downloadAllData')}
                   </NeoButton>
                 ),
               },
               {
                 id: 'delete-organisation',
                 label: deletionRequestQuery.data
-                  ? 'Deletion scheduled'
-                  : 'Delete this account',
+                  ? t('settings.deletionScheduledLabel')
+                  : t('settings.deleteAccountLabel'),
                 description: deletionRequestQuery.data ? (
                   <>
-                    Scheduled for permanent deletion on{' '}
+                    {t('settings.deletionScheduledOn')}{' '}
                     <strong className="text-foreground">
                       {new Intl.DateTimeFormat('en-GB', {
                         day: 'numeric',
@@ -703,10 +705,10 @@ export function AdminSettingsPage() {
                         year: 'numeric',
                       }).format(new Date(deletionRequestQuery.data.scheduled_for))}
                     </strong>
-                    . Until then all data remains available and you can restore it.
+                    {t('settings.deletionScheduledUntilThen')}
                   </>
                 ) : (
-                  'Your organisation stays restorable for 30 days. After that its events, games, submissions, uploaded media and user accounts are permanently removed.'
+                  t('settings.deleteAccountDescription')
                 ),
                 action: deletionRequestQuery.data ? (
                   <NeoButton
@@ -715,7 +717,7 @@ export function AdminSettingsPage() {
                     disabled={cancelDeletion.isPending}
                     onClick={() => void handleCancelDeletion()}
                   >
-                    {cancelDeletion.isPending ? 'Restoring…' : 'Restore account'}
+                    {cancelDeletion.isPending ? t('settings.restoring') : t('settings.restoreAccount')}
                   </NeoButton>
                 ) : (
                   <NeoButton
@@ -724,7 +726,7 @@ export function AdminSettingsPage() {
                     disabled={requestDeletion.isPending || deletionRequestQuery.isLoading}
                     onClick={() => setDeleteConfirmOpen(true)}
                   >
-                    Delete
+                    {t('settings.delete')}
                   </NeoButton>
                 ),
               },
@@ -737,24 +739,24 @@ export function AdminSettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
             <div className="space-y-1">
-              <h3 className="text-foreground font-semibold">Unsaved changes</h3>
+              <h3 className="text-foreground font-semibold">{t('settings.unsavedTitle')}</h3>
               <p className="text-muted-foreground text-sm">
-                You have unsaved changes to your settings. Save them before leaving?
+                {t('settings.unsavedBody')}
               </p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <NeoButton variant="surface" onClick={() => blocker.reset?.()}>
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton variant="surface" onClick={() => blocker.proceed?.()}>
-                Don't save
+                {t('settings.dontSave')}
               </NeoButton>
               <NeoButton
                 variant="primary"
                 disabled={saveOrg.isPending}
                 onClick={() => void handleSave(() => blocker.proceed?.())}
               >
-                {saveOrg.isPending ? 'Saving…' : 'Save & leave'}
+                {saveOrg.isPending ? t('form.saving') : t('settings.saveAndLeave')}
               </NeoButton>
             </div>
           </Card>
@@ -771,12 +773,10 @@ export function AdminSettingsPage() {
           <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
             <div className="space-y-2">
               <h2 id="request-account-deletion-title" className="text-foreground font-semibold">
-                Request permanent account deletion?
+                {t('settings.deleteConfirmTitle')}
               </h2>
               <p className="text-muted-foreground text-sm">
-                Automatic subscription renewal will be canceled. You then have 30 days to
-                restore the organization. After that, its Supabase data, uploaded media, and
-                organization user accounts are permanently deleted.
+                {t('settings.deleteConfirmBody')}
               </p>
             </div>
             <div className="flex justify-end gap-2">
@@ -786,7 +786,7 @@ export function AdminSettingsPage() {
                 disabled={requestDeletion.isPending}
                 onClick={() => setDeleteConfirmOpen(false)}
               >
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton
                 type="button"
@@ -794,7 +794,7 @@ export function AdminSettingsPage() {
                 disabled={requestDeletion.isPending}
                 onClick={() => void handleRequestDeletion()}
               >
-                {requestDeletion.isPending ? 'Scheduling…' : 'Schedule deletion'}
+                {requestDeletion.isPending ? t('settings.scheduling') : t('settings.scheduleDeletion')}
               </NeoButton>
             </div>
           </Card>
@@ -806,16 +806,17 @@ export function AdminSettingsPage() {
 
 /** My Account / Team switcher, platform owner only. */
 function PlatformSettingsTabs({ active, clientSlug }: { active: 'account' | 'team'; clientSlug: string | null }) {
+  const { t } = useTranslation('admin')
   return (
     <div
       className="border-border mb-6 flex items-center justify-center gap-6 border-b"
       role="tablist"
-      aria-label="Settings sections"
+      aria-label={t('settings.sectionsLabel')}
     >
       {(
         [
-          ['account', 'My Account', orgPath(clientSlug, '/admin/settings?tab=account')],
-          ['team', 'Team', orgPath(clientSlug, '/admin/settings?tab=team')],
+          ['account', t('settings.page.accountTitle'), orgPath(clientSlug, '/admin/settings?tab=account')],
+          ['team', t('settings.page.teamTitle'), orgPath(clientSlug, '/admin/settings?tab=team')],
         ] as const
       ).map(([id, label, to]) => (
         <Link

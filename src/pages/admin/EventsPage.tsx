@@ -1,6 +1,7 @@
 import { IconEvents, IconPlus, IconSearch } from '@/components/icons'
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { orgPath } from '@/lib/org-path'
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -43,16 +44,17 @@ import { isOrgSuspended } from '@/lib/account-status'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 
-const EVENT_FILTERS: { value: 'all' | EventStatus; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'ready', label: 'Ready' },
-  { value: 'demo', label: 'Demo' },
-  { value: 'active', label: 'Active' },
-  { value: 'archived', label: 'Archived' },
+const EVENT_FILTERS: { value: 'all' | EventStatus; labelKey: string }[] = [
+  { value: 'all', labelKey: 'events.status.all' },
+  { value: 'draft', labelKey: 'events.status.draft' },
+  { value: 'ready', labelKey: 'events.status.ready' },
+  { value: 'demo', labelKey: 'events.status.demo' },
+  { value: 'active', labelKey: 'events.status.active' },
+  { value: 'archived', labelKey: 'events.status.archived' },
 ]
 
 export function AdminEventsPage() {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   const orgQuery = useOrganization(organizationId)
@@ -190,7 +192,10 @@ export function AdminEventsPage() {
       newStatus !== event.status &&
       !canTransitionEventStatus(event, newStatus)
     ) {
-      notify(eventStatusTransitionError(event, newStatus) ?? 'Status change not allowed.')
+      notify(
+        eventStatusTransitionError(event, newStatus) ??
+          t('events.statusChangeNotAllowed'),
+      )
       return
     }
     activation.requestStatusChange(
@@ -219,9 +224,11 @@ export function AdminEventsPage() {
     try {
       await permanentlyDeleteEvent.mutateAsync(permanentDeleteConfirmEvent.id)
       setPermanentDeleteConfirmEvent(null)
-      notify('Event and its uploaded media were permanently deleted.')
+      notify(t('events.permanentDeleteSuccess'))
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not permanently delete event')
+      notify(
+        err instanceof Error ? err.message : t('events.permanentDeleteError'),
+      )
     }
   }
 
@@ -236,13 +243,16 @@ export function AdminEventsPage() {
       const copy = await duplicateEvent.mutateAsync({ source: event, gameIds })
       navigate(orgPath(clientSlug, `/admin/events/${copy.id}`))
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Could not duplicate event')
+      notify(err instanceof Error ? err.message : t('events.duplicateError'))
     }
   }
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Events" subtitle="Schedule and oversee live team events.">
+      <AdminPageShell
+        title={t('events.title')}
+        subtitle={t('events.subtitleOversee')}
+      >
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -263,24 +273,24 @@ export function AdminEventsPage() {
 
   return (
     <AdminPageShell
-      title="Events"
-      subtitle="Manage your events."
+      title={t('events.title')}
+      subtitle={t('events.subtitle')}
       actions={
         <>
           <NeoButton variant="surface" asChild>
             <Link to={orgPath(clientSlug, '/admin/games')}>
-              Games
+              {t('events.gamesLink')}
             </Link>
           </NeoButton>
           {suspended ? (
             <NeoButton variant="accent" disabled>
-              New Event
+              {t('events.newEvent')}
             </NeoButton>
           ) : (
             <NeoButton variant="accent" asChild>
               <Link to={orgPath(clientSlug, '/admin/events/new')} data-tour="new-event-button">
                 <IconPlus className="size-3.5" />
-                Event
+                {t('events.eventShort')}
               </Link>
             </NeoButton>
           )}
@@ -299,7 +309,7 @@ export function AdminEventsPage() {
             setStatusFilter('all')
           }}
         >
-          All
+          {t('events.status.all')}
         </button>
         {EVENT_FILTERS.slice(1).map((item) => (
           <button
@@ -311,7 +321,7 @@ export function AdminEventsPage() {
               setStatusFilter(item.value)
             }}
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
         <button
@@ -319,7 +329,7 @@ export function AdminEventsPage() {
           className={`h-9 rounded-full border px-4 text-xs font-semibold transition-colors ${view === 'bin' ? 'border-nm-slate-800 bg-nm-slate-800 text-white dark:border-nm-slate-700 dark:bg-nm-slate-700' : 'border-border bg-card text-muted-foreground hover:border-nm-slate-400 hover:text-foreground'}`}
           onClick={() => setView('bin')}
         >
-          Deleted {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
+          {t('events.deletedFilter')} {trashedEventsQuery.data?.length ? `(${trashedEventsQuery.data.length})` : ''}
         </button>
         </div>
         {view === 'events' ? (
@@ -329,7 +339,7 @@ export function AdminEventsPage() {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search events…"
+                placeholder={t('events.searchPlaceholder')}
                 className="bg-card h-9 pl-8 text-xs"
               />
             </div>
@@ -342,17 +352,17 @@ export function AdminEventsPage() {
               onClick={() => setDatePickerOpen((open) => !open)}
             >
               <IconEvents className="size-3.5" />
-              {dateFrom || dateTo ? 'Date applied' : 'Date'}
+              {dateFrom || dateTo ? t('events.dateApplied') : t('events.date')}
             </NeoButton>
             {datePickerOpen ? (
               <div className="border-border bg-card absolute right-0 top-10 z-30 w-72 rounded-lg border p-4 shadow-xl">
-                <p className="text-foreground mb-3 text-xs font-semibold uppercase tracking-[0.08em]">Filter by date</p>
+                <p className="text-foreground mb-3 text-xs font-semibold uppercase tracking-[0.08em]">{t('events.filterByDate')}</p>
                 {/* Shortcuts that write the same From/To range the filter
                     already uses, so there is only one filtering path to reason
                     about rather than three competing ones. */}
                 <div className="mb-3 space-y-2">
                   <label className="text-muted-foreground block space-y-1 text-xs">
-                    <span>Specific date</span>
+                    <span>{t('events.specificDate')}</span>
                     <input
                       className="neo-field w-full text-xs"
                       type="date"
@@ -366,7 +376,7 @@ export function AdminEventsPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="text-muted-foreground space-y-1 text-xs">
-                      <span>Month</span>
+                      <span>{t('events.month')}</span>
                       <input
                         className="neo-field w-full text-xs"
                         type="month"
@@ -375,7 +385,7 @@ export function AdminEventsPage() {
                       />
                     </label>
                     <label className="text-muted-foreground space-y-1 text-xs">
-                      <span>Year</span>
+                      <span>{t('events.year')}</span>
                       <input
                         className="neo-field w-full text-xs"
                         type="number"
@@ -388,20 +398,20 @@ export function AdminEventsPage() {
                     </label>
                   </div>
                 </div>
-                <p className="text-foreground mb-2 text-xs font-semibold uppercase tracking-[0.08em]">Range</p>
+                <p className="text-foreground mb-2 text-xs font-semibold uppercase tracking-[0.08em]">{t('events.range')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-muted-foreground space-y-1 text-xs">
-                    <span>From</span>
+                    <span>{t('events.from')}</span>
                     <input className="neo-field w-full text-xs" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
                   </label>
                   <label className="text-muted-foreground space-y-1 text-xs">
-                    <span>To</span>
+                    <span>{t('events.to')}</span>
                     <input className="neo-field w-full text-xs" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
                   </label>
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
-                  <NeoButton type="button" size="sm" variant="ghost" onClick={() => { setDateFrom(''); setDateTo('') }}>Clear</NeoButton>
-                  <NeoButton type="button" size="sm" variant="primary" onClick={() => setDatePickerOpen(false)}>Apply</NeoButton>
+                  <NeoButton type="button" size="sm" variant="ghost" onClick={() => { setDateFrom(''); setDateTo('') }}>{t('events.clearFilter')}</NeoButton>
+                  <NeoButton type="button" size="sm" variant="primary" onClick={() => setDatePickerOpen(false)}>{t('events.applyFilter')}</NeoButton>
                 </div>
               </div>
             ) : null}
@@ -417,7 +427,7 @@ export function AdminEventsPage() {
             name: e.name,
             deletedAt: e.deleted_at!,
           }))}
-          emptyLabel="No deleted events."
+          emptyLabel={t('events.noDeletedEvents')}
           restoringId={restoreEvent.isPending ? restoreEvent.variables : undefined}
           deletingId={
             permanentlyDeleteEvent.isPending
@@ -438,19 +448,19 @@ export function AdminEventsPage() {
       ) : visibleEvents.length === 0 ? (
         <Card className="border-border/80 flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center shadow-sm">
           <IconEvents className="text-muted-foreground size-10 opacity-60" />
-          <p className="text-foreground font-medium">No events yet</p>
+          <p className="text-foreground font-medium">{t('events.noEventsYet')}</p>
           <p className="text-muted-foreground max-w-sm text-sm">
             {events.length === 0
-              ? 'Create an event to schedule team activities and manage live sessions.'
-              : 'No events match the selected filters.'}
+              ? t('events.emptyCreateHint')
+              : t('events.noMatchFilters')}
           </p>
           {suspended ? (
             <NeoButton variant="accent" disabled className="mt-2">
-              Create New Event
+              {t('events.createNewEvent')}
             </NeoButton>
           ) : (
             <NeoButton variant="accent" asChild className="mt-2">
-              <Link to={orgPath(clientSlug, '/admin/events/new')}>Create New Event</Link>
+              <Link to={orgPath(clientSlug, '/admin/events/new')}>{t('events.createNewEvent')}</Link>
             </NeoButton>
           )}
         </Card>
@@ -478,19 +488,19 @@ export function AdminEventsPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
         >
           <div className="bg-card border-border/80 w-full max-w-sm rounded-xl border p-6 shadow-lg">
-            <h2 id="delete-event-title" className="text-foreground mb-2 font-semibold">Delete event</h2>
+            <h2 id="delete-event-title" className="text-foreground mb-2 font-semibold">{t('events.deleteDialog.title')}</h2>
             <p className="text-muted-foreground mb-5 text-sm">
-              Delete <strong className="text-foreground">{deleteConfirmEvent.name}</strong>? It'll move to the Bin and be permanently deleted in 30 days.
+              {t('events.deleteDialog.body', { name: deleteConfirmEvent.name })}
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmEvent(null)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmEvent(null)}>{t('common:cancel')}</Button>
               <Button
                 variant="destructive"
                 size="sm"
                 disabled={deleteEvent.isPending}
                 onClick={() => void confirmDelete()}
               >
-                {deleteEvent.isPending ? 'Deleting…' : 'Delete'}
+                {deleteEvent.isPending ? t('events.deleting') : t('common:delete')}
               </Button>
             </div>
           </div>
@@ -510,14 +520,12 @@ export function AdminEventsPage() {
               id="permanent-delete-event-title"
               className="text-foreground mb-2 font-semibold"
             >
-              Permanently delete this event?
+              {t('events.permanentDelete.title')}
             </h2>
             <p className="text-muted-foreground mb-5 text-sm">
-              <strong className="text-foreground">
-                {permanentDeleteConfirmEvent.name}
-              </strong>{' '}
-              and all of its submissions, team photos, videos, and other event data will be
-              removed from Supabase. This cannot be undone.
+              {t('events.permanentDelete.body', {
+                name: permanentDeleteConfirmEvent.name,
+              })}
             </p>
             <div className="flex justify-end gap-2">
               <Button
@@ -526,7 +534,7 @@ export function AdminEventsPage() {
                 disabled={permanentlyDeleteEvent.isPending}
                 onClick={() => setPermanentDeleteConfirmEvent(null)}
               >
-                Cancel
+                {t('common:cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -534,7 +542,9 @@ export function AdminEventsPage() {
                 disabled={permanentlyDeleteEvent.isPending}
                 onClick={() => void confirmPermanentDelete()}
               >
-                {permanentlyDeleteEvent.isPending ? 'Deleting…' : 'Delete permanently'}
+                {permanentlyDeleteEvent.isPending
+                  ? t('events.deleting')
+                  : t('events.deletePermanently')}
               </Button>
             </div>
           </div>

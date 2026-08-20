@@ -1,18 +1,21 @@
 import { IconSearch } from '@/components/icons'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { useGlobalSearch } from '@/hooks/use-global-search'
 import type { SearchKind } from '@/lib/global-search'
 
-const KIND_LABEL: Record<SearchKind, string> = {
-  game: 'Game',
-  event: 'Event',
-  ticket: 'Ticket',
+/** Translation keys for the result-type badge, resolved at render time. */
+const KIND_LABEL_KEY: Record<SearchKind, string> = {
+  game: 'shell.search.kindGame',
+  event: 'events.eventShort',
+  ticket: 'shell.search.kindTicket',
 }
 
 /** Header search input with a live results dropdown. */
 export function HeaderSearch() {
+  const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -49,8 +52,8 @@ export function HeaderSearch() {
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Search…"
-        aria-label="Search"
+        placeholder={t('shell.search.placeholder')}
+        aria-label={t('shell.search.label')}
         className="border-input bg-nm-surface rounded-nm-md h-8 w-full border pr-3 pl-8 text-xs"
       />
 
@@ -65,14 +68,14 @@ export function HeaderSearch() {
                 className="border-border hover:bg-muted flex w-full items-center gap-2 border-b px-3 py-2 text-left last:border-b-0"
               >
                 <span className="bg-nm-slate-100 text-nm-slate-700 rounded-nm-sm shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase">
-                  {KIND_LABEL[result.kind]}
+                  {t(KIND_LABEL_KEY[result.kind])}
                 </span>
                 <span className="flex-1 truncate text-xs">{result.label}</span>
               </button>
             ))
           ) : (
             <p className="text-nm-neutral-500 px-3 py-3 text-xs">
-              No matches for "{trimmed}"
+              {t('shell.search.noMatches', { query: trimmed })}
             </p>
           )}
         </div>

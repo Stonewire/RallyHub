@@ -1,3 +1,5 @@
+import { i18n } from '@/lib/i18n'
+
 export type BillingPeriod = 'monthly' | 'yearly'
 
 export type PlanId = 'rookie' | 'arena' | 'pro' | 'enterprise' | 'partner'
@@ -194,26 +196,27 @@ export function formatSubscriptionPrice(
   plan: SubscriptionPlan,
   period: BillingPeriod,
 ): string {
-  if (plan.priceOnRequest) return 'Price on request'
-  if (plan.freeSubscription) return 'No subscription'
+  if (plan.priceOnRequest) return i18n.t('admin:billing.plan.priceOnRequest')
+  if (plan.freeSubscription) return i18n.t('admin:billing.noSubscription')
   const amount =
     period === 'yearly' ? plan.yearlyPriceEur : plan.monthlyPriceEur
   if (amount === 0) return '€0'
   return period === 'yearly'
-    ? `${formatEur(amount)}/year`
-    : `${formatEur(amount)}/month`
+    ? i18n.t('admin:billing.plan.perYear', { price: formatEur(amount) })
+    : i18n.t('admin:billing.plan.perMonth', { price: formatEur(amount) })
 }
 
 export function formatEventLimit(plan: SubscriptionPlan): string {
-  if (plan.monthlyEventLimit === null) return 'Unlimited events'
-  if (plan.monthlyEventLimit === 1) return '1 event per month'
-  return `${plan.monthlyEventLimit} events per month`
+  if (plan.monthlyEventLimit === null) return i18n.t('admin:billing.plan.unlimitedEvents')
+  return i18n.t('admin:billing.plan.eventsPerMonth', { count: plan.monthlyEventLimit })
 }
 
 export function formatPerEventPrice(plan: SubscriptionPlan): string {
-  if (plan.priceOnRequest) return 'Custom per-event pricing'
-  if (plan.perEventPriceEur === 0) return 'No per-event fee'
-  return `${formatEur(plan.perEventPriceEur)} per event`
+  if (plan.priceOnRequest) return i18n.t('admin:billing.plan.customPerEventPricing')
+  if (plan.perEventPriceEur === 0) return i18n.t('admin:billing.plan.noPerEventFee')
+  return i18n.t('admin:billing.plan.pricePerEvent', {
+    price: formatEur(plan.perEventPriceEur),
+  })
 }
 
 /**
@@ -223,10 +226,12 @@ export function formatPerEventPrice(plan: SubscriptionPlan): string {
  * out and a phone someone brings are charged the same.
  */
 export function formatTeamLimit(plan: SubscriptionPlan): string {
-  if (plan.teamLimit === null) return 'Unlimited devices per event'
-  const base = `${plan.teamLimit} devices included per event`
+  if (plan.teamLimit === null) return i18n.t('admin:billing.plan.unlimitedDevices')
+  const base = i18n.t('admin:billing.plan.devicesIncluded', { count: plan.teamLimit })
   return plan.additionalTeamsAvailable
-    ? `${base} · ${formatEur(ADDITIONAL_TEAM_PRICE_EUR)} per extra device`
+    ? `${base} · ${i18n.t('admin:billing.plan.perExtraDevice', {
+        price: formatEur(ADDITIONAL_TEAM_PRICE_EUR),
+      })}`
     : base
 }
 
@@ -239,8 +244,8 @@ export function formatTeamLimit(plan: SubscriptionPlan): string {
 export function planFeatures(plan: SubscriptionPlan): string[] {
   if (plan.priceOnRequest) {
     return [
-      'For larger events or when standard plans do not fit',
-      'Contact us for a custom-made plan',
+      i18n.t('admin:billing.plan.customFeatureFit'),
+      i18n.t('admin:billing.plan.customFeatureContact'),
     ]
   }
   const lines = plan.freeSubscription
@@ -252,15 +257,15 @@ export function planFeatures(plan: SubscriptionPlan): string[] {
 }
 
 export function formatBrandingNote(plan: SubscriptionPlan): string | null {
-  if (plan.brandingRemoval === 'full') return 'Fully removes RallyHub branding'
+  if (plan.brandingRemoval === 'full') return i18n.t('admin:billing.plan.brandingFull')
   if (plan.brandingRemoval === 'per_event_addon') {
-    return 'Optional RallyHub branding removal per event at an additional cost'
+    return i18n.t('admin:billing.plan.brandingAddon')
   }
   return null
 }
 
 export function formatBillingPeriodLabel(period: BillingPeriod): string {
-  return period === 'yearly' ? 'Yearly' : 'Monthly'
+  return period === 'yearly' ? i18n.t('admin:billing.yearly') : i18n.t('admin:billing.monthly')
 }
 
 /**
@@ -268,16 +273,19 @@ export function formatBillingPeriodLabel(period: BillingPeriod): string {
  * yearly). Returns e.g. "€8/mo" for a €100/year plan.
  */
 export function formatMonthlyEquivalentPrice(plan: SubscriptionPlan): string {
-  if (plan.priceOnRequest) return 'Custom'
+  // "Custom" is the plan's name, so it stays as-is in every language.
+  if (plan.priceOnRequest) return plan.name
   if (plan.yearlyPriceEur === 0) return '€0'
-  return `${formatEur(Math.round(plan.yearlyPriceEur / 12))}/mo`
+  return i18n.t('admin:billing.plan.perMo', {
+    price: formatEur(Math.round(plan.yearlyPriceEur / 12)),
+  })
 }
 
 /** Yearly price string, e.g. "€100/year". Pay Per Event returns "No subscription". */
 export function formatYearlyPrice(plan: SubscriptionPlan): string {
-  if (plan.priceOnRequest) return 'Price on request'
-  if (plan.freeSubscription) return 'No subscription'
-  return `${formatEur(plan.yearlyPriceEur)}/year`
+  if (plan.priceOnRequest) return i18n.t('admin:billing.plan.priceOnRequest')
+  if (plan.freeSubscription) return i18n.t('admin:billing.noSubscription')
+  return i18n.t('admin:billing.plan.perYear', { price: formatEur(plan.yearlyPriceEur) })
 }
 
 /**
@@ -294,20 +302,30 @@ export function planPriceDisplay(plan: SubscriptionPlan): {
   monthlyNote: string | null
 } {
   if (plan.priceOnRequest) {
-    return { headline: 'Custom', yearlyNote: 'Price on request', monthlyNote: null }
+    return {
+      headline: formatMonthlyEquivalentPrice(plan),
+      yearlyNote: i18n.t('admin:billing.plan.priceOnRequest'),
+      monthlyNote: null,
+    }
   }
   if (plan.freeSubscription) {
     return {
-      headline: `${formatEur(plan.perEventPriceEur)}/event`,
-      yearlyNote: 'No subscription',
+      headline: i18n.t('admin:billing.plan.perEvent', {
+        price: formatEur(plan.perEventPriceEur),
+      }),
+      yearlyNote: i18n.t('admin:billing.noSubscription'),
       monthlyNote: null,
     }
   }
   const hasMonthly = plan.billingPeriods.includes('monthly') && plan.monthlyPriceEur > 0
   return {
     headline: formatMonthlyEquivalentPrice(plan),
-    yearlyNote: `billed yearly · ${formatEur(plan.yearlyPriceEur)} once a year`,
-    monthlyNote: hasMonthly ? `or ${formatEur(plan.monthlyPriceEur)}/mo billed monthly` : null,
+    yearlyNote: i18n.t('admin:billing.plan.billedYearly', {
+      price: formatEur(plan.yearlyPriceEur),
+    }),
+    monthlyNote: hasMonthly
+      ? i18n.t('admin:billing.plan.orMonthly', { price: formatEur(plan.monthlyPriceEur) })
+      : null,
   }
 }
 
@@ -318,9 +336,16 @@ export function planPriceDisplay(plan: SubscriptionPlan): {
  * "Price on request".
  */
 export function formatDualMonthlyPriceLine(plan: SubscriptionPlan): string {
-  if (plan.priceOnRequest) return 'Price on request'
-  if (plan.freeSubscription) return 'No subscription'
-  const yearly = `${formatMonthlyEquivalentPrice(plan)} yearly`
+  if (plan.priceOnRequest) return i18n.t('admin:billing.plan.priceOnRequest')
+  if (plan.freeSubscription) return i18n.t('admin:billing.noSubscription')
+  const yearly = i18n.t('admin:billing.plan.yearlyEquivalent', {
+    price: formatMonthlyEquivalentPrice(plan),
+  })
   const hasMonthly = plan.billingPeriods.includes('monthly') && plan.monthlyPriceEur > 0
-  return hasMonthly ? `${yearly} or ${formatEur(plan.monthlyPriceEur)}/mo monthly` : yearly
+  return hasMonthly
+    ? i18n.t('admin:billing.plan.orMonthlyShort', {
+        yearly,
+        price: formatEur(plan.monthlyPriceEur),
+      })
+    : yearly
 }

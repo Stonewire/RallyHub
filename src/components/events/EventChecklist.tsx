@@ -1,5 +1,6 @@
 import { IconChevronDown, IconChevronRight, IconClose, IconDownload } from '@/components/icons'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ type EventChecklistProps = {
 }
 
 export function EventChecklist({ eventId, organizationId, onClose }: EventChecklistProps) {
+  const { t } = useTranslation('admin')
   const eventQuery = useEvent(eventId)
   const gameIdsQuery = useEventGameIds(eventId)
   const gamesQuery = useGames(organizationId)
@@ -104,17 +106,22 @@ export function EventChecklist({ eventId, organizationId, onClose }: EventCheckl
       >
         <div className="border-border/60 flex items-start justify-between gap-3 border-b p-5">
           <div>
-            <h2 className="text-foreground text-lg font-bold">Event checklist</h2>
+            <h2 className="text-foreground text-lg font-bold">{t('events.checklist.title')}</h2>
             <p className="text-muted-foreground text-sm">
-              Everything your games and store need, for {teamCount}{' '}
-              {teamCount === 1 ? 'team' : 'teams'}. Set the team count in the event's Teams section.
+              {t('events.checklist.subtitle', { count: teamCount })}
             </p>
           </div>
           <div className="checklist-no-print flex shrink-0 items-center gap-2">
             <NeoButton type="button" variant="surface" size="sm" onClick={print}>
-              <IconDownload className="size-4" /> Print / PDF
+              <IconDownload className="size-4" /> {t('events.checklist.print')}
             </NeoButton>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common:close')}
+              onClick={onClose}
+            >
               <IconClose className="size-4" />
             </Button>
           </div>
@@ -127,12 +134,12 @@ export function EventChecklist({ eventId, organizationId, onClose }: EventCheckl
             <QueryError message={error.message} />
           ) : rows.length === 0 ? (
             <p className="text-muted-foreground py-10 text-center text-sm">
-              No checklist items yet. Add a prep checklist to a game or a store item.
+              {t('events.checklist.empty')}
             </p>
           ) : (
             <>
               <p className="text-muted-foreground checklist-no-print mb-3 text-xs font-semibold">
-                {packed} / {rows.length} packed
+                {t('events.checklist.packedCount', { packed, total: rows.length })}
               </p>
               <ul className="space-y-2">
                 {rows.map((row) => {
@@ -157,11 +164,13 @@ export function EventChecklist({ eventId, organizationId, onClose }: EventCheckl
                           <p className="text-muted-foreground text-xs">
                             {row.sources.some((s) => s.kind === 'store') &&
                             row.sources.every((s) => s.kind === 'store')
-                              ? 'Store'
+                              ? t('events.checklist.storeSource')
                               : row.sources.length > 1
-                                ? `${row.sources.length} sources`
+                                ? t('events.checklist.sourcesCount', {
+                                    count: row.sources.length,
+                                  })
                                 : row.sources[0]?.label}{' '}
-                            · {row.perTeam} per team
+                            · {t('events.checklist.perTeam', { count: row.perTeam })}
                           </p>
                         </div>
                         <span className="bg-muted rounded-full px-3 py-0.5 text-sm font-extrabold tabular-nums">
@@ -170,7 +179,11 @@ export function EventChecklist({ eventId, organizationId, onClose }: EventCheckl
                         <button
                           type="button"
                           className="text-muted-foreground checklist-no-print hover:text-foreground shrink-0"
-                          aria-label={isOpen ? 'Hide sources' : 'Show sources'}
+                          aria-label={
+                            isOpen
+                              ? t('events.checklist.hideSources')
+                              : t('events.checklist.showSources')
+                          }
                           onClick={() =>
                             setExpanded((prev) => ({ ...prev, [row.key]: !prev[row.key] }))
                           }
@@ -191,7 +204,7 @@ export function EventChecklist({ eventId, organizationId, onClose }: EventCheckl
                             >
                               <span>
                                 {s.label}
-                                {s.kind === 'store' ? ' (store)' : ''}
+                                {s.kind === 'store' ? ` ${t('events.checklist.storeSuffix')}` : ''}
                               </span>
                               <span className="tabular-nums">×{teamCount}</span>
                             </li>

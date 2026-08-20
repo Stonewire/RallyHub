@@ -1,5 +1,6 @@
 import { IconClose, IconDownload, IconLink } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ export function EventLinksModal({
   branding,
   onClose,
 }: EventLinksModalProps) {
+  const { t } = useTranslation('admin')
   const [downloadingAll, setDownloadingAll] = useState(false)
 
   return (
@@ -35,7 +37,7 @@ export function EventLinksModal({
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <IconLink className="text-foreground size-4" />
-            <h2 className="text-foreground text-lg font-semibold">Event Links</h2>
+            <h2 className="text-foreground text-lg font-semibold">{t('events.links.title')}</h2>
           </div>
           <div className="flex items-center gap-2">
             {/* Hosted here rather than under the QR codes: the header had empty
@@ -57,9 +59,15 @@ export function EventLinksModal({
               }}
             >
               <IconDownload className="size-3.5" />
-              {downloadingAll ? 'Building PDF…' : 'Download all QR codes'}
+              {downloadingAll ? t('events.links.buildingPdf') : t('events.links.downloadAllQr')}
             </NeoButton>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Close event links" onClick={onClose}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('events.links.closeAria')}
+              onClick={onClose}
+            >
               <IconClose className="size-4" />
             </Button>
           </div>

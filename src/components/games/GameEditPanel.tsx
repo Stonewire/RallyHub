@@ -1,4 +1,5 @@
 import { IconClose, IconExpand } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { GameEditForm } from '@/components/games/GameEditForm'
@@ -17,6 +18,7 @@ type GameEditPanelProps = {
  * content instead of forcing a close-then-reopen round trip.
  */
 export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
+  const { t } = useTranslation('admin')
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
 
   return (
@@ -33,12 +35,12 @@ export function GameEditPanel({ gameId, onClose }: GameEditPanelProps) {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {headerActions}
-                <Button type="button" variant="ghost" size="icon-sm" asChild title="Open full screen">
+                <Button type="button" variant="ghost" size="icon-sm" asChild title={t('games.openFullScreen')}>
                   <Link to={orgPath(clientSlug, `/admin/games/${gameId}`)}>
                     <IconExpand className="size-4" />
                   </Link>
                 </Button>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close game editor" onClick={onClose}>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={t('games.closeGameEditor')} onClick={onClose}>
                   <IconClose className="size-4" />
                 </Button>
               </div>

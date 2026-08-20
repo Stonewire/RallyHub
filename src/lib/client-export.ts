@@ -1,3 +1,4 @@
+import { i18n } from '@/lib/i18n'
 import JSZip from 'jszip'
 
 import { supabase } from '@/lib/supabase'
@@ -53,7 +54,7 @@ export async function downloadClientPackage(organizationId: string): Promise<voi
     .select('*')
     .eq('id', organizationId)
     .single()
-  if (orgErr || !org) throw new Error('Client not found')
+  if (orgErr || !org) throw new Error(i18n.t('admin:settings.clientNotFound'))
 
   const [eventsRes, gamesRes, invoicesRes, ticketsRes] = await Promise.all([
     supabase.from('events').select('*').eq('organization_id', organizationId),

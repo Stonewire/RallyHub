@@ -1,5 +1,6 @@
 import { IconRefresh } from '@/components/icons'
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { AssetField } from '@/components/games/AssetField'
 import { BackgroundDesigner } from '@/components/games/BackgroundDesigner'
@@ -36,6 +37,7 @@ export function MusicBingoEditor({
   gameName = '',
   section = 'tracks',
 }: MusicBingoEditorProps) {
+  const { t } = useTranslation('admin')
   const tracks = useMemo(() => config.tracks ?? [], [config.tracks])
   const clipLen = bingoClipLength(config)
   const jobs = useClipJobs()
@@ -77,7 +79,7 @@ export function MusicBingoEditor({
     return (
       <>
         <AssetField
-          label="Cover image"
+          label={t('games.bingo.coverImage')}
                 cropCover
           onFile={async (f) => {
             if (!f) return
@@ -89,14 +91,14 @@ export function MusicBingoEditor({
         />
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-3">
-            <Label className="shrink-0">Clip length</Label>
+            <Label className="shrink-0">{t('games.bingo.clipLength')}</Label>
             <SegmentedPill
               size="sm"
               className="min-w-32 flex-1"
-              aria-label="Clip length"
+              aria-label={t('games.bingo.clipLength')}
               options={BINGO_CLIP_LENGTHS.map((len) => ({
                 value: String(len),
-                label: `${len}s`,
+                label: t('games.bingo.secondsShort', { seconds: len }),
               }))}
               value={String(clipLen)}
               onChange={(next) =>
@@ -116,8 +118,8 @@ export function MusicBingoEditor({
               >
                 <IconRefresh className="size-3.5" aria-hidden />
                 {jobs.running
-                  ? 'Cutting clips…'
-                  : `Regenerate ${staleClips.length} clip${staleClips.length === 1 ? '' : 's'}`}
+                  ? t('games.bingo.cuttingClips')
+                  : t('games.bingo.regenerateClips', { count: staleClips.length })}
               </NeoButton>
             ) : null}
           </div>
@@ -147,7 +149,7 @@ export function MusicBingoEditor({
         config={config}
         setConfig={setConfig}
         gameName={gameName}
-        previewSubtitle="Listen and mark your card"
+        previewSubtitle={t('games.bingo.previewSubtitle')}
         onUploadBackground={(file) =>
           uploadGameFile(organizationId, `bingo/bg-${newGameId()}`, file)
         }

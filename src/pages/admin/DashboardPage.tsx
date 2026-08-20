@@ -1,4 +1,5 @@
 import { IconBolt, IconEvents, IconLayers, IconLive } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 import {
   NoOrganizationMessage,
@@ -17,10 +18,10 @@ import { useDashboardStats, useRecentEvents } from '@/hooks/use-dashboard'
 import { useOrganizationId } from '@/hooks/use-organization-id'
 
 const STAT_META = [
-  { key: 'totalGames' as const, label: 'Total Games', icon: IconLayers },
-  { key: 'totalEvents' as const, label: 'Total Events', icon: IconBolt },
-  { key: 'activeEvents' as const, label: 'Active Events', icon: IconLive },
-  { key: 'upcomingEvents' as const, label: 'Upcoming Events', icon: IconEvents },
+  { key: 'totalGames' as const, labelKey: 'dashboard.totalGames', icon: IconLayers },
+  { key: 'totalEvents' as const, labelKey: 'dashboard.totalEvents', icon: IconBolt },
+  { key: 'activeEvents' as const, labelKey: 'dashboard.activeEvents', icon: IconLive },
+  { key: 'upcomingEvents' as const, labelKey: 'dashboard.upcomingEvents', icon: IconEvents },
 ]
 
 function formatEventDate(iso: string | null) {
@@ -32,6 +33,7 @@ function formatEventDate(iso: string | null) {
 }
 
 export function AdminDashboardPage() {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const statsQuery = useDashboardStats(organizationId)
   const recentQuery = useRecentEvents(organizationId)
@@ -39,8 +41,8 @@ export function AdminDashboardPage() {
   if (!organizationId) {
     return (
       <AdminPageShell
-        title="Dashboard"
-        subtitle="Overview of games and events across your organization."
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.subtitle')}
       >
         <NoOrganizationMessage />
       </AdminPageShell>
@@ -49,8 +51,8 @@ export function AdminDashboardPage() {
 
   return (
     <AdminPageShell
-      title="Dashboard"
-      subtitle="Overview of games and events across your organization."
+      title={t('dashboard.title')}
+      subtitle={t('dashboard.subtitle')}
     >
       {statsQuery.isLoading ? (
         <QueryLoading rows={4} />
@@ -58,14 +60,14 @@ export function AdminDashboardPage() {
         <QueryError message={statsQuery.error.message} />
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {STAT_META.map(({ key, label, icon: Icon }) => (
+          {STAT_META.map(({ key, labelKey, icon: Icon }) => (
             <Card
-              key={label}
+              key={key}
               className="neo-card border-border/80 bg-card text-card-foreground shadow-sm"
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="neo-stat-label text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-                  {label}
+                  {t(labelKey)}
                 </CardTitle>
                 <Icon
                   aria-hidden
@@ -84,7 +86,7 @@ export function AdminDashboardPage() {
 
       <section className="mt-10 sm:mt-12">
         <h2 className="text-foreground mb-5 text-xl font-semibold tracking-tight">
-          Recent Events
+          {t('dashboard.recentEvents')}
         </h2>
         {recentQuery.isLoading ? (
           <QueryLoading rows={3} />
@@ -92,7 +94,7 @@ export function AdminDashboardPage() {
           <QueryError message={recentQuery.error.message} />
         ) : (recentQuery.data?.length ?? 0) === 0 ? (
           <Card className="border-border/80 bg-card px-5 py-8 shadow-sm shadow-[rgb(62_61_62/0.05)]">
-            <p className="text-muted-foreground text-sm">No events yet.</p>
+            <p className="text-muted-foreground text-sm">{t('dashboard.noEventsYet')}</p>
           </Card>
         ) : (
           <Card className="border-border/80 overflow-hidden shadow-sm shadow-[rgb(62_61_62/0.05)]">

@@ -1,5 +1,6 @@
 import { IconSignOut } from '@/components/icons'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -23,6 +24,8 @@ export function SignOutConfirmDialog({
   onCancel,
   onConfirm,
 }: SignOutConfirmDialogProps) {
+  const { t } = useTranslation('admin')
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCancel()
@@ -48,19 +51,19 @@ export function SignOutConfirmDialog({
           <IconSignOut className="text-foreground mt-0.5 size-5 shrink-0" aria-hidden />
           <div className="min-w-0 space-y-2">
             <h3 id="sign-out-title" className="text-foreground font-semibold">
-              Log out of RallyHub?
+              {t('shell.signOut.title')}
             </h3>
             <p id="sign-out-message" className="text-muted-foreground text-sm leading-relaxed">
-              You will need to sign in again to get back to your events and games.
+              {t('shell.signOut.message')}
             </p>
           </div>
         </div>
         <div className="flex justify-end gap-2">
           <NeoButton type="button" variant="surface" disabled={signingOut} onClick={onCancel}>
-            Cancel
+            {t('common:cancel')}
           </NeoButton>
           <NeoButton type="button" variant="accent" disabled={signingOut} onClick={onConfirm}>
-            {signingOut ? 'Logging out…' : 'Log out'}
+            {signingOut ? t('account.loggingOut') : t('shell.signOut.confirm')}
           </NeoButton>
         </div>
       </Card>

@@ -19,7 +19,7 @@ function localeOf(path: string): { lang: string; namespace: string } {
 }
 
 const LANGS = ['en', 'bg', 'es', 'fr', 'nl']
-const NAMESPACES = ['common', 'live', 'facilitator']
+const NAMESPACES = ['common', 'live', 'facilitator', 'admin']
 
 describe('locale parity', () => {
   it('ships every namespace for every language', () => {
@@ -63,7 +63,7 @@ describe('locale parity', () => {
   })
 })
 
-import i18n from 'i18next'
+import { i18n } from '@/lib/i18n'
 
 import { initI18n, setAppLanguage } from './i18n'
 

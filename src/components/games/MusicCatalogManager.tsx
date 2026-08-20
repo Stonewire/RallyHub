@@ -1,5 +1,6 @@
 import { IconClose, IconEdit, IconMusic, IconPause, IconPlay, IconPlus, IconSkipBack, IconSkipForward, IconTrash, IconUpload } from '@/components/icons'
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { MusicCatalogUploader } from '@/components/games/MusicCatalogUploader'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -47,6 +48,7 @@ export const MusicCatalogManager = forwardRef<
   MusicCatalogHandle,
   { organizationId: string }
 >(function MusicCatalogManager({ organizationId }, ref) {
+  const { t } = useTranslation('admin')
   const catalogQuery = useMusicCatalog(organizationId)
   const deleteCatalog = useDeleteMusicCatalog(organizationId)
   const updateCatalog = useUpdateMusicCatalog(organizationId)
@@ -162,7 +164,7 @@ export const MusicCatalogManager = forwardRef<
         clip_in_point_seconds: seconds == null ? null : Math.max(0, Math.floor(seconds)),
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the in point')
+      setError(err instanceof Error ? err.message : t('games.music.inPointSaveError'))
     }
   }
 
@@ -207,7 +209,7 @@ export const MusicCatalogManager = forwardRef<
       setSelected(new Set())
       setBulkDeleteOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete tracks')
+      setError(err instanceof Error ? err.message : t('games.music.deleteTracksError'))
     }
   }
 
@@ -230,7 +232,7 @@ export const MusicCatalogManager = forwardRef<
       })
       setEditing(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save track')
+      setError(err instanceof Error ? err.message : t('games.music.saveTrackError'))
     }
   }
 
@@ -253,7 +255,7 @@ export const MusicCatalogManager = forwardRef<
       setPlaylistPickSearch('')
       setCreatePlaylistOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create playlist')
+      setError(err instanceof Error ? err.message : t('games.music.createPlaylistError'))
     }
   }
 
@@ -273,7 +275,7 @@ export const MusicCatalogManager = forwardRef<
       setAddMenuOpen(false)
       setSelected(new Set())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add to playlist')
+      setError(err instanceof Error ? err.message : t('games.music.addToPlaylistError'))
     }
   }
 
@@ -285,7 +287,7 @@ export const MusicCatalogManager = forwardRef<
       {/* Playlist rail */}
       <aside className="border-border bg-card flex flex-col border-b p-3 lg:min-h-[34rem] lg:border-b-0 lg:border-r">
         <div className="mb-3">
-          <h3 className="text-foreground text-sm font-bold">My Playlists</h3>
+          <h3 className="text-foreground text-sm font-bold">{t('games.music.myPlaylists')}</h3>
           <div className="bg-primary mt-1 h-0.5 w-8" />
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -298,7 +300,7 @@ export const MusicCatalogManager = forwardRef<
               : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
           }`}
         >
-          <span>All tracks</span><span>{allRows.length}</span>
+          <span>{t('games.music.allTracks')}</span><span>{allRows.length}</span>
         </button>
         {playlists.map((pl) => (
           <span
@@ -316,7 +318,7 @@ export const MusicCatalogManager = forwardRef<
             <span className="text-[10px]">{tracksByPlaylist.get(pl.id)?.size ?? 0}</span>
             <button
               type="button"
-              aria-label={`Delete playlist ${pl.name}`}
+              aria-label={t('games.music.deletePlaylistNamed', { name: pl.name })}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => {
                 if (activePlaylist === pl.id) setActivePlaylist(null)
@@ -336,7 +338,7 @@ export const MusicCatalogManager = forwardRef<
             onClick={openCreatePlaylistDialog}
           >
             <IconPlus className="size-3.5" />
-            New playlist
+            {t('games.music.newPlaylist')}
           </NeoButton>
           <NeoButton
             type="button"
@@ -345,7 +347,7 @@ export const MusicCatalogManager = forwardRef<
             onClick={() => setUploadOpen(true)}
           >
             <IconUpload className="size-3.5" />
-            Upload music
+            {t('games.music.uploadMusic')}
           </NeoButton>
         </div>
       </aside>
@@ -365,10 +367,10 @@ export const MusicCatalogManager = forwardRef<
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold tracking-[0.1em] text-white/55 uppercase">
-                Preview player
+                {t('games.music.previewPlayer')}
               </p>
               <p className="truncate text-sm font-semibold">
-                {playingTrack ? playingTrack.title : 'Choose a track to preview'}
+                {playingTrack ? playingTrack.title : t('games.music.chooseTrack')}
               </p>
               {playingTrack ? (
                 <p className="truncate text-xs text-white/60">{playingTrack.artist}</p>
@@ -379,7 +381,7 @@ export const MusicCatalogManager = forwardRef<
           <div className="flex flex-1 items-center justify-center gap-2">
             <button
               type="button"
-              aria-label="Previous track"
+              aria-label={t('games.music.previousTrack')}
               disabled={!playingTrack || !hasPrev}
               onClick={() => stepTrack(-1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
@@ -388,7 +390,7 @@ export const MusicCatalogManager = forwardRef<
             </button>
             <button
               type="button"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
+              aria-label={isPlaying ? t('games.music.pause') : t('games.music.play')}
               disabled={!playingTrack}
               onClick={togglePlay}
               className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-full disabled:opacity-30"
@@ -397,7 +399,7 @@ export const MusicCatalogManager = forwardRef<
             </button>
             <button
               type="button"
-              aria-label="Next track"
+              aria-label={t('games.music.nextTrack')}
               disabled={!playingTrack || !hasNext}
               onClick={() => stepTrack(1)}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30"
@@ -419,7 +421,7 @@ export const MusicCatalogManager = forwardRef<
           </span>
           <button
             type="button"
-            aria-label="Seek"
+            aria-label={t('games.music.seek')}
             disabled={!playingTrack || !duration}
             onClick={(event) => {
               const bar = event.currentTarget.getBoundingClientRect()
@@ -445,22 +447,23 @@ export const MusicCatalogManager = forwardRef<
               onClick={() => void setInPoint(playingTrack, currentTime)}
               className="rounded-full bg-white/10 px-2.5 py-1 font-semibold text-white hover:bg-white/20"
             >
-              Set in point ({formatDuration(Math.floor(currentTime))})
+              {t('games.music.setInPoint', { time: formatDuration(Math.floor(currentTime)) })}
             </button>
             {playingTrack.clip_in_point_seconds == null ? (
-              <span>No in point yet, so game clips start where we pick.</span>
+              <span>{t('games.music.noInPoint')}</span>
             ) : (
               <>
                 <span>
-                  Game clips start at{' '}
-                  {formatDuration(Math.floor(Number(playingTrack.clip_in_point_seconds)))}
+                  {t('games.music.clipsStartAt', {
+                    time: formatDuration(Math.floor(Number(playingTrack.clip_in_point_seconds))),
+                  })}
                 </span>
                 <button
                   type="button"
                   onClick={() => void setInPoint(playingTrack, null)}
                   className="underline hover:text-white"
                 >
-                  Clear
+                  {t('games.clear')}
                 </button>
               </>
             )}
@@ -491,7 +494,7 @@ export const MusicCatalogManager = forwardRef<
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search title, artist or genre…"
+          placeholder={t('games.music.searchPlaceholder')}
           className="h-9 max-w-xs flex-1"
         />
         <select
@@ -499,20 +502,18 @@ export const MusicCatalogManager = forwardRef<
           onChange={(e) => setSortBy(e.target.value as SortBy)}
           className="border-input bg-background h-9 rounded-md border px-2 text-sm"
         >
-          <option value="date">Newest first</option>
-          <option value="title">Title A–Z</option>
-          <option value="genre">Genre</option>
+          <option value="date">{t('games.music.sortNewest')}</option>
+          <option value="title">{t('games.music.sortTitle')}</option>
+          <option value="genre">{t('games.music.sortGenre')}</option>
         </select>
       </div>
 
       {catalogQuery.isLoading ? (
         <QueryLoading rows={4} />
       ) : catalogQuery.isError ? (
-        <QueryError message={catalogQuery.error?.message ?? 'Could not load catalog'} />
+        <QueryError message={catalogQuery.error?.message ?? t('games.music.loadCatalogError')} />
       ) : allRows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No tracks yet. Upload MP3s above — clips are generated automatically.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('games.music.noTracksYet')}</p>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -527,7 +528,7 @@ export const MusicCatalogManager = forwardRef<
                 }}
                 onChange={toggleAll}
               />
-              Select all ({rows.length})
+              {t('games.selectAllCount', { count: rows.length })}
             </label>
             {selected.size > 0 ? (
               <>
@@ -539,7 +540,7 @@ export const MusicCatalogManager = forwardRef<
                     disabled={playlists.length === 0 || addToPlaylist.isPending}
                     onClick={() => setAddMenuOpen((o) => !o)}
                   >
-                    Add {selected.size} to playlist
+                    {t('games.music.addCountToPlaylist', { count: selected.size })}
                   </Button>
                   {addMenuOpen ? (
                     <div className="border-border/80 bg-card absolute z-10 mt-1 w-48 rounded-md border p-1 shadow-lg">
@@ -567,13 +568,13 @@ export const MusicCatalogManager = forwardRef<
                     setBulkDeleteOpen(true)
                   }}
                 >
-                  Delete {selected.size} selected
+                  {t('games.music.deleteCountSelected', { count: selected.size })}
                 </Button>
               </>
             ) : null}
           </div>
           <div className="text-muted-foreground hidden grid-cols-[28px_minmax(180px,1fr)_minmax(120px,0.7fr)_90px_65px_80px] gap-3 border-b pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] xl:grid">
-            <span /> <span>Title / Artist</span> <span>Playlists</span> <span>Added</span><span>Duration</span> <span className="text-right">Actions</span>
+            <span /> <span>{t('games.music.colTitleArtist')}</span> <span>{t('games.music.colPlaylists')}</span> <span>{t('games.music.colAdded')}</span><span>{t('games.music.colDuration')}</span> <span className="text-right">{t('games.music.colActions')}</span>
           </div>
           <ul className="divide-border/50 divide-y text-sm">
             {rows.map((row) => (
@@ -588,14 +589,16 @@ export const MusicCatalogManager = forwardRef<
                   type="button"
                   className="group min-w-0 text-left"
                   onClick={() => setPlayingTrackId(row.id)}
-                  aria-label={`Preview ${row.title} by ${row.artist}`}
+                  aria-label={t('games.music.previewTrack', { title: row.title, artist: row.artist })}
                 >
                   <span className="text-foreground flex min-w-0 items-center gap-1.5 truncate text-xs font-semibold">
                     <IconPlay className="text-primary size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" fill="currentColor" />
                     <span className="truncate">{row.title}</span>
                   </span>
                   <span className="text-muted-foreground block truncate pl-[18px] text-[11px]">{row.artist}</span>
-                  {!row.clip_url ? <span className="text-amber-600"> · clip pending</span> : null}
+                  {!row.clip_url ? (
+                    <span className="text-amber-600"> · {t('games.music.clipPending')}</span>
+                  ) : null}
                 </button>
                 <span className="text-muted-foreground hidden truncate text-xs xl:block">
                   {playlistNamesByTrack.get(row.id)?.join(', ') || '—'}
@@ -610,8 +613,8 @@ export const MusicCatalogManager = forwardRef<
                   type="button"
                   size="icon-sm"
                   variant="ghost"
-                  aria-label={`Edit ${row.title}`}
-                  title="Edit track"
+                  aria-label={t('games.music.editTrackNamed', { title: row.title })}
+                  title={t('games.music.editTrack')}
                   onClick={() => startEdit(row)}
                 >
                   <IconEdit className="size-4" />
@@ -621,8 +624,8 @@ export const MusicCatalogManager = forwardRef<
                   size="icon-sm"
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
-                  aria-label={`Delete ${row.title}`}
-                  title={`Delete ${row.title}`}
+                  aria-label={t('games.music.deleteTrackNamed', { title: row.title })}
+                  title={t('games.music.deleteTrackNamed', { title: row.title })}
                   disabled={deleteCatalog.isPending}
                   onClick={() => void deleteCatalog.mutateAsync(row).catch((e) => setError(String(e)))}
                 >
@@ -632,7 +635,9 @@ export const MusicCatalogManager = forwardRef<
               </li>
             ))}
             {rows.length === 0 ? (
-              <li className="text-muted-foreground py-3 text-sm">No tracks match.</li>
+              <li className="text-muted-foreground py-3 text-sm">
+                {t('games.music.noTracksMatch')}
+              </li>
             ) : null}
           </ul>
         </div>
@@ -643,17 +648,17 @@ export const MusicCatalogManager = forwardRef<
       {createPlaylistOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 flex max-h-[80vh] w-full max-w-lg flex-col gap-3 bg-card p-6 shadow-lg">
-            <h3 className="text-foreground font-semibold">New playlist</h3>
+            <h3 className="text-foreground font-semibold">{t('games.music.newPlaylist')}</h3>
             <Input
               value={newPlaylistName}
               onChange={(e) => setNewPlaylistName(e.target.value)}
-              placeholder="Playlist name"
+              placeholder={t('games.music.playlistNamePlaceholder')}
               autoFocus
             />
             <Input
               value={playlistPickSearch}
               onChange={(e) => setPlaylistPickSearch(e.target.value)}
-              placeholder="Search the library…"
+              placeholder={t('games.music.searchLibraryPlaceholder')}
               className="h-9 text-sm"
             />
             <ul className="border-border min-h-0 flex-1 space-y-1 overflow-auto rounded-md border p-2">
@@ -678,21 +683,25 @@ export const MusicCatalogManager = forwardRef<
                 </li>
               ))}
               {playlistPickRows.length === 0 ? (
-                <li className="text-muted-foreground px-2 py-1.5 text-sm">No tracks match.</li>
+                <li className="text-muted-foreground px-2 py-1.5 text-sm">
+                  {t('games.music.noTracksMatch')}
+                </li>
               ) : null}
             </ul>
             <div className="flex items-center justify-between">
-              <p className="text-muted-foreground text-xs">{playlistPicks.size} selected</p>
+              <p className="text-muted-foreground text-xs">
+                {t('games.selectedCount', { count: playlistPicks.size })}
+              </p>
               <div className="flex gap-2">
                 <NeoButton variant="surface" onClick={() => setCreatePlaylistOpen(false)}>
-                  Cancel
+                  {t('common:cancel')}
                 </NeoButton>
                 <NeoButton
                   variant="primary"
                   disabled={!newPlaylistName.trim() || createPlaylist.isPending}
                   onClick={() => void handleCreatePlaylist()}
                 >
-                  {createPlaylist.isPending ? 'Creating…' : 'Create playlist'}
+                  {createPlaylist.isPending ? t('games.creating') : t('games.music.createPlaylist')}
                 </NeoButton>
               </div>
             </div>
@@ -704,8 +713,14 @@ export const MusicCatalogManager = forwardRef<
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 max-h-[85vh] w-full max-w-2xl overflow-auto bg-card p-6 shadow-lg">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-foreground font-semibold">Upload music</h3>
-              <Button type="button" size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setUploadOpen(false)}>
+              <h3 className="text-foreground font-semibold">{t('games.music.uploadMusic')}</h3>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                aria-label={t('common:close')}
+                onClick={() => setUploadOpen(false)}
+              >
                 <IconClose className="size-4" />
               </Button>
             </div>
@@ -722,22 +737,30 @@ export const MusicCatalogManager = forwardRef<
       {editing ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 w-full max-w-sm space-y-4 bg-card p-6 shadow-lg">
-            <h3 className="text-foreground font-semibold">Edit track</h3>
+            <h3 className="text-foreground font-semibold">{t('games.music.editTrack')}</h3>
             <div className="space-y-2">
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
-              <Input value={editArtist} onChange={(e) => setEditArtist(e.target.value)} placeholder="Artist" />
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder={t('games.music.title')}
+              />
+              <Input
+                value={editArtist}
+                onChange={(e) => setEditArtist(e.target.value)}
+                placeholder={t('games.music.artist')}
+              />
               <Input
                 value={editGenre}
                 onChange={(e) => setEditGenre(e.target.value)}
-                placeholder="Genre (optional)"
+                placeholder={t('games.music.genrePlaceholder')}
               />
             </div>
             <div className="flex justify-end gap-2">
               <NeoButton variant="surface" onClick={() => setEditing(null)}>
-                Cancel
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton variant="primary" disabled={updateCatalog.isPending} onClick={() => void saveEdit()}>
-                {updateCatalog.isPending ? 'Saving…' : 'Save'}
+                {updateCatalog.isPending ? t('games.saving') : t('common:save')}
               </NeoButton>
             </div>
           </Card>
@@ -748,17 +771,21 @@ export const MusicCatalogManager = forwardRef<
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="border-border/80 w-full max-w-md space-y-4 bg-card p-6 shadow-lg">
             <h3 className="text-foreground font-semibold">
-              Delete {selectedRows.length} track{selectedRows.length === 1 ? '' : 's'}?
+              {t('games.music.deleteTracksTitle', { count: selectedRows.length })}
             </h3>
-            <p className="text-muted-foreground text-sm">
-              Their audio and clip files are removed from storage. This cannot be undone.
-            </p>
+            <p className="text-muted-foreground text-sm">{t('games.music.deleteTracksBody')}</p>
             <div className="flex justify-end gap-2">
-              <NeoButton variant="surface" disabled={deleteCatalog.isPending} onClick={() => setBulkDeleteOpen(false)}>
-                Cancel
+              <NeoButton
+                variant="surface"
+                disabled={deleteCatalog.isPending}
+                onClick={() => setBulkDeleteOpen(false)}
+              >
+                {t('common:cancel')}
               </NeoButton>
               <NeoButton variant="destructive" disabled={deleteCatalog.isPending} onClick={() => void confirmBulkDelete()}>
-                {deleteCatalog.isPending ? 'Deleting…' : `Delete ${selectedRows.length}`}
+                {deleteCatalog.isPending
+                  ? t('games.deleting')
+                  : t('games.deleteCount', { count: selectedRows.length })}
               </NeoButton>
             </div>
           </Card>

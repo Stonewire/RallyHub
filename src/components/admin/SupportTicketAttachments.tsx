@@ -1,5 +1,6 @@
 import { IconAttachment } from '@/components/icons'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { signedAttachmentUrl } from '@/lib/storage'
 import type { SupportTicketAttachment } from '@/types/database'
@@ -22,6 +23,7 @@ export function SupportTicketAttachments({
 }: {
   attachments: SupportTicketAttachment[] | null | undefined
 }) {
+  const { t } = useTranslation('admin')
   const [error, setError] = useState<string | null>(null)
 
   if (!attachments?.length) return null
@@ -32,14 +34,14 @@ export function SupportTicketAttachments({
       const url = await signedAttachmentUrl(attachment.path)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch {
-      setError('Could not open that attachment.')
+      setError(t('support.attachmentOpenFailed'))
     }
   }
 
   return (
     <div className="space-y-1">
       <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
-        Attachments
+        {t('support.attachments')}
       </p>
       <ul className="space-y-1">
         {attachments.map((attachment) => (

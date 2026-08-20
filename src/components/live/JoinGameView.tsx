@@ -291,6 +291,13 @@ export function JoinGameView({
   const mergeOwnSubmissionRef = useRef(mergeOwnSubmission)
   mergeOwnSubmissionRef.current = mergeOwnSubmission
 
+  // `t` is pinned to the language at creation, and the event language arrives
+  // asynchronously from the bundle. Keep it in a ref so the outbox callback
+  // below (deliberately `[]`-dep, to stay stable for the queue) reads the
+  // current language instead of the English it mounted with.
+  const tRef = useRef(t)
+  tRef.current = t
+
   // Store orders waiting in the offline queue, mirrored into React state so My
   // Items can show them before they reach the server.
   const [queuedStoreOrders, setQueuedStoreOrders] = useState<
@@ -323,7 +330,7 @@ export function JoinGameView({
         session && session.eventId === item.eventId && session.teamId === item.teamId
           ? session.purchaseToken
           : null
-      if (!token) throw new PermanentSubmitError(t('join.submission.phoneNotSignedIn'))
+      if (!token) throw new PermanentSubmitError(tRef.current('join.submission.phoneNotSignedIn'))
       const { error } = await supabase.rpc('place_store_order', {
         p_event_id: item.eventId,
         p_purchase_token: token,
@@ -336,7 +343,7 @@ export function JoinGameView({
         }
         // A validation rejection (sold out under you, not enough points) will
         // not change on retry; drop it and tell the team.
-        throw new PermanentSubmitError(error.message || t('store.couldNotPlaceOrder'), {
+        throw new PermanentSubmitError(error.message || tRef.current('store.couldNotPlaceOrder'), {
           cause: error,
         })
       }
@@ -350,7 +357,7 @@ export function JoinGameView({
         session && session.eventId === item.eventId && session.teamId === item.teamId
           ? session.purchaseToken
           : null
-      if (!token) throw new PermanentSubmitError(t('join.submission.phoneNotSignedIn'))
+      if (!token) throw new PermanentSubmitError(tRef.current('join.submission.phoneNotSignedIn'))
       const { data, error } = await supabase.rpc('submit_offline_puzzle_result', {
         p_event_id: item.eventId,
         p_game_id: item.gameId,
@@ -367,7 +374,7 @@ export function JoinGameView({
         // not change on retry; a code-less server blip (5xx/gateway) retries
         // up to the cap instead of destroying the team's solve.
         if (error.code) {
-          throw new PermanentSubmitError(error.message || t('puzzle.couldNotSubmitResult'), {
+          throw new PermanentSubmitError(error.message || tRef.current('puzzle.couldNotSubmitResult'), {
             cause: error,
           })
         }
@@ -383,7 +390,7 @@ export function JoinGameView({
         if (row.id !== item.clientId) {
           // A teammate finished this puzzle first; their score stands and this
           // device's local completion card was provisional. Say so.
-          notify(t('join.submission.teammateFinishedPuzzle'))
+          notify(tRef.current('join.submission.teammateFinishedPuzzle'))
         }
       }
       return
@@ -426,7 +433,7 @@ export function JoinGameView({
           mergeOwnSubmissionRef.current('UPDATE', delivered)
           return
         }
-        throw new PermanentSubmitError(t('join.submission.uploadLostOffline'))
+        throw new PermanentSubmitError(tRef.current('join.submission.uploadLostOffline'))
       }
       const mediaKind = payload.mediaType === 'video' ? 'video' : 'photo'
       try {
@@ -495,7 +502,7 @@ export function JoinGameView({
       }
       if (error.code) {
         throw new PermanentSubmitError(
-          error.message || t('join.submission.couldNotSubmitEventClosed'),
+          error.message || tRef.current('join.submission.couldNotSubmitEventClosed'),
           { cause: error },
         )
       }

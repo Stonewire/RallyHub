@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { SegmentedPill } from '@/components/neo-minimal'
 import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
@@ -23,26 +25,27 @@ export function PointsEditor({
   pointsMax: number
   setPointsMax: (v: number) => void
 }) {
+  const { t } = useTranslation('admin')
   // Label, mode and value on a single line. Points is one small setting and
   // was taking three rows of height to say so.
   return (
     <div className="flex w-full items-center gap-3">
-      <Label className="shrink-0">Points</Label>
+      <Label className="shrink-0">{t('games.points')}</Label>
       <div className="flex flex-1 items-center gap-2">
         <SegmentedPill
           size="sm"
           className="flex-1"
-          aria-label="Points type"
+          aria-label={t('games.pointsType')}
           options={[
-            { value: 'static', label: 'Static' },
-            { value: 'range', label: 'Range' },
+            { value: 'static', label: t('games.pointsStatic') },
+            { value: 'range', label: t('games.pointsRange') },
           ]}
           value={pointsType}
           onChange={(next) => setPointsType(next as PointsType)}
         />
         {pointsType === 'static' ? (
           <NumberField
-            aria-label="Points"
+            aria-label={t('games.points')}
             value={pointsStatic}
             onChange={setPointsStatic}
             className="bg-background h-8 w-24 shrink-0"
@@ -50,16 +53,16 @@ export function PointsEditor({
         ) : (
           <div className="flex shrink-0 items-center gap-2">
             <NumberField
-              placeholder="Min"
-              aria-label="Minimum points"
+              placeholder={t('games.pointsMinShort')}
+              aria-label={t('games.minimumPoints')}
               value={pointsMin}
               onChange={setPointsMin}
               className="bg-background h-8 w-24 shrink-0"
             />
-            <span className="text-muted-foreground text-sm">to</span>
+            <span className="text-muted-foreground text-sm">{t('games.pointsRangeTo')}</span>
             <NumberField
-              placeholder="Max"
-              aria-label="Maximum points"
+              placeholder={t('games.pointsMaxShort')}
+              aria-label={t('games.maximumPoints')}
               value={pointsMax}
               onChange={setPointsMax}
               className="bg-background h-8 w-24 shrink-0"

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { IconAttachment } from '@/components/icons'
 
@@ -30,6 +31,7 @@ import {
 import { useOrganizationId } from '@/hooks/use-organization-id'
 
 export function AdminSupportPage() {
+  const { t } = useTranslation('admin')
   const organizationId = useOrganizationId()
   const orgId = organizationId ?? undefined
   const ticketsQuery = useSupportTickets('org', orgId)
@@ -56,11 +58,11 @@ export function AdminSupportPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!organizationId || !subject.trim()) {
-      setError('Subject is required.')
+      setError(t('support.subjectRequired'))
       return
     }
     if (!body.trim()) {
-      setError('Please describe your issue.')
+      setError(t('support.describeIssue'))
       return
     }
     setError(null)
@@ -80,13 +82,13 @@ export function AdminSupportPage() {
       setShowNewForm(false)
       setSelectedId(ticket.id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not submit ticket')
+      setError(err instanceof Error ? err.message : t('support.couldNotSubmit'))
     }
   }
 
   if (!organizationId) {
     return (
-      <AdminPageShell title="Support" subtitle="Submit a ticket to the RallyHub team.">
+      <AdminPageShell title={t('support.title')} subtitle={t('support.subtitleShort')}>
         <NoOrganizationMessage />
       </AdminPageShell>
     )
@@ -94,18 +96,21 @@ export function AdminSupportPage() {
 
   return (
     <AdminPageShell
-      title="Support"
-      subtitle="If you have any issues or questions, our support team will get back to you within 24 hours."
+      title={t('support.title')}
+      subtitle={t('support.subtitle')}
       centeredHeader
     >
       <div className="mx-auto mb-6 w-fit min-w-72">
         <SegmentedPill
-          aria-label="Support view"
+          aria-label={t('support.viewLabel')}
           options={[
-            { value: 'new', label: 'New Ticket' },
+            { value: 'new', label: t('support.newTicket') },
             {
               value: 'mine',
-              label: `My Tickets${tickets.length > 0 ? ` (${tickets.length})` : ''}`,
+              label:
+                tickets.length > 0
+                  ? t('support.myTicketsCount', { total: tickets.length })
+                  : t('support.myTickets'),
             },
           ]}
           value={showNewForm ? 'new' : 'mine'}
@@ -127,23 +132,23 @@ export function AdminSupportPage() {
       {showNewForm ? (
         <NeoCard className="mx-auto mb-6 max-w-[520px] space-y-4 p-4">
           <div>
-            <h2 className="text-foreground text-sm font-bold">Open a Case</h2>
-            <p className="text-muted-foreground mt-1 text-xs">Our specialised team will respond within 24 hours.</p>
+            <h2 className="text-foreground text-sm font-bold">{t('support.openCase')}</h2>
+            <p className="text-muted-foreground mt-1 text-xs">{t('support.responseTime')}</p>
           </div>
           <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
             <div className="space-y-1.5">
-              <NeoLabel htmlFor="support-subject">Subject</NeoLabel>
+              <NeoLabel htmlFor="support-subject">{t('support.subject')}</NeoLabel>
               <NeoInput
                 id="support-subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="bg-background"
-                placeholder="Briefly describe the issue…"
+                placeholder={t('support.subjectPlaceholder')}
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <NeoLabel htmlFor="support-category">Category</NeoLabel>
+              <NeoLabel htmlFor="support-category">{t('support.category')}</NeoLabel>
               <select
                 id="support-category"
                 value={category}
@@ -151,21 +156,21 @@ export function AdminSupportPage() {
                 className="h-9 w-full px-3 text-sm"
                 required
               >
-                <option value="">Select Category</option>
-                <option value="Billing">Billing</option>
-                <option value="Technical">Technical</option>
-                <option value="Account">Account</option>
+                <option value="">{t('support.selectCategory')}</option>
+                <option value="Billing">{t('support.categories.billing')}</option>
+                <option value="Technical">{t('support.categories.technical')}</option>
+                <option value="Account">{t('support.categories.account')}</option>
               </select>
             </div>
             <div className="space-y-1.5">
-              <NeoLabel htmlFor="support-body">Details</NeoLabel>
+              <NeoLabel htmlFor="support-body">{t('support.details')}</NeoLabel>
               <NeoTextarea
                 id="support-body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={4}
                 className="w-full resize-y bg-background"
-                placeholder="Provide as much context as possible. Include steps to reproduce the issue if applicable…"
+                placeholder={t('support.detailsPlaceholder')}
                 required
               />
             </div>
@@ -177,7 +182,7 @@ export function AdminSupportPage() {
                   onClick={() => attachInput.current?.click()}
                 >
                   <IconAttachment className="size-4" />
-                  Upload a File
+                  {t('support.uploadFile')}
                 </NeoButton>
                 <input
                   ref={attachInput}
@@ -216,7 +221,7 @@ export function AdminSupportPage() {
                             setFiles((current) => current.filter((_, i) => i !== index))
                           }
                         >
-                          Remove
+                          {t('support.remove')}
                         </button>
                       </li>
                     ))}
@@ -224,7 +229,7 @@ export function AdminSupportPage() {
                 ) : null}
               </div>
               <NeoButton type="submit" variant="primary" disabled={createTicket.isPending}>
-                {createTicket.isPending ? 'Submitting…' : 'Submit'}
+                {createTicket.isPending ? t('support.submitting') : t('support.submit')}
               </NeoButton>
             </div>
           </form>
@@ -235,23 +240,23 @@ export function AdminSupportPage() {
         ticketsQuery.isLoading ? (
           <QueryLoading rows={4} />
         ) : tickets.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No tickets yet. Submit one above.</p>
+          <p className="text-muted-foreground text-sm">{t('support.noTicketsSubmitAbove')}</p>
         ) : (
           <SupportTicketsWorkspace
             tickets={tickets}
             selectedId={selectedId}
             onSelectTicket={setSelectedId}
             senderRole="client"
-            emptyMessage="No tickets yet. Submit one above."
+            emptyMessage={t('support.noTicketsSubmitAbove')}
           />
         )
       ) : selected ? (
         <NeoCard className="max-w-2xl space-y-4 p-4 sm:p-5">
           <div>
-            <p className="text-foreground font-medium">Ticket submitted</p>
+            <p className="text-foreground font-medium">{t('support.ticketSubmitted')}</p>
             {selected.ticket_number ? (
               <p className="text-muted-foreground mt-1 text-sm">
-                Reference:{' '}
+                {t('support.reference')}{' '}
                 <span className="font-mono font-semibold">{selected.ticket_number}</span>
               </p>
             ) : null}

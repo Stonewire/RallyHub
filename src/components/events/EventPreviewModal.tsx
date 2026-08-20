@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 import { IconClose } from '@/components/icons'
 import { BrandBackground } from '@/components/live/BrandBackground'
@@ -38,6 +39,8 @@ export function EventPreviewModal({
   displayTextColor,
   teams,
 }: EventPreviewModalProps) {
+  const { t } = useTranslation('admin')
+
   if (!open) return null
 
   // BrandBackground reads brand fields off an event row. Nothing is saved yet,
@@ -55,7 +58,7 @@ export function EventPreviewModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Event preview"
+      aria-label={t('events.preview.title')}
       className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -65,16 +68,24 @@ export function EventPreviewModal({
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-foreground text-sm font-bold">Event preview</h2>
+            <h2 className="text-foreground text-sm font-bold">{t('events.preview.title')}</h2>
             <p className="text-muted-foreground text-xs">
-              {displayLayout === 'orbit_view' ? 'Orbit' : 'Rank list'} display,{' '}
-              {displayTextColor} text.
+              {t('events.preview.summary', {
+                layout:
+                  displayLayout === 'orbit_view'
+                    ? t('events.form.orbit')
+                    : t('events.form.rankList'),
+                colour:
+                  displayTextColor === 'black'
+                    ? t('events.preview.textBlack')
+                    : t('events.preview.textWhite'),
+              })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common:close')}
             className="hover:bg-muted rounded-nm-md flex size-[26px] items-center justify-center"
           >
             <IconClose className="size-3.5" />
@@ -94,7 +105,7 @@ export function EventPreviewModal({
                   <img src={logoUrl} alt="" className="max-h-14 max-w-40 object-contain" />
                 ) : null}
                 <p className="text-xl font-black tracking-tight drop-shadow">
-                  {name || 'Untitled event'}
+                  {name || t('events.preview.untitled')}
                 </p>
                 <div
                   className={
@@ -110,7 +121,9 @@ export function EventPreviewModal({
                         className="flex size-9 items-center justify-center rounded-full text-[10px] font-bold text-white shadow"
                         style={{ backgroundColor: team.color }}
                       >
-                        {(team.name || `T${index + 1}`).slice(0, 2).toUpperCase()}
+                        {(team.name || t('events.preview.teamAbbrev', { index: index + 1 }))
+                          .slice(0, 2)
+                          .toUpperCase()}
                       </span>
                     ) : (
                       <div
@@ -123,7 +136,7 @@ export function EventPreviewModal({
                           style={{ backgroundColor: team.color }}
                         />
                         <span className="min-w-0 flex-1 truncate font-semibold">
-                          {team.name || `Team ${index + 1}`}
+                          {team.name || t('events.teamNumber', { index: index + 1 })}
                         </span>
                         <span className="font-bold tabular-nums opacity-80">
                           {(5 - index) * 120}
@@ -134,7 +147,9 @@ export function EventPreviewModal({
                 </div>
               </div>
             </BrandBackground>
-            <p className="text-muted-foreground mt-1.5 text-center text-[10px]">Host / TV</p>
+            <p className="text-muted-foreground mt-1.5 text-center text-[10px]">
+              {t('events.preview.hostTv')}
+            </p>
           </div>
 
           <div className="w-40 shrink-0">
@@ -149,24 +164,26 @@ export function EventPreviewModal({
                   <img src={logoUrl} alt="" className="max-h-8 max-w-24 object-contain" />
                 ) : null}
                 <p className="text-sm font-black tracking-tight drop-shadow">
-                  {name || 'Untitled event'}
+                  {name || t('events.preview.untitled')}
                 </p>
                 <span
                   className="mt-1 rounded-full px-3 py-1 text-[10px] font-bold text-white shadow"
                   style={{ backgroundColor: shown[0]?.color ?? brandColors[0] }}
                 >
-                  {shown[0]?.name || 'Team 1'}
+                  {shown[0]?.name || t('events.teamNumber', { index: 1 })}
                 </span>
-                <p className="text-[10px] opacity-75">Waiting for the next game…</p>
+                <p className="text-[10px] opacity-75">{t('events.preview.waiting')}</p>
               </div>
             </BrandBackground>
-            <p className="text-muted-foreground mt-1.5 text-center text-[10px]">Player</p>
+            <p className="text-muted-foreground mt-1.5 text-center text-[10px]">
+              {t('events.preview.player')}
+            </p>
           </div>
         </div>
 
         <div className="mt-4 flex justify-end">
           <NeoButton type="button" variant="surface" onClick={onClose}>
-            Close
+            {t('common:close')}
           </NeoButton>
         </div>
       </div>

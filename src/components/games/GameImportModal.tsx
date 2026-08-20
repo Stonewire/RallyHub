@@ -1,5 +1,6 @@
 import { IconClose, IconDownload, IconFileUp } from '@/components/icons'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { NeoButton } from '@/components/neo-minimal'
@@ -31,6 +32,7 @@ export function GameImportModal({
   groups,
   onClose,
 }: GameImportModalProps) {
+  const { t } = useTranslation('admin')
   const { notify } = useNotification()
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -103,13 +105,16 @@ export function GameImportModal({
       void queryClient.invalidateQueries({ queryKey: queryKeys.platformLibraryGames() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.gameGroups(organizationId) })
       notify(
-        `Imported ${plan.games.length} game${plan.games.length === 1 ? '' : 's'}${
-          plan.groupNames.length > 0 ? ` across ${plan.groupNames.length} group(s)` : ''
-        }`,
+        plan.groupNames.length > 0
+          ? t('games.import.importedWithGroups', {
+              count: plan.games.length,
+              groups: plan.groupNames.length,
+            })
+          : t('games.import.imported', { count: plan.games.length }),
       )
       onClose()
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Import failed')
+      notify(err instanceof Error ? err.message : t('games.import.failed'))
     } finally {
       setImporting(false)
     }
@@ -125,7 +130,7 @@ export function GameImportModal({
       <Card className="border-border/80 max-h-[85vh] w-full max-w-xl space-y-4 overflow-auto bg-card p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <h3 id="game-import-title" className="text-foreground font-semibold">
-            Import games
+            {t('games.import.title')}
           </h3>
           <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
             <IconClose className="size-4" />
@@ -133,13 +138,7 @@ export function GameImportModal({
         </div>
 
         <div className="space-y-2">
-          <p className="text-muted-foreground text-sm">
-            Download the template, fill in one row per game (quiz games: one row per
-            question, same name on every row), then upload it here. Photo, video, text
-            and quiz games are supported — images, videos and music bingo cannot come
-            from a spreadsheet. A Group column files games into a group, created
-            automatically if it does not exist yet.
-          </p>
+          <p className="text-muted-foreground text-sm">{t('games.import.description')}</p>
           <div className="flex flex-wrap gap-2">
             <NeoButton
               type="button"
@@ -148,7 +147,7 @@ export function GameImportModal({
               onClick={() => downloadCsv('rallyhub-games-template', buildGameImportTemplate())}
             >
               <IconDownload className="size-4" />
-              Download template (CSV)
+              {t('games.import.downloadTemplate')}
             </NeoButton>
             <NeoButton
               type="button"
@@ -157,7 +156,7 @@ export function GameImportModal({
               onClick={() => fileRef.current?.click()}
             >
               <IconFileUp className="size-4" />
-              Upload filled template
+              {t('games.import.uploadTemplate')}
             </NeoButton>
             <input
               ref={fileRef}
@@ -176,8 +175,10 @@ export function GameImportModal({
         {plan ? (
           <div className="space-y-3">
             <p className="text-foreground text-sm font-medium">
-              {fileName}: {plan.games.length} game{plan.games.length === 1 ? '' : 's'} ready
-              {plan.groupNames.length > 0 ? ` · groups: ${plan.groupNames.join(', ')}` : ''}
+              {fileName}: {t('games.import.ready', { count: plan.games.length })}
+              {plan.groupNames.length > 0
+                ? ` · ${t('games.import.groups', { groups: plan.groupNames.join(', ') })}`
+                : ''}
             </p>
 
             {plan.games.length > 0 ? (
@@ -192,8 +193,12 @@ export function GameImportModal({
                       {g.points_type === 'range'
                         ? `${g.points_min}-${g.points_max}`
                         : g.points_static}{' '}
-                      pts
-                      {g.type === 'quiz' ? ` · ${g.config.questions?.length ?? 0} q` : ''}
+                      {t('common:pts')}
+                      {g.type === 'quiz'
+                        ? ` · ${t('games.import.questionCount', {
+                            total: g.config.questions?.length ?? 0,
+                          })}`
+                        : ''}
                     </span>
                   </li>
                 ))}
@@ -203,7 +208,7 @@ export function GameImportModal({
             {plan.errors.length > 0 ? (
               <div className="border-destructive/40 bg-destructive/5 space-y-1 rounded-lg border p-3">
                 <p className="text-destructive text-sm font-medium">
-                  {plan.errors.length} row{plan.errors.length === 1 ? '' : 's'} skipped:
+                  {t('games.import.rowsSkipped', { count: plan.errors.length })}
                 </p>
                 <ul className="text-destructive/90 list-disc space-y-0.5 pl-4 text-xs">
                   {plan.errors.map((e) => (
@@ -215,7 +220,7 @@ export function GameImportModal({
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                {t('common:cancel')}
               </Button>
               <NeoButton
                 type="button"
@@ -224,8 +229,8 @@ export function GameImportModal({
                 onClick={() => void runImport()}
               >
                 {importing
-                  ? 'Importing…'
-                  : `Import ${plan.games.length} game${plan.games.length === 1 ? '' : 's'}`}
+                  ? t('games.import.importing')
+                  : t('games.import.submit', { count: plan.games.length })}
               </NeoButton>
             </div>
           </div>

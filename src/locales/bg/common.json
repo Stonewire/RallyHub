@@ -49,6 +49,8 @@
         "menuFallback": "Ако я няма, отворете менюто с трите точки, след това \"Cast, save and share\" и \"Install page as app\".",
         "result": "RallyHub се отваря от работния плот или лентата на задачите в собствен прозорец."
       }
-    }
-  }
+    },
+    "installRallyHubAsApp": "Инсталирай RallyHub като приложение"
+  },
+  "delete": "Изтрий"
 }

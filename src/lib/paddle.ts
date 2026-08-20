@@ -8,6 +8,8 @@
  * ever opens the overlay for an existing transactionId.
  */
 
+import { i18n } from '@/lib/i18n'
+
 import { supabase } from '@/lib/supabase'
 
 type PaddleCheckoutEvent = { name: string; data?: unknown }
@@ -48,16 +50,19 @@ export async function openInvoicePdf(
       .eq('id', invoiceId)
       .eq('organization_id', organizationId)
       .single()
-    if (demoInvoiceError || !demoInvoice) throw new Error('Could not fetch the demo invoice.')
+    if (demoInvoiceError || !demoInvoice) {
+      throw new Error(i18n.t('admin:billing.demo.invoiceFetchFailed'))
+    }
     const total = new Intl.NumberFormat('en-IE', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
     }).format(Number(demoInvoice.amount_due))
     const invoice = window.open('', '_blank')
-    if (!invoice) throw new Error('Allow pop-ups to open the demo invoice.')
+    if (!invoice) throw new Error(i18n.t('admin:billing.demo.popupBlocked'))
     invoice.opener = null
-    invoice.document.write(`<!doctype html><html><head><title>Demo invoice</title><style>body{font-family:Inter,system-ui,sans-serif;max-width:760px;margin:64px auto;padding:0 32px;color:#252525}header{display:flex;justify-content:space-between;border-bottom:2px solid #252525;padding-bottom:24px}h1{font-size:28px}table{width:100%;border-collapse:collapse;margin-top:40px}td{padding:14px 0;border-bottom:1px solid #ddd}.muted{color:#6f6f6f}.total{text-align:right;font-size:24px;font-weight:700;margin-top:28px}.badge{display:inline-block;background:#e5f7ea;color:#18713a;border-radius:999px;padding:5px 10px;font-size:12px}</style></head><body><header><div><strong>RallyHub</strong><p class="muted">Demo invoice</p></div><div><span class="badge">PAID · DEMO</span><p class="muted">#${invoiceId.slice(0, 8).toUpperCase()}</p></div></header><h1>Event activation</h1><p class="muted">This document demonstrates the payment record. It is not a tax invoice and no payment was taken.</p><table><tr><td>Event activation and additional teams</td><td style="text-align:right">${total}</td></tr><tr><td>VAT</td><td style="text-align:right">€0.00</td></tr></table><p class="total">Total ${total}</p></body></html>`)
+    const demoLabel = i18n.t('admin:billing.demo.invoiceTitle')
+    invoice.document.write(`<!doctype html><html><head><title>${demoLabel}</title><style>body{font-family:Inter,system-ui,sans-serif;max-width:760px;margin:64px auto;padding:0 32px;color:#252525}header{display:flex;justify-content:space-between;border-bottom:2px solid #252525;padding-bottom:24px}h1{font-size:28px}table{width:100%;border-collapse:collapse;margin-top:40px}td{padding:14px 0;border-bottom:1px solid #ddd}.muted{color:#6f6f6f}.total{text-align:right;font-size:24px;font-weight:700;margin-top:28px}.badge{display:inline-block;background:#e5f7ea;color:#18713a;border-radius:999px;padding:5px 10px;font-size:12px}</style></head><body><header><div><strong>RallyHub</strong><p class="muted">${demoLabel}</p></div><div><span class="badge">${i18n.t('admin:billing.demo.invoiceBadge')}</span><p class="muted">#${invoiceId.slice(0, 8).toUpperCase()}</p></div></header><h1>${i18n.t('admin:billing.demo.invoiceHeading')}</h1><p class="muted">${i18n.t('admin:billing.demo.invoiceNote')}</p><table><tr><td>${i18n.t('admin:billing.demo.invoiceLine')}</td><td style="text-align:right">${total}</td></tr><tr><td>${i18n.t('admin:billing.demo.invoiceVat')}</td><td style="text-align:right">€0.00</td></tr></table><p class="total">${i18n.t('admin:billing.demo.invoiceTotal', { amount: total })}</p></body></html>`)
     invoice.document.close()
     return
   }
@@ -65,11 +70,11 @@ export async function openInvoicePdf(
     body: { organizationId, kind: 'invoice_pdf', invoiceId },
   })
   if (error) {
-    throw new Error(await edgeFunctionError(error, 'Could not fetch the invoice.'))
+    throw new Error(await edgeFunctionError(error, i18n.t('admin:billing.couldNotFetchInvoice')))
   }
 
   const url = (data as { url?: string } | null)?.url
-  if (!url) throw new Error('Could not fetch the invoice.')
+  if (!url) throw new Error(i18n.t('admin:billing.couldNotFetchInvoice'))
 
   window.open(url, '_blank', 'noopener,noreferrer')
 }
@@ -89,9 +94,9 @@ export async function openInvoicePdf(
 export async function openBillingPortal(organizationId: string, demo = false): Promise<void> {
   if (demo) {
     await openDemoOverlay({
-      title: 'Billing details',
-      body: 'This is a simulated customer portal. The demo uses Visa •••• 4242, expiring 12/30. No card is stored and no payment can be taken.',
-      confirmLabel: 'Done',
+      title: i18n.t('admin:billing.billingDetails'),
+      body: i18n.t('admin:billing.demo.portalBody'),
+      confirmLabel: i18n.t('admin:billing.demo.done'),
       allowCancel: false,
     })
     return
@@ -100,11 +105,13 @@ export async function openBillingPortal(organizationId: string, demo = false): P
     body: { organizationId, kind: 'portal' },
   })
   if (error) {
-    throw new Error(await edgeFunctionError(error, 'Could not open billing details.'))
+    throw new Error(
+      await edgeFunctionError(error, i18n.t('admin:billing.couldNotOpenBillingDetails')),
+    )
   }
 
   const url = (data as { url?: string } | null)?.url
-  if (!url) throw new Error('Could not open billing details.')
+  if (!url) throw new Error(i18n.t('admin:billing.couldNotOpenBillingDetails'))
 
   // noopener/noreferrer: the new tab must not get a handle back to this one.
   window.open(url, '_blank', 'noopener,noreferrer')
@@ -182,14 +189,16 @@ function loadPaddleScript(): Promise<void> {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`)
     if (existing) {
       existing.addEventListener('load', () => resolve())
-      existing.addEventListener('error', () => reject(new Error('Failed to load Paddle.js')))
+      existing.addEventListener('error', () =>
+        reject(new Error(i18n.t('admin:billing.paddleScriptLoadFailed'))),
+      )
       return
     }
     const script = document.createElement('script')
     script.src = SCRIPT_SRC
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Paddle.js'))
+    script.onerror = () => reject(new Error(i18n.t('admin:billing.paddleScriptLoadFailed')))
     document.head.appendChild(script)
   })
   return loadPromise
@@ -241,7 +250,7 @@ function openDemoOverlay({
 
     const eyebrow = document.createElement('p')
     eyebrow.className = 'mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffcb03]'
-    eyebrow.textContent = 'Demo · no real charge'
+    eyebrow.textContent = i18n.t('admin:billing.demo.eyebrow')
 
     const heading = document.createElement('h2')
     heading.className = 'text-xl font-semibold'
@@ -253,7 +262,7 @@ function openDemoOverlay({
 
     const secure = document.createElement('div')
     secure.className = 'mt-5 rounded-lg border border-white/10 bg-white/5 p-4 text-sm'
-    secure.textContent = 'Visa  •••• 4242   ·   Demo card'
+    secure.textContent = i18n.t('admin:billing.demo.card')
 
     const actions = document.createElement('div')
     actions.className = 'mt-6 flex justify-end gap-2'
@@ -266,7 +275,7 @@ function openDemoOverlay({
     if (allowCancel) {
       const cancel = document.createElement('button')
       cancel.className = 'rounded-md px-4 py-2 text-sm text-white/70 hover:bg-white/10'
-      cancel.textContent = 'Cancel'
+      cancel.textContent = i18n.t('common:cancel')
       cancel.onclick = () => finish('closed')
       actions.append(cancel)
     }
@@ -294,13 +303,13 @@ function openDemoOverlay({
 export async function payWithPaddle(transactionId: string): Promise<PaddleCheckoutResult> {
   if (transactionId.startsWith('demo_')) {
     return openDemoOverlay({
-      title: 'Secure checkout preview',
-      body: 'Complete this simulated checkout to see how RallyHub updates the plan or invoice after a successful Paddle payment.',
-      confirmLabel: 'Complete demo payment',
+      title: i18n.t('admin:billing.demo.checkoutTitle'),
+      body: i18n.t('admin:billing.demo.checkoutBody'),
+      confirmLabel: i18n.t('admin:billing.demo.checkoutConfirm'),
     })
   }
   await ensurePaddleInitialized()
-  if (!window.Paddle) throw new Error('Paddle failed to load.')
+  if (!window.Paddle) throw new Error(i18n.t('admin:billing.paddleLoadFailed'))
 
   return new Promise((resolve) => {
     activeListener = (event) => {

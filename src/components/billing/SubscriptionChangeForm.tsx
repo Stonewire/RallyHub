@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { NeoButton, NeoLabel, NeoSelect } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
@@ -39,6 +40,7 @@ export function SubscriptionChangeForm({
   currentPlanId,
   currentBillingPeriod,
 }: SubscriptionChangeFormProps) {
+  const { t } = useTranslation('admin')
   const { notify } = useNotification()
   const isDemo = useOptionalTenant()?.tenantOrg?.is_demo === true
   const [targetPlanId, setTargetPlanId] = useState<PlanId>(currentPlanId)
@@ -58,7 +60,7 @@ export function SubscriptionChangeForm({
     try {
       setPreview(await previewChange.mutateAsync({ planId: targetPlanId, billingPeriod: targetPeriod }))
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Could not preview the plan change.')
+      notify(error instanceof Error ? error.message : t('billing.couldNotPreviewChange'))
     }
   }
 
@@ -66,26 +68,24 @@ export function SubscriptionChangeForm({
     try {
       await changeSubscription.mutateAsync({ planId: targetPlanId, billingPeriod: targetPeriod })
       setPreview(null)
-      notify('Subscription changed successfully.')
+      notify(t('billing.subscriptionChanged'))
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Could not change the subscription.')
+      notify(error instanceof Error ? error.message : t('billing.couldNotChangeSubscription'))
     }
   }
 
   return (
     <Card className="border-border/80 space-y-4 bg-muted/20 p-4 shadow-none">
       <div>
-        <p className="text-foreground text-sm font-medium">Change subscription</p>
+        <p className="text-foreground text-sm font-medium">{t('billing.changeSubscription')}</p>
         <p className="text-muted-foreground text-xs">
-          {isDemo
-            ? 'Try any plan. This preview never contacts Paddle or charges a card.'
-            : 'Paddle calculates an exact prorated credit for unused time before anything changes.'}
+          {isDemo ? t('billing.changeHintDemo') : t('billing.changeHint')}
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <NeoLabel htmlFor="subscription-change-plan">Plan</NeoLabel>
+          <NeoLabel htmlFor="subscription-change-plan">{t('billing.planLabel')}</NeoLabel>
           <NeoSelect
             id="subscription-change-plan"
             value={targetPlanId}
@@ -100,7 +100,7 @@ export function SubscriptionChangeForm({
           </NeoSelect>
         </div>
         <div className="space-y-1.5">
-          <NeoLabel htmlFor="subscription-change-period">Billing</NeoLabel>
+          <NeoLabel htmlFor="subscription-change-period">{t('billing.billingLabel')}</NeoLabel>
           <NeoSelect
             id="subscription-change-period"
             value={targetPeriod}
@@ -109,14 +109,15 @@ export function SubscriptionChangeForm({
               clearPreview()
             }}
           >
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
+            <option value="monthly">{t('billing.monthly')}</option>
+            <option value="yearly">{t('billing.yearly')}</option>
           </NeoSelect>
         </div>
       </div>
 
       <p className="text-muted-foreground text-sm">
-        New recurring price: <span className="text-foreground font-medium">
+        {t('billing.newRecurringPrice')}{' '}
+        <span className="text-foreground font-medium">
           {formatSubscriptionPrice(targetPlan, targetPeriod)}
         </span>
       </p>
@@ -124,29 +125,27 @@ export function SubscriptionChangeForm({
       {preview ? (
         <div className="border-border/80 space-y-2 rounded-md border bg-card p-3 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">Due now, including tax and proration</span>
+            <span className="text-muted-foreground">{t('billing.dueNow')}</span>
             <span className="text-foreground font-semibold tabular-nums">
               {formatPaddleAmount(preview.dueNow, preview.currency)}
             </span>
           </div>
           {preview.creditToBalance > 0 ? (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Credit added to Paddle balance</span>
+              <span className="text-muted-foreground">{t('billing.creditToBalance')}</span>
               <span className="text-foreground font-medium tabular-nums">
                 {formatPaddleAmount(preview.creditToBalance, preview.currency)}
               </span>
             </div>
           ) : null}
           <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">Normal renewal total</span>
+            <span className="text-muted-foreground">{t('billing.renewalTotal')}</span>
             <span className="text-foreground font-medium tabular-nums">
               {formatPaddleAmount(preview.recurringTotal, preview.currency)}
             </span>
           </div>
           <p className="text-muted-foreground text-xs">
-            {isDemo
-              ? 'Confirming updates only this temporary sandbox.'
-              : 'The change is applied only if Paddle successfully processes any amount due now.'}
+            {isDemo ? t('billing.confirmHintDemo') : t('billing.confirmHint')}
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <NeoButton
@@ -155,10 +154,12 @@ export function SubscriptionChangeForm({
               onClick={() => void handleConfirm()}
               disabled={changeSubscription.isPending}
             >
-              {changeSubscription.isPending ? 'Changing…' : 'Confirm plan change'}
+              {changeSubscription.isPending
+                ? t('billing.changing')
+                : t('billing.confirmPlanChange')}
             </NeoButton>
             <NeoButton variant="surface" size="sm" onClick={clearPreview}>
-              Cancel
+              {t('common:cancel')}
             </NeoButton>
           </div>
         </div>
@@ -169,7 +170,11 @@ export function SubscriptionChangeForm({
           onClick={() => void handlePreview()}
           disabled={unchanged || previewChange.isPending}
         >
-          {previewChange.isPending ? 'Calculating…' : unchanged ? 'Current subscription' : 'Review price change'}
+          {previewChange.isPending
+            ? t('billing.calculating')
+            : unchanged
+              ? t('billing.currentSubscription')
+              : t('billing.reviewPriceChange')}
         </NeoButton>
       )}
     </Card>
