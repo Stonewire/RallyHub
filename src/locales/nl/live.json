@@ -1,0 +1,309 @@
+{
+  "join": {
+    "header": {
+      "quizPoints": "{{points}} quizpunten",
+      "scorePoints": "{{score}} punten",
+      "scorePointsShort": "{{score}} pt"
+    },
+    "status": {
+      "approved": "Goedgekeurd",
+      "rejected": "Afgekeurd",
+      "pending": "In behandeling"
+    },
+    "review": {
+      "pendingHeading": "Inzending wacht op goedkeuring",
+      "approvedHeading": "Inzending goedgekeurd",
+      "rejectedHeading": "Inzending afgekeurd",
+      "yourAnswer": "Jouw antwoord",
+      "yourSubmissionAlt": "Jouw inzending",
+      "cancelling": "Annuleren…",
+      "cancelSubmission": "Inzending annuleren",
+      "cancelRetakeHint": "Annuleer om deze uitdaging opnieuw te doen"
+    },
+    "text": {
+      "answerPlaceholder": "Typ je antwoord…",
+      "submitAnswer": "Antwoord versturen",
+      "chooseOneAnswer": "Kies een antwoord"
+    },
+    "submitting": "Versturen…",
+    "capture": {
+      "takePhoto": "Foto maken",
+      "takeVideo": "Video opnemen",
+      "videoMaxLength": "De video mag maximaal {{duration}} duren",
+      "couldNotReadVideo": "Kon de video niet lezen. Probeer een ander bestand",
+      "closeCapture": "Opname sluiten",
+      "switchCamera": "Camera wisselen",
+      "flip": "Omdraaien",
+      "retake": "Opnieuw",
+      "submit": "Versturen",
+      "previewAlt": "Voorbeeld"
+    },
+    "photo": {
+      "cameraAccessDenied": "Geen cameratoegang verleend. Sta cameratoegang toe wanneer de app opent",
+      "couldNotCapturePhoto": "Kon de foto niet maken. Houd stil en probeer opnieuw",
+      "couldNotProcessPhoto": "Kon de foto niet verwerken",
+      "capturing": "Bezig met opnemen…"
+    },
+    "video": {
+      "cameraAccessDenied": "Geen cameratoegang verleend. Sta cameratoegang toe wanneer de app opent, of upload een video",
+      "couldNotStartRecording": "Kon de opname niet starten",
+      "maxLength": "Maximale duur: {{duration}}",
+      "recording": "Bezig met opnemen",
+      "stopRecording": "Opname stoppen",
+      "recordVideo": "Video opnemen",
+      "uploadVideo": "Video uploaden"
+    },
+    "inventory": {
+      "scanTitle": "Scan een item",
+      "scanHint": "Richt de camera op de RallyHub QR code ervan.",
+      "closeScanner": "Scanner sluiten",
+      "notRallyHubQr": "Dit is geen RallyHub voorraad QR code. Probeer een ander item.",
+      "openingCamera": "Camera wordt geopend…",
+      "cameraBlocked": "Cameratoegang werd geblokkeerd. Sta cameratoegang toe in je browser en probeer opnieuw.",
+      "previewUnavailable": "Cameravoorbeeld is niet beschikbaar.",
+      "couldNotOpenCamera": "Kon de camera niet openen.",
+      "purchaseConfirmHint": "De aankoop vindt pas plaats nadat je deze hebt bekeken en bevestigd.",
+      "buyItems": "Items kopen"
+    },
+    "chat": {
+      "title": "Chat met de facilitator",
+      "messagePlaceholder": "Bericht…",
+      "send": "Versturen",
+      "openChat": "Chat openen"
+    },
+    "announcement": {
+      "dismiss": "Sluiten"
+    },
+    "exit": {
+      "leaveTeam": "Team verlaten",
+      "returnToEvents": "Terug naar evenementen",
+      "exitToEvents": "Naar evenementen",
+      "passwordHint": "Voer het tabletwachtwoord in om door te gaan.",
+      "passwordPlaceholder": "Wachtwoord",
+      "checking": "Controleren…",
+      "continue": "Doorgaan",
+      "incorrectPassword": "Onjuist wachtwoord",
+      "couldNotVerifyPassword": "Kon het wachtwoord niet verifiëren"
+    },
+    "back": "Terug",
+    "state": {
+      "paused": "Je spel staat gepauzeerd",
+      "pausedDetail": "De organisator heeft je team even gepauzeerd. Neem contact op met de organisator om weer mee te doen.",
+      "startingSoon": "Evenement begint binnenkort…",
+      "closed": "Dit evenement is nu gesloten",
+      "closedNoSubmissions": "Evenement gesloten. Geen nieuwe inzendingen",
+      "closedDetail": "Dit evenement is nu gesloten. Inzendingen worden niet meer geaccepteerd.",
+      "gameOver": "Spel afgelopen",
+      "standBy": "Even geduld…"
+    },
+    "submission": {
+      "waitingApproval": "Verzonden. Wacht op goedkeuring",
+      "enterAnswerFirst": "Voer eerst een antwoord in of kies er een",
+      "couldNotSubmitRetry": "Verzenden mislukt. Tik om opnieuw te proberen",
+      "couldNotSubmitAnswerRetry": "Antwoord verzenden mislukt. Tik om opnieuw te proberen",
+      "couldNotCancelRetry": "Kon de inzending niet annuleren. Probeer opnieuw",
+      "cancelled": "Inzending geannuleerd",
+      "couldNotUpdateSelectionRetry": "Selectie bijwerken mislukt. Tik om opnieuw te proberen",
+      "couldNotMarkCellRetry": "Vakje markeren mislukt. Tik om opnieuw te proberen",
+      "pointsAwardedMusicBingo": "+{{points}} pt (Muziekbingo)",
+      "pointsAwardedGame": "+{{points}} pt ({{game}})",
+      "notApproved": "{{game}} is niet goedgekeurd"
+    },
+    "quiz": {
+      "resultsTitle": "Jouw quizresultaten",
+      "ended": "Quiz is afgelopen",
+      "thanksForPlaying": "Bedankt voor het meespelen!",
+      "nextRound": "VOLGENDE RONDE",
+      "waitingForFacilitator": "Wachten tot de facilitator start…",
+      "getReadyFor": "Maak je klaar voor",
+      "label": "Quiz",
+      "correct": "Correct!",
+      "incorrect": "Incorrect",
+      "answerLockedRevealing": "Antwoord vastgezet. Onthullen…",
+      "timeRemaining": "{{time}} resterend",
+      "changeAnswer": "Antwoord wijzigen"
+    },
+    "bingo": {
+      "fallbackName": "Muziekbingo",
+      "waitingRoundStart": "Wachten tot de facilitator deze ronde start…",
+      "startedBeforeJoin": "Deze ronde begon voordat je meedeed.",
+      "includedNextRound": "Je doet mee in de volgende ronde!",
+      "lockingAnswers": "Antwoorden worden vastgezet…",
+      "legendSelection": "Jouw selectie",
+      "legendCorrect": "Correct",
+      "legendWrong": "Fout",
+      "legendMissed": "Gemist",
+      "tapToClose": "Bingo! Tik om te sluiten",
+      "exclaim": "BINGO!"
+    },
+    "break": {
+      "fallback": "Pauze"
+    },
+    "consent": {
+      "title": "Voordat je meedoet",
+      "intro": "{{host}} organiseert dit evenement en bepaalt wat je wordt gevraagd te doen. RallyHub levert het platform.",
+      "defaultHost": "De organisator van het evenement",
+      "whatCollectedTitle": "Wat er wordt verzameld",
+      "collectTeamName": "De teamnaam en spelernaam die je invoert.",
+      "collectMediaBold": "Alle foto's of video's die je indient",
+      "collectMediaRest": "tijdens de uitdagingen. Hierop kun jij en andere mensen te zien zijn.",
+      "collectScore": "Jouw antwoorden en de score van je team.",
+      "hostSeesEverything": "{{host}} kan alles zien wat je team indient. RallyHub bewaart dit namens hen en verwijdert het wanneer zij het evenement verwijderen.",
+      "readMore": "Lees meer",
+      "notForced": "Je hoeft niet mee te doen. Als je liever niet gefotografeerd of gefilmd wordt, zeg dit tegen de organisator, die kan het evenement zonder jou organiseren of je een rol geven waarbij je geen media hoeft in te dienen.",
+      "dataRequest": "Om te vragen wat er over je wordt bewaard, of om het te laten verwijderen, neem eerst contact op met de organisator van het evenement, want die beslist wat ermee gebeurt. Je kunt ook het volledige",
+      "privacyPolicyLink": "RallyHub Privacybeleid",
+      "checkboxLabel": "Ik heb dit gelezen en ga akkoord met deelname.",
+      "continueButton": "Doorgaan naar het evenement"
+    },
+    "claim": {
+      "documentTitle": "Teams",
+      "eventNotFound": "Evenement niet gevonden",
+      "demoTeamsLimit": "Demo-evenementen staan maximaal {{count}} teams toe.",
+      "couldNotClaimTeam": "Kon dit team niet claimen.",
+      "couldNotJoinTeam": "Kon niet bij het team komen",
+      "joinTeamHeading": "Word lid van team {{slot}}",
+      "teamNameLabel": "Teamnaam",
+      "photoOptionalLabel": "Foto (optioneel)",
+      "takePhoto": "Foto maken",
+      "joining": "Bezig met aansluiten…",
+      "join": "Meedoen",
+      "available": "Beschikbaar",
+      "teamFallback": "Team"
+    },
+    "countdown": {
+      "seconds": "{{seconds}} s"
+    },
+    "pageTitle": "Deelnemen",
+    "nativePreview": {
+      "closePreview": "Voorbeeld sluiten",
+      "previewAlt": "Voorbeeld",
+      "retake": "Opnieuw",
+      "submit": "Versturen"
+    },
+    "gameUnavailable": {
+      "title": "Dit spel is niet beschikbaar",
+      "standBy": "Wacht op de facilitator…"
+    }
+  },
+  "display": {
+    "documentTitle": "Scherm",
+    "getReadyFor": "Maak je klaar voor",
+    "quiz": "Quiz",
+    "quizLeaderboard": "Quizklassement",
+    "round": "RONDE",
+    "nextRound": "VOLGENDE RONDE",
+    "quizEnded": "De quiz is afgelopen",
+    "thanksForPlaying": "Bedankt voor het spelen!",
+    "breakTime": "Pauze",
+    "tapToEnableSound": "Tik om geluid aan te zetten",
+    "tapAnywhere": "Tik ergens om verder te gaan",
+    "enableAudioHint": "Zet geluid aan zodat het scherm de bingoviering, het gejuich en de muziek tijdens het evenement kan afspelen."
+  },
+  "winner": {
+    "youAreWinner": "JULLIE ZIJN DE WINNAARS!",
+    "congratulations": "Gefeliciteerd!",
+    "finished": "Jullie zijn geëindigd als #{{rank}}",
+    "results": "Resultaten",
+    "soClose": "Zo dichtbij, knap gedaan!",
+    "notThisTime": "Deze keer niet gewonnen.",
+    "quizPoints": "{{points}} quizpunten",
+    "totalPoints": "{{points}} punten in totaal",
+    "place1": "1e plaats",
+    "place2": "2e plaats",
+    "place3": "3e plaats",
+    "announcing": "Het is tijd om de winnaars bekend te maken…"
+  },
+  "notLive": {
+    "ended": "Dit evenement is afgelopen.",
+    "startingSoon": "Dit evenement begint binnenkort",
+    "endedBody": "Bedankt voor het meedoen. Deze ervaring is niet meer beschikbaar.",
+    "startingBody": "Even geduld. Het spel begint zodra jullie gastheer het evenement start. Dit scherm wordt automatisch bijgewerkt."
+  },
+  "quizPanel": {
+    "defaultTitle": "Quizresultaten"
+  },
+  "tablet": {
+    "documentTitle": "Tablet",
+    "fallbackTitle": "Tablet",
+    "orgNotFound": "Organisatie niet gevonden. Controleer je tabletlink in Instellingen. De URL is mogelijk verouderd.",
+    "missingOrg": "Organisatie ontbreekt in de URL.",
+    "failedToLoad": "Kan evenementen niet laden",
+    "incorrectPassword": "Onjuist wachtwoord",
+    "verifyFailed": "Kan wachtwoord niet verifiëren of evenementen niet laden",
+    "password": "Tabletwachtwoord",
+    "signingIn": "Aanmelden…",
+    "continueButton": "Doorgaan",
+    "logOut": "Afmelden",
+    "noEvents": "Er zijn nu geen actieve evenementen.",
+    "bookmark": "Bladwijzer: {{path}}",
+    "passwordHint": "Voer het tabletwachtwoord in om actieve evenementen te bekijken."
+  },
+  "inventory": {
+    "pageTitle": "Inventaris",
+    "opening": "Item openen…",
+    "purchaseConfirmed": "Aankoop bevestigd",
+    "collect": "Je kunt {{item}} nu ophalen bij de facilitator.",
+    "pointsDeducted": "{{points}} punten afgetrokken",
+    "pointsRemaining": "{{points}} punten over",
+    "returnToEvent": "Terug naar evenement",
+    "itemUnavailable": "Item niet beschikbaar",
+    "itemCost": "Kosten",
+    "points": "punten",
+    "yourBalance": "Jouw saldo",
+    "purchasing": "Kopen…",
+    "notEnoughPoints": "Onvoldoende punten",
+    "buyForPoints": "Koop voor {{points}} punten",
+    "deductedAfterConfirm": "Punten worden pas afgetrokken nadat je bevestigt.",
+    "qrInvalid": "Deze item-QR-code is ongeldig.",
+    "joinFirst": "Neem eerst deel aan je evenement op deze telefoon en scan het item daarna opnieuw.",
+    "claimTeamFirst": "Ga terug naar je evenement en claim een team op deze telefoon voordat je items koopt.",
+    "eventNotOpened": "Je evenement kon niet worden geopend.",
+    "itemUnavailableForEvent": "Dit item is niet beschikbaar voor je evenement.",
+    "joinTeamFirst": "Neem deel aan een team voordat je een item koopt.",
+    "couldNotLoad": "Kan dit item niet laden.",
+    "purchaseNotCompleted": "De aankoop is niet voltooid.",
+    "couldNotPurchase": "Kan dit item niet kopen."
+  },
+  "puzzle": {
+    "across": "Horizontaal",
+    "checking": "Controleren…",
+    "clearSelection": "Selectie wissen",
+    "clue": "Omschrijving",
+    "cluesHere": "Omschrijvingen hier",
+    "complete": "Puzzel voltooid!",
+    "crosswordComplete": "Kruiswoordpuzzel voltooid!",
+    "crosswordError": "De kruiswoordpuzzel kon niet worden gecontroleerd.",
+    "crosswordLoading": "Kruiswoordpuzzel laden…",
+    "crosswordNotConfigured": "Deze kruiswoordpuzzel is nog niet ingesteld.",
+    "crosswordTip": "Tik op een letterhokje om de omschrijving te lezen en typ het antwoord. Tik er nogmaals op waar twee woorden kruisen om van richting te wisselen.",
+    "delete": "Wissen",
+    "deleteLastLetter": "Laatste letter wissen",
+    "down": "Verticaal",
+    "genericError": "De puzzel kon niet worden bijgewerkt. Probeer het opnieuw.",
+    "hint": "Hint {{remaining}}",
+    "hintError": "De hint kon niet worden gebruikt.",
+    "loading": "Puzzel laden…",
+    "matched": "{{matched}}/{{total}} gekoppeld",
+    "maximum": "maximaal {{points}}",
+    "mistakes_one": "{{count}} fout",
+    "mistakes_other": "{{count}} fouten",
+    "notQuite": "Net niet. Probeer opnieuw.",
+    "pointsAwarded": "+{{points}} punten",
+    "pointsIfSolvedNow": "Punten bij nu oplossen",
+    "solvedIn": "Opgelost in {{time}}",
+    "solvedInGuesses_one": "Opgelost in {{count}} poging",
+    "solvedInGuesses_other": "Opgelost in {{count}} pogingen",
+    "submit": "Verstuur",
+    "timeLeft": "Resterende tijd",
+    "tokenMissing": "Sluit je één keer opnieuw aan bij dit evenement op deze telefoon om veilig puzzels te spelen.",
+    "wordGuesses": "Woordpogingen",
+    "wordleHint": "Onbeperkt pogingen · elke extra poging verlaagt de resterende score met 10%",
+    "wrongMatches_one": "{{count}} onjuist paar",
+    "wrongMatches_other": "{{count}} onjuiste paren"
+  },
+  "game": {
+    "points": "{{points}} ptn",
+    "pointsUpTo": "Tot {{points}}"
+  }
+}

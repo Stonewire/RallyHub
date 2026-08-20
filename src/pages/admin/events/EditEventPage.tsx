@@ -145,6 +145,7 @@ export function AdminEventEditPage() {
           event_date: values.eventDate
             ? new Date(values.eventDate).toISOString()
             : null,
+          language: values.language,
           team_count: capTeamCountForEventStatus(values.teamCount, eventStatus),
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,

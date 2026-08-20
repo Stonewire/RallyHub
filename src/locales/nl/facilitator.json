@@ -1,0 +1,227 @@
+{
+  "teamFallback": "Team",
+  "gameFallback": "Spel",
+  "facilitatorFallbackName": "Facilitator",
+  "log": {
+    "viewLog": "Logboek bekijken"
+  },
+  "eventLog": {
+    "title": "Evenementlogboek"
+  },
+  "state": {
+    "eventNotFound": "Evenement niet gevonden",
+    "eventEnded": "Dit evenement is beëindigd. De bediening is uitgeschakeld.",
+    "eventNotLive": "Dit evenement is nog niet live. De bediening is uitgeschakeld totdat het evenement actief is.",
+    "updateFailed": "Bijwerken mislukt",
+    "couldNotStartBingo": "Kon bingo niet starten"
+  },
+  "eventStatus": {
+    "active": "Actief",
+    "demo": "Demo",
+    "ready": "Klaar",
+    "draft": "Concept",
+    "archived": "Gearchiveerd"
+  },
+  "presence": {
+    "alsoViewing": "Ook aan het kijken: {{names}}"
+  },
+  "sound": {
+    "mute": "Dempen",
+    "unmute": "Geluid aan"
+  },
+  "announcement": {
+    "label": "Mededeling",
+    "placeholder": "Bericht… verdwijnt na 1 minuut",
+    "live": "Live: {{message}}",
+    "clear": "Wissen"
+  },
+  "surface": {
+    "display": "Scherm",
+    "participants": "Deelnemers",
+    "both": "Beide",
+    "players": "Spelers",
+    "facilitator": "Facilitator"
+  },
+  "quiz": {
+    "questionProgress": "Vraag {{current}} / {{total}} · {{seconds}}s",
+    "correctTag": "(juist)",
+    "startQuestion": "Start vraag {{number}}",
+    "skip": "Overslaan",
+    "restart": "Quiz opnieuw starten",
+    "finish": "Quiz afronden",
+    "revealResults": "Resultaten tonen",
+    "startRound": "Start {{round}}",
+    "startNextRound": "Volgende ronde starten",
+    "nextQuestion": "Volgende vraag",
+    "noTeamsJoined": "Nog geen teams hebben zich aangesloten. Deelnemers ontvangen geen quizvragen totdat ze zich aansluiten.",
+    "questionTimer": "Vraagtimer",
+    "revealFailed": "Antwoord tonen mislukt",
+    "scoringFailed": "Quiz scoren mislukt. Controleer of de increment_team_score migratie is toegepast",
+    "resetNotify": "Quiz opnieuw gestart",
+    "finishedNotify": "Quiz afgerond op alle schermen"
+  },
+  "bingo": {
+    "runActive": "Ronde actief · {{count}} nummers in de lijst",
+    "loadingRun": "Bingoronde laden…",
+    "noRun": "Geen bingoronde. Schakel naar deze fase om te activeren",
+    "nowPlaying": "Nu speelt: {{title}} van {{artist}}",
+    "continue": "Doorgaan",
+    "nextSong": "Volgend nummer",
+    "wonPausedBanner": "🏆 Bingo! {{team}} heeft gewonnen. Spel gepauzeerd. Druk op Doorgaan om verder te spelen.",
+    "wonPausedNotify": "🏆 Bingo! {{team}} heeft gewonnen. Spel gepauzeerd.",
+    "aTeamFallback": "Een team",
+    "markedThisRound": "Aangevinkt in deze ronde",
+    "restartRun": "Bingoronde opnieuw starten",
+    "restartConfirmTitle": "Bingoronde opnieuw starten?",
+    "restartConfirmBody": "Genereert nieuwe kaarten en een nieuwe afspeelvolgorde. Wist alle markeringen en scores voor dit bingospel.",
+    "restarted": "Bingoronde opnieuw gestart",
+    "restartFailed": "Opnieuw starten mislukt",
+    "audioNotMountedHint": "De audiospeler is niet geladen. Schakel naar de bingofase en probeer het opnieuw",
+    "audioNotMounted": "De audiospeler is niet geladen",
+    "couldNotStartPlayback": "Afspelen kon niet starten. Bekijk de console voor details",
+    "noPlayableTrack": "Geen afspeelbare tracklink. Zorg dat de MP3 clips zijn geüpload voor dit bingospel",
+    "runLoadedPressStart": "Ronde geladen. Druk nogmaals op Start om af te spelen",
+    "runNotReady": "De bingoronde is nog niet klaar",
+    "couldNotScoreAdvance": "Scoren of doorgaan naar de volgende bingoronde mislukt",
+    "couldNotScoreReveal": "Scoren of tonen van de bingoronde mislukt",
+    "couldNotLockSelections": "Vergrendelen van bingoselecties mislukt",
+    "playbackFailed": "Audio afspelen mislukt: {{message}}"
+  },
+  "controls": {
+    "start": "Start",
+    "pause": "Pauze",
+    "stop": "Stop",
+    "reset": "Reset"
+  },
+  "break": {
+    "hint": "Start/pauzeer de pauzetimer. Stop bevriest het aftellen, Reset herstelt de volledige duur."
+  },
+  "stages": {
+    "heading": "Fases",
+    "stageNumber": "Fase {{number}}"
+  },
+  "teams": {
+    "heading": "Teams",
+    "hint": "Tik op een plek om naam/foto in te stellen. Scores worden bijgewerkt zodra je inzendingen goedkeurt.",
+    "available": "Beschikbaar",
+    "resetSlotTitle": "Plek {{number}} resetten",
+    "chatWithName": "Chat met {{name}}",
+    "chatWithSlot": "Chat met plek {{number}}",
+    "statusIdle": "Inactief",
+    "statusActive": "Actief",
+    "statusStopped": "Gestopt",
+    "questsDone": "{{done}}/{{total}} quests voltooid",
+    "viewQuests": "Quests bekijken",
+    "slotLabel": "Teamplek {{number}}",
+    "resetConfirmTitle": "Teamplek {{number}} resetten?",
+    "resetConfirmBody": "Wist {{team}}, verwijdert hun foto en zet de score op 0. De plek komt vrij voor een nieuw team.",
+    "thisTeamFallback": "dit team",
+    "resetting": "Resetten…",
+    "resetTeamButton": "Team resetten",
+    "resetSlotNotify": "Teamplek {{number}} geleegd. Beschikbaar voor een nieuw team",
+    "resetSlotFailed": "Teamplek resetten mislukt"
+  },
+  "timer": {
+    "countdownLabel": "Aftellen op het scherm",
+    "placeholder": "minuten of mm:ss",
+    "invalidInput": "Voer minuten in (bijv. 45) of mm:ss",
+    "pauseToEdit": "Gepauzeerd om te bewerken",
+    "clickToSet": "Klik om het aftellen in te stellen",
+    "pauseAria": "Aftellen pauzeren",
+    "startAria": "Aftellen starten"
+  },
+  "winner": {
+    "hint": "Start de winnaarsceremonie op het scherm en de teamtelefoons",
+    "revealButton": "Winnaar tonen ({{stage}}/2)",
+    "soundLabel": "Geluid: {{targets}} · wijzigen",
+    "muted": "gedempt",
+    "resetWinner": "Winnaar resetten",
+    "saveAndReveal": "Opslaan en tonen"
+  },
+  "toggles": {
+    "showTimer": "Timer tonen op het scherm",
+    "showScores": "Scores tonen op het scherm"
+  },
+  "purchases": {
+    "heading": "Aankopen",
+    "loading": "Aankopen laden…",
+    "loadError": "Aankopen konden niet worden geladen.",
+    "empty": "Nog geen aankopen."
+  },
+  "submissions": {
+    "pointsMustBeBetween": "Punten moeten tussen {{min}} en {{max}} liggen",
+    "couldNotApprove": "Inzending goedkeuren mislukt",
+    "alreadyProcessed": "Inzending is al verwerkt",
+    "approvedNotify": "Goedgekeurd +{{points}} punten",
+    "couldNotReject": "Inzending afwijzen mislukt",
+    "rejectedNotify": "Inzending afgewezen",
+    "approve": "Goedkeuren",
+    "reject": "Afwijzen",
+    "status": {
+      "all": "Alle",
+      "pending": "In behandeling",
+      "approved": "Goedgekeurd",
+      "rejected": "Afgewezen",
+      "cancelled": "Geannuleerd"
+    }
+  },
+  "claim": {
+    "demoLimit": "Demo evenementen staan maximaal {{max}} teams toe.",
+    "couldNotSave": "Team opslaan mislukt",
+    "namePlaceholder": "Teamnaam"
+  },
+  "quest": {
+    "completed": "Voltooid",
+    "pending": "In behandeling",
+    "rejected": "Afgewezen",
+    "notStarted": "Niet gestart",
+    "questsCompleted": "{{done}}/{{total}} quests voltooid",
+    "slotFallback": "Plek {{number}}",
+    "noQuestGames": "Dit evenement heeft geen questspellen."
+  },
+  "chat": {
+    "openTeamChatAria": "Teamchat openen",
+    "backToTeamListAria": "Terug naar teamlijst",
+    "teamChatTitle": "Teamchat",
+    "conversationWithTeam": "Gesprek met team",
+    "selectTeamHint": "Selecteer een team om berichten te bekijken",
+    "noTeamsJoined": "Nog geen teams hebben zich aangesloten.",
+    "noMessagesPreview": "Nog geen berichten",
+    "noMessagesThread": "Nog geen berichten.",
+    "lastMessagePreview": "{{sender}}: {{message}}",
+    "placeholderDisabled": "Bediening uitgeschakeld totdat het evenement live is",
+    "placeholderActive": "Bericht aan team…",
+    "send": "Verstuur"
+  },
+  "winnerRoutingModal": {
+    "title": "Waar moet het winnaarsgeluid afspelen?",
+    "hint": "Kies dit voordat je de winnaar onthult. Het feestgeluid speelt alleen op de geselecteerde schermen."
+  },
+  "submissionDetail": {
+    "challengeDescription": "Beschrijving van de challenge",
+    "expectedAnswer": "Verwacht antwoord / oplossing",
+    "teamAnswer": "Antwoord van het team",
+    "noMedia": "Geen media bijgevoegd",
+    "reference": "Referentie voor goedkeuring",
+    "referenceNotes": "Notities van de organisator",
+    "correctLabel": "Juist:",
+    "noAnswerSet": "Niet ingesteld",
+    "pointsLabel": "Punten ({{min}} tot {{max}})",
+    "pointsRangeError": "Voer een waarde in tussen {{min}} en {{max}}",
+    "statusLabel": "Status: {{status}}"
+  },
+  "winnerRouting": {
+    "display": {
+      "label": "Scherm",
+      "desc": "Het grote publieksscherm speelt de winnaarsaankondiging af."
+    },
+    "facilitator": {
+      "label": "Facilitator",
+      "desc": "Jouw facilitatorapparaat speelt de winnaarsaankondiging af."
+    },
+    "players": {
+      "label": "Spelers",
+      "desc": "Elke spelerstelefoon speelt de winnaarsaankondiging af."
+    }
+  }
+}

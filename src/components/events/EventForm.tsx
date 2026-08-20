@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
 import type { OrganizationRow } from '@/hooks/use-organization-settings'
+import { APP_LANGUAGES } from '@/lib/i18n'
 import { uploadAsset } from '@/lib/storage'
 import {
   addStage,
@@ -204,6 +205,23 @@ export function EventForm({
               placeholder="e.g. Valletta, MT"
               className="bg-background"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Event language</Label>
+            <select
+              value={values.language}
+              onChange={(e) => set({ language: e.target.value as EventFormValues['language'] })}
+              className="border-input bg-background w-full max-w-sm rounded-lg border px-3 py-2 text-sm"
+            >
+              {APP_LANGUAGES.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="text-muted-foreground text-xs">
+              Player phones, the display, and the facilitator panel follow this language.
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <PillPair

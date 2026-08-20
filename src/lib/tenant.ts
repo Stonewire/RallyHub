@@ -25,6 +25,7 @@ export type TenantPublicOrg = {
   brand_body_font_url: string | null
   is_demo: boolean
   demo_reset_at: string | null
+  default_language: string
 }
 
 export type TenantContext =

@@ -7,12 +7,15 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { NotificationProvider } from '@/contexts/notification-context'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { queryClient } from '@/lib/query-client'
+import { initI18n } from '@/lib/i18n'
 import { registerServiceWorker } from '@/lib/register-service-worker'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import './index.css'
 
 registerServiceWorker()
+
+void initI18n()
 
 // Scrolling over a focused number input silently changes its value — clients
 // typed a timer, scrolled towards Save, and saved a different number (CF3-20,

@@ -32,6 +32,7 @@ export function buildDuplicateEventPayload(
       name: `Copy of ${source.name}`,
       event_date: source.event_date,
       status: 'draft',
+      language: source.language,
       team_count: source.team_count,
       branding_enabled: source.branding_enabled,
       logo_url: source.logo_url,

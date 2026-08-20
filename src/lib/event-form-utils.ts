@@ -8,10 +8,13 @@ import {
 import type { EventStage, EventStoreItem, EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 import { INCLUDED_TEAMS_PER_EVENT } from '@/lib/subscription-plans'
+import { toAppLanguage, type AppLanguage } from '@/lib/i18n'
 
 export type EventFormValues = {
   name: string
   eventDate: string
+  /** UI language for every live surface of this event (join, display, facilitator). */
+  language: AppLanguage
   /** Free-text venue, shown on event cards. Display only, never parsed. */
   location: string
   teamCount: number
@@ -177,6 +180,7 @@ export function eventToFormValues(
   return {
     name: event.name,
     eventDate: toLocalDatetime(event.event_date),
+    language: toAppLanguage(event.language),
     location: event.location ?? '',
     teamCount: event.team_count,
     teams,
@@ -237,6 +241,7 @@ export function emptyEventForm(): EventFormValues {
   return {
     name: '',
     eventDate: '',
+    language: 'en',
     location: '',
     teamCount: INCLUDED_TEAMS_PER_EVENT,
     teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),

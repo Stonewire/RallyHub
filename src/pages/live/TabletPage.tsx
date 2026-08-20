@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDocumentTitle } from '@/hooks/use-document-title'
+import { setAppLanguage } from '@/lib/i18n'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import { resolveTabletOrganization } from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
@@ -90,6 +91,9 @@ export function TabletPage() {
     }
 
     setOrg(organization as TenantPublicOrg)
+    // The kiosk is an org-level screen (it lists events that may differ in
+    // language), so its own chrome follows the org's default, not any one event.
+    void setAppLanguage((organization as TenantPublicOrg).default_language)
     // Validate stored token server-side; fall back to unauthed on any failure
     const storedToken = sessionStorage.getItem(tabletSessionKey(organization.id))
     let validToken: string | null = null

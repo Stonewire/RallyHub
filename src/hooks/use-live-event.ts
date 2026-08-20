@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { setAppLanguage } from '@/lib/i18n'
 import type { LiveEventBundle } from '@/lib/live-event'
 import {
   applyLiveBundlePatch,
@@ -173,6 +174,13 @@ export function useLiveEvent(eventId: string | undefined) {
   const lastWrittenAtRef = useRef<string | null>(null)
   // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom for effects/callbacks below that read the latest bundle without depending on it
   bundleRef.current = bundle
+
+  // All live surfaces (join, display, facilitator, tablet via /join) follow
+  // the organizer's per-event language. Unknown codes fall back to English.
+  const eventLanguage = bundle?.event.language
+  useEffect(() => {
+    if (eventLanguage) void setAppLanguage(eventLanguage)
+  }, [eventLanguage])
 
   const reload = useCallback(async () => {
     if (!eventId) return

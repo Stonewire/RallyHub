@@ -21,6 +21,7 @@ export type OrganizationTenantPublic = {
   brand_body_font_url: string | null
   is_demo: boolean
   demo_reset_at: string | null
+  default_language: string
 }
 
 function firstRow<T>(data: T | T[] | null): T | null {

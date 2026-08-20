@@ -1,0 +1,309 @@
+{
+  "join": {
+    "header": {
+      "quizPoints": "{{points}} точки от куиза",
+      "scorePoints": "{{score}} точки",
+      "scorePointsShort": "{{score}} т."
+    },
+    "status": {
+      "approved": "Одобрено",
+      "rejected": "Отхвърлено",
+      "pending": "Изчаква"
+    },
+    "review": {
+      "pendingHeading": "Изпращането чака одобрение",
+      "approvedHeading": "Изпращането е одобрено",
+      "rejectedHeading": "Изпращането е отхвърлено",
+      "yourAnswer": "Твоят отговор",
+      "yourSubmissionAlt": "Твоето изпращане",
+      "cancelling": "Отменяне…",
+      "cancelSubmission": "Отмени изпращането",
+      "cancelRetakeHint": "Отмени, за да опиташ отново това предизвикателство от начало"
+    },
+    "text": {
+      "answerPlaceholder": "Въведи отговора си…",
+      "submitAnswer": "Изпрати отговор",
+      "chooseOneAnswer": "Избери един отговор"
+    },
+    "submitting": "Изпращане…",
+    "capture": {
+      "takePhoto": "Направи снимка",
+      "takeVideo": "Заснеми видео",
+      "videoMaxLength": "Видеото трябва да е {{duration}} или по-малко",
+      "couldNotReadVideo": "Видеото не можа да се прочете. Опитай с друг файл",
+      "closeCapture": "Затвори заснемането",
+      "switchCamera": "Смени камерата",
+      "flip": "Обърни",
+      "retake": "Направи отново",
+      "submit": "Изпрати",
+      "previewAlt": "Преглед"
+    },
+    "photo": {
+      "cameraAccessDenied": "Няма достъп до камерата. Разреши достъп до камерата, когато приложението се отвори",
+      "couldNotCapturePhoto": "Снимката не можа да се направи. Дръж стабилно и опитай отново",
+      "couldNotProcessPhoto": "Снимката не можа да се обработи",
+      "capturing": "Заснемане…"
+    },
+    "video": {
+      "cameraAccessDenied": "Няма достъп до камерата. Разреши достъп до камерата, когато приложението се отвори, или качи видео",
+      "couldNotStartRecording": "Записът не можа да започне",
+      "maxLength": "Максимална дължина: {{duration}}",
+      "recording": "Записва се",
+      "stopRecording": "Спри записа",
+      "recordVideo": "Запиши видео",
+      "uploadVideo": "Качи видео"
+    },
+    "inventory": {
+      "scanTitle": "Сканирай предмет",
+      "scanHint": "Насочи камерата към неговия QR код на RallyHub.",
+      "closeScanner": "Затвори скенера",
+      "notRallyHubQr": "Това не е QR код за инвентар на RallyHub. Опитай друг предмет.",
+      "openingCamera": "Отваряне на камерата…",
+      "cameraBlocked": "Достъпът до камерата беше блокиран. Разреши достъп до камерата в браузъра си и опитай отново.",
+      "previewUnavailable": "Прегледът от камерата не е наличен.",
+      "couldNotOpenCamera": "Камерата не можа да се отвори.",
+      "purchaseConfirmHint": "Покупката няма да се извърши, докато не я прегледаш и потвърдиш.",
+      "buyItems": "Купи предмети"
+    },
+    "chat": {
+      "title": "Чат с водещия",
+      "messagePlaceholder": "Съобщение…",
+      "send": "Изпрати",
+      "openChat": "Отвори чата"
+    },
+    "announcement": {
+      "dismiss": "Затвори"
+    },
+    "exit": {
+      "leaveTeam": "Напусни отбора",
+      "returnToEvents": "Обратно към събитията",
+      "exitToEvents": "Изход към събитията",
+      "passwordHint": "Въведи паролата на таблета, за да продължиш.",
+      "passwordPlaceholder": "Парола",
+      "checking": "Проверка…",
+      "continue": "Продължи",
+      "incorrectPassword": "Грешна парола",
+      "couldNotVerifyPassword": "Паролата не можа да бъде проверена"
+    },
+    "back": "Назад",
+    "state": {
+      "paused": "Играта ти е на пауза",
+      "pausedDetail": "Водещият на събитието постави отбора ти на пауза за момент. Свържи се с водещия, за да се върнеш в играта.",
+      "startingSoon": "Събитието започва скоро…",
+      "closed": "Това събитие вече е затворено",
+      "closedNoSubmissions": "Събитието е затворено. Няма нови изпращания",
+      "closedDetail": "Това събитие вече е затворено. Изпращания вече не се приемат.",
+      "gameOver": "Край на играта",
+      "standBy": "Изчакай…"
+    },
+    "submission": {
+      "waitingApproval": "Изпратено. Очаква одобрение",
+      "enterAnswerFirst": "Първо въведи или избери отговор",
+      "couldNotSubmitRetry": "Изпращането не бе успешно. Докосни, за да опиташ отново",
+      "couldNotSubmitAnswerRetry": "Отговорът не бе изпратен. Докосни, за да опиташ отново",
+      "couldNotCancelRetry": "Изпращането не можа да бъде отменено. Опитай отново",
+      "cancelled": "Изпращането е отменено",
+      "couldNotUpdateSelectionRetry": "Изборът не бе обновен. Докосни, за да опиташ отново",
+      "couldNotMarkCellRetry": "Клетката не бе маркирана. Докосни, за да опиташ отново",
+      "pointsAwardedMusicBingo": "+{{points}} т. (Музикално бинго)",
+      "pointsAwardedGame": "+{{points}} т. ({{game}})",
+      "notApproved": "{{game}} не бе одобрено"
+    },
+    "quiz": {
+      "resultsTitle": "Резултатите ти от куиза",
+      "ended": "Куизът приключи",
+      "thanksForPlaying": "Благодарим за участието!",
+      "nextRound": "СЛЕДВАЩ РАУНД",
+      "waitingForFacilitator": "Изчакване водещият да започне…",
+      "getReadyFor": "Приготви се за",
+      "label": "Куиз",
+      "correct": "Правилно!",
+      "incorrect": "Грешно",
+      "answerLockedRevealing": "Отговорът е заключен. Разкриване…",
+      "timeRemaining": "Остават {{time}}",
+      "changeAnswer": "Смени отговора"
+    },
+    "bingo": {
+      "fallbackName": "Музикално бинго",
+      "waitingRoundStart": "Изчакване водещият да започне този рунд…",
+      "startedBeforeJoin": "Този рунд започна, преди да се присъединиш.",
+      "includedNextRound": "Ще участваш в следващия рунд!",
+      "lockingAnswers": "Заключване на отговорите…",
+      "legendSelection": "Твоят избор",
+      "legendCorrect": "Правилно",
+      "legendWrong": "Грешно",
+      "legendMissed": "Пропуснато",
+      "tapToClose": "Бинго! Докосни, за да затвориш",
+      "exclaim": "БИНГО!"
+    },
+    "break": {
+      "fallback": "Пауза"
+    },
+    "consent": {
+      "title": "Преди да се присъединиш",
+      "intro": "{{host}} организира това събитие и решава какво ще правиш. RallyHub предоставя платформата.",
+      "defaultHost": "Организаторът на събитието",
+      "whatCollectedTitle": "Какво се събира",
+      "collectTeamName": "Името на отбора и името на играча, които въвеждаш.",
+      "collectMediaBold": "Всички снимки или видеа, които изпратиш",
+      "collectMediaRest": "по време на предизвикателствата. На тях може да се виждаш ти и други хора.",
+      "collectScore": "Твоите отговори и резултатът на отбора ти.",
+      "hostSeesEverything": "{{host}} вижда всичко, което отборът ти изпраща. RallyHub го съхранява от негово име и го изтрива, когато той изтрие събитието.",
+      "readMore": "Прочети повече",
+      "notForced": "Не е задължително да участваш. Ако предпочиташ да не те снимат или заснемат на видео, кажи на организатора, той може да проведе събитието без теб или да ти даде роля, която не включва изпращане на снимки и видео.",
+      "dataRequest": "За да разбереш какво се съхранява за теб или да поискаш изтриване, свържи се първо с организатора на събитието, тъй като той решава какво се случва с данните. Можеш също да прочетеш пълната",
+      "privacyPolicyLink": "Политика за поверителност на RallyHub",
+      "checkboxLabel": "Прочетох това и съм съгласен да участвам.",
+      "continueButton": "Продължи към събитието"
+    },
+    "claim": {
+      "documentTitle": "Отбори",
+      "eventNotFound": "Събитието не е намерено",
+      "demoTeamsLimit": "Демо събитията позволяват до {{count}} отбора.",
+      "couldNotClaimTeam": "Този отбор не можа да бъде избран.",
+      "couldNotJoinTeam": "Присъединяването към отбора не бе успешно",
+      "joinTeamHeading": "Присъедини се към отбор {{slot}}",
+      "teamNameLabel": "Име на отбора",
+      "photoOptionalLabel": "Снимка (по избор)",
+      "takePhoto": "Направи снимка",
+      "joining": "Присъединяване…",
+      "join": "Присъедини се",
+      "available": "Свободен",
+      "teamFallback": "Отбор"
+    },
+    "countdown": {
+      "seconds": "{{seconds}} сек"
+    },
+    "pageTitle": "Включи се",
+    "nativePreview": {
+      "closePreview": "Затвори прегледа",
+      "previewAlt": "Преглед",
+      "retake": "Заснеми отново",
+      "submit": "Изпрати"
+    },
+    "gameUnavailable": {
+      "title": "Тази игра не е достъпна",
+      "standBy": "Изчакайте фасилитатора…"
+    }
+  },
+  "display": {
+    "documentTitle": "Екран",
+    "getReadyFor": "Пригответе се за",
+    "quiz": "Куиз",
+    "quizLeaderboard": "Класиране от куиза",
+    "round": "РУНД",
+    "nextRound": "СЛЕДВАЩ РУНД",
+    "quizEnded": "Куизът приключи",
+    "thanksForPlaying": "Благодарим, че играхте!",
+    "breakTime": "Почивка",
+    "tapToEnableSound": "Докоснете за звук",
+    "tapAnywhere": "Докоснете някъде, за да продължите",
+    "enableAudioHint": "Активирайте звука, за да може екранът да пуска бинго тържеството, овациите и музиката по време на събитието."
+  },
+  "winner": {
+    "youAreWinner": "ВИЕ СТЕ ПОБЕДИТЕЛЯТ!",
+    "congratulations": "Поздравления!",
+    "finished": "Завършихте на #{{rank}} място",
+    "results": "Резултати",
+    "soClose": "Толкова близо, чудесно представяне!",
+    "notThisTime": "Този път не спечелихте.",
+    "quizPoints": "{{points}} точки от куиза",
+    "totalPoints": "{{points}} общо точки",
+    "place1": "1-во място",
+    "place2": "2-ро място",
+    "place3": "3-то място",
+    "announcing": "Време е да обявим победителите…"
+  },
+  "notLive": {
+    "ended": "Това събитие приключи.",
+    "startingSoon": "Събитието започва скоро",
+    "endedBody": "Благодарим за участието. Това изживяване вече не е достъпно.",
+    "startingBody": "Изчакайте. Играта ще започне, когато вашият домакин стартира събитието. Този екран ще се обнови автоматично."
+  },
+  "quizPanel": {
+    "defaultTitle": "Резултати от куиза"
+  },
+  "tablet": {
+    "documentTitle": "Таблет",
+    "fallbackTitle": "Таблет",
+    "orgNotFound": "Организацията не е намерена. Проверете таблет линка си от Настройки. URL адресът може да е остарял.",
+    "missingOrg": "Липсва организация в URL адреса.",
+    "failedToLoad": "Събитията не се заредиха",
+    "incorrectPassword": "Грешна парола",
+    "verifyFailed": "Паролата не можа да се провери или събитията не се заредиха",
+    "password": "Парола за таблет",
+    "signingIn": "Влизане…",
+    "continueButton": "Продължи",
+    "logOut": "Изход",
+    "noEvents": "В момента няма активни събития.",
+    "bookmark": "Отметка: {{path}}",
+    "passwordHint": "Въведете паролата за таблета, за да видите активните събития."
+  },
+  "inventory": {
+    "pageTitle": "Инвентар",
+    "opening": "Отваряне на артикула…",
+    "purchaseConfirmed": "Покупката е потвърдена",
+    "collect": "Вече можете да вземете {{item}} от фасилитатора.",
+    "pointsDeducted": "{{points}} точки приспаднати",
+    "pointsRemaining": "{{points}} оставащи точки",
+    "returnToEvent": "Обратно към събитието",
+    "itemUnavailable": "Артикулът не е наличен",
+    "itemCost": "Цена",
+    "points": "точки",
+    "yourBalance": "Вашият баланс",
+    "purchasing": "Купуване…",
+    "notEnoughPoints": "Недостатъчно точки",
+    "buyForPoints": "Купи за {{points}} точки",
+    "deductedAfterConfirm": "Точките се приспадат само след като потвърдите.",
+    "qrInvalid": "Този QR код на артикул е невалиден.",
+    "joinFirst": "Първо се включете в събитието на този телефон, след което сканирайте артикула отново.",
+    "claimTeamFirst": "Върнете се към събитието и заявете отбор на този телефон, преди да купувате артикули.",
+    "eventNotOpened": "Събитието ви не можа да се отвори.",
+    "itemUnavailableForEvent": "Този артикул не е наличен за вашето събитие.",
+    "joinTeamFirst": "Присъединете се към отбор, преди да купите артикул.",
+    "couldNotLoad": "Този артикул не можа да се зареди.",
+    "purchaseNotCompleted": "Покупката не беше завършена.",
+    "couldNotPurchase": "Този артикул не можа да се купи."
+  },
+  "puzzle": {
+    "across": "Водоравно",
+    "checking": "Проверка…",
+    "clearSelection": "Изчисти избора",
+    "clue": "Определение",
+    "cluesHere": "Определения тук",
+    "complete": "Пъзелът е решен!",
+    "crosswordComplete": "Кръстословицата е решена!",
+    "crosswordError": "Кръстословицата не можа да се провери.",
+    "crosswordLoading": "Зареждане на кръстословицата…",
+    "crosswordNotConfigured": "Тази кръстословица още не е настроена.",
+    "crosswordTip": "Докоснете която и да е клетка с буква, за да видите определението, след което напишете отговора. Докоснете я отново там, където две думи се пресичат, за да смените посоката.",
+    "delete": "Изтрий",
+    "deleteLastLetter": "Изтрий последната буква",
+    "down": "Отвесно",
+    "genericError": "Пъзелът не можа да се обнови. Опитайте отново.",
+    "hint": "Подсказка {{remaining}}",
+    "hintError": "Подсказката не можа да се използва.",
+    "loading": "Зареждане на пъзела…",
+    "matched": "{{matched}}/{{total}} свързани",
+    "maximum": "максимум {{points}}",
+    "mistakes_one": "{{count}} грешка",
+    "mistakes_other": "{{count}} грешки",
+    "notQuite": "Не съвсем. Опитайте пак.",
+    "pointsAwarded": "+{{points}} точки",
+    "pointsIfSolvedNow": "Точки при решаване сега",
+    "solvedIn": "Решена за {{time}}",
+    "solvedInGuesses_one": "Решен с {{count}} опит",
+    "solvedInGuesses_other": "Решен с {{count}} опита",
+    "submit": "Изпрати",
+    "timeLeft": "Оставащо време",
+    "tokenMissing": "Влезте отново в събитието от този телефон, за да играете пъзели защитено.",
+    "wordGuesses": "Опити за думата",
+    "wordleHint": "Неограничени опити · всеки допълнителен опит намалява оставащия резултат с 10%",
+    "wrongMatches_one": "{{count}} грешна двойка",
+    "wrongMatches_other": "{{count}} грешни двойки"
+  },
+  "game": {
+    "points": "{{points}} т.",
+    "pointsUpTo": "До {{points}}"
+  }
+}

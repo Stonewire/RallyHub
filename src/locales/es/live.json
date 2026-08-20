@@ -1,0 +1,309 @@
+{
+  "join": {
+    "header": {
+      "quizPoints": "{{points}} puntos de quiz",
+      "scorePoints": "{{score}} puntos",
+      "scorePointsShort": "{{score}} pts"
+    },
+    "status": {
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "pending": "Pendiente"
+    },
+    "review": {
+      "pendingHeading": "Envío pendiente de aprobación",
+      "approvedHeading": "Envío aprobado",
+      "rejectedHeading": "Envío rechazado",
+      "yourAnswer": "Tu respuesta",
+      "yourSubmissionAlt": "Tu envío",
+      "cancelling": "Cancelando…",
+      "cancelSubmission": "Cancelar envío",
+      "cancelRetakeHint": "Cancela para repetir este reto desde cero"
+    },
+    "text": {
+      "answerPlaceholder": "Escribe tu respuesta…",
+      "submitAnswer": "Enviar respuesta",
+      "chooseOneAnswer": "Elige una respuesta"
+    },
+    "submitting": "Enviando…",
+    "capture": {
+      "takePhoto": "Hacer foto",
+      "takeVideo": "Grabar vídeo",
+      "videoMaxLength": "El vídeo debe durar {{duration}} o menos",
+      "couldNotReadVideo": "No se pudo leer el vídeo. Prueba con otro archivo",
+      "closeCapture": "Cerrar captura",
+      "switchCamera": "Cambiar cámara",
+      "flip": "Girar",
+      "retake": "Repetir",
+      "submit": "Enviar",
+      "previewAlt": "Vista previa"
+    },
+    "photo": {
+      "cameraAccessDenied": "No se concedió acceso a la cámara. Permite el acceso a la cámara cuando se abra la aplicación",
+      "couldNotCapturePhoto": "No se pudo capturar la foto. Mantén el móvil firme e inténtalo de nuevo",
+      "couldNotProcessPhoto": "No se pudo procesar la foto",
+      "capturing": "Capturando…"
+    },
+    "video": {
+      "cameraAccessDenied": "No se concedió acceso a la cámara. Permite el acceso al abrir la aplicación, o sube un vídeo",
+      "couldNotStartRecording": "No se pudo iniciar la grabación",
+      "maxLength": "Duración máxima: {{duration}}",
+      "recording": "Grabando",
+      "stopRecording": "Detener grabación",
+      "recordVideo": "Grabar vídeo",
+      "uploadVideo": "Subir vídeo"
+    },
+    "inventory": {
+      "scanTitle": "Escanea un artículo",
+      "scanHint": "Apunta la cámara a su código QR de RallyHub.",
+      "closeScanner": "Cerrar escáner",
+      "notRallyHubQr": "Este no es un código QR de inventario de RallyHub. Prueba con otro artículo.",
+      "openingCamera": "Abriendo cámara…",
+      "cameraBlocked": "El acceso a la cámara fue bloqueado. Permite el acceso a la cámara en tu navegador e inténtalo de nuevo.",
+      "previewUnavailable": "La vista previa de la cámara no está disponible.",
+      "couldNotOpenCamera": "No se pudo abrir la cámara.",
+      "purchaseConfirmHint": "La compra no se realizará hasta que la revises y confirmes.",
+      "buyItems": "Comprar artículos"
+    },
+    "chat": {
+      "title": "Chatear con el facilitador",
+      "messagePlaceholder": "Mensaje…",
+      "send": "Enviar",
+      "openChat": "Abrir chat"
+    },
+    "announcement": {
+      "dismiss": "Cerrar"
+    },
+    "exit": {
+      "leaveTeam": "Salir del equipo",
+      "returnToEvents": "Volver a los eventos",
+      "exitToEvents": "Salir a los eventos",
+      "passwordHint": "Introduce la contraseña de la tablet para continuar.",
+      "passwordPlaceholder": "Contraseña",
+      "checking": "Comprobando…",
+      "continue": "Continuar",
+      "incorrectPassword": "Contraseña incorrecta",
+      "couldNotVerifyPassword": "No se pudo verificar la contraseña"
+    },
+    "back": "Atrás",
+    "state": {
+      "paused": "Tu juego está en pausa",
+      "pausedDetail": "El anfitrión del evento ha pausado a tu equipo por un momento. Habla con el anfitrión para volver al juego.",
+      "startingSoon": "El evento empieza pronto…",
+      "closed": "Este evento ya está cerrado",
+      "closedNoSubmissions": "Evento cerrado. No se aceptan nuevos envíos",
+      "closedDetail": "Este evento ya está cerrado. Ya no se aceptan envíos.",
+      "gameOver": "Fin del juego",
+      "standBy": "Espera…"
+    },
+    "submission": {
+      "waitingApproval": "Enviado. Esperando aprobación",
+      "enterAnswerFirst": "Primero escribe o elige una respuesta",
+      "couldNotSubmitRetry": "No se pudo enviar. Toca para reintentar",
+      "couldNotSubmitAnswerRetry": "No se pudo enviar la respuesta. Toca para reintentar",
+      "couldNotCancelRetry": "No se pudo cancelar el envío. Inténtalo de nuevo",
+      "cancelled": "Envío cancelado",
+      "couldNotUpdateSelectionRetry": "No se pudo actualizar la selección. Toca para reintentar",
+      "couldNotMarkCellRetry": "No se pudo marcar la casilla. Toca para reintentar",
+      "pointsAwardedMusicBingo": "+{{points}} pts (Bingo musical)",
+      "pointsAwardedGame": "+{{points}} pts ({{game}})",
+      "notApproved": "{{game}} no fue aprobado"
+    },
+    "quiz": {
+      "resultsTitle": "Tus resultados del quiz",
+      "ended": "El quiz ha terminado",
+      "thanksForPlaying": "¡Gracias por jugar!",
+      "nextRound": "SIGUIENTE RONDA",
+      "waitingForFacilitator": "Esperando a que el facilitador empiece…",
+      "getReadyFor": "Prepárate para",
+      "label": "Quiz",
+      "correct": "¡Correcto!",
+      "incorrect": "Incorrecto",
+      "answerLockedRevealing": "Respuesta bloqueada. Revelando…",
+      "timeRemaining": "Quedan {{time}}",
+      "changeAnswer": "Cambiar respuesta"
+    },
+    "bingo": {
+      "fallbackName": "Bingo musical",
+      "waitingRoundStart": "Esperando a que el facilitador empiece esta ronda…",
+      "startedBeforeJoin": "Esta ronda empezó antes de que te unieras.",
+      "includedNextRound": "¡Participarás en la próxima ronda!",
+      "lockingAnswers": "Bloqueando respuestas…",
+      "legendSelection": "Tu selección",
+      "legendCorrect": "Correcto",
+      "legendWrong": "Incorrecto",
+      "legendMissed": "Perdido",
+      "tapToClose": "¡Bingo! Toca para cerrar",
+      "exclaim": "¡BINGO!"
+    },
+    "break": {
+      "fallback": "Descanso"
+    },
+    "consent": {
+      "title": "Antes de unirte",
+      "intro": "{{host}} organiza este evento y decide qué se te pedirá hacer. RallyHub proporciona la plataforma.",
+      "defaultHost": "El organizador del evento",
+      "whatCollectedTitle": "Qué se recopila",
+      "collectTeamName": "El nombre del equipo y el nombre de jugador que introduces.",
+      "collectMediaBold": "Las fotos o vídeos que envíes",
+      "collectMediaRest": "durante los retos. Pueden mostrarte a ti y a otras personas.",
+      "collectScore": "Tus respuestas y la puntuación de tu equipo.",
+      "hostSeesEverything": "{{host}} puede ver todo lo que envía tu equipo. RallyHub lo almacena en su nombre y lo elimina cuando el organizador elimina el evento.",
+      "readMore": "Leer más",
+      "notForced": "No tienes que participar. Si prefieres que no te fotografíen ni te graben, díselo al organizador, puede llevar a cabo el evento sin ti o darte un rol que no implique enviar contenido multimedia.",
+      "dataRequest": "Para saber qué se guarda sobre ti, o para que lo eliminen, contacta primero con el organizador del evento, ya que es quien decide qué ocurre con ello. También puedes leer la",
+      "privacyPolicyLink": "Política de Privacidad de RallyHub",
+      "checkboxLabel": "He leído esto y estoy de acuerdo en participar.",
+      "continueButton": "Continuar al evento"
+    },
+    "claim": {
+      "documentTitle": "Equipos",
+      "eventNotFound": "Evento no encontrado",
+      "demoTeamsLimit": "Los eventos de demostración permiten hasta {{count}} equipos.",
+      "couldNotClaimTeam": "No se pudo reclamar este equipo.",
+      "couldNotJoinTeam": "No se pudo unir al equipo",
+      "joinTeamHeading": "Unirse al equipo {{slot}}",
+      "teamNameLabel": "Nombre del equipo",
+      "photoOptionalLabel": "Foto (opcional)",
+      "takePhoto": "Hacer foto",
+      "joining": "Uniéndose…",
+      "join": "Unirse",
+      "available": "Disponible",
+      "teamFallback": "Equipo"
+    },
+    "countdown": {
+      "seconds": "{{seconds}} s"
+    },
+    "pageTitle": "Unirse",
+    "nativePreview": {
+      "closePreview": "Cerrar la vista previa",
+      "previewAlt": "Vista previa",
+      "retake": "Repetir",
+      "submit": "Enviar"
+    },
+    "gameUnavailable": {
+      "title": "Este juego no está disponible",
+      "standBy": "Espera al facilitador…"
+    }
+  },
+  "display": {
+    "documentTitle": "Pantalla",
+    "getReadyFor": "Prepárate para",
+    "quiz": "Quiz",
+    "quizLeaderboard": "Clasificación del quiz",
+    "round": "RONDA",
+    "nextRound": "SIGUIENTE RONDA",
+    "quizEnded": "El quiz ha terminado",
+    "thanksForPlaying": "¡Gracias por jugar!",
+    "breakTime": "Descanso",
+    "tapToEnableSound": "Toca para activar el sonido",
+    "tapAnywhere": "Toca en cualquier lugar para continuar",
+    "enableAudioHint": "Activa el audio para que la pantalla pueda reproducir la celebración del bingo, los aplausos y la música durante el evento."
+  },
+  "winner": {
+    "youAreWinner": "¡SOIS LOS GANADORES!",
+    "congratulations": "¡Enhorabuena!",
+    "finished": "Habéis terminado en el puesto {{rank}}",
+    "results": "Resultados",
+    "soClose": "¡Por muy poco, gran esfuerzo!",
+    "notThisTime": "Esta vez no habéis ganado.",
+    "quizPoints": "{{points}} puntos del quiz",
+    "totalPoints": "{{points}} puntos en total",
+    "place1": "1er puesto",
+    "place2": "2º puesto",
+    "place3": "3er puesto",
+    "announcing": "Es hora de anunciar a los ganadores…"
+  },
+  "notLive": {
+    "ended": "Este evento ha terminado.",
+    "startingSoon": "Este evento empieza pronto",
+    "endedBody": "Gracias por participar. Esta experiencia ya no está disponible.",
+    "startingBody": "Un momento. El juego empezará cuando vuestro anfitrión inicie el evento. Esta pantalla se actualizará automáticamente."
+  },
+  "quizPanel": {
+    "defaultTitle": "Resultados del quiz"
+  },
+  "tablet": {
+    "documentTitle": "Tableta",
+    "fallbackTitle": "Tableta",
+    "orgNotFound": "Organización no encontrada. Revisa el enlace de tu tableta en Ajustes. Puede que la URL esté desactualizada.",
+    "missingOrg": "Falta la organización en la URL.",
+    "failedToLoad": "No se pudieron cargar los eventos",
+    "incorrectPassword": "Contraseña incorrecta",
+    "verifyFailed": "No se pudo verificar la contraseña ni cargar los eventos",
+    "password": "Contraseña de la tableta",
+    "signingIn": "Iniciando sesión…",
+    "continueButton": "Continuar",
+    "logOut": "Cerrar sesión",
+    "noEvents": "No hay eventos activos ahora mismo.",
+    "bookmark": "Marcador: {{path}}",
+    "passwordHint": "Introduce la contraseña de la tableta para ver los eventos activos."
+  },
+  "inventory": {
+    "pageTitle": "Inventario",
+    "opening": "Abriendo el artículo…",
+    "purchaseConfirmed": "Compra confirmada",
+    "collect": "Ya puedes recoger {{item}} del facilitador.",
+    "pointsDeducted": "{{points}} puntos descontados",
+    "pointsRemaining": "{{points}} puntos restantes",
+    "returnToEvent": "Volver al evento",
+    "itemUnavailable": "Artículo no disponible",
+    "itemCost": "Coste",
+    "points": "puntos",
+    "yourBalance": "Tu saldo",
+    "purchasing": "Comprando…",
+    "notEnoughPoints": "Puntos insuficientes",
+    "buyForPoints": "Comprar por {{points}} puntos",
+    "deductedAfterConfirm": "Los puntos se descuentan solo después de confirmar.",
+    "qrInvalid": "Este código QR del artículo no es válido.",
+    "joinFirst": "Únete primero a tu evento en este teléfono y luego escanea el artículo de nuevo.",
+    "claimTeamFirst": "Vuelve a tu evento y reclama un equipo en este teléfono antes de comprar artículos.",
+    "eventNotOpened": "No se pudo abrir tu evento.",
+    "itemUnavailableForEvent": "Este artículo no está disponible para tu evento.",
+    "joinTeamFirst": "Únete a un equipo antes de comprar un artículo.",
+    "couldNotLoad": "No se pudo cargar este artículo.",
+    "purchaseNotCompleted": "La compra no se completó.",
+    "couldNotPurchase": "No se pudo comprar este artículo."
+  },
+  "puzzle": {
+    "across": "Horizontal",
+    "checking": "Comprobando…",
+    "clearSelection": "Borrar selección",
+    "clue": "Definición",
+    "cluesHere": "Definiciones aquí",
+    "complete": "¡Puzle completado!",
+    "crosswordComplete": "¡Crucigrama completado!",
+    "crosswordError": "No se pudo comprobar el crucigrama.",
+    "crosswordLoading": "Cargando el crucigrama…",
+    "crosswordNotConfigured": "Este crucigrama aún no está configurado.",
+    "crosswordTip": "Toca cualquier casilla con letra para leer su definición y escribe la respuesta. Tócala otra vez donde se cruzan dos palabras para cambiar de dirección.",
+    "delete": "Borrar",
+    "deleteLastLetter": "Borrar la última letra",
+    "down": "Vertical",
+    "genericError": "No se pudo actualizar el puzle. Inténtalo de nuevo.",
+    "hint": "Pista {{remaining}}",
+    "hintError": "No se pudo usar la pista.",
+    "loading": "Cargando el puzle…",
+    "matched": "{{matched}}/{{total}} emparejados",
+    "maximum": "{{points}} máximo",
+    "mistakes_one": "{{count}} error",
+    "mistakes_other": "{{count}} errores",
+    "notQuite": "Casi. Inténtalo de nuevo.",
+    "pointsAwarded": "+{{points}} puntos",
+    "pointsIfSolvedNow": "Puntos si lo resuelves ahora",
+    "solvedIn": "Resuelto en {{time}}",
+    "solvedInGuesses_one": "Resuelto en {{count}} intento",
+    "solvedInGuesses_other": "Resuelto en {{count}} intentos",
+    "submit": "Enviar",
+    "timeLeft": "Tiempo restante",
+    "tokenMissing": "Vuelve a unirte al evento en este teléfono una vez para jugar de forma segura.",
+    "wordGuesses": "Intentos de palabra",
+    "wordleHint": "Intentos ilimitados · cada intento extra reduce la puntuación restante un 10%",
+    "wrongMatches_one": "{{count}} pareja incorrecta",
+    "wrongMatches_other": "{{count}} parejas incorrectas"
+  },
+  "game": {
+    "points": "{{points}} pts",
+    "pointsUpTo": "Hasta {{points}}"
+  }
+}

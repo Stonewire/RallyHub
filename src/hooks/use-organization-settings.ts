@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { DEFAULT_BRAND_COLORS } from '@/lib/live-event'
+import { toAppLanguage, type AppLanguage } from '@/lib/i18n'
 import { queryKeys } from '@/lib/query-keys'
 import { supabase } from '@/lib/supabase'
 import type { AppRole } from '@/types/database'
@@ -23,6 +24,7 @@ export type OrganizationFormState = {
   address_country: string
   tablet_password: string
   tablet_slug: string
+  default_language: AppLanguage
 }
 
 export const EMPTY_ORG_FORM: OrganizationFormState = {
@@ -39,6 +41,7 @@ export const EMPTY_ORG_FORM: OrganizationFormState = {
   address_country: '',
   tablet_password: '1234',
   tablet_slug: '',
+  default_language: 'en',
 }
 
 const DEFAULT_TABLET_PASSWORD = '1234'
@@ -86,6 +89,7 @@ export function orgToForm(org: OrganizationRow): OrganizationFormState {
     address_country: org.address_country ?? '',
     tablet_password: displayTabletPassword(org.tablet_password),
     tablet_slug: org.tablet_slug ?? '',
+    default_language: toAppLanguage(org.default_language),
   }
 }
 
@@ -138,6 +142,7 @@ export function useSaveOrganization(organizationId: string | null) {
         address_country: payload.address_country || null,
         tablet_password: normalizeTabletPasswordForSave(payload.tablet_password),
         tablet_slug: payload.tablet_slug.trim(),
+        default_language: payload.default_language,
       }
 
       const { error } = await supabase

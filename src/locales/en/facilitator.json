@@ -1,0 +1,227 @@
+{
+  "teamFallback": "Team",
+  "gameFallback": "Game",
+  "facilitatorFallbackName": "Facilitator",
+  "log": {
+    "viewLog": "View Log"
+  },
+  "eventLog": {
+    "title": "Event log"
+  },
+  "state": {
+    "eventNotFound": "Event not found",
+    "eventEnded": "This event has ended. Controls are disabled.",
+    "eventNotLive": "This event is not live yet. Controls are disabled until the event is active.",
+    "updateFailed": "Update failed",
+    "couldNotStartBingo": "Could not start bingo"
+  },
+  "eventStatus": {
+    "active": "Active",
+    "demo": "Demo",
+    "ready": "Ready",
+    "draft": "Draft",
+    "archived": "Archived"
+  },
+  "presence": {
+    "alsoViewing": "Also viewing: {{names}}"
+  },
+  "sound": {
+    "mute": "Mute",
+    "unmute": "Unmute"
+  },
+  "announcement": {
+    "label": "Announcement",
+    "placeholder": "Message… clears after 1 minute",
+    "live": "Live: {{message}}",
+    "clear": "Clear"
+  },
+  "surface": {
+    "display": "Display",
+    "participants": "Participants",
+    "both": "Both",
+    "players": "Players",
+    "facilitator": "Facilitator"
+  },
+  "quiz": {
+    "questionProgress": "Q {{current}} / {{total}} · {{seconds}}s",
+    "correctTag": "(correct)",
+    "startQuestion": "Start Question {{number}}",
+    "skip": "Skip",
+    "restart": "Restart Quiz",
+    "finish": "Finish Quiz",
+    "revealResults": "Reveal Quiz Results",
+    "startRound": "Start {{round}}",
+    "startNextRound": "Start next round",
+    "nextQuestion": "Next Question",
+    "noTeamsJoined": "No teams have joined yet. Participants won't receive quiz answers until they join.",
+    "questionTimer": "Question timer",
+    "revealFailed": "Quiz reveal failed",
+    "scoringFailed": "Quiz scoring failed. Verify increment_team_score migration is applied",
+    "resetNotify": "Quiz reset",
+    "finishedNotify": "Quiz finished for all screens"
+  },
+  "bingo": {
+    "runActive": "Run active · {{count}} songs in script",
+    "loadingRun": "Loading bingo run…",
+    "noRun": "No bingo run. Switch to this stage to activate",
+    "nowPlaying": "Now playing: {{title}} by {{artist}}",
+    "continue": "Continue",
+    "nextSong": "Next Song",
+    "wonPausedBanner": "🏆 Bingo! {{team}} won. Game paused. Press Continue to keep playing.",
+    "wonPausedNotify": "🏆 Bingo! {{team}} won. Game paused.",
+    "aTeamFallback": "A team",
+    "markedThisRound": "Marked this round",
+    "restartRun": "Restart bingo run",
+    "restartConfirmTitle": "Restart bingo run?",
+    "restartConfirmBody": "Generates new cards and a new play order. Clears all marks and scores for this bingo game.",
+    "restarted": "Bingo run restarted",
+    "restartFailed": "Restart failed",
+    "audioNotMountedHint": "Audio player is not mounted. Switch to bingo stage and try again",
+    "audioNotMounted": "Audio player is not mounted",
+    "couldNotStartPlayback": "Could not start playback. Check console for details",
+    "noPlayableTrack": "No playable track URL. Ensure MP3 clips are uploaded for this bingo game",
+    "runLoadedPressStart": "Run loaded. Press Start again to play",
+    "runNotReady": "Bingo run is not ready",
+    "couldNotScoreAdvance": "Could not score or advance the bingo round",
+    "couldNotScoreReveal": "Could not score or reveal the bingo round",
+    "couldNotLockSelections": "Could not lock bingo selections",
+    "playbackFailed": "Audio playback failed: {{message}}"
+  },
+  "controls": {
+    "start": "Start",
+    "pause": "Pause",
+    "stop": "Stop",
+    "reset": "Reset"
+  },
+  "break": {
+    "hint": "Start/pause the break timer. Stop freezes the countdown, Reset restores full duration."
+  },
+  "stages": {
+    "heading": "Stages",
+    "stageNumber": "Stage {{number}}"
+  },
+  "teams": {
+    "heading": "Teams",
+    "hint": "Tap a slot to set name/photo. Scores update when you approve submissions.",
+    "available": "Available",
+    "resetSlotTitle": "Reset slot {{number}}",
+    "chatWithName": "Chat with {{name}}",
+    "chatWithSlot": "Chat with slot {{number}}",
+    "statusIdle": "Idle",
+    "statusActive": "Active",
+    "statusStopped": "Stopped",
+    "questsDone": "{{done}}/{{total}} Quests done",
+    "viewQuests": "View Quests",
+    "slotLabel": "Team slot {{number}}",
+    "resetConfirmTitle": "Reset team slot {{number}}?",
+    "resetConfirmBody": "Clears {{team}}, removes their photo, and sets score to 0. The slot becomes available for someone new to join.",
+    "thisTeamFallback": "this team",
+    "resetting": "Resetting…",
+    "resetTeamButton": "Reset team",
+    "resetSlotNotify": "Team slot {{number}} cleared. Available for a new team",
+    "resetSlotFailed": "Could not reset team slot"
+  },
+  "timer": {
+    "countdownLabel": "Event countdown on display",
+    "placeholder": "minutes or mm:ss",
+    "invalidInput": "Enter minutes (e.g. 45) or mm:ss",
+    "pauseToEdit": "Pause to edit",
+    "clickToSet": "Click to set the countdown",
+    "pauseAria": "Pause the countdown",
+    "startAria": "Start the countdown"
+  },
+  "winner": {
+    "hint": "Run the winner ceremony on display and team phones",
+    "revealButton": "Reveal Winner ({{stage}}/2)",
+    "soundLabel": "Sound: {{targets}} · change",
+    "muted": "muted",
+    "resetWinner": "Reset winner",
+    "saveAndReveal": "Save & reveal"
+  },
+  "toggles": {
+    "showTimer": "Show timer on display",
+    "showScores": "Show scores on display"
+  },
+  "purchases": {
+    "heading": "Purchases",
+    "loading": "Loading purchases…",
+    "loadError": "Could not load purchases.",
+    "empty": "No purchases yet."
+  },
+  "submissions": {
+    "pointsMustBeBetween": "Points must be {{min}} and {{max}}",
+    "couldNotApprove": "Could not approve submission",
+    "alreadyProcessed": "Submission already processed",
+    "approvedNotify": "Approved +{{points}} pts",
+    "couldNotReject": "Could not reject submission",
+    "rejectedNotify": "Submission rejected",
+    "approve": "Approve",
+    "reject": "Reject",
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    }
+  },
+  "claim": {
+    "demoLimit": "Demo events allow up to {{max}} teams.",
+    "couldNotSave": "Could not save the team",
+    "namePlaceholder": "Team name"
+  },
+  "quest": {
+    "completed": "Completed",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "notStarted": "Not started",
+    "questsCompleted": "{{done}}/{{total}} Quests completed",
+    "slotFallback": "Slot {{number}}",
+    "noQuestGames": "This event has no Quest games."
+  },
+  "chat": {
+    "openTeamChatAria": "Open team chat",
+    "backToTeamListAria": "Back to team list",
+    "teamChatTitle": "Team chat",
+    "conversationWithTeam": "Conversation with team",
+    "selectTeamHint": "Select a team to view messages",
+    "noTeamsJoined": "No teams have joined yet.",
+    "noMessagesPreview": "No messages yet",
+    "noMessagesThread": "No messages yet.",
+    "lastMessagePreview": "{{sender}}: {{message}}",
+    "placeholderDisabled": "Controls disabled until event is live",
+    "placeholderActive": "Message team…",
+    "send": "Send"
+  },
+  "winnerRoutingModal": {
+    "title": "Where should the winner sound play?",
+    "hint": "Choose before revealing the winner. The celebration audio plays only on the selected surfaces."
+  },
+  "submissionDetail": {
+    "challengeDescription": "Challenge description",
+    "expectedAnswer": "Expected answer / solution",
+    "teamAnswer": "Team answer",
+    "noMedia": "No media attached",
+    "reference": "Reference for approval",
+    "referenceNotes": "Notes from the organiser",
+    "correctLabel": "Correct:",
+    "noAnswerSet": "Not set",
+    "pointsLabel": "Points ({{min}} to {{max}})",
+    "pointsRangeError": "Enter a value between {{min}} and {{max}}",
+    "statusLabel": "Status: {{status}}"
+  },
+  "winnerRouting": {
+    "display": {
+      "label": "Display",
+      "desc": "The big-screen audience display plays the winner announcement."
+    },
+    "facilitator": {
+      "label": "Facilitator",
+      "desc": "Your facilitator device plays the winner announcement."
+    },
+    "players": {
+      "label": "Players",
+      "desc": "Every player phone plays the winner announcement."
+    }
+  }
+}

@@ -40,6 +40,7 @@ import {
   type OrganizationFormState,
 } from '@/hooks/use-organization-settings'
 import { BillingOverview } from '@/components/billing/BillingOverview'
+import { APP_LANGUAGES } from '@/lib/i18n'
 import { validateTabletCode } from '@/lib/tablet-link'
 import { cn } from '@/lib/utils'
 import { Combobox } from '@/components/admin/Combobox'
@@ -494,6 +495,36 @@ export function AdminSettingsPage() {
                       />
                     ))}
                   </div>
+                </div>
+              </Card>
+
+              <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+                <SettingsCardHeader title="Language" visibility="Public" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="default-language">Default language</Label>
+                  <select
+                    id="default-language"
+                    value={form.default_language}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        default_language: event.target
+                          .value as OrganizationFormState['default_language'],
+                      })
+                    }
+                    className="border-input bg-background w-full max-w-sm rounded-lg border px-3 py-2 text-sm"
+                  >
+                    {APP_LANGUAGES.map(({ code, label }) => (
+                      <option key={code} value={code}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
+                    New events start in this language (you can still change it per
+                    event). Also used for org-level screens not tied to one event,
+                    like the tablet kiosk.
+                  </p>
                 </div>
               </Card>
 

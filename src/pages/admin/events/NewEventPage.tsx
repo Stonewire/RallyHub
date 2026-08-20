@@ -1,5 +1,5 @@
 import { IconCheck, IconCopy } from '@/components/icons'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useOptionalTenant } from '@/contexts/tenant-context'
@@ -26,6 +26,7 @@ import {
   emptyEventForm,
   type EventFormValues,
 } from '@/lib/event-form-utils'
+import { toAppLanguage } from '@/lib/i18n'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventsNewPage() {
@@ -46,6 +47,15 @@ export function AdminEventsNewPage() {
   })
 
   const [values, setValues] = useState<EventFormValues>(emptyEventForm)
+  const orgLanguageApplied = useRef(false)
+  useEffect(() => {
+    if (orgLanguageApplied.current) return
+    const orgLanguage = orgQuery.data?.default_language
+    if (!orgLanguage) return
+    orgLanguageApplied.current = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync of the org's default once it loads, guarded so it never re-fires
+    setValues((v) => ({ ...v, language: toAppLanguage(orgLanguage) }))
+  }, [orgQuery.data?.default_language])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statusPrompt, setStatusPrompt] = useState<{
@@ -85,6 +95,7 @@ export function AdminEventsNewPage() {
             ? new Date(values.eventDate).toISOString()
             : null,
           status: 'draft',
+          language: values.language,
           team_count: values.teamCount,
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,

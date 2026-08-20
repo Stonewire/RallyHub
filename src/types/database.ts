@@ -66,6 +66,7 @@ type OrgRow = {
   brand_heading_font_url: string | null
   brand_body_font_url: string | null
   internal_notes: string | null
+  default_language: string
   is_demo: boolean
   demo_reset_at: string | null
   demo_last_reset_at: string | null
@@ -384,6 +385,7 @@ export type Database = {
           event_date: string | null
           location: string | null
           status: string
+          language: string
           team_count: number
           branding_enabled: boolean
           inventory_enabled: boolean
@@ -413,6 +415,7 @@ export type Database = {
           event_date?: string | null
           location?: string | null
           status?: string
+          language?: string
           team_count?: number
           branding_enabled?: boolean
           inventory_enabled?: boolean
@@ -435,6 +438,7 @@ export type Database = {
           event_date?: string | null
           location?: string | null
           status?: string
+          language?: string
           team_count?: number
           branding_enabled?: boolean
           inventory_enabled?: boolean

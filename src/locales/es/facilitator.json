@@ -1,0 +1,227 @@
+{
+  "teamFallback": "Equipo",
+  "gameFallback": "Juego",
+  "facilitatorFallbackName": "Facilitador",
+  "log": {
+    "viewLog": "Ver registro"
+  },
+  "eventLog": {
+    "title": "Registro del evento"
+  },
+  "state": {
+    "eventNotFound": "Evento no encontrado",
+    "eventEnded": "Este evento ha terminado. Los controles están desactivados.",
+    "eventNotLive": "Este evento aún no está activo. Los controles están desactivados hasta que el evento esté activo.",
+    "updateFailed": "No se pudo actualizar",
+    "couldNotStartBingo": "No se pudo iniciar el bingo"
+  },
+  "eventStatus": {
+    "active": "Activo",
+    "demo": "Demo",
+    "ready": "Listo",
+    "draft": "Borrador",
+    "archived": "Archivado"
+  },
+  "presence": {
+    "alsoViewing": "También viendo: {{names}}"
+  },
+  "sound": {
+    "mute": "Silenciar",
+    "unmute": "Activar sonido"
+  },
+  "announcement": {
+    "label": "Anuncio",
+    "placeholder": "Mensaje… se borra después de 1 minuto",
+    "live": "En directo: {{message}}",
+    "clear": "Borrar"
+  },
+  "surface": {
+    "display": "Pantalla",
+    "participants": "Participantes",
+    "both": "Ambos",
+    "players": "Jugadores",
+    "facilitator": "Facilitador"
+  },
+  "quiz": {
+    "questionProgress": "P {{current}} / {{total}} · {{seconds}}s",
+    "correctTag": "(correcta)",
+    "startQuestion": "Iniciar pregunta {{number}}",
+    "skip": "Saltar",
+    "restart": "Reiniciar cuestionario",
+    "finish": "Finalizar cuestionario",
+    "revealResults": "Mostrar resultados",
+    "startRound": "Iniciar {{round}}",
+    "startNextRound": "Iniciar siguiente ronda",
+    "nextQuestion": "Siguiente pregunta",
+    "noTeamsJoined": "Todavía no se ha unido ningún equipo. Los participantes no recibirán las preguntas hasta que se unan.",
+    "questionTimer": "Temporizador de la pregunta",
+    "revealFailed": "No se pudo mostrar la respuesta",
+    "scoringFailed": "No se pudo puntuar el cuestionario. Verifica que la migración increment_team_score esté aplicada",
+    "resetNotify": "Cuestionario reiniciado",
+    "finishedNotify": "Cuestionario finalizado en todas las pantallas"
+  },
+  "bingo": {
+    "runActive": "Partida activa · {{count}} canciones en la lista",
+    "loadingRun": "Cargando partida de bingo…",
+    "noRun": "No hay partida de bingo. Cambia a esta etapa para activarla",
+    "nowPlaying": "Sonando ahora: {{title}} de {{artist}}",
+    "continue": "Continuar",
+    "nextSong": "Siguiente canción",
+    "wonPausedBanner": "🏆 ¡Bingo! {{team}} ha ganado. Juego en pausa. Pulsa Continuar para seguir jugando.",
+    "wonPausedNotify": "🏆 ¡Bingo! {{team}} ha ganado. Juego en pausa.",
+    "aTeamFallback": "Un equipo",
+    "markedThisRound": "Marcados en esta ronda",
+    "restartRun": "Reiniciar partida de bingo",
+    "restartConfirmTitle": "¿Reiniciar la partida de bingo?",
+    "restartConfirmBody": "Genera nuevos cartones y un nuevo orden de reproducción. Borra todas las marcas y puntuaciones de este juego de bingo.",
+    "restarted": "Partida de bingo reiniciada",
+    "restartFailed": "No se pudo reiniciar",
+    "audioNotMountedHint": "El reproductor de audio no está cargado. Cambia a la etapa de bingo e inténtalo de nuevo",
+    "audioNotMounted": "El reproductor de audio no está cargado",
+    "couldNotStartPlayback": "No se pudo iniciar la reproducción. Revisa la consola para más detalles",
+    "noPlayableTrack": "No hay una URL de pista reproducible. Asegúrate de que los clips MP3 estén subidos para este juego de bingo",
+    "runLoadedPressStart": "Partida cargada. Pulsa Iniciar de nuevo para reproducir",
+    "runNotReady": "La partida de bingo aún no está lista",
+    "couldNotScoreAdvance": "No se pudo puntuar o avanzar la ronda de bingo",
+    "couldNotScoreReveal": "No se pudo puntuar o mostrar la ronda de bingo",
+    "couldNotLockSelections": "No se pudieron bloquear las selecciones de bingo",
+    "playbackFailed": "Fallo en la reproducción de audio: {{message}}"
+  },
+  "controls": {
+    "start": "Iniciar",
+    "pause": "Pausar",
+    "stop": "Detener",
+    "reset": "Reiniciar"
+  },
+  "break": {
+    "hint": "Inicia/pausa el temporizador del descanso. Detener congela la cuenta atrás, Reiniciar restaura la duración completa."
+  },
+  "stages": {
+    "heading": "Etapas",
+    "stageNumber": "Etapa {{number}}"
+  },
+  "teams": {
+    "heading": "Equipos",
+    "hint": "Toca un espacio para asignar nombre/foto. Las puntuaciones se actualizan al aprobar entregas.",
+    "available": "Disponible",
+    "resetSlotTitle": "Reiniciar espacio {{number}}",
+    "chatWithName": "Chatear con {{name}}",
+    "chatWithSlot": "Chatear con el espacio {{number}}",
+    "statusIdle": "Inactivo",
+    "statusActive": "Activo",
+    "statusStopped": "Detenido",
+    "questsDone": "{{done}}/{{total}} misiones completadas",
+    "viewQuests": "Ver misiones",
+    "slotLabel": "Espacio de equipo {{number}}",
+    "resetConfirmTitle": "¿Reiniciar el espacio de equipo {{number}}?",
+    "resetConfirmBody": "Borra {{team}}, elimina su foto y pone la puntuación a 0. El espacio queda disponible para un equipo nuevo.",
+    "thisTeamFallback": "este equipo",
+    "resetting": "Reiniciando…",
+    "resetTeamButton": "Reiniciar equipo",
+    "resetSlotNotify": "Espacio de equipo {{number}} borrado. Disponible para un equipo nuevo",
+    "resetSlotFailed": "No se pudo reiniciar el espacio de equipo"
+  },
+  "timer": {
+    "countdownLabel": "Cuenta atrás del evento en la pantalla",
+    "placeholder": "minutos o mm:ss",
+    "invalidInput": "Introduce minutos (p. ej. 45) o mm:ss",
+    "pauseToEdit": "Pausa para editar",
+    "clickToSet": "Haz clic para ajustar la cuenta atrás",
+    "pauseAria": "Pausar la cuenta atrás",
+    "startAria": "Iniciar la cuenta atrás"
+  },
+  "winner": {
+    "hint": "Lanza la ceremonia de ganador en la pantalla y los móviles de los equipos",
+    "revealButton": "Mostrar ganador ({{stage}}/2)",
+    "soundLabel": "Sonido: {{targets}} · cambiar",
+    "muted": "silenciado",
+    "resetWinner": "Reiniciar ganador",
+    "saveAndReveal": "Guardar y mostrar"
+  },
+  "toggles": {
+    "showTimer": "Mostrar temporizador en la pantalla",
+    "showScores": "Mostrar puntuaciones en la pantalla"
+  },
+  "purchases": {
+    "heading": "Compras",
+    "loading": "Cargando compras…",
+    "loadError": "No se pudieron cargar las compras.",
+    "empty": "Todavía no hay compras."
+  },
+  "submissions": {
+    "pointsMustBeBetween": "Los puntos deben estar entre {{min}} y {{max}}",
+    "couldNotApprove": "No se pudo aprobar la entrega",
+    "alreadyProcessed": "La entrega ya ha sido procesada",
+    "approvedNotify": "Aprobado +{{points}} puntos",
+    "couldNotReject": "No se pudo rechazar la entrega",
+    "rejectedNotify": "Entrega rechazada",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "status": {
+      "all": "Todas",
+      "pending": "Pendientes",
+      "approved": "Aprobadas",
+      "rejected": "Rechazadas",
+      "cancelled": "Canceladas"
+    }
+  },
+  "claim": {
+    "demoLimit": "Los eventos demo permiten hasta {{max}} equipos.",
+    "couldNotSave": "No se pudo guardar el equipo",
+    "namePlaceholder": "Nombre del equipo"
+  },
+  "quest": {
+    "completed": "Completada",
+    "pending": "Pendiente",
+    "rejected": "Rechazada",
+    "notStarted": "Sin empezar",
+    "questsCompleted": "{{done}}/{{total}} misiones completadas",
+    "slotFallback": "Espacio {{number}}",
+    "noQuestGames": "Este evento no tiene juegos de misiones."
+  },
+  "chat": {
+    "openTeamChatAria": "Abrir chat de equipo",
+    "backToTeamListAria": "Volver a la lista de equipos",
+    "teamChatTitle": "Chat de equipo",
+    "conversationWithTeam": "Conversación con el equipo",
+    "selectTeamHint": "Selecciona un equipo para ver los mensajes",
+    "noTeamsJoined": "Todavía no se ha unido ningún equipo.",
+    "noMessagesPreview": "Sin mensajes todavía",
+    "noMessagesThread": "Sin mensajes todavía.",
+    "lastMessagePreview": "{{sender}}: {{message}}",
+    "placeholderDisabled": "Controles desactivados hasta que el evento esté activo",
+    "placeholderActive": "Mensaje al equipo…",
+    "send": "Enviar"
+  },
+  "winnerRoutingModal": {
+    "title": "¿Dónde debe sonar el sonido del ganador?",
+    "hint": "Elige antes de mostrar al ganador. El audio de celebración solo se reproducirá en las pantallas seleccionadas."
+  },
+  "submissionDetail": {
+    "challengeDescription": "Descripción del desafío",
+    "expectedAnswer": "Respuesta esperada / solución",
+    "teamAnswer": "Respuesta del equipo",
+    "noMedia": "Sin contenido adjunto",
+    "reference": "Referencia para la aprobación",
+    "referenceNotes": "Notas del organizador",
+    "correctLabel": "Correcta:",
+    "noAnswerSet": "Sin definir",
+    "pointsLabel": "Puntos ({{min}} a {{max}})",
+    "pointsRangeError": "Introduce un valor entre {{min}} y {{max}}",
+    "statusLabel": "Estado: {{status}}"
+  },
+  "winnerRouting": {
+    "display": {
+      "label": "Pantalla",
+      "desc": "La pantalla grande para el público reproduce el anuncio del ganador."
+    },
+    "facilitator": {
+      "label": "Facilitador",
+      "desc": "Tu dispositivo de facilitador reproduce el anuncio del ganador."
+    },
+    "players": {
+      "label": "Jugadores",
+      "desc": "Cada teléfono de jugador reproduce el anuncio del ganador."
+    }
+  }
+}

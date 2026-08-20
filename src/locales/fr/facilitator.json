@@ -1,0 +1,227 @@
+{
+  "teamFallback": "Équipe",
+  "gameFallback": "Jeu",
+  "facilitatorFallbackName": "Facilitateur",
+  "log": {
+    "viewLog": "Voir le journal"
+  },
+  "eventLog": {
+    "title": "Journal de l'événement"
+  },
+  "state": {
+    "eventNotFound": "Événement introuvable",
+    "eventEnded": "Cet événement est terminé. Les commandes sont désactivées.",
+    "eventNotLive": "Cet événement n'est pas encore actif. Les commandes sont désactivées tant que l'événement n'est pas actif.",
+    "updateFailed": "Échec de la mise à jour",
+    "couldNotStartBingo": "Impossible de démarrer le bingo"
+  },
+  "eventStatus": {
+    "active": "Actif",
+    "demo": "Démo",
+    "ready": "Prêt",
+    "draft": "Brouillon",
+    "archived": "Archivé"
+  },
+  "presence": {
+    "alsoViewing": "Également connectés : {{names}}"
+  },
+  "sound": {
+    "mute": "Muet",
+    "unmute": "Réactiver le son"
+  },
+  "announcement": {
+    "label": "Annonce",
+    "placeholder": "Message… disparaît après 1 minute",
+    "live": "En direct : {{message}}",
+    "clear": "Effacer"
+  },
+  "surface": {
+    "display": "Écran",
+    "participants": "Participants",
+    "both": "Les deux",
+    "players": "Joueurs",
+    "facilitator": "Facilitateur"
+  },
+  "quiz": {
+    "questionProgress": "Q {{current}} / {{total}} · {{seconds}} s",
+    "correctTag": "(correcte)",
+    "startQuestion": "Démarrer la question {{number}}",
+    "skip": "Passer",
+    "restart": "Recommencer le quiz",
+    "finish": "Terminer le quiz",
+    "revealResults": "Afficher les résultats",
+    "startRound": "Démarrer {{round}}",
+    "startNextRound": "Démarrer la manche suivante",
+    "nextQuestion": "Question suivante",
+    "noTeamsJoined": "Aucune équipe n'a encore rejoint. Les participants ne recevront les questions du quiz qu'après avoir rejoint.",
+    "questionTimer": "Minuteur de la question",
+    "revealFailed": "Échec de l'affichage de la réponse",
+    "scoringFailed": "Échec du calcul des points du quiz. Vérifiez que la migration increment_team_score est appliquée",
+    "resetNotify": "Quiz réinitialisé",
+    "finishedNotify": "Quiz terminé sur tous les écrans"
+  },
+  "bingo": {
+    "runActive": "Partie en cours · {{count}} chansons dans la liste",
+    "loadingRun": "Chargement de la partie de bingo…",
+    "noRun": "Aucune partie de bingo. Passez à cette étape pour l'activer",
+    "nowPlaying": "En cours de lecture : {{title}} par {{artist}}",
+    "continue": "Continuer",
+    "nextSong": "Chanson suivante",
+    "wonPausedBanner": "🏆 Bingo ! {{team}} a gagné. Partie en pause. Appuyez sur Continuer pour reprendre.",
+    "wonPausedNotify": "🏆 Bingo ! {{team}} a gagné. Partie en pause.",
+    "aTeamFallback": "Une équipe",
+    "markedThisRound": "Cochées dans cette manche",
+    "restartRun": "Recommencer la partie de bingo",
+    "restartConfirmTitle": "Recommencer la partie de bingo ?",
+    "restartConfirmBody": "Génère de nouvelles cartes et un nouvel ordre de lecture. Efface toutes les marques et tous les scores de ce jeu de bingo.",
+    "restarted": "Partie de bingo recommencée",
+    "restartFailed": "Échec du redémarrage",
+    "audioNotMountedHint": "Le lecteur audio n'est pas chargé. Passez à l'étape bingo et réessayez",
+    "audioNotMounted": "Le lecteur audio n'est pas chargé",
+    "couldNotStartPlayback": "Impossible de démarrer la lecture. Consultez la console pour plus de détails",
+    "noPlayableTrack": "Aucune piste lisible. Assurez-vous que les extraits MP3 sont bien téléversés pour ce jeu de bingo",
+    "runLoadedPressStart": "Partie chargée. Appuyez à nouveau sur Démarrer pour lancer la lecture",
+    "runNotReady": "La partie de bingo n'est pas encore prête",
+    "couldNotScoreAdvance": "Impossible de calculer les points ou de passer à la manche suivante",
+    "couldNotScoreReveal": "Impossible de calculer les points ou d'afficher la manche",
+    "couldNotLockSelections": "Impossible de verrouiller les sélections du bingo",
+    "playbackFailed": "Échec de la lecture audio : {{message}}"
+  },
+  "controls": {
+    "start": "Démarrer",
+    "pause": "Pause",
+    "stop": "Arrêter",
+    "reset": "Réinitialiser"
+  },
+  "break": {
+    "hint": "Démarrez/mettez en pause le minuteur de pause. Arrêter fige le compte à rebours, Réinitialiser restaure la durée complète."
+  },
+  "stages": {
+    "heading": "Étapes",
+    "stageNumber": "Étape {{number}}"
+  },
+  "teams": {
+    "heading": "Équipes",
+    "hint": "Touchez un emplacement pour définir le nom/la photo. Les scores se mettent à jour lorsque vous approuvez les envois.",
+    "available": "Disponible",
+    "resetSlotTitle": "Réinitialiser l'emplacement {{number}}",
+    "chatWithName": "Discuter avec {{name}}",
+    "chatWithSlot": "Discuter avec l'emplacement {{number}}",
+    "statusIdle": "Inactif",
+    "statusActive": "Actif",
+    "statusStopped": "Arrêté",
+    "questsDone": "{{done}}/{{total}} quêtes terminées",
+    "viewQuests": "Voir les quêtes",
+    "slotLabel": "Emplacement d'équipe {{number}}",
+    "resetConfirmTitle": "Réinitialiser l'emplacement d'équipe {{number}} ?",
+    "resetConfirmBody": "Efface {{team}}, supprime sa photo et remet le score à 0. L'emplacement redevient disponible pour une nouvelle équipe.",
+    "thisTeamFallback": "cette équipe",
+    "resetting": "Réinitialisation…",
+    "resetTeamButton": "Réinitialiser l'équipe",
+    "resetSlotNotify": "Emplacement d'équipe {{number}} vidé. Disponible pour une nouvelle équipe",
+    "resetSlotFailed": "Impossible de réinitialiser l'emplacement d'équipe"
+  },
+  "timer": {
+    "countdownLabel": "Compte à rebours de l'événement sur l'écran",
+    "placeholder": "minutes ou mm:ss",
+    "invalidInput": "Saisissez des minutes (ex. 45) ou mm:ss",
+    "pauseToEdit": "En pause pour modifier",
+    "clickToSet": "Cliquez pour régler le compte à rebours",
+    "pauseAria": "Mettre en pause le compte à rebours",
+    "startAria": "Démarrer le compte à rebours"
+  },
+  "winner": {
+    "hint": "Lancez la cérémonie du gagnant sur l'écran et les téléphones des équipes",
+    "revealButton": "Révéler le gagnant ({{stage}}/2)",
+    "soundLabel": "Son : {{targets}} · modifier",
+    "muted": "muet",
+    "resetWinner": "Réinitialiser le gagnant",
+    "saveAndReveal": "Enregistrer et révéler"
+  },
+  "toggles": {
+    "showTimer": "Afficher le minuteur sur l'écran",
+    "showScores": "Afficher les scores sur l'écran"
+  },
+  "purchases": {
+    "heading": "Achats",
+    "loading": "Chargement des achats…",
+    "loadError": "Impossible de charger les achats.",
+    "empty": "Aucun achat pour le moment."
+  },
+  "submissions": {
+    "pointsMustBeBetween": "Les points doivent être compris entre {{min}} et {{max}}",
+    "couldNotApprove": "Impossible d'approuver l'envoi",
+    "alreadyProcessed": "Envoi déjà traité",
+    "approvedNotify": "Approuvé +{{points}} points",
+    "couldNotReject": "Impossible de rejeter l'envoi",
+    "rejectedNotify": "Envoi rejeté",
+    "approve": "Approuver",
+    "reject": "Rejeter",
+    "status": {
+      "all": "Tous",
+      "pending": "En attente",
+      "approved": "Approuvés",
+      "rejected": "Rejetés",
+      "cancelled": "Annulés"
+    }
+  },
+  "claim": {
+    "demoLimit": "Les événements démo autorisent jusqu'à {{max}} équipes.",
+    "couldNotSave": "Impossible d'enregistrer l'équipe",
+    "namePlaceholder": "Nom de l'équipe"
+  },
+  "quest": {
+    "completed": "Terminée",
+    "pending": "En attente",
+    "rejected": "Rejetée",
+    "notStarted": "Non commencée",
+    "questsCompleted": "{{done}}/{{total}} quêtes terminées",
+    "slotFallback": "Emplacement {{number}}",
+    "noQuestGames": "Cet événement n'a pas de jeux de quêtes."
+  },
+  "chat": {
+    "openTeamChatAria": "Ouvrir le chat d'équipe",
+    "backToTeamListAria": "Retour à la liste des équipes",
+    "teamChatTitle": "Chat d'équipe",
+    "conversationWithTeam": "Conversation avec l'équipe",
+    "selectTeamHint": "Sélectionnez une équipe pour voir les messages",
+    "noTeamsJoined": "Aucune équipe n'a encore rejoint.",
+    "noMessagesPreview": "Aucun message pour le moment",
+    "noMessagesThread": "Aucun message pour le moment.",
+    "lastMessagePreview": "{{sender}} : {{message}}",
+    "placeholderDisabled": "Commandes désactivées tant que l'événement n'est pas actif",
+    "placeholderActive": "Message à l'équipe…",
+    "send": "Envoyer"
+  },
+  "winnerRoutingModal": {
+    "title": "Où le son du gagnant doit-il être diffusé ?",
+    "hint": "Choisissez avant de révéler le gagnant. L'audio de célébration ne sera diffusé que sur les écrans sélectionnés."
+  },
+  "submissionDetail": {
+    "challengeDescription": "Description du défi",
+    "expectedAnswer": "Réponse attendue / solution",
+    "teamAnswer": "Réponse de l'équipe",
+    "noMedia": "Aucun média joint",
+    "reference": "Référence pour l'approbation",
+    "referenceNotes": "Notes de l’organisateur",
+    "correctLabel": "Correcte :",
+    "noAnswerSet": "Non définie",
+    "pointsLabel": "Points ({{min}} à {{max}})",
+    "pointsRangeError": "Saisissez une valeur entre {{min}} et {{max}}",
+    "statusLabel": "Statut : {{status}}"
+  },
+  "winnerRouting": {
+    "display": {
+      "label": "Écran",
+      "desc": "Le grand écran pour le public diffuse l'annonce du gagnant."
+    },
+    "facilitator": {
+      "label": "Animateur",
+      "desc": "Votre appareil d'animateur diffuse l'annonce du gagnant."
+    },
+    "players": {
+      "label": "Joueurs",
+      "desc": "Chaque téléphone de joueur diffuse l'annonce du gagnant."
+    }
+  }
+}
