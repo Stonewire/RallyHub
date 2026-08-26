@@ -5,6 +5,33 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.23.0 - 2026-08-26 (fix round 1, phase 1: admin quick fixes)
+
+First batch from Rumen's 26 Aug test pass. Admin-side only, no live-path
+changes.
+
+- Crossword editor: a typed clue can no longer be lost. The clue box now
+  follows the real detected word (clues also move correctly when words merge
+  or shift), and the whole flow is keyboard-driven: Enter after the word jumps
+  to the clue, Enter after the clue saves it, blur also commits.
+- Event editor stages: every stage box has a charcoal header strip so stages
+  read as distinct blocks (Welcome and End slightly muted), and the Add stage
+  buttons are brand gold. The in-list Add stage button now always sits above
+  the End stage.
+- Event and organisation logos are normalised at upload (contained within
+  1024x1024, transparency preserved), so logos render consistently on live
+  screens.
+- Organisation default language moved into the Brand Identity card as a
+  compact dropdown; the separate language section is gone.
+- Event status menu: the Demo option now says it is the one to test with
+  (watermarked, two teams can join), and the Active option warns that the
+  event charge applies on activation and the event stays active for 24 hours.
+- Bulgarian winner ceremony now announces the winner (победител), not
+  "who is first", on both reveal steps.
+- Music bingo clips are loudness-normalised when cut (streaming standard,
+  -14 LUFS), so quiet and loud uploads play at the same level. Already-cut
+  clips keep their old loudness until re-cut.
+
 ## V3.22.0 - 2026-08-26 (five languages, multilingual events)
 
 The whole app now speaks five languages: English, Bulgarian, Spanish, French

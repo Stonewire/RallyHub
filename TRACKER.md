@@ -23,7 +23,12 @@ recording audio, PWA install, matching puzzle offline). Claude verifies each
 change itself before moving on (build, tests, preview); Rumen only tests at
 the end.
 
-**Phase 1, admin-safe quick fixes (straight to main, fast lane):**
+**Phase 1, admin-safe quick fixes (straight to main, fast lane): SHIPPED
+V3.23.0, 26 Aug.** All seven items landed (crossword clue fix turned out to be
+a clue-key identity bug, not input clobbering; clues now remap when runs shift
+or merge). Bonus: bg winnerExclaim (step 2 of the ceremony) fixed alongside
+P1.6. Loudness normalisation applies to newly cut clips only; existing
+catalog clips renormalise on re-cut. Items listed for reference:
 - P1.1 Crossword editor: clue always saves; Enter flow (word -> Enter -> clue
   -> Enter -> saved). PuzzleEditor/CrosswordEditor.
 - P1.2 Stage boxes stand out (yellow or charcoal accent, incl bookends);
