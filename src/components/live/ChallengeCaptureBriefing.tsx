@@ -66,7 +66,10 @@ export function ChallengeCaptureBriefing({
 
       {exampleVideoUrl ? (
         <div className="relative mt-5 w-full">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+          {/* No colour class: inherits the event's UI colour (white or black)
+              from BrandBackground's displayTextClass, like the rest of the
+              screen. The muted grey token ignored that setting. */}
+          <p className="mb-1.5 text-sm font-medium tracking-wide uppercase">
             {t('join.capture.exampleVideo')}
           </p>
           {embedUrl ? (
