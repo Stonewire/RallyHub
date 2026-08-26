@@ -7,7 +7,7 @@ import {
   IconPlus,
   IconTrash,
 } from '@/components/icons'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
@@ -47,6 +47,15 @@ export const EVENT_NAME_MAX_LENGTH = 40
 
 /** Stage type values are stored on the event; only their labels are translated. */
 const STAGE_TYPE_VALUES: EventStage['type'][] = ['open', 'quiz', 'bingo', 'break']
+
+/**
+ * Icon buttons that sit on a stage's charcoal header strip. The ghost variant
+ * hovers with the light theme's muted grey, which vanishes on charcoal, so
+ * these swap to ivory ink and a translucent white hover in both themes.
+ * #faf7f3 is the ivory the design system already puts on charcoal buttons.
+ */
+const STAGE_HEADER_ICON_BUTTON =
+  'text-[#faf7f3]/80 hover:bg-white/15 hover:text-[#faf7f3] dark:hover:bg-white/15'
 
 type EventFormProps = {
   organizationId: string
@@ -158,6 +167,23 @@ export function EventForm({
       ),
     }))
   }
+
+  const hasEndStage = stages.some((stage) => stage.type === 'end')
+
+  // The in-list Add stage button (P1.2): gold, rendered inside the running
+  // order directly under the last movable stage and above the pinned End
+  // stage, so a new stage visibly lands where the button sits.
+  const addStageButton = (
+    <NeoButton
+      type="button"
+      variant="accent"
+      className="w-full justify-center"
+      onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
+    >
+      <IconPlus className="size-4" />
+      {t('events.form.addStage')}
+    </NeoButton>
+  )
 
   return (
     <div className="space-y-6">
@@ -524,15 +550,16 @@ export function EventForm({
             <h3 className="text-foreground text-base font-bold">{t('events.form.stages')}</h3>
             <p className="text-muted-foreground mt-1 text-xs">{t('events.form.stagesHelp')}</p>
           </div>
-          <Button
+          {/* Gold: adding a stage is THE next action on this card (P1.2). */}
+          <NeoButton
             type="button"
-            variant="outline"
+            variant="accent"
             size="sm"
             onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
           >
             <IconPlus className="size-4" />
             {t('events.form.addStage')}
-          </Button>
+          </NeoButton>
         </div>
         {stages.map((stage, stageIndex) => {
           const bookend = isBookendStage(stage)
@@ -554,14 +581,26 @@ export function EventForm({
           const stageFallbackName =
             stage.name || t('events.form.stageFallback', { index: stageIndex + 1 })
           return (
-          <Card key={stage.id} className="border-border/80 bg-background space-y-3 rounded-md p-4 shadow-none">
-            <div className="flex flex-wrap items-center gap-3">
+          <Fragment key={stage.id}>
+          {/* The add button sits inside the running order, just above the
+              pinned End stage: a new stage lands exactly where the button is. */}
+          {stage.type === 'end' ? addStageButton : null}
+          <Card className="border-border/80 bg-background gap-0 overflow-hidden rounded-md p-0 shadow-none">
+            {/* Charcoal header strip: each stage reads as its own block. The
+                pinned bookends wear a muted version of the same strip. */}
+            <div
+              className={cn(
+                'flex flex-wrap items-center gap-3 px-3 py-2',
+                bookend ? 'bg-nm-charcoal/75' : 'bg-nm-charcoal',
+              )}
+            >
               {/* A long event is a long page. Collapsing a finished stage keeps
                   the one being edited on screen. */}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
+                className={STAGE_HEADER_ICON_BUTTON}
                 aria-label={
                   collapsedStages[stage.id]
                     ? t('events.form.expandStage', { stage: stageFallbackName })
@@ -580,9 +619,9 @@ export function EventForm({
                   <IconChevronDown className="size-4" />
                 )}
               </Button>
-              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">{stageLabel}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#faf7f3]/60">{stageLabel}</span>
               {bookend ? (
-                <span className="text-foreground min-w-40 flex-1 text-sm font-semibold">{stage.name}</span>
+                <span className="min-w-40 flex-1 text-sm font-semibold text-[#faf7f3]">{stage.name}</span>
               ) : (
                 <Input
                   value={stage.name}
@@ -606,6 +645,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className={STAGE_HEADER_ICON_BUTTON}
                     aria-label={t('events.form.moveStageEarlier', { stage: stageFallbackName })}
                     disabled={stageIndex <= firstMovable}
                     onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, -1) }))}
@@ -616,6 +656,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className={STAGE_HEADER_ICON_BUTTON}
                     aria-label={t('events.form.moveStageLater', { stage: stageFallbackName })}
                     disabled={stageIndex >= lastMovable}
                     onClick={() => onChange((prev) => ({ ...prev, stages: moveStage(prev.stages, stageIndex, 1) }))}
@@ -626,6 +667,7 @@ export function EventForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className={STAGE_HEADER_ICON_BUTTON}
                     aria-label={t('events.form.deleteStage', { stage: stageFallbackName })}
                     disabled={middleCount <= 1}
                     onClick={() =>
@@ -640,7 +682,9 @@ export function EventForm({
                 </>
               )}
             </div>
-            {collapsedStages[stage.id] ? null : bookend ? (
+            {collapsedStages[stage.id] ? null : (
+            <div className="space-y-3 p-4">
+            {bookend ? (
               <label className="space-y-1.5 text-xs font-medium">
                 <span>
                   {stage.type === 'welcome'
@@ -806,18 +850,15 @@ export function EventForm({
             ) : null}
             </>
             )}
+            </div>
+            )}
           </Card>
+          </Fragment>
           )
         })}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
-        >
-          <IconPlus className="size-4" />
-          {t('events.form.addStage')}
-        </Button>
+        {/* Legacy events without a pinned End stage keep the in-list button at
+            the bottom, still directly under the last movable stage. */}
+        {hasEndStage ? null : addStageButton}
       </Card>
 
     </div>
