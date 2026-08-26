@@ -4,8 +4,10 @@ import {
   CROSSWORD_SIZE,
   crosswordScore,
   detectCrosswordRuns,
+  findCrosswordRunAt,
   matchingScore,
   parsePuzzleProgress,
+  remapCrosswordClues,
   seededPuzzleShuffle,
   validatePuzzleConfig,
   wordleFeedback,
@@ -216,6 +218,76 @@ describe('crossword run detection', () => {
     ])
     const runs = detectCrosswordRuns(letters, new Set(['0-2']))
     expect(runs).toEqual([{ row: 0, col: 0, direction: 'across', answer: 'at' }])
+  })
+})
+
+describe('findCrosswordRunAt', () => {
+  it('finds the maximal run through a cell even when it starts earlier', () => {
+    // TEAM across at row 0, then an O typed below the T makes the down run
+    // TO whose start is the T above the clicked cell.
+    const letters = new Map<string, string>([
+      ['0-0', 't'], ['0-1', 'e'], ['0-2', 'a'], ['0-3', 'm'],
+      ['1-0', 'o'],
+    ])
+    const runs = detectCrosswordRuns(letters, new Set())
+    expect(findCrosswordRunAt(runs, 1, 0, 'down')).toEqual({
+      row: 0, col: 0, direction: 'down', answer: 'to',
+    })
+    expect(findCrosswordRunAt(runs, 0, 2, 'across')).toEqual({
+      row: 0, col: 0, direction: 'across', answer: 'team',
+    })
+  })
+  it('returns null when no run in that direction covers the cell', () => {
+    const letters = new Map<string, string>([
+      ['0-0', 'a'], ['0-1', 't'],
+    ])
+    const runs = detectCrosswordRuns(letters, new Set())
+    expect(findCrosswordRunAt(runs, 0, 1, 'down')).toBeNull()
+    expect(findCrosswordRunAt(runs, 1, 0, 'across')).toBeNull()
+  })
+})
+
+describe('remapCrosswordClues', () => {
+  const run = (
+    row: number,
+    col: number,
+    direction: 'across' | 'down',
+    answer: string,
+  ) => ({ row, col, direction, answer })
+
+  it('moves a clue with its run when letters are added in front', () => {
+    const previous = [run(0, 3, 'across', 'cat')]
+    const next = [run(0, 0, 'across', 'bobcat')]
+    expect(remapCrosswordClues({ '0-3-across': 'Feline' }, previous, next)).toEqual({
+      '0-0-across': 'Feline',
+    })
+  })
+
+  it('keeps the destination clue on a merge and parks the other under its old key', () => {
+    const previous = [run(0, 0, 'across', 'bob'), run(0, 4, 'across', 'at')]
+    const next = [run(0, 0, 'across', 'bobcat')]
+    expect(
+      remapCrosswordClues(
+        { '0-0-across': 'A name', '0-4-across': 'A preposition' },
+        previous,
+        next,
+      ),
+    ).toEqual({ '0-0-across': 'A name', '0-4-across': 'A preposition' })
+  })
+
+  it('leaves clues of vanished runs untouched so they can come back', () => {
+    const previous = [run(0, 0, 'across', 'cat')]
+    expect(remapCrosswordClues({ '0-0-across': 'Feline' }, previous, [])).toEqual({
+      '0-0-across': 'Feline',
+    })
+  })
+
+  it('ignores empty clue entries', () => {
+    const previous = [run(0, 3, 'across', 'cat')]
+    const next = [run(0, 0, 'across', 'bobcat')]
+    expect(remapCrosswordClues({ '0-3-across': '  ' }, previous, next)).toEqual({
+      '0-3-across': '  ',
+    })
   })
 })
 

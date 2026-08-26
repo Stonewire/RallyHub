@@ -237,12 +237,19 @@ export const CROSSWORD_SIZE = 6
 
 export type CrosswordCell = { row: number; col: number }
 
+export type CrosswordRun = {
+  row: number
+  col: number
+  direction: CrosswordDirection
+  answer: string
+}
+
 /** Every maximal straight run of 2+ letters, across then down, row-major. */
 export function detectCrosswordRuns(
   letters: Map<string, string>,
   blocked: Set<string>,
-): { row: number; col: number; direction: CrosswordDirection; answer: string }[] {
-  const runs: { row: number; col: number; direction: CrosswordDirection; answer: string }[] = []
+): CrosswordRun[] {
+  const runs: CrosswordRun[] = []
   const at = (row: number, col: number) => {
     const key = `${row}-${col}`
     return blocked.has(key) ? undefined : letters.get(key)
@@ -276,6 +283,59 @@ export function detectCrosswordRuns(
   return runs.sort(
     (x, y) => x.row - y.row || x.col - y.col || (x.direction === 'across' ? -1 : 1),
   )
+}
+
+const crosswordRunKey = (run: CrosswordRun) => `${run.row}-${run.col}-${run.direction}`
+
+/** The maximal run in `direction` passing through the given cell, if any. */
+export function findCrosswordRunAt(
+  runs: CrosswordRun[],
+  row: number,
+  col: number,
+  direction: CrosswordDirection,
+): CrosswordRun | null {
+  for (const run of runs) {
+    if (run.direction !== direction) continue
+    const length = Array.from(run.answer).length
+    const covers =
+      direction === 'across'
+        ? run.row === row && col >= run.col && col < run.col + length
+        : run.col === col && row >= run.row && row < run.row + length
+    if (covers) return run
+  }
+  return null
+}
+
+/**
+ * Carries clues keyed by run start (`row-col-direction`) across a grid edit.
+ * Editing can move a run's start cell: letters added in front shift it, and
+ * two runs merging into one leave the swallowed run's key owning nothing.
+ * Each clue follows the run that still passes through its old start cell, so
+ * typed clues survive the regeneration. A clue whose destination key already
+ * holds text stays parked under its old key: undoing the edit brings the run
+ * back to that key and the clue reappears with it.
+ */
+export function remapCrosswordClues(
+  clues: Record<string, string>,
+  previousRuns: CrosswordRun[],
+  nextRuns: CrosswordRun[],
+): Record<string, string> {
+  const result = { ...clues }
+  for (const previous of previousRuns) {
+    const oldKey = crosswordRunKey(previous)
+    const clue = clues[oldKey]
+    if (!clue?.trim()) continue
+    const moved = findCrosswordRunAt(nextRuns, previous.row, previous.col, previous.direction)
+    if (!moved) continue
+    const newKey = crosswordRunKey(moved)
+    if (newKey === oldKey) continue
+    if ((result[newKey] ?? '').trim()) continue
+    result[newKey] = clue
+    // Safe to drop: the only run through this cell in this direction starts
+    // elsewhere now, so no run can own the old key.
+    delete result[oldKey]
+  }
+  return result
 }
 
 export function crosswordWordCells(

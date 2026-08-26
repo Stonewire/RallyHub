@@ -11,6 +11,8 @@ import {
   CROSSWORD_SIZE,
   buildCrosswordLayout,
   detectCrosswordRuns,
+  findCrosswordRunAt,
+  remapCrosswordClues,
   validateCrosswordWords,
 } from '@/lib/puzzle-engine'
 import type {
@@ -78,6 +80,7 @@ export function CrosswordEditor({
   const [sweeping, setSweeping] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const draftInput = useRef<HTMLInputElement>(null)
+  const clueInput = useRef<HTMLInputElement>(null)
 
   const blockedSet = useMemo(() => new Set(blocked), [blocked])
 
@@ -250,22 +253,52 @@ export function CrosswordEditor({
       next[slot.key] = letter
     }
     setPlaced(next)
-    const key = runKeyOf(start.row, start.col, dir)
+    // Words are re-detected from the letters as maximal runs, so the word the
+    // player just typed may not start at the clicked cell: letters already
+    // sitting before it pull the run's start earlier, and merging runs shift
+    // starts too. Ask the fresh layout where each run really begins, let
+    // existing clues follow their runs to any new keys, and open the clue box
+    // on the run that actually owns the start cell. Keying the clue off the
+    // clicked cell instead used to park it under a key no word owns, so the
+    // clue typed next silently disappeared.
+    const nextRuns = detectCrosswordRuns(lettersMap(next), blockedSet)
+    const nextClues = remapCrosswordClues(clues, runs, nextRuns)
+    setClues(nextClues)
     setStart(null)
     setDir(null)
     setDraft('')
-    openClue(key)
+    const landed =
+      findCrosswordRunAt(nextRuns, start.row, start.col, dir) ??
+      // A single letter can complete a word in the other direction only, for
+      // example an S added under an existing word's last letter.
+      findCrosswordRunAt(nextRuns, start.row, start.col, dir === 'across' ? 'down' : 'across')
+    if (landed) {
+      openClue(runKeyOf(landed.row, landed.col, landed.direction), nextClues)
+    }
     return true
   }
 
-  function openClue(key: string) {
+  function openClue(key: string, source: Record<string, string> = clues) {
     setClueTarget(key)
-    setClueDraft(clues[key] ?? '')
+    setClueDraft(source[key] ?? '')
+    // Deferred like the grid input's focus: works whether the clue box is
+    // freshly mounted or already open, which autoFocus alone does not cover.
+    window.setTimeout(() => clueInput.current?.focus(), 0)
+  }
+
+  // Whatever is in the clue field is committed, never silently dropped. Runs
+  // on blur as well as on Save and Enter, so clicking away to start the next
+  // word keeps the typed clue.
+  function commitClue() {
+    if (!clueTarget) return
+    const value = clueDraft.trim()
+    if (!value) return
+    setClues((current) => ({ ...current, [clueTarget]: value }))
   }
 
   function saveClue() {
-    if (!clueTarget) return
-    setClues((current) => ({ ...current, [clueTarget]: clueDraft.trim() }))
+    if (!clueTarget || !clueDraft.trim()) return
+    commitClue()
     const remaining = needsClue.filter((k) => k !== clueTarget)
     if (sweeping && remaining.length > 0) {
       openClue(remaining[0])
@@ -296,6 +329,16 @@ export function CrosswordEditor({
       if ((owners.get(k) ?? 0) <= 1) delete next[k]
     })
     setPlaced(next)
+    // Removal can reshape the remaining runs, so their clues follow them.
+    const nextRuns = detectCrosswordRuns(lettersMap(next), blockedSet)
+    setClues((current) => remapCrosswordClues(current, runs, nextRuns))
+    // A clue box left open for the removed word would commit into a key no
+    // run owns any more, so it closes with the word.
+    if (clueTarget === runKeyOf(word.row, word.col, word.direction)) {
+      setSweeping(false)
+      setClueTarget(null)
+      setClueDraft('')
+    }
   }
 
   function startSweep() {
@@ -462,12 +505,22 @@ export function CrosswordEditor({
           </Label>
           <div className="flex gap-2">
             <Input
+              ref={clueInput}
               value={clueDraft}
               maxLength={CLUE_LIMIT}
               autoFocus
               placeholder={t('games.crossword.cluePlaceholder')}
               className="flex-1 bg-background"
               onChange={(event) => setClueDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  // preventDefault so Enter never falls through to any
+                  // surrounding form submit: it commits the clue, full stop.
+                  event.preventDefault()
+                  saveClue()
+                }
+              }}
+              onBlur={commitClue}
             />
             <Button type="button" size="sm" disabled={!clueDraft.trim()} onClick={saveClue}>
               {t('common:save')}
