@@ -5,7 +5,7 @@ import { Link, useBlocker, useSearchParams } from 'react-router-dom'
 import { orgPath } from '@/lib/org-path'
 import { useOptionalTenant } from '@/contexts/tenant-context'
 
-import { NeoButton } from '@/components/neo-minimal'
+import { NeoButton, NeoSelect } from '@/components/neo-minimal'
 import {
   NoOrganizationMessage,
   QueryError,
@@ -500,13 +500,12 @@ export function AdminSettingsPage() {
                     ))}
                   </div>
                 </div>
-              </Card>
 
-              <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-                <SettingsCardHeader title={t('settings.languageCard')} visibility="Public" />
-                <div className="space-y-1.5">
+                {/* Compact inline row: the default language belongs with the
+                    rest of the brand identity, not in a section of its own. */}
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
                   <Label htmlFor="default-language">{t('settings.defaultLanguage')}</Label>
-                  <select
+                  <NeoSelect
                     id="default-language"
                     value={form.default_language}
                     onChange={(event) =>
@@ -516,17 +515,14 @@ export function AdminSettingsPage() {
                           .value as OrganizationFormState['default_language'],
                       })
                     }
-                    className="border-input bg-background w-full max-w-sm rounded-lg border px-3 py-2 text-sm"
+                    className="px-3 py-1.5 text-sm"
                   >
                     {APP_LANGUAGES.map(({ code, label }) => (
                       <option key={code} value={code}>
                         {label}
                       </option>
                     ))}
-                  </select>
-                  <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-                    {t('settings.defaultLanguageHint')}
-                  </p>
+                  </NeoSelect>
                 </div>
               </Card>
 
