@@ -1197,7 +1197,9 @@
       "ready": "Ready",
       "demo": "Demo",
       "active": "Active",
-      "archived": "Archived"
+      "archived": "Archived",
+      "demoHint": "Want to try the event? Test with this one. Watermarked, and only two teams can join.",
+      "activeWarning": "Goes live for participants. The event charge applies when you activate, and the event stays active for 24 hours."
     },
     "deleteDialog": {
       "title": "Delete event",

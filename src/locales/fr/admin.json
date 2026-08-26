@@ -1197,7 +1197,9 @@
       "ready": "Prêt",
       "demo": "Démo",
       "active": "Actif",
-      "archived": "Archivé"
+      "archived": "Archivé",
+      "demoHint": "Vous voulez essayer l'événement ? Testez avec ce statut. Avec filigrane, et seules deux équipes peuvent rejoindre.",
+      "activeWarning": "Passe en direct pour les participants. Les frais d'événement s'appliquent dès l'activation et l'événement reste actif pendant 24 heures."
     },
     "deleteDialog": {
       "title": "Supprimer l'événement",

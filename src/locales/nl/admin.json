@@ -1197,7 +1197,9 @@
       "ready": "Klaar",
       "demo": "Demo",
       "active": "Actief",
-      "archived": "Gearchiveerd"
+      "archived": "Gearchiveerd",
+      "demoHint": "Wil je het event uitproberen? Test dan met deze status. Met watermerk, en er kunnen maar twee teams meedoen.",
+      "activeWarning": "Gaat live voor deelnemers. De eventkosten gelden zodra je activeert en het event blijft 24 uur actief."
     },
     "deleteDialog": {
       "title": "Event verwijderen",

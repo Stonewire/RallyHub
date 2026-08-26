@@ -1197,7 +1197,9 @@
       "ready": "Listo",
       "demo": "Demo",
       "active": "Activo",
-      "archived": "Archivado"
+      "archived": "Archivado",
+      "demoHint": "¿Quieres probar el evento? Usa este estado. Lleva marca de agua y solo pueden entrar dos equipos.",
+      "activeWarning": "Se pone en directo para los participantes. El cargo del evento se aplica al activarlo y el evento permanece activo durante 24 horas."
     },
     "deleteDialog": {
       "title": "Eliminar evento",
