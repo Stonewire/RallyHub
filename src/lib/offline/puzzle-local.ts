@@ -10,8 +10,10 @@
 
 import type { PuzzleProgress } from '@/lib/puzzle-engine'
 import type { PuzzleMatchingPair } from '@/types/game-config'
+import type { Tables } from '@/types/helpers'
 
 import { idbGet, idbSet } from './idb'
+import type { OutboxItem } from './outbox'
 import type { OfflineAnswerKey } from './package'
 import {
   crosswordPointsLocal,
@@ -115,6 +117,42 @@ export function freshLocalPuzzleProgress(type: PuzzleProgress['puzzleType']): Pu
     solveSeconds: null,
     completed: false,
     pointsAwarded: null,
+  }
+}
+
+/** The bundle submissions row a queued puzzle result will become once
+ *  `submit_offline_puzzle_result` drains it. Merging this row when the result
+ *  is queued (and again on rehydration after a reload) turns the game's tile
+ *  green immediately, exactly like the rehydrated pending cards for open
+ *  submissions. The id IS the outbox clientId, which the RPC uses as the row's
+ *  primary key, so the authoritative server row replaces this one in place on
+ *  drain with no flicker. media_url mirrors the RPC's own formats; points stay
+ *  null because the server re-scores authoritatively. */
+export function queuedPuzzleSubmissionRow(item: OutboxItem): Tables<'submissions'> {
+  const payload = item.payload as { puzzleType?: string; result?: Record<string, unknown> }
+  const result = payload.result ?? {}
+  let mediaUrl: string
+  if (payload.puzzleType === 'wordle') {
+    mediaUrl = `wordle:${Array.isArray(result.guesses) ? result.guesses.length : 0}`
+  } else if (payload.puzzleType === 'matching') {
+    const attempts = typeof result.attempts === 'number' ? Math.max(0, result.attempts) : 0
+    mediaUrl = `matching:${attempts}`
+  } else {
+    const seconds =
+      typeof result.solveSeconds === 'number' ? Math.max(0, result.solveSeconds) : 0
+    // Positive-only, so Math.round matches Postgres round(numeric) exactly.
+    mediaUrl = `crossword:${Math.round(seconds)}`
+  }
+  return {
+    id: item.clientId,
+    event_id: item.eventId,
+    team_id: item.teamId,
+    game_id: item.gameId,
+    media_url: mediaUrl,
+    media_type: 'puzzle',
+    status: 'approved',
+    points_awarded: null,
+    created_at: item.createdAt,
   }
 }
 

@@ -38,6 +38,11 @@ type Props = {
    *  the crossword's answer key was downloaded; otherwise the server flow
    *  runs. */
   onQueuePuzzleResult?: (item: OutboxItem) => void
+  /** Fired once when play on THIS screen completes the grid (never when a
+   *  finished crossword is merely reopened), so the parent can show its solved
+   *  summary and return to the challenge list without relying on the Realtime
+   *  round trip, which offline never arrives. */
+  onSolved?: (progress: PuzzleProgress) => void
 }
 
 const GRID_SIZE = 6
@@ -55,7 +60,14 @@ function clueCells(clue: CrosswordClue): string[] {
   )
 }
 
-export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuzzleResult }: Props) {
+export function CrosswordPlayer({
+  eventId,
+  teamId,
+  game,
+  accentColor,
+  onQueuePuzzleResult,
+  onSolved,
+}: Props) {
   const { t } = useTranslation('live')
   const config = (game.config ?? {}) as GameConfig
   const layout = config.puzzle_crossword_layout
@@ -85,6 +97,11 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
   // Latest applied progress, for callbacks that must read it without keeping
   // the whole progress object in their dependency lists.
   const progressRef = useRef<PuzzleProgress | null>(null)
+  // Kept fresh so the stable applyProgress below reports completions to the
+  // parent's current handler.
+  const onSolvedRef = useRef(onSolved)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom, see comment above
+  onSolvedRef.current = onSolved
 
   const clues = useMemo(() => layout?.clues ?? [], [layout])
   const openKeys = useMemo(
@@ -136,6 +153,7 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
 
   const applyProgress = useCallback(
     (next: PuzzleProgress) => {
+      const previous = progressRef.current
       progressRef.current = next
       setProgress(next)
       setCells((current) =>
@@ -146,6 +164,10 @@ export function CrosswordPlayer({ eventId, teamId, game, accentColor, onQueuePuz
       // With the key on device, IndexedDB mirrors every applied progress so
       // going offline mid-puzzle resumes the same board and timer origin.
       if (offlineWordsRef.current) saveLocalPuzzleProgress(eventId, teamId, game.id, next)
+      // A genuine unsolved-to-solved transition on this screen. A finished
+      // grid applied on mount (reopening to look at the board) has no previous
+      // progress here, so it never fires this.
+      if (next.completed && previous && !previous.completed) onSolvedRef.current?.(next)
     },
     [eventId, game.id, teamId],
   )

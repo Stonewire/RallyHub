@@ -277,12 +277,39 @@ export function PuzzleGamePlayer({
   // finished puzzle to look at the board must not bounce the team straight
   // back out.
   const sawUnsolvedRef = useRef(false)
+  // The hold timer arms exactly once per solve and the callback lives in a
+  // ref: with the callback in the effect's deps, every parent re-render
+  // cleared and re-armed the timer, and offline the realtime channel's
+  // reconnect backoff re-renders the join surface faster than the hold, so
+  // the return to the challenge list never fired.
+  const onSolvedAutoCloseRef = useRef(onSolvedAutoClose)
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom, see comment above
+  onSolvedAutoCloseRef.current = onSolvedAutoClose
+  const closeTimerRef = useRef<number | null>(null)
   useEffect(() => {
     if (progress && !solved) sawUnsolvedRef.current = true
-    if (!solved || !sawUnsolvedRef.current || !onSolvedAutoClose) return
-    const timer = window.setTimeout(onSolvedAutoClose, RESULT_HOLD_MS)
-    return () => window.clearTimeout(timer)
-  }, [progress, solved, onSolvedAutoClose])
+    if (!solved || !sawUnsolvedRef.current || closeTimerRef.current !== null) return
+    closeTimerRef.current = window.setTimeout(
+      () => onSolvedAutoCloseRef.current?.(),
+      RESULT_HOLD_MS,
+    )
+  }, [progress, solved])
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current)
+    },
+    [],
+  )
+
+  // The crossword drives its own board; offline there is no Realtime round
+  // trip to tell this parent the grid is done, so the completion arrives
+  // directly and the solved summary + auto-close behave exactly like online.
+  const handleCrosswordSolved = useCallback((next: PuzzleProgress) => {
+    // The callback only fires for a solve played on this screen, so the
+    // reopen guard must not hold the auto-close back.
+    sawUnsolvedRef.current = true
+    setProgress(next)
+  }, [])
 
   /** ONE queued item per completion; the server replays the raw inputs and
    *  re-scores them authoritatively when the outbox drains. */
@@ -606,6 +633,7 @@ export function PuzzleGamePlayer({
           game={game}
           accentColor={accentColor}
           onQueuePuzzleResult={onQueuePuzzleResult}
+          onSolved={handleCrosswordSolved}
         />
       )}
       </div>

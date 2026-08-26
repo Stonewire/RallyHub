@@ -92,6 +92,7 @@ import { Outbox, PermanentSubmitError, NetworkSubmitError, type OutboxItem } fro
 import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
 import { getBlob } from '@/lib/offline/blob-cache'
 import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/package'
+import { queuedPuzzleSubmissionRow } from '@/lib/offline/puzzle-local'
 import { downloadStoreSnapshot } from '@/lib/offline/store-snapshot'
 import { useOnlineStatus } from '@/lib/offline/net'
 import { scoreOfflineText } from '@/lib/offline/scoring'
@@ -553,6 +554,11 @@ export function JoinGameView({
   const queuePuzzleResult = useCallback(
     (item: OutboxItem) => {
       void outbox.enqueue(item)
+      // The game's tile goes green NOW, from the queued result: the row's id
+      // is the outbox clientId, which the drain RPC uses as the submission's
+      // primary key, so the authoritative server row replaces this one in
+      // place when the queue drains, with no flicker back to unsolved.
+      mergeOwnSubmissionRef.current('INSERT', queuedPuzzleSubmissionRow(item))
     },
     [outbox],
   )
@@ -597,6 +603,14 @@ export function JoinGameView({
                   },
                 ],
           )
+          continue
+        }
+        if (item.kind === 'puzzle-result') {
+          // A puzzle solved offline must keep its green tile through a reload,
+          // the same way rehydrated open submissions reappear as pending
+          // cards. The queued result stands in until the server row (same id)
+          // takes over on drain.
+          mergeOwnSubmissionRef.current('INSERT', queuedPuzzleSubmissionRow(item))
           continue
         }
         if (item.kind !== 'open-submission') continue

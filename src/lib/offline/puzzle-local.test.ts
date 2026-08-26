@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import type { OutboxItem } from './outbox'
 import {
   applyLocalCrosswordCheck,
   applyLocalCrosswordHint,
@@ -8,6 +9,7 @@ import {
   crosswordWordsFromKey,
   freshLocalPuzzleProgress,
   matchingPairsFromKey,
+  queuedPuzzleSubmissionRow,
   wordleAnswerFromKey,
 } from './puzzle-local'
 import type { CrosswordWord } from './scoring'
@@ -159,5 +161,59 @@ describe('crossword local drivers', () => {
   it('hints cap at 3', () => {
     const capped = { ...freshLocalPuzzleProgress('crossword'), hintsUsed: 3 }
     expect(applyLocalCrosswordHint(capped, words, {})).toBe(capped)
+  })
+})
+
+describe('queuedPuzzleSubmissionRow', () => {
+  const base = (puzzleType: string, result: Record<string, unknown>): OutboxItem => ({
+    clientId: 'client-1',
+    eventId: 'event-1',
+    teamId: 'team-1',
+    kind: 'puzzle-result',
+    gameId: 'game-1',
+    createdAt: '2026-08-26T10:00:00.000Z',
+    payload: { puzzleType, result },
+  })
+
+  it('mirrors the drained server row: same id, approved, original created_at', () => {
+    const row = queuedPuzzleSubmissionRow(base('wordle', { guesses: ['AUDIO', 'RADIO'] }))
+    expect(row).toEqual({
+      id: 'client-1',
+      event_id: 'event-1',
+      team_id: 'team-1',
+      game_id: 'game-1',
+      media_url: 'wordle:2',
+      media_type: 'puzzle',
+      status: 'approved',
+      // The server re-scores authoritatively on drain; the provisional row
+      // makes no points claim of its own.
+      points_awarded: null,
+      created_at: '2026-08-26T10:00:00.000Z',
+    })
+  })
+
+  it('media_url matches the RPC format per type', () => {
+    expect(
+      queuedPuzzleSubmissionRow(base('matching', { attempts: 7, wrongMatches: 2 })).media_url,
+    ).toBe('matching:7')
+    expect(
+      queuedPuzzleSubmissionRow(base('crossword', { cells: {}, solveSeconds: 123, hintsUsed: 1 }))
+        .media_url,
+    ).toBe('crossword:123')
+    // Postgres round(greatest(seconds, 0)) parity on the odd shapes.
+    expect(queuedPuzzleSubmissionRow(base('crossword', { solveSeconds: 89.5 })).media_url).toBe(
+      'crossword:90',
+    )
+    expect(queuedPuzzleSubmissionRow(base('crossword', { solveSeconds: -4 })).media_url).toBe(
+      'crossword:0',
+    )
+  })
+
+  it('a malformed payload still yields a well-formed approved row', () => {
+    const row = queuedPuzzleSubmissionRow(base('wordle', {}))
+    expect(row.media_url).toBe('wordle:0')
+    expect(row.status).toBe('approved')
+    expect(queuedPuzzleSubmissionRow(base('matching', {})).media_url).toBe('matching:0')
+    expect(queuedPuzzleSubmissionRow(base('crossword', {})).media_url).toBe('crossword:0')
   })
 })

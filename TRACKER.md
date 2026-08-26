@@ -82,6 +82,26 @@ Items listed for reference:
 **Phase 3, offline round 2 (N13; one item per commit; sim + preview tested):**
 - P3.1 Puzzle completion offline: auto-return to list + tile turns green
   (state source for tiles while offline; wordle/crossword, check matching).
+  LANDED: two root causes. (1) The solved-hold timer had the parent's inline
+  onSolvedAutoClose in its effect deps, so every join-surface re-render
+  cleared and re-armed the 1s hold; offline, the realtime channel's reconnect
+  backoff re-renders faster than the hold, so the return never fired (all
+  three puzzle types, matching included). The timer now arms once per solve
+  with the callback in a ref. The crossword additionally never told its
+  parent it was done offline (online that rode the Realtime broadcast);
+  CrosswordPlayer now fires an onSolved callback on the unsolved-to-solved
+  transition, never on reopening a finished grid. (2) Tiles derive state from
+  bundle submissions, which offline completion never creates. The queued
+  puzzle-result now merges a provisional approved submissions row into the
+  bundle at queue time and again on rehydration after a reload (mirror of the
+  open-submission pending cards; queuedPuzzleSubmissionRow in
+  src/lib/offline/puzzle-local.ts, unit-tested). Its id is the outbox
+  clientId, which submit_offline_puzzle_result uses as the row's primary key,
+  so the authoritative row replaces it in place on drain, no flicker.
+  Scoring, the RPC and the exactly-once machinery untouched. Known narrow
+  gap, same as open submissions: a full bundle refetch racing ahead of the
+  drain while back online can briefly drop the provisional row until the
+  drain merges the server row.
 - P3.2 Offline media caching: game photos, Powered by RallyHub logo, UI sound
   effects (extend package/blob cache + SW).
 - P3.3 Sync status dot near the version label: yellow syncing, green complete,
