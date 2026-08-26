@@ -5,6 +5,37 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.24.0 - 2026-08-27 (fix round 1, phase 2: live surfaces)
+
+Second batch from the 26 Aug test pass, all live-surface work. Adversarially
+reviewed before shipping; the review's confirmed findings were fixed in the
+same batch.
+
+- Bingo Start now starts on the first press. Root causes closed: play() calls
+  that fell outside the browser's user-gesture window (both audio decks are
+  now silently unlocked inside the press), a duplicate activation round trip
+  racing the pre-warm, a disabled-button window that ate early presses, and
+  silent activation failures. A press before the run exists plays the right
+  clip immediately and reconciles the run in the background. The activation
+  can no longer flip a playing round back to waiting (guarded client-side,
+  and the activate-bingo-run edge function was redeployed with the same
+  guard, which also finally ships the event-manager authorisation fix
+  pending since V2.5.6).
+- Bingo on the big screen redesigned: teams sit along the bottom as small
+  coloured circles, grey while guessing, lit in team colour on selection,
+  green or red at the reveal; the centre shows an animated waveform while a
+  song plays, with no song name anywhere.
+- The on-screen keyboard now uses the standard Bulgarian Phonetic layout
+  (QWERTY positions, not alphabetical), uniform iPhone-style key sizing on
+  every language, and long-press accent bubbles (á, é, ñ, ç and friends) on
+  every Latin keyboard regardless of the device language.
+- Live surfaces keep the device awake (screen wake lock) on player, display,
+  facilitator and tablet screens.
+- The example video label on photo and video challenges follows the event's
+  UI colour and is slightly bigger.
+- Music bingo clips cut from now on are loudness normalised (from phase 1)
+  and the clip player ignores stray signals from the silent unlock.
+
 ## V3.23.0 - 2026-08-26 (fix round 1, phase 1: admin quick fixes)
 
 First batch from Rumen's 26 Aug test pass. Admin-side only, no live-path

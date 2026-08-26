@@ -42,7 +42,20 @@ catalog clips renormalise on re-cut. Items listed for reference:
 - P1.7 Music clip loudness normalisation in the cut pipeline
   (extract-audio-clip.ts, ffmpeg loudnorm; admin-side processing).
 
-**Phase 2, live-surface fixes (one per commit, self-smoke-tested each):**
+**Phase 2, live-surface fixes: SHIPPED V3.24.0, 27 Aug.** All five items
+landed, then a 3-lens adversarial review of the merged batch confirmed 4 bugs
+(1 bingo-start activation clobber, 3 keyboard long-press rollover/bubble
+bugs) which were fixed before the push, plus hardenings (reconcile failure
+notify, cross-stage override guard, unlock-WAV bail in the clip player,
+emoji-safe team initials). The activate-bingo-run edge function was
+redeployed (v25) with the never-reset-a-playing-round guard AND the
+event-manager authorisation that had been pending since V2.5.6. Latin
+keyboards now offer the accent long-press union map regardless of device
+language (an accented answer stays typeable for an English-pinned team).
+Deferred, accepted: display outage can briefly show the previous round's
+reveal colours; wake lock does not retry an initial low-power refusal.
+Rumen's live smoke of bingo start + display happens in the big test round.
+Items listed for reference:
 - P2.1 Example video label follows event UI colour, slightly bigger.
 - P2.2 Bingo Start multi-press: re-diagnose and fix (P1-B1 successor). LANDED
   (this round): three residual windows found and closed. (1) A Start press
