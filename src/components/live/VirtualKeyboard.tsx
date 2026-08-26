@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import {
   NUMBER_ROWS,
   SYMBOL_ROWS,
-  keyVariantsForLanguage,
+  keyVariantsFor,
   keyboardColumns,
   letterRowsFor,
   type KeyboardAlphabet,
@@ -14,8 +14,8 @@ import { textOnAccent } from '@/lib/live-event'
 import { playKeyClickSound, type KeyClickKind } from '@/lib/sounds'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
-// Letter rows, per-language long-press variants and the column count all live
-// in src/lib/keyboard-layouts.ts as data: one component, one sizing system,
+// Letter rows, long-press accent variants and the column count all live in
+// src/lib/keyboard-layouts.ts as data: one component, one sizing system,
 // every language follows the same QWERTY-style pattern.
 
 /** Matches the guess tiles: green for placed, RallyHub yellow for present. */
@@ -47,6 +47,12 @@ const BUBBLE_GAP = 4
 const BUBBLE_PAD = 4
 /** Gap between the bubble's bottom edge and the top of the held key. */
 const BUBBLE_LIFT = 6
+/**
+ * While sliding, a finger this far above the bubble or below the held key has
+ * clearly left the row: the highlight clears and releasing picks nothing, so
+ * a slide away is the cancel gesture.
+ */
+const BUBBLE_CANCEL_MARGIN = 48
 
 type Layer = 'letters' | 'numbers' | 'symbols'
 
@@ -55,23 +61,33 @@ type HoldState = {
   letter: string
   /** Base letter first, then its accents: the bubble in reading order. */
   options: string[]
+  /** Whether the base letter went through lowercased; a picked accent matches. */
+  lowercased: boolean
   el: HTMLButtonElement
   downX: number
   downY: number
   moved: boolean
   bubbleOpen: boolean
-  highlight: number
+  /** null: the finger slid away from the row, releasing picks nothing. */
+  highlight: number | null
   timer: number
 }
 
 type BubbleState = {
+  /** The letter the key already typed on the way down; picking it is a no-op. */
+  base: string
   options: string[]
+  /** Case of the already-typed base letter; a picked accent matches it. */
+  lowercased: boolean
   /** Panel-relative px, for rendering inside the fixed panel. */
   left: number
   top: number
   /** Viewport-relative px, for hit-testing the sliding finger. */
   viewportLeft: number
-  highlight: number
+  /** Vertical band (viewport px) the finger may roam; outside clears the pick. */
+  bandTop: number
+  bandBottom: number
+  highlight: number | null
   /** slide: finger still down, release picks. tap: released in place, tap picks. */
   mode: 'slide' | 'tap'
 }
@@ -99,7 +115,7 @@ export function VirtualKeyboard({
   keyState,
   disabled,
 }: Props) {
-  const { t, i18n } = useTranslation('live')
+  const { t } = useTranslation('live')
   const submitText = submitLabel ?? t('puzzle.submit')
   // Answers are compared exactly, so case is the player's to choose. Starts on
   // for the first letter, then releases itself, like a phone keyboard.
@@ -112,8 +128,10 @@ export function VirtualKeyboard({
   const holdRef = useRef<HoldState | null>(null)
   const [bubble, setBubble] = useState<BubbleState | null>(null)
 
-  // Accents follow the language the phone is reading the event in.
-  const variantMap = keyVariantsForLanguage(i18n.language)
+  // One union accent map on every latin board, whatever language the phone is
+  // reading the event in: an organiser can set an accented answer while a
+  // team's device is pinned to English.
+  const variantMap = keyVariantsFor(alphabet)
 
   useEffect(() => {
     return () => {
@@ -167,6 +185,17 @@ export function VirtualKeyboard({
     commitChar(char)
   }
 
+  /**
+   * A picked accent REPLACES the base letter the key already typed on the way
+   * down: one delete (the exact keystroke the delete key sends) then the
+   * accent, in the same case the base letter went through in.
+   */
+  function commitVariant(option: string, lowercased: boolean) {
+    keyFeedback()
+    onBackspace()
+    onKey(lowercased ? option.toLocaleLowerCase() : option)
+  }
+
   function clearHold() {
     if (holdRef.current) window.clearTimeout(holdRef.current.timer)
     holdRef.current = null
@@ -184,13 +213,18 @@ export function VirtualKeyboard({
       Math.max(centre - width / 2, 8),
       Math.max(8, panelRect.width - width - 8),
     )
+    const viewportTop = keyRect.top - height - BUBBLE_LIFT
     hold.bubbleOpen = true
     setPoppedKey(null)
     setBubble({
+      base: hold.letter,
       options: hold.options,
+      lowercased: hold.lowercased,
       left: viewportLeft - panelRect.left,
-      top: keyRect.top - panelRect.top - height - BUBBLE_LIFT,
+      top: viewportTop - panelRect.top,
       viewportLeft,
+      bandTop: viewportTop - BUBBLE_CANCEL_MARGIN,
+      bandBottom: keyRect.bottom + BUBBLE_CANCEL_MARGIN,
       highlight: 0,
       mode: 'slide',
     })
@@ -241,32 +275,32 @@ export function VirtualKeyboard({
       // Forgiving hit targets, like a real phone keyboard (CF9): the whole
       // panel takes the pointer-down and routes it to the NEAREST letter key,
       // so a thumb landing in a gap or a couple of pixels off still types.
-      // Commits on finger DOWN, like iOS, except on keys that carry accent
-      // variants: those commit on release, so a ~450ms hold can pop the
-      // variant bubble first. Modifier keys keep their own handlers; a miss
-      // near them falls through to the closest letter only when it is
-      // genuinely close.
+      // EVERY key commits on finger DOWN, like iOS, accent-variant keys
+      // included: rollover order and rhythm stay identical across languages.
+      // A ~450ms hold then pops the variant bubble, and a picked accent
+      // replaces the just-typed base letter (delete + accent). Modifier keys
+      // keep their own handlers; a miss near them falls through to the
+      // closest letter only when it is genuinely close.
       onPointerDown={(e) => {
         if (disabled) return
-        // The same pointer cannot be down twice, so a hold still recorded
-        // under this id is stale (a missed pointerup): sweep it first.
-        if (holdRef.current?.pointerId === e.pointerId) {
-          clearHold()
-          setBubble((current) => (current?.mode === 'slide' ? null : current))
-        }
         const target = e.target as HTMLElement
-        // A bubble left open by a still hold: tapping an option types it,
-        // tapping anywhere else just puts the bubble away.
+        // A bubble left open by a still hold: tapping an option replaces the
+        // already-typed base letter with it, tapping anywhere else just puts
+        // the bubble away (the base letter stays), and neither types a key.
         if (bubble?.mode === 'tap') {
           e.preventDefault()
           const option = target.closest('button[data-kb-variant]') as HTMLButtonElement | null
           setBubble(null)
-          if (option) {
-            keyFeedback()
-            commitChar(option.dataset.kbVariant!)
-          }
+          const picked = option?.dataset.kbVariant
+          if (picked && picked !== bubble.base) commitVariant(picked, bubble.lowercased)
           return
         }
+        // ANY other pointer-down ends whatever hold is in flight: the base
+        // letter it typed on the way down stands, an open slide bubble closes
+        // (an orphaned one can never sit around swallowing taps), and this
+        // press carries on to its own key, so rollover typing stays intact.
+        if (holdRef.current) clearHold()
+        if (bubble) setBubble(null)
         // Direct hit on a letter key: press it (letters have no handler of
         // their own, this delegate is the only path).
         const direct = target.closest('button[data-kb]') as HTMLButtonElement | null
@@ -275,12 +309,13 @@ export function VirtualKeyboard({
             e.preventDefault()
             const letter = direct.dataset.kb!
             const variants = layer === 'letters' ? variantMap[letter] : undefined
+            // Case is decided now, before press() releases shift: a picked
+            // accent must land in the same case as the base it replaces.
+            const lowercased = layer === 'letters' && !shift
+            press(letter)
             if (variants?.length) {
-              // Same click and key pop as any other press; the letter itself
-              // lands on release, once we know it was a tap and not a hold.
-              keyFeedback()
-              popKey(letter)
-              clearHold()
+              // The letter is already in; the hold only decides whether the
+              // accent bubble gets a chance to swap it out.
               const panel = e.currentTarget as HTMLElement
               try {
                 panel.setPointerCapture(e.pointerId)
@@ -292,6 +327,7 @@ export function VirtualKeyboard({
                 pointerId: e.pointerId,
                 letter,
                 options: [letter, ...variants],
+                lowercased,
                 el: direct,
                 downX: e.clientX,
                 downY: e.clientY,
@@ -303,8 +339,6 @@ export function VirtualKeyboard({
                 }, LONG_PRESS_MS),
               }
               holdRef.current = hold
-            } else {
-              press(letter)
             }
           }
           return
@@ -334,19 +368,25 @@ export function VirtualKeyboard({
         if (!hold || e.pointerId !== hold.pointerId) return
         if (Math.hypot(e.clientX - hold.downX, e.clientY - hold.downY) > 10) hold.moved = true
         if (!hold.bubbleOpen) return
-        // Sliding sideways under the bubble highlights the nearest option.
+        // Sliding sideways under the bubble highlights the nearest option;
+        // sliding well away from the row clears it, so releasing cancels.
         setBubble((current) => {
           if (!current) return current
-          const count = current.options.length
-          const index = Math.min(
-            count - 1,
-            Math.max(
-              0,
-              Math.floor(
-                (e.clientX - current.viewportLeft - BUBBLE_PAD) / (BUBBLE_OPTION + BUBBLE_GAP),
+          let index: number | null
+          if (e.clientY < current.bandTop || e.clientY > current.bandBottom) {
+            index = null
+          } else {
+            const count = current.options.length
+            index = Math.min(
+              count - 1,
+              Math.max(
+                0,
+                Math.floor(
+                  (e.clientX - current.viewportLeft - BUBBLE_PAD) / (BUBBLE_OPTION + BUBBLE_GAP),
+                ),
               ),
-            ),
-          )
+            )
+          }
           hold.highlight = index
           return index === current.highlight ? current : { ...current, highlight: index }
         })
@@ -355,16 +395,17 @@ export function VirtualKeyboard({
         const hold = holdRef.current
         if (!hold || e.pointerId !== hold.pointerId) return
         clearHold()
-        if (!hold.bubbleOpen) {
-          // A quick tap: the base letter, exactly as on every other key.
-          commitChar(hold.letter)
-          return
-        }
+        // A quick tap: the base letter went in on the way down, nothing more.
+        if (!hold.bubbleOpen) return
         if (hold.moved) {
-          // Slid across the bubble: release picks the highlighted option.
-          keyFeedback()
-          commitChar(hold.options[hold.highlight] ?? hold.letter)
+          // Slid across the bubble: release swaps the base letter for the
+          // highlighted accent. On the base option, or with the highlight
+          // cleared by sliding away, the base letter simply stays.
           setBubble(null)
+          if (hold.highlight != null && hold.highlight > 0) {
+            const option = hold.options[hold.highlight]
+            if (option) commitVariant(option, hold.lowercased)
+          }
         } else {
           // Held still and let go: leave the bubble up to be tapped.
           setBubble((current) => (current ? { ...current, mode: 'tap' } : current))
@@ -502,9 +543,10 @@ export function VirtualKeyboard({
 
       {bubble ? (
         // The iPhone-style variant bubble: base letter first, accents after,
-        // floating just above the held key. While the finger is still down it
-        // is purely visual (slide highlights, release picks); once released in
-        // place its options become real, tappable buttons.
+        // floating just above the held key. The base letter is already typed;
+        // a picked accent replaces it. While the finger is still down the
+        // bubble is purely visual (slide highlights, release picks); once
+        // released in place its options become real, tappable buttons.
         <div
           aria-hidden={bubble.mode === 'slide'}
           className="absolute z-20 flex items-center rounded-xl bg-white shadow-xl"
@@ -523,7 +565,7 @@ export function VirtualKeyboard({
               data-kb-variant={option}
               aria-label={option}
               className={`flex items-center justify-center rounded-lg text-2xl font-bold ${
-                !shift ? 'lowercase' : 'uppercase'
+                bubble.lowercased ? 'lowercase' : 'uppercase'
               }`}
               style={{
                 width: BUBBLE_OPTION,

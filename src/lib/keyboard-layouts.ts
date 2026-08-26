@@ -1,5 +1,3 @@
-import type { AppLanguage } from '@/lib/i18n'
-
 /**
  * On-screen keyboard layout data for the live player surfaces.
  *
@@ -48,36 +46,26 @@ export const SYMBOL_ROWS: readonly (readonly string[])[] = [
 ]
 
 /**
- * Long-press variants per language, keyed by the base letter as it appears in
- * the rows above. Held keys pop these in a bubble, iPhone style. English and
- * Bulgarian have none by design.
+ * Long-press accent variants for the latin board, keyed by the base letter as
+ * it appears in the rows above. Held keys pop these in a bubble, iPhone style.
+ *
+ * One union map across ALL languages, not per UI language: an organiser can
+ * set an accented answer while a team's device is pinned to English, so every
+ * latin keyboard offers every accent RallyHub's languages use, or the word
+ * becomes untypeable on that phone. Cyrillic has none by design.
  */
-export const KEY_VARIANTS: Partial<Record<AppLanguage, Record<string, readonly string[]>>> = {
-  es: {
-    A: ['Á'],
-    E: ['É'],
-    I: ['Í'],
-    O: ['Ó'],
-    U: ['Ú', 'Ü'],
-    N: ['Ñ'],
-  },
-  fr: {
-    A: ['À', 'Â'],
-    E: ['É', 'È', 'Ê', 'Ë'],
-    I: ['Î', 'Ï'],
-    O: ['Ô', 'Œ'],
-    U: ['Ù', 'Û', 'Ü'],
-    C: ['Ç'],
-    Y: ['Ÿ'],
-  },
-  nl: {
-    A: ['Á'],
-    E: ['É', 'Ë'],
-    I: ['Ï'],
-    O: ['Ó', 'Ö'],
-    U: ['Ü'],
-  },
+export const LATIN_KEY_VARIANTS: Record<string, readonly string[]> = {
+  A: ['Á', 'À', 'Â'],
+  E: ['É', 'È', 'Ê', 'Ë'],
+  I: ['Í', 'Î', 'Ï'],
+  O: ['Ó', 'Ô', 'Ö', 'Œ'],
+  U: ['Ú', 'Ù', 'Û', 'Ü'],
+  N: ['Ñ'],
+  C: ['Ç'],
+  Y: ['Ÿ'],
 }
+
+const NO_VARIANTS: Record<string, readonly string[]> = {}
 
 export function letterRowsFor(alphabet: KeyboardAlphabet): readonly (readonly string[])[] {
   return LETTER_ROWS[alphabet]
@@ -93,10 +81,7 @@ export function keyboardColumns(alphabet: KeyboardAlphabet): number {
   return Math.max(10, ...LETTER_ROWS[alphabet].map((row) => row.length))
 }
 
-/** Variant map for the active UI language; tolerant of region tags like fr-FR. */
-export function keyVariantsForLanguage(
-  language: string | undefined,
-): Record<string, readonly string[]> {
-  const primary = (language ?? '').toLowerCase().split('-')[0] as AppLanguage
-  return KEY_VARIANTS[primary] ?? {}
+/** Variant map for the active board; the UI language plays no part. */
+export function keyVariantsFor(alphabet: KeyboardAlphabet): Record<string, readonly string[]> {
+  return alphabet === 'latin' ? LATIN_KEY_VARIANTS : NO_VARIANTS
 }

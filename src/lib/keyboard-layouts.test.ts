@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  KEY_VARIANTS,
+  LATIN_KEY_VARIANTS,
   LETTER_ROWS,
   NUMBER_ROWS,
   SYMBOL_ROWS,
-  keyVariantsForLanguage,
+  keyVariantsFor,
   keyboardColumns,
   letterRowsFor,
 } from './keyboard-layouts'
@@ -53,59 +53,41 @@ describe('keyboard layouts', () => {
 
   it('every variant hangs off a key that exists on the latin board', () => {
     const latinKeys = new Set(LETTER_ROWS.latin.flat())
-    for (const [language, map] of Object.entries(KEY_VARIANTS)) {
-      for (const [base, variants] of Object.entries(map)) {
-        expect(latinKeys.has(base), `${language} variant base ${base}`).toBe(true)
-        expect(variants.length).toBeGreaterThan(0)
-        for (const variant of variants) {
-          // Single letters only: the bubble commits them through the same
-          // onKey path as a plain key press.
-          expect([...variant]).toHaveLength(1)
-          expect(/^\p{L}$/u.test(variant), `${language} ${base} -> ${variant}`).toBe(true)
-          expect(variant.toLocaleUpperCase()).toBe(variant)
-        }
-        // No duplicate variants under one base key.
-        expect(new Set(variants).size).toBe(variants.length)
+    for (const [base, variants] of Object.entries(LATIN_KEY_VARIANTS)) {
+      expect(latinKeys.has(base), `variant base ${base}`).toBe(true)
+      expect(variants.length).toBeGreaterThan(0)
+      for (const variant of variants) {
+        // Single letters only: the bubble commits them through the same
+        // onKey path as a plain key press.
+        expect([...variant]).toHaveLength(1)
+        expect(/^\p{L}$/u.test(variant), `${base} -> ${variant}`).toBe(true)
+        expect(variant.toLocaleUpperCase()).toBe(variant)
       }
+      // No duplicate variants under one base key.
+      expect(new Set(variants).size).toBe(variants.length)
     }
   })
 
-  it('wires the agreed per-language variant maps', () => {
-    expect(keyVariantsForLanguage('es')).toMatchObject({
-      A: ['Á'],
-      E: ['É'],
-      I: ['Í'],
-      O: ['Ó'],
-      U: ['Ú', 'Ü'],
-      N: ['Ñ'],
-    })
-    expect(keyVariantsForLanguage('fr')).toMatchObject({
-      A: ['À', 'Â'],
+  it('carries the agreed union accent map', () => {
+    expect(LATIN_KEY_VARIANTS).toEqual({
+      A: ['Á', 'À', 'Â'],
       E: ['É', 'È', 'Ê', 'Ë'],
-      I: ['Î', 'Ï'],
-      O: ['Ô', 'Œ'],
-      U: ['Ù', 'Û', 'Ü'],
+      I: ['Í', 'Î', 'Ï'],
+      O: ['Ó', 'Ô', 'Ö', 'Œ'],
+      U: ['Ú', 'Ù', 'Û', 'Ü'],
+      N: ['Ñ'],
       C: ['Ç'],
       Y: ['Ÿ'],
     })
-    expect(keyVariantsForLanguage('nl')).toMatchObject({
-      A: ['Á'],
-      E: ['É', 'Ë'],
-      I: ['Ï'],
-      O: ['Ó', 'Ö'],
-      U: ['Ü'],
-    })
   })
 
-  it('English and Bulgarian have no variants, unknown languages fall back to none', () => {
-    expect(keyVariantsForLanguage('en')).toEqual({})
-    expect(keyVariantsForLanguage('bg')).toEqual({})
-    expect(keyVariantsForLanguage(undefined)).toEqual({})
-    expect(keyVariantsForLanguage('de')).toEqual({})
+  it('offers the full union on every latin board, whatever the UI language', () => {
+    // An organiser can set an accented answer while a team's device is pinned
+    // to English, so the accents must not depend on the language at all.
+    expect(keyVariantsFor('latin')).toBe(LATIN_KEY_VARIANTS)
   })
 
-  it('resolves region-tagged languages to their base variant map', () => {
-    expect(keyVariantsForLanguage('fr-FR')).toEqual(keyVariantsForLanguage('fr'))
-    expect(keyVariantsForLanguage('ES')).toEqual(keyVariantsForLanguage('es'))
+  it('cyrillic keeps no variants', () => {
+    expect(keyVariantsFor('cyrillic')).toEqual({})
   })
 })
