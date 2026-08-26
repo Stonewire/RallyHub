@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 
 import { BingoWinCelebration } from '@/components/live/BingoWinCelebration'
 import { BrandBackground } from '@/components/live/BrandBackground'
+import { DisplayBingoPanel } from '@/components/live/DisplayBingoPanel'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { DemoOverlay } from '@/components/live/DemoOverlay'
@@ -270,6 +271,11 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     stage?.type === 'quiz' && stage.gameId
       ? quizLeaderboard(teams, submissions, stage.gameId)
       : []
+  const brandAccent = brandBlobColors(event, organization).accent
+  const bingoGame =
+    stage?.type === 'bingo' && stage.gameId
+      ? (games.find((g) => g.id === stage.gameId) ?? null)
+      : null
 
   let body: ReactNode
 
@@ -285,7 +291,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     )
   } else if (state.winner_reveal_stage === 2) {
     body = <DisplayPodium event={event} teams={teams} />
-  } else if (!stage || stage.type === 'open' || stage.type === 'bingo') {
+  } else if (!stage || stage.type === 'open') {
     body = (
       <Leaderboard
         teams={teams}
@@ -294,6 +300,32 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
         textClass={textClass}
       />
     )
+  } else if (stage.type === 'bingo') {
+    // P2.5 redesign: while bingo runs the big screen shows a centre visualizer
+    // and the teams as guess-indicator circles along the bottom, with no song
+    // metadata. Once the whole game has ended the scores matter again, so the
+    // display falls back to the leaderboard it always showed here before.
+    body =
+      state.bingo_state === 'ended' ? (
+        <Leaderboard
+          teams={teams}
+          showScores={state.show_scores}
+          layout={layout}
+          textClass={textClass}
+        />
+      ) : (
+        <DisplayBingoPanel
+          eventId={event.id}
+          stageIndex={state.current_stage_index}
+          gameId={stage.gameId ?? null}
+          gameName={bingoGame?.name ?? null}
+          state={state}
+          teams={namedTeams}
+          submissions={submissions}
+          accent={brandAccent}
+          textClass={textClass}
+        />
+      )
   } else if (stage.type === 'welcome') {
     body = (
       <div
@@ -500,7 +532,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
   // The timer is the one number the room checks repeatedly, so it reads as a
   // game HUD rather than a label: brand-yellow shell, dark inset face, a lit
   // top edge and a glow underneath.
-  const timerAccent = brandBlobColors(event, organization).accent
+  const timerAccent = brandAccent
   const headerTimer = showHeaderTimer ? (
     <div className="relative inline-flex items-center justify-center">
       <div
