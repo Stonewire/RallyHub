@@ -112,8 +112,6 @@
       "mcp__Claude_Browser__tabs_close"
     ],
     "deny": [
-      "Bash(git push*origin main*)",
-      "Bash(git push*origin*main)",
       "Bash(rm -rf *)",
       "Bash(git reset --hard*)",
       "Bash(git clean -fd*)",

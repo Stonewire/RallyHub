@@ -11,7 +11,19 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
-## In review, 11 Aug 2026 (feature/checklists-tasks-stages, not yet merged)
+## I18N-1 Five languages + multilingual events (SHIPPED V3.22.0, 26 Aug 2026)
+
+Merged from `feature/i18n-reland` (the reland of the abandoned `feature/i18n`,
+rebuilt on current main). English, Bulgarian, Spanish, French, Dutch across
+admin and all live surfaces; org default language (staff can pre-set per
+client); per-event language; multilingual events with per-team choice;
+Cyrillic on-screen keyboard. Architecture and the rules for adding strings are
+in CLAUDE.md's Internationalisation section. DB side (columns + tenant RPC
+return tables) was already live in prod before the merge, verified again at
+merge time. Locale parity is test-enforced (all 5 languages key-identical).
+Remaining: Rumen's live test pass.
+
+## Checklists, tasks, prep status (SHIPPED as V3.18.0, 11 Aug 2026)
 
 New feature branch off `main`. Adds: always-on Welcome/End event stages
 (Welcome pinned first with a holding message + teams-joining on the display;
@@ -67,7 +79,7 @@ after that.
 `docs/PADDLE-LIVE-CHECKLIST.md`), PAY-3 Paddle webhook secret/replay for the
 RallyHub Gaming live test transaction, DOMAIN-1 apex redirect + manual
 verification checklist (below), DATA-1 lifecycle deployment steps,
-CONTENT-1's 159 cover images, CF2-1 Welcome stage, CF2-5 camera permission
+CONTENT-1's 159 cover images, CF2-5 camera permission
 re-request, CF2-10 slideshow, PDF-1 branded recap report, L-2 AI features,
 ENG1/ENG2 God-component refactors, H6 mid-bingo join risk, DEV-DB1 broken
 local migration chain, HERMIT-ENCODE workaround in place.

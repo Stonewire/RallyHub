@@ -32,3 +32,8 @@ review-assets/
 
 # Local-only footage for the dev capture harness (?camsrc=/dev-media/...)
 public/dev-media/
+
+# Local agent tooling artifacts. Never commit.
+.ds-sync/
+ds-bundle/
+.playwright-cli/

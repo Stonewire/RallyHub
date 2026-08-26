@@ -5,6 +5,25 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.22.0 - 2026-08-26 (five languages, multilingual events)
+
+The whole app now speaks five languages: English, Bulgarian, Spanish, French
+and Dutch.
+
+- The admin panel follows the organisation's default language (chosen in
+  Settings; RallyHub staff can pre-set it when creating a client).
+- Every live surface (player, display, facilitator, tablet) follows the
+  event's language, chosen in the event editor. New events inherit the
+  organisation default.
+- Multilingual events: switch it on per event, pick which languages to offer,
+  and each team picks its own on join (before the privacy notice, so consent
+  reads in their language). The display and facilitator stay on the event
+  language.
+- The on-screen keyboard gained a Bulgarian Cyrillic layout for text and
+  puzzle play.
+- The RallyHub staff panel, marketing pages and auth pages deliberately stay
+  English.
+
 ## V3.21.4 - 2026-08-18 (offline marker becomes a corner icon)
 
 The full-width "You're offline" banner is now a small wifi-off icon in the
