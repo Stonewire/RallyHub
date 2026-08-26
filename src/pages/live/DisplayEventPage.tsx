@@ -17,6 +17,7 @@ import { QuizResultsPanel } from '@/components/live/QuizResultsPanel'
 import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useLiveEvent } from '@/hooks/use-live-event'
+import { useWakeLock } from '@/hooks/use-wake-lock'
 import { setLiveParticipantMode } from '@/lib/supabase'
 import { parseAnnouncedWinnerIds } from '@/lib/bingo-cell-match'
 import { createThrottledTimerSync } from '@/lib/live-timer-sync'
@@ -70,6 +71,8 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
     if (embedded) return
     return () => setLiveParticipantMode(false)
   }, [embedded])
+
+  useWakeLock()
 
   const { bundle, loading, error } = useLiveEvent(eventId)
   useDocumentTitle(t('display.documentTitle'), bundle?.event?.name)

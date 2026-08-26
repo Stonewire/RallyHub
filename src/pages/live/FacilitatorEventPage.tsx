@@ -49,6 +49,7 @@ import { useLiveTimer } from '@/hooks/use-live-timer'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
+import { useWakeLock } from '@/hooks/use-wake-lock'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
 import {
   countClaimedTeams,
@@ -220,6 +221,7 @@ export function FacilitatorEventPage() {
     t('facilitatorFallbackName')
   const { bundle, loading, error, updateState, updateTeam } = useLiveEvent(eventId)
   useDocumentTitle(t('facilitatorFallbackName'), bundle?.event?.name)
+  useWakeLock()
   const { messages, chatHistoryReady, sendMessage } = useChatMessages(eventId)
   const others = useFacilitatorPresence(eventId, name || null)
   const annClearRef = useRef<number | undefined>(undefined)

@@ -15,6 +15,7 @@ import { JoinGameView } from '@/components/live/JoinGameView'
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
+import { useWakeLock } from '@/hooks/use-wake-lock'
 import {
   countClaimedTeams,
   demoTeamSlots,
@@ -86,6 +87,7 @@ export function JoinEventPage() {
 
   const { bundle, loading, error, setBundle } = useLiveEvent(eventId)
   useDocumentTitle(t('join.claim.documentTitle'), bundle?.event?.name)
+  useWakeLock()
 
   // Back-button trap. Scanning the join QR from a phone's camera app opens a
   // temporary browser sheet whose history starts empty, so one press of the

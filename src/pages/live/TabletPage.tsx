@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDocumentTitle } from '@/hooks/use-document-title'
+import { useWakeLock } from '@/hooks/use-wake-lock'
 import { setAppLanguage } from '@/lib/i18n'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import { resolveTabletOrganization } from '@/lib/organization-tenant'
@@ -53,6 +54,7 @@ export function TabletPage() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
   const install = useInstallAction('tablet')
+  useWakeLock()
 
   useDocumentTitle(t('tablet.documentTitle'), org?.name)
 
