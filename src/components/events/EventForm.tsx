@@ -25,6 +25,7 @@ import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
 import type { OrganizationRow } from '@/hooks/use-organization-settings'
 import { APP_LANGUAGES } from '@/lib/i18n'
+import { normaliseLogoImage } from '@/lib/logo-image'
 import { uploadAsset } from '@/lib/storage'
 import {
   addStage,
@@ -372,10 +373,13 @@ export function EventForm({
                 preview={logoUrl}
                 onFile={async (file) => {
                   if (!file) return
+                  // P1.3: store every logo at the standard size so live
+                  // screens render them consistently.
+                  const upload = await normaliseLogoImage(file)
                   const url = await uploadAsset(
                     'organization-logos',
                     `${organizationId}/events/${brandingStorageKey}/${crypto.randomUUID()}`,
-                    file,
+                    upload,
                     { mediaKind: 'logo' },
                   )
                   set({ logoUrl: url })
