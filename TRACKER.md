@@ -11,6 +11,106 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## FIX-ROUND-1, planned 26 Aug 2026 (from Rumen's V3.22.0 test pass)
+
+Source: Rumen's 15 test notes (memory: test-notes-2026-08-26). Rules for this
+round: nothing that already works gets touched; related items grouped; NO
+per-item testing by Rumen. All phases ship, then ONE big test round with
+step-by-step scripts ("Test 1: name" + numbered open/check/do steps), which
+also covers his untested backlog (username login + forgot password +
+wrong-domain rejection + old subdomain redirect, tablet kiosk + tablet
+recording audio, PWA install, matching puzzle offline). Claude verifies each
+change itself before moving on (build, tests, preview); Rumen only tests at
+the end.
+
+**Phase 1, admin-safe quick fixes (straight to main, fast lane):**
+- P1.1 Crossword editor: clue always saves; Enter flow (word -> Enter -> clue
+  -> Enter -> saved). PuzzleEditor/CrosswordEditor.
+- P1.2 Stage boxes stand out (yellow or charcoal accent, incl bookends);
+  Add stage button sits above the End stage. EventForm.
+- P1.3 Event logo auto-resize/normalise at upload.
+- P1.4 Org default language moves into Brand Identity as a compact dropdown
+  (SettingsPage).
+- P1.5 Status menu: options coloured like their status; demo copy ("test with
+  this one"); active copy (charge triggers + 24h validity).
+- P1.6 BG winner string: "Да обявим кой е победител".
+- P1.7 Music clip loudness normalisation in the cut pipeline
+  (extract-audio-clip.ts, ffmpeg loudnorm; admin-side processing).
+
+**Phase 2, live-surface fixes (one per commit, self-smoke-tested each):**
+- P2.1 Example video label follows event UI colour, slightly bigger.
+- P2.2 Bingo Start multi-press: re-diagnose and fix (P1-B1 successor).
+- P2.3 Screen Wake Lock on all live surfaces (re-acquire on visibilitychange).
+- P2.4 Keyboards: standard layouts per language (BG Phonetic QWERTY, not
+  alphabetical), iPhone-style uniform key sizing, long-press for special
+  characters. VirtualKeyboard.
+- P2.5 Bingo display redesign: team circles bottom (grey -> lit on pick ->
+  green/red on reveal), centre audio visualizer, no song metadata.
+
+**Phase 3, offline round 2 (N13; one item per commit; sim + preview tested):**
+- P3.1 Puzzle completion offline: auto-return to list + tile turns green
+  (state source for tiles while offline; wordle/crossword, check matching).
+- P3.2 Offline media caching: game photos, Powered by RallyHub logo, UI sound
+  effects (extend package/blob cache + SW).
+- P3.3 Sync status dot near the version label: yellow syncing, green complete,
+  red failed.
+
+**Phase 4, event lifecycle (demo/active):**
+- P4.1 Demo keeps the full configured team list (no more capping team_count to
+  2 and deleting slots); demo only caps JOINED teams at 2, enforced
+  server-side in the claim RPC, not just client guards.
+- P4.2 Demo -> active: explicit "activate fresh" step that clears demo data
+  (reset_event_data path) behind a clear warning dialog listing what is wiped.
+- Danger notes: syncTeamSlots deletes surplus unclaimed slots from many call
+  sites; reset guard (never-activated only) is the billing wall, do not
+  weaken it for ordinary events.
+
+**Phase 5, billing correctness (N2):**
+- P5.1 Paddle webhook refund handling (none exists today): subscription
+  refund -> org downgraded to rookie (Pay Per Event), subscription state
+  cleared, billing stops; event-invoice refund -> invoice marked refunded.
+- P5.2 Suspension reflected in Billing UI (BillingOverview shows suspended
+  state instead of "Active"); staff suspension and billing surfaces agree.
+
+**Phase 6, platform customization (N15; feature branch
+feature/platform-customization; needs Rumen's design sign-off per item):**
+- P6.1 Per-client feature flags, broader set (Rumen's call 26 Aug): a
+  feature_flags jsonb on organizations covering allowed game types PLUS
+  store on/off, offline on/off, allowed stage types (+ column GUARD trigger:
+  staff/service_role only, since org RLS lets client_admin update own row).
+  Staff UI in ClientDetailPage. Gates CREATION/config surfaces only
+  (NewGameTypeModal, GamesPage filters, NewGamePage types, EventForm stage
+  types + store toggle, game import, platform-library installs) plus a
+  server-side games insert check. Live surfaces and already-built games keep
+  working (live events must never break).
+- P6.2 Custom subscription: org columns custom_price/interval/charge-per-event
+  toggle (guarded like P6.1), staff sets amount monthly or yearly; client
+  Billing shows "Custom subscription"; paddle-checkout mints the inline price;
+  create_event_activation_invoice respects the per-event toggle. Prices are
+  duplicated in three places today (subscription-plans.ts, paddle-checkout,
+  DB plan functions), overrides must be read consistently in all.
+- P6.3 Open joining / unlimited teams: event checkbox; join page offers
+  "Join as a new team" primary + "Rejoin a team" small link; new SECURITY
+  DEFINER create-and-claim RPC (anon has no teams INSERT by design);
+  syncTeamSlots bypassed for open-join events; team surcharge settled at
+  event END from actually-claimed teams (today the invoice snapshots
+  team_count at activation, so this is a new settlement step, is_demo
+  excluded).
+- P6.4 Recurring events: occurrence model on the SAME event (join links and
+  printed QR codes must keep working across runs), per-run data reset via a
+  new occurrence-aware path (existing reset guard stays for normal events),
+  per-occurrence invoice on each activation, entitlement gate counts
+  occurrences.
+
+**Then: BIG TEST ROUND.** Step-by-step scripts for every phase item plus the
+untested backlog, in Rumen's format.
+
+Design decisions locked with Rumen 26 Aug: recurring = SAME event with
+occurrence model (QR codes survive runs); open-join team surcharge settles at
+event END; feature flags = broader set in round one (game types, store,
+offline, stage types); subscription refunds downgrade AUTOMATICALLY via the
+webhook.
+
 ## I18N-1 Five languages + multilingual events (SHIPPED V3.22.0, 26 Aug 2026)
 
 Merged from `feature/i18n-reland` (the reland of the abandoned `feature/i18n`,
