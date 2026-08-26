@@ -37,6 +37,45 @@ export type ExtractedClip = {
   durationSeconds: number
 }
 
+/**
+ * Single-pass loudnorm at the streaming standard (I=-14 LUFS, TP=-1.5 dBTP,
+ * LRA=11) so a quiet upload and a loud upload cut to clips with the same
+ * perceived loudness.
+ */
+export const LOUDNORM_FILTER = 'loudnorm=I=-14:TP=-1.5:LRA=11'
+
+/**
+ * ffmpeg argument list for cutting one normalised MP3 clip. Kept pure so the
+ * command shape is testable without loading ffmpeg.wasm. loudnorm resamples
+ * internally, so the explicit -ar 44100 must stay to pin the output rate.
+ */
+export function buildClipCommand(
+  inputName: string,
+  outputName: string,
+  startSeconds: number,
+  durationSeconds: number,
+): string[] {
+  return [
+    '-ss',
+    String(startSeconds),
+    '-i',
+    inputName,
+    '-t',
+    String(durationSeconds),
+    '-af',
+    LOUDNORM_FILTER,
+    '-acodec',
+    'libmp3lame',
+    '-b:a',
+    '128k',
+    '-ar',
+    '44100',
+    '-ac',
+    '2',
+    outputName,
+  ]
+}
+
 /** Extract MP3 clip (falls back to WAV if ffmpeg fails). */
 export async function extractAudioClip(
   file: File,
@@ -52,23 +91,7 @@ export async function extractAudioClip(
     const inputName = `in-${crypto.randomUUID()}.${file.name.split('.').pop() ?? 'mp3'}`
     const outputName = 'out.mp3'
     await ff.writeFile(inputName, await fetchFile(file))
-    await ff.exec([
-      '-ss',
-      String(startSeconds),
-      '-i',
-      inputName,
-      '-t',
-      String(durationSeconds),
-      '-acodec',
-      'libmp3lame',
-      '-b:a',
-      '128k',
-      '-ar',
-      '44100',
-      '-ac',
-      '2',
-      outputName,
-    ])
+    await ff.exec(buildClipCommand(inputName, outputName, startSeconds, durationSeconds))
     const data = await ff.readFile(outputName)
     await ff.deleteFile(inputName)
     await ff.deleteFile(outputName)
@@ -95,6 +118,10 @@ export async function extractAudioClip(
   }
 }
 
+/**
+ * Web Audio fallback when ffmpeg.wasm cannot load. It has no loudnorm, so
+ * clips cut this way keep the source loudness.
+ */
 async function extractAudioClipWavFallback(
   file: File,
   startSeconds: number,
