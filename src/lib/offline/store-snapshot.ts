@@ -9,6 +9,7 @@
 import { supabase } from '@/lib/supabase'
 
 import { idbGet, idbSet } from './idb'
+import { beginOfflineDownload, type OfflineArtefactProbe } from './readiness'
 
 export type StoreSnapshot = { rows: unknown[]; orders: unknown[] }
 
@@ -21,19 +22,35 @@ export async function downloadStoreSnapshot(
   eventId: string,
   token: string,
 ): Promise<StoreSnapshot | null> {
+  // No token means this device cannot have a store: not an attempt, so it is
+  // never reported to the readiness tracker and never blocks the green dot.
   if (!token) return null
-  const [storeRes, ordersRes] = await Promise.all([
-    supabase.rpc('get_event_store', { p_event_id: eventId, p_purchase_token: token }),
-    supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
-  ])
-  if (storeRes.error) return null
-  const snapshot: StoreSnapshot = {
-    rows: storeRes.data ?? [],
-    orders: ordersRes.error ? [] : (ordersRes.data ?? []),
+  const done = beginOfflineDownload('store-snapshot', eventId, hasStoredStoreSnapshot)
+  try {
+    const [storeRes, ordersRes] = await Promise.all([
+      supabase.rpc('get_event_store', { p_event_id: eventId, p_purchase_token: token }),
+      supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
+    ])
+    if (storeRes.error) {
+      done(false)
+      return null
+    }
+    const snapshot: StoreSnapshot = {
+      rows: storeRes.data ?? [],
+      orders: ordersRes.error ? [] : (ordersRes.data ?? []),
+    }
+    await idbSet('content', contentKey(eventId), snapshot).catch(() => undefined)
+    done(true)
+    return snapshot
+  } catch {
+    done(false)
+    return null
   }
-  await idbSet('content', contentKey(eventId), snapshot).catch(() => undefined)
-  return snapshot
 }
+
+/** Readiness probe: is a store snapshot for this event actually stored. */
+const hasStoredStoreSnapshot: OfflineArtefactProbe = async (eventId) =>
+  (await getStoredStoreSnapshot(eventId)) !== null
 
 /** The last snapshot this device saw, or null. */
 export async function getStoredStoreSnapshot(eventId: string): Promise<StoreSnapshot | null> {

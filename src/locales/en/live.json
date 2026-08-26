@@ -221,7 +221,12 @@
       "title": "You're offline",
       "quizBody": "The quiz runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.",
       "bingoBody": "Music bingo runs live with the whole room, so it needs a connection. As soon as you are back online this screen returns by itself.",
-      "savedAutomatically": "You're offline. Your work is saved and will send automatically."
+      "savedAutomatically": "You're offline. Your work is saved and will send automatically.",
+      "readiness": {
+        "syncing": "Getting this device ready for offline play",
+        "ready": "This device is ready for offline play",
+        "failed": "Offline data could not be downloaded. Some things may need a connection."
+      }
     },
     "upload": {
       "uploadingPercent": "Uploading… {{progress}}%",

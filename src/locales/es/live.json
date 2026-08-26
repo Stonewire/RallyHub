@@ -221,7 +221,12 @@
       "title": "Estás sin conexión",
       "quizBody": "El quiz se juega en directo con toda la sala, así que necesita conexión. En cuanto vuelvas a estar en línea, esta pantalla volverá sola.",
       "bingoBody": "El bingo musical se juega en directo con toda la sala, así que necesita conexión. En cuanto vuelvas a estar en línea, esta pantalla volverá sola.",
-      "savedAutomatically": "Estás sin conexión. Tu trabajo se guarda y se enviará automáticamente."
+      "savedAutomatically": "Estás sin conexión. Tu trabajo se guarda y se enviará automáticamente.",
+      "readiness": {
+        "syncing": "Preparando este dispositivo para jugar sin conexión",
+        "ready": "Este dispositivo está listo para jugar sin conexión",
+        "failed": "No se pudieron descargar los datos para jugar sin conexión. Algunas cosas pueden necesitar conexión."
+      }
     },
     "upload": {
       "uploadingPercent": "Subiendo… {{progress}}%",

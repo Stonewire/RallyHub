@@ -95,6 +95,7 @@ import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/p
 import { queuedPuzzleSubmissionRow } from '@/lib/offline/puzzle-local'
 import { downloadStoreSnapshot } from '@/lib/offline/store-snapshot'
 import { useOnlineStatus } from '@/lib/offline/net'
+import { useOfflineReadiness, type OfflineReadinessState } from '@/lib/offline/readiness'
 import { scoreOfflineText } from '@/lib/offline/scoring'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import { ensureLiveEventAccess } from '@/lib/live-event-access'
@@ -127,6 +128,22 @@ import { uploadParticipantAsset } from '@/lib/storage'
 import type { GameConfig } from '@/types/game-config'
 import type { Json } from '@/types/json'
 import type { Tables } from '@/types/helpers'
+
+// Offline readiness dot (P3.3): colour and explanation per aggregate state.
+// Yellow pulses while downloads run; green means the stored artefacts were
+// actually verified on the device; red means a download failed or cannot
+// complete, so offline play would be degraded.
+const OFFLINE_READINESS_DOT_CLASSES: Record<OfflineReadinessState, string> = {
+  syncing: 'animate-pulse bg-amber-400',
+  ready: 'bg-emerald-500',
+  failed: 'bg-red-500',
+}
+
+const OFFLINE_READINESS_LABEL_KEYS: Record<OfflineReadinessState, string> = {
+  syncing: 'join.offline.readiness.syncing',
+  ready: 'join.offline.readiness.ready',
+  failed: 'join.offline.readiness.failed',
+}
 
 type JoinGameViewProps = {
   bundle: LiveEventBundle
@@ -663,6 +680,7 @@ export function JoinGameView({
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
   const online = useOnlineStatus()
+  const offlineReadiness = useOfflineReadiness(event.id)
 
   const quizRunning =
     stage?.type === 'quiz' &&
@@ -2144,19 +2162,38 @@ export function JoinGameView({
           )
         : null}
       {header}
-      {/* Offline marker: a small corner icon, not a banner (Rumen, 18 Aug:
+      {/* Offline corner furniture, small icons, never a banner (Rumen, 18 Aug:
           gentle, no distraction). Fixed so nothing shifts, above content,
           below dialogs. Hidden while the camera owns the screen. Top-left,
           the only corner without a control: chat sits bottom-left, exit
-          bottom-right, score top-right. */}
-      {!online && !captureActive ? (
-        <div
-          className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+20px)] z-[10001] flex size-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
-          role="status"
-          aria-label={t('join.offline.savedAutomatically')}
-          title={t('join.offline.savedAutomatically')}
-        >
-          <WifiOff className="size-4" aria-hidden="true" />
+          bottom-right, score top-right. The readiness dot (P3.3) is always
+          there: yellow while offline data is downloading, green when this
+          device holds everything the event needs offline, red when a download
+          failed or cannot complete. The WifiOff icon slides in beside it when
+          the connection drops. */}
+      {!captureActive ? (
+        <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+20px)] z-[10001] flex items-center gap-1.5">
+          <div
+            className="flex size-5 items-center justify-center rounded-full bg-black/70 shadow-lg"
+            role="status"
+            aria-label={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
+            title={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
+          >
+            <span
+              className={`size-2.5 rounded-full ${OFFLINE_READINESS_DOT_CLASSES[offlineReadiness]}`}
+              aria-hidden="true"
+            />
+          </div>
+          {!online ? (
+            <div
+              className="flex size-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+              role="status"
+              aria-label={t('join.offline.savedAutomatically')}
+              title={t('join.offline.savedAutomatically')}
+            >
+              <WifiOff className="size-4" aria-hidden="true" />
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="flex w-full min-h-0 flex-1 flex-col">{body}</div>

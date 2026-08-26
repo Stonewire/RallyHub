@@ -12,6 +12,7 @@
 import { supabase } from '@/lib/supabase'
 
 import { idbGet, idbSet } from './idb'
+import { beginOfflineDownload, type OfflineArtefactProbe } from './readiness'
 
 /** Per game id, exactly the answer fields redaction removed. Shape mirrors the
  *  RPC's `answerKeys` map. */
@@ -37,14 +38,30 @@ export async function downloadOfflineAnswerKeys(
   eventId: string,
   savedAtIso: string,
 ): Promise<OfflineAnswerKeys | null> {
-  const { data, error } = await supabase.rpc('get_offline_event_package', {
-    p_event_id: eventId,
-  })
-  if (error || !data) return null
-  const answerKeys = (data as { answerKeys?: OfflineAnswerKeys }).answerKeys ?? {}
-  await idbSet('content', contentKey(eventId), { answerKeys, savedAt: savedAtIso })
-  return answerKeys
+  const done = beginOfflineDownload('answer-package', eventId, hasStoredAnswerKeys)
+  try {
+    const { data, error } = await supabase.rpc('get_offline_event_package', {
+      p_event_id: eventId,
+    })
+    if (error || !data) {
+      done(false)
+      return null
+    }
+    const answerKeys = (data as { answerKeys?: OfflineAnswerKeys }).answerKeys ?? {}
+    await idbSet('content', contentKey(eventId), { answerKeys, savedAt: savedAtIso })
+    done(true)
+    return answerKeys
+  } catch {
+    // Matches the documented contract above: storage or transport trouble
+    // yields null, never a rejection the fire-and-forget callers cannot catch.
+    done(false)
+    return null
+  }
 }
+
+/** Readiness probe: is an answer package for this event actually stored. */
+const hasStoredAnswerKeys: OfflineArtefactProbe = async (eventId) =>
+  (await idbGet<StoredPackage>('content', contentKey(eventId))) !== undefined
 
 /** The stored answer keys for an event, or null if none downloaded yet. */
 export async function getOfflineAnswerKeys(eventId: string): Promise<OfflineAnswerKeys | null> {

@@ -221,7 +221,12 @@
       "title": "Tu es hors ligne",
       "quizBody": "Le quiz se joue en direct avec toute la salle, il a donc besoin d'une connexion. Dès que tu es de nouveau en ligne, cet écran revient tout seul.",
       "bingoBody": "Le bingo musical se joue en direct avec toute la salle, il a donc besoin d'une connexion. Dès que tu es de nouveau en ligne, cet écran revient tout seul.",
-      "savedAutomatically": "Tu es hors ligne. Ton travail est enregistré et sera envoyé automatiquement."
+      "savedAutomatically": "Tu es hors ligne. Ton travail est enregistré et sera envoyé automatiquement.",
+      "readiness": {
+        "syncing": "Préparation de cet appareil pour le jeu hors ligne",
+        "ready": "Cet appareil est prêt pour le jeu hors ligne",
+        "failed": "Les données hors ligne n'ont pas pu être téléchargées. Certains éléments peuvent nécessiter une connexion."
+      }
     },
     "upload": {
       "uploadingPercent": "Envoi… {{progress}} %",

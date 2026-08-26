@@ -104,8 +104,17 @@ Items listed for reference:
   drain merges the server row.
 - P3.2 Offline media caching: game photos, Powered by RallyHub logo, UI sound
   effects (extend package/blob cache + SW).
-- P3.3 Sync status dot near the version label: yellow syncing, green complete,
-  red failed.
+- P3.3 Sync status dot: yellow syncing, green complete, red failed. LANDED
+  (this round). Placement per Rumen's device-test brief: the top-left corner
+  next to the WifiOff icon on the player surface, not the version label as
+  first noted here. New tracker src/lib/offline/readiness.ts (unit-tested):
+  each download path (answer package, store snapshot, bundle snapshot; any
+  future kind self-registers via one report call, ready for P3.2's image
+  cache) reports begin/settle plus an IndexedDB honesty probe, so green means
+  the stored artefacts were actually verified, a stale copy from an earlier
+  session still counts as ready when a refresh fails, and red means a
+  download failed or cannot complete. Aria-label/tooltip strings in all five
+  live locales. Download semantics, outbox and sw.js untouched.
 
 **Phase 4, event lifecycle (demo/active):**
 - P4.1 Demo keeps the full configured team list (no more capping team_count to

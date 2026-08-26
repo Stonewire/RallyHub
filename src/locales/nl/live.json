@@ -221,7 +221,12 @@
       "title": "Je bent offline",
       "quizBody": "De quiz loopt live met de hele zaal, dus daar is verbinding voor nodig. Zodra je weer online bent, komt dit scherm vanzelf terug.",
       "bingoBody": "Muziekbingo loopt live met de hele zaal, dus daar is verbinding voor nodig. Zodra je weer online bent, komt dit scherm vanzelf terug.",
-      "savedAutomatically": "Je bent offline. Je werk is opgeslagen en wordt automatisch verstuurd."
+      "savedAutomatically": "Je bent offline. Je werk is opgeslagen en wordt automatisch verstuurd.",
+      "readiness": {
+        "syncing": "Dit apparaat wordt klaargemaakt voor offline spelen",
+        "ready": "Dit apparaat is klaar voor offline spelen",
+        "failed": "De offlinegegevens konden niet worden gedownload. Sommige onderdelen hebben mogelijk verbinding nodig."
+      }
     },
     "upload": {
       "uploadingPercent": "Uploaden… {{progress}}%",

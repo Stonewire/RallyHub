@@ -10,14 +10,23 @@
 import type { LiveEventBundle } from '@/lib/live-event'
 
 import { idbGet, idbSet } from './idb'
+import { reportOfflineDownloadResult, type OfflineArtefactProbe } from './readiness'
 
 const key = (eventId: string) => `bundle:${eventId}`
+
+/** Readiness probe: is a bundle snapshot for this event actually stored. */
+const hasStoredBundleSnapshot: OfflineArtefactProbe = async (eventId) =>
+  (await loadBundleSnapshot(eventId)) !== null
 
 export async function saveBundleSnapshot(eventId: string, bundle: LiveEventBundle): Promise<void> {
   try {
     await idbSet('content', key(eventId), { bundle, savedAt: new Date().toISOString() })
+    // Atomic report (no in-flight phase): this runs every few seconds and must
+    // never flash the readiness dot yellow for a millisecond IndexedDB write.
+    reportOfflineDownloadResult('bundle-snapshot', eventId, true, hasStoredBundleSnapshot)
   } catch {
     // Best-effort: no snapshot just means no offline boot for this event.
+    reportOfflineDownloadResult('bundle-snapshot', eventId, false, hasStoredBundleSnapshot)
   }
 }
 
