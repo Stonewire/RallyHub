@@ -44,7 +44,21 @@ catalog clips renormalise on re-cut. Items listed for reference:
 
 **Phase 2, live-surface fixes (one per commit, self-smoke-tested each):**
 - P2.1 Example video label follows event UI colour, slightly bigger.
-- P2.2 Bingo Start multi-press: re-diagnose and fix (P1-B1 successor).
+- P2.2 Bingo Start multi-press: re-diagnose and fix (P1-B1 successor). LANDED
+  (this round): three residual windows found and closed. (1) A Start press
+  racing the pre-warm fired its own extra activation round trip; stage select,
+  pre-warm and press now share one in-flight activation promise. (2) Any
+  play() issued after awaited work ran outside the gesture and autoplay policy
+  swallowed it (the "press Start again" notify was the tell); both audio decks
+  now get a silent in-gesture unlock on Start and Next, so post-await play()
+  succeeds and that notify is a true last resort. Activation failures in the
+  press path also notify now instead of failing silently. (3) Start was
+  disabled while the run query loaded, silently eating early presses; a
+  run-less press now plays the positional clip inside the gesture and the
+  run's play order is reconciled to the played clip in the background
+  (guarded swap, src/lib/bingo-start-reconcile.ts, unit-tested). Scoring,
+  reveal timing, card generation and broadcast logic untouched. Needs the
+  end-of-round live smoke test like every live-path change.
 - P2.3 Screen Wake Lock on all live surfaces (re-acquire on visibilitychange).
 - P2.4 Keyboards: standard layouts per language (BG Phonetic QWERTY, not
   alphabetical), iPhone-style uniform key sizing, long-press for special

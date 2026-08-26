@@ -51,6 +51,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useChatMessages, useFacilitatorPresence, useLiveEvent } from '@/hooks/use-live-event'
 import { useWakeLock } from '@/hooks/use-wake-lock'
 import { activateBingoRun } from '@/lib/activate-bingo-run'
+import { reconcileBingoRunToPlayedTrack } from '@/lib/bingo-start-reconcile'
 import {
   countClaimedTeams,
   demoTeamSlots,
@@ -270,6 +271,13 @@ export function FacilitatorEventPage() {
   // create duplicate runs and a stale runId ("Failed to advance bingo run").
   // A ref flips synchronously, truly serialising presses.
   const bingoBusyRef = useRef(false)
+  // P2.2: one shared in-flight run activation per stage key. A Start press
+  // that races the pre-warm joins the same network call instead of firing
+  // another full round trip, so the press resolves as early as possible.
+  const bingoActivationInFlightRef = useRef<{
+    key: string
+    promise: Promise<BingoRunRow | null>
+  } | null>(null)
   const { notify } = useNotification()
   const queryClient = useQueryClient()
 
@@ -419,14 +427,30 @@ export function FacilitatorEventPage() {
     }
     if (next?.type === 'bingo' && next.gameId && eventId) {
       setBingoRunOverride(null)
-      void activateBingoRun(eventId, next.gameId, index)
-        .then((result) => {
-          const row = bingoRunRowFromActivation(eventId, next.gameId!, index, result)
-          setBingoRunOverride(row)
+      const gameId = next.gameId
+      // P2.2: register this activation as the shared in-flight one, so the
+      // pre-warm effect and a fast Start press both join this same call
+      // instead of firing further round trips.
+      const activation = activateBingoRun(eventId, gameId, index).then(
+        (result): BingoRunRow | null => {
+          const row = bingoRunRowFromActivation(eventId, gameId, index, result)
+          // Keep any fresher override (e.g. a reconciled play order written by
+          // a Start press that beat this response back): only fill a gap.
+          setBingoRunOverride((prev) => prev ?? row)
           queryClient.setQueryData(queryKeys.bingoRun(eventId, index), row)
-        })
+          return row
+        },
+      )
+      bingoActivationInFlightRef.current = { key: `${eventId}:${index}:${gameId}`, promise: activation }
+      void activation
         .catch((err) => {
           setStateError(err instanceof Error ? err.message : t('state.couldNotStartBingo'))
+          return null
+        })
+        .finally(() => {
+          if (bingoActivationInFlightRef.current?.promise === activation) {
+            bingoActivationInFlightRef.current = null
+          }
         })
       patch.bingo_state = 'waiting'
       patch.current_question_index = 0
@@ -1121,23 +1145,29 @@ export function FacilitatorEventPage() {
   async function ensureBingoRunReady(): Promise<BingoRunRow | null> {
     if (!eventId || !stage?.gameId) return null
     if (bingoPlayOrder.length > 0 && effectiveBingoRun) return effectiveBingoRun
-    const result = await activateBingoRun(
-      eventId,
-      stage.gameId,
-      liveState.current_stage_index,
-    )
-    const row = bingoRunRowFromActivation(
-      eventId,
-      stage.gameId,
-      liveState.current_stage_index,
-      result,
-    )
-    flushSync(() => setBingoRunOverride(row))
-    queryClient.setQueryData(
-      queryKeys.bingoRun(eventId, liveState.current_stage_index),
-      row,
-    )
-    return row
+    const gameId = stage.gameId
+    const stageIndex = liveState.current_stage_index
+    // P2.2: join an activation already in flight for this exact stage (the
+    // stage-select call or the pre-warm) instead of starting another one.
+    const key = `${eventId}:${stageIndex}:${gameId}`
+    const inFlight = bingoActivationInFlightRef.current
+    if (inFlight?.key === key) return inFlight.promise
+    const activation = (async (): Promise<BingoRunRow | null> => {
+      const result = await activateBingoRun(eventId, gameId, stageIndex)
+      const row = bingoRunRowFromActivation(eventId, gameId, stageIndex, result)
+      flushSync(() => setBingoRunOverride(row))
+      queryClient.setQueryData(queryKeys.bingoRun(eventId, stageIndex), row)
+      return row
+    })()
+    bingoActivationInFlightRef.current = { key, promise: activation }
+    void activation
+      .catch(() => null)
+      .finally(() => {
+        if (bingoActivationInFlightRef.current?.promise === activation) {
+          bingoActivationInFlightRef.current = null
+        }
+      })
+    return activation
   }
 
   function resolveTrackForIndex(
@@ -1178,14 +1208,28 @@ export function FacilitatorEventPage() {
     }
 
     void player.primeAudioContext()
+    // P2.2: unlock bare audio decks inside this very gesture, so any play()
+    // issued after awaited network work below (run activation, track refetch)
+    // is not blocked by autoplay policy. Without this, a press that had to
+    // wait for the run could only end at the "press Start again" notify.
+    player.unlockFromUserGesture()
 
     const syncUrl = trackPlaybackUrl || resolvePlaybackUrlForIndex(effectiveBingoRun, bingoPlayIndex)
     if (syncUrl) {
+      // With no run row yet, `track` is the positional fallback rather than
+      // the run's shuffled order. Play it NOW (inside the gesture), then
+      // reconcile the run to it in the background once the row lands.
+      const startedFromRunOrder = Boolean(playTrackId)
+      const startedTrackId = track?.id ?? null
+      const startedIndex = bingoPlayIndex
       setBingoAdvancing(true)
       void player.playFromUserGesture(syncUrl).then((played) => {
         if (played) {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
+          if (!startedFromRunOrder && startedTrackId) {
+            void reconcileBingoRunAfterFallbackStart(startedTrackId, startedIndex)
+          }
         } else {
           notify(t('bingo.couldNotStartPlayback'))
         }
@@ -1218,16 +1262,45 @@ export function FacilitatorEventPage() {
           notify(t('bingo.noPlayableTrack'))
           return
         }
+        // The decks were unlocked inside the gesture above, so this play()
+        // succeeds even though the awaits pushed it outside the gesture.
         const played = await player.playFromUserGesture(url)
         if (played) {
           await patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
         } else notify(t('bingo.runLoadedPressStart'))
+      } catch (err) {
+        // Activation failed (e.g. a network blip). Surface it: silently doing
+        // nothing is exactly the "press did not work" symptom.
+        notify(err instanceof Error ? err.message : t('state.couldNotStartBingo'))
       } finally {
         setBingoAdvancing(false)
         bingoBusyRef.current = false
       }
     })()
+  }
+
+  // P2.2: Start was pressed before the run row existed, so the press played
+  // the positional fallback clip. Swap that clip into the run's play order at
+  // the pressed index (guarded server-side, best-effort) so reveal and
+  // scoring match what the room heard, instead of asking for another press.
+  async function reconcileBingoRunAfterFallbackStart(playedTrackId: string, index: number) {
+    try {
+      const run = await ensureBingoRunReady()
+      if (!run || !eventId) return
+      const updated = await reconcileBingoRunToPlayedTrack({
+        eventId,
+        run,
+        index,
+        playedTrackId,
+      })
+      if (updated) {
+        setBingoRunOverride(updated)
+        queryClient.setQueryData(queryKeys.bingoRun(eventId, updated.stage_index), updated)
+      }
+    } catch (err) {
+      console.warn('[bingo] play order reconcile failed (non-fatal):', err)
+    }
   }
 
   // Winner-announcement columns are non-critical. A failure here (e.g. migration
@@ -1324,6 +1397,10 @@ export function FacilitatorEventPage() {
       return
     }
     void player.primeAudioContext()
+    // P2.2: same in-gesture unlock as Start. A no-op once the decks carry real
+    // clips, but after a mid-run page reload the decks are bare and the play()
+    // below happens after awaited scoring work, outside the gesture.
+    player.unlockFromUserGesture()
     const run = await ensureBingoRunReady()
     if (!run || normalizeBingoPlayOrder(run.playOrder).length === 0) {
       notify(t('bingo.runNotReady'))
@@ -2014,9 +2091,11 @@ export function FacilitatorEventPage() {
                     size="sm"
                     variant="accent"
                     disabled={
-                      liveState.bingo_state === 'ended' ||
-                      bingoAdvancing ||
-                      (bingoPlayOrder.length === 0 && bingoRunQuery.isLoading)
+                      // P2.2: no longer disabled while the run query is still
+                      // loading. A press with no run now plays the fallback
+                      // clip inside the gesture and reconciles the run in the
+                      // background, so an early press must not be swallowed.
+                      liveState.bingo_state === 'ended' || bingoAdvancing
                     }
                     onClick={() => {
                       if (

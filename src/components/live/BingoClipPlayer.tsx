@@ -23,9 +23,21 @@ export type BingoClipPlayerHandle = {
   crossfadeTo: (nextSrc: string, ms?: number) => Promise<boolean>
   playFromUserGesture: (src: string) => Promise<boolean>
   primeAudioContext: () => Promise<void>
+  /**
+   * Call synchronously inside a user gesture. Plays a silent clip on any deck
+   * that has no real source yet, so a later programmatic play() (issued after
+   * awaited network work such as run activation) is not blocked by autoplay
+   * policy. Decks that already carry a real clip are left untouched.
+   */
+  unlockFromUserGesture: () => void
   isMounted: () => boolean
   pause: () => void
 }
+
+// Tiny valid silent WAV (8 samples of 8-bit silence). Used only to unlock a
+// bare deck inside a user gesture; a real clip replaces it immediately after.
+const SILENT_UNLOCK_SRC =
+  'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA=='
 
 async function probeUrl(url: string): Promise<void> {
   try {
@@ -101,6 +113,32 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     }
 
     async function primeAudioContext(): Promise<void> {}
+
+    function unlockDeckFromUserGesture(el: HTMLAudioElement | null) {
+      if (!el) return
+      // A deck that already has a real clip either plays inside this gesture or
+      // has played before, so only a bare deck needs the silent unlock.
+      if (el.src && el.src !== SILENT_UNLOCK_SRC) return
+      try {
+        el.src = SILENT_UNLOCK_SRC
+        el.muted = true
+        const cleanup = () => {
+          // A real clip may have taken the deck over while the silent play
+          // settled: leave it alone in that case.
+          if (el.src !== SILENT_UNLOCK_SRC) return
+          try {
+            el.pause()
+          } catch {
+            // pausing is best-effort
+          }
+          el.muted = false
+        }
+        const p = el.play()
+        if (p && typeof p.then === 'function') p.then(cleanup).catch(cleanup)
+      } catch {
+        // Unlock is best-effort: the in-gesture play path still works without it.
+      }
+    }
 
     /** Resolve once the element has buffered enough to start, or on timeout. */
     function waitForReady(el: HTMLAudioElement, timeoutMs = 4000): Promise<boolean> {
@@ -205,6 +243,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       crossfadeTo,
       playFromUserGesture,
       primeAudioContext,
+      unlockFromUserGesture: () => {
+        unlockDeckFromUserGesture(audioARef.current)
+        unlockDeckFromUserGesture(audioBRef.current)
+      },
       isMounted: () => Boolean(audioARef.current && audioBRef.current),
       pause: () => {
         audioARef.current?.pause()
