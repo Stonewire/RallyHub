@@ -281,6 +281,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         // fading. Ignore those old-deck timeupdate events or they can lock the
         // freshly opened round again.
         if (crossfadeInProgressRef.current) return
+        // The 1ms silent unlock clip is not room audio: a stray timeupdate
+        // from it must never trigger a lock/reveal or a crossfade (its
+        // remaining time is always inside both trigger windows).
+        if (cur.src === SILENT_UNLOCK_SRC) return
         if (!cur.duration || Number.isNaN(cur.duration)) return
         const remaining = cur.duration - cur.currentTime
 

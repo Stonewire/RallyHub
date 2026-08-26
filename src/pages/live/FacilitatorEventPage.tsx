@@ -278,6 +278,10 @@ export function FacilitatorEventPage() {
     key: string
     promise: Promise<BingoRunRow | null>
   } | null>(null)
+  // Fresh event_state for async work that settles after awaits (activation
+  // joins, play-order reconcile): closures over liveState capture the
+  // press-time render, not where the event has moved to since.
+  const liveStateRef = useRef<Tables<'event_state'> | null>(null)
   const { notify } = useNotification()
   const queryClient = useQueryClient()
 
@@ -704,6 +708,8 @@ export function FacilitatorEventPage() {
     isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
   ).filter((team): team is Tables<'teams'> => Boolean(team?.id))
   const liveState = state
+  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
+  liveStateRef.current = liveState
   const eventHasStore = parseStoreConfig(event.store_config).length > 0
   // Internal iframe preview — always the direct /display/:eventId URL.
   const displayUrl = eventId ? getEventLinks(eventId).display : ''
@@ -1227,8 +1233,16 @@ export function FacilitatorEventPage() {
         if (played) {
           void patchState({ bingo_state: 'playing', bingo_revealed_track_ids: [] })
           void patchWinnerFieldsSafe({ bingo_winner_team_id: null })
-          if (!startedFromRunOrder && startedTrackId) {
-            void reconcileBingoRunAfterFallbackStart(startedTrackId, startedIndex)
+          if (!startedFromRunOrder) {
+            if (startedTrackId) {
+              void reconcileBingoRunAfterFallbackStart(startedTrackId, startedIndex)
+            }
+            // A first-time activation resolving after this press used to reset
+            // event_state to 'waiting' over the 'playing' just written. Once
+            // the shared in-flight activation settles, re-assert 'playing'.
+            void reassertBingoPlayingAfterActivation(
+              liveState.current_stage_index,
+            )
           }
         } else {
           notify(t('bingo.couldNotStartPlayback'))
@@ -1295,12 +1309,48 @@ export function FacilitatorEventPage() {
         playedTrackId,
       })
       if (updated) {
-        setBingoRunOverride(updated)
+        // The override feeds whatever stage is currently rendered, so only
+        // install it when the facilitator is still on the reconciled stage.
+        // The stage-keyed query cache is always safe to update.
+        if (liveStateRef.current?.current_stage_index === updated.stage_index) {
+          setBingoRunOverride(updated)
+        }
         queryClient.setQueryData(queryKeys.bingoRun(eventId, updated.stage_index), updated)
       }
     } catch (err) {
       console.warn('[bingo] play order reconcile failed (non-fatal):', err)
+      // The room heard the fallback clip but the run still holds its shuffled
+      // order, so reveal and scoring will not match this round. Tell the
+      // facilitator while it still matters instead of failing silently.
+      if (liveStateRef.current?.bingo_state === 'playing') {
+        notify(t('state.couldNotStartBingo'))
+      }
     }
+  }
+
+  // P2.2 hardening (first-activation clobber): a Start press racing the first
+  // activation writes bingo_state='playing', then the activation resolving
+  // AFTERWARDS used to reset event_state to 'waiting' with a newer updated_at,
+  // flipping the whole room out of the running round. The client fallback now
+  // refuses to reset a playing row; the deployed edge function may still do
+  // it, so once the shared in-flight activation settles, re-assert 'playing'
+  // as long as this press's stage is still current and the round has not been
+  // revealed or ended in the meantime.
+  async function reassertBingoPlayingAfterActivation(startedStageIndex: number) {
+    const inFlight = bingoActivationInFlightRef.current
+    if (inFlight) {
+      try {
+        await inFlight.promise
+      } catch {
+        // Activation failures surface through their own notify paths.
+      }
+    }
+    const fresh = liveStateRef.current
+    if (!fresh) return
+    if (fresh.current_stage_index !== startedStageIndex) return
+    // Never resurrect a round the facilitator has since revealed or ended.
+    if (fresh.bingo_state !== 'playing' && fresh.bingo_state !== 'waiting') return
+    await patchState({ bingo_state: 'playing' })
   }
 
   // Winner-announcement columns are non-critical. A failure here (e.g. migration
@@ -1401,7 +1451,15 @@ export function FacilitatorEventPage() {
     // clips, but after a mid-run page reload the decks are bare and the play()
     // below happens after awaited scoring work, outside the gesture.
     player.unlockFromUserGesture()
-    const run = await ensureBingoRunReady()
+    let run: BingoRunRow | null = null
+    try {
+      run = await ensureBingoRunReady()
+    } catch (err) {
+      // The surrounding try has only a finally, so an activation rejection
+      // here used to escape unhandled and the press silently did nothing.
+      notify(err instanceof Error ? err.message : t('bingo.runNotReady'))
+      return
+    }
     if (!run || normalizeBingoPlayOrder(run.playOrder).length === 0) {
       notify(t('bingo.runNotReady'))
       return

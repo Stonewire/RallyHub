@@ -110,6 +110,11 @@ Deno.serve(async (req) => {
     const { error: cardsErr } = await supabase.from('bingo_team_cards').insert(cardRows)
     if (cardsErr) throw cardsErr
 
+    // P2.2 hardening: a Start press racing this activation may already have
+    // begun playback and written bingo_state='playing'. That clip is the round
+    // the room is hearing, so never reset a playing row back to 'waiting'. The
+    // guard lives in the UPDATE itself (conditional write, zero rows matched
+    // when playing), not a read-then-write that could race.
     await supabase
       .from('event_state')
       .update({
@@ -121,6 +126,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       })
       .eq('event_id', eventId)
+      .neq('bingo_state', 'playing')
 
     return new Response(
       JSON.stringify({
