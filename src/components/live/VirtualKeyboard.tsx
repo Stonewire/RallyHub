@@ -1,40 +1,22 @@
 import { ArrowBigUp, CornerDownLeft, Delete } from 'lucide-react'
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  NUMBER_ROWS,
+  SYMBOL_ROWS,
+  keyVariantsForLanguage,
+  keyboardColumns,
+  letterRowsFor,
+  type KeyboardAlphabet,
+} from '@/lib/keyboard-layouts'
 import { textOnAccent } from '@/lib/live-event'
 import { playKeyClickSound, type KeyClickKind } from '@/lib/sounds'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
-type Alphabet = 'latin' | 'cyrillic'
-
-const LATIN_ROWS = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
-]
-
-// Bulgarian 30-letter Cyrillic alphabet, alphabetical rows. This is a tap
-// keyboard, not a physical one, so there is no ЙЦУКЕН layout to match.
-const CYRILLIC_ROWS = [
-  ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'Й'],
-  ['К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т', 'У'],
-  ['Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ь', 'Ю', 'Я'],
-]
-
-/** Digits and everyday punctuation, in the phone-keyboard arrangement. */
-const NUMBER_ROWS = [
-  ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-  ['-', '/', ':', ';', '(', ')', '€', '&', '@', '"'],
-  ['.', ',', '?', '!', "'"],
-]
-
-/** The second symbol layer, reached from the characters key. */
-const SYMBOL_ROWS = [
-  ['[', ']', '{', '}', '#', '%', '^', '*', '+', '='],
-  ['_', '\\', '|', '~', '<', '>', '$', '£', '¥', '•'],
-  ['.', ',', '?', '!', "'"],
-]
+// Letter rows, per-language long-press variants and the column count all live
+// in src/lib/keyboard-layouts.ts as data: one component, one sizing system,
+// every language follows the same QWERTY-style pattern.
 
 /** Matches the guess tiles: green for placed, RallyHub yellow for present. */
 const STATE_COLOR: Record<WordleCellState, string> = {
@@ -57,22 +39,45 @@ const UNUSED_KEY_TEXT = '#1C1917'
 /** Modifier keys (shift, delete, layer switches) sit back from the letters. */
 const MODIFIER_KEY_COLOR = '#4B5563'
 
-/**
- * Every key is the same width regardless of how many sit in its row, so short
- * rows centre with the indent of a real QWERTY board instead of stretching to
- * fill. 10 keys per row plus the 9 gaps between them.
- */
-const KEY_WIDTH = 'calc((100% - 9 * 0.25rem) / 10)'
-
-/** Width of a key spanning `units` letter keys, gaps included. */
-function spanWidth(units: number) {
-  return `calc(${KEY_WIDTH} * ${units} + ${(units - 1) * 0.25}rem)`
-}
+/** How long a finger holds a key before its variant bubble pops. */
+const LONG_PRESS_MS = 450
+/** Variant bubble geometry, in px: square options in a small floating tray. */
+const BUBBLE_OPTION = 44
+const BUBBLE_GAP = 4
+const BUBBLE_PAD = 4
+/** Gap between the bubble's bottom edge and the top of the held key. */
+const BUBBLE_LIFT = 6
 
 type Layer = 'letters' | 'numbers' | 'symbols'
 
+type HoldState = {
+  pointerId: number
+  letter: string
+  /** Base letter first, then its accents: the bubble in reading order. */
+  options: string[]
+  el: HTMLButtonElement
+  downX: number
+  downY: number
+  moved: boolean
+  bubbleOpen: boolean
+  highlight: number
+  timer: number
+}
+
+type BubbleState = {
+  options: string[]
+  /** Panel-relative px, for rendering inside the fixed panel. */
+  left: number
+  top: number
+  /** Viewport-relative px, for hit-testing the sliding finger. */
+  viewportLeft: number
+  highlight: number
+  /** slide: finger still down, release picks. tap: released in place, tap picks. */
+  mode: 'slide' | 'tap'
+}
+
 type Props = {
-  alphabet: Alphabet
+  alphabet: KeyboardAlphabet
   onKey: (letter: string) => void
   onBackspace: () => void
   onSubmit?: () => void
@@ -94,7 +99,7 @@ export function VirtualKeyboard({
   keyState,
   disabled,
 }: Props) {
-  const { t } = useTranslation('live')
+  const { t, i18n } = useTranslation('live')
   const submitText = submitLabel ?? t('puzzle.submit')
   // Answers are compared exactly, so case is the player's to choose. Starts on
   // for the first letter, then releases itself, like a phone keyboard.
@@ -103,6 +108,19 @@ export function VirtualKeyboard({
   // The key currently under a finger, for the iOS-style popped-up preview.
   const [poppedKey, setPoppedKey] = useState<string | null>(null)
   const popTimerRef = useRef<number | null>(null)
+  // A long-press in flight (variant keys only), and its popped bubble.
+  const holdRef = useRef<HoldState | null>(null)
+  const [bubble, setBubble] = useState<BubbleState | null>(null)
+
+  // Accents follow the language the phone is reading the event in.
+  const variantMap = keyVariantsForLanguage(i18n.language)
+
+  useEffect(() => {
+    return () => {
+      if (popTimerRef.current != null) window.clearTimeout(popTimerRef.current)
+      if (holdRef.current) window.clearTimeout(holdRef.current.timer)
+    }
+  }, [])
 
   /** Click + (Android) haptic on every key, like the phone's own keyboard. */
   function keyFeedback(kind: KeyClickKind = 'key') {
@@ -117,17 +135,65 @@ export function VirtualKeyboard({
     popTimerRef.current = window.setTimeout(() => setPoppedKey(null), 220)
   }
 
-  const letterRows = alphabet === 'cyrillic' ? CYRILLIC_ROWS : LATIN_ROWS
+  const letterRows = letterRowsFor(alphabet)
   const rows =
     layer === 'letters' ? letterRows : layer === 'numbers' ? NUMBER_ROWS : SYMBOL_ROWS
-  const keyStyle: CSSProperties = { width: KEY_WIDTH }
+
+  /**
+   * iPhone-style sizing: every key on the board is exactly the same width,
+   * derived from the widest letter row of the active alphabet. Shorter rows
+   * centre with an inset instead of stretching or shrinking.
+   */
+  const cols = keyboardColumns(alphabet)
+  const keyWidth = `calc((100% - ${cols - 1} * 0.25rem) / ${cols})`
+
+  /** Width of a key spanning `units` letter keys, gaps included. */
+  function spanWidth(units: number) {
+    return `calc(${keyWidth} * ${units} + ${(units - 1) * 0.25}rem)`
+  }
+
+  const keyStyle: CSSProperties = { width: keyWidth }
   const submitInactive = disabled || submitDisabled
+
+  /** Sends the character through, honouring shift, and releases shift. */
+  function commitChar(char: string) {
+    onKey(layer === 'letters' && !shift ? char.toLocaleLowerCase() : char)
+    if (shift) setShift(false)
+  }
 
   function press(char: string) {
     keyFeedback()
     popKey(char)
-    onKey(layer === 'letters' && !shift ? char.toLocaleLowerCase() : char)
-    if (shift) setShift(false)
+    commitChar(char)
+  }
+
+  function clearHold() {
+    if (holdRef.current) window.clearTimeout(holdRef.current.timer)
+    holdRef.current = null
+  }
+
+  /** Swaps the key pop for the variant bubble once the hold matures. */
+  function openBubble(hold: HoldState, panel: HTMLElement) {
+    const keyRect = hold.el.getBoundingClientRect()
+    const panelRect = panel.getBoundingClientRect()
+    const count = hold.options.length
+    const width = BUBBLE_PAD * 2 + count * BUBBLE_OPTION + (count - 1) * BUBBLE_GAP
+    const height = BUBBLE_PAD * 2 + BUBBLE_OPTION
+    const centre = keyRect.left + keyRect.width / 2
+    const viewportLeft = Math.min(
+      Math.max(centre - width / 2, 8),
+      Math.max(8, panelRect.width - width - 8),
+    )
+    hold.bubbleOpen = true
+    setPoppedKey(null)
+    setBubble({
+      options: hold.options,
+      left: viewportLeft - panelRect.left,
+      top: keyRect.top - panelRect.top - height - BUBBLE_LIFT,
+      viewportLeft,
+      highlight: 0,
+      mode: 'slide',
+    })
   }
 
   function modifierKey(
@@ -162,27 +228,84 @@ export function VirtualKeyboard({
 
   return (
     // Fixed to the very bottom of the screen, like the phone's own keyboard
-    // (CF6). It sits ABOVE the chat/exit fabs and the RallyHub badge — the
+    // (CF6). It sits ABOVE the chat/exit fabs and the RallyHub badge: the
     // near-opaque panel simply covers them while typing.
     <div
       className="fixed inset-x-0 bottom-0 z-[10002] bg-black/85 pt-2.5 backdrop-blur-md select-none"
-      style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))' }}
+      style={{
+        paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))',
+        // The panel owns every gesture on it, so a sliding finger picks a
+        // variant instead of scrolling the page behind the keyboard.
+        touchAction: 'none',
+      }}
       // Forgiving hit targets, like a real phone keyboard (CF9): the whole
       // panel takes the pointer-down and routes it to the NEAREST letter key,
       // so a thumb landing in a gap or a couple of pixels off still types.
-      // Commits on finger DOWN, like iOS. Modifier keys keep their own
-      // handlers; a miss near them falls through to the closest letter only
-      // when it is genuinely close.
+      // Commits on finger DOWN, like iOS, except on keys that carry accent
+      // variants: those commit on release, so a ~450ms hold can pop the
+      // variant bubble first. Modifier keys keep their own handlers; a miss
+      // near them falls through to the closest letter only when it is
+      // genuinely close.
       onPointerDown={(e) => {
         if (disabled) return
+        // The same pointer cannot be down twice, so a hold still recorded
+        // under this id is stale (a missed pointerup): sweep it first.
+        if (holdRef.current?.pointerId === e.pointerId) {
+          clearHold()
+          setBubble((current) => (current?.mode === 'slide' ? null : current))
+        }
         const target = e.target as HTMLElement
+        // A bubble left open by a still hold: tapping an option types it,
+        // tapping anywhere else just puts the bubble away.
+        if (bubble?.mode === 'tap') {
+          e.preventDefault()
+          const option = target.closest('button[data-kb-variant]') as HTMLButtonElement | null
+          setBubble(null)
+          if (option) {
+            keyFeedback()
+            commitChar(option.dataset.kbVariant!)
+          }
+          return
+        }
         // Direct hit on a letter key: press it (letters have no handler of
-        // their own — this delegate is the only path).
+        // their own, this delegate is the only path).
         const direct = target.closest('button[data-kb]') as HTMLButtonElement | null
         if (direct) {
           if (!direct.disabled) {
             e.preventDefault()
-            press(direct.dataset.kb!)
+            const letter = direct.dataset.kb!
+            const variants = layer === 'letters' ? variantMap[letter] : undefined
+            if (variants?.length) {
+              // Same click and key pop as any other press; the letter itself
+              // lands on release, once we know it was a tap and not a hold.
+              keyFeedback()
+              popKey(letter)
+              clearHold()
+              const panel = e.currentTarget as HTMLElement
+              try {
+                panel.setPointerCapture(e.pointerId)
+              } catch {
+                // Very old browsers: the hold still works while the pointer
+                // stays over the panel, which a thumb on a keyboard does.
+              }
+              const hold: HoldState = {
+                pointerId: e.pointerId,
+                letter,
+                options: [letter, ...variants],
+                el: direct,
+                downX: e.clientX,
+                downY: e.clientY,
+                moved: false,
+                bubbleOpen: false,
+                highlight: 0,
+                timer: window.setTimeout(() => {
+                  if (holdRef.current === hold) openBubble(hold, panel)
+                }, LONG_PRESS_MS),
+              }
+              holdRef.current = hold
+            } else {
+              press(letter)
+            }
           }
           return
         }
@@ -205,6 +328,54 @@ export function VirtualKeyboard({
         }
         // Half a key of forgiveness; further away than that was not a typo.
         if (best && bestDistance <= 22) press(best.dataset.kb!)
+      }}
+      onPointerMove={(e) => {
+        const hold = holdRef.current
+        if (!hold || e.pointerId !== hold.pointerId) return
+        if (Math.hypot(e.clientX - hold.downX, e.clientY - hold.downY) > 10) hold.moved = true
+        if (!hold.bubbleOpen) return
+        // Sliding sideways under the bubble highlights the nearest option.
+        setBubble((current) => {
+          if (!current) return current
+          const count = current.options.length
+          const index = Math.min(
+            count - 1,
+            Math.max(
+              0,
+              Math.floor(
+                (e.clientX - current.viewportLeft - BUBBLE_PAD) / (BUBBLE_OPTION + BUBBLE_GAP),
+              ),
+            ),
+          )
+          hold.highlight = index
+          return index === current.highlight ? current : { ...current, highlight: index }
+        })
+      }}
+      onPointerUp={(e) => {
+        const hold = holdRef.current
+        if (!hold || e.pointerId !== hold.pointerId) return
+        clearHold()
+        if (!hold.bubbleOpen) {
+          // A quick tap: the base letter, exactly as on every other key.
+          commitChar(hold.letter)
+          return
+        }
+        if (hold.moved) {
+          // Slid across the bubble: release picks the highlighted option.
+          keyFeedback()
+          commitChar(hold.options[hold.highlight] ?? hold.letter)
+          setBubble(null)
+        } else {
+          // Held still and let go: leave the bubble up to be tapped.
+          setBubble((current) => (current ? { ...current, mode: 'tap' } : current))
+        }
+      }}
+      onPointerCancel={(e) => {
+        const hold = holdRef.current
+        if (!hold || e.pointerId !== hold.pointerId) return
+        clearHold()
+        setBubble(null)
+        setPoppedKey(null)
       }}
     >
       {/* The panel runs to the edges, the keys keep a margin from them. */}
@@ -242,7 +413,7 @@ export function VirtualKeyboard({
                     }}
                     // Ruled-out keys keep their solid grey instead of fading, so they
                     // still read as "already tried" rather than as a rendering glitch.
-                    className={`relative flex h-10 items-center justify-center rounded-md text-base font-bold transition-colors md:h-12 ${
+                    className={`relative flex h-10 shrink-0 items-center justify-center rounded-md text-base font-bold transition-colors md:h-12 ${
                       layer === 'letters' && !shift ? 'lowercase' : 'uppercase'
                     } ${disabled && !locked ? 'opacity-40' : ''}`}
                   >
@@ -295,15 +466,12 @@ export function VirtualKeyboard({
               }}
               aria-label={t('puzzle.space')}
               style={{
-                // Takes whatever the send key leaves, so the row always ends
-                // flush with the letters above it.
-                width: onSubmit ? spanWidth(4.5) : undefined,
                 backgroundColor: UNUSED_KEY_COLOR,
                 color: UNUSED_KEY_TEXT,
               }}
-              className={`flex h-10 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40 md:h-12 ${
-                onSubmit ? 'shrink-0' : 'flex-1'
-              }`}
+              // Takes whatever the other keys leave, so the row always ends
+              // flush with the letters above it, whatever the column count.
+              className="flex h-10 flex-1 items-center justify-center rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-40 md:h-12"
             >
               {t('puzzle.space')}
             </button>
@@ -318,7 +486,7 @@ export function VirtualKeyboard({
                 aria-label={submitText}
                 style={{
                   width: spanWidth(2.5),
-                  // Keeps the accent even while inactive — it is the key that
+                  // Keeps the accent even while inactive: it is the key that
                   // sends the answer, and a grey one read as a dead control.
                   backgroundColor: accentColor ?? UNUSED_KEY_COLOR,
                   color: accentColor ? textOnAccent(accentColor) : '#FFFFFF',
@@ -331,6 +499,45 @@ export function VirtualKeyboard({
             ) : null}
           </div>
       </div>
+
+      {bubble ? (
+        // The iPhone-style variant bubble: base letter first, accents after,
+        // floating just above the held key. While the finger is still down it
+        // is purely visual (slide highlights, release picks); once released in
+        // place its options become real, tappable buttons.
+        <div
+          aria-hidden={bubble.mode === 'slide'}
+          className="absolute z-20 flex items-center rounded-xl bg-white shadow-xl"
+          style={{
+            left: bubble.left,
+            top: bubble.top,
+            padding: BUBBLE_PAD,
+            gap: BUBBLE_GAP,
+          }}
+        >
+          {bubble.options.map((option, index) => (
+            <button
+              key={option}
+              type="button"
+              tabIndex={bubble.mode === 'tap' ? 0 : -1}
+              data-kb-variant={option}
+              aria-label={option}
+              className={`flex items-center justify-center rounded-lg text-2xl font-bold ${
+                !shift ? 'lowercase' : 'uppercase'
+              }`}
+              style={{
+                width: BUBBLE_OPTION,
+                height: BUBBLE_OPTION,
+                // Brand gold with charcoal text on the highlighted option.
+                backgroundColor: index === bubble.highlight ? '#FFC107' : '#FFFFFF',
+                color: '#1C1917',
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
