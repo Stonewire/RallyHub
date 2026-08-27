@@ -1138,6 +1138,8 @@
       "educationalNote": "La remise éducation approuvée s'applique au solde des frais d'événement.",
       "payPerEventNote": "Vous pouvez la régler dans Paramètres puis Facturation, ou elle est prélevée automatiquement si une carte est enregistrée. Votre prochain événement nécessite d'abord le règlement de celle-ci.",
       "subscriptionCardNote": "Nous prélèverons la carte enregistrée avec votre abonnement.",
+      "demoClearNote": "Cet événement a été lancé en démo. L'activation efface d'abord les données de la démo : équipes réservées, scores, envois, messages du chat, progression du bingo et état en direct. La configuration, les jeux, les étapes, la liste complète des équipes et les codes QR imprimés restent intacts.",
+      "demoKeptNote": "Cet événement a déjà été activé, les données de la démo ne peuvent donc pas être effacées et seront conservées.",
       "errors": {
         "subscriptionRequired": "Votre abonnement n'est pas actif. Démarrez (ou renouvelez) votre formule dans Paramètres puis Facturation, puis activez cet événement.",
         "unpaidInvoice": "Vous avez une facture d'événement impayée. Réglez-la dans Paramètres puis Facturation avant d'activer un autre événement.",

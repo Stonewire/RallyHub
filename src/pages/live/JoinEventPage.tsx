@@ -18,7 +18,6 @@ import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import { useWakeLock } from '@/hooks/use-wake-lock'
 import {
   countClaimedTeams,
-  demoTeamSlots,
   DEMO_MAX_TEAMS,
   isEventDemoStatus,
 } from '@/lib/event-demo'
@@ -294,9 +293,9 @@ export function JoinEventPage() {
 
   const logo = logoForEvent(event, organization, displayTextColorForEvent(event))
   const accent = brandColorsForEvent(event, organization)[2]
-  const joinTeams = isEventDemoStatus(event.status)
-    ? demoTeamSlots(bundle.teams)
-    : bundle.teams
+  // Demo events show the full team list (P4.1); only claiming is capped, by
+  // the guard in claimTeam below and server-side in the claim RPC.
+  const joinTeams = bundle.teams
 
   async function takeoverTeam() {
     if (!takeoverSlot || !eventId || !takeoverPassword.trim()) return

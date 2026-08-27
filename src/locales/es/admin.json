@@ -1138,6 +1138,8 @@
       "educationalNote": "El descuento educativo aprobado se aplica a la tarifa de evento restante.",
       "payPerEventNote": "Puedes pagarlo desde Ajustes → Facturación, o se cobra automáticamente si tienes una tarjeta guardada. Tu próximo evento necesita que este esté saldado.",
       "subscriptionCardNote": "Cobraremos en la tarjeta guardada con tu suscripción.",
+      "demoClearNote": "Este evento se ejecutó como demo. Al activarlo, primero se borran los datos de la demo: equipos reclamados, puntuaciones, envíos, mensajes de chat, progreso del bingo y estado en directo. La configuración del evento, los juegos, las fases, la lista completa de equipos y los códigos QR impresos se mantienen intactos.",
+      "demoKeptNote": "Este evento ya se activó antes, por lo que los datos de la demo no se pueden borrar y se conservarán.",
       "errors": {
         "subscriptionRequired": "Tu suscripción no está activa. Inicia (o renueva) tu plan en Ajustes → Facturación y luego activa este evento.",
         "unpaidInvoice": "Tienes una factura de evento sin pagar. Sáldala en Ajustes → Facturación antes de activar otro evento.",

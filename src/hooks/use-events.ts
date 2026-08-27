@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
-import { capTeamCountForEventStatus } from '@/lib/event-demo'
+import { clampTeamCount } from '@/lib/event-demo'
 import { i18n } from '@/lib/i18n'
 import { resetEventData } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
@@ -214,20 +214,7 @@ export function useUpdateEvent(organizationId: string | null) {
       await syncEventGameLinks(eventId, eventMeta.organization_id, gameIds)
 
       if (event.team_count != null) {
-        const { data: current, error: fetchErr } = await supabase
-          .from('events')
-          .select('status')
-          .eq('id', eventId)
-          .single()
-        if (fetchErr) {
-          logSupabaseFailure('events.select status', fetchErr)
-          throw new Error(formatSupabaseError(fetchErr))
-        }
-
-        const teamCount = capTeamCountForEventStatus(
-          event.team_count,
-          (event.status ?? current?.status) as EventStatus,
-        )
+        const teamCount = clampTeamCount(event.team_count)
         if (teamCount !== event.team_count) {
           const { error: capError } = await supabase
             .from('events')
@@ -397,24 +384,8 @@ export function useUpdateEventStatus(organizationId: string | null) {
       eventId: string
       status: EventStatus
     }) => {
-      if (status === 'demo') {
-        const { data: event, error: fetchErr } = await supabase
-          .from('events')
-          .select('team_count')
-          .eq('id', eventId)
-          .single()
-        if (fetchErr) throw fetchErr
-
-        const teamCount = capTeamCountForEventStatus(event?.team_count ?? 2, 'demo')
-        const { error } = await supabase
-          .from('events')
-          .update({ status, team_count: teamCount })
-          .eq('id', eventId)
-        if (error) throw error
-        await syncTeamSlots(eventId, teamCount)
-        return
-      }
-
+      // Demo no longer touches team_count or slot rows (P4.1): the configured
+      // team list survives, and only claiming is capped (see event-demo.ts).
       const { error } = await supabase
         .from('events')
         .update({ status })

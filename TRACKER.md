@@ -140,14 +140,23 @@ offline proof lands in the big test round. Items listed for reference:
   Accepted gaps, NOT fixed: no cross-event eviction for the 80 MB media cache
   yet, and custom brand fonts are not cached offline (decision for Rumen).
 
-**Phase 4, event lifecycle (demo/active):**
-- P4.1 Demo keeps the full configured team list (no more capping team_count to
-  2 and deleting slots); demo only caps JOINED teams at 2, enforced
-  server-side in the claim RPC, not just client guards.
-- P4.2 Demo -> active: explicit "activate fresh" step that clears demo data
-  (reset_event_data path) behind a clear warning dialog listing what is wiped.
-- Danger notes: syncTeamSlots deletes surplus unclaimed slots from many call
-  sites; reset guard (never-activated only) is the billing wall, do not
+**Phase 4, event lifecycle (demo/active): SHIPPED V3.26.0, 27 Aug.**
+- P4.1 Demo keeps the full configured team list: the demo cap on team_count
+  and the slot deletion on the switch to demo are gone (useUpdateEventStatus
+  no longer touches team_count; demoTeamSlots removed from the join and
+  facilitator surfaces). Only claiming is capped at 2, by the existing client
+  guards plus migration 20260827120000_demo_claim_cap.sql, which re-creates
+  claim_team_with_inventory_access with a claimed-teams count check behind an
+  event-row lock (taken before the team-row lock, matching reset_event_data's
+  lock order).
+- P4.2 Demo -> active clears demo data behind a warning: the activation
+  billing dialog probes for claimed teams/submissions on demo events, lists
+  what will be wiped, and on confirm runs resetEventData before the status
+  change. The never-activated reset guard stands: clearDemoData is only ever
+  set when activated_at is null, and the (normally unreachable) previously
+  activated case shows a "data kept" note instead.
+- Danger notes stand: syncTeamSlots deletes surplus unclaimed slots from many
+  call sites; reset guard (never-activated only) is the billing wall, do not
   weaken it for ordinary events.
 
 **Phase 5, billing correctness (N2):**

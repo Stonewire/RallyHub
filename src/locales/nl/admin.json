@@ -1138,6 +1138,8 @@
       "educationalNote": "De goedgekeurde onderwijskorting geldt voor de resterende eventkosten.",
       "payPerEventNote": "Je kunt dit betalen via Instellingen → Facturatie, of het wordt automatisch afgeschreven als je een kaart hebt opgeslagen. Je volgende event kan pas nadat deze is voldaan.",
       "subscriptionCardNote": "We schrijven het af van de kaart die bij je abonnement is opgeslagen.",
+      "demoClearNote": "Dit event draaide als demo. Bij activeren worden eerst de demogegevens gewist: geclaimde teams, scores, inzendingen, chatberichten, bingovoortgang en live status. De opzet van het event, de games, de onderdelen, de volledige teamlijst en geprinte QR-codes blijven intact.",
+      "demoKeptNote": "Dit event is al eerder geactiveerd, dus de demogegevens kunnen niet worden gewist en blijven behouden.",
       "errors": {
         "subscriptionRequired": "Je abonnement is niet actief. Start (of verleng) je plan via Instellingen → Facturatie en activeer dit event daarna.",
         "unpaidInvoice": "Je hebt een onbetaalde eventfactuur. Voldoe die via Instellingen → Facturatie voordat je een volgend event activeert.",

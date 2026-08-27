@@ -5,6 +5,28 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.26.0 - 2026-08-27 (fix round 1, phase 4: demo/active lifecycle)
+
+Fourth batch from the 26 Aug test pass: demoing an event no longer destroys
+the team setup, and going live from a demo starts clean.
+
+- Demo mode keeps the full configured team list (P4.1). Switching to demo no
+  longer caps team_count to 2 or deletes surplus slot rows, so printed QR
+  codes and prepared team names survive a demo run. The demo limitation is
+  now only that at most 2 teams may be claimed at a time: all teams stay
+  visible on the join page, the existing client guards still block a third
+  claim, and a new migration adds the same cap server-side inside
+  claim_team_with_inventory_access (event-row lock, so two simultaneous
+  claims cannot both slip past the count).
+- Demo to active clears the demo run first, behind a warning (P4.2). The
+  activation billing dialog on a demo event with any claimed team or
+  submission now also lists what will be wiped (team claims, scores,
+  submissions, chat, bingo progress, live state) and, on confirm, runs the
+  existing reset path before the status change, recreating the full empty
+  slot set. The never-activated reset guard is untouched: a previously
+  activated event skips the clear and the dialog says the data is kept.
+  Billing, activated_at semantics and the entitlement gate are unchanged.
+
 ## V3.25.0 - 2026-08-27 (fix round 1, phase 3: offline round 2)
 
 Third batch from the 26 Aug test pass: the offline gaps found on the real

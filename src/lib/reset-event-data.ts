@@ -51,6 +51,29 @@ export async function deleteEventPermanently(eventId: string): Promise<void> {
   if (error) throw error
 }
 
+/**
+ * True when the event holds any demo-run leftovers worth warning about:
+ * a claimed team (name set) or a submission. Used by the demo to active flow
+ * to decide whether activation must clear demo data first (P4.2).
+ */
+export async function eventHasDemoData(eventId: string): Promise<boolean> {
+  const [teamsRes, subsRes] = await Promise.all([
+    supabase
+      .from('teams')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .not('name', 'is', null)
+      .neq('name', ''),
+    supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId),
+  ])
+  if (teamsRes.error) throw teamsRes.error
+  if (subsRes.error) throw subsRes.error
+  return (teamsRes.count ?? 0) > 0 || (subsRes.count ?? 0) > 0
+}
+
 /** Clear gameplay data, delete Storage files, and restore empty team slots. */
 export async function resetEventData(eventId: string): Promise<void> {
   const { data: event, error: fetchErr } = await supabase

@@ -54,7 +54,6 @@ import { activateBingoRun } from '@/lib/activate-bingo-run'
 import { reconcileBingoRunToPlayedTrack } from '@/lib/bingo-start-reconcile'
 import {
   countClaimedTeams,
-  demoTeamSlots,
   DEMO_MAX_TEAMS,
   isEventDemoStatus,
 } from '@/lib/event-demo'
@@ -704,9 +703,11 @@ export function FacilitatorEventPage() {
   const { event, teams: eventTeams, games, submissions } = bundle
   // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   controlsLiveRef.current = isEventLive(event)
-  const teams = (
-    isEventDemoStatus(event.status) ? demoTeamSlots(eventTeams) : eventTeams
-  ).filter((team): team is Tables<'teams'> => Boolean(team?.id))
+  // Demo events keep the full slot list visible (P4.1); the claim guard in
+  // saveClaim caps how many can be claimed, not how many exist.
+  const teams = eventTeams.filter((team): team is Tables<'teams'> =>
+    Boolean(team?.id),
+  )
   const liveState = state
   // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   liveStateRef.current = liveState

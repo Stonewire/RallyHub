@@ -45,7 +45,7 @@ import {
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { publishLiveBundleReload } from '@/lib/live-broadcast'
 import { downloadEventPackage, formatMb } from '@/lib/event-export'
-import { capTeamCountForEventStatus, maxTeamCountForEventStatus } from '@/lib/event-demo'
+import { clampTeamCount, MAX_TEAM_COUNT } from '@/lib/event-demo'
 import { isEventActivated, canResetEventData } from '@/lib/event-lifecycle'
 import { brandColorsForEvent, brandColorsFromOrg, logoForEvent } from '@/lib/live-event'
 import type { EventStatus } from '@/types/database'
@@ -151,7 +151,7 @@ export function AdminEventEditPage() {
           language: values.language,
           multilingual: values.multilingual,
           available_languages: availableLanguagesForSave(values),
-          team_count: capTeamCountForEventStatus(values.teamCount, eventStatus),
+          team_count: clampTeamCount(values.teamCount),
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,
           logo_url: values.brandingEnabled
@@ -361,7 +361,7 @@ export function AdminEventEditPage() {
                   games={gamesQuery.data ?? []}
                   groups={groupsQuery.data ?? []}
                   orgDefaults={orgQuery.data ?? null}
-                  maxTeamCount={maxTeamCountForEventStatus(eventStatus)}
+                  maxTeamCount={MAX_TEAM_COUNT}
                 />
               </fieldset>
 

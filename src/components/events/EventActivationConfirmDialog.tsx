@@ -8,6 +8,8 @@ import type { EventActivationWarning } from '@/lib/event-activation-billing'
 type EventActivationConfirmDialogProps = {
   eventName: string
   warning: EventActivationWarning
+  /** Demo to active only: what happens to the demo run's data (P4.2). */
+  demoDataNotice?: string | null
   confirming: boolean
   onCancel: () => void
   onConfirm: () => void
@@ -16,6 +18,7 @@ type EventActivationConfirmDialogProps = {
 export function EventActivationConfirmDialog({
   eventName,
   warning,
+  demoDataNotice = null,
   confirming,
   onCancel,
   onConfirm,
@@ -46,6 +49,11 @@ export function EventActivationConfirmDialog({
             <p id="event-activation-message" className="text-muted-foreground text-sm leading-relaxed">
               {warning.message}
             </p>
+            {demoDataNotice ? (
+              <p className="border-primary/40 bg-primary/10 text-foreground rounded-md border px-3 py-2 text-sm leading-relaxed">
+                {demoDataNotice}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex justify-end gap-2">
