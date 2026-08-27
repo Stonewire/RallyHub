@@ -159,12 +159,18 @@ offline proof lands in the big test round. Items listed for reference:
   call sites; reset guard (never-activated only) is the billing wall, do not
   weaken it for ordinary events.
 
-**Phase 5, billing correctness (N2):**
-- P5.1 Paddle webhook refund handling (none exists today): subscription
-  refund -> org downgraded to rookie (Pay Per Event), subscription state
-  cleared, billing stops; event-invoice refund -> invoice marked refunded.
-- P5.2 Suspension reflected in Billing UI (BillingOverview shows suspended
-  state instead of "Active"); staff suspension and billing surfaces agree.
+**Phase 5, billing correctness (N2): LANDED V3.26.0.**
+- [x] P5.1 Paddle webhook refund handling: adjustment.created/updated with
+  action refund + status approved. Subscription refund -> sub tx canceled,
+  org downgraded to rookie, Paddle sub canceled immediately via API,
+  paddle_subscription_id cleared; event-invoice refund -> invoice marked
+  'refunded' (new status, migration 20260827090000). subscription.canceled
+  backstop no longer re-asserts plan_key/billing_period and clears the sub
+  id, so it cannot undo the downgrade. Demo orgs never downgraded. NEEDS:
+  migration applied + paddle-webhook redeployed.
+- [x] P5.2 Suspension visible in Billing: banner + Suspended badge in
+  BillingOverview; start subscription, pay invoice and plan changes disabled
+  while suspended (portal/billing details stays available).
 
 **Phase 6, platform customization (N15; feature branch
 feature/platform-customization; needs Rumen's design sign-off per item):**

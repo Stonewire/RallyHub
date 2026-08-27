@@ -29,6 +29,7 @@ import {
   normalizePlanId,
   VAT_DISCLAIMER,
 } from '@/lib/subscription-plans'
+import { isOrgSuspended } from '@/lib/account-status'
 import { sumUnpaidDue } from '@/lib/billing-display'
 import { useOptionalTenant } from '@/contexts/tenant-context'
 
@@ -38,6 +39,8 @@ type BillingOverviewProps = {
   billingPeriod: string | null | undefined
   /** Set once an org's subscription is active via Paddle. */
   paddleSubscriptionId?: string | null
+  /** organizations.account_status; 'suspended' disables payment controls. */
+  accountStatus?: string | null
   /** Client settings: show upgrade plan comparison. Admin view: hide. */
   showAvailablePlans?: boolean
   /** Admin client detail: show outstanding total summary. */
@@ -51,6 +54,7 @@ export function BillingOverview({
   billingPlan,
   billingPeriod,
   paddleSubscriptionId = null,
+  accountStatus = null,
   showAvailablePlans = false,
   showAdminSummary = false,
 }: BillingOverviewProps) {
@@ -67,6 +71,8 @@ export function BillingOverview({
   const planId = normalizePlanId(billingPlan)
   const period = normalizeBillingPeriod(billingPeriod)
   const plan = getPlan(planId)
+  const suspended = isOrgSuspended(accountStatus)
+  const suspendedReason = suspended ? t('billing.suspendedControlsDisabled') : undefined
 
   const { unpaid } = partitionInvoices(invoicesQuery.data ?? [])
   // One list for the whole section: unpaid first so nothing owed is buried,
@@ -133,6 +139,14 @@ export function BillingOverview({
   const twoColumn = showAvailablePlans
 
   return (
+    <>
+      {/* P5.2: suspension has to be unmissable here, not just on Events.
+          Same styling as OrgSuspendedBanner, billing-specific copy. */}
+      {suspended ? (
+        <Card className="mb-4 border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 shadow-sm">
+          {t('billing.accountSuspendedBanner')}
+        </Card>
+      ) : null}
     <div
       className={
         twoColumn
@@ -175,7 +189,11 @@ export function BillingOverview({
                 {plan.hidden ? ` · ${t('billing.partnerComped')}` : ''}
               </p>
             </div>
-            {paddleSubscriptionId ? (
+            {suspended ? (
+              <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                {t('billing.statusSuspended')}
+              </span>
+            ) : paddleSubscriptionId ? (
               <span className="rounded-full border border-[#1f9d55]/40 bg-[#1f9d55]/10 px-2 py-0.5 text-xs font-medium text-[#1f9d55]">
                 {t('billing.statusActive')}
               </span>
@@ -230,7 +248,8 @@ export function BillingOverview({
                     size="sm"
                     className="w-full whitespace-nowrap"
                     onClick={() => void handleStartSubscription()}
-                    disabled={startSubscription.isPending}
+                    disabled={startSubscription.isPending || suspended}
+                    title={suspendedReason}
                   >
                     {startSubscription.isPending
                       ? t('billing.openingCheckout')
@@ -261,7 +280,9 @@ export function BillingOverview({
             </div>
           ) : null}
 
-          {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest ? (
+          {/* Plan changes start payments, so a suspended account does not get
+              the form at all; the banner above says why. */}
+          {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && !suspended && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest ? (
             <SubscriptionChangeForm
               key={`${planId}-${period}`}
               organizationId={organizationId}
@@ -298,6 +319,7 @@ export function BillingOverview({
             emptyMessage={t('billing.noInvoices')}
             showPayIndicator
             onPay={showAvailablePlans ? handlePayInvoice : undefined}
+            payDisabledReason={suspendedReason}
             payingInvoiceId={payInvoice.isPending ? (payInvoice.variables ?? null) : null}
             onDownload={handleDownloadInvoice}
             downloadingInvoiceId={downloadingInvoiceId}
@@ -322,5 +344,6 @@ export function BillingOverview({
       ) : null}
 
     </div>
+    </>
   )
 }

@@ -16,7 +16,18 @@
 //                             is inherited from the transaction that created it.
 //   subscription.canceled /
 //   subscription.paused     → record the new status so the gate blocks activation
-//                             once the paid period ends.
+//                             once the paid period ends. A canceled subscription
+//                             also clears paddle_subscription_id and never
+//                             re-asserts plan_key/billing_period from custom_data,
+//                             so a refund-driven downgrade (below) is not undone.
+//   adjustment.created /
+//   adjustment.updated      → refunds (action 'refund', status 'approved').
+//                             A refunded subscription payment marks the matching
+//                             subscription_transactions row canceled, downgrades
+//                             the org to the free plan and cancels the Paddle
+//                             subscription immediately so billing genuinely
+//                             stops. A refunded event payment marks the matching
+//                             invoice 'refunded'.
 //
 // Always returns 200 once the signature is verified, even for event types we
 // don't act on — Paddle retries non-2xx responses, and we don't want retries
@@ -99,6 +110,9 @@ Deno.serve(async (req) => {
       customer_id?: string
       subscription_id?: string | null
       status?: string
+      // Adjustment events (refunds) reference the transaction they adjust.
+      action?: string
+      transaction_id?: string | null
       current_billing_period?: { starts_at?: string; ends_at?: string } | null
       items?: Array<{ price?: { custom_data?: Record<string, unknown> | null } | null }> | null
       custom_data?: Record<string, unknown> | null
@@ -172,13 +186,19 @@ Deno.serve(async (req) => {
       case 'subscription.resumed': {
         if (!data.id) break
 
-        const updates: Record<string, unknown> = { paddle_subscription_id: data.id }
+        // A canceled subscription is gone: clear the stored id and never
+        // re-assert plan_key/billing_period from its custom_data, or this
+        // backstop would undo the refund-driven downgrade below.
+        const subscriptionCanceled = data.status === 'canceled'
+        const updates: Record<string, unknown> = {
+          paddle_subscription_id: subscriptionCanceled ? null : data.id,
+        }
         if (typeof data.status === 'string') updates.subscription_status = data.status
         const periodEnd = data.current_billing_period?.ends_at
         if (typeof periodEnd === 'string') updates.subscription_current_period_end = periodEnd
         if (data.customer_id) updates.paddle_customer_id = data.customer_id
-        if (typeof custom.plan_key === 'string') updates.billing_plan = custom.plan_key
-        if (typeof custom.billing_period === 'string') updates.billing_period = custom.billing_period
+        if (!subscriptionCanceled && typeof custom.plan_key === 'string') updates.billing_plan = custom.plan_key
+        if (!subscriptionCanceled && typeof custom.billing_period === 'string') updates.billing_period = custom.billing_period
         // Keep the org marked active while the subscription is usable.
         if (data.status === 'active' || data.status === 'trialing') updates.account_status = 'active'
 
@@ -189,6 +209,115 @@ Deno.serve(async (req) => {
         } else {
           await admin.from('organizations').update(updates).eq('paddle_subscription_id', data.id)
         }
+        break
+      }
+
+      case 'adjustment.created':
+      case 'adjustment.updated': {
+        // Refunds arrive as adjustments. Only an approved refund moves money
+        // back, so anything else (credits, chargebacks, pending or rejected
+        // refunds) is acknowledged and left alone. adjustment.created can
+        // already carry status 'approved'; otherwise the approval arrives
+        // later as adjustment.updated. Every write below is idempotent, so a
+        // created/updated pair for the same refund is safe.
+        const transactionId = data.transaction_id
+        if (data.action !== 'refund' || data.status !== 'approved') break
+        if (typeof transactionId !== 'string' || !transactionId) break
+
+        // Subscription payment refund → mark the payment canceled and
+        // downgrade the org (Rumen's decision: automatic, no review step).
+        const { data: subTx } = await admin
+          .from('subscription_transactions')
+          .select('id, organization_id, paddle_subscription_id')
+          .eq('paddle_transaction_id', transactionId)
+          .maybeSingle()
+
+        if (subTx) {
+          await admin
+            .from('subscription_transactions')
+            .update({ status: 'canceled' })
+            .eq('id', subTx.id)
+
+          const { data: org } = await admin
+            .from('organizations')
+            .select('id, is_demo, paddle_subscription_id, subscription_status')
+            .eq('id', subTx.organization_id)
+            .maybeSingle()
+
+          // Never downgrade a demo org: its billing rows are seeded props.
+          if (!org || org.is_demo) break
+
+          // A refund for a superseded subscription's payment must not touch
+          // the org's current subscription.
+          if (
+            subTx.paddle_subscription_id &&
+            org.paddle_subscription_id &&
+            subTx.paddle_subscription_id !== org.paddle_subscription_id
+          ) {
+            console.error(
+              '[paddle-webhook] refund for old subscription',
+              subTx.paddle_subscription_id,
+              'ignored: org', org.id, 'now on', org.paddle_subscription_id,
+            )
+            break
+          }
+
+          // billing_period stays as-is: the column is NOT NULL with a
+          // monthly/yearly check, and it is meaningless on the free plan.
+          await admin
+            .from('organizations')
+            .update({ billing_plan: 'rookie', subscription_status: 'canceled' })
+            .eq('id', org.id)
+
+          // Cancel the Paddle subscription itself so automatic billing
+          // genuinely stops. The subscription.canceled webhook that follows
+          // is the backstop that confirms the state. Skipped when our own
+          // records already say canceled (refund re-delivery).
+          if (org.paddle_subscription_id && org.subscription_status !== 'canceled') {
+            const paddleApiKey = Deno.env.get('PADDLE_API_KEY')
+            const paddleBaseUrl = Deno.env.get('PADDLE_ENVIRONMENT') === 'production'
+              ? 'https://api.paddle.com'
+              : 'https://sandbox-api.paddle.com'
+            if (!paddleApiKey) {
+              console.error('[paddle-webhook] PADDLE_API_KEY missing, cannot cancel subscription after refund:', org.paddle_subscription_id)
+            } else {
+              const cancelRes = await fetch(
+                `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}/cancel`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${paddleApiKey}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ effective_from: 'immediately' }),
+                },
+              )
+              if (cancelRes.ok) {
+                await admin
+                  .from('organizations')
+                  .update({ paddle_subscription_id: null })
+                  .eq('id', org.id)
+              } else {
+                // Log and still 200: the downgrade above already blocks paid
+                // entitlements, and Paddle will retry nothing here anyway.
+                console.error(
+                  '[paddle-webhook] canceling subscription after refund failed:',
+                  cancelRes.status,
+                  await cancelRes.text(),
+                )
+              }
+            }
+          }
+          break
+        }
+
+        // Event payment refund → mark the invoice refunded. Only a paid
+        // invoice can be refunded; comped/unpaid rows are left untouched.
+        await admin
+          .from('invoices')
+          .update({ status: 'refunded' })
+          .eq('paddle_transaction_id', transactionId)
+          .eq('status', 'paid')
         break
       }
 

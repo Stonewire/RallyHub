@@ -1,3 +1,4 @@
+import { i18n } from '@/lib/i18n'
 import { formatEur, formatPlanLabel } from '@/lib/subscription-plans'
 import type { Tables } from '@/types/helpers'
 
@@ -22,6 +23,7 @@ export function formatEventDate(iso: string | null | undefined): string {
 export function invoiceStatusLabel(status: InvoiceStatus): string {
   if (status === 'paid') return 'Paid'
   if (status === 'comped') return 'Comped'
+  if (status === 'refunded') return i18n.t('admin:billing.statusRefunded')
   return 'Unpaid'
 }
 
@@ -29,7 +31,8 @@ export function invoiceStatusTone(
   status: InvoiceStatus,
 ): 'paid' | 'unpaid' | 'draft' {
   if (status === 'paid') return 'paid'
-  if (status === 'comped') return 'draft'
+  // Neither owed nor collected: comped and refunded both get the neutral tone.
+  if (status === 'comped' || status === 'refunded') return 'draft'
   return 'unpaid'
 }
 

@@ -352,6 +352,7 @@ export function AdminSettingsPage() {
           billingPlan={orgQuery.data?.billing_plan}
           billingPeriod={orgQuery.data?.billing_period}
           paddleSubscriptionId={orgQuery.data?.paddle_subscription_id}
+          accountStatus={orgQuery.data?.account_status}
           showAvailablePlans
         />
       ) : tab === 'team' ? (

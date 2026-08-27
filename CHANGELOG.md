@@ -5,7 +5,7 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
-## V3.26.0 - 2026-08-27 (fix round 1, phase 4: demo/active lifecycle)
+## V3.26.0 - 2026-08-27 (fix round 1, phases 4 and 5: demo lifecycle + billing)
 
 Fourth batch from the 26 Aug test pass: demoing an event no longer destroys
 the team setup, and going live from a demo starts clean.
@@ -26,6 +26,23 @@ the team setup, and going live from a demo starts clean.
   slot set. The never-activated reset guard is untouched: a previously
   activated event skips the clear and the dialog says the data is kept.
   Billing, activated_at semantics and the entitlement gate are unchanged.
+
+Both findings from Rumen's payment test. Ships with a new migration
+(`20260827090000_invoices_refunded_status.sql`) and a paddle-webhook
+redeploy; neither is applied automatically.
+
+- Paddle refunds now reach the app. The webhook handles adjustment events
+  (action refund, status approved): a refunded subscription payment marks the
+  payment canceled, automatically downgrades the org to Pay Per Event,
+  cancels the Paddle subscription immediately so billing genuinely stops,
+  and clears the stored subscription id; a refunded event payment marks the
+  invoice Refunded (new invoice status, neutral badge in Billing). The
+  subscription.canceled backstop no longer re-asserts the paid plan from
+  custom_data, so it cannot undo the downgrade. Demo orgs are never touched.
+- Suspension is now visible in Billing: a red banner on the Billing tab, a
+  Suspended badge on the plan card instead of Active, and every control that
+  would start a payment (start subscription, pay invoice, plan changes)
+  disabled with the reason. Numbers and the rest of the page are unchanged.
 
 ## V3.25.0 - 2026-08-27 (fix round 1, phase 3: offline round 2)
 

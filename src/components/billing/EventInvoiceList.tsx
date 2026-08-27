@@ -20,6 +20,8 @@ type EventInvoiceRowProps = {
   showPayIndicator?: boolean
   /** When provided, unpaid invoices get a "Pay now" button instead of a static badge. */
   onPay?: (invoiceId: string) => void
+  /** When set, Pay now renders disabled with this reason (e.g. suspended account). */
+  payDisabledReason?: string | null
   payingInvoiceId?: string | null
   /** When provided, paid invoices get an "Invoice" button to open Paddle's PDF. */
   onDownload?: (invoiceId: string) => void
@@ -30,6 +32,7 @@ export function EventInvoiceRow({
   invoice,
   showPayIndicator = false,
   onPay,
+  payDisabledReason = null,
   payingInvoiceId = null,
   onDownload,
   downloadingInvoiceId = null,
@@ -97,7 +100,8 @@ export function EventInvoiceRow({
               variant="accent"
               size="sm"
               onClick={() => onPay(invoice.id)}
-              disabled={payingInvoiceId === invoice.id}
+              disabled={payingInvoiceId === invoice.id || Boolean(payDisabledReason)}
+              title={payDisabledReason ?? undefined}
             >
               <IconBilling className="size-3.5" aria-hidden />
               {payingInvoiceId === invoice.id ? t('billing.openingCheckout') : t('billing.payNow')}
@@ -125,6 +129,8 @@ type EventInvoiceListProps = {
   emptyMessage: string
   showPayIndicator?: boolean
   onPay?: (invoiceId: string) => void
+  /** When set, Pay now renders disabled with this reason (e.g. suspended account). */
+  payDisabledReason?: string | null
   payingInvoiceId?: string | null
   onDownload?: (invoiceId: string) => void
   downloadingInvoiceId?: string | null
@@ -141,6 +147,7 @@ export function EventInvoiceList({
   emptyMessage,
   showPayIndicator = false,
   onPay,
+  payDisabledReason = null,
   payingInvoiceId = null,
   onDownload,
   downloadingInvoiceId = null,
@@ -215,7 +222,8 @@ export function EventInvoiceList({
                         variant="accent"
                         size="sm"
                         onClick={() => onPay(invoice.id)}
-                        disabled={payingInvoiceId === invoice.id}
+                        disabled={payingInvoiceId === invoice.id || Boolean(payDisabledReason)}
+                        title={payDisabledReason ?? undefined}
                       >
                         <IconBilling className="size-3.5" aria-hidden />
                         {payingInvoiceId === invoice.id
@@ -253,6 +261,7 @@ export function EventInvoiceList({
           invoice={invoice}
           showPayIndicator={showPayIndicator}
           onPay={onPay}
+          payDisabledReason={payDisabledReason}
           payingInvoiceId={payingInvoiceId}
           onDownload={onDownload}
           downloadingInvoiceId={downloadingInvoiceId}

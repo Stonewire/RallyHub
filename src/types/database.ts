@@ -512,7 +512,7 @@ export type Database = {
           included_team_count: number
           extra_team_count: number
           extra_team_fee: number
-          status: 'unpaid' | 'paid' | 'comped'
+          status: 'unpaid' | 'paid' | 'comped' | 'refunded'
           promo_code_id: string | null
           paddle_transaction_id: string | null
           created_at: string
@@ -528,13 +528,13 @@ export type Database = {
           included_team_count?: number
           extra_team_count?: number
           extra_team_fee?: number
-          status: 'unpaid' | 'paid' | 'comped'
+          status: 'unpaid' | 'paid' | 'comped' | 'refunded'
           promo_code_id?: string | null
           paddle_transaction_id?: string | null
           created_at?: string
         }
         Update: {
-          status?: 'unpaid' | 'paid' | 'comped'
+          status?: 'unpaid' | 'paid' | 'comped' | 'refunded'
           paddle_transaction_id?: string | null
           included_team_count?: number
           extra_team_count?: number
