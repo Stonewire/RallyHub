@@ -66,6 +66,9 @@ type PaddleOrg = {
   paddle_subscription_id: string | null
   billing_plan: string | null
   billing_period: string | null
+  /** P6.2: staff-set custom subscription. null = normal plan pricing. */
+  custom_subscription_price_eur: number | string | null
+  custom_subscription_period: string | null
 }
 
 type PaddleSubscription = {
@@ -222,7 +225,7 @@ Deno.serve(async (req) => {
 
     const { data: org, error: orgErr } = await admin
       .from('organizations')
-      .select('id, name, email, contact_email, educational_status, paddle_customer_id, paddle_subscription_id, billing_plan, billing_period')
+      .select('id, name, email, contact_email, educational_status, paddle_customer_id, paddle_subscription_id, billing_plan, billing_period, custom_subscription_price_eur, custom_subscription_period')
       .eq('id', organizationId)
       .single()
     if (orgErr || !org) return json({ error: 'Organization not found' }, 404)
@@ -465,6 +468,14 @@ Deno.serve(async (req) => {
       if (!planChangesEnabled) {
         return json({ error: 'Plan changes are not available yet.' }, 403)
       }
+      // A custom subscription is staff-managed; a self-serve change would
+      // silently replace the negotiated price with a standard plan price.
+      if (org.custom_subscription_price_eur != null) {
+        return json(
+          { error: 'Your subscription is managed directly by RallyHub. Contact support to change it.' },
+          400,
+        )
+      }
       if (!org.paddle_subscription_id) {
         return json({ error: 'Start a subscription before changing plans.' }, 400)
       }
@@ -611,10 +622,34 @@ Deno.serve(async (req) => {
     }
 
     // kind === 'subscription'
-    const planId = body.planId
-    const billingPeriod = body.billingPeriod === 'monthly' ? 'monthly' : 'yearly'
+    //
+    // P6.2: an org with a staff-set custom subscription always checks out at
+    // that bespoke price and interval, whatever plan or period the browser
+    // sent. The custom price is already negotiated, so neither the educational
+    // 50% nor a promo discount is layered on top of it.
+    const customSubscriptionPriceEur =
+      org.custom_subscription_price_eur == null
+        ? null
+        : Number(org.custom_subscription_price_eur)
+    const hasCustomSubscription =
+      customSubscriptionPriceEur != null && Number.isFinite(customSubscriptionPriceEur)
+
+    const planId = hasCustomSubscription ? 'custom' : body.planId
+    const billingPeriod = hasCustomSubscription
+      ? (org.custom_subscription_period === 'monthly' ? 'monthly' : 'yearly')
+      : body.billingPeriod === 'monthly'
+        ? 'monthly'
+        : 'yearly'
+
     const prices = SUBSCRIPTION_PRICES_EUR[planId]
-    if (!prices) return json({ error: 'Invalid plan.' }, 400)
+    if (!hasCustomSubscription && !prices) return json({ error: 'Invalid plan.' }, 400)
+    if (hasCustomSubscription && customSubscriptionPriceEur! <= 0) {
+      // Staff misconfiguration; a €0 recurring price must never reach Paddle.
+      return json(
+        { error: 'Your custom subscription is not set up yet. Please contact support.' },
+        400,
+      )
+    }
 
     if (org.paddle_subscription_id) {
       return json(
@@ -623,25 +658,36 @@ Deno.serve(async (req) => {
       )
     }
 
-    const planName = PLAN_NAMES[planId] ?? planId
+    const planName = hasCustomSubscription ? 'Custom' : (PLAN_NAMES[planId] ?? planId)
 
     // The educational 50% is permanent for as long as the org stays approved, so
-    // it is baked straight into the recurring price.
-    let amountEur = billingPeriod === 'monthly' ? prices.monthly : prices.yearly
-    if (org.educational_status === 'approved') amountEur = Math.round(amountEur / 2)
+    // it is baked straight into the recurring price. Custom prices are bespoke
+    // and skip it.
+    let amountEur = hasCustomSubscription
+      ? customSubscriptionPriceEur!
+      : billingPeriod === 'monthly'
+        ? prices.monthly
+        : prices.yearly
+    if (!hasCustomSubscription && org.educational_status === 'approved') {
+      amountEur = Math.round(amountEur / 2)
+    }
 
     // A subscription promo code can be time-limited (duration_months), so it can
     // NOT be baked into the recurring price — that would discount every renewal
     // forever. Paddle's Discount object handles the recurrence properly.
-    const { data: redemption } = await admin
-      .from('promo_code_redemptions')
-      .select('id, promo_code_id, discount_percent, duration_months')
-      .eq('organization_id', organizationId)
-      .eq('purpose', 'subscription')
-      .eq('status', 'active')
-      .order('discount_percent', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // Custom subscriptions skip promo codes entirely (bespoke price); the
+    // redemption stays 'active' and untouched.
+    const { data: redemption } = hasCustomSubscription
+      ? { data: null }
+      : await admin
+          .from('promo_code_redemptions')
+          .select('id, promo_code_id, discount_percent, duration_months')
+          .eq('organization_id', organizationId)
+          .eq('purpose', 'subscription')
+          .eq('status', 'active')
+          .order('discount_percent', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
     const discountPercent = Number(redemption?.discount_percent ?? 0)
     let discountId: string | null = null
@@ -719,7 +765,13 @@ Deno.serve(async (req) => {
         custom_data: {
           kind: 'subscription',
           organization_id: organizationId,
-          plan_key: planId,
+          // No plan_key for a custom subscription: the webhook writes plan_key
+          // into organizations.billing_plan, and a custom subscription keeps
+          // the org's existing plan (the UI reads custom_subscription_price_eur
+          // instead). billing_period still syncs to the custom interval.
+          ...(hasCustomSubscription
+            ? { custom_subscription: true }
+            : { plan_key: planId }),
           billing_period: billingPeriod,
           // Consumed by the webhook once payment actually completes — marking it
           // used here would burn the code on an abandoned checkout.

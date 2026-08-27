@@ -22,6 +22,7 @@ import { openBillingPortal, openInvoicePdf } from '@/lib/paddle'
 import {
   formatBillingPeriodLabel,
   formatEur,
+  formatPerEventPrice,
   formatPlanLabel,
   formatSubscriptionPrice,
   getPlan,
@@ -41,6 +42,12 @@ type BillingOverviewProps = {
   paddleSubscriptionId?: string | null
   /** organizations.account_status; 'suspended' disables payment controls. */
   accountStatus?: string | null
+  /** Staff-set custom subscription (P6.2): price in whole euros, or null. */
+  customSubscriptionPriceEur?: number | null
+  /** Interval of the custom subscription: 'monthly' | 'yearly'. */
+  customSubscriptionPeriod?: string | null
+  /** Per-event override: null = plan price, 0 = events included. */
+  customPerEventPriceEur?: number | null
   /** Client settings: show upgrade plan comparison. Admin view: hide. */
   showAvailablePlans?: boolean
   /** Admin client detail: show outstanding total summary. */
@@ -55,6 +62,9 @@ export function BillingOverview({
   billingPeriod,
   paddleSubscriptionId = null,
   accountStatus = null,
+  customSubscriptionPriceEur = null,
+  customSubscriptionPeriod = null,
+  customPerEventPriceEur = null,
   showAvailablePlans = false,
   showAdminSummary = false,
 }: BillingOverviewProps) {
@@ -71,6 +81,26 @@ export function BillingOverview({
   const planId = normalizePlanId(billingPlan)
   const period = normalizeBillingPeriod(billingPeriod)
   const plan = getPlan(planId)
+  // P6.2: a staff-set custom subscription replaces the plan's own pricing in
+  // this card. The underlying billing_plan stays untouched in the database.
+  const hasCustomSubscription =
+    customSubscriptionPriceEur != null && Number.isFinite(Number(customSubscriptionPriceEur))
+  const customPeriod = normalizeBillingPeriod(customSubscriptionPeriod)
+  const customPriceLine = hasCustomSubscription
+    ? t(
+        customPeriod === 'yearly' ? 'billing.plan.perYear' : 'billing.plan.perMonth',
+        { price: formatEur(Number(customSubscriptionPriceEur)) },
+      )
+    : null
+  const customPerEventLine = hasCustomSubscription
+    ? customPerEventPriceEur == null
+      ? formatPerEventPrice(plan)
+      : Number(customPerEventPriceEur) === 0
+        ? t('billing.plan.noPerEventFee')
+        : t('billing.plan.pricePerEvent', {
+            price: formatEur(Number(customPerEventPriceEur)),
+          })
+    : null
   const suspended = isOrgSuspended(accountStatus)
   const suspendedReason = suspended ? t('billing.suspendedControlsDisabled') : undefined
 
@@ -132,7 +162,10 @@ export function BillingOverview({
   }
 
   // Only paid, self-serve plans can start a Paddle subscription from here.
-  const canStartSubscription = !plan.hidden && !plan.freeSubscription && !plan.priceOnRequest
+  // A custom subscription is always startable: the checkout charges the
+  // staff-set price whatever the underlying plan is.
+  const canStartSubscription =
+    hasCustomSubscription || (!plan.hidden && !plan.freeSubscription && !plan.priceOnRequest)
 
   // Client Billing uses the design's two columns: plan management on the left,
   // money on the right. The super-admin client view stays a single column.
@@ -179,14 +212,20 @@ export function BillingOverview({
               <p className="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase">
                 {t('billing.currentPlan')}
               </p>
-              <p className="text-foreground text-lg font-bold">{formatPlanLabel(planId)}</p>
+              <p className="text-foreground text-lg font-bold">
+                {hasCustomSubscription
+                  ? t('billing.customSubscription')
+                  : formatPlanLabel(planId)}
+              </p>
               <p className="text-muted-foreground text-sm">
-                {plan.freeSubscription
-                  ? t('billing.noSubscription')
-                  : plan.priceOnRequest
-                    ? t('billing.customBilling')
-                    : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
-                {plan.hidden ? ` · ${t('billing.partnerComped')}` : ''}
+                {hasCustomSubscription
+                  ? `${formatBillingPeriodLabel(customPeriod)} · ${customPriceLine}`
+                  : plan.freeSubscription
+                    ? t('billing.noSubscription')
+                    : plan.priceOnRequest
+                      ? t('billing.customBilling')
+                      : `${formatBillingPeriodLabel(period)} · ${formatSubscriptionPrice(plan, period)}`}
+                {!hasCustomSubscription && plan.hidden ? ` · ${t('billing.partnerComped')}` : ''}
               </p>
             </div>
             {suspended ? (
@@ -208,14 +247,28 @@ export function BillingOverview({
             )}
           </div>
 
-          <PlanDetailsCard
-            planId={planId}
-            billingPeriod={period}
-            compact
-            className="w-full border-0 bg-transparent p-0 shadow-none"
-          />
+          {hasCustomSubscription ? (
+            <div className="space-y-2">
+              <ul className="text-muted-foreground space-y-1 text-sm">
+                <li>{t('billing.plan.unlimitedEvents')}</li>
+                <li>{customPerEventLine}</li>
+              </ul>
+              <p className="text-muted-foreground text-sm">
+                {t('billing.customSubscriptionNote')}
+              </p>
+            </div>
+          ) : (
+            <PlanDetailsCard
+              planId={planId}
+              billingPeriod={period}
+              compact
+              className="w-full border-0 bg-transparent p-0 shadow-none"
+            />
+          )}
 
-          {plan.monthlyEventLimit !== null ? (
+          {/* Custom subscriptions have no monthly event limit, so the plan's
+              own usage meter would mislead. */}
+          {!hasCustomSubscription && plan.monthlyEventLimit !== null ? (
             <p className="text-muted-foreground text-sm">
               <span className="text-foreground font-medium tabular-nums">
                 {t('billing.eventsUsedOfLimit', {
@@ -281,8 +334,9 @@ export function BillingOverview({
           ) : null}
 
           {/* Plan changes start payments, so a suspended account does not get
-              the form at all; the banner above says why. */}
-          {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && !suspended && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest ? (
+              the form at all; the banner above says why. A custom subscription
+              is staff-managed, so the self-serve change form is hidden too. */}
+          {(PLAN_CHANGES_ENABLED || isDemo) && showAvailablePlans && !suspended && organizationId && (isDemo || paddleSubscriptionId) && !plan.priceOnRequest && !hasCustomSubscription ? (
             <SubscriptionChangeForm
               key={`${planId}-${period}`}
               organizationId={organizationId}

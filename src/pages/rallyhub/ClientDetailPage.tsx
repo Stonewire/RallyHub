@@ -42,6 +42,8 @@ import {
   normalizeBillingPeriod,
   normalizeClientPlan,
 } from '@/lib/client-plans'
+import { NumberField } from '@/components/ui/number-field'
+import { formatEur } from '@/lib/subscription-plans'
 import { normalizeEducationalStatus } from '@/lib/educational'
 import {
   ALL_FLAG_STAGE_TYPES,
@@ -147,6 +149,15 @@ export function RallyHubClientDetailPage() {
     defaultFeatureFlags(),
   )
   const [educationalStatus, setEducationalStatus] = useState('none')
+  // P6.2 custom subscription. Per-event tri-state: the DB stores null (follow
+  // the plan price), 0 (events included) or a positive custom price.
+  const [customSubEnabled, setCustomSubEnabled] = useState(false)
+  const [customSubPrice, setCustomSubPrice] = useState(0)
+  const [customSubPeriod, setCustomSubPeriod] = useState<'monthly' | 'yearly'>('monthly')
+  const [customPerEventMode, setCustomPerEventMode] = useState<
+    'plan' | 'included' | 'custom'
+  >('plan')
+  const [customPerEventPrice, setCustomPerEventPrice] = useState(0)
   const [defaultLanguage, setDefaultLanguage] = useState('en')
   const [vatNumber, setVatNumber] = useState('')
   const [addressStreet, setAddressStreet] = useState('')
@@ -214,6 +225,15 @@ export function RallyHubClientDetailPage() {
     setHidePlatformBranding(org.hide_platform_branding ?? false)
     setFeatureFlags(orgFeatureFlags(org))
     setEducationalStatus(normalizeEducationalStatus(org.educational_status))
+    const customPrice = org.custom_subscription_price_eur
+    setCustomSubEnabled(customPrice != null)
+    setCustomSubPrice(customPrice != null ? Number(customPrice) : 0)
+    setCustomSubPeriod(org.custom_subscription_period === 'yearly' ? 'yearly' : 'monthly')
+    const customPerEvent = org.custom_per_event_price_eur
+    setCustomPerEventMode(
+      customPerEvent == null ? 'plan' : Number(customPerEvent) === 0 ? 'included' : 'custom',
+    )
+    setCustomPerEventPrice(customPerEvent != null ? Number(customPerEvent) : 0)
     setDefaultLanguage(toAppLanguage(org.default_language))
     setVatNumber(org.vat_number ?? '')
     setAddressStreet(org.address_street ?? org.address ?? '')
@@ -348,6 +368,17 @@ export function RallyHubClientDetailPage() {
       address_state: addressState,
       address_postal: addressPostal,
       address_country: addressCountry,
+      // Whole euros by design. Everything null when the toggle is off, so
+      // disabling fully clears the custom subscription.
+      custom_subscription_price_eur: customSubEnabled ? Math.round(customSubPrice) : null,
+      custom_subscription_period: customSubEnabled ? customSubPeriod : null,
+      custom_per_event_price_eur: customSubEnabled
+        ? customPerEventMode === 'plan'
+          ? null
+          : customPerEventMode === 'included'
+            ? 0
+            : Math.round(customPerEventPrice)
+        : null,
     }
   }
 
@@ -355,6 +386,18 @@ export function RallyHubClientDetailPage() {
     setSaveError(null)
     setSaveSuccess(false)
     try {
+      if (customSubEnabled && Math.round(customSubPrice) <= 0) {
+        throw new Error('Enter a custom subscription price above zero.')
+      }
+      if (
+        customSubEnabled &&
+        customPerEventMode === 'custom' &&
+        Math.round(customPerEventPrice) <= 0
+      ) {
+        throw new Error(
+          'Enter a per-event price above zero, or choose "Events included".',
+        )
+      }
       if (isCreateMode) {
         if (!orgName.trim()) throw new Error('Organization name is required.')
         if (!loginEmail.trim()) throw new Error('Admin login email is required.')
@@ -805,6 +848,103 @@ export function RallyHubClientDetailPage() {
                   </label>
                 </div>
               </div>
+            </Card>
+          ) : null}
+
+          {/* P6.2: negotiated pricing, owner-only like the plan controls above.
+              The three columns are staff-guarded in the database, so this is
+              the only surface that can change them. Saved with the page's own
+              Save button (the payload always carries plan/status, so the
+              update hook's defaults never overwrite them). */}
+          {!isCreateMode && !isDemoClient && ownerHere ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Custom Subscription" visibility="RallyHub" />
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={customSubEnabled}
+                  onChange={(e) => setCustomSubEnabled(e.target.checked)}
+                  className="accent-primary size-4 rounded"
+                />
+                <span className="text-sm">
+                  Custom subscription
+                  <span className="text-muted-foreground ml-1 text-xs">
+                    (negotiated price instead of the plan&apos;s subscription price)
+                  </span>
+                </span>
+              </label>
+              {customSubEnabled ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <NeoLabel htmlFor="custom-sub-price">Price (EUR, whole euros)</NeoLabel>
+                      <NumberField
+                        id="custom-sub-price"
+                        min={0}
+                        value={customSubPrice}
+                        onChange={setCustomSubPrice}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <NeoLabel htmlFor="custom-sub-period">Billed</NeoLabel>
+                      <select
+                        id="custom-sub-period"
+                        value={customSubPeriod}
+                        onChange={(e) =>
+                          setCustomSubPeriod(e.target.value === 'yearly' ? 'yearly' : 'monthly')
+                        }
+                        className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <NeoLabel htmlFor="custom-per-event">Per-event charge</NeoLabel>
+                    <select
+                      id="custom-per-event"
+                      value={customPerEventMode}
+                      onChange={(e) =>
+                        setCustomPerEventMode(
+                          e.target.value === 'included'
+                            ? 'included'
+                            : e.target.value === 'custom'
+                              ? 'custom'
+                              : 'plan',
+                        )
+                      }
+                      className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                    >
+                      <option value="plan">Normal plan price per event</option>
+                      <option value="included">Events included (no per-event charge)</option>
+                      <option value="custom">Custom price per event</option>
+                    </select>
+                    {customPerEventMode === 'custom' ? (
+                      <NumberField
+                        id="custom-per-event-price"
+                        min={0}
+                        value={customPerEventPrice}
+                        onChange={setCustomPerEventPrice}
+                        className="bg-background max-w-xs"
+                      />
+                    ) : null}
+                    <p className="text-muted-foreground text-xs">
+                      "Events included" stores a €0 per-event price: activations are
+                      invoiced at €0, but additional teams above five are still charged{' '}
+                      {formatEur(10)} each. A custom subscription also removes the plan&apos;s
+                      monthly event limit.
+                    </p>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    The client sees "Custom subscription" in their Billing page and pays this
+                    price through the normal checkout. Their plan above stays as the
+                    underlying plan. Promo codes and the educational discount do not apply
+                    to the custom subscription price.
+                  </p>
+                </>
+              ) : null}
             </Card>
           ) : null}
 

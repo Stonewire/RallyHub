@@ -51,6 +51,12 @@ type OrgRow = {
   paddle_subscription_id: string | null
   subscription_status: string | null
   subscription_current_period_end: string | null
+  /** Staff-set negotiated subscription price in whole euros; null = no custom subscription. */
+  custom_subscription_price_eur: number | null
+  /** 'monthly' | 'yearly'; only meaningful while custom_subscription_price_eur is set. */
+  custom_subscription_period: string | null
+  /** Per-event price override in euros; null = plan price, 0 = events included. */
+  custom_per_event_price_eur: number | null
   contact_email: string | null
   email: string | null
   phone: string | null

@@ -214,6 +214,13 @@ export type ClientAdminUpdateInput = {
   default_language?: string
   /** P6.1 feature flags. Omit to leave the column untouched. */
   feature_flags?: Json
+  /**
+   * P6.2 custom subscription (staff-only columns, guarded by a DB trigger).
+   * Omit to leave untouched; null clears the custom subscription.
+   */
+  custom_subscription_price_eur?: number | null
+  custom_subscription_period?: string | null
+  custom_per_event_price_eur?: number | null
 }
 
 export function useCreateRallyHubClient() {
@@ -290,6 +297,9 @@ export function useUpdateClientAdmin() {
       address_country,
       default_language,
       feature_flags,
+      custom_subscription_price_eur,
+      custom_subscription_period,
+      custom_per_event_price_eur,
     }: ClientAdminUpdateInput) => {
       const trimmedEmail = email?.trim() ?? ''
       const trimmedPhone = phone?.trim() ?? ''
@@ -318,6 +328,13 @@ export function useUpdateClientAdmin() {
         ...(subdomain !== undefined ? { subdomain: subdomain.toLowerCase().trim() } : {}),
         ...(default_language !== undefined ? { default_language } : {}),
         ...(feature_flags !== undefined ? { feature_flags } : {}),
+        // Spread-only-when-provided: existing callers must not clear a
+        // client's custom subscription by omission.
+        ...(custom_subscription_price_eur !== undefined
+          ? { custom_subscription_price_eur }
+          : {}),
+        ...(custom_subscription_period !== undefined ? { custom_subscription_period } : {}),
+        ...(custom_per_event_price_eur !== undefined ? { custom_per_event_price_eur } : {}),
       } satisfies TablesUpdate<'organizations'>
 
       const { data, error } = await supabase

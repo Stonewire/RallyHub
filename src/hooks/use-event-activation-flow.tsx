@@ -46,6 +46,8 @@ type UseEventActivationFlowOptions = {
   organizationId?: string | null
   /** Org's educational_status — approved unlocks the 50% per-event discount. */
   educationalStatus?: string | null
+  /** Org's custom_per_event_price_eur (P6.2): null = plan price, 0 = events included. */
+  customPerEventPriceEur?: number | null
   onValidationError?: (msg: string) => void
 }
 
@@ -53,6 +55,7 @@ export function useEventActivationFlow({
   billingPlan,
   organizationId,
   educationalStatus,
+  customPerEventPriceEur = null,
   onValidationError,
 }: UseEventActivationFlowOptions) {
   const [pending, setPending] = useState<PendingActivation | null>(null)
@@ -209,6 +212,7 @@ export function useEventActivationFlow({
       bestEventDiscount,
       isEducationalApproved(educationalStatus),
       pending.teamCount,
+      customPerEventPriceEur,
     )
     // Resolved at render like getEventActivationWarning, so the note follows
     // the admin language without the hook needing its own translation state.

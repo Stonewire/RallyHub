@@ -41,6 +41,45 @@ describe('getEventActivationWarning', () => {
     expect(warning.billAmountEur).toBe(74.5)
     expect(warning.confirmLabel).toBe('Activate and bill €74.50')
   })
+
+  // P6.2: custom subscriptions. NULL always means "follow the plan price".
+  it('leaves the plan price untouched when no custom per-event price is set', () => {
+    const warning = getEventActivationWarning('arena', 0, false, 5, null)
+    expect(warning.billAmountEur).toBe(149)
+  })
+
+  it('uses the custom per-event price as the base amount', () => {
+    const warning = getEventActivationWarning('arena', 0, false, 8, 50)
+    expect(warning.billAmountEur).toBe(80)
+    expect(warning.extraTeamChargeEur).toBe(30)
+    expect(warning.isComped).toBe(false)
+  })
+
+  it('comps the event when events are included (custom price 0) and no extra teams', () => {
+    const warning = getEventActivationWarning('pro', 0, false, 5, 0)
+    expect(warning.billAmountEur).toBe(0)
+    expect(warning.isComped).toBe(true)
+    expect(warning.message).toContain('included in your custom subscription')
+  })
+
+  it('still charges additional teams when events are included', () => {
+    const warning = getEventActivationWarning('pro', 0, false, 8, 0)
+    expect(warning.billAmountEur).toBe(30)
+    expect(warning.isComped).toBe(false)
+    expect(warning.message).toContain('event fee itself is included')
+  })
+
+  it('applies promo and educational discounts to a custom per-event price, like the invoice', () => {
+    const warning = getEventActivationWarning('arena', 50, true, 5, 100)
+    // 100 → 50 after promo → 25 after educational.
+    expect(warning.billAmountEur).toBe(25)
+  })
+
+  it('keeps partner fully comped even with a custom per-event price', () => {
+    const warning = getEventActivationWarning('partner', 0, false, 8, 50)
+    expect(warning.billAmountEur).toBe(0)
+    expect(warning.isComped).toBe(true)
+  })
 })
 
 describe('formatLimitResetDate', () => {

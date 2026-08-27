@@ -30,10 +30,20 @@ export function getEventActivationWarning(
   educationalApproved = false,
   /** Saved team count for the event being activated. */
   teamCount = INCLUDED_TEAMS_PER_EVENT,
+  /**
+   * organizations.custom_per_event_price_eur (P6.2). null = the plan's normal
+   * per-event price; 0 = events are included in the custom subscription. Must
+   * mirror create_event_activation_invoice so the preview matches the invoice.
+   */
+  customPerEventPriceEur: number | null = null,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
-  const baseAmount = plan.perEventPriceEur
+  const hasCustomPerEvent =
+    customPerEventPriceEur != null && Number.isFinite(Number(customPerEventPriceEur))
+  const baseAmount = hasCustomPerEvent
+    ? Number(customPerEventPriceEur)
+    : plan.perEventPriceEur
   const teamCharge = additionalTeamCharge(teamCount)
   const extraTeamCount = teamCharge.count
   const extraTeamChargeEur = teamCharge.amountEur
@@ -86,6 +96,16 @@ export function getEventActivationWarning(
   const billAmountEur = discountedBaseAmount + extraTeamChargeEur
 
   if (billAmountEur === 0) {
+    // A €0 bill from the custom "events included" override reads differently
+    // from a promo making the event free.
+    const freeMessage =
+      hasCustomPerEvent && baseAmount === 0
+        ? i18n.t('admin:events.activate.customIncludedMessage')
+        : i18n.t('admin:events.activate.freeByPromoMessage', {
+            percent: discountPct,
+            price: formatEur(baseAmount),
+            plan: formatPlanLabel(planId),
+          })
     return {
       planId,
       billAmountEur: 0,
@@ -93,29 +113,32 @@ export function getEventActivationWarning(
       extraTeamChargeEur,
       isComped: true,
       title: i18n.t('admin:events.activate.title'),
-      message: [
-        i18n.t('admin:events.activate.freeByPromoMessage', {
-          percent: discountPct,
-          price: formatEur(baseAmount),
-          plan: formatPlanLabel(planId),
-        }),
-        i18n.t('admin:events.activate.readyUntilLive'),
-      ].join(' '),
+      message: [freeMessage, i18n.t('admin:events.activate.readyUntilLive')].join(' '),
       confirmLabel: i18n.t('admin:events.activate.confirmFree'),
     }
   }
 
   const priceLabel = formatEur(billAmountEur)
+  // With a €0 base (events included) there is no event fee for a promo or the
+  // educational discount to act on, and the invoice function does not consume
+  // the promo code either, so neither note is shown.
   const promoNote =
-    discountPct > 0
+    discountPct > 0 && baseAmount > 0
       ? i18n.t('admin:events.activate.promoNote', {
           percent: discountPct,
           price: formatEur(baseAmount),
         })
       : ''
-  const educationalNote = educationalApproved
-    ? i18n.t('admin:events.activate.educationalNote')
-    : ''
+  const educationalNote =
+    educationalApproved && baseAmount > 0
+      ? i18n.t('admin:events.activate.educationalNote')
+      : ''
+  // Reaching here with a €0 custom base means the bill is additional teams
+  // only; say the event fee itself is included so the number adds up.
+  const customIncludedNote =
+    hasCustomPerEvent && baseAmount === 0
+      ? i18n.t('admin:events.activate.customFeeIncludedNote')
+      : ''
   const teamChargeNote =
     extraTeamCount > 0
       ? i18n.t('admin:events.activate.extraTeamsNote', {
@@ -146,6 +169,7 @@ export function getEventActivationWarning(
         plan: formatPlanLabel(planId),
       }),
       teamChargeNote,
+      customIncludedNote,
       promoNote,
       educationalNote,
       paymentNote,

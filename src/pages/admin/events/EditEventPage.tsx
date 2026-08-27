@@ -71,6 +71,7 @@ export function AdminEventEditPage() {
     billingPlan: orgQuery.data?.billing_plan,
     organizationId,
     educationalStatus: orgQuery.data?.educational_status,
+    customPerEventPriceEur: orgQuery.data?.custom_per_event_price_eur,
     onValidationError: notify,
   })
 
