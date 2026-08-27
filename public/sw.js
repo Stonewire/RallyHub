@@ -13,9 +13,10 @@
  *    swept below.
  *  - /sounds/* and the Powered by RallyHub badge: cache-first from a cache
  *    primed at install, so UI sounds play and the badge renders offline.
- *  - cross-origin images: served from the join-time event media cache
- *    (src/lib/offline/media-cache.ts) when present, network otherwise, so
- *    game covers and brief images survive going offline.
+ *  - cross-origin images: stale-while-revalidate from the join-time event
+ *    media cache (src/lib/offline/media-cache.ts), network on a miss, so game
+ *    covers and brief images survive going offline yet a same-URL re-upload
+ *    still reaches devices.
  *  - navigations: network-first, falling back to the last successfully served
  *    index.html, then offline.html. Network-first means a deploy is picked up
  *    on the very next online load — the old "stale JS mid-event" worry does
@@ -155,16 +156,40 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin !== self.location.origin) {
     // Cross-origin images (Supabase Storage game covers, brief images, logos):
-    // serve the copy the join-time media download stored, else hit the network
-    // exactly as before. Only images: API, realtime and audio-clip requests
-    // stay untouched. Nothing is written back here: the media cache is only
-    // ever filled by the deliberate, capped download in media-cache.ts.
+    // stale-while-revalidate against the join-time media cache. The cached
+    // copy answers immediately; while online, a background refetch with
+    // cache: 'reload' overwrites the entry on success, because covers upload
+    // to a stable path with upsert, so the bytes change under an unchanged
+    // URL and a cache-first-forever policy served stale images for good.
+    // Misses hit the network exactly as before. Only images: API, realtime
+    // and audio-clip requests stay untouched. NEW entries are still only ever
+    // written by the deliberate, capped download in media-cache.ts; the
+    // revalidation here only replaces entries that already exist.
     if (request.destination === 'image') {
       event.respondWith(
-        caches.open(MEDIA).then(async (cache) => {
-          const hit = await cache.match(request.url)
-          return hit ?? fetch(request)
-        }),
+        caches
+          .open(MEDIA)
+          .then(async (cache) => {
+            const hit = await cache.match(request.url)
+            if (hit) {
+              if (navigator.onLine) {
+                // Best-effort refresh: any failure (offline race, CORS, 4xx)
+                // is swallowed and the stale copy simply stands.
+                event.waitUntil(
+                  fetch(new Request(request.url, { cache: 'reload' }))
+                    .then((res) => {
+                      if (res.ok) return cache.put(request.url, res)
+                    })
+                    .catch(() => undefined),
+                )
+              }
+              return hit
+            }
+            return fetch(request)
+          })
+          // Cache API trouble (caches.open rejecting in private mode) must
+          // degrade to a plain network image, never a failed request.
+          .catch(() => fetch(request)),
       )
     }
     return

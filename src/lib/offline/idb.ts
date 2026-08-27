@@ -86,6 +86,20 @@ export async function idbGetAll<T>(store: StoreName): Promise<T[]> {
   }
 }
 
+/** Whether a key exists in a store, without reading (or deserialising) the
+ *  stored value: what readiness probes over large records (the bundle
+ *  snapshot) want. Returns false (never throws) when IndexedDB is
+ *  unavailable, matching idbGet's degradation. */
+export async function idbHasKey(store: StoreName, key: string): Promise<boolean> {
+  if (!hasIndexedDB()) return false
+  try {
+    const found = await tx<IDBValidKey | undefined>(store, 'readonly', (s) => s.getKey(key))
+    return found !== undefined
+  } catch {
+    return false
+  }
+}
+
 export async function idbSet(store: StoreName, key: string, value: unknown): Promise<void> {
   if (!hasIndexedDB()) return
   await tx(store, 'readwrite', (s) => s.put(value, key))

@@ -9,7 +9,11 @@
 import { supabase } from '@/lib/supabase'
 
 import { idbGet, idbSet } from './idb'
-import { beginOfflineDownload, type OfflineArtefactProbe } from './readiness'
+import {
+  beginOfflineDownload,
+  reportOfflineDownloadResult,
+  type OfflineArtefactProbe,
+} from './readiness'
 
 export type StoreSnapshot = { rows: unknown[]; orders: unknown[] }
 
@@ -17,22 +21,34 @@ const contentKey = (eventId: string) => `store:${eventId}`
 
 /** Fetch the catalogue and this team's orders, persist them for offline use,
  *  and return them. Returns null on any failure (offline, invalid token) and
- *  leaves the previously stored snapshot intact. */
+ *  leaves the previously stored snapshot intact.
+ *
+ *  Only the offline-readiness paths (JoinGameView's join-time and reconnect
+ *  downloads) pass reportReadiness to drive the dot's begin/settle lifecycle.
+ *  The store sheet calls this every 10 seconds while open as its orders poll;
+ *  those routine polls must not pulse the dot amber or cycle its state
+ *  offline, so without the option a run reports at most an atomic success
+ *  (which can honestly heal a red dot: the snapshot IS now stored) and a
+ *  failure is not reported at all. */
 export async function downloadStoreSnapshot(
   eventId: string,
   token: string,
+  options?: { reportReadiness?: boolean },
 ): Promise<StoreSnapshot | null> {
   // No token means this device cannot have a store: not an attempt, so it is
   // never reported to the readiness tracker and never blocks the green dot.
   if (!token) return null
-  const done = beginOfflineDownload('store-snapshot', eventId, hasStoredStoreSnapshot)
+  const done =
+    options?.reportReadiness === true
+      ? beginOfflineDownload('store-snapshot', eventId, hasStoredStoreSnapshot)
+      : null
   try {
     const [storeRes, ordersRes] = await Promise.all([
       supabase.rpc('get_event_store', { p_event_id: eventId, p_purchase_token: token }),
       supabase.rpc('get_team_store_orders', { p_event_id: eventId, p_purchase_token: token }),
     ])
     if (storeRes.error) {
-      done(false)
+      done?.(false)
       return null
     }
     const snapshot: StoreSnapshot = {
@@ -40,10 +56,11 @@ export async function downloadStoreSnapshot(
       orders: ordersRes.error ? [] : (ordersRes.data ?? []),
     }
     await idbSet('content', contentKey(eventId), snapshot).catch(() => undefined)
-    done(true)
+    if (done) done(true)
+    else reportOfflineDownloadResult('store-snapshot', eventId, true, hasStoredStoreSnapshot)
     return snapshot
   } catch {
-    done(false)
+    done?.(false)
     return null
   }
 }

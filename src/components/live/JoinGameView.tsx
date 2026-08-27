@@ -542,7 +542,13 @@ export function JoinGameView({
         isOnline: () => navigator.onLine,
         persistence: createOutboxPersistence(event.id, teamId),
         onDropped: (item, err) => {
-          if (item.kind === 'open-submission') {
+          if (item.kind === 'open-submission' || item.kind === 'puzzle-result') {
+            // Remove the provisional bundle row (pending card, or the queued
+            // puzzle result's approved row that keeps the tile green) so the
+            // list matches the failure toast: a dropped puzzle result must not
+            // leave a green tile with no points forever. The locally-completed
+            // IDB puzzle progress deliberately stays, so reopening the game
+            // still shows the solved board.
             mergeOwnSubmissionRef.current('DELETE', undefined, { id: item.clientId })
           }
           if (item.kind === 'store-order') {
@@ -597,7 +603,7 @@ export function JoinGameView({
     void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
     const session = getCurrentParticipantSession()
     if (session?.eventId === event.id && session.purchaseToken) {
-      void downloadStoreSnapshot(event.id, session.purchaseToken)
+      void downloadStoreSnapshot(event.id, session.purchaseToken, { reportReadiness: true })
     }
   }, [event.id])
 
@@ -671,7 +677,7 @@ export function JoinGameView({
         void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
         const session = getCurrentParticipantSession()
         if (session?.eventId === event.id && session.purchaseToken) {
-          void downloadStoreSnapshot(event.id, session.purchaseToken)
+          void downloadStoreSnapshot(event.id, session.purchaseToken, { reportReadiness: true })
         }
       }
     }

@@ -115,6 +115,23 @@ Items listed for reference:
   session still counts as ready when a refresh fails, and red means a
   download failed or cannot complete. Aria-label/tooltip strings in all five
   live locales. Download semantics, outbox and sw.js untouched.
+- Phase 3 review fixes. LANDED: (1) a dropped puzzle-result now removes its
+  provisional approved row from the bundle (tile back to unsolved, failure
+  toast honest; local IDB progress stays so reopening shows the board). (2)
+  The store sheet's 10s poll no longer drives the readiness dot: only
+  JoinGameView's join-time and reconnect downloads pass reportReadiness for
+  the begin/settle cycle, the sheet's polls report at most an atomic success.
+  (3) Same-URL cover re-uploads refresh on joined devices: downloadEventMedia
+  re-fetches cached URLs online with cache 'reload' (caps and headroom guard
+  kept, a failed refresh keeps the stale copy) and sw.js serves cross-origin
+  images stale-while-revalidate with a best-effort background update. (4)
+  Media downloads register a 'media' readiness kind with a full per-URL cache
+  probe; an event with zero images never registers it, so it cannot block
+  green. (5) Hardenings: the bundle-snapshot readiness probe is a key-only
+  IDB existence check (no full deserialise per evaluation), and the sw.js
+  image route falls through to plain fetch if caches.open rejects.
+  Accepted gaps, NOT fixed: no cross-event eviction for the 80 MB media cache
+  yet, and custom brand fonts are not cached offline (decision for Rumen).
 
 **Phase 4, event lifecycle (demo/active):**
 - P4.1 Demo keeps the full configured team list (no more capping team_count to
