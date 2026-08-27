@@ -205,6 +205,18 @@ feature/platform-customization; needs Rumen's design sign-off per item):**
 **Then: BIG TEST ROUND.** Step-by-step scripts for every phase item plus the
 untested backlog, in Rumen's format.
 
+Phases 4+5 review round (27 Aug): a 2-lens adversarial review of the merged
+batch confirmed 7 bugs, all fixed pre-push: dropped the events demo team-count
+DB constraint (would have killed P4.1), added precheck_event_activation so a
+refused activation cannot wipe demo data first, demo-clear probe now covers
+facilitator-only state and the demo-to-ready-to-active detour plus a fresh
+re-probe at confirm, EventsPage drag failures surface errors, and the refund
+webhook now handles partial refunds (no-op), renewal refunds (Paddle API
+fallback), superseded subscriptions (live guard both ends) and cancels in
+Paddle BEFORE downgrading (500-retry on cancel failure only). Accepted gaps:
+chargebacks and refund reversals deliberately unhandled; refunded invoices
+have no UI recovery path; RPC demo-cap error reaches phones untranslated.
+
 Design decisions locked with Rumen 26 Aug: recurring = SAME event with
 occurrence model (QR codes survive runs); open-join team surcharge settles at
 event END; feature flags = broader set in round one (game types, store,

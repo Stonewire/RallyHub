@@ -44,6 +44,18 @@ redeploy; neither is applied automatically.
   would start a payment (start subscription, pay invoice, plan changes)
   disabled with the reason. Numbers and the rest of the page are unchanged.
 
+Both phases were adversarially reviewed before shipping and the review's
+confirmed findings were fixed in this same release: the demo team-count DB
+constraint is dropped (it would have blocked P4.1 entirely), activation now
+prechecks the billing gate BEFORE clearing demo data (a refused activation
+can no longer wipe a demo run), the demo clear also covers facilitator-only
+leftovers (advanced stages, bingo runs) and events that detoured through
+Ready, drag-to-activate failures are no longer silent, only FULL refunds
+downgrade or mark invoices (a partial goodwill refund changes nothing),
+refunds of renewal payments now resolve via the Paddle API, a refund of an
+old superseded subscription can no longer cancel the current one, and the
+downgrade only applies once the Paddle cancellation actually succeeded.
+
 ## V3.25.0 - 2026-08-27 (fix round 1, phase 3: offline round 2)
 
 Third batch from the 26 Aug test pass: the offline gaps found on the real
