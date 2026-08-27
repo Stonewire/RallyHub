@@ -153,7 +153,7 @@ export function AdminEventsPage() {
         })
       }
 
-      await Promise.all(
+      const results = await Promise.all(
         updates.map((u) =>
           supabase
             .from('events')
@@ -161,7 +161,15 @@ export function AdminEventsPage() {
             .eq('id', u.id),
         ),
       )
+      // Refetch either way so the grid snaps back to server truth, then fail
+      // loudly if any update was refused (entitlement gate, constraint, RLS).
+      // The activation flow surfaces the message via friendlyActivationError
+      // and, crucially, skips autoChargeEventInvoice on a refused activation.
       await eventsQuery.refetch()
+      const failed = results.find((r) => r.error)
+      if (failed?.error) {
+        throw new Error(failed.error.message)
+      }
     },
     [eventsQuery],
   )

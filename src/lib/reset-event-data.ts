@@ -53,11 +53,15 @@ export async function deleteEventPermanently(eventId: string): Promise<void> {
 
 /**
  * True when the event holds any demo-run leftovers worth warning about:
- * a claimed team (name set) or a submission. Used by the demo to active flow
- * to decide whether activation must clear demo data first (P4.2).
+ * a claimed team (name set), a submission, a bingo run, or an event_state row
+ * that has moved off the fresh defaults reset_event_data restores (stage or
+ * quiz advanced, bingo started, announcement set). The last two catch
+ * facilitator-only demos that never claimed a team or submitted anything.
+ * Used by the activation flow to decide whether the event must be cleared
+ * before going live (P4.2).
  */
 export async function eventHasDemoData(eventId: string): Promise<boolean> {
-  const [teamsRes, subsRes] = await Promise.all([
+  const [teamsRes, subsRes, bingoRes, stateRes] = await Promise.all([
     supabase
       .from('teams')
       .select('id', { count: 'exact', head: true })
@@ -68,10 +72,50 @@ export async function eventHasDemoData(eventId: string): Promise<boolean> {
       .from('submissions')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', eventId),
+    supabase
+      .from('bingo_runs')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId),
+    supabase
+      .from('event_state')
+      .select('current_stage_index, current_question_index, quiz_state, bingo_state, announcement')
+      .eq('event_id', eventId)
+      .maybeSingle(),
   ])
   if (teamsRes.error) throw teamsRes.error
   if (subsRes.error) throw subsRes.error
-  return (teamsRes.count ?? 0) > 0 || (subsRes.count ?? 0) > 0
+  if (bingoRes.error) throw bingoRes.error
+  if (stateRes.error) throw stateRes.error
+  const state = stateRes.data
+  const stateDirty = Boolean(
+    state &&
+      (state.current_stage_index > 0 ||
+        state.current_question_index > 0 ||
+        state.quiz_state !== 'idle' ||
+        state.bingo_state !== 'waiting' ||
+        state.announcement !== null),
+  )
+  return (
+    (teamsRes.count ?? 0) > 0 ||
+    (subsRes.count ?? 0) > 0 ||
+    (bingoRes.count ?? 0) > 0 ||
+    stateDirty
+  )
+}
+
+/**
+ * Ask the DB entitlement gate (assert_event_activation_allowed) whether this
+ * event may activate, without changing anything. The gate normally only fires
+ * inside the status update trigger, AFTER the demo-data clear has already run;
+ * calling this first means a refused activation never destroys demo data.
+ * Throws the same tagged errors the trigger raises (ORG_SUSPENDED,
+ * SUBSCRIPTION_REQUIRED, UNPAID_INVOICE, EVENT_LIMIT_REACHED, ...).
+ */
+export async function precheckEventActivation(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc('precheck_event_activation', {
+    p_event_id: eventId,
+  })
+  if (error) throw error
 }
 
 /** Clear gameplay data, delete Storage files, and restore empty team slots. */

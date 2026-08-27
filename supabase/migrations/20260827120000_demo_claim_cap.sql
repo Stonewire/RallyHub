@@ -3,6 +3,18 @@
 -- time. The join page and facilitator panel already guard this client-side;
 -- this migration adds the server-side backstop inside the claim RPC.
 --
+-- P4 review additions:
+--   1. Drop the old events_demo_team_count_check constraint (migration 030:
+--      status <> 'demo' or team_count <= 2). Under P4.1 a demo event keeps
+--      its full configured team list, so the old cap on team_count would
+--      block moving any event with more than 2 teams into demo.
+--   2. precheck_event_activation: lets the client ask the entitlement gate
+--      BEFORE clearing demo data, so a refused activation never destroys it.
+
+alter table public.events
+  drop constraint if exists events_demo_team_count_check;
+
+--
 -- Copied from the current definition in 20260716104031_inventory_library.sql
 -- (grants unchanged since 20260716123203 added authenticated; CREATE OR
 -- REPLACE preserves existing privileges). Contract is identical: same
@@ -103,3 +115,53 @@ $$;
 
 comment on function public.claim_team_with_inventory_access(uuid, uuid, text, text) is
   'Claims a team slot behind the live join token and mints the per-device purchase token. Demo events accept at most 2 claimed teams at a time.';
+
+-- P4 review: the entitlement gate (assert_event_activation_allowed) only fires
+-- inside the status update trigger, but the demo to active flow clears demo
+-- data BEFORE flipping the status. Without a precheck, a refused activation
+-- (ORG_SUSPENDED, SUBSCRIPTION_REQUIRED, UNPAID_INVOICE, EVENT_LIMIT_REACHED)
+-- would still have destroyed the demo data and Storage files. This RPC calls
+-- the gate exactly like trg_event_activation_billing does (two-arg call, so
+-- p_enforce_payment keeps its default true) WITHOUT changing anything; the
+-- client runs it first and aborts before any reset if it raises.
+create or replace function public.precheck_event_activation(p_event_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_org_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select e.organization_id into v_org_id
+  from public.events e
+  where e.id = p_event_id;
+
+  if v_org_id is null then
+    raise exception 'Event not found';
+  end if;
+
+  -- Same authorization shape as reset_event_data: own org, or super admin.
+  if v_org_id is distinct from public.user_organization_id()
+    and not exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role = 'super_admin'
+    )
+  then
+    raise exception 'Not authorized to activate this event';
+  end if;
+
+  perform public.assert_event_activation_allowed(v_org_id, p_event_id);
+end;
+$$;
+
+revoke execute on function public.precheck_event_activation(uuid) from public, anon;
+grant execute on function public.precheck_event_activation(uuid) to authenticated;
+
+comment on function public.precheck_event_activation(uuid) is
+  'Runs the event activation entitlement gate without changing anything, so the client can refuse an activation BEFORE clearing demo data.';

@@ -1142,7 +1142,7 @@
       "educationalNote": "The approved educational discount applies to the remaining event fee.",
       "payPerEventNote": "You can pay it from Settings → Billing, or it is charged automatically if you have a card saved. Your next event needs this one settled first.",
       "subscriptionCardNote": "We will charge the card saved with your subscription.",
-      "demoClearNote": "This event ran as a demo. Activating clears the demo data first: team claims, scores, submissions, chat messages, bingo progress, and live state. The event setup, games, stages, full team list, and printed QR codes stay intact.",
+      "demoClearNote": "This event ran as a demo. Activating clears the demo data first: team claims, scores, submissions, store orders, puzzle progress, chat messages, bingo progress, and live state. The event setup, games, stages, full team list, and printed QR codes stay intact.",
       "demoKeptNote": "This event was activated before, so its demo data cannot be cleared and will be kept.",
       "errors": {
         "subscriptionRequired": "Your subscription is not active. Start (or renew) your plan in Settings → Billing, then activate this event.",

@@ -1423,6 +1423,10 @@ export type Database = {
         Args: { p_event_id: string; p_game_id: string; p_question_id: string }
         Returns: string
       }
+      precheck_event_activation: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
       reset_event_data: {
         Args: { p_event_id: string }
         Returns: undefined
