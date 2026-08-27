@@ -93,6 +93,7 @@ import { createOutboxPersistence } from '@/lib/offline/outbox-persistence'
 import { getBlob } from '@/lib/offline/blob-cache'
 import { downloadOfflineAnswerKeys, getOfflineAnswerKeys } from '@/lib/offline/package'
 import { queuedPuzzleSubmissionRow } from '@/lib/offline/puzzle-local'
+import { collectBundleMediaUrls, downloadEventMedia } from '@/lib/offline/media-cache'
 import { downloadStoreSnapshot } from '@/lib/offline/store-snapshot'
 import { useOnlineStatus } from '@/lib/offline/net'
 import { useOfflineReadiness, type OfflineReadinessState } from '@/lib/offline/readiness'
@@ -585,9 +586,15 @@ export function JoinGameView({
   // the package; Stage 5 browses the store offline from the snapshot).
   // Best-effort: both no-op without a valid team token, and a failure just
   // leaves that offline feature unavailable until the reconnect refresh.
+  // The media download (game covers, brief images, logos) rides along so the
+  // challenge screens keep their pictures offline (P3.2); it reads the bundle
+  // through a ref so this effect still only fires once per join.
+  const mediaBundleRef = useRef(bundle)
+  mediaBundleRef.current = bundle
   useEffect(() => {
     if (!event.id) return
     void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+    void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
     const session = getCurrentParticipantSession()
     if (session?.eventId === event.id && session.purchaseToken) {
       void downloadStoreSnapshot(event.id, session.purchaseToken)
@@ -661,6 +668,7 @@ export function JoinGameView({
       kick()
       if (event.id) {
         void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
+        void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
         const session = getCurrentParticipantSession()
         if (session?.eventId === event.id && session.purchaseToken) {
           void downloadStoreSnapshot(event.id, session.purchaseToken)
