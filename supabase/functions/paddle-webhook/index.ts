@@ -22,17 +22,35 @@
 //                             so a refund-driven downgrade (below) is not undone.
 //   adjustment.created /
 //   adjustment.updated      → refunds (action 'refund', status 'approved').
-//                             A refunded subscription payment marks the matching
-//                             subscription_transactions row canceled, downgrades
-//                             the org to the free plan and cancels the Paddle
-//                             subscription immediately so billing genuinely
-//                             stops. A refunded event payment marks the matching
-//                             invoice 'refunded'.
+//                             Only a FULL refund changes state (Rumen's rule:
+//                             refund = stop billing; a partial goodwill refund
+//                             is logged and touches nothing). A fully refunded
+//                             subscription payment cancels the Paddle
+//                             subscription FIRST, then marks the matching
+//                             subscription_transactions row canceled and
+//                             downgrades the org to the free plan. Renewal
+//                             payments have no local row, so they resolve via
+//                             the Paddle API instead. A fully refunded event
+//                             payment marks the matching invoice 'refunded'.
 //
 // Always returns 200 once the signature is verified, even for event types we
-// don't act on — Paddle retries non-2xx responses, and we don't want retries
-// for events that are legitimately no-ops for us.
+// don't act on: Paddle retries non-2xx responses, and we don't want retries
+// for events that are legitimately no-ops for us. The ONE deliberate exception
+// is a full refund whose Paddle subscription cancel call fails, which answers
+// 500 so Paddle's retry schedule re-delivers until the cancel lands (safe:
+// an already-canceled subscription short-circuits to success on re-delivery).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// The slice of a Paddle GET /transactions/{id} response the refund path
+// relies on. Amounts are strings of minor currency units.
+type PaddleTransaction = {
+  id?: string
+  subscription_id?: string | null
+  custom_data?: Record<string, unknown> | null
+  details?: {
+    totals?: { total?: string | null; grand_total?: string | null } | null
+  } | null
+}
 
 function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false
@@ -111,8 +129,11 @@ Deno.serve(async (req) => {
       subscription_id?: string | null
       status?: string
       // Adjustment events (refunds) reference the transaction they adjust.
+      // type is 'full' | 'partial'; totals carry minor-unit string amounts.
       action?: string
+      type?: string
       transaction_id?: string | null
+      totals?: { total?: string | null; currency_code?: string | null } | null
       current_billing_period?: { starts_at?: string; ends_at?: string } | null
       items?: Array<{ price?: { custom_data?: Record<string, unknown> | null } | null }> | null
       custom_data?: Record<string, unknown> | null
@@ -150,10 +171,22 @@ Deno.serve(async (req) => {
             .eq('id', custom.invoice_id)
             .eq('status', 'unpaid')
         } else if (custom.kind === 'subscription' && data.id) {
+          // Backfill the subscription this payment belongs to: the checkout
+          // insert happens before Paddle creates the subscription, so this is
+          // the only place the link can be recorded, and the refund path's
+          // superseded-subscription guard depends on it. The status guard
+          // keeps a replayed completion from flipping a canceled (refunded)
+          // payment back to paid.
           await admin
             .from('subscription_transactions')
-            .update({ status: 'paid' })
+            .update({
+              status: 'paid',
+              ...(typeof data.subscription_id === 'string' && data.subscription_id
+                ? { paddle_subscription_id: data.subscription_id }
+                : {}),
+            })
             .eq('paddle_transaction_id', data.id)
+            .neq('status', 'canceled')
 
           // The promo code is only consumed once the customer has actually paid.
           if (typeof custom.promo_redemption_id === 'string') {
@@ -224,6 +257,133 @@ Deno.serve(async (req) => {
         if (data.action !== 'refund' || data.status !== 'approved') break
         if (typeof transactionId !== 'string' || !transactionId) break
 
+        const paddleApiKey = Deno.env.get('PADDLE_API_KEY')
+        const paddleBaseUrl = Deno.env.get('PADDLE_ENVIRONMENT') === 'production'
+          ? 'https://api.paddle.com'
+          : 'https://sandbox-api.paddle.com'
+
+        // The refunded transaction, fetched from the Paddle API at most once
+        // and only when actually needed: to derive full vs partial when the
+        // adjustment carries no type, to resolve renewal payments that have
+        // no local row, and to find which subscription a legacy payment row
+        // (inserted before the paddle_subscription_id backfill) belongs to.
+        let paddleTx: PaddleTransaction | null | undefined
+        const fetchPaddleTransaction = async (): Promise<PaddleTransaction | null> => {
+          if (paddleTx !== undefined) return paddleTx
+          paddleTx = null
+          if (!paddleApiKey) {
+            console.error('[paddle-webhook] PADDLE_API_KEY missing, cannot look up transaction', transactionId)
+            return paddleTx
+          }
+          try {
+            const txRes = await fetch(`${paddleBaseUrl}/transactions/${transactionId}`, {
+              headers: { Authorization: `Bearer ${paddleApiKey}` },
+            })
+            if (txRes.ok) {
+              const body = await txRes.json()
+              paddleTx = (body?.data ?? null) as PaddleTransaction | null
+            } else {
+              console.error('[paddle-webhook] transaction lookup failed:', txRes.status, await txRes.text())
+            }
+          } catch (lookupErr) {
+            console.error('[paddle-webhook] transaction lookup failed:', lookupErr)
+          }
+          return paddleTx
+        }
+
+        // Only a FULL refund stops billing (refund = stop billing). A partial
+        // goodwill refund is logged and must not kill the plan or the invoice.
+        // When the adjustment carries no explicit type, compare its total
+        // against what the transaction actually charged.
+        let isFullRefund: boolean | null =
+          data.type === 'full' ? true : data.type === 'partial' ? false : null
+        if (isFullRefund === null) {
+          const tx = await fetchPaddleTransaction()
+          const refundedTotal = Number(data.totals?.total)
+          const chargedTotal = Number(tx?.details?.totals?.grand_total ?? tx?.details?.totals?.total)
+          if (tx && Number.isFinite(refundedTotal) && Number.isFinite(chargedTotal)) {
+            isFullRefund = refundedTotal >= chargedTotal
+          }
+        }
+        if (isFullRefund === false) {
+          console.log('[paddle-webhook] partial refund on transaction', transactionId, 'acknowledged, no state change')
+          break
+        }
+        if (isFullRefund === null) {
+          console.error('[paddle-webhook] could not determine full vs partial for refund on transaction', transactionId, '- nothing changed, handle manually')
+          break
+        }
+
+        // Cancels the subscription at Paddle. An already-canceled
+        // subscription counts as success, which is what makes the retry loop
+        // below (500 → Paddle re-delivery) converge instead of spin.
+        const cancelPaddleSubscription = async (subscriptionId: string): Promise<boolean> => {
+          if (!paddleApiKey) {
+            console.error('[paddle-webhook] PADDLE_API_KEY missing, cannot cancel subscription after refund:', subscriptionId)
+            return false
+          }
+          try {
+            const cancelRes = await fetch(`${paddleBaseUrl}/subscriptions/${subscriptionId}/cancel`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${paddleApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ effective_from: 'immediately' }),
+            })
+            if (cancelRes.ok) return true
+            const cancelErrText = await cancelRes.text()
+            // Paddle rejects canceling an already-canceled subscription.
+            // Check the live status instead of pattern-matching error codes.
+            const checkRes = await fetch(`${paddleBaseUrl}/subscriptions/${subscriptionId}`, {
+              headers: { Authorization: `Bearer ${paddleApiKey}` },
+            })
+            if (checkRes.ok) {
+              const checkBody = await checkRes.json()
+              if (checkBody?.data?.status === 'canceled') return true
+            }
+            console.error('[paddle-webhook] canceling subscription after refund failed:', cancelRes.status, cancelErrText)
+          } catch (cancelErr) {
+            console.error('[paddle-webhook] canceling subscription after refund failed:', cancelErr)
+          }
+          return false
+        }
+
+        // Full-refund downgrade, shared by the local-row and renewal paths.
+        // Order matters: cancel at Paddle FIRST, and only after that succeeds
+        // touch our rows. On cancel failure THIS branch alone returns 500
+        // (the signature was already verified above, so only genuine Paddle
+        // deliveries can trigger it) so Paddle's retry schedule re-delivers
+        // until the cancel lands. Every other branch keeps the never-500
+        // philosophy: this is the one place where giving up would leave a
+        // zombie subscription that keeps charging a refunded customer.
+        // Re-delivery is idempotent: an already-canceled subscription
+        // short-circuits to success and both DB writes repeat harmlessly.
+        const runFullRefundDowngrade = async (
+          org: { id: string; paddle_subscription_id: string | null; subscription_status: string | null },
+          subTxId: string | null,
+        ): Promise<Response | null> => {
+          if (org.paddle_subscription_id && org.subscription_status !== 'canceled') {
+            const canceled = await cancelPaddleSubscription(org.paddle_subscription_id)
+            if (!canceled) {
+              return new Response('Refund subscription cancel failed, retry', { status: 500 })
+            }
+          }
+          if (subTxId) {
+            await admin
+              .from('subscription_transactions')
+              .update({ status: 'canceled' })
+              .eq('id', subTxId)
+          }
+          // billing_period stays as-is: the column is NOT NULL with a
+          // monthly/yearly check, and it is meaningless on the free plan.
+          await admin
+            .from('organizations')
+            .update({ billing_plan: 'rookie', subscription_status: 'canceled', paddle_subscription_id: null })
+            .eq('id', org.id)
+          return null
+        }
+
         // Subscription payment refund → mark the payment canceled and
         // downgrade the org (Rumen's decision: automatic, no review step).
         const { data: subTx } = await admin
@@ -233,91 +393,103 @@ Deno.serve(async (req) => {
           .maybeSingle()
 
         if (subTx) {
-          await admin
-            .from('subscription_transactions')
-            .update({ status: 'canceled' })
-            .eq('id', subTx.id)
-
           const { data: org } = await admin
             .from('organizations')
             .select('id, is_demo, paddle_subscription_id, subscription_status')
             .eq('id', subTx.organization_id)
             .maybeSingle()
 
-          // Never downgrade a demo org: its billing rows are seeded props.
+          // Never touch a demo org: its billing rows are seeded props. This
+          // check runs before ANY write, including the payment row itself.
           if (!org || org.is_demo) break
 
-          // A refund for a superseded subscription's payment must not touch
-          // the org's current subscription.
+          // A refund may only take down the subscription it actually paid
+          // for. Resolve the payment's subscription (stamped on the row by
+          // transaction.completed; older rows fall back to the API) and
+          // require a match with the org's CURRENT subscription.
+          let refundedSubscriptionId = subTx.paddle_subscription_id
+          if (!refundedSubscriptionId) {
+            const tx = await fetchPaddleTransaction()
+            refundedSubscriptionId = typeof tx?.subscription_id === 'string' ? tx.subscription_id : null
+          }
+
           if (
-            subTx.paddle_subscription_id &&
-            org.paddle_subscription_id &&
-            subTx.paddle_subscription_id !== org.paddle_subscription_id
+            !org.paddle_subscription_id ||
+            !refundedSubscriptionId ||
+            refundedSubscriptionId !== org.paddle_subscription_id
           ) {
+            // Superseded subscription, an already-processed re-delivery (the
+            // org's subscription id is cleared), or an unresolvable payment:
+            // record the refund on the payment row, leave the org alone.
+            await admin
+              .from('subscription_transactions')
+              .update({ status: 'canceled' })
+              .eq('id', subTx.id)
             console.error(
-              '[paddle-webhook] refund for old subscription',
-              subTx.paddle_subscription_id,
-              'ignored: org', org.id, 'now on', org.paddle_subscription_id,
+              '[paddle-webhook] refund on transaction', transactionId,
+              'for subscription', refundedSubscriptionId,
+              'does not match org', org.id,
+              'current subscription', org.paddle_subscription_id,
+              '- payment marked canceled, org untouched',
             )
             break
           }
 
-          // billing_period stays as-is: the column is NOT NULL with a
-          // monthly/yearly check, and it is meaningless on the free plan.
-          await admin
-            .from('organizations')
-            .update({ billing_plan: 'rookie', subscription_status: 'canceled' })
-            .eq('id', org.id)
-
-          // Cancel the Paddle subscription itself so automatic billing
-          // genuinely stops. The subscription.canceled webhook that follows
-          // is the backstop that confirms the state. Skipped when our own
-          // records already say canceled (refund re-delivery).
-          if (org.paddle_subscription_id && org.subscription_status !== 'canceled') {
-            const paddleApiKey = Deno.env.get('PADDLE_API_KEY')
-            const paddleBaseUrl = Deno.env.get('PADDLE_ENVIRONMENT') === 'production'
-              ? 'https://api.paddle.com'
-              : 'https://sandbox-api.paddle.com'
-            if (!paddleApiKey) {
-              console.error('[paddle-webhook] PADDLE_API_KEY missing, cannot cancel subscription after refund:', org.paddle_subscription_id)
-            } else {
-              const cancelRes = await fetch(
-                `${paddleBaseUrl}/subscriptions/${org.paddle_subscription_id}/cancel`,
-                {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${paddleApiKey}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ effective_from: 'immediately' }),
-                },
-              )
-              if (cancelRes.ok) {
-                await admin
-                  .from('organizations')
-                  .update({ paddle_subscription_id: null })
-                  .eq('id', org.id)
-              } else {
-                // Log and still 200: the downgrade above already blocks paid
-                // entitlements, and Paddle will retry nothing here anyway.
-                console.error(
-                  '[paddle-webhook] canceling subscription after refund failed:',
-                  cancelRes.status,
-                  await cancelRes.text(),
-                )
-              }
-            }
-          }
+          const retryResponse = await runFullRefundDowngrade(org, subTx.id)
+          if (retryResponse) return retryResponse
           break
         }
 
         // Event payment refund → mark the invoice refunded. Only a paid
         // invoice can be refunded; comped/unpaid rows are left untouched.
-        await admin
+        const { data: invoice } = await admin
           .from('invoices')
-          .update({ status: 'refunded' })
+          .select('id')
           .eq('paddle_transaction_id', transactionId)
-          .eq('status', 'paid')
+          .maybeSingle()
+        if (invoice) {
+          await admin
+            .from('invoices')
+            .update({ status: 'refunded' })
+            .eq('id', invoice.id)
+            .eq('status', 'paid')
+          break
+        }
+
+        // No local row at all: a renewal payment. Renewal transactions are
+        // created by Paddle, not paddle-checkout, so subscription_transactions
+        // never has a row for them. Resolve the org through the Paddle API
+        // and run the same full-refund downgrade.
+        const renewalTx = await fetchPaddleTransaction()
+        const renewalSubscriptionId =
+          typeof renewalTx?.subscription_id === 'string' ? renewalTx.subscription_id : null
+        if (!renewalSubscriptionId) {
+          console.error('[paddle-webhook] refund on transaction', transactionId, 'matches no local row and no subscription on the Paddle transaction, ignored')
+          break
+        }
+
+        // Matching by CURRENT paddle_subscription_id doubles as the
+        // superseded-subscription guard: a refund for a subscription no org
+        // holds any more matches nothing and changes nothing.
+        const { data: renewalOrg } = await admin
+          .from('organizations')
+          .select('id, is_demo, paddle_subscription_id, subscription_status')
+          .eq('paddle_subscription_id', renewalSubscriptionId)
+          .maybeSingle()
+        if (!renewalOrg) {
+          console.error('[paddle-webhook] refund for renewal of subscription', renewalSubscriptionId, 'matches no org, ignored')
+          break
+        }
+        const renewalTxOrgId = renewalTx?.custom_data?.organization_id
+        if (typeof renewalTxOrgId === 'string' && renewalTxOrgId !== renewalOrg.id) {
+          console.error('[paddle-webhook] refund for renewal of subscription', renewalSubscriptionId, 'failed the org cross-check:', renewalTxOrgId, 'vs', renewalOrg.id, '- ignored')
+          break
+        }
+        // Never touch a demo org: its billing rows are seeded props.
+        if (renewalOrg.is_demo) break
+
+        const renewalRetryResponse = await runFullRefundDowngrade(renewalOrg, null)
+        if (renewalRetryResponse) return renewalRetryResponse
         break
       }
 
