@@ -1,5 +1,9 @@
 {
   "placeholder": "Admin",
+  "featureGating": {
+    "notIncluded": "Not included in your plan",
+    "someHidden": "Some options are not included in your plan."
+  },
   "billing": {
     "addCode": "Add code",
     "adding": "Adding…",

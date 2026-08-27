@@ -85,6 +85,7 @@ import {
   quizSubmissionMediaType,
   activeSubmissionForGame,
 } from '@/lib/live-event'
+import { offlineEnabled } from '@/lib/feature-flags'
 import { winnerSoundEnabled } from '@/lib/winner-sound'
 import { isFacilitatorToTeamChatMessage } from '@/lib/chat-notifications'
 import { applyLiveBundlePatch, publishSubmissionChange } from '@/lib/live-broadcast'
@@ -597,15 +598,19 @@ export function JoinGameView({
   // through a ref so this effect still only fires once per join.
   const mediaBundleRef = useRef(bundle)
   mediaBundleRef.current = bundle
+  // P6.1: offline_enabled false skips the package downloads entirely, so the
+  // readiness tracker never registers any download kind for this event.
+  // Anything a device already cached earlier keeps working untouched.
+  const offlineDownloadsEnabled = offlineEnabled(bundle.organization)
   useEffect(() => {
-    if (!event.id) return
+    if (!event.id || !offlineDownloadsEnabled) return
     void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
     void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
     const session = getCurrentParticipantSession()
     if (session?.eventId === event.id && session.purchaseToken) {
       void downloadStoreSnapshot(event.id, session.purchaseToken, { reportReadiness: true })
     }
-  }, [event.id])
+  }, [event.id, offlineDownloadsEnabled])
 
   // Rehydrate any submissions queued before a reload/offline/app-kill and drain
   // them. Rehydrated items must also reappear as pending cards with their Cancel
@@ -672,7 +677,9 @@ export function JoinGameView({
     const kick = () => outbox.kick()
     const reconnect = () => {
       kick()
-      if (event.id) {
+      // The queue always drains; only the offline package refresh is gated by
+      // the org's offline_enabled flag (P6.1).
+      if (event.id && offlineDownloadsEnabled) {
         void downloadOfflineAnswerKeys(event.id, new Date().toISOString())
         void downloadEventMedia(event.id, collectBundleMediaUrls(mediaBundleRef.current))
         const session = getCurrentParticipantSession()
@@ -689,7 +696,7 @@ export function JoinGameView({
       window.removeEventListener('focus', kick)
       document.removeEventListener('visibilitychange', kick)
     }
-  }, [outbox, event.id])
+  }, [outbox, event.id, offlineDownloadsEnabled])
 
   const live = isEventLive(event)
   const canSubmit = submissionsAllowed(state)
@@ -2187,17 +2194,23 @@ export function JoinGameView({
           the connection drops. */}
       {!captureActive ? (
         <div className="pointer-events-none fixed left-3 top-[calc(env(safe-area-inset-top)+20px)] z-[10001] flex items-center gap-1.5">
-          <div
-            className="flex size-5 items-center justify-center rounded-full bg-black/70 shadow-lg"
-            role="status"
-            aria-label={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
-            title={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
-          >
-            <span
-              className={`size-2.5 rounded-full ${OFFLINE_READINESS_DOT_CLASSES[offlineReadiness]}`}
-              aria-hidden="true"
-            />
-          </div>
+          {/* No dot when the org's plan has offline off (P6.1): with no
+              downloads registering it would pulse yellow forever, promising a
+              sync that is never coming. The WifiOff icon stays: it reports the
+              connection, not the offline package. */}
+          {offlineDownloadsEnabled ? (
+            <div
+              className="flex size-5 items-center justify-center rounded-full bg-black/70 shadow-lg"
+              role="status"
+              aria-label={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
+              title={t(OFFLINE_READINESS_LABEL_KEYS[offlineReadiness])}
+            >
+              <span
+                className={`size-2.5 rounded-full ${OFFLINE_READINESS_DOT_CLASSES[offlineReadiness]}`}
+                aria-hidden="true"
+              />
+            </div>
+          ) : null}
           {!online ? (
             <div
               className="flex size-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"

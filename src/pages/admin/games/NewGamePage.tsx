@@ -25,6 +25,7 @@ import {
   useAdminOrganizationId,
   useAdminOrganizationLoading,
 } from '@/hooks/use-organization-id'
+import { useOrgFeatureFlags } from '@/hooks/use-feature-flags'
 import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import { newGameId } from '@/lib/game-upload'
 import { sanitizeRichText } from '@/lib/rich-text'
@@ -92,12 +93,16 @@ export function AdminGamesNewPage() {
 
   // The type comes from the picker modal. Landing here without one (a stale
   // link, a typed URL) sends the organiser back to the library, where the
-  // picker lives, rather than showing a second copy of it.
+  // picker lives, rather than showing a second copy of it. A type the client's
+  // plan does not include (P6.1) is treated the same as an unknown type.
+  const { flags } = useOrgFeatureFlags()
   const [searchParams] = useSearchParams()
   const requestedType = searchParams.get('type')
-  const initialType = TYPES.some((entry) => entry.type === requestedType)
-    ? (requestedType as GameType)
-    : null
+  const initialType =
+    TYPES.some((entry) => entry.type === requestedType) &&
+    (isPlatformLibrary || flags.allowedGameTypes.includes(requestedType as GameType))
+      ? (requestedType as GameType)
+      : null
   const gameType = initialType
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

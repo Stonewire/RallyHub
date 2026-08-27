@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useNotification } from '@/contexts/notification-context'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
+import { useOrgFeatureFlags } from '@/hooks/use-feature-flags'
 import { downloadCsv } from '@/lib/csv'
 import {
   buildGameImportPlan,
@@ -39,11 +40,19 @@ export function GameImportModal({
   const [fileName, setFileName] = useState<string | null>(null)
   const [plan, setPlan] = useState<GameImportPlan | null>(null)
   const [importing, setImporting] = useState(false)
+  // P6.1: a client org only imports the game types its plan allows; the
+  // platform library is never gated.
+  const { flags } = useOrgFeatureFlags()
 
   async function handleFile(file: File) {
     setFileName(file.name)
     const text = await file.text()
-    setPlan(buildGameImportPlan(parseCsv(text)))
+    setPlan(
+      buildGameImportPlan(
+        parseCsv(text),
+        isPlatformLibrary ? undefined : flags.allowedGameTypes,
+      ),
+    )
   }
 
   async function runImport() {

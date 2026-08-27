@@ -1,5 +1,9 @@
 {
   "placeholder": "Admin",
+  "featureGating": {
+    "notIncluded": "Niet inbegrepen in je plan",
+    "someHidden": "Sommige opties zijn niet inbegrepen in je plan."
+  },
   "billing": {
     "addCode": "Code toevoegen",
     "adding": "Toevoegen…",

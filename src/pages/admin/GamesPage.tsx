@@ -54,6 +54,7 @@ import {
   useAdminOrganizationId,
   useAdminOrganizationLoading,
 } from '@/hooks/use-organization-id'
+import { useOrgFeatureFlags } from '@/hooks/use-feature-flags'
 import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 import type { GameType } from '@/types/database'
 
@@ -201,6 +202,15 @@ export function AdminGamesPage() {
   const trashedGamesQuery = useTrashedGames(organizationId, isPlatformLibrary)
   const restoreGame = useRestoreGame(organizationId)
   const permanentlyDeleteGame = usePermanentlyDeleteGame(organizationId)
+  // P6.1: type filter pills only offer what the client's plan allows (the
+  // platform library sees all). Existing games of a disallowed type still
+  // appear under All Games and keep their labels via gameTypeLabel.
+  const { flags } = useOrgFeatureFlags()
+  const visibleFilters = isPlatformLibrary
+    ? FILTERS
+    : FILTERS.filter(
+        ({ value }) => value === 'all' || flags.allowedGameTypes.includes(value),
+      )
   // The RPC refuses games that still carry submissions or event links, so its
   // message is shown rather than swallowed: "nothing happened" would be worse.
   const [purgeError, setPurgeError] = useState<string | null>(null)
@@ -690,7 +700,7 @@ export function AdminGamesPage() {
             {/* Identical to the Games Library toolbar: same pill styling and
                 height, same filters / search / group order. */}
             <div className="flex flex-wrap gap-2 max-xl:justify-center">
-              {FILTERS.map(({ value, labelKey }) => (
+              {visibleFilters.map(({ value, labelKey }) => (
                 <button
                   key={value}
                   type="button"
@@ -768,7 +778,7 @@ export function AdminGamesPage() {
         {/* Type filters, search, then group selector. Every control here is h-9
             so the row reads as one band rather than three different sizes. */}
         <div className="flex flex-wrap gap-2 max-xl:justify-center">
-          {FILTERS.map(({ value, labelKey }) => (
+          {visibleFilters.map(({ value, labelKey }) => (
             <button
               key={value}
               type="button"
@@ -1001,7 +1011,7 @@ export function AdminGamesPage() {
                     ))}
                   </select>
                   <div className="flex flex-wrap gap-1.5">
-                    {FILTERS.map(({ value, labelKey }) => (
+                    {visibleFilters.map(({ value, labelKey }) => (
                       <button
                         key={value}
                         type="button"
@@ -1130,7 +1140,7 @@ export function AdminGamesPage() {
               </div>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <div className="flex flex-wrap gap-1.5">
-                  {FILTERS.map(({ value, labelKey }) => (
+                  {visibleFilters.map(({ value, labelKey }) => (
                     <button
                       key={value}
                       type="button"

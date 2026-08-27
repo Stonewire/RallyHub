@@ -12,6 +12,7 @@ import {
 import { isListedClientOrganization } from '@/lib/platform-library'
 import { permanentlyDeleteOrganization } from '@/lib/data-lifecycle'
 import { supabase } from '@/lib/supabase'
+import type { Json } from '@/types/json'
 import type { TablesUpdate } from '@/types/helpers'
 
 export type { SupportTicketRow } from '@/hooks/use-support-tickets'
@@ -211,6 +212,8 @@ export type ClientAdminUpdateInput = {
   address_postal?: string
   address_country?: string
   default_language?: string
+  /** P6.1 feature flags. Omit to leave the column untouched. */
+  feature_flags?: Json
 }
 
 export function useCreateRallyHubClient() {
@@ -286,6 +289,7 @@ export function useUpdateClientAdmin() {
       address_postal,
       address_country,
       default_language,
+      feature_flags,
     }: ClientAdminUpdateInput) => {
       const trimmedEmail = email?.trim() ?? ''
       const trimmedPhone = phone?.trim() ?? ''
@@ -313,6 +317,7 @@ export function useUpdateClientAdmin() {
         updated_at: new Date().toISOString(),
         ...(subdomain !== undefined ? { subdomain: subdomain.toLowerCase().trim() } : {}),
         ...(default_language !== undefined ? { default_language } : {}),
+        ...(feature_flags !== undefined ? { feature_flags } : {}),
       } satisfies TablesUpdate<'organizations'>
 
       const { data, error } = await supabase

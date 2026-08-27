@@ -1,5 +1,9 @@
 {
   "placeholder": "Админ",
+  "featureGating": {
+    "notIncluded": "Не е включено във вашия план",
+    "someHidden": "Някои опции не са включени във вашия план."
+  },
   "billing": {
     "addCode": "Добави код",
     "adding": "Добавяне…",

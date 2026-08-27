@@ -124,4 +124,27 @@ describe('buildGameImportPlan', () => {
     expect(plan.games).toEqual([])
     expect(plan.errors[0]).toMatch(/header/)
   })
+
+  it('rejects rows whose type is not in the allowed list (P6.1 feature flags)', () => {
+    const csv = [
+      'Name,Type,Description,Point type,Points',
+      'Allowed Photo,PHOTO,desc,Static,100',
+      'Blocked Video,VIDEO,desc,Static,100',
+    ].join('\n')
+    const plan = buildGameImportPlan(parseCsv(csv), ['photo', 'text'])
+    expect(plan.games).toHaveLength(1)
+    expect(plan.games[0].name).toBe('Allowed Photo')
+    expect(plan.errors).toHaveLength(1)
+    expect(plan.errors[0]).toMatch(/Row 3.*VIDEO.*not included in your plan/)
+  })
+
+  it('allows every importable type when no allowed list is given', () => {
+    const csv = [
+      'Name,Type,Description,Point type,Points',
+      'A Video,VIDEO,desc,Static,100',
+    ].join('\n')
+    const plan = buildGameImportPlan(parseCsv(csv))
+    expect(plan.errors).toEqual([])
+    expect(plan.games).toHaveLength(1)
+  })
 })

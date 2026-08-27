@@ -15,6 +15,8 @@ import {
 import type { GameType } from '@/types/database'
 import { orgPath } from '@/lib/org-path'
 import { useOptionalTenant } from '@/contexts/tenant-context'
+import { useOrgFeatureFlags } from '@/hooks/use-feature-flags'
+import { useIsPlatformGamesAdmin } from '@/hooks/use-platform-library'
 
 /** Reading order asked for: photo, video, puzzle, then text, quiz, bingo. */
 const NEW_GAME_TYPES: { type: GameType; labelKey: string; icon: typeof IconPhoto }[] = [
@@ -40,6 +42,14 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
   const { t } = useTranslation('admin')
   const navigate = useNavigate()
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
+  // P6.1: only the game types in the client's plan are offered. The platform
+  // library always sees all six. Absent flags mean everything is allowed.
+  const isPlatformLibrary = useIsPlatformGamesAdmin()
+  const { flags } = useOrgFeatureFlags()
+  const visibleTypes = isPlatformLibrary
+    ? NEW_GAME_TYPES
+    : NEW_GAME_TYPES.filter(({ type }) => flags.allowedGameTypes.includes(type))
+  const someHidden = visibleTypes.length < NEW_GAME_TYPES.length
 
   useEffect(() => {
     if (!open) return
@@ -76,7 +86,7 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {NEW_GAME_TYPES.map(({ type, labelKey, icon: Icon }) => (
+          {visibleTypes.map(({ type, labelKey, icon: Icon }) => (
             <button
               key={type}
               type="button"
@@ -91,6 +101,11 @@ export function NewGameTypeModal({ open, onClose }: NewGameTypeModalProps) {
             </button>
           ))}
         </div>
+        {someHidden ? (
+          <p className="text-muted-foreground mt-3 text-xs">
+            {t('featureGating.someHidden')}
+          </p>
+        ) : null}
       </div>
     </div>,
     document.body,

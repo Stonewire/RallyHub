@@ -5,6 +5,7 @@ import { QueryError, QueryLoading } from '@/components/admin/QueryState'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
 import type { GameRow } from '@/hooks/use-games'
+import { isGameTypeAllowed } from '@/lib/feature-flags'
 import {
   useGameClientInstallStatus,
   useInstallPlatformGame,
@@ -49,7 +50,13 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
     setActionError(null)
   }, [game.id])
 
-  const pendingInstallIds = [...selected].filter((id) => !installedOrgIds.has(id))
+  // Never send a client whose plan excludes this game type (P6.1), even if a
+  // stale selection survives a flag change while the modal is open.
+  const pendingInstallIds = [...selected].filter((id) => {
+    if (installedOrgIds.has(id)) return false
+    const client = clients.find((c) => c.id === id)
+    return !client || isGameTypeAllowed(client, game.type)
+  })
 
   async function handleConfirm() {
     if (pendingInstallIds.length === 0) {
@@ -109,13 +116,18 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
                 <ul className="space-y-2">
                   {clients.map((client) => {
                     const alreadyInstalled = installedOrgIds.has(client.id)
+                    // P6.1 feature flags: a client whose plan excludes this
+                    // game type cannot receive an install (the games trigger
+                    // would refuse it server-side anyway).
+                    const typeBlocked =
+                      !alreadyInstalled && !isGameTypeAllowed(client, game.type)
                     const checked = alreadyInstalled || selected.has(client.id)
 
                     return (
                       <li key={client.id}>
                         <label
                           className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm ${
-                            alreadyInstalled
+                            alreadyInstalled || typeBlocked
                               ? 'border-border/60 bg-muted/40'
                               : 'border-border/80 hover:bg-muted/30 cursor-pointer'
                           }`}
@@ -123,10 +135,10 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
                           <input
                             type="checkbox"
                             className="size-4 shrink-0"
-                            checked={checked}
-                            disabled={alreadyInstalled || install.isPending}
+                            checked={checked && !typeBlocked}
+                            disabled={alreadyInstalled || typeBlocked || install.isPending}
                             onChange={(e) => {
-                              if (alreadyInstalled) return
+                              if (alreadyInstalled || typeBlocked) return
                               setSelected((prev) => {
                                 const next = new Set(prev)
                                 if (e.target.checked) next.add(client.id)
@@ -140,6 +152,10 @@ export function InstallGameModal({ game, onClose }: InstallGameModalProps) {
                             {alreadyInstalled ? (
                               <span className="text-muted-foreground ml-2 text-xs">
                                 Already installed
+                              </span>
+                            ) : typeBlocked ? (
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                Game type not in this client&apos;s plan
                               </span>
                             ) : null}
                           </span>

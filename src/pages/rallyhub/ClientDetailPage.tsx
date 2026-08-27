@@ -43,12 +43,39 @@ import {
   normalizeClientPlan,
 } from '@/lib/client-plans'
 import { normalizeEducationalStatus } from '@/lib/educational'
+import {
+  ALL_FLAG_STAGE_TYPES,
+  ALL_GAME_TYPES,
+  defaultFeatureFlags,
+  featureFlagsToJson,
+  orgFeatureFlags,
+  type FeatureFlags,
+  type FlagStageType,
+} from '@/lib/feature-flags'
 import { organizationInitials } from '@/lib/org-avatar'
 import { APP_LANGUAGES, toAppLanguage } from '@/lib/i18n'
+import type { GameType } from '@/types/database'
 import { platformHost } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
 
 const STATUSES = ['active', 'suspended', 'trial'] as const
+
+/** Staff-panel labels for the P6.1 feature toggles (English-only surface). */
+const GAME_TYPE_FLAG_LABELS: Record<GameType, string> = {
+  photo: 'Photo',
+  video: 'Video',
+  text: 'Text',
+  quiz: 'Quiz',
+  music_bingo: 'Music Bingo',
+  puzzle: 'Puzzle',
+}
+
+const STAGE_TYPE_FLAG_LABELS: Record<FlagStageType, string> = {
+  open: 'Quest',
+  quiz: 'Quiz',
+  bingo: 'Music Bingo',
+  break: 'Break',
+}
 
 function clientEmail(org: { email: string | null; contact_email: string | null }) {
   return org.email?.trim() || org.contact_email?.trim() || ''
@@ -116,6 +143,9 @@ export function RallyHubClientDetailPage() {
   const [trialEndsAt, setTrialEndsAt] = useState<string>('')
   const [trialReviewNeeded, setTrialReviewNeeded] = useState(false)
   const [hidePlatformBranding, setHidePlatformBranding] = useState(false)
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(() =>
+    defaultFeatureFlags(),
+  )
   const [educationalStatus, setEducationalStatus] = useState('none')
   const [defaultLanguage, setDefaultLanguage] = useState('en')
   const [vatNumber, setVatNumber] = useState('')
@@ -182,6 +212,7 @@ export function RallyHubClientDetailPage() {
     setTrialEndsAt(org.trial_ends_at ? org.trial_ends_at.slice(0, 10) : '')
     setTrialReviewNeeded(org.trial_review_needed ?? false)
     setHidePlatformBranding(org.hide_platform_branding ?? false)
+    setFeatureFlags(orgFeatureFlags(org))
     setEducationalStatus(normalizeEducationalStatus(org.educational_status))
     setDefaultLanguage(toAppLanguage(org.default_language))
     setVatNumber(org.vat_number ?? '')
@@ -265,6 +296,31 @@ export function RallyHubClientDetailPage() {
     }
   }
 
+  /** Flip one game type; filtering the canonical list keeps a stable order. */
+  function toggleGameTypeFlag(type: GameType) {
+    setFeatureFlags((current) => {
+      const on = current.allowedGameTypes.includes(type)
+      return {
+        ...current,
+        allowedGameTypes: ALL_GAME_TYPES.filter((value) =>
+          value === type ? !on : current.allowedGameTypes.includes(value),
+        ),
+      }
+    })
+  }
+
+  function toggleStageTypeFlag(type: FlagStageType) {
+    setFeatureFlags((current) => {
+      const on = current.allowedStageTypes.includes(type)
+      return {
+        ...current,
+        allowedStageTypes: ALL_FLAG_STAGE_TYPES.filter((value) =>
+          value === type ? !on : current.allowedStageTypes.includes(value),
+        ),
+      }
+    })
+  }
+
   function buildUpdatePayload(orgId: string, logo?: string | null): ClientAdminUpdateInput {
     return {
       orgId,
@@ -279,6 +335,10 @@ export function RallyHubClientDetailPage() {
       trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
       trial_review_needed: trialReviewNeeded,
       hide_platform_branding: hidePlatformBranding,
+      // Serialised omit-when-default, so an unrestricted client keeps `{}`.
+      // Only owners see the card, but the values pass through unchanged for
+      // everyone since useUpdateClientAdmin would otherwise not send the key.
+      feature_flags: featureFlagsToJson(featureFlags),
       educational_status: educationalStatus,
       default_language: defaultLanguage,
       logo_url: logo !== undefined ? logo : logoUrl,
@@ -664,6 +724,89 @@ export function RallyHubClientDetailPage() {
             </label>
             ) : null}
           </Card>
+
+          {ownerHere ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Feature Access" visibility="RallyHub" />
+              <p className="text-muted-foreground text-xs">
+                Unticked items disappear from this client's creation screens.
+                Existing games, stages and events keep working everywhere; only
+                creating new ones is blocked. Everything ticked means no
+                restriction is stored.
+              </p>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Game types
+                </p>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {ALL_GAME_TYPES.map((type) => (
+                    <label key={type} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="accent-primary size-4 rounded"
+                        checked={featureFlags.allowedGameTypes.includes(type)}
+                        onChange={() => toggleGameTypeFlag(type)}
+                      />
+                      <span className="text-sm">{GAME_TYPE_FLAG_LABELS[type]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Stage types
+                </p>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {ALL_FLAG_STAGE_TYPES.map((type) => (
+                    <label key={type} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="accent-primary size-4 rounded"
+                        checked={featureFlags.allowedStageTypes.includes(type)}
+                        onChange={() => toggleStageTypeFlag(type)}
+                      />
+                      <span className="text-sm">{STAGE_TYPE_FLAG_LABELS[type]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Extras
+                </p>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="accent-primary size-4 rounded"
+                      checked={featureFlags.storeEnabled}
+                      onChange={(e) =>
+                        setFeatureFlags((current) => ({
+                          ...current,
+                          storeEnabled: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm">Points store</span>
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="accent-primary size-4 rounded"
+                      checked={featureFlags.offlineEnabled}
+                      onChange={(e) =>
+                        setFeatureFlags((current) => ({
+                          ...current,
+                          offlineEnabled: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm">Offline play downloads</span>
+                  </label>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
             <ClientCardHeader title="Contact & Tenant" visibility="Private" />

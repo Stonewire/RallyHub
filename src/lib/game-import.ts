@@ -201,8 +201,15 @@ function splitList(raw: string): string[] {
     .filter(Boolean)
 }
 
-/** Turn parsed CSV rows into ready-to-insert games plus per-row error messages. */
-export function buildGameImportPlan(rows: string[][]): GameImportPlan {
+/**
+ * Turn parsed CSV rows into ready-to-insert games plus per-row error messages.
+ * `allowedTypes` (P6.1 feature flags) rejects rows whose game type is not
+ * included in the organisation's plan; omit it to allow every importable type.
+ */
+export function buildGameImportPlan(
+  rows: string[][],
+  allowedTypes?: GameType[],
+): GameImportPlan {
   const errors: string[] = []
   if (rows.length === 0) return { games: [], errors: ['The file is empty.'], groupNames: [] }
 
@@ -238,6 +245,12 @@ export function buildGameImportPlan(rows: string[][]): GameImportPlan {
     if (!type) {
       errors.push(
         `Row ${rowNo} (${name}): unknown type "${typeRaw}" — use PHOTO, VIDEO, TEXT or QUIZ (music bingo cannot be imported, it needs audio files).`,
+      )
+      continue
+    }
+    if (allowedTypes && !allowedTypes.includes(type)) {
+      errors.push(
+        `Row ${rowNo} (${name}): the ${typeRaw.trim().toUpperCase()} game type is not included in your plan.`,
       )
       continue
     }

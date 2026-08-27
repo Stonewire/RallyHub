@@ -26,6 +26,8 @@ export type TenantPublicOrg = {
   is_demo: boolean
   demo_reset_at: string | null
   default_language: string
+  /** P6.1 feature flags; optional so rows from a pre-migration RPC still fit. */
+  feature_flags?: unknown
 }
 
 export type TenantContext =

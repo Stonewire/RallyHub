@@ -67,6 +67,14 @@ type OrgRow = {
   brand_body_font_url: string | null
   internal_notes: string | null
   default_language: string
+  /**
+   * P6.1 per-client feature flags. Absent key = allowed. Keys:
+   * allowed_game_types (GameType[]), store_enabled, offline_enabled,
+   * allowed_stage_types ('open'|'quiz'|'bingo'|'break')[].
+   * Column-guarded: only service_role and super_admin may change it.
+   * Parse with `parseFeatureFlags` in src/lib/feature-flags.ts.
+   */
+  feature_flags: Json
   is_demo: boolean
   demo_reset_at: string | null
   demo_last_reset_at: string | null

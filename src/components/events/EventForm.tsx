@@ -23,6 +23,7 @@ import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import type { GameGroupWithItems } from '@/hooks/use-game-groups'
 import type { GameRow } from '@/hooks/use-games'
+import { useOrgFeatureFlags } from '@/hooks/use-feature-flags'
 import type { OrganizationRow } from '@/hooks/use-organization-settings'
 import { APP_LANGUAGES } from '@/lib/i18n'
 import { normaliseLogoImage } from '@/lib/logo-image'
@@ -80,6 +81,15 @@ export function EventForm({
   maxTeamCount = 20,
 }: EventFormProps) {
   const { t } = useTranslation('admin')
+  // P6.1 feature flags: gate which stage types can be PICKED and whether the
+  // event store section is offered. A stage that already carries a now
+  // disallowed type keeps rendering and stays editable; only new choices are
+  // limited. Absent flags mean everything is allowed.
+  const { flags } = useOrgFeatureFlags()
+  const allowedStagePillValues = STAGE_TYPE_VALUES.filter((value) =>
+    flags.allowedStageTypes.includes(value as 'open' | 'quiz' | 'bingo' | 'break'),
+  )
+  const someStageTypesHidden = allowedStagePillValues.length < STAGE_TYPE_VALUES.length
   // Demo events are capped below the normal allowance, so the floor has to
   // give way rather than fight the cap.
   const minTeamCount = Math.min(INCLUDED_TEAMS_PER_EVENT, maxTeamCount)
@@ -539,13 +549,27 @@ export function EventForm({
         </ul>
       </Card>
 
-      <Card className="border-border/80 flex flex-col space-y-4 bg-card p-5 shadow-sm sm:p-6">
-        <EventStorePanel
-          organizationId={organizationId}
-          store={values.store}
-          onChange={(store) => onChange((prev) => ({ ...prev, store }))}
-        />
-      </Card>
+      {/* P6.1: store_enabled false hides ENABLING the store. An event that
+          already carries store items (built before the flag flipped) keeps its
+          panel so the organiser can still manage or empty it. */}
+      {flags.storeEnabled || values.store.length > 0 ? (
+        <Card className="border-border/80 flex flex-col space-y-4 bg-card p-5 shadow-sm sm:p-6">
+          <EventStorePanel
+            organizationId={organizationId}
+            store={values.store}
+            onChange={(store) => onChange((prev) => ({ ...prev, store }))}
+          />
+        </Card>
+      ) : (
+        <Card className="border-border/80 flex flex-col space-y-2 bg-card p-5 shadow-sm sm:p-6">
+          <h3 className="text-foreground text-base font-bold">
+            {t('events.store.title')}
+          </h3>
+          <p className="text-muted-foreground text-xs">
+            {t('featureGating.notIncluded')}
+          </p>
+        </Card>
+      )}
       </div>
 
       <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">
@@ -723,13 +747,21 @@ export function EventForm({
             <>
             <SegmentedPill
               aria-label={t('events.form.stageTypeAria')}
-              options={STAGE_TYPE_VALUES.map((value) => ({
+              options={STAGE_TYPE_VALUES.filter(
+                (value) =>
+                  allowedStagePillValues.includes(value) || value === stage.type,
+              ).map((value) => ({
                 value,
                 label: stageTypeLabels[value],
               }))}
               value={stage.type}
               onChange={(next) => setStageType(stage.id, next)}
             />
+            {someStageTypesHidden ? (
+              <p className="text-muted-foreground text-[11px]">
+                {t('featureGating.someHidden')}
+              </p>
+            ) : null}
             {stage.type === 'break' ? (
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-end">
                 <label className="space-y-1.5 text-xs font-medium">
