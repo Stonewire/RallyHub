@@ -5,6 +5,30 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.25.0 - 2026-08-27 (fix round 1, phase 3: offline round 2)
+
+Third batch from the 26 Aug test pass: the offline gaps found on the real
+devices. Adversarially reviewed; the review's confirmed findings were fixed
+in the same batch. Offline behaviour needs a production build, so the real
+proof is the on-device pass in the big test round.
+
+- Puzzles finished offline now behave like online: the completion screen
+  holds briefly, the player returns to the challenge list automatically, and
+  the game tile turns green immediately (crossword, wordle and matching all
+  shared the same two root causes). If a queued result is later permanently
+  rejected, the tile honestly returns to unsolved.
+- Game images (covers, backgrounds, pictures inside challenge briefs, event
+  and org logos) are downloaded at join and served from the device while
+  offline. Replaced images refresh in the background while online, so a
+  mid-event cover swap still propagates.
+- The Powered by RallyHub badge and all UI sounds (submission and verdict
+  cues, camera and key clicks) now work offline.
+- A small readiness dot sits in the top left of the player screen next to
+  the offline icon: pulsing yellow while the event is still downloading,
+  green only when everything the event needs offline is verified present on
+  the device, red when a download failed. Answer keys, the store, the event
+  snapshot and the new image cache all report into it.
+
 ## V3.24.0 - 2026-08-27 (fix round 1, phase 2: live surfaces)
 
 Second batch from the 26 Aug test pass, all live-surface work. Adversarially

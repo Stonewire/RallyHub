@@ -79,7 +79,14 @@ Items listed for reference:
 - P2.5 Bingo display redesign: team circles bottom (grey -> lit on pick ->
   green/red on reveal), centre audio visualizer, no song metadata.
 
-**Phase 3, offline round 2 (N13; one item per commit; sim + preview tested):**
+**Phase 3, offline round 2: SHIPPED V3.25.0, 27 Aug.** All three items
+landed, then a 2-lens adversarial review confirmed 4 bugs (phantom approved
+tile on a dropped puzzle result, store-poll flashing the readiness dot,
+stale images served forever after a same-URL re-upload, media downloads
+invisible to the dot) which were fixed before the push, plus probe/SW
+hardenings. Accepted gaps, flagged for Rumen: no cross-event eviction on the
+80 MB media cache yet; custom brand fonts not cached offline. Real-device
+offline proof lands in the big test round. Items listed for reference:
 - P3.1 Puzzle completion offline: auto-return to list + tile turns green
   (state source for tiles while offline; wordle/crossword, check matching).
   LANDED: two root causes. (1) The solved-hold timer had the parent's inline
