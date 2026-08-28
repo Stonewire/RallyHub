@@ -50,7 +50,10 @@ export function FacilitatorToggle({
           labelHidden
             ? 'sr-only'
             : stacked
-              ? 'text-xs font-bold text-balance'
+              ? // The label area grows and anchors its text just above the
+                // switch, so in a grid of these every switch sits on the same
+                // baseline even when one label wraps to two lines (Bulgarian).
+                'flex grow items-end justify-center text-xs font-bold text-balance'
               : 'text-sm font-semibold'
         }
       >
