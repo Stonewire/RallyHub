@@ -16,14 +16,15 @@ const LATIN_LETTER_ROWS: readonly (readonly string[])[] = [
 ]
 
 /**
- * Standard Bulgarian Phonetic: Cyrillic mapped onto QWERTY positions, the
- * layout Bulgarians actually type on. Ю lives on the backslash key on a PC
- * keyboard; appending it to row 3 keeps all 30 letters present on screen.
+ * Bulgarian layout, matching the iOS Bulgarian keyboard exactly: the phonetic
+ * QWERTY mapping with Ю ending row 1 and Ш and Щ ending row 2, so all 30
+ * letters sit where a Bulgarian phone keyboard puts them. Row 3 keeps eight
+ * letters between shift and backspace, as on the phone.
  */
 const BULGARIAN_PHONETIC_ROWS: readonly (readonly string[])[] = [
-  ['Я', 'В', 'Е', 'Р', 'Т', 'Ъ', 'У', 'И', 'О', 'П', 'Ш', 'Щ'],
-  ['А', 'С', 'Д', 'Ф', 'Г', 'Х', 'Й', 'К', 'Л'],
-  ['З', 'Ь', 'Ц', 'Ж', 'Б', 'Н', 'М', 'Ч', 'Ю'],
+  ['Я', 'В', 'Е', 'Р', 'Т', 'Ъ', 'У', 'И', 'О', 'П', 'Ю'],
+  ['А', 'С', 'Д', 'Ф', 'Г', 'Х', 'Й', 'К', 'Л', 'Ш', 'Щ'],
+  ['З', 'Ь', 'Ц', 'Ж', 'Б', 'Н', 'М', 'Ч'],
 ]
 
 export const LETTER_ROWS: Record<KeyboardAlphabet, readonly (readonly string[])[]> = {

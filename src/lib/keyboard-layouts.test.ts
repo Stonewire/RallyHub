@@ -14,11 +14,11 @@ const BULGARIAN_ALPHABET = [...'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧ
 const ENGLISH_ALPHABET = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
 
 describe('keyboard layouts', () => {
-  it('cyrillic layout is the Bulgarian Phonetic QWERTY mapping', () => {
+  it('cyrillic layout matches the iOS Bulgarian keyboard exactly', () => {
     expect(letterRowsFor('cyrillic')).toEqual([
-      ['Я', 'В', 'Е', 'Р', 'Т', 'Ъ', 'У', 'И', 'О', 'П', 'Ш', 'Щ'],
-      ['А', 'С', 'Д', 'Ф', 'Г', 'Х', 'Й', 'К', 'Л'],
-      ['З', 'Ь', 'Ц', 'Ж', 'Б', 'Н', 'М', 'Ч', 'Ю'],
+      ['Я', 'В', 'Е', 'Р', 'Т', 'Ъ', 'У', 'И', 'О', 'П', 'Ю'],
+      ['А', 'С', 'Д', 'Ф', 'Г', 'Х', 'Й', 'К', 'Л', 'Ш', 'Щ'],
+      ['З', 'Ь', 'Ц', 'Ж', 'Б', 'Н', 'М', 'Ч'],
     ])
   })
 
@@ -42,7 +42,16 @@ describe('keyboard layouts', () => {
 
   it('column count follows the widest row of each alphabet', () => {
     expect(keyboardColumns('latin')).toBe(10)
-    expect(keyboardColumns('cyrillic')).toBe(12)
+    expect(keyboardColumns('cyrillic')).toBe(11)
+  })
+
+  it('cyrillic row 3 plus shift and backspace fills the board exactly', () => {
+    // Shift and backspace each span 1.5 letter keys, so eight letters between
+    // them make 11 units: the same width as the 11-column rows above. The row
+    // therefore sits centred and flush without any special casing.
+    const rows = letterRowsFor('cyrillic')
+    const lastRow = rows[rows.length - 1]!
+    expect(lastRow.length + 1.5 + 1.5).toBe(keyboardColumns('cyrillic'))
   })
 
   it('number and symbol layers never exceed the narrowest board', () => {
