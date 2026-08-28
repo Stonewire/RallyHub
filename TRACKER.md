@@ -172,8 +172,22 @@ offline proof lands in the big test round. Items listed for reference:
   BillingOverview; start subscription, pay invoice and plan changes disabled
   while suspended (portal/billing details stays available).
 
-**Phase 6, platform customization (N15; feature branch
-feature/platform-customization; needs Rumen's design sign-off per item):**
+**Phase 6, platform customization: SHIPPED V3.27.0, 28 Aug (built on
+feature/platform-customization, merged to main).** All four features landed
+(P6.1 feature flags incl broader set, P6.2 custom subscriptions, P6.3 open
+joining with end-of-event team settlement incl a second team_settlement
+invoice kind, P6.4 recurring events with event_occurrences + superseded
+invoices). A 3-lens adversarial review confirmed 9 bugs, all fixed pre-merge
+(headliners: settlement now collects even when the activation invoice was
+auto-charged or comped; restart keeps invoiced_at so permanent delete cannot
+cascade away paid history; custom subscriptions require an active paid-through
+subscription and clear on full refund; open_joining locked while live;
+Add-stage respects stage-type flags). Five migrations applied to prod;
+paddle-checkout v21 and paddle-webhook v15 deployed. Accepted gaps flagged:
+automatic collection of team-settlement invoices (Pay now + rookie gate only
+for now); no server-side backstop for stage-type flags; group platform
+installs surface per-game trigger errors instead of pre-filtering; recurring
+scheduling is manual (no cron). Original item list for reference:
 - P6.1 Per-client feature flags, broader set (Rumen's call 26 Aug): a
   feature_flags jsonb on organizations covering allowed game types PLUS
   store on/off, offline on/off, allowed stage types (+ column GUARD trigger:

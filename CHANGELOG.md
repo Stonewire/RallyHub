@@ -5,6 +5,42 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.27.0 - 2026-08-28 (platform customization: flags, custom subscriptions, open joining, recurring events)
+
+Phase 6 of the fix round, built on feature/platform-customization and merged
+after a three-lens adversarial review whose nine confirmed findings were all
+fixed before this release. Four features:
+
+- Per-client feature access (staff panel): RallyHub staff can now switch off
+  game types, stage types, the points store and offline downloads per client.
+  Absent settings mean everything is allowed, so no existing client changes.
+  Gating applies to creating and configuring only: existing games, events and
+  live play keep working. A quiz-only client sees exactly quizzes.
+- Custom subscriptions (staff panel): staff set a negotiated price and
+  interval per client, with a per-event price override (0 = events included;
+  additional teams above five are still EUR 10 each). The client's Billing
+  shows "Custom subscription" and checkout charges the custom price; promo
+  codes and the educational discount do not stack on negotiated prices. A
+  custom subscription must be active and paid through before events activate,
+  and a full refund clears it.
+- Open joining: an event switch for public events with unknown attendance.
+  Participants create their own team at the join page ("Join as a new team",
+  with a small "Rejoin a team" link for re-entry). No pre-created slots, no
+  team cap (demo keeps its 2-team cap). The base price charges at activation;
+  the additional-team surcharge settles when the event ends, from the teams
+  that actually joined, growing the unpaid invoice or raising a separate
+  "Additional team fees" invoice when the activation bill was already paid.
+  Open joining is locked while the event is live.
+- Recurring events: mark an event recurring and, after a run finishes, press
+  "Start next run": the run's data is wiped (teams, submissions, chat, bingo,
+  live state), its invoice moves into history, and the SAME event re-arms as
+  Ready, so printed QR codes and join links keep working run after run. Each
+  activation bills and counts as a fresh run; a run with an unpaid invoice
+  cannot be restarted. Scheduling is manual this round.
+
+Ships with five applied DB migrations and redeployed paddle-checkout and
+paddle-webhook functions.
+
 ## V3.26.0 - 2026-08-27 (fix round 1, phases 4 and 5: demo lifecycle + billing)
 
 Fourth batch from the 26 Aug test pass: demoing an event no longer destroys
