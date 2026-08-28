@@ -201,6 +201,11 @@
       "takeTeamPhoto": "Снимай отбора",
       "retakeTeamPhoto": "Снимай отбора отново"
     },
+    "open": {
+      "joinAsNewTeam": "Присъедини се като нов отбор",
+      "rejoinTeam": "Върни се в отбор",
+      "noTeamsYet": "Все още няма присъединени отбори."
+    },
     "countdown": {
       "seconds": "{{seconds}} сек"
     },

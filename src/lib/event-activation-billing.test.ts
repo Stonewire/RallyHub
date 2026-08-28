@@ -80,6 +80,30 @@ describe('getEventActivationWarning', () => {
     expect(warning.billAmountEur).toBe(0)
     expect(warning.isComped).toBe(true)
   })
+
+  // P6.3: open joining. The team count is unknown at activation, so the
+  // surcharge never lands on the activation bill; it settles at event end.
+  it('charges no team surcharge at activation for an open-joining event', () => {
+    const warning = getEventActivationWarning('arena', 0, false, 12, null, true)
+    expect(warning.billAmountEur).toBe(149)
+    expect(warning.extraTeamCount).toBe(0)
+    expect(warning.extraTeamChargeEur).toBe(0)
+    expect(warning.message).toContain('when it ends')
+  })
+
+  it('keeps the settle-at-end note when a promo makes an open-joining event free', () => {
+    const warning = getEventActivationWarning('pro', 100, false, 5, null, true)
+    expect(warning.billAmountEur).toBe(0)
+    expect(warning.isComped).toBe(true)
+    expect(warning.message).toContain('when it ends')
+  })
+
+  it('leaves normal events untouched when openJoining is false', () => {
+    const withFlag = getEventActivationWarning('arena', 0, false, 8, null, false)
+    const withoutFlag = getEventActivationWarning('arena', 0, false, 8)
+    expect(withFlag).toEqual(withoutFlag)
+    expect(withFlag.billAmountEur).toBe(179)
+  })
 })
 
 describe('formatLimitResetDate', () => {

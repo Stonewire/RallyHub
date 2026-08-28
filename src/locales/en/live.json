@@ -201,6 +201,11 @@
       "takeTeamPhoto": "Take team photo",
       "retakeTeamPhoto": "Retake team photo"
     },
+    "open": {
+      "joinAsNewTeam": "Join as a new team",
+      "rejoinTeam": "Rejoin a team",
+      "noTeamsYet": "No teams have joined yet."
+    },
     "countdown": {
       "seconds": "{{seconds}}s"
     },

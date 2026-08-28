@@ -25,6 +25,8 @@ type PendingActivation = {
   eventId: string
   eventName: string
   teamCount: number
+  /** P6.3: open-joining events charge team fees at event end, not activation. */
+  openJoining: boolean
   /**
    * First activation with demo data present (P4.2): run resetEventData before
    * the status change, whatever the current status (a demo hopped through
@@ -72,11 +74,13 @@ export function useEventActivationFlow({
       eventName: string,
       teamCount: number,
       onConfirm: () => Promise<void>,
+      openJoining = false,
     ) => {
       setPending({
         eventId,
         eventName,
         teamCount,
+        openJoining,
         clearDemoData: false,
         demoDataKept: false,
         onConfirm,
@@ -158,6 +162,7 @@ export function useEventActivationFlow({
       teamCount: number,
       activatedAt: string | null | undefined,
       applyChange: () => Promise<void>,
+      openJoining = false,
     ) => {
       const transitionError = eventStatusTransitionError(
         { status: currentStatus, activated_at: activatedAt ?? null },
@@ -186,6 +191,7 @@ export function useEventActivationFlow({
             eventId,
             eventName,
             teamCount,
+            openJoining,
             clearDemoData: hasDemoData && !activatedAt,
             demoDataKept: hasDemoData && Boolean(activatedAt),
             onConfirm: applyChange,
@@ -213,6 +219,7 @@ export function useEventActivationFlow({
       isEducationalApproved(educationalStatus),
       pending.teamCount,
       customPerEventPriceEur,
+      pending.openJoining,
     )
     // Resolved at render like getEventActivationWarning, so the note follows
     // the admin language without the hook needing its own translation state.

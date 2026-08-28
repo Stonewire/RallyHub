@@ -38,6 +38,29 @@ function isUnclaimed(team: {
   return !team.name?.trim() && !team.photo_url
 }
 
+/**
+ * Ensure the event_state row exists. Split out of syncTeamSlots because
+ * open-joining events (P6.3) skip slot syncing entirely (their teams are
+ * created by participants, never pre-created, and touching slots could delete
+ * or collide with real participant teams) but still need event_state.
+ */
+export async function ensureEventState(eventId: string) {
+  const { data: state } = await supabase
+    .from('event_state')
+    .select('id')
+    .eq('event_id', eventId)
+    .maybeSingle()
+
+  if (!state) {
+    const { error } = await supabase.from('event_state').insert({
+      event_id: eventId,
+    })
+    // event_state may be auto-created by a trigger right after the event insert;
+    // tolerate that race so a freshly duplicated event doesn't report failure.
+    if (error && error.code !== '23505') throw error
+  }
+}
+
 /** Sync team slots and ensure event_state exists after event create/update. */
 export async function syncTeamSlots(eventId: string, teamCount: number) {
   const count = Math.max(1, Math.min(20, teamCount))
@@ -85,18 +108,5 @@ export async function syncTeamSlots(eventId: string, teamCount: number) {
     }
   }
 
-  const { data: state } = await supabase
-    .from('event_state')
-    .select('id')
-    .eq('event_id', eventId)
-    .maybeSingle()
-
-  if (!state) {
-    const { error } = await supabase.from('event_state').insert({
-      event_id: eventId,
-    })
-    // event_state may be auto-created by a trigger right after the event insert;
-    // tolerate that race so a freshly duplicated event doesn't report failure.
-    if (error && error.code !== '23505') throw error
-  }
+  await ensureEventState(eventId)
 }

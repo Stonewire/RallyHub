@@ -103,6 +103,7 @@ export function AdminEventsNewPage() {
           multilingual: values.multilingual,
           available_languages: availableLanguagesForSave(values),
           team_count: values.teamCount,
+          open_joining: values.openJoining,
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,
           logo_url: values.brandingEnabled
@@ -130,10 +131,16 @@ export function AdminEventsNewPage() {
   async function confirmStatus(status: EventStatus) {
     if (!statusPrompt || !organizationId) return
     if (status === 'active') {
-      activation.requestActivation(statusPrompt.eventId, statusPrompt.eventName, values.teamCount, async () => {
-        await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
-        navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
-      })
+      activation.requestActivation(
+        statusPrompt.eventId,
+        statusPrompt.eventName,
+        values.teamCount,
+        async () => {
+          await updateStatus.mutateAsync({ eventId: statusPrompt.eventId, status: 'active' })
+          navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
+        },
+        values.openJoining,
+      )
       return
     }
     try {

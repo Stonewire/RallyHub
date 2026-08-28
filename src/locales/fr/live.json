@@ -201,6 +201,11 @@
       "takeTeamPhoto": "Prendre la photo d'équipe",
       "retakeTeamPhoto": "Reprendre la photo d'équipe"
     },
+    "open": {
+      "joinAsNewTeam": "Rejoindre comme nouvelle équipe",
+      "rejoinTeam": "Revenir dans une équipe",
+      "noTeamsYet": "Aucune équipe n'a encore rejoint."
+    },
     "countdown": {
       "seconds": "{{seconds}} s"
     },

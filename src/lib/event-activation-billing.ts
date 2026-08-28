@@ -36,6 +36,12 @@ export function getEventActivationWarning(
    * mirror create_event_activation_invoice so the preview matches the invoice.
    */
   customPerEventPriceEur: number | null = null,
+  /**
+   * events.open_joining (P6.3): teams are unknown at activation, so the
+   * activation bill carries NO team surcharge; it settles at event end from
+   * actually-claimed teams. Must mirror create_event_activation_invoice.
+   */
+  openJoining = false,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
@@ -44,7 +50,9 @@ export function getEventActivationWarning(
   const baseAmount = hasCustomPerEvent
     ? Number(customPerEventPriceEur)
     : plan.perEventPriceEur
-  const teamCharge = additionalTeamCharge(teamCount)
+  const teamCharge = openJoining
+    ? { count: 0, amountEur: 0 }
+    : additionalTeamCharge(teamCount)
   const extraTeamCount = teamCharge.count
   const extraTeamChargeEur = teamCharge.amountEur
 
@@ -113,7 +121,15 @@ export function getEventActivationWarning(
       extraTeamChargeEur,
       isComped: true,
       title: i18n.t('admin:events.activate.title'),
-      message: [freeMessage, i18n.t('admin:events.activate.readyUntilLive')].join(' '),
+      message: [
+        freeMessage,
+        // Free base or not, an open-joining event can still owe team fees at
+        // the end, so the settle note stays visible here too.
+        openJoining ? i18n.t('admin:events.activate.openJoiningSettleNote') : '',
+        i18n.t('admin:events.activate.readyUntilLive'),
+      ]
+        .filter(Boolean)
+        .join(' '),
       confirmLabel: i18n.t('admin:events.activate.confirmFree'),
     }
   }
@@ -139,8 +155,11 @@ export function getEventActivationWarning(
     hasCustomPerEvent && baseAmount === 0
       ? i18n.t('admin:events.activate.customFeeIncludedNote')
       : ''
-  const teamChargeNote =
-    extraTeamCount > 0
+  // Open joining replaces the team-charge note entirely: the surcharge is
+  // settled from actually-claimed teams when the event ends, never here.
+  const teamChargeNote = openJoining
+    ? i18n.t('admin:events.activate.openJoiningSettleNote')
+    : extraTeamCount > 0
       ? i18n.t('admin:events.activate.extraTeamsNote', {
           count: extraTeamCount,
           amount: formatEur(extraTeamChargeEur),

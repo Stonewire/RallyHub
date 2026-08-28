@@ -7,7 +7,7 @@ import { i18n } from '@/lib/i18n'
 import { resetEventData } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { syncEventGameLinks } from '@/lib/sync-event-game-links'
-import { syncTeamSlots } from '@/lib/sync-team-slots'
+import { ensureEventState, syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 import type { EventStatus } from '@/types/database'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/helpers'
@@ -213,7 +213,13 @@ export function useUpdateEvent(organizationId: string | null) {
 
       await syncEventGameLinks(eventId, eventMeta.organization_id, gameIds)
 
-      if (event.team_count != null) {
+      // P6.3: open-joining events never sync slots. Their teams are created
+      // by participants at join time; syncTeamSlots would insert empty slots
+      // under them or delete rows out of the live event. event_state is still
+      // guaranteed, because syncTeamSlots was its only creator.
+      if (event.open_joining === true) {
+        await ensureEventState(eventId)
+      } else if (event.team_count != null) {
         const teamCount = clampTeamCount(event.team_count)
         if (teamCount !== event.team_count) {
           const { error: capError } = await supabase
@@ -277,7 +283,9 @@ export function useCreateEvent(organizationId: string | null) {
         if (linkError) throw linkError
       }
 
-      await syncTeamSlots(data.id, data.team_count)
+      // P6.3: open joining pre-creates no slots; only event_state is needed.
+      if (data.open_joining) await ensureEventState(data.id)
+      else await syncTeamSlots(data.id, data.team_count)
 
       return data
     },
@@ -444,7 +452,9 @@ export function useDuplicateEvent(organizationId: string | null) {
         if (linkError) throw linkError
       }
 
-      await syncTeamSlots(data.id, data.team_count)
+      // P6.3: a duplicated open-joining event starts with no slots either.
+      if (data.open_joining) await ensureEventState(data.id)
+      else await syncTeamSlots(data.id, data.team_count)
       return data
     },
     onSuccess: () => {

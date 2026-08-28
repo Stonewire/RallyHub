@@ -124,6 +124,14 @@ export function JoinEventPage() {
   }, [pickedLanguage])
   const [claimSlot, setClaimSlot] = useState<Tables<'teams'> | null>(null)
   const [claimName, setClaimName] = useState('')
+  // Open joining (P6.3): the name+photo modal creates a brand-new team via
+  // join_event_as_new_team instead of claiming a pre-created slot. It shares
+  // claimName/claimPhoto/claimError with the slot-claim modal (only one of the
+  // two flows is ever reachable on a given event).
+  const [newTeamOpen, setNewTeamOpen] = useState(false)
+  // Collapsed by default: rejoining is the exception (accidental exit), so
+  // the claimed-team list hides behind a small link.
+  const [showRejoin, setShowRejoin] = useState(false)
   // Taken-slot takeover (CF2-8): tap a claimed team, enter the org's tablet
   // password, and this device becomes the team's device; the old one logs out
   // via the session_epoch watcher below.
@@ -296,6 +304,13 @@ export function JoinEventPage() {
   // Demo events show the full team list (P4.1); only claiming is capped, by
   // the guard in claimTeam below and server-side in the claim RPC.
   const joinTeams = bundle.teams
+  // Open joining (P6.3): participants create their own teams. The lobby's
+  // primary action becomes "Join as a new team"; the slot grid survives only
+  // behind the "Rejoin a team" link, filtered to claimed teams (unclaimed
+  // pre-created slots should not exist on open-joining events, and hiding
+  // them keeps the rejoin list honest if any do).
+  const openJoining = Boolean(event.open_joining)
+  const rejoinTeams = joinTeams.filter((team) => team.name?.trim())
 
   async function takeoverTeam() {
     if (!takeoverSlot || !eventId || !takeoverPassword.trim()) return
@@ -470,6 +485,119 @@ export function JoinEventPage() {
     }
   }
 
+  /** Open joining (P6.3): create a brand-new team, no pre-created slot. */
+  async function joinAsNewTeam() {
+    if (!eventId || !claimName.trim()) return
+    unlockAudioFromUserGesture('full')
+    if (
+      isEventDemoStatus(event.status) &&
+      countClaimedTeams(joinTeams) >= DEMO_MAX_TEAMS
+    ) {
+      setClaimError(t('join.claim.demoTeamsLimit', { count: DEMO_MAX_TEAMS }))
+      return
+    }
+    setUploading(true)
+    setClaimError(null)
+    try {
+      let photoUrl: string | null = null
+      if (claimPhoto) {
+        try {
+          // The team id does not exist yet, so the path segment is a fresh
+          // client uuid; the mint function only requires {event}/teams/{x}/{y}.
+          photoUrl = await uploadParticipantAsset(
+            eventId,
+            `${eventId}/teams/${crypto.randomUUID()}/${Date.now()}.jpg`,
+            claimPhoto,
+            { mediaKind: 'photo' },
+          )
+        } catch (err) {
+          const detail = reportClientIssue('join-team-photo', err, { eventId })
+          throw new Error(t('join.claim.couldNotUploadPhoto', { detail }), { cause: err })
+        }
+      }
+      const trimmed = claimName.trim()
+      const { data: joinResult, error: joinError } = await supabase.rpc(
+        'join_event_as_new_team',
+        {
+          p_event_id: eventId,
+          p_name: trimmed,
+          p_photo_url: photoUrl,
+        },
+      )
+      if (joinError) throw joinError
+      const created = joinResult?.[0]
+      if (!created) throw new Error(t('join.claim.couldNotJoinTeam'))
+
+      // Persist the language choice, same best-effort rule as the claim flow.
+      if (pickedLanguage) {
+        const { error: languageError } = await supabase
+          .from('teams')
+          .update({ language: pickedLanguage })
+          .eq('id', created.id)
+        if (languageError) {
+          reportClientIssue('join-team-language', languageError, {
+            eventId,
+            teamId: created.id,
+          })
+        }
+      }
+
+      const newTeam: Tables<'teams'> = {
+        id: created.id,
+        event_id: created.event_id,
+        name: created.name,
+        color: created.color,
+        photo_url: created.photo_url,
+        score: created.score,
+        status: created.status,
+        slot_number: created.slot_number,
+        language: pickedLanguage,
+        created_at: created.created_at,
+        session_epoch: 0,
+      }
+
+      // Fan-out to facilitator/display/other players. applyLiveBundlePatch
+      // merges team INSERTs by id (sorted into slot order), so every connected
+      // device gains the new team without a refetch. Must not block the join.
+      void publishLiveBundlePatch(eventId, {
+        kind: 'team',
+        op: 'INSERT',
+        row: newTeam,
+      })
+
+      void logEventActivity({
+        p_event_id: eventId,
+        p_actor_type: 'team',
+        p_actor_name: trimmed,
+        p_action: 'team_joined',
+        p_actor_id: created.id,
+      })
+
+      localStorage.setItem(teamKey(eventId), created.id)
+      localStorage.setItem(epochKey(eventId), '0')
+      saveCurrentParticipantSession(eventId, created.id, created.inventory_purchase_token)
+      setTeamId(created.id)
+      setJustJoined(true)
+      setNewTeamOpen(false)
+      setClaimName('')
+      setClaimPhoto(null)
+      setBundle((prev) =>
+        prev
+          ? {
+              ...prev,
+              teams: [...prev.teams, newTeam].sort(
+                (a, b) => a.slot_number - b.slot_number,
+              ),
+            }
+          : prev,
+      )
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : t('join.claim.couldNotJoinTeam'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function clearTeamSession() {
     if (!eventId) return
     localStorage.removeItem(teamKey(eventId))
@@ -601,8 +729,8 @@ export function JoinEventPage() {
         ) : null}
         <h1 className="text-xl font-bold drop-shadow-sm sm:text-2xl">{event.name}</h1>
       </header>
-      <div className="mx-auto grid w-full max-w-lg gap-3 sm:grid-cols-2">
-        {joinTeams.map((team) => {
+      {(() => {
+        const renderTeamTile = (team: Tables<'teams'>) => {
           const taken = Boolean(team.name?.trim())
           return (
             <button
@@ -644,8 +772,54 @@ export function JoinEventPage() {
               </span>
             </button>
           )
-        })}
-      </div>
+        }
+        if (!openJoining) {
+          return (
+            <div className="mx-auto grid w-full max-w-lg gap-3 sm:grid-cols-2">
+              {joinTeams.map(renderTeamTile)}
+            </div>
+          )
+        }
+        // Open joining: the primary action creates a new team; the claimed
+        // list hides behind "Rejoin a team" for re-entry after an accidental
+        // exit (the existing takeover flow).
+        return (
+          <div className="mx-auto w-full max-w-lg space-y-4">
+            <button
+              type="button"
+              className="xp-game-tile xp-interactive flex w-full flex-col items-center justify-center gap-2 bg-white p-6 text-black"
+              onClick={() => {
+                setNewTeamOpen(true)
+                setClaimName('')
+                setClaimPhoto(null)
+                setClaimError(null)
+              }}
+            >
+              <span className="text-lg font-bold">{t('join.open.joinAsNewTeam')}</span>
+            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-sm font-semibold underline opacity-80"
+                onClick={() => setShowRejoin((v) => !v)}
+              >
+                {t('join.open.rejoinTeam')}
+              </button>
+            </div>
+            {showRejoin ? (
+              rejoinTeams.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {rejoinTeams.map(renderTeamTile)}
+                </div>
+              ) : (
+                <p className="text-center text-sm font-semibold opacity-70">
+                  {t('join.open.noTeamsYet')}
+                </p>
+              )
+            ) : null}
+          </div>
+        )
+      })()}
       <ParticipantInstallButton className="mt-6" />
       {permissionGate}
       {signedOutByTakeover ? (
@@ -700,7 +874,7 @@ export function JoinEventPage() {
           </div>
         </div>
       ) : null}
-      {claimSlot ? (
+      {claimSlot || newTeamOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="xp-card max-h-[90dvh] w-full max-w-sm space-y-5 overflow-y-auto bg-white p-6 text-black">
             <div className="space-y-2">
@@ -800,7 +974,10 @@ export function JoinEventPage() {
               <button
                 type="button"
                 className="xp-card flex-1 border border-black/15 bg-white px-4 py-2.5 text-sm font-bold text-black"
-                onClick={() => setClaimSlot(null)}
+                onClick={() => {
+                  setClaimSlot(null)
+                  setNewTeamOpen(false)
+                }}
               >
                 {t('common:cancel')}
               </button>
@@ -812,7 +989,7 @@ export function JoinEventPage() {
                   color: displayTextColorForEvent(event),
                 }}
                 disabled={uploading || !claimName.trim()}
-                onClick={() => void claimTeam()}
+                onClick={() => void (claimSlot ? claimTeam() : joinAsNewTeam())}
               >
                 {uploading ? t('join.claim.joining') : t('join.claim.join')}
               </button>

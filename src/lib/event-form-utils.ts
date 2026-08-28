@@ -23,6 +23,8 @@ export type EventFormValues = {
   location: string
   teamCount: number
   teams: EventTeam[]
+  /** P6.3: participants create their own teams at join; no pre-created slots. */
+  openJoining: boolean
   brandingEnabled: boolean
   /** Shows the participant "Buy Items" button and allows Inventory purchases. */
   inventoryEnabled: boolean
@@ -202,6 +204,7 @@ export function eventToFormValues(
     location: event.location ?? '',
     teamCount: event.team_count,
     teams,
+    openJoining: event.open_joining ?? false,
     brandingEnabled: event.branding_enabled,
     inventoryEnabled: event.inventory_enabled ?? true,
     logoUrl: event.logo_url,
@@ -265,6 +268,7 @@ export function emptyEventForm(): EventFormValues {
     location: '',
     teamCount: INCLUDED_TEAMS_PER_EVENT,
     teams: defaultTeams(INCLUDED_TEAMS_PER_EVENT),
+    openJoining: false,
     brandingEnabled: true,
     inventoryEnabled: true,
     logoUrl: null,

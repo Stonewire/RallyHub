@@ -191,6 +191,7 @@ export function AdminEventsPage() {
       event.team_count,
       event.activated_at,
       () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
+      event.open_joining,
     )
   }
 
@@ -215,6 +216,7 @@ export function AdminEventsPage() {
       event.team_count,
       event.activated_at,
       () => applyReorder(eventId, newStatus, indexInGroup),
+      event.open_joining,
     )
   }
 

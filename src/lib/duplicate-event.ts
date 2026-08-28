@@ -36,6 +36,7 @@ export function buildDuplicateEventPayload(
       multilingual: source.multilingual,
       available_languages: source.available_languages,
       team_count: source.team_count,
+      open_joining: source.open_joining,
       branding_enabled: source.branding_enabled,
       logo_url: source.logo_url,
       brand_colors: source.brand_colors,

@@ -153,6 +153,7 @@ export function AdminEventEditPage() {
           multilingual: values.multilingual,
           available_languages: availableLanguagesForSave(values),
           team_count: clampTeamCount(values.teamCount),
+          open_joining: values.openJoining,
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,
           logo_url: values.brandingEnabled
@@ -275,6 +276,7 @@ export function AdminEventEditPage() {
                   eventQuery.data.team_count,
                   eventQuery.data.activated_at,
                   () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
+                  eventQuery.data.open_joining,
                 )
               }}
             />

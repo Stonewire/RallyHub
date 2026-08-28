@@ -10,7 +10,7 @@ import {
 import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { NeoButton, SegmentedPill } from '@/components/neo-minimal'
+import { FlipSwitch, NeoButton, SegmentedPill } from '@/components/neo-minimal'
 import { AssetField } from '@/components/games/AssetField'
 import { BrandColourPicker } from '@/components/admin/BrandColourPicker'
 import { EventPreviewModal } from '@/components/events/EventPreviewModal'
@@ -109,6 +109,7 @@ export function EventForm({
     eventDate,
     teamCount,
     teams,
+    openJoining,
     brandingEnabled,
     inventoryEnabled,
     logoUrl,
@@ -445,26 +446,44 @@ export function EventForm({
             <h3 className="text-foreground text-base font-bold">{t('events.form.teams')}</h3>
             <p className="text-muted-foreground mt-1 text-xs">{t('events.form.teamsHelp')}</p>
           </div>
-          <div className="space-y-2">
-            <Label>
-              {t('events.form.numberOfTeams')}{' '}
-              <span className="text-muted-foreground font-normal">
-                {t('events.form.minimumTeams', { count: minTeamCount })}
-              </span>
-            </Label>
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= minTeamCount} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
-              <NumberField min={minTeamCount} max={maxTeamCount} value={teamCount} onChange={onTeamCountChange} className="bg-background h-8 w-16 text-center tabular-nums" />
-              <Button type="button" size="icon-sm" variant="outline" disabled={teamCount >= maxTeamCount} onClick={() => onTeamCountChange(teamCount + 1)}>+</Button>
+          {/* P6.3: open joining. When on, teams are not pre-configured here at
+              all: participants create them at the join page, so the stepper
+              and the per-team list give way to a short explanation. */}
+          <FlipSwitch
+            offValue="off"
+            onValue="on"
+            offLabel={t('events.form.off')}
+            onLabel={t('events.form.on')}
+            value={openJoining ? 'on' : 'off'}
+            onChange={(next) => set({ openJoining: next === 'on' })}
+            caption={t('events.form.openJoining')}
+          />
+          {!openJoining ? (
+            <div className="space-y-2">
+              <Label>
+                {t('events.form.numberOfTeams')}{' '}
+                <span className="text-muted-foreground font-normal">
+                  {t('events.form.minimumTeams', { count: minTeamCount })}
+                </span>
+              </Label>
+              <div className="flex items-center gap-1.5">
+                <Button type="button" size="icon-sm" variant="outline" disabled={teamCount <= minTeamCount} onClick={() => onTeamCountChange(teamCount - 1)}>−</Button>
+                <NumberField min={minTeamCount} max={maxTeamCount} value={teamCount} onChange={onTeamCountChange} className="bg-background h-8 w-16 text-center tabular-nums" />
+                <Button type="button" size="icon-sm" variant="outline" disabled={teamCount >= maxTeamCount} onClick={() => onTeamCountChange(teamCount + 1)}>+</Button>
+              </div>
             </div>
-          </div>
-          {maxTeamCount <= 2 ? (
+          ) : null}
+          {!openJoining && maxTeamCount <= 2 ? (
             <p className="text-muted-foreground text-xs">
               {t('events.form.demoTeamLimit', { count: maxTeamCount })}
             </p>
           ) : null}
         </div>
-        {maxTeamCount > 2 ? (
+        {openJoining ? (
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            {t('events.form.openJoiningNote')}
+          </p>
+        ) : maxTeamCount > 2 ? (
           teamCharge.count > 0 ? (
             <div className="border-primary/40 bg-primary/5 rounded-lg border px-4 py-3 text-sm">
               <p className="text-foreground font-medium">
@@ -490,7 +509,7 @@ export function EventForm({
         {/* One team per line, full width: a colour, a name with room to be a
             real name, and the join code where the eye ends up. */}
         <ul className="divide-border/60 divide-y">
-          {teams.map((team, index) => (
+          {(openJoining ? [] : teams).map((team, index) => (
             <li key={team.id} className="flex items-center gap-3 py-2">
               <input
                 type="color"

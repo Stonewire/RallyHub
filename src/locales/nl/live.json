@@ -201,6 +201,11 @@
       "takeTeamPhoto": "Teamfoto maken",
       "retakeTeamPhoto": "Teamfoto opnieuw maken"
     },
+    "open": {
+      "joinAsNewTeam": "Meedoen als nieuw team",
+      "rejoinTeam": "Terug naar een team",
+      "noTeamsYet": "Er doen nog geen teams mee."
+    },
     "countdown": {
       "seconds": "{{seconds}} s"
     },

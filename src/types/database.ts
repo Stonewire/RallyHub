@@ -403,6 +403,8 @@ export type Database = {
           multilingual: boolean
           available_languages: string[]
           team_count: number
+          /** Participants create their own teams at join; team surcharge settles at event end. */
+          open_joining: boolean
           branding_enabled: boolean
           inventory_enabled: boolean
           logo_url: string | null
@@ -435,6 +437,7 @@ export type Database = {
           multilingual?: boolean
           available_languages?: string[]
           team_count?: number
+          open_joining?: boolean
           branding_enabled?: boolean
           inventory_enabled?: boolean
           logo_url?: string | null
@@ -460,6 +463,7 @@ export type Database = {
           multilingual?: boolean
           available_languages?: string[]
           team_count?: number
+          open_joining?: boolean
           branding_enabled?: boolean
           inventory_enabled?: boolean
           logo_url?: string | null
@@ -1263,6 +1267,25 @@ export type Database = {
         Args: {
           p_event_id: string
           p_team_id: string
+          p_name: string
+          p_photo_url?: string | null
+        }
+        Returns: {
+          id: string
+          event_id: string
+          name: string | null
+          color: string | null
+          photo_url: string | null
+          score: number
+          status: string
+          slot_number: number
+          created_at: string
+          inventory_purchase_token: string
+        }[]
+      }
+      join_event_as_new_team: {
+        Args: {
+          p_event_id: string
           p_name: string
           p_photo_url?: string | null
         }

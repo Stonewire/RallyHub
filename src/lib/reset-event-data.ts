@@ -122,7 +122,7 @@ export async function precheckEventActivation(eventId: string): Promise<void> {
 export async function resetEventData(eventId: string): Promise<void> {
   const { data: event, error: fetchErr } = await supabase
     .from('events')
-    .select('status, team_count')
+    .select('status, team_count, open_joining')
     .eq('id', eventId)
     .single()
 
@@ -139,7 +139,16 @@ export async function resetEventData(eventId: string): Promise<void> {
   })
   if (rpcErr) throw rpcErr
 
-  await syncTeamSlots(eventId, event.team_count)
+  // The reset_event_data RPC deletes EVERY teams row and restores a fresh
+  // event_state. For a normal event, syncTeamSlots then recreates the empty
+  // slot list. For an open-joining event (P6.3) deleting all teams IS the
+  // correct fresh run: teams only exist because participants created them,
+  // and there are no slots to restore, so syncTeamSlots must not run (it
+  // would pre-create empty slots that the join page never offers).
+  // event_state needs no follow-up either: the RPC upserts it itself.
+  if (!event.open_joining) {
+    await syncTeamSlots(eventId, event.team_count)
+  }
 
   // #8: push a live reload so any connected player/display drops the old teams
   // and refetches the fresh slot list (anon clients don't get postgres_changes).
