@@ -5,6 +5,16 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.27.1 - 2026-08-29 (recurring restart unblocked)
+
+"Start next run" always failed: the old billed-events-may-only-archive guard
+in the database (predating recurring events) blocked the restart's flip to
+Ready, and would also have blocked re-activating a re-armed run. The guard
+now recognises the one sanctioned re-armed shape (recurring event, activation
+cleared by the restart, every invoice superseded), which manual tampering
+cannot reproduce, and the restart flips its fields in the order the guard can
+verify. Applied directly to the database; no app behaviour changes otherwise.
+
 ## V3.27.0 - 2026-08-28 (platform customization: flags, custom subscriptions, open joining, recurring events)
 
 Phase 6 of the fix round, built on feature/platform-customization and merged
