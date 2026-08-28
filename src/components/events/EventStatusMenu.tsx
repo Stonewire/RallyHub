@@ -1,4 +1,4 @@
-import { IconAlert, IconChevronDown } from '@/components/icons'
+import { IconChevronDown } from '@/components/icons'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -68,11 +68,11 @@ export function EventStatusMenu({
           ) : null}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[10rem] max-w-[17rem]">
+      <DropdownMenuContent align="start" className="min-w-[10rem]">
         {allowedStatuses.map((s) => (
           <DropdownMenuItem
             key={s}
-            className="flex flex-col items-start gap-1.5 py-1.5"
+            className="flex items-center gap-2"
             onClick={() => {
               onSelect(s)
               setOpen(false)
@@ -88,20 +88,6 @@ export function EventStatusMenu({
             >
               {t(EVENT_STATUS_LABEL_KEYS[s])}
             </span>
-            {/* The two consequential choices explain themselves in the menu:
-                Demo is the safe way to test, Active charges and starts the
-                24 hour live window. */}
-            {s === 'demo' ? (
-              <span className="text-muted-foreground text-xs leading-relaxed">
-                {t('events.status.demoHint')}
-              </span>
-            ) : null}
-            {s === 'active' ? (
-              <span className="text-foreground flex items-start gap-1.5 text-xs leading-relaxed">
-                <IconAlert className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
-                <span>{t('events.status.activeWarning')}</span>
-              </span>
-            ) : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
