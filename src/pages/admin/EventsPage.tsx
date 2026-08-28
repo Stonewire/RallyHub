@@ -192,6 +192,7 @@ export function AdminEventsPage() {
       event.activated_at,
       () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
       event.open_joining,
+      event.recurring,
     )
   }
 
@@ -217,6 +218,7 @@ export function AdminEventsPage() {
       event.activated_at,
       () => applyReorder(eventId, newStatus, indexInGroup),
       event.open_joining,
+      event.recurring,
     )
   }
 

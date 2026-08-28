@@ -358,6 +358,22 @@ export function EventForm({
           <p className="text-muted-foreground text-xs leading-relaxed">
             {t('events.form.displayHelp')}
           </p>
+          <div className="border-border/80 flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+            <div className="min-w-0 max-w-xl space-y-1">
+              <p className="text-sm font-medium">{t('events.form.recurring')}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {t('events.form.recurringHelp')}
+              </p>
+            </div>
+            <FlipSwitch
+              offValue="off"
+              onValue="on"
+              offLabel={t('events.form.off')}
+              onLabel={t('events.form.on')}
+              value={values.recurring ? 'on' : 'off'}
+              onChange={(next) => set({ recurring: next === 'on' })}
+            />
+          </div>
         </Card>
 
         <Card className="border-border/80 space-y-4 bg-card p-5 shadow-sm sm:p-6">

@@ -57,6 +57,13 @@ export function EventInvoiceRow({
           >
             {invoiceStatusLabel(invoice.status)}
           </NeoStatusBadge>
+          {invoice.superseded ? (
+            // P6.4: an earlier run of a recurring event. Without the label, two
+            // invoices on the same event would read as a double charge.
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {t('billing.previousRun')}
+            </span>
+          ) : null}
         </div>
         <p className="text-muted-foreground text-xs">
           {formatEventDate(eventDate)} · {t('billing.teamCount', { count: teamCount })}
@@ -94,7 +101,8 @@ export function EventInvoiceRow({
             {downloadingInvoiceId === invoice.id ? t('billing.opening') : t('billing.invoice')}
           </NeoButton>
         ) : null}
-        {showPayIndicator && invoice.status === 'unpaid' ? (
+        {/* P6.4: a superseded invoice is always settled; never offer to pay one. */}
+        {showPayIndicator && invoice.status === 'unpaid' && !invoice.superseded ? (
           onPay ? (
             <NeoButton
               variant="accent"

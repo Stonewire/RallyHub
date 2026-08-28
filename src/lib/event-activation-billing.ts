@@ -42,6 +42,11 @@ export function getEventActivationWarning(
    * actually-claimed teams. Must mirror create_event_activation_invoice.
    */
   openJoining = false,
+  /**
+   * P6.4: the event is recurring, so "cannot be run again" would be wrong.
+   * The billing itself is identical; only the closing note changes.
+   */
+  recurringEvent = false,
 ): EventActivationWarning {
   const planId = normalizePlanId(billingPlan)
   const plan = getPlan(planId)
@@ -193,7 +198,9 @@ export function getEventActivationWarning(
       educationalNote,
       paymentNote,
       i18n.t('admin:events.activate.readyToAvoidBilling'),
-      i18n.t('admin:events.activate.cannotRunAgain'),
+      recurringEvent
+        ? i18n.t('admin:events.activate.recurringNote')
+        : i18n.t('admin:events.activate.cannotRunAgain'),
     ]
       .filter(Boolean)
       .join(' '),

@@ -28,6 +28,8 @@ export type EventFormValues = {
   brandingEnabled: boolean
   /** Shows the participant "Buy Items" button and allows Inventory purchases. */
   inventoryEnabled: boolean
+  /** P6.4: the same event runs repeatedly; data resets between runs. */
+  recurring: boolean
   logoUrl: string | null
   brandColors: [string, string, string]
   displayLayout: DisplayLayout
@@ -207,6 +209,7 @@ export function eventToFormValues(
     openJoining: event.open_joining ?? false,
     brandingEnabled: event.branding_enabled,
     inventoryEnabled: event.inventory_enabled ?? true,
+    recurring: event.recurring ?? false,
     logoUrl: event.logo_url,
     brandColors: parseBrandColors(event.brand_colors),
     displayLayout:
@@ -271,6 +274,7 @@ export function emptyEventForm(): EventFormValues {
     openJoining: false,
     brandingEnabled: true,
     inventoryEnabled: true,
+    recurring: false,
     logoUrl: null,
     brandColors: ['#3E3D3E', '#6f6f6f', '#FFC107'],
     displayLayout: 'rank_list',

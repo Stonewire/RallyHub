@@ -133,10 +133,14 @@ export async function autoChargeEventInvoice(
 ): Promise<void> {
   if (!organizationId) return
   try {
+    // P6.4: only the current invoice. A recurring event carries superseded
+    // rows from earlier runs, which are always settled and must never be
+    // charged again (and would make maybeSingle throw on multiple rows).
     const { data: invoice } = await supabase
       .from('invoices')
       .select('id, status, amount_due')
       .eq('event_id', eventId)
+      .eq('superseded', false)
       .maybeSingle()
 
     if (!invoice || invoice.status !== 'unpaid' || Number(invoice.amount_due) <= 0) return

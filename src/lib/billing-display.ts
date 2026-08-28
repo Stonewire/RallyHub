@@ -64,9 +64,11 @@ export function formatInvoicePlanLine(
 }
 
 export function sumUnpaidDue(
-  invoices: { status: InvoiceStatus; amount_due: number }[],
+  invoices: { status: InvoiceStatus; amount_due: number; superseded?: boolean }[],
 ): number {
+  // P6.4: superseded invoices (earlier runs of a recurring event) are always
+  // settled and never count as owed.
   return invoices
-    .filter((i) => i.status === 'unpaid')
+    .filter((i) => i.status === 'unpaid' && !i.superseded)
     .reduce((sum, i) => sum + Number(i.amount_due), 0)
 }

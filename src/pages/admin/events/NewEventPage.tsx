@@ -106,6 +106,7 @@ export function AdminEventsNewPage() {
           open_joining: values.openJoining,
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,
+          recurring: values.recurring,
           logo_url: values.brandingEnabled
             ? values.logoUrl
             : org?.logo_url ?? null,
@@ -140,6 +141,7 @@ export function AdminEventsNewPage() {
           navigate(orgPath(clientSlug, '/admin/events'), { replace: true })
         },
         values.openJoining,
+        values.recurring,
       )
       return
     }

@@ -38,6 +38,7 @@ export function buildDuplicateEventPayload(
       team_count: source.team_count,
       open_joining: source.open_joining,
       branding_enabled: source.branding_enabled,
+      recurring: source.recurring,
       logo_url: source.logo_url,
       brand_colors: source.brand_colors,
       teams_config: unclaimedTeamSlots(source.team_count),

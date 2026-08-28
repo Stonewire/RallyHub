@@ -4,7 +4,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { buildDuplicateEventPayload } from '@/lib/duplicate-event'
 import { clampTeamCount } from '@/lib/event-demo'
 import { i18n } from '@/lib/i18n'
-import { resetEventData } from '@/lib/reset-event-data'
+import { resetEventData, restartRecurringEvent } from '@/lib/reset-event-data'
 import { formatSupabaseError, logSupabaseFailure } from '@/lib/supabase-errors'
 import { syncEventGameLinks } from '@/lib/sync-event-game-links'
 import { ensureEventState, syncTeamSlots } from '@/lib/sync-team-slots'
@@ -376,6 +376,35 @@ export function useResetEventData(organizationId: string | null) {
       })
       void queryClient.invalidateQueries({
         queryKey: queryKeys.recentEvents(organizationId),
+      })
+    },
+  })
+}
+
+/**
+ * P6.4: re-arms a recurring event for its next run. Also refreshes the org's
+ * invoices: the restart superseded the finished run's invoice.
+ */
+export function useRestartRecurringEvent(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (eventId: string) => restartRecurringEvent(eventId),
+    onSuccess: (_data, eventId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.events(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.event(eventId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboardStats(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.recentEvents(organizationId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationInvoices(organizationId),
       })
     },
   })

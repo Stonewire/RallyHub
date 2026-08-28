@@ -16,6 +16,7 @@ import { DangerZone } from '@/components/admin/DangerZone'
 import { EventForm } from '@/components/events/EventForm'
 import { EventLinksPanel, EventQrDownloadButton } from '@/components/events/EventLinksPanel'
 import { EventResetConfirmDialog } from '@/components/events/EventResetConfirmDialog'
+import { RecurringRestartConfirmDialog } from '@/components/events/RecurringRestartConfirmDialog'
 import { EventStatusMenu } from '@/components/events/EventStatusMenu'
 import { AdminPageShell } from '@/components/layout/AdminPageShell'
 import { FormSaveFooter } from '@/components/layout/FormSaveFooter'
@@ -27,6 +28,7 @@ import {
   useEvent,
   useEventGameIds,
   useResetEventData,
+  useRestartRecurringEvent,
   useUpdateEvent,
   useUpdateEventStatus,
 } from '@/hooks/use-events'
@@ -66,6 +68,7 @@ export function AdminEventEditPage() {
   const duplicateEvent = useDuplicateEvent(organizationId)
   const deleteEvent = useDeleteEvent(organizationId)
   const resetEventDataMutation = useResetEventData(organizationId)
+  const restartRecurringMutation = useRestartRecurringEvent(organizationId)
   const { notify } = useNotification()
   const activation = useEventActivationFlow({
     billingPlan: orgQuery.data?.billing_plan,
@@ -84,6 +87,7 @@ export function AdminEventEditPage() {
   // broken (562 MB client event, 31 Jul 2026), so progress is shown throughout.
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [restartDialogOpen, setRestartDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'settings' | 'tasks' | 'log'>('settings')
 
@@ -156,6 +160,7 @@ export function AdminEventEditPage() {
           open_joining: values.openJoining,
           branding_enabled: values.brandingEnabled,
           inventory_enabled: values.inventoryEnabled,
+          recurring: values.recurring,
           logo_url: values.brandingEnabled
             ? values.logoUrl
             : org?.logo_url ?? null,
@@ -223,6 +228,10 @@ export function AdminEventEditPage() {
   const isArchived = eventStatus === 'archived'
   const activated = eventQuery.data ? isEventActivated(eventQuery.data) : false
   const resetAllowed = canResetEventData(eventStatus)
+  // P6.4: a recurring event that has finished a run (activated, not currently
+  // live) can be re-armed for its next one. The RPC enforces the same rule.
+  const canRestartRecurring =
+    Boolean(eventQuery.data?.recurring) && activated && eventStatus !== 'active'
 
   async function handleResetEventData() {
     if (!eventId) return
@@ -232,6 +241,23 @@ export function AdminEventEditPage() {
       notify(t('events.edit.resetSuccess'))
     } catch (err) {
       notify(err instanceof Error ? err.message : t('events.edit.resetError'))
+    }
+  }
+
+  async function handleRestartRecurring() {
+    if (!eventId) return
+    try {
+      await restartRecurringMutation.mutateAsync(eventId)
+      setRestartDialogOpen(false)
+      notify(t('events.restart.success'))
+    } catch (err) {
+      setRestartDialogOpen(false)
+      const message = err instanceof Error ? err.message : ''
+      notify(
+        message.includes('UNPAID_INVOICE')
+          ? t('events.restart.unpaidError')
+          : message || t('events.restart.error'),
+      )
     }
   }
 
@@ -277,6 +303,7 @@ export function AdminEventEditPage() {
                   eventQuery.data.activated_at,
                   () => updateStatus.mutateAsync({ eventId, status }).then(() => undefined),
                   eventQuery.data.open_joining,
+                  eventQuery.data.recurring,
                 )
               }}
             />
@@ -333,6 +360,27 @@ export function AdminEventEditPage() {
 
           {activeTab === 'settings' && (
             <>
+              {canRestartRecurring ? (
+                <Card className="border-primary/40 bg-primary/5 mb-6 flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+                  <div className="min-w-0 max-w-xl">
+                    <p className="text-foreground font-medium">
+                      {t('events.restart.cardTitle')}
+                    </p>
+                    <p className="text-muted-foreground mt-1">
+                      {t('events.restart.cardHint')}
+                    </p>
+                  </div>
+                  <NeoButton
+                    type="button"
+                    variant="primary"
+                    disabled={restartRecurringMutation.isPending || loading}
+                    onClick={() => setRestartDialogOpen(true)}
+                  >
+                    {t('events.restart.action')}
+                  </NeoButton>
+                </Card>
+              ) : null}
+
               {isArchived ? (
                 <Card className="border-border/80 mb-6 bg-muted/30 p-4 text-sm">
                   <p className="text-foreground font-medium">{t('events.edit.archivedReadOnly')}</p>
@@ -556,6 +604,15 @@ export function AdminEventEditPage() {
               confirming={resetEventDataMutation.isPending}
               onCancel={() => setResetDialogOpen(false)}
               onConfirm={() => void handleResetEventData()}
+            />
+          ) : null}
+
+          {restartDialogOpen && eventQuery.data ? (
+            <RecurringRestartConfirmDialog
+              eventName={eventQuery.data.name}
+              confirming={restartRecurringMutation.isPending}
+              onCancel={() => setRestartDialogOpen(false)}
+              onConfirm={() => void handleRestartRecurring()}
             />
           ) : null}
 

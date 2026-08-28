@@ -104,6 +104,17 @@ describe('getEventActivationWarning', () => {
     expect(withFlag).toEqual(withoutFlag)
     expect(withFlag.billAmountEur).toBe(179)
   })
+
+  // P6.4: recurring events run again by design, so the "cannot be run again"
+  // closer must not appear; billing itself stays identical.
+  it('swaps the cannot-run-again note for the recurring one', () => {
+    const normal = getEventActivationWarning('arena', 0, false, 5, null, false, false)
+    const recurring = getEventActivationWarning('arena', 0, false, 5, null, false, true)
+    expect(normal.message).toContain('cannot be run again')
+    expect(recurring.message).not.toContain('cannot be run again')
+    expect(recurring.message).toContain('recurring event')
+    expect(recurring.billAmountEur).toBe(normal.billAmountEur)
+  })
 })
 
 describe('formatLimitResetDate', () => {

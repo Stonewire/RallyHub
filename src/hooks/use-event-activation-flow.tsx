@@ -40,6 +40,8 @@ type PendingActivation = {
    * activated before, so the clear is skipped and the dialog says so.
    */
   demoDataKept: boolean
+  /** P6.4: swaps the "cannot be run again" note for the recurring one. */
+  recurring: boolean
   onConfirm: () => Promise<void>
 }
 
@@ -75,6 +77,7 @@ export function useEventActivationFlow({
       teamCount: number,
       onConfirm: () => Promise<void>,
       openJoining = false,
+      recurring = false,
     ) => {
       setPending({
         eventId,
@@ -83,6 +86,7 @@ export function useEventActivationFlow({
         openJoining,
         clearDemoData: false,
         demoDataKept: false,
+        recurring,
         onConfirm,
       })
     },
@@ -163,6 +167,7 @@ export function useEventActivationFlow({
       activatedAt: string | null | undefined,
       applyChange: () => Promise<void>,
       openJoining = false,
+      recurring = false,
     ) => {
       const transitionError = eventStatusTransitionError(
         { status: currentStatus, activated_at: activatedAt ?? null },
@@ -194,6 +199,7 @@ export function useEventActivationFlow({
             openJoining,
             clearDemoData: hasDemoData && !activatedAt,
             demoDataKept: hasDemoData && Boolean(activatedAt),
+            recurring,
             onConfirm: applyChange,
           })
         })()
@@ -220,6 +226,7 @@ export function useEventActivationFlow({
       pending.teamCount,
       customPerEventPriceEur,
       pending.openJoining,
+      pending.recurring,
     )
     // Resolved at render like getEventActivationWarning, so the note follows
     // the admin language without the hook needing its own translation state.

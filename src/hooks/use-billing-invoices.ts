@@ -162,8 +162,11 @@ export function usePayEventInvoiceWithPaddle(organizationId: string | null | und
 }
 
 export function partitionInvoices(invoices: EventInvoiceWithEvent[]) {
+  // P6.4: superseded invoices (earlier runs of a recurring event) stay in the
+  // settled history but never count as owed. The restart RPC refuses to
+  // supersede an unpaid invoice, so this filter cannot hide real debt.
   const unpaid = invoices
-    .filter((i) => i.status === 'unpaid')
+    .filter((i) => i.status === 'unpaid' && !i.superseded)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
   const settled = invoices
     .filter((i) => i.status === 'paid' || i.status === 'comped')

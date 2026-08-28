@@ -118,6 +118,60 @@ export async function precheckEventActivation(eventId: string): Promise<void> {
   if (error) throw error
 }
 
+export const RESTART_RECURRING_ERROR =
+  'Only a recurring event that has finished a run (and is not live) can be restarted.'
+
+/**
+ * P6.4: re-arm a recurring event for its next run. Mirrors resetEventData's
+ * shape (Storage cleanup first, while the rows still hold the URLs; then the
+ * DB wipe; then fresh empty team slots), but goes through the dedicated
+ * restart_recurring_event RPC, which snapshots the finished run into
+ * event_occurrences, supersedes its invoice, and clears activated_at so the
+ * next activation bills as a new run.
+ *
+ * The unpaid-invoice check runs BEFORE the Storage cleanup: the RPC refuses to
+ * restart over an unpaid invoice, and by then the run's media would already be
+ * gone. Throws with the same UNPAID_INVOICE tag the RPC raises so callers map
+ * both paths identically.
+ */
+export async function restartRecurringEvent(eventId: string): Promise<void> {
+  const { data: event, error: fetchErr } = await supabase
+    .from('events')
+    .select('status, team_count, recurring, activated_at')
+    .eq('id', eventId)
+    .single()
+
+  if (fetchErr) throw fetchErr
+  if (!event.recurring || event.status === 'active' || !event.activated_at) {
+    throw new Error(RESTART_RECURRING_ERROR)
+  }
+
+  const { data: invoice, error: invoiceErr } = await supabase
+    .from('invoices')
+    .select('id, status')
+    .eq('event_id', eventId)
+    .eq('superseded', false)
+    .maybeSingle()
+  if (invoiceErr) throw invoiceErr
+  if (invoice?.status === 'unpaid') {
+    throw new Error("UNPAID_INVOICE: Settle this event's invoice before starting the next run.")
+  }
+
+  // Delete Storage files before wiping DB rows so we have the URLs.
+  await deleteEventStorageFiles(eventId)
+
+  const { error: rpcErr } = await supabase.rpc('restart_recurring_event', {
+    p_event_id: eventId,
+  })
+  if (rpcErr) throw rpcErr
+
+  await syncTeamSlots(eventId, event.team_count)
+
+  // Any device still parked on the old run's join page drops the wiped teams
+  // and refetches the fresh slot list (anon clients don't get postgres_changes).
+  await publishLiveBundleReload(eventId)
+}
+
 /** Clear gameplay data, delete Storage files, and restore empty team slots. */
 export async function resetEventData(eventId: string): Promise<void> {
   const { data: event, error: fetchErr } = await supabase

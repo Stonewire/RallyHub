@@ -43,7 +43,7 @@ export function useRallyHubDashboard() {
         supabase
           .from('events')
           .select('id, name, status, event_date, organization_id, created_at'),
-        supabase.from('invoices').select('amount_due, status, organization_id'),
+        supabase.from('invoices').select('amount_due, status, organization_id, superseded'),
       ])
       if (orgsRes.error) throw orgsRes.error
       if (eventsRes.error) throw eventsRes.error
@@ -89,8 +89,11 @@ export function useRallyHubDashboard() {
       const invoices = (invoicesRes.data ?? []).filter(
         (i) => clientIds.has(i.organization_id) && !demoOrgIds.has(i.organization_id),
       )
+      // P6.4: superseded invoices are settled earlier runs of recurring events.
+      // Their paid amounts stay in collected (they were real charges); they can
+      // never be outstanding.
       const outstanding = invoices
-        .filter((i) => i.status === 'unpaid')
+        .filter((i) => i.status === 'unpaid' && !i.superseded)
         .reduce((sum, i) => sum + Number(i.amount_due ?? 0), 0)
       const collected = invoices
         .filter((i) => i.status === 'paid')
@@ -125,14 +128,15 @@ export function useRallyHubClients() {
 
       const [eventsRes, invoicesRes] = await Promise.all([
         supabase.from('events').select('organization_id, status'),
-        supabase.from('invoices').select('organization_id, status'),
+        supabase.from('invoices').select('organization_id, status, superseded'),
       ])
 
       const demoOrgIds = new Set((orgs ?? []).filter((org) => org.is_demo).map((org) => org.id))
       const unpaidByOrg = new Map<string, number>()
       for (const inv of invoicesRes.data ?? []) {
-        // A demo org's seeded invoices must never read as money owed.
-        if (inv.status === 'unpaid' && !demoOrgIds.has(inv.organization_id)) {
+        // A demo org's seeded invoices must never read as money owed, and a
+        // superseded invoice (an earlier run of a recurring event) is settled.
+        if (inv.status === 'unpaid' && !inv.superseded && !demoOrgIds.has(inv.organization_id)) {
           unpaidByOrg.set(inv.organization_id, (unpaidByOrg.get(inv.organization_id) ?? 0) + 1)
         }
       }

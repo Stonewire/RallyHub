@@ -418,8 +418,14 @@ export type Database = {
           list_order: number
           invoice_paid: boolean
           invoiced_at: string | null
-          /** Set when the event goes live. What the plan's monthly limit counts. */
+          /**
+           * Set when the event goes live. What the plan's monthly limit counts.
+           * One-way, with a single documented exception: restart_recurring_event
+           * clears it (recurring events only) so the next run bills afresh.
+           */
           activated_at: string | null
+          /** P6.4: the same event runs repeatedly; restart wipes run data between runs. */
+          recurring: boolean
           wiped_at: string | null
           deleted_at: string | null
           join_token: string
@@ -452,6 +458,7 @@ export type Database = {
           invoice_paid?: boolean
           invoiced_at?: string | null
           activated_at?: string | null
+          recurring?: boolean
           deleted_at?: string | null
         }
         Update: {
@@ -478,8 +485,26 @@ export type Database = {
           invoice_paid?: boolean
           invoiced_at?: string | null
           activated_at?: string | null
+          recurring?: boolean
           deleted_at?: string | null
         }
+        Relationships: []
+      }
+      event_occurrences: {
+        Row: {
+          id: string
+          event_id: string
+          organization_id: string
+          /** 1-based run counter per event. */
+          occurrence_number: number
+          /** The run's activation moment (the events.activated_at the restart cleared). */
+          activated_at: string
+          /** The run's invoice, superseded on restart; null for pre-billing runs. */
+          invoice_id: string | null
+        }
+        /** Written only by restart_recurring_event (SECURITY DEFINER); read-only for clients. */
+        Insert: never
+        Update: never
         Relationships: []
       }
       event_tasks: {
@@ -531,6 +556,13 @@ export type Database = {
           extra_team_count: number
           extra_team_fee: number
           status: 'unpaid' | 'paid' | 'comped' | 'refunded'
+          /**
+           * P6.4: a recurring restart moved this settled invoice aside so the
+           * next run can raise a fresh one. Superseded rows stay in payment
+           * history but never block activation and never show Pay now; the
+           * restart refuses unpaid invoices, so they are always settled.
+           */
+          superseded: boolean
           promo_code_id: string | null
           paddle_transaction_id: string | null
           created_at: string
@@ -547,12 +579,14 @@ export type Database = {
           extra_team_count?: number
           extra_team_fee?: number
           status: 'unpaid' | 'paid' | 'comped' | 'refunded'
+          superseded?: boolean
           promo_code_id?: string | null
           paddle_transaction_id?: string | null
           created_at?: string
         }
         Update: {
           status?: 'unpaid' | 'paid' | 'comped' | 'refunded'
+          superseded?: boolean
           paddle_transaction_id?: string | null
           included_team_count?: number
           extra_team_count?: number
@@ -1465,6 +1499,10 @@ export type Database = {
         Returns: undefined
       }
       reset_event_data: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      restart_recurring_event: {
         Args: { p_event_id: string }
         Returns: undefined
       }
