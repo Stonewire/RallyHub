@@ -1,14 +1,14 @@
 import { canResetEventData } from '@/lib/event-lifecycle'
 import { publishLiveBundleReload } from '@/lib/live-broadcast'
 import { deleteStorageObjects, publicUrlStoragePath } from '@/lib/storage'
-import { syncTeamSlots } from '@/lib/sync-team-slots'
+import { ensureEventState, syncTeamSlots } from '@/lib/sync-team-slots'
 import { supabase } from '@/lib/supabase'
 
 export const RESET_EVENT_DATA_ERROR =
   'Reset is only allowed for draft, ready, or demo events (not yet activated).'
 
-/** Collect and delete all Storage files that belong to an event. */
-async function deleteEventStorageFiles(eventId: string): Promise<void> {
+/** Collect the Storage paths of all files that belong to an event. */
+async function collectEventStoragePaths(eventId: string): Promise<string[]> {
   const [subsResult, teamsResult] = await Promise.all([
     supabase.from('submissions').select('media_url').eq('event_id', eventId).not('media_url', 'is', null),
     supabase.from('teams').select('photo_url').eq('event_id', eventId).not('photo_url', 'is', null),
@@ -27,15 +27,23 @@ async function deleteEventStorageFiles(eventId: string): Promise<void> {
       if (p) paths.push(p)
     }
   }
+  return paths
+}
 
-  if (paths.length > 0) {
-    // Non-fatal: log but don't throw so the DB reset still proceeds
-    try {
-      await deleteStorageObjects('game-assets', paths)
-    } catch (err) {
-      console.warn('[reset] storage cleanup partial failure', err)
-    }
+/** Best-effort delete of previously collected Storage paths. */
+async function deleteCollectedStoragePaths(paths: string[]): Promise<void> {
+  if (paths.length === 0) return
+  // Non-fatal: log but don't throw so the surrounding flow still proceeds
+  try {
+    await deleteStorageObjects('game-assets', paths)
+  } catch (err) {
+    console.warn('[reset] storage cleanup partial failure', err)
   }
+}
+
+/** Collect and delete all Storage files that belong to an event. */
+async function deleteEventStorageFiles(eventId: string): Promise<void> {
+  await deleteCollectedStoragePaths(await collectEventStoragePaths(eventId))
 }
 
 /**
@@ -122,22 +130,22 @@ export const RESTART_RECURRING_ERROR =
   'Only a recurring event that has finished a run (and is not live) can be restarted.'
 
 /**
- * P6.4: re-arm a recurring event for its next run. Mirrors resetEventData's
- * shape (Storage cleanup first, while the rows still hold the URLs; then the
- * DB wipe; then fresh empty team slots), but goes through the dedicated
+ * P6.4: re-arm a recurring event for its next run through the dedicated
  * restart_recurring_event RPC, which snapshots the finished run into
- * event_occurrences, supersedes its invoice, and clears activated_at so the
+ * event_occurrences, supersedes its invoices, and clears activated_at so the
  * next activation bills as a new run.
  *
- * The unpaid-invoice check runs BEFORE the Storage cleanup: the RPC refuses to
- * restart over an unpaid invoice, and by then the run's media would already be
- * gone. Throws with the same UNPAID_INVOICE tag the RPC raises so callers map
- * both paths identically.
+ * Storage paths are collected BEFORE the RPC (the wipe deletes the rows that
+ * hold the URLs) but the files are only deleted AFTER it succeeds: the RPC can
+ * still refuse (unpaid invoice raced in, permissions), and refusing must not
+ * cost the finished run its media. The pre-checks below just fail fast with
+ * the same UNPAID_INVOICE tag the RPC raises so callers map both paths
+ * identically.
  */
 export async function restartRecurringEvent(eventId: string): Promise<void> {
   const { data: event, error: fetchErr } = await supabase
     .from('events')
-    .select('status, team_count, recurring, activated_at')
+    .select('status, team_count, recurring, activated_at, open_joining')
     .eq('id', eventId)
     .single()
 
@@ -146,26 +154,38 @@ export async function restartRecurringEvent(eventId: string): Promise<void> {
     throw new Error(RESTART_RECURRING_ERROR)
   }
 
-  const { data: invoice, error: invoiceErr } = await supabase
+  // Both kinds count: an unpaid team-settlement invoice (open-joining
+  // surcharge) blocks the next run exactly like an unpaid activation invoice.
+  const { data: unpaidInvoices, error: invoiceErr } = await supabase
     .from('invoices')
-    .select('id, status')
+    .select('id')
     .eq('event_id', eventId)
     .eq('superseded', false)
-    .maybeSingle()
+    .eq('status', 'unpaid')
+    .limit(1)
   if (invoiceErr) throw invoiceErr
-  if (invoice?.status === 'unpaid') {
+  if ((unpaidInvoices ?? []).length > 0) {
     throw new Error("UNPAID_INVOICE: Settle this event's invoice before starting the next run.")
   }
 
-  // Delete Storage files before wiping DB rows so we have the URLs.
-  await deleteEventStorageFiles(eventId)
+  // Collect Storage paths while the rows still exist; delete only on success.
+  const storagePaths = await collectEventStoragePaths(eventId)
 
   const { error: rpcErr } = await supabase.rpc('restart_recurring_event', {
     p_event_id: eventId,
   })
   if (rpcErr) throw rpcErr
 
-  await syncTeamSlots(eventId, event.team_count)
+  await deleteCollectedStoragePaths(storagePaths)
+
+  // Mirrors resetEventData's open-joining branch: an open-joining event has no
+  // pre-created slots, so syncTeamSlots must not run (it would pre-create
+  // empty slots the join page never offers); it still needs event_state.
+  if (event.open_joining) {
+    await ensureEventState(eventId)
+  } else {
+    await syncTeamSlots(eventId, event.team_count)
+  }
 
   // Any device still parked on the old run's join page drops the wiped teams
   // and refetches the fresh slot list (anon clients don't get postgres_changes).

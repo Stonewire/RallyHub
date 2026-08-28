@@ -110,13 +110,24 @@ export function defaultStages(): EventStage[] {
   ])
 }
 
-/** Adds a new game stage just before the pinned end stage. */
-export function addStage(stages: EventStage[]): EventStage[] {
+/**
+ * Adds a new game stage just before the pinned end stage.
+ *
+ * P6.1 stage-type flags gate the type here too: callers pass the first ALLOWED
+ * type (EventForm), never a hardcoded 'open', or a client whose plan excludes
+ * quest stages would mint one through the Add stage button. The flags are
+ * enforced client-side only for now: there is deliberately NO server backstop
+ * for stage types this round, so stages_config is trusted as saved.
+ */
+export function addStage(
+  stages: EventStage[],
+  type: EventStage['type'] = 'open',
+): EventStage[] {
   const middleCount = stages.filter((s) => !isBookendStage(s)).length
   const newStage: EventStage = {
     id: crypto.randomUUID(),
     name: `Stage ${middleCount + 1}`,
-    type: 'open',
+    type,
     gameId: null,
     gameIds: [],
   }

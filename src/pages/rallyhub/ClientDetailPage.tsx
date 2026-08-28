@@ -934,7 +934,8 @@ export function RallyHubClientDetailPage() {
                       "Events included" stores a €0 per-event price: activations are
                       invoiced at €0, but additional teams above five are still charged{' '}
                       {formatEur(10)} each. A custom subscription also removes the plan&apos;s
-                      monthly event limit.
+                      monthly event limit. A custom per-event price is the negotiated net
+                      figure: promo codes and the educational discount do not apply to it.
                     </p>
                   </div>
                   <p className="text-muted-foreground text-xs">

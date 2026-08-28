@@ -98,6 +98,23 @@ begin
   -- order of claim_team_with_inventory_access and reset_event_data.
   perform 1 from public.events e where e.id = p_event_id for update;
 
+  -- Re-read status and open_joining AFTER taking the lock: the unlocked read
+  -- above races the facilitator ending the event or disabling open joining
+  -- (TOCTOU), and a join that squeezes through after either change would land
+  -- a team on an event that is no longer accepting them.
+  select e.status, e.open_joining
+    into v_event_status, v_open_joining
+  from public.events e
+  where e.id = p_event_id;
+
+  if v_event_status not in ('active', 'demo') then
+    raise exception 'This event is not live.';
+  end if;
+
+  if not coalesce(v_open_joining, false) then
+    raise exception 'This event does not allow open joining.';
+  end if;
+
   -- Demo cap: at most 2 claimed teams at a time, exactly like the claim RPC.
   if v_event_status = 'demo' then
     select count(*) into v_claimed_count

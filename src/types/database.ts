@@ -557,6 +557,13 @@ export type Database = {
           extra_team_fee: number
           status: 'unpaid' | 'paid' | 'comped' | 'refunded'
           /**
+           * 'activation' is the per-event bill raised when the event goes
+           * live; 'team_settlement' is the end-of-event surcharge for an
+           * open-joining event whose activation invoice was already settled.
+           * One current (non-superseded) invoice of each kind per event.
+           */
+          kind: 'activation' | 'team_settlement'
+          /**
            * P6.4: a recurring restart moved this settled invoice aside so the
            * next run can raise a fresh one. Superseded rows stay in payment
            * history but never block activation and never show Pay now; the
@@ -579,6 +586,7 @@ export type Database = {
           extra_team_count?: number
           extra_team_fee?: number
           status: 'unpaid' | 'paid' | 'comped' | 'refunded'
+          kind?: 'activation' | 'team_settlement'
           superseded?: boolean
           promo_code_id?: string | null
           paddle_transaction_id?: string | null

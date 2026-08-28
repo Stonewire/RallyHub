@@ -2,6 +2,7 @@
   "placeholder": "Admin",
   "featureGating": {
     "notIncluded": "Niet inbegrepen in je plan",
+    "noStageTypes": "Onderdelen toevoegen is niet inbegrepen in je plan.",
     "someHidden": "Sommige opties zijn niet inbegrepen in je plan."
   },
   "billing": {
@@ -66,6 +67,7 @@
     "payNow": "Nu betalen",
     "periodBilling": "Facturatie: {{period}}",
     "previousRun": "Eerdere ronde",
+    "teamSettlement": "Kosten voor extra teams",
     "planLabel": "Plan",
     "planLimitReached": "Je hebt de limiet van je plan bereikt.",
     "plansTitle": "Plannen",
@@ -969,6 +971,7 @@
       "teamsIncludedNote": "Vijf teams zijn inbegrepen. Elk extra team kost {{price}} en wordt bij activatie aan de eventrekening toegevoegd.",
       "openJoining": "Open deelname",
       "openJoiningNote": "Teams worden aangemaakt wanneer deelnemers zich aansluiten, zonder teamlimiet. De kosten voor teams boven de vijf inbegrepen teams worden verrekend wanneer het event eindigt.",
+      "openJoiningLockedActive": "Open deelname kan niet worden gewijzigd terwijl het event live is.",
       "teamColourAria": "Kleur van {{team}}",
       "removeTeam": "Team weghalen",
       "stages": "Onderdelen",

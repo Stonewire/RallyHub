@@ -413,6 +413,11 @@ export function AdminEventEditPage() {
                   groups={groupsQuery.data ?? []}
                   orgDefaults={orgQuery.data ?? null}
                   maxTeamCount={MAX_TEAM_COUNT}
+                  // P6.3: a DB trigger rejects open_joining flips on a live
+                  // event (they would dodge the end-of-event settlement), so
+                  // the switch is disabled here with a hint instead of failing
+                  // at save time.
+                  openJoiningLocked={eventStatus === 'active'}
                 />
               </fieldset>
 

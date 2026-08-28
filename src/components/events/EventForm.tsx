@@ -68,6 +68,12 @@ type EventFormProps = {
   groups: GameGroupWithItems[]
   orgDefaults?: OrganizationRow | null
   maxTeamCount?: number
+  /**
+   * P6.3: freezes the Open joining switch (a DB trigger rejects flips while
+   * the event is live, because they would dodge or distort the end-of-event
+   * team settlement). The edit page sets it while status is 'active'.
+   */
+  openJoiningLocked?: boolean
 }
 
 export function EventForm({
@@ -79,6 +85,7 @@ export function EventForm({
   groups,
   orgDefaults,
   maxTeamCount = 20,
+  openJoiningLocked = false,
 }: EventFormProps) {
   const { t } = useTranslation('admin')
   // P6.1 feature flags: gate which stage types can be PICKED and whether the
@@ -182,19 +189,30 @@ export function EventForm({
 
   const hasEndStage = stages.some((stage) => stage.type === 'end')
 
+  // P6.1: a new stage takes the first ALLOWED type (canonical order open,
+  // quiz, bingo, break), never a hardcoded 'open' a client's flags may
+  // exclude. With no non-bookend type allowed at all, the Add stage buttons
+  // give way to a short note. Client-side only: there is no server backstop
+  // for stage types this round (see addStage in event-form-utils).
+  const firstAllowedStageType = allowedStagePillValues[0]
+
   // The in-list Add stage button (P1.2): gold, rendered inside the running
   // order directly under the last movable stage and above the pinned End
   // stage, so a new stage visibly lands where the button sits.
-  const addStageButton = (
+  const addStageButton = firstAllowedStageType ? (
     <NeoButton
       type="button"
       variant="accent"
       className="w-full justify-center"
-      onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
+      onClick={() =>
+        onChange((prev) => ({ ...prev, stages: addStage(prev.stages, firstAllowedStageType) }))
+      }
     >
       <IconPlus className="size-4" />
       {t('events.form.addStage')}
     </NeoButton>
+  ) : (
+    <p className="text-muted-foreground text-xs">{t('featureGating.noStageTypes')}</p>
   )
 
   return (
@@ -473,7 +491,13 @@ export function EventForm({
             value={openJoining ? 'on' : 'off'}
             onChange={(next) => set({ openJoining: next === 'on' })}
             caption={t('events.form.openJoining')}
+            disabled={openJoiningLocked}
           />
+          {openJoiningLocked ? (
+            <p className="text-muted-foreground w-full text-xs">
+              {t('events.form.openJoiningLockedActive')}
+            </p>
+          ) : null}
           {!openJoining ? (
             <div className="space-y-2">
               <Label>
@@ -613,16 +637,25 @@ export function EventForm({
             <h3 className="text-foreground text-base font-bold">{t('events.form.stages')}</h3>
             <p className="text-muted-foreground mt-1 text-xs">{t('events.form.stagesHelp')}</p>
           </div>
-          {/* Gold: adding a stage is THE next action on this card (P1.2). */}
-          <NeoButton
-            type="button"
-            variant="accent"
-            size="sm"
-            onClick={() => onChange((prev) => ({ ...prev, stages: addStage(prev.stages) }))}
-          >
-            <IconPlus className="size-4" />
-            {t('events.form.addStage')}
-          </NeoButton>
+          {/* Gold: adding a stage is THE next action on this card (P1.2). The
+              in-list button below carries the no-allowed-types note, so this
+              one simply hides when the flags allow nothing. */}
+          {firstAllowedStageType ? (
+            <NeoButton
+              type="button"
+              variant="accent"
+              size="sm"
+              onClick={() =>
+                onChange((prev) => ({
+                  ...prev,
+                  stages: addStage(prev.stages, firstAllowedStageType),
+                }))
+              }
+            >
+              <IconPlus className="size-4" />
+              {t('events.form.addStage')}
+            </NeoButton>
+          ) : null}
         </div>
         {stages.map((stage, stageIndex) => {
           const bookend = isBookendStage(stage)

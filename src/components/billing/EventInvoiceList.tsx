@@ -57,6 +57,14 @@ export function EventInvoiceRow({
           >
             {invoiceStatusLabel(invoice.status)}
           </NeoStatusBadge>
+          {invoice.kind === 'team_settlement' ? (
+            // P6.3: the end-of-event surcharge of an open-joining event. It
+            // sits next to the same event's activation invoice, so without the
+            // label the pair would read as a double charge.
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {t('billing.teamSettlement')}
+            </span>
+          ) : null}
           {invoice.superseded ? (
             // P6.4: an earlier run of a recurring event. Without the label, two
             // invoices on the same event would read as a double charge.
@@ -207,8 +215,23 @@ export function EventInvoiceList({
                   <td className="text-muted-foreground py-2.5 pr-3 whitespace-nowrap">
                     {formatInvoiceDate(invoice.created_at)}
                   </td>
-                  <td className="max-w-56 truncate py-2.5 pr-3">
-                    {invoice.event?.name ?? t('billing.unknownEvent')}
+                  <td className="max-w-56 py-2.5 pr-3">
+                    <span className="block truncate">
+                      {invoice.event?.name ?? t('billing.unknownEvent')}
+                    </span>
+                    {/* Same double-charge disambiguation as the cards layout:
+                        the settlement and earlier-run labels keep two invoices
+                        on one event readable. */}
+                    {invoice.kind === 'team_settlement' ? (
+                      <span className="text-muted-foreground block text-xs">
+                        {t('billing.teamSettlement')}
+                      </span>
+                    ) : null}
+                    {invoice.superseded ? (
+                      <span className="text-muted-foreground block text-xs">
+                        {t('billing.previousRun')}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="py-2.5 pr-3 text-right font-semibold tabular-nums">
                     {formatInvoiceAmountLine({
@@ -225,7 +248,9 @@ export function EventInvoiceList({
                     </NeoStatusBadge>
                   </td>
                   <td className="py-2.5 text-right whitespace-nowrap">
-                    {showPayIndicator && invoice.status === 'unpaid' && onPay ? (
+                    {/* P6.4: same guard as the cards layout. A superseded
+                        invoice is always settled; never offer to pay one. */}
+                    {showPayIndicator && invoice.status === 'unpaid' && !invoice.superseded && onPay ? (
                       <NeoButton
                         variant="accent"
                         size="sm"

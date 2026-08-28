@@ -101,9 +101,14 @@ export function getEventActivationWarning(
     0,
   )
   // Educational 50% stacks on top of the promo discount (matches migration 059).
-  const discountedBaseAmount = educationalApproved
-    ? Math.round((afterPromo / 2) * 100) / 100
-    : afterPromo
+  // A staff-set custom per-event price is the negotiated NET figure: neither
+  // discount applies to it (and the invoice function does not consume the
+  // promo code), matching create_event_activation_invoice (20260827180000).
+  const discountedBaseAmount = hasCustomPerEvent
+    ? baseAmount
+    : educationalApproved
+      ? Math.round((afterPromo / 2) * 100) / 100
+      : afterPromo
   // Event discounts apply to the event itself. Purchased team capacity remains
   // €10/team so a generic promo cannot silently grant unpaid add-ons.
   const billAmountEur = discountedBaseAmount + extraTeamChargeEur
@@ -140,18 +145,18 @@ export function getEventActivationWarning(
   }
 
   const priceLabel = formatEur(billAmountEur)
-  // With a €0 base (events included) there is no event fee for a promo or the
-  // educational discount to act on, and the invoice function does not consume
-  // the promo code either, so neither note is shown.
+  // Discount notes only show when a discount actually applies: never against a
+  // custom per-event price (the negotiated net figure, no promo consumed) and
+  // never against a €0 base, which has no event fee to act on.
   const promoNote =
-    discountPct > 0 && baseAmount > 0
+    discountPct > 0 && baseAmount > 0 && !hasCustomPerEvent
       ? i18n.t('admin:events.activate.promoNote', {
           percent: discountPct,
           price: formatEur(baseAmount),
         })
       : ''
   const educationalNote =
-    educationalApproved && baseAmount > 0
+    educationalApproved && baseAmount > 0 && !hasCustomPerEvent
       ? i18n.t('admin:events.activate.educationalNote')
       : ''
   // Reaching here with a €0 custom base means the bill is additional teams

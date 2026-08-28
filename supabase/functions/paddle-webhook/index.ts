@@ -377,9 +377,25 @@ Deno.serve(async (req) => {
           }
           // billing_period stays as-is: the column is NOT NULL with a
           // monthly/yearly check, and it is meaningless on the free plan.
+          //
+          // The custom-subscription columns clear WITH the refund: a fully
+          // refunded custom subscription must not keep granting its
+          // entitlements (unlimited events, negotiated per-event price). The
+          // column guard admits this write because the webhook runs as
+          // service_role. A NORMAL cancellation deliberately keeps the
+          // negotiated terms for a future resubscribe, so the
+          // subscription.canceled backstop above does not clear them; only
+          // this refund-driven path does.
           await admin
             .from('organizations')
-            .update({ billing_plan: 'rookie', subscription_status: 'canceled', paddle_subscription_id: null })
+            .update({
+              billing_plan: 'rookie',
+              subscription_status: 'canceled',
+              paddle_subscription_id: null,
+              custom_subscription_price_eur: null,
+              custom_subscription_period: null,
+              custom_per_event_price_eur: null,
+            })
             .eq('id', org.id)
           return null
         }

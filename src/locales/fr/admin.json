@@ -2,6 +2,7 @@
   "placeholder": "Admin",
   "featureGating": {
     "notIncluded": "Non inclus dans votre formule",
+    "noStageTypes": "L'ajout d'étapes n'est pas inclus dans votre formule.",
     "someHidden": "Certaines options ne sont pas incluses dans votre formule."
   },
   "billing": {
@@ -66,6 +67,7 @@
     "payNow": "Payer maintenant",
     "periodBilling": "Facturation : {{period}}",
     "previousRun": "Session précédente",
+    "teamSettlement": "Frais d'équipes supplémentaires",
     "planLabel": "Formule",
     "planLimitReached": "Vous avez atteint la limite de votre formule.",
     "plansTitle": "Formules",
@@ -969,6 +971,7 @@
       "teamsIncludedNote": "Cinq équipes sont incluses. Chaque équipe supplémentaire coûte {{price}} et s'ajoute à la facture de l'événement lors de l'activation.",
       "openJoining": "Inscription libre",
       "openJoiningNote": "Les équipes sont créées au fur et à mesure que les participants rejoignent, sans limite d'équipes. La facturation des équipes au-delà des cinq incluses est réglée à la fin de l'événement.",
+      "openJoiningLockedActive": "L'inscription libre ne peut pas être modifiée pendant que l'événement est en direct.",
       "teamColourAria": "Couleur de {{team}}",
       "removeTeam": "Retirer l'équipe",
       "stages": "Étapes",

@@ -69,10 +69,18 @@ describe('getEventActivationWarning', () => {
     expect(warning.message).toContain('event fee itself is included')
   })
 
-  it('applies promo and educational discounts to a custom per-event price, like the invoice', () => {
+  it('never discounts a custom per-event price: it is the negotiated net figure', () => {
     const warning = getEventActivationWarning('arena', 50, true, 5, 100)
-    // 100 → 50 after promo → 25 after educational.
-    expect(warning.billAmountEur).toBe(25)
+    // Promo and educational are ignored against the custom price, like the invoice.
+    expect(warning.billAmountEur).toBe(100)
+    expect(warning.message).not.toContain('promo')
+    expect(warning.message).not.toContain('educational')
+  })
+
+  it('still discounts plan-derived bases when no custom per-event price is set', () => {
+    const warning = getEventActivationWarning('arena', 50, true, 5, null)
+    // 149 → 74.50 after promo → 37.25 after educational.
+    expect(warning.billAmountEur).toBe(37.25)
   })
 
   it('keeps partner fully comped even with a custom per-event price', () => {
