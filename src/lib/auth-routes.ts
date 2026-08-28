@@ -112,6 +112,10 @@ export function eventManagerAllowedAdminPath(pathname: string): boolean {
   if (path.startsWith('/admin/support')) return true
   if (path.startsWith('/admin/team')) return true
   if (path.startsWith('/login')) return true
+  // Own profile only (the header avatar links here). Exact match: the
+  // settings subpaths (organization, billing) stay org-admin territory, and
+  // ClientSettingsRoute renders the personal-only page for this role anyway.
+  if (path === '/admin/settings') return true
   return false
 }
 

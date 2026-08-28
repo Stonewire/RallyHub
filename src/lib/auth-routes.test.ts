@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { isAtLeastFacilitator, wrongDomainRedirectUrl } from '@/lib/auth-routes'
+import {
+  eventManagerAllowedAdminPath,
+  facilitatorAllowedAdminPath,
+  isAtLeastFacilitator,
+  wrongDomainRedirectUrl,
+} from '@/lib/auth-routes'
 
 describe('isAtLeastFacilitator', () => {
   it('allows every organisation role that can run an event', () => {
@@ -13,6 +18,38 @@ describe('isAtLeastFacilitator', () => {
 
   it('does not allow an unknown or missing role', () => {
     expect(isAtLeastFacilitator(null)).toBe(false)
+  })
+})
+
+describe('eventManagerAllowedAdminPath', () => {
+  it('allows the personal settings page the header avatar links to', () => {
+    expect(eventManagerAllowedAdminPath('/admin/settings')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/settings/')).toBe(true)
+  })
+
+  it('keeps org-level settings subpaths blocked', () => {
+    expect(eventManagerAllowedAdminPath('/admin/settings/organization')).toBe(false)
+    expect(eventManagerAllowedAdminPath('/admin/settings/billing')).toBe(false)
+  })
+
+  it('allows the working surfaces and nothing beyond them', () => {
+    expect(eventManagerAllowedAdminPath('/admin')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/events')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/games')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/support')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/team')).toBe(true)
+    expect(eventManagerAllowedAdminPath('/admin/clients')).toBe(false)
+    expect(eventManagerAllowedAdminPath('/admin/payments')).toBe(false)
+  })
+})
+
+describe('facilitatorAllowedAdminPath', () => {
+  it('allows the events list and personal settings only', () => {
+    expect(facilitatorAllowedAdminPath('/admin')).toBe(true)
+    expect(facilitatorAllowedAdminPath('/admin/events')).toBe(true)
+    expect(facilitatorAllowedAdminPath('/admin/settings')).toBe(true)
+    expect(facilitatorAllowedAdminPath('/admin/settings/billing')).toBe(false)
+    expect(facilitatorAllowedAdminPath('/admin/games')).toBe(false)
   })
 })
 
