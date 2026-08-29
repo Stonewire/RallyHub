@@ -119,7 +119,7 @@
     "viewQuests": "View Quests",
     "slotLabel": "Team slot {{number}}",
     "resetConfirmTitle": "Reset team slot {{number}}?",
-    "resetConfirmBody": "Clears {{team}}, removes their photo, and sets score to 0. The slot becomes available for someone new to join.",
+    "resetConfirmBody": "Clears {{team}}, removes their photo, submissions, puzzle progress and store orders, and sets score to 0. The slot becomes available for someone new to join.",
     "thisTeamFallback": "this team",
     "resetting": "Resetting…",
     "resetTeamButton": "Reset team",

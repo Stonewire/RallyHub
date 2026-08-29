@@ -119,7 +119,7 @@
     "viewQuests": "Ver misiones",
     "slotLabel": "Espacio de equipo {{number}}",
     "resetConfirmTitle": "¿Reiniciar el espacio de equipo {{number}}?",
-    "resetConfirmBody": "Borra {{team}}, elimina su foto y pone la puntuación a 0. El espacio queda disponible para un equipo nuevo.",
+    "resetConfirmBody": "Borra {{team}}, elimina su foto, sus envíos, su progreso en los puzles y sus pedidos de la tienda, y pone la puntuación a 0. El espacio queda disponible para un equipo nuevo.",
     "thisTeamFallback": "este equipo",
     "resetting": "Reiniciando…",
     "resetTeamButton": "Reiniciar equipo",

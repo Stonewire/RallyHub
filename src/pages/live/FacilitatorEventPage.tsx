@@ -58,7 +58,11 @@ import {
   isEventDemoStatus,
 } from '@/lib/event-demo'
 import { incrementTeamScore } from '@/lib/increment-team-score'
-import { publishSubmissionChange, publishLiveBundleReload } from '@/lib/live-broadcast'
+import {
+  publishSubmissionChange,
+  publishLiveBundlePatch,
+  publishLiveBundleReload,
+} from '@/lib/live-broadcast'
 import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
 import {
   isLastQuestionInRound,
@@ -887,23 +891,27 @@ export function FacilitatorEventPage() {
   }
 
   async function resetTeamSlot(team: Tables<'teams'>) {
+    if (!eventId) return
     setResettingTeam(true)
     try {
-      const { error: delErr } = await supabase
-        .from('submissions')
-        .delete()
-        .eq('team_id', team.id)
-      if (delErr) throw delErr
-
-      await updateTeam(team.id, {
-        name: null,
-        photo_url: null,
-        score: 0,
-        status: 'idle',
+      // R2.5: the old client-side clear (submissions delete + teams UPDATE)
+      // left event_puzzle_progress rows behind, so a new team claiming the
+      // slot opened every puzzle already solved, and the old device's
+      // purchase token stayed valid. The RPC clears the whole slot atomically
+      // (submissions, puzzle progress, store orders, per-device token) and
+      // returns the emptied teams row.
+      const { data, error: resetErr } = await supabase.rpc('reset_team', {
+        p_event_id: eventId,
+        p_team_id: team.id,
       })
+      if (resetErr) throw resetErr
+      const row = data?.[0]
+      if (row) {
+        await publishLiveBundlePatch(eventId, { kind: 'team', op: 'UPDATE', row })
+      }
       // Broadcast a full reload so display and player panels see the cleared
       // submissions immediately (submission deletes are not individually patched).
-      if (eventId) await publishLiveBundleReload(eventId)
+      await publishLiveBundleReload(eventId)
       notify(t('teams.resetSlotNotify', { number: team.slot_number }))
       setResetConfirmTeam(null)
     } catch (err) {

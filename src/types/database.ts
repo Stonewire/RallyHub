@@ -1510,6 +1510,25 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: undefined
       }
+      /** Facilitator slot reset (R2.5): atomically clears the team's submissions,
+       * puzzle progress, store orders and per-device purchase token, then restores
+       * the empty-slot teams row. Returns the emptied row. */
+      reset_team: {
+        Args: { p_event_id: string; p_team_id: string }
+        Returns: {
+          id: string
+          event_id: string
+          name: string | null
+          color: string | null
+          photo_url: string | null
+          score: number
+          status: string
+          slot_number: number
+          language: string | null
+          created_at: string
+          session_epoch: number
+        }[]
+      }
       restart_recurring_event: {
         Args: { p_event_id: string }
         Returns: undefined

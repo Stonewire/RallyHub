@@ -119,7 +119,7 @@
     "viewQuests": "Voir les quêtes",
     "slotLabel": "Emplacement d'équipe {{number}}",
     "resetConfirmTitle": "Réinitialiser l'emplacement d'équipe {{number}} ?",
-    "resetConfirmBody": "Efface {{team}}, supprime sa photo et remet le score à 0. L'emplacement redevient disponible pour une nouvelle équipe.",
+    "resetConfirmBody": "Efface {{team}}, supprime sa photo, ses soumissions, sa progression dans les puzzles et ses commandes de la boutique, et remet le score à 0. L'emplacement redevient disponible pour une nouvelle équipe.",
     "thisTeamFallback": "cette équipe",
     "resetting": "Réinitialisation…",
     "resetTeamButton": "Réinitialiser l'équipe",

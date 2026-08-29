@@ -119,7 +119,7 @@
     "viewQuests": "Quests bekijken",
     "slotLabel": "Teamplek {{number}}",
     "resetConfirmTitle": "Teamplek {{number}} resetten?",
-    "resetConfirmBody": "Wist {{team}}, verwijdert hun foto en zet de score op 0. De plek komt vrij voor een nieuw team.",
+    "resetConfirmBody": "Wist {{team}}, verwijdert hun foto, inzendingen, puzzelvoortgang en winkelbestellingen, en zet de score op 0. De plek komt vrij voor een nieuw team.",
     "thisTeamFallback": "dit team",
     "resetting": "Resetten…",
     "resetTeamButton": "Team resetten",
