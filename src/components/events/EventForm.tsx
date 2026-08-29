@@ -51,13 +51,35 @@ export const EVENT_NAME_MAX_LENGTH = 40
 const STAGE_TYPE_VALUES: EventStage['type'][] = ['open', 'quiz', 'bingo', 'break']
 
 /**
- * Icon buttons that sit on a stage's charcoal header strip. The ghost variant
- * hovers with the light theme's muted grey, which vanishes on charcoal, so
- * these swap to ivory ink and a translucent white hover in both themes.
- * #faf7f3 is the ivory the design system already puts on charcoal buttons.
+ * Icon buttons that sit in a stage box's charcoal header row. The ghost
+ * variant hovers with the light theme's muted grey, which vanishes on
+ * charcoal, so these swap to ivory ink and a translucent white hover in both
+ * themes. #faf7f3 is the ivory the design system already puts on charcoal
+ * buttons.
  */
 const STAGE_HEADER_ICON_BUTTON =
   'text-[#faf7f3]/80 hover:bg-white/15 hover:text-[#faf7f3] dark:hover:bg-white/15'
+
+/**
+ * R2.1: the ENTIRE stage box is charcoal, not just a header strip. Rather
+ * than restyling every control one by one, these scoped overrides re-point
+ * the shared shadcn and neo-minimal tokens for everything inside a stage
+ * card: inputs, selects, game rows and surface buttons pick up a slightly
+ * lighter charcoal panel, text turns ivory, borders and dividers turn
+ * translucent white. Values come off the existing charcoal and slate ramps,
+ * and because the box is charcoal in both app themes the same set serves
+ * light and dark. `scheme-dark` makes native controls (checkboxes, select
+ * dropdowns) render dark to match.
+ */
+const STAGE_CARD_TOKENS =
+  'scheme-dark ' +
+  '[--background:#3f434c] [--foreground:#faf7f3] [--card-foreground:#faf7f3] ' +
+  '[--muted:#4a4e58] [--muted-foreground:#b8bcc4] ' +
+  '[--border:rgb(255_255_255/0.16)] [--input:rgb(255_255_255/0.22)] ' +
+  '[--destructive:#e5928b] ' +
+  '[--nm-bg-elevated:#3f434c] [--nm-bg-muted:#4a4e58] ' +
+  '[--nm-text-primary:#faf7f3] [--nm-text-secondary:#b8bcc4] ' +
+  '[--nm-border:rgb(255_255_255/0.18)]'
 
 type EventFormProps = {
   organizationId: string
@@ -681,15 +703,18 @@ export function EventForm({
           {/* The add button sits inside the running order, just above the
               pinned End stage: a new stage lands exactly where the button is. */}
           {stage.type === 'end' ? addStageButton : null}
-          <Card className="border-border/80 bg-background gap-0 overflow-hidden rounded-md p-0 shadow-none">
-            {/* Charcoal header strip: each stage reads as its own block. The
-                pinned bookends wear a muted version of the same strip. */}
-            <div
-              className={cn(
-                'flex flex-wrap items-center gap-3 px-3 py-2',
-                bookend ? 'bg-nm-charcoal/75' : 'bg-nm-charcoal',
-              )}
-            >
+          {/* One calm charcoal block per stage (R2.1): header AND body share
+              the same charcoal, with inner controls adapted via
+              STAGE_CARD_TOKENS. The pinned bookends wear a subtly muted,
+              lifted charcoal so they read as fixtures, not stages. */}
+          <Card
+            className={cn(
+              'gap-0 overflow-hidden rounded-md p-0 shadow-none',
+              STAGE_CARD_TOKENS,
+              bookend ? 'bg-[#454850]' : 'bg-nm-charcoal',
+            )}
+          >
+            <div className="flex flex-wrap items-center gap-3 px-3 py-2">
               {/* A long event is a long page. Collapsing a finished stage keeps
                   the one being edited on screen. */}
               <Button
@@ -1312,10 +1337,14 @@ function QuestStageGames({ stage, groups, compatible, onChange }: QuestStageGame
                 ))}
               </ul>
               <div className="flex justify-end">
+                {/* The charcoal primary would vanish on the charcoal stage
+                    box, so this borrows the SegmentedPill track's near-black
+                    (identical in both themes via the mirrored slate ramp). */}
                 <NeoButton
                   type="button"
                   variant="primary"
                   size="sm"
+                  className="bg-nm-slate-800 hover:bg-nm-slate-700 dark:bg-nm-slate-200 dark:hover:bg-nm-slate-300"
                   onClick={() => setPickerOpen(false)}
                 >
                   {t('events.done')}
