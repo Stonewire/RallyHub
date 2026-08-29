@@ -90,3 +90,17 @@ grant execute on function public.reset_team(uuid, uuid) to authenticated;
 
 comment on function public.reset_team(uuid, uuid) is
   'Facilitator slot reset: atomically deletes the team''s submissions, puzzle progress, store orders and per-device purchase token, then restores the empty-slot teams row (name/photo/language null, score 0, status idle). Returns the emptied row. Facilitator auth required; session_epoch is left alone (takeover_team_slot owns device kicks).';
+
+-- Repair for slots already reset by the old client-side path.
+--
+-- That path emptied the teams row but left inventory_team_access behind, and
+-- teams_guard_participant_update refuses a name change on any team that still
+-- has a private token unless the caller proves ownership with x-team-token.
+-- A fresh phone has no token, so those slots became unclaimable: tapping the
+-- empty slot answered "This phone is not authorized for that team." Found on
+-- the 29 Aug pass, six slots across three events. Deleting the stale rows
+-- releases them; the next claim mints a new token as usual.
+delete from public.inventory_team_access a
+using public.teams t
+where t.id = a.team_id
+  and nullif(trim(t.name), '') is null;

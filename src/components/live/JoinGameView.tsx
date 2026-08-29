@@ -40,6 +40,7 @@ import {
 } from '@/contexts/notification-context'
 import { useIncomingChatAlerts } from '@/hooks/use-chat-notifications'
 import { useBingoRun, useBingoTeamCard } from '@/hooks/use-bingo-run'
+import { useBackLayer } from '@/hooks/use-back-layer'
 import {
   nowMs,
   isLikelyNetworkError,
@@ -270,6 +271,15 @@ export function JoinGameView({
   const [exitVerifying, setExitVerifying] = useState(false)
   const { notify } = useNotification()
   const { t } = useTranslation('live')
+
+  // R2.8: the phone's own back button and back swipe close what is open here
+  // before they leave the event, which is what players reach for instead of
+  // our in-app back button. One history entry per open layer, newest closed
+  // first; the entry keeps the same URL, so the router never sees a change.
+  useBackLayer(Boolean(selectedGame), () => setSelectedGame(null))
+  useBackLayer(storeOpen, () => setStoreOpen(false))
+  useBackLayer(chatOpen, () => setChatOpen(false))
+  useBackLayer(exitDialogOpen, () => setExitDialogOpen(false))
   const [chatText, setChatText] = useState('')
 
   const breakSeconds =

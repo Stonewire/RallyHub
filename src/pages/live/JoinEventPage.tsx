@@ -31,6 +31,7 @@ import {
   textOnAccent,
 } from '@/lib/live-event'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
+import { popHistoryLayer } from '@/lib/history-layers'
 import { reportClientIssue } from '@/lib/client-diagnostics'
 import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
@@ -89,15 +90,22 @@ export function JoinEventPage() {
   useDocumentTitle(t('join.claim.documentTitle'), bundle?.event?.name)
   useWakeLock()
 
-  // Back-button trap. Scanning the join QR from a phone's camera app opens a
-  // temporary browser sheet whose history starts empty, so one press of the
-  // hardware Back closed the whole event and teams had to walk over and
-  // rescan (7 Aug event, Android personal phones). A guard entry is pushed on
-  // mount and re-pushed on every popstate, so Back keeps the page alive; all
-  // in-game navigation is app state and its own buttons, never history.
+  // Back-button trap, now the floor under the layer stack (R2.8).
+  //
+  // Scanning the join QR from a phone's camera app opens a temporary browser
+  // sheet whose history starts empty, so one press of the hardware Back closed
+  // the whole event and teams had to walk over and rescan (7 Aug event,
+  // Android personal phones). A guard entry keeps the page alive.
+  //
+  // It used to swallow EVERY back press, which is why a player who opened a
+  // game and reached for the phone's own back button or back swipe got
+  // nothing. Now an open layer (a game, the store, chat) handles the press
+  // first and closes itself; the guard is only re-pushed once nothing of ours
+  // is open, so Back still cannot fall out of the event by accident.
   useEffect(() => {
     window.history.pushState({ rhBackTrap: true }, '')
     const onPop = () => {
+      if (popHistoryLayer()) return
       window.history.pushState({ rhBackTrap: true }, '')
     }
     window.addEventListener('popstate', onPop)
