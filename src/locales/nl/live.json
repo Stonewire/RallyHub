@@ -335,7 +335,17 @@
     "passwordHint": "Voer het tabletwachtwoord in om actieve evenementen te bekijken.",
     "openLinkHint": "Open de tabletlink van je organisatie via Instellingen, of gebruik",
     "install": "Installeren",
-    "installOnDevice": "Installeren op dit apparaat"
+    "installOnDevice": "Installeren op dit apparaat",
+    "hub": {
+      "prompt": "Kies hoe je dit apparaat wilt gebruiken.",
+      "joinAsTeam": "Meedoen als team",
+      "joinAsTeamHint": "Kies een evenement en speel",
+      "facilitator": "Facilitator",
+      "facilitatorHint": "Leid een live evenement. Aanmelden vereist.",
+      "clientAdmin": "Klantbeheer",
+      "clientAdminHint": "Beheer evenementen en instellingen. Aanmelden vereist.",
+      "back": "Terug"
+    }
   },
   "inventory": {
     "pageTitle": "Inventaris",

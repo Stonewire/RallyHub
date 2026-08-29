@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -14,11 +14,12 @@ import { Label } from '@/components/ui/label'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useWakeLock } from '@/hooks/use-wake-lock'
 import { setAppLanguage } from '@/lib/i18n'
+import { orgPath } from '@/lib/org-path'
 import { getTabletLink, slugifyOrgName } from '@/lib/tablet-link'
 import { resolveTabletOrganization } from '@/lib/organization-tenant'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import { supabase } from '@/lib/supabase'
-import { verifyTabletPassword, validateTabletSession } from '@/lib/tenant'
+import { getPlatformOrigin, verifyTabletPassword, validateTabletSession } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
 
 const tabletSessionKey = (orgId: string) => `rallyhub_tablet_auth_${orgId}`
@@ -50,6 +51,9 @@ export function TabletPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [authed, setAuthed] = useState(false)
+  // R2.13: the tablet link is the app hub. 'hub' shows the three doors;
+  // 'team' is the original kiosk flow (PIN gate, then the event list).
+  const [view, setView] = useState<'hub' | 'team'>('hub')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
@@ -66,6 +70,15 @@ export function TabletPage() {
         : legacyOrgParam
           ? `/tablet?org=${encodeURIComponent(legacyOrgParam)}`
           : ''
+
+  // Hub doors are plain navigation to the existing login-gated surfaces on the
+  // platform host (facilitator landing, path-based client admin). They carry
+  // no tablet privileges: each destination enforces its own auth, and an
+  // already signed-in facilitator or admin session goes straight through.
+  const facilitatorUrl = `${getPlatformOrigin()}/facilitator`
+  const adminUrl = org
+    ? `${getPlatformOrigin()}${orgPath(org.subdomain, '/admin')}`
+    : null
 
   const loadData = useCallback(async () => {
     const hasPath = Boolean((orgSlug && tabletCode) || legacyOrgParam)
@@ -199,10 +212,112 @@ export function TabletPage() {
     )
   }
 
+  // R2.13 decision: the hub sits BEFORE the tablet PIN gate. It shows only
+  // public org branding (already served by the public tenant RPCs that resolve
+  // this link) plus three doors, so it needs no PIN. The PIN keeps guarding
+  // exactly what it guarded before: the kiosk join flow (event list and team
+  // joining) behind the "join as a team" door. The facilitator and client
+  // admin doors are plain links to login-gated surfaces; nothing
+  // PIN-protected is reachable without the tablet password.
+  if (view === 'hub') {
+    return (
+      <LivePanelShell title={org?.name ?? t('tablet.fallbackTitle')}>
+        {/* The hub is the durable thing to pin on a device, so the manifest
+            and install offer live here too. */}
+        <PageScopedManifest />
+        {org?.logo_url ? (
+          <img
+            src={org.logo_url}
+            alt=""
+            className="mx-auto mb-6 max-h-16 object-contain"
+          />
+        ) : null}
+        <div className="mx-auto max-w-sm space-y-4">
+          <p className="text-muted-foreground text-center text-sm">
+            {t('tablet.hub.prompt')}
+          </p>
+          <div className="grid gap-3">
+            <AccentButton
+              type="button"
+              className="h-auto w-full flex-col items-center gap-1 py-4 whitespace-normal"
+              onClick={() => setView('team')}
+            >
+              <span className="text-base font-semibold">
+                {t('tablet.hub.joinAsTeam')}
+              </span>
+              <span className="text-xs font-normal opacity-80">
+                {t('tablet.hub.joinAsTeamHint')}
+              </span>
+            </AccentButton>
+            <Button
+              asChild
+              variant="outline"
+              className="h-auto w-full flex-col items-center gap-1 py-4 whitespace-normal"
+            >
+              <a href={facilitatorUrl}>
+                <span className="text-base font-semibold">
+                  {t('tablet.hub.facilitator')}
+                </span>
+                <span className="text-muted-foreground text-xs font-normal">
+                  {t('tablet.hub.facilitatorHint')}
+                </span>
+              </a>
+            </Button>
+            {adminUrl ? (
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto w-full flex-col items-center gap-1 py-4 whitespace-normal"
+              >
+                <a href={adminUrl}>
+                  <span className="text-base font-semibold">
+                    {t('tablet.hub.clientAdmin')}
+                  </span>
+                  <span className="text-muted-foreground text-xs font-normal">
+                    {t('tablet.hub.clientAdminHint')}
+                  </span>
+                </a>
+              </Button>
+            ) : null}
+          </div>
+          {install.method ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={install.onClick}
+            >
+              <Download className="size-4" />
+              {t('tablet.installOnDevice')}
+            </Button>
+          ) : null}
+          {install.guide}
+        </div>
+        {tabletPath ? (
+          <p className="text-muted-foreground mt-8 text-center text-xs">
+            {t('tablet.bookmark', { path: tabletPath })}
+          </p>
+        ) : null}
+      </LivePanelShell>
+    )
+  }
+
   if (!authed) {
     return (
       <LivePanelShell title={org?.name ?? t('tablet.fallbackTitle')}>
         <PageScopedManifest />
+        <div className="mx-auto mb-3 max-w-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setView('hub')}
+          >
+            <ArrowLeft className="size-4" />
+            {t('tablet.hub.back')}
+          </Button>
+        </div>
         {org?.logo_url ? (
           <img
             src={org.logo_url}
@@ -264,16 +379,27 @@ export function TabletPage() {
       {/* A kiosk is a dedicated device, so its icon should reopen this exact
           tablet link rather than the app root. */}
       <PageScopedManifest />
-      <div className="mb-4 flex justify-end gap-2">
-        {install.method ? (
-          <Button type="button" variant="outline" size="sm" onClick={install.onClick}>
-            <Download className="size-4" />
-            {t('tablet.install')}
-          </Button>
-        ) : null}
-        <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
-          {t('tablet.logOut')}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setView('hub')}
+        >
+          <ArrowLeft className="size-4" />
+          {t('tablet.hub.back')}
         </Button>
+        <div className="flex gap-2">
+          {install.method ? (
+            <Button type="button" variant="outline" size="sm" onClick={install.onClick}>
+              <Download className="size-4" />
+              {t('tablet.install')}
+            </Button>
+          ) : null}
+          <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
+            {t('tablet.logOut')}
+          </Button>
+        </div>
       </div>
       {install.guide}
       {org?.logo_url ? (

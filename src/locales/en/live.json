@@ -335,7 +335,17 @@
     "passwordHint": "Enter the tablet password to view active events.",
     "openLinkHint": "Open your organization tablet link from Settings, or use",
     "install": "Install",
-    "installOnDevice": "Install on this device"
+    "installOnDevice": "Install on this device",
+    "hub": {
+      "prompt": "Choose how you want to use this device.",
+      "joinAsTeam": "Join as a team",
+      "joinAsTeamHint": "Pick an event and play",
+      "facilitator": "Facilitator",
+      "facilitatorHint": "Run a live event. Sign in required.",
+      "clientAdmin": "Client admin",
+      "clientAdminHint": "Manage events and settings. Sign in required.",
+      "back": "Back"
+    }
   },
   "inventory": {
     "pageTitle": "Inventory",

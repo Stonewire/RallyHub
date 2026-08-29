@@ -335,7 +335,17 @@
     "passwordHint": "Saisissez le mot de passe de la tablette pour voir les événements actifs.",
     "openLinkHint": "Ouvrez le lien tablette de votre organisation depuis les Paramètres, ou utilisez",
     "install": "Installer",
-    "installOnDevice": "Installer sur cet appareil"
+    "installOnDevice": "Installer sur cet appareil",
+    "hub": {
+      "prompt": "Choisissez comment utiliser cet appareil.",
+      "joinAsTeam": "Rejoindre comme équipe",
+      "joinAsTeamHint": "Choisissez un événement et jouez",
+      "facilitator": "Facilitateur",
+      "facilitatorHint": "Animez un événement en direct. Connexion requise.",
+      "clientAdmin": "Admin client",
+      "clientAdminHint": "Gérez les événements et les paramètres. Connexion requise.",
+      "back": "Retour"
+    }
   },
   "inventory": {
     "pageTitle": "Inventaire",
