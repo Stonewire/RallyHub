@@ -61,5 +61,8 @@
     "cookies": "Cookies",
     "imprint": "Colofon",
     "cookiePreferences": "Cookievoorkeuren"
+  },
+  "login": {
+    "fromAdminDomain": "Dat adres is voor RallyHub-medewerkers. Log hier in op je account."
   }
 }

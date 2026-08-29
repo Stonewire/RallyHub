@@ -61,5 +61,8 @@
     "cookies": "Cookies",
     "imprint": "Imprint",
     "cookiePreferences": "Cookie preferences"
+  },
+  "login": {
+    "fromAdminDomain": "That address is for RallyHub staff. Sign in to your account here."
   }
 }

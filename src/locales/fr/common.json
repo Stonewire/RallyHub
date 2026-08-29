@@ -61,5 +61,8 @@
     "cookies": "Cookies",
     "imprint": "Mentions légales",
     "cookiePreferences": "Préférences cookies"
+  },
+  "login": {
+    "fromAdminDomain": "Cette adresse est réservée à l'équipe RallyHub. Connectez-vous à votre compte ici."
   }
 }

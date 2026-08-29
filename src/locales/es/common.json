@@ -61,5 +61,8 @@
     "cookies": "Cookies",
     "imprint": "Aviso legal",
     "cookiePreferences": "Preferencias de cookies"
+  },
+  "login": {
+    "fromAdminDomain": "Esa dirección es para el personal de RallyHub. Inicia sesión en tu cuenta aquí."
   }
 }

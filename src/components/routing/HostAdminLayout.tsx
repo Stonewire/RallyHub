@@ -11,6 +11,7 @@ import { AdminLayout } from '@/layouts/AdminLayout'
 import { RallyHubLayout } from '@/layouts/RallyHubLayout'
 import { canAccessRallyHub, wrongDomainRedirectUrl } from '@/lib/auth-routes'
 import { orgPath } from '@/lib/org-path'
+import { supabase } from '@/lib/supabase'
 import { isPlatformHost, isTenantHost } from '@/lib/tenant'
 
 // Facilitators are allowed into the admin shell now, but only onto their
@@ -43,6 +44,9 @@ export function HostAdminLayout() {
   if (user) {
     const wrongDomain = wrongDomainRedirectUrl(role)
     if (wrongDomain && typeof window !== 'undefined') {
+      // Sign out locally so the wrong-origin session doesn't linger and
+      // re-trigger this bounce on every visit (matches RootPage).
+      void supabase.auth.signOut({ scope: 'local' })
       window.location.replace(wrongDomain)
       return <AuthLoadingScreen label="Redirecting" />
     }

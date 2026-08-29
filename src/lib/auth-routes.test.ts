@@ -72,9 +72,32 @@ describe('wrongDomainRedirectUrl', () => {
     expect(wrongDomainRedirectUrl('super_admin')).toBe('https://admin.rallyhub.games/login')
   })
 
-  it('rejects a client_admin session on the admin domain', () => {
+  it('keeps the super_admin direction a bare jump link even with an identifier', () => {
+    stubHost('app.rallyhub.games')
+    expect(wrongDomainRedirectUrl('super_admin', 'boss@rallyhub.games')).toBe(
+      'https://admin.rallyhub.games/login',
+    )
+  })
+
+  it('rejects a client_admin session on the admin domain with a carry-across URL', () => {
     stubHost('admin.rallyhub.games')
-    expect(wrongDomainRedirectUrl('client_admin')).toBe('https://app.rallyhub.games/login')
+    expect(wrongDomainRedirectUrl('client_admin')).toBe(
+      'https://app.rallyhub.games/login?from=admin-domain',
+    )
+  })
+
+  it('carries the typed identifier across url-encoded, never a password param', () => {
+    stubHost('admin.rallyhub.games')
+    expect(wrongDomainRedirectUrl('client_admin', 'anna@corp.example')).toBe(
+      'https://app.rallyhub.games/login?from=admin-domain&identifier=anna%40corp.example',
+    )
+  })
+
+  it('omits the identifier param when the identifier is empty', () => {
+    stubHost('admin.rallyhub.games')
+    expect(wrongDomainRedirectUrl('event_manager', '')).toBe(
+      'https://app.rallyhub.games/login?from=admin-domain',
+    )
   })
 
   it('allows a super_admin session on the admin domain', () => {

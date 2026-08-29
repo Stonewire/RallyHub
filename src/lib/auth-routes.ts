@@ -31,6 +31,14 @@ export function canAccessRallyHub(role: AppRole | null): boolean {
  * the domain they're on. Returns null when they're already in the right
  * place. localhost is always allowed (dev has no domain separation).
  *
+ * Sessions are per-origin, so a redirect can never carry the session itself:
+ * the caller must sign out locally and the user signs in again on the right
+ * host. For a client role rejected on the admin host, the returned URL
+ * carries `from=admin-domain` (so the app-host login page can explain the
+ * hop) and, when `identifier` is given, the typed username/email so the
+ * field arrives prefilled. The password is never carried. The super_admin
+ * direction stays a bare /login: staff get a plain jump link.
+ *
  * VITE_ADMIN_HOST / VITE_PLATFORM_HOST (same env vars router.tsx reads for
  * this migration) let a deployment override the canonical hosts, e.g. for a
  * preview URL. Neither is set locally, so this falls back to the production
@@ -45,7 +53,10 @@ export function canAccessRallyHub(role: AppRole | null): boolean {
  * rather than switching to `platformHost()`, since it's already correct and
  * has its own test coverage against these exact literals.
  */
-export function wrongDomainRedirectUrl(role: AppRole | null): string | null {
+export function wrongDomainRedirectUrl(
+  role: AppRole | null,
+  identifier?: string,
+): string | null {
   if (typeof window === 'undefined') return null
   const host = window.location.hostname
   if (host === 'localhost' || host === '127.0.0.1') return null
@@ -61,7 +72,9 @@ export function wrongDomainRedirectUrl(role: AppRole | null): string | null {
   }
 
   if (host === adminHost) {
-    return `https://${appHost}/login`
+    const params = new URLSearchParams({ from: 'admin-domain' })
+    if (identifier) params.set('identifier', identifier)
+    return `https://${appHost}/login?${params.toString()}`
   }
   return null
 }

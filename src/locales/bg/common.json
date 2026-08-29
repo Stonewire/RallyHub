@@ -61,5 +61,8 @@
     "cookies": "Бисквитки",
     "imprint": "Импресум",
     "cookiePreferences": "Настройки за бисквитки"
+  },
+  "login": {
+    "fromAdminDomain": "Онзи адрес е за екипа на RallyHub. Влезте в акаунта си тук."
   }
 }
