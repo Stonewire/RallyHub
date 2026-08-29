@@ -5,6 +5,17 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.29.1 - 2026-08-29 (two production fixes)
+
+- **Live-event fix.** A recurring event's second run could be auto-archived
+  within 15 minutes of going live. The 12-hour auto-archive job measured from
+  the event's first invoice, which a restart deliberately keeps, so from run 2
+  onward the event looked 12 hours stale the moment it started. Archiving a live
+  event stops any phone joining late or reloading from getting back in. The job
+  now measures from when the current run went live.
+- The tablet kiosk event list fix from V3.28.0 was written but never applied to
+  the database, so tablets still listed Ready and binned events. Applied.
+
 ## V3.29.0 - 2026-08-29 (quiz: two-button questions, answer count, import)
 
 - Quiz questions can now be **Two buttons** instead of multiple choice: a pair
