@@ -35,6 +35,7 @@ import {
   isFacilitatorOnlyRole,
 } from '@/lib/auth-routes'
 import { isAdminNavActive } from '@/lib/is-admin-nav-active'
+import { organizationInitials } from '@/lib/org-avatar'
 import { APP_BUILD_LABEL } from '@/lib/version'
 
 const mainNav = [
@@ -75,6 +76,9 @@ export function AdminAppSidebar() {
   const clientSlug = useOptionalTenant()?.tenantOrg?.subdomain ?? null
   // Item 7: sidebar is always charcoal, so a client's *light* logo replaces ours.
   const clientLogo = tenantOrg?.logo_light_url ?? null
+  // R2.9 white label: a white-labelled client never sees the RallyHub mark, so
+  // without a logo of their own the header falls back to their own name.
+  const whiteLabel = tenantOrg?.hide_platform_branding ?? false
   const { data: supportUnread = 0 } = useSupportUnreadCount('client')
   const settingsTab = searchParams.get('tab')
   const isFacilitator = isFacilitatorOnlyRole(role)
@@ -104,6 +108,10 @@ export function AdminAppSidebar() {
               alt=""
               className="group-data-[collapsible=icon]:hidden max-h-[52px] w-full max-w-[170px] object-contain"
             />
+          ) : whiteLabel ? (
+            <span className="group-data-[collapsible=icon]:hidden block max-w-[170px] truncate text-base font-semibold">
+              {tenantOrg?.name}
+            </span>
           ) : (
             <RallyLogo
               mark="full"
@@ -116,6 +124,10 @@ export function AdminAppSidebar() {
               alt=""
               className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
             />
+          ) : whiteLabel ? (
+            <span className="hidden size-8 shrink-0 place-items-center text-sm font-semibold group-data-[collapsible=icon]:grid">
+              {organizationInitials(tenantOrg?.name ?? '')}
+            </span>
           ) : (
             <RallyLogo
               mark="profile"

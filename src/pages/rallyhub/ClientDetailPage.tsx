@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { useQueryClient } from '@tanstack/react-query'
 
 import { DangerZone } from '@/components/admin/DangerZone'
+import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
 import { useAuth } from '@/contexts/auth-context'
 import { isPlatformOwner } from '@/lib/auth-routes'
 import { QueryError, QueryLoading } from '@/components/admin/QueryState'
@@ -602,353 +603,6 @@ export function RallyHubClientDetailPage() {
               placeholder="Only RallyHub staff see these."
             />
           </Card>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-            <ClientCardHeader title="Plan & Account" visibility="RallyHub" />
-            {!ownerHere ? (
-              <p className="text-muted-foreground text-sm">
-                Plan, account status and the watermark toggle are owner-only. This account is
-                on {formatClientPlanLabel(billingPlan)} (
-                {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))}), status{' '}
-                {accountStatus}.
-              </p>
-            ) : null}
-            {isDemoClient ? (
-              <p className="text-muted-foreground text-sm">
-                This organisation runs the public demo. Nothing here is charged, and it is
-                excluded from Payments and platform revenue.
-              </p>
-            ) : null}
-            {ownerHere ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
-                <select
-                  id="billing-plan"
-                  value={billingPlan}
-                  onChange={(e) => setBillingPlan(e.target.value)}
-                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                >
-                  {getAdminAssignablePlans().map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                      {plan.hidden ? ' (hidden)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <NeoLabel htmlFor="billing-period">Billing period</NeoLabel>
-                <select
-                  id="billing-period"
-                  value={billingPeriod}
-                  onChange={(e) => setBillingPeriod(e.target.value)}
-                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                >
-                  {BILLING_PERIODS.map((period) => (
-                    <option key={period} value={period}>
-                      {formatBillingPeriodLabel(period)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <NeoLabel htmlFor="account-status">Account status</NeoLabel>
-                <select
-                  id="account-status"
-                  value={accountStatus}
-                  onChange={(e) => {
-                    setAccountStatus(e.target.value)
-                    if (e.target.value !== 'trial') setTrialEndsAt('')
-                  }}
-                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <NeoLabel htmlFor="educational-status">Educational (school)</NeoLabel>
-                <select
-                  id="educational-status"
-                  value={educationalStatus}
-                  onChange={(e) => setEducationalStatus(e.target.value)}
-                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                >
-                  <option value="none">Not educational</option>
-                  <option value="pending">Pending review (requested)</option>
-                  <option value="approved">Approved — 50% off subscriptions & events</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <NeoLabel htmlFor="client-default-language">Default language</NeoLabel>
-                <select
-                  id="client-default-language"
-                  value={defaultLanguage}
-                  onChange={(e) => setDefaultLanguage(e.target.value)}
-                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                >
-                  {APP_LANGUAGES.map(({ code, label }) => (
-                    <option key={code} value={code}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-muted-foreground text-xs">
-                  Pre-sets the org before handover. The client can change it later in
-                  their Settings; new events start in this language.
-                </p>
-              </div>
-              {accountStatus === 'trial' ? (
-                <div className="space-y-1.5 sm:col-span-2">
-                  <NeoLabel htmlFor="trial-ends-at">Trial end date</NeoLabel>
-                  <NeoInput
-                    id="trial-ends-at"
-                    type="date"
-                    value={trialEndsAt}
-                    onChange={(e) => setTrialEndsAt(e.target.value)}
-                    className="bg-background max-w-xs"
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    When this date passes, the account is suspended automatically and flagged
-                    for review.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-            ) : null}
-            {ownerHere && educationalStatus === 'pending' ? (
-              <p className="text-muted-foreground text-xs">
-                This account requested educational pricing at signup. Set to "Approved" once
-                verified to apply the 50% discount.
-              </p>
-            ) : null}
-            {ownerHere && trialReviewNeeded ? (
-              <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm">
-                <p className="font-medium text-orange-800">Trial expired — review needed</p>
-                <p className="mt-0.5 text-xs text-orange-700">
-                  This account was suspended automatically when its trial ended.
-                </p>
-                <button
-                  type="button"
-                  className="mt-1 text-xs text-orange-800 underline"
-                  onClick={() => setTrialReviewNeeded(false)}
-                >
-                  Mark as reviewed (clears flag on save)
-                </button>
-              </div>
-            ) : null}
-            {isDemoClient ? null : (
-              <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
-            )}
-            {getPlan(billingPlan).hidden ? (
-              <p className="text-muted-foreground text-xs">
-                Partner is a fully comped plan and is not shown to clients in public plan
-                lists.
-              </p>
-            ) : null}
-            {ownerHere ? (
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={hidePlatformBranding}
-                onChange={(e) => setHidePlatformBranding(e.target.checked)}
-                className="accent-primary size-4 rounded"
-              />
-              <span className="text-sm">
-                Hide "Powered by RallyHub" watermark on live event surfaces
-                <span className="text-muted-foreground ml-1 text-xs">(Max / Partner)</span>
-              </span>
-            </label>
-            ) : null}
-          </Card>
-
-          {ownerHere ? (
-            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-              <ClientCardHeader title="Feature Access" visibility="RallyHub" />
-              <p className="text-muted-foreground text-xs">
-                Unticked items disappear from this client's creation screens.
-                Existing games, stages and events keep working everywhere; only
-                creating new ones is blocked. Everything ticked means no
-                restriction is stored.
-              </p>
-              <div className="space-y-1.5">
-                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
-                  Game types
-                </p>
-                <div className="grid gap-1.5 sm:grid-cols-2">
-                  {ALL_GAME_TYPES.map((type) => (
-                    <label key={type} className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="accent-primary size-4 rounded"
-                        checked={featureFlags.allowedGameTypes.includes(type)}
-                        onChange={() => toggleGameTypeFlag(type)}
-                      />
-                      <span className="text-sm">{GAME_TYPE_FLAG_LABELS[type]}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
-                  Stage types
-                </p>
-                <div className="grid gap-1.5 sm:grid-cols-2">
-                  {ALL_FLAG_STAGE_TYPES.map((type) => (
-                    <label key={type} className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="accent-primary size-4 rounded"
-                        checked={featureFlags.allowedStageTypes.includes(type)}
-                        onChange={() => toggleStageTypeFlag(type)}
-                      />
-                      <span className="text-sm">{STAGE_TYPE_FLAG_LABELS[type]}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
-                  Extras
-                </p>
-                <div className="grid gap-1.5 sm:grid-cols-2">
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="accent-primary size-4 rounded"
-                      checked={featureFlags.storeEnabled}
-                      onChange={(e) =>
-                        setFeatureFlags((current) => ({
-                          ...current,
-                          storeEnabled: e.target.checked,
-                        }))
-                      }
-                    />
-                    <span className="text-sm">Points store</span>
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="accent-primary size-4 rounded"
-                      checked={featureFlags.offlineEnabled}
-                      onChange={(e) =>
-                        setFeatureFlags((current) => ({
-                          ...current,
-                          offlineEnabled: e.target.checked,
-                        }))
-                      }
-                    />
-                    <span className="text-sm">Offline play downloads</span>
-                  </label>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          {/* P6.2: negotiated pricing, owner-only like the plan controls above.
-              The three columns are staff-guarded in the database, so this is
-              the only surface that can change them. Saved with the page's own
-              Save button (the payload always carries plan/status, so the
-              update hook's defaults never overwrite them). */}
-          {!isCreateMode && !isDemoClient && ownerHere ? (
-            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
-              <ClientCardHeader title="Custom Subscription" visibility="RallyHub" />
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={customSubEnabled}
-                  onChange={(e) => setCustomSubEnabled(e.target.checked)}
-                  className="accent-primary size-4 rounded"
-                />
-                <span className="text-sm">
-                  Custom subscription
-                  <span className="text-muted-foreground ml-1 text-xs">
-                    (negotiated price instead of the plan&apos;s subscription price)
-                  </span>
-                </span>
-              </label>
-              {customSubEnabled ? (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <NeoLabel htmlFor="custom-sub-price">Price (EUR, whole euros)</NeoLabel>
-                      <NumberField
-                        id="custom-sub-price"
-                        min={0}
-                        value={customSubPrice}
-                        onChange={setCustomSubPrice}
-                        className="bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <NeoLabel htmlFor="custom-sub-period">Billed</NeoLabel>
-                      <select
-                        id="custom-sub-period"
-                        value={customSubPeriod}
-                        onChange={(e) =>
-                          setCustomSubPeriod(e.target.value === 'yearly' ? 'yearly' : 'monthly')
-                        }
-                        className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                      >
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <NeoLabel htmlFor="custom-per-event">Per-event charge</NeoLabel>
-                    <select
-                      id="custom-per-event"
-                      value={customPerEventMode}
-                      onChange={(e) =>
-                        setCustomPerEventMode(
-                          e.target.value === 'included'
-                            ? 'included'
-                            : e.target.value === 'custom'
-                              ? 'custom'
-                              : 'plan',
-                        )
-                      }
-                      className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                    >
-                      <option value="plan">Normal plan price per event</option>
-                      <option value="included">Events included (no per-event charge)</option>
-                      <option value="custom">Custom price per event</option>
-                    </select>
-                    {customPerEventMode === 'custom' ? (
-                      <NumberField
-                        id="custom-per-event-price"
-                        min={0}
-                        value={customPerEventPrice}
-                        onChange={setCustomPerEventPrice}
-                        className="bg-background max-w-xs"
-                      />
-                    ) : null}
-                    <p className="text-muted-foreground text-xs">
-                      "Events included" stores a €0 per-event price: activations are
-                      invoiced at €0, but additional teams above five are still charged{' '}
-                      {formatEur(10)} each. A custom subscription also removes the plan&apos;s
-                      monthly event limit. A custom per-event price is the negotiated net
-                      figure: promo codes and the educational discount do not apply to it.
-                    </p>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    The client sees "Custom subscription" in their Billing page and pays this
-                    price through the normal checkout. Their plan above stays as the
-                    underlying plan. Promo codes and the educational discount do not apply
-                    to the custom subscription price.
-                  </p>
-                </>
-              ) : null}
-            </Card>
-          ) : null}
-
           <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
             <ClientCardHeader title="Contact & Tenant" visibility="Private" />
             <div>
@@ -1106,6 +760,332 @@ export function RallyHubClientDetailPage() {
               </div>
             </Card>
           ) : null}
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+            <ClientCardHeader title="Plan & Account" visibility="RallyHub" />
+            {!ownerHere ? (
+              <p className="text-muted-foreground text-sm">
+                Plan and account status are owner-only. This account is
+                on {formatClientPlanLabel(billingPlan)} (
+                {formatBillingPeriodLabel(normalizeBillingPeriod(billingPeriod))}), status{' '}
+                {accountStatus}.
+              </p>
+            ) : null}
+            {isDemoClient ? (
+              <p className="text-muted-foreground text-sm">
+                This organisation runs the public demo. Nothing here is charged, and it is
+                excluded from Payments and platform revenue.
+              </p>
+            ) : null}
+            {ownerHere ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="billing-plan">Billing plan</NeoLabel>
+                <select
+                  id="billing-plan"
+                  value={billingPlan}
+                  onChange={(e) => setBillingPlan(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {getAdminAssignablePlans().map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                      {plan.hidden ? ' (hidden)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="billing-period">Billing period</NeoLabel>
+                <select
+                  id="billing-period"
+                  value={billingPeriod}
+                  onChange={(e) => setBillingPeriod(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {BILLING_PERIODS.map((period) => (
+                    <option key={period} value={period}>
+                      {formatBillingPeriodLabel(period)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="account-status">Account status</NeoLabel>
+                <select
+                  id="account-status"
+                  value={accountStatus}
+                  onChange={(e) => {
+                    setAccountStatus(e.target.value)
+                    if (e.target.value !== 'trial') setTrialEndsAt('')
+                  }}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="educational-status">Educational (school)</NeoLabel>
+                <select
+                  id="educational-status"
+                  value={educationalStatus}
+                  onChange={(e) => setEducationalStatus(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  <option value="none">Not educational</option>
+                  <option value="pending">Pending review (requested)</option>
+                  <option value="approved">Approved — 50% off subscriptions & events</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <NeoLabel htmlFor="client-default-language">Default language</NeoLabel>
+                <select
+                  id="client-default-language"
+                  value={defaultLanguage}
+                  onChange={(e) => setDefaultLanguage(e.target.value)}
+                  className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                >
+                  {APP_LANGUAGES.map(({ code, label }) => (
+                    <option key={code} value={code}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-muted-foreground text-xs">
+                  Pre-sets the org before handover. The client can change it later in
+                  their Settings; new events start in this language.
+                </p>
+              </div>
+              {accountStatus === 'trial' ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <NeoLabel htmlFor="trial-ends-at">Trial end date</NeoLabel>
+                  <NeoInput
+                    id="trial-ends-at"
+                    type="date"
+                    value={trialEndsAt}
+                    onChange={(e) => setTrialEndsAt(e.target.value)}
+                    className="bg-background max-w-xs"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    When this date passes, the account is suspended automatically and flagged
+                    for review.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            ) : null}
+            {ownerHere && educationalStatus === 'pending' ? (
+              <p className="text-muted-foreground text-xs">
+                This account requested educational pricing at signup. Set to "Approved" once
+                verified to apply the 50% discount.
+              </p>
+            ) : null}
+            {ownerHere && trialReviewNeeded ? (
+              <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm">
+                <p className="font-medium text-orange-800">Trial expired — review needed</p>
+                <p className="mt-0.5 text-xs text-orange-700">
+                  This account was suspended automatically when its trial ended.
+                </p>
+                <button
+                  type="button"
+                  className="mt-1 text-xs text-orange-800 underline"
+                  onClick={() => setTrialReviewNeeded(false)}
+                >
+                  Mark as reviewed (clears flag on save)
+                </button>
+              </div>
+            ) : null}
+            {isDemoClient ? null : (
+              <PlanDetailsCard planId={billingPlan} billingPeriod={billingPeriod} compact />
+            )}
+            {getPlan(billingPlan).hidden ? (
+              <p className="text-muted-foreground text-xs">
+                Partner is a fully comped plan and is not shown to clients in public plan
+                lists.
+              </p>
+            ) : null}
+          </Card>
+
+          {ownerHere ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Feature Access" visibility="RallyHub" />
+              <p className="text-muted-foreground text-xs">
+                Unticked items disappear from this client's creation screens.
+                Existing games, stages and events keep working everywhere; only
+                creating new ones is blocked. Everything ticked means no
+                restriction is stored.
+              </p>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Game types
+                </p>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {ALL_GAME_TYPES.map((type) => (
+                    <FacilitatorToggle
+                      key={type}
+                      label={GAME_TYPE_FLAG_LABELS[type]}
+                      checked={featureFlags.allowedGameTypes.includes(type)}
+                      onChange={() => toggleGameTypeFlag(type)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Stage types
+                </p>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {ALL_FLAG_STAGE_TYPES.map((type) => (
+                    <FacilitatorToggle
+                      key={type}
+                      label={STAGE_TYPE_FLAG_LABELS[type]}
+                      checked={featureFlags.allowedStageTypes.includes(type)}
+                      onChange={() => toggleStageTypeFlag(type)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Extras
+                </p>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <FacilitatorToggle
+                    label="Points store"
+                    checked={featureFlags.storeEnabled}
+                    onChange={(next) =>
+                      setFeatureFlags((current) => ({ ...current, storeEnabled: next }))
+                    }
+                  />
+                  <FacilitatorToggle
+                    label="Offline play downloads"
+                    checked={featureFlags.offlineEnabled}
+                    onChange={(next) =>
+                      setFeatureFlags((current) => ({ ...current, offlineEnabled: next }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+                  Branding
+                </p>
+                {/* R2.9: one switch for the whole RallyHub brand. It stores
+                    hide_platform_branding, which already reaches the live
+                    surfaces through the tenant RPCs, so the live watermark and
+                    the client's own admin shell both follow it. */}
+                <FacilitatorToggle
+                  label="White label"
+                  checked={hidePlatformBranding}
+                  onChange={setHidePlatformBranding}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Removes RallyHub branding everywhere this client and their
+                  participants look: the live watermark and their admin panel logo.
+                  Their own logo shows instead, or their name when they have none.
+                </p>
+              </div>
+            </Card>
+          ) : null}
+
+          {/* P6.2: negotiated pricing, owner-only like the plan controls above.
+              The three columns are staff-guarded in the database, so this is
+              the only surface that can change them. Saved with the page's own
+              Save button (the payload always carries plan/status, so the
+              update hook's defaults never overwrite them). */}
+          {!isCreateMode && !isDemoClient && ownerHere ? (
+            <Card className="border-border/80 space-y-4 bg-card p-4 shadow-sm">
+              <ClientCardHeader title="Custom Subscription" visibility="RallyHub" />
+              <FacilitatorToggle
+                label="Custom subscription"
+                checked={customSubEnabled}
+                onChange={setCustomSubEnabled}
+              />
+              <p className="text-muted-foreground text-xs">
+                A negotiated price instead of the plan&apos;s subscription price.
+              </p>
+              {customSubEnabled ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <NeoLabel htmlFor="custom-sub-price">Price (EUR, whole euros)</NeoLabel>
+                      <NumberField
+                        id="custom-sub-price"
+                        min={0}
+                        value={customSubPrice}
+                        onChange={setCustomSubPrice}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <NeoLabel htmlFor="custom-sub-period">Billed</NeoLabel>
+                      <select
+                        id="custom-sub-period"
+                        value={customSubPeriod}
+                        onChange={(e) =>
+                          setCustomSubPeriod(e.target.value === 'yearly' ? 'yearly' : 'monthly')
+                        }
+                        className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <NeoLabel htmlFor="custom-per-event">Per-event charge</NeoLabel>
+                    <select
+                      id="custom-per-event"
+                      value={customPerEventMode}
+                      onChange={(e) =>
+                        setCustomPerEventMode(
+                          e.target.value === 'included'
+                            ? 'included'
+                            : e.target.value === 'custom'
+                              ? 'custom'
+                              : 'plan',
+                        )
+                      }
+                      className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                    >
+                      <option value="plan">Normal plan price per event</option>
+                      <option value="included">Events included (no per-event charge)</option>
+                      <option value="custom">Custom price per event</option>
+                    </select>
+                    {customPerEventMode === 'custom' ? (
+                      <NumberField
+                        id="custom-per-event-price"
+                        min={0}
+                        value={customPerEventPrice}
+                        onChange={setCustomPerEventPrice}
+                        className="bg-background max-w-xs"
+                      />
+                    ) : null}
+                    <p className="text-muted-foreground text-xs">
+                      "Events included" stores a €0 per-event price: activations are
+                      invoiced at €0, but additional teams above five are still charged{' '}
+                      {formatEur(10)} each. A custom subscription also removes the plan&apos;s
+                      monthly event limit. A custom per-event price is the negotiated net
+                      figure: promo codes and the educational discount do not apply to it.
+                    </p>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    The client sees "Custom subscription" in their Billing page and pays this
+                    price through the normal checkout. Their plan above stays as the
+                    underlying plan. Promo codes and the educational discount do not apply
+                    to the custom subscription price.
+                  </p>
+                </>
+              ) : null}
+            </Card>
+          ) : null}
+
         </div>
       </div>
 
