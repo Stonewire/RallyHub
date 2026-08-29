@@ -14,14 +14,33 @@ export type DisplayTextColor = 'black' | 'white'
 /** Quiz / bingo “stand by” highlight — not event branding. */
 export const STANDBY_ACCENT = '#FFC107'
 
-export function textOnAccent(accentHex: string): string {
-  const hex = accentHex.replace('#', '').slice(0, 6)
-  if (hex.length !== 6) return '#3E3D3E'
-  const r = parseInt(hex.slice(0, 2), 16)
-  const g = parseInt(hex.slice(2, 4), 16)
-  const b = parseInt(hex.slice(4, 6), 16)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.62 ? '#3E3D3E' : '#ffffff'
+/**
+ * Ink for anything painted in one of the event's brand colours.
+ *
+ * Every live control that paints a brand colour behind text must take its
+ * colour from here rather than assuming black or white: R2.3 came from the
+ * takeover dialog hardcoding black over a deep purple accent, which no one
+ * could read.
+ *
+ * Uses WCAG relative luminance, not a plain channel average: a saturated green
+ * and a saturated blue of the same average brightness need opposite ink, and
+ * only the weighted-then-linearised version gets that right.
+ */
+export function textOnAccent(accentHex: string | null | undefined): string {
+  const hex = (accentHex ?? '').replace('#', '').slice(0, 6)
+  if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) return '#3E3D3E'
+  const channels = [
+    parseInt(hex.slice(0, 2), 16),
+    parseInt(hex.slice(2, 4), 16),
+    parseInt(hex.slice(4, 6), 16),
+  ].map((channel) => {
+    const c = channel / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+  // 0.32 keeps the RallyHub gold on charcoal ink (the design's own pairing)
+  // while flipping to white well before a mid-dark brand becomes unreadable.
+  return luminance > 0.32 ? '#3E3D3E' : '#ffffff'
 }
 
 export function displayTextColorForEvent(

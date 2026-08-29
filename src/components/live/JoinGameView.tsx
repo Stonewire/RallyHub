@@ -1676,7 +1676,7 @@ export function JoinGameView({
               items to look at, no button to puzzle over (CF6). */}
           {inventoryEnabled ? (
             <div className="mb-4 flex gap-3">
-              <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold shadow-lg" style={{ backgroundColor: accent, color: eventTextColor }} onClick={openBuyItems}>
+              <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold text-balance shadow-lg" style={{ backgroundColor: accent, color: textOnAccent(accent) }} onClick={openBuyItems}>
                 <QrCode className="size-5" /> {t('join.inventory.buyItems')}
               </Button>
               {hasStore ? (

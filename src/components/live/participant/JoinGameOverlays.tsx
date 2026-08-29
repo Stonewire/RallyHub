@@ -6,6 +6,7 @@ import { X, ShoppingBag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
+import { textOnAccent } from '@/lib/live-event'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import type { Tables } from '@/types/helpers'
@@ -187,7 +188,7 @@ export function ParticipantExitDialog({
               type="submit"
               size="sm"
               disabled={verifying || !passwordValue.trim()}
-              style={{ backgroundColor: accent, color: 'white' }}
+              style={{ backgroundColor: accent, color: textOnAccent(accent) }}
             >
               {verifying ? t('join.exit.checking') : t('join.exit.continue')}
             </Button>

@@ -28,6 +28,7 @@ import {
   isEventLive,
   PARTICIPANT_TEAM_KEY,
   logoForEvent,
+  textOnAccent,
 } from '@/lib/live-event'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
 import { reportClientIssue } from '@/lib/client-diagnostics'
@@ -626,8 +627,8 @@ export function JoinEventPage() {
           ) : null}
           <button
             type="button"
-            className="min-h-14 w-full rounded-xl text-lg font-bold text-black disabled:opacity-60"
-            style={{ backgroundColor: accent }}
+            className="min-h-14 w-full rounded-xl text-lg font-bold text-balance disabled:opacity-60"
+            style={{ backgroundColor: accent, color: textOnAccent(accent) }}
             disabled={permissionRequesting}
             onClick={() => void approveCamera()}
           >
@@ -855,7 +856,7 @@ export function JoinEventPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                className="min-h-12 flex-1 rounded-lg border-2 border-black/15 text-base font-semibold"
+                className="min-h-12 flex-1 rounded-lg border-2 border-black/15 text-base font-semibold text-balance"
                 onClick={() => setTakeoverSlot(null)}
                 disabled={takeoverBusy}
               >
@@ -863,8 +864,8 @@ export function JoinEventPage() {
               </button>
               <button
                 type="button"
-                className="min-h-12 flex-1 rounded-lg text-base font-bold text-black disabled:opacity-50"
-                style={{ backgroundColor: accent }}
+                className="min-h-12 flex-1 rounded-lg text-base font-bold text-balance disabled:opacity-50"
+                style={{ backgroundColor: accent, color: textOnAccent(accent) }}
                 disabled={takeoverBusy || !takeoverPassword.trim()}
                 onClick={() => void takeoverTeam()}
               >
@@ -984,10 +985,7 @@ export function JoinEventPage() {
               <button
                 type="button"
                 className="xp-card flex-1 px-4 py-2.5 text-sm font-bold disabled:opacity-50"
-                style={{
-                  backgroundColor: accent,
-                  color: displayTextColorForEvent(event),
-                }}
+                style={{ backgroundColor: accent, color: textOnAccent(accent) }}
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void (claimSlot ? claimTeam() : joinAsNewTeam())}
               >
