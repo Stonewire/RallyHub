@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // ds-bundle, .ds-sync and .playwright-cli are local tooling artifacts
+  // (gitignored); linting them only ever reports rules they bring themselves.
+  globalIgnores(['dist', 'ds-bundle', '.ds-sync', '.playwright-cli']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

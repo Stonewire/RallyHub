@@ -11,6 +11,43 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## FIX-ROUND-2, SHIPPED V3.28.0, 29 Aug 2026
+
+All thirteen notes from Rumen's second test pass (memory:
+test-notes-2026-08-26, R2.1 to R2.13) plus two bugs found while verifying
+them. Everything else on his list passed.
+
+Live path notes worth carrying forward:
+- Back navigation now runs through a layer stack (src/lib/history-layers.ts
+  plus useBackLayer). The join page's old back trap swallowed every press; it
+  is now the floor UNDER the stack and only re-pushes its guard entry when no
+  layer is open. Wired layers: open game, store sheet, chat drawer, exit
+  dialog. Facilitator, display and admin surfaces were deliberately left out.
+- The display's bingo visualizer analyses the round's clip through an
+  AnalyserNode that is never connected to the context destination, which is
+  what keeps the screen silent. Muting the element instead feeds silence into
+  the graph and reads as zeros: measured against a production clip, do not
+  "fix" it by muting. Any failure falls back permanently to the seeded bars.
+- textOnAccent (src/lib/live-event.ts) is now WCAG relative luminance and is
+  the single helper for ink on any brand-painted control. New brand-coloured
+  controls must call it rather than hardcoding black or white.
+- White label reuses organizations.hide_platform_branding (no new column). It
+  now hides the client admin sidebar mark as well as the live watermark; the
+  org's own logo or name shows instead.
+
+Two bugs found during verification, both fixed:
+- A reset team slot could never be claimed again: it kept its
+  inventory_team_access row, and teams_guard_participant_update refuses a name
+  change on a team that still holds a private token. Six dead slots across
+  three events were released by the repair in 20260829121000; the new
+  reset_team RPC prevents recurrence.
+- "Start next run" always failed (V3.27.1): the pre-recurring
+  event_status_lifecycle_guard blocked the restart's flip to Ready. The guard
+  now recognises the one sanctioned re-armed shape.
+
+Accepted, not done this round: no server backstop for stage-type flags; the
+back-layer stack covers the player surface only.
+
 ## FIX-ROUND-1, planned 26 Aug 2026 (from Rumen's V3.22.0 test pass)
 
 Source: Rumen's 15 test notes (memory: test-notes-2026-08-26). Rules for this

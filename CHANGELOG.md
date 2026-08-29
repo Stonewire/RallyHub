@@ -5,6 +5,49 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.28.0 - 2026-08-29 (fix round 2: everything from the 29 Aug test pass)
+
+All thirteen notes from the second test pass, plus two bugs found while
+verifying them.
+
+Live surfaces:
+- Buttons painted in an event's brand colour now pick readable text instead of
+  assuming black, so the "Move team here" dialog and the camera prompt are
+  legible on a dark brand. Multi-word button labels no longer strand a single
+  word on its own line.
+- The phone's own back button and back swipe now close what is open in the app
+  (a game, the store, chat, a dialog) before leaving the event. The old guard
+  swallowed every back press, which is why nothing happened.
+- The bingo big screen's waveform follows the actual song. The display
+  analyses the round's clip silently; if a browser refuses, it falls back to
+  the previous animation, so the screen never goes still.
+- The Bulgarian keyboard now matches the iOS Bulgarian layout row for row.
+- Resetting a team clears its puzzle progress and store orders, so the next
+  team to take the slot starts clean.
+
+Organiser and staff:
+- Each stage box in the event editor is one charcoal block, not a dark strip
+  over a white body.
+- The status dropdown is back to plain coloured pills; the status picker and
+  the activation warning already explain the rest.
+- Facilitator toggles line up even when a label wraps to two lines.
+- Event managers can open their own profile again.
+- Logging in with a client account on the staff address now carries you to the
+  right address with your username already filled in.
+- The staff client page uses proper switches instead of tick boxes, and the
+  contact, admin login and team cards moved to the left column.
+- New White label switch per client: hides RallyHub branding everywhere that
+  client and their participants look.
+- The tablet link is now an app hub (join as a team, facilitator, client
+  admin) and its event list shows only what is running.
+
+Found while verifying:
+- Team slots that had been reset could never be joined again: the slot kept
+  the old device's token and the guard refused every new phone with "This
+  phone is not authorized for that team". Six dead slots across three events
+  were released.
+- "Start next run" on a recurring event always failed, fixed in V3.27.1.
+
 ## V3.27.1 - 2026-08-29 (recurring restart unblocked)
 
 "Start next run" always failed: the old billed-events-may-only-archive guard

@@ -22,7 +22,6 @@ export function useBackLayer(open: boolean, close: () => void) {
   // re-registering the layer on every render would push a history entry per
   // render.
   const closeRef = useRef(close)
-  // eslint-disable-next-line react-hooks/refs -- standard "keep ref fresh" idiom
   useEffect(() => {
     closeRef.current = close
   })
