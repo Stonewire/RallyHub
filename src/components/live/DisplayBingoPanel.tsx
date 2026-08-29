@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useBingoRun } from '@/hooks/use-bingo-run'
+import { useAudioLevels } from '@/hooks/use-audio-levels'
+import { bingoTrackPlaybackUrl, musicTracksFromGameConfig } from '@/lib/bingo-playback'
 import {
   bingoTeamGuessStates,
   bingoVisualizerBars,
@@ -25,6 +27,8 @@ type DisplayBingoPanelProps = {
   submissions: Tables<'submissions'>[]
   /** Event brand accent, used to tint the visualizer bars. */
   accent: string
+  /** The bingo game row, for resolving this round's clip (R2.4). */
+  game?: Tables<'games'> | null
   textClass: string
 }
 
@@ -44,6 +48,7 @@ export function DisplayBingoPanel({
   teams,
   submissions,
   accent,
+  game = null,
   textClass,
 }: DisplayBingoPanelProps) {
   const { t } = useTranslation('live')
@@ -53,6 +58,15 @@ export function DisplayBingoPanel({
   const currentTrackId = run?.playOrder[run.current_play_index] ?? null
   const playing = state.bingo_state === 'playing'
   const revealed = state.bingo_state === 'revealed'
+  // R2.4: the bars follow the actual song. Null whenever live analysis is not
+  // available (no clip, not playing, or the browser refused), and the seeded
+  // animation below carries the round instead.
+  const clipUrl = useMemo(() => {
+    if (!game || !currentTrackId) return null
+    const track = musicTracksFromGameConfig(game.config).find((t) => t.id === currentTrackId)
+    return track ? bingoTrackPlaybackUrl(track) : null
+  }, [game, currentTrackId])
+  const levels = useAudioLevels(clipUrl, playing, BAR_COUNT)
 
   // Remember which submission row carries each team's pending mark while the
   // round is open. Scoring reuses those exact rows (pending flips to approved
@@ -108,34 +122,47 @@ export function DisplayBingoPanel({
             </p>
           </div>
         ) : null}
-        {/* Pseudo-waveform: seeded CSS bars driven by playback state and time,
-            deliberately NOT the Web Audio API. Real FFT needs AudioContext plus
-            MediaElementSource, and rerouting media through an audio graph can
-            silence cross-origin audio: a silent display would break a live
-            event. Real FFT stays a later upgrade. No song title, artist or any
-            metadata is ever shown here. */}
+        {/* The bars follow the song the room is hearing: the display loads the
+            same clip and analyses it silently (see useAudioLevels, which never
+            connects the analyser to the speakers). When live analysis is not
+            available the seeded CSS animation carries the round instead, so
+            the screen never goes still. No song title, artist or any metadata
+            is ever shown here. */}
         <div
           aria-hidden
           className={`flex h-[34svh] max-h-[380px] w-full max-w-4xl items-center justify-center gap-[0.45%] transition-opacity duration-500 ${
             playing ? 'opacity-100' : 'opacity-40'
           }`}
         >
-          {bars.map((bar, i) => (
-            <div
-              key={i}
-              className="rh-eq-bar h-full min-w-0 flex-1 rounded-full"
-              style={
-                {
-                  background: `linear-gradient(180deg, rgba(255,255,255,0.75), ${accent})`,
-                  animationDuration: `${bar.durationMs}ms`,
-                  animationDelay: `-${bar.delayMs}ms`,
-                  animationPlayState: playing ? 'running' : 'paused',
-                  '--eq-min': String(bar.min),
-                  '--eq-max': String(bar.max),
-                } as CSSProperties
-              }
-            />
-          ))}
+          {bars.map((bar, i) => {
+            const level = levels?.[i]
+            // Live level drives the height directly; the seeded animation is
+            // switched off for that bar so the two never fight.
+            const style = (
+              level === undefined
+                ? {
+                    background: `linear-gradient(180deg, rgba(255,255,255,0.75), ${accent})`,
+                    animationDuration: `${bar.durationMs}ms`,
+                    animationDelay: `-${bar.delayMs}ms`,
+                    animationPlayState: playing ? 'running' : 'paused',
+                    '--eq-min': String(bar.min),
+                    '--eq-max': String(bar.max),
+                  }
+                : {
+                    background: `linear-gradient(180deg, rgba(255,255,255,0.75), ${accent})`,
+                    animation: 'none',
+                    transform: `scaleY(${Math.max(0.06, Math.min(1, level))})`,
+                    transition: 'transform 90ms linear',
+                  }
+            ) as CSSProperties
+            return (
+              <div
+                key={i}
+                className="rh-eq-bar h-full min-w-0 flex-1 origin-bottom rounded-full"
+                style={style}
+              />
+            )
+          })}
         </div>
       </div>
       {/* Team circles: neutral while guessing is open, team colour the moment

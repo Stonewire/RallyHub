@@ -319,6 +319,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           stageIndex={state.current_stage_index}
           gameId={stage.gameId ?? null}
           gameName={bingoGame?.name ?? null}
+          game={bingoGame ?? null}
           state={state}
           teams={namedTeams}
           submissions={submissions}
