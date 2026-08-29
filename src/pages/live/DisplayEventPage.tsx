@@ -428,16 +428,22 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           </p>
         ) : null}
         <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
-          {question.answers.map((a) => {
+          {question.answers.map((a, ai) => {
+            const binary = question.answerStyle === 'binary'
             const revealed = state.quiz_state === 'revealed'
             const correct = a.id === state.quiz_correct_answer_id
             let cls =
               'xp-quiz-option rounded-2xl px-6 py-5 font-sans text-lg font-semibold md:text-xl '
+            if (binary) cls += 'py-10 text-center text-2xl md:text-4xl '
             if (revealed) {
               // Only the correct answer is highlighted (green). What each team
               // picked is shown by the team names below, not by colouring options.
               if (correct) cls += 'bg-green-600/90 text-white ring-2 ring-green-300'
               else cls += 'bg-white/15 text-white/50 backdrop-blur-sm'
+            } else if (binary) {
+              // Same positional green/red as the phones, so a team looking up
+              // sees the buttons it is holding.
+              cls += ai === 0 ? 'bg-emerald-500/90 text-white' : 'bg-rose-500/90 text-white'
             } else {
               cls += 'bg-white/15 backdrop-blur-sm'
             }

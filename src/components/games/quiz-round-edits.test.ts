@@ -56,6 +56,18 @@ describe('removeRound', () => {
     expect(next.rounds?.map((r) => r.id)).toEqual(['r2'])
     expect(next.questions).toEqual([])
   })
+
+  it('turns rounds off when the last one goes, so the editor stays usable', () => {
+    const one: GameConfig = { ...config, rounds_enabled: true }
+    const next = removeRound(removeRound(one, 'r1', null), 'r2', null)
+    expect(next.rounds).toEqual([])
+    expect(next.rounds_enabled).toBe(false)
+  })
+
+  it('keeps rounds on while any round remains', () => {
+    const next = removeRound({ ...config, rounds_enabled: true }, 'r1', null)
+    expect(next.rounds_enabled).toBe(true)
+  })
 })
 
 describe('moveTargets', () => {

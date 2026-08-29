@@ -11,11 +11,27 @@ import { Input } from '@/components/ui/input'
 import { NumberField } from '@/components/ui/number-field'
 import { Label } from '@/components/ui/label'
 import { SegmentedPill } from '@/components/neo-minimal'
+import { QuizImportQuestionsModal } from '@/components/games/QuizImportQuestionsModal'
 import { mediaAccept, questionMedia } from '@/lib/quiz-media'
-import type { GameConfig, QuizQuestion, QuizRound, QuizMediaKind } from '@/types/game-config'
+import type {
+  GameConfig,
+  QuizAnswer,
+  QuizAnswerStyle,
+  QuizQuestion,
+  QuizRound,
+  QuizMediaKind,
+} from '@/types/game-config'
 
 function newId() {
   return crypto.randomUUID()
+}
+
+/** The two answers a binary question starts with. Both stay editable. */
+function binaryAnswers(): QuizAnswer[] {
+  return [
+    { id: newId(), text: i18n.t('admin:games.quiz.binaryTrue') },
+    { id: newId(), text: i18n.t('admin:games.quiz.binaryFalse') },
+  ]
 }
 
 function emptyQuestion(roundId?: string): QuizQuestion {
@@ -81,6 +97,100 @@ function QuestionCard({
         onChange={(e) => onUpdate({ text: e.target.value })}
         className="bg-background"
       />
+      <QuestionAnswers q={q} onUpdate={onUpdate} />
+      <QuestionMedia q={q} onUpdate={onUpdate} onUploadMedia={onUploadMedia} />
+    </Card>
+  )
+}
+
+
+/** Multiple choice starts at four; two is the floor and six the ceiling. */
+const MIN_ANSWERS = 2
+const MAX_ANSWERS = 6
+
+/**
+ * The answers, in whichever shape the question uses.
+ *
+ * Multiple choice is the original list, now with a delete per row and an add
+ * button, so a question can be a straight pair or run to six. Binary is the
+ * two-button shape (True/False by default, any wording the organiser types)
+ * that the player screen shows as two large colour-coded buttons.
+ *
+ * Switching to binary keeps a question that already had exactly two answers
+ * and resets anything longer to True/False; switching back leaves the pair as
+ * the first two of a normal list.
+ */
+function QuestionAnswers({
+  q,
+  onUpdate,
+}: {
+  q: QuizQuestion
+  onUpdate: (patch: Partial<QuizQuestion>) => void
+}) {
+  const { t } = useTranslation('admin')
+  const binary = q.answerStyle === 'binary'
+  // What the question looked like before it was turned into a pair, so a
+  // mis-tap on the pill can be undone by tapping back. Editing-session only:
+  // once the quiz is saved as binary, the old answers are genuinely gone.
+  const [replaced, setReplaced] = useState<Pick<
+    QuizQuestion,
+    'answers' | 'correctAnswerId'
+  > | null>(null)
+
+  function setStyle(style: QuizAnswerStyle) {
+    if (style === (q.answerStyle ?? 'choices')) return
+    if (style === 'binary') {
+      // A question that already has exactly two answers keeps them (it was a
+      // pair all along). Anything longer resets to True/False rather than
+      // silently keeping the first two, which would throw away the marked
+      // correct answer whenever it sat third or fourth.
+      const kept = q.answers.filter((a) => a.text.trim())
+      const answers = kept.length === 2 ? kept : binaryAnswers()
+      setReplaced(
+        answers === kept ? null : { answers: q.answers, correctAnswerId: q.correctAnswerId },
+      )
+      onUpdate({
+        answerStyle: 'binary',
+        answers,
+        correctAnswerId: answers.some((a) => a.id === q.correctAnswerId)
+          ? q.correctAnswerId
+          : answers[0].id,
+      })
+      return
+    }
+    onUpdate({ answerStyle: 'choices', ...(replaced ?? {}) })
+    setReplaced(null)
+  }
+
+  function updateAnswer(id: string, text: string) {
+    onUpdate({
+      answers: q.answers.map((ans) => (ans.id === id ? { ...ans, text } : ans)),
+    })
+  }
+
+  function removeAnswer(id: string) {
+    const answers = q.answers.filter((a) => a.id !== id)
+    onUpdate({
+      answers,
+      // The correct answer cannot point at a row that is gone.
+      correctAnswerId: answers.some((a) => a.id === q.correctAnswerId)
+        ? q.correctAnswerId
+        : (answers[0]?.id ?? ''),
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <SegmentedPill
+        size="sm"
+        aria-label={t('games.quiz.answerStyleLabel')}
+        value={binary ? 'binary' : 'choices'}
+        onChange={(next) => setStyle(next as QuizAnswerStyle)}
+        options={[
+          { value: 'choices', label: t('games.quiz.answerStyleChoices') },
+          { value: 'binary', label: t('games.quiz.answerStyleBinary') },
+        ]}
+      />
       {q.answers.map((a, ai) => (
         <div key={a.id} className="flex items-center gap-2">
           <input
@@ -88,26 +198,51 @@ function QuestionCard({
             name={`correct-${q.id}`}
             checked={q.correctAnswerId === a.id}
             onChange={() => onUpdate({ correctAnswerId: a.id })}
+            aria-label={t('games.quiz.markCorrectAnswer', { number: ai + 1 })}
           />
           <Input
             value={a.text}
-            placeholder={t('games.quiz.answerNumber', { number: ai + 1 })}
-            onChange={(e) =>
-              onUpdate({
-                answers: q.answers.map((ans) =>
-                  ans.id === a.id ? { ...ans, text: e.target.value } : ans,
-                ),
-              })
+            placeholder={
+              binary
+                ? t('games.quiz.binaryAnswerPlaceholder', { number: ai + 1 })
+                : t('games.quiz.answerNumber', { number: ai + 1 })
             }
+            onChange={(e) => updateAnswer(a.id, e.target.value)}
             className="bg-background flex-1"
           />
+          {/* Binary is a pair by definition, so only choices can lose a row. */}
+          {!binary && q.answers.length > MIN_ANSWERS ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('games.quiz.removeAnswerNumber', { number: ai + 1 })}
+              title={t('games.quiz.removeAnswer')}
+              onClick={() => removeAnswer(a.id)}
+            >
+              <IconTrash className="size-4" />
+            </Button>
+          ) : null}
         </div>
       ))}
-      <QuestionMedia q={q} onUpdate={onUpdate} onUploadMedia={onUploadMedia} />
-    </Card>
+      {!binary && q.answers.length < MAX_ANSWERS ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            onUpdate({
+              answers: [...q.answers, { id: newId(), text: '' }],
+            })
+          }
+        >
+          <IconPlus className="size-4" />
+          {t('games.quiz.addAnswer')}
+        </Button>
+      ) : null}
+    </div>
   )
 }
-
 
 /**
  * What a question carries besides its text.
@@ -260,6 +395,10 @@ function QuestionMedia({
 type QuizEditorProps = {
   config: GameConfig
   setConfig: Dispatch<SetStateAction<GameConfig>>
+  /** Scopes the import picker to this org's other quizzes. */
+  organizationId: string
+  /** Excluded from the import picker; absent on a quiz not saved yet. */
+  gameId?: string | null
   onUploadQuestionPhoto: (questionId: string, file: File) => Promise<string>
   /**
    * Raised by a round's delete button. The parent decides what happens to the
@@ -271,6 +410,8 @@ type QuizEditorProps = {
 export function QuizEditor({
   config,
   setConfig,
+  organizationId,
+  gameId,
   onUploadQuestionPhoto,
   onDeleteRound,
 }: QuizEditorProps) {
@@ -281,11 +422,33 @@ export function QuizEditor({
   const [collapsedRounds, setCollapsedRounds] = useState<Record<string, boolean>>({})
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set())
   const [dragQuestionId, setDragQuestionId] = useState<string | null>(null)
+  const [importRoundId, setImportRoundId] = useState<string | null | undefined>(undefined)
   const [dropTarget, setDropTarget] = useState<{
     roundId: string | null
     index: number
   } | null>(null)
 
+
+  /**
+   * Drops copied questions into the round the organiser opened the picker
+   * from, exactly where a new question would have gone.
+   */
+  function importQuestions(roundId: string | null, copies: QuizQuestion[]) {
+    if (copies.length === 0) return
+    const placed = copies.map((q) => ({ ...q, roundId: roundId ?? null }))
+    setConfig((c) => {
+      const nextQuestions = [...(c.questions ?? []), ...placed]
+      const nextRounds =
+        roundId && c.rounds_enabled
+          ? (c.rounds ?? []).map((r) =>
+              r.id === roundId
+                ? { ...r, questionIds: [...r.questionIds, ...placed.map((q) => q.id)] }
+                : r,
+            )
+          : c.rounds
+      return { ...c, questions: nextQuestions, rounds: nextRounds }
+    })
+  }
 
   function addQuestion(roundId: string | null) {
     const q = emptyQuestion(roundId ?? undefined)
@@ -515,16 +678,27 @@ export function QuizEditor({
               : ''
           }
         >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => addQuestion(roundId)}
-          >
-            <IconPlus className="size-4" />
-            {t('games.quiz.newQuestion')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => addQuestion(roundId)}
+            >
+              <IconPlus className="size-4" />
+              {t('games.quiz.newQuestion')}
+            </Button>
+            {/* Reuse from another quiz, right where a new question is added. */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setImportRoundId(roundId)}
+            >
+              {t('games.quiz.importFromQuiz')}
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -659,6 +833,18 @@ export function QuizEditor({
       ) : (
         renderQuestionList(null)
       )}
+
+      {importRoundId !== undefined ? (
+        <QuizImportQuestionsModal
+          organizationId={organizationId}
+          currentGameId={gameId}
+          onClose={() => setImportRoundId(undefined)}
+          onImport={(copies) => {
+            importQuestions(importRoundId ?? null, copies)
+            setImportRoundId(undefined)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
@@ -684,6 +870,13 @@ export function validateQuizConfig(config: GameConfig): string | null {
     (q) => (q.answers ?? []).filter((a) => a.text?.trim()).length < 2,
   )
   if (thin >= 0) return i18n.t('admin:games.quiz.errorQuestionNeedsAnswers', { number: thin + 1 })
+
+  // Every row has to carry text, not just two of them. Since answers can be
+  // added and removed, a blank row would otherwise reach players as an
+  // unlabelled button they can tap and be marked wrong on.
+  const emptyRow = questions.findIndex((q) => (q.answers ?? []).some((a) => !a.text?.trim()))
+  if (emptyRow >= 0)
+    return i18n.t('admin:games.quiz.errorAnswerNeedsText', { number: emptyRow + 1 })
 
   const unanswered = questions.findIndex(
     (q) => !q.correctAnswerId || !(q.answers ?? []).some((a) => a.id === q.correctAnswerId),

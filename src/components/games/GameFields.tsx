@@ -246,6 +246,10 @@ export function GameFields({
                 <QuizEditor
                   config={config}
                   setConfig={setConfig}
+                  organizationId={organizationId}
+                  // assetId is the game id when editing; when creating it is a
+                  // fresh id that matches nothing, so nothing is excluded.
+                  gameId={assetId}
                   onDeleteRound={(roundId) => setDeleteRoundId(roundId)}
                   // Returns the URL; QuestionMedia writes it to the right field
                   // for the kind that is selected.

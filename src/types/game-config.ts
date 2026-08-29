@@ -47,11 +47,22 @@ export type CrosswordLayout = {
 /** What a question carries besides its text. Defaults to nothing. */
 export type QuizMediaKind = 'none' | 'photo' | 'video' | 'audio'
 
+/**
+ * How the answers are presented.
+ *
+ * 'choices' is the original multiple choice. 'binary' is a two-answer question
+ * (True/False, Yes/No, or any pair the organiser types) shown as two big
+ * colour-coded buttons. Absent means 'choices', so every existing question is
+ * unchanged.
+ */
+export type QuizAnswerStyle = 'choices' | 'binary'
+
 export type QuizQuestion = {
   id: string
   text: string
   answers: QuizAnswer[]
   correctAnswerId: string
+  answerStyle?: QuizAnswerStyle
   /** @deprecated superseded by mediaKind/mediaUrl; still read for old questions. */
   photoUrl?: string | null
   /**

@@ -1865,14 +1865,29 @@ export function JoinGameView({
               </div>
             </div>
           </div>
-          <div className="grid shrink-0 grid-cols-1 gap-2.5 sm:gap-3 lg:grid-cols-4">
-            {q.answers.map((a) => {
+          {/* A binary question (True/False, Yes/No, any pair the organiser
+              typed) is two large buttons instead of the choice grid, tinted
+              green and red BY POSITION so the colour never hints at which one
+              is right. */}
+          <div
+            className={
+              q.answerStyle === 'binary'
+                ? 'grid shrink-0 grid-cols-2 gap-3 sm:gap-4'
+                : 'grid shrink-0 grid-cols-1 gap-2.5 sm:gap-3 lg:grid-cols-4'
+            }
+          >
+            {q.answers.map((a, ai) => {
+              const binary = q.answerStyle === 'binary'
               const selected = (quizMyAnswerId ?? quizAnswer) === a.id
               const faded = quizLocked && !selected
               const revealed = state.quiz_state === 'revealed'
               const isCorrect = a.id === quizCorrectAnswerId
-              let cls =
-                'xp-quiz-option flex w-full items-center px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg lg:min-h-24 lg:justify-center lg:text-center '
+              // Size and centring belong to the base class, not to one branch
+              // of the colour chain below, or a selected or revealed binary
+              // button would shrink and slide to the left.
+              let cls = binary
+                ? 'xp-quiz-option flex min-h-28 w-full items-center justify-center px-5 py-6 text-center text-xl font-bold transition-colors sm:min-h-36 lg:text-2xl '
+                : 'xp-quiz-option flex w-full items-center px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg lg:min-h-24 lg:justify-center lg:text-center '
               let style: CSSProperties | undefined
               // Solid white answers: they are the one thing on this screen to
               // press, and a tinted panel over the event's own background read
@@ -1887,6 +1902,13 @@ export function JoinGameView({
                   backgroundColor: STANDBY_ACCENT,
                   color: textOnAccent(STANDBY_ACCENT),
                 }
+              } else if (binary) {
+                // First button green, second red, whatever they are called.
+                cls +=
+                  ai === 0
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-500/90'
+                    : 'bg-rose-500 text-white hover:bg-rose-500/90'
+                if (faded) cls += ' opacity-45'
               } else if (faded) {
                 cls += 'cursor-not-allowed bg-white/45 text-black/45'
               } else {

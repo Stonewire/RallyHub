@@ -51,6 +51,11 @@ export function removeRound(
 
   return {
     ...config,
+    // Rounds on with no rounds left is a dead end: the editor draws a
+    // placeholder round card that cannot be opened, so New question and
+    // Import sit behind a card that never expands. Deleting the last round
+    // turns rounds off instead, which is the same quiz without the grouping.
+    rounds_enabled: rounds.length > 0 ? config.rounds_enabled : false,
     rounds: rounds.map((round) => ({
       ...round,
       questionIds: round.questionIds.filter((id) => !doomedIds.has(id)),

@@ -11,6 +11,49 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## QUIZ-1, SHIPPED V3.29.0, 29 Aug 2026
+
+Three quiz features Rumen asked for after the fix rounds.
+
+- **Two-button questions.** `QuizQuestion.answerStyle` (`'choices' | 'binary'`,
+  absent = choices, so every saved question is unchanged). Binary renders as
+  two large buttons: positional emerald and rose on the player view and the
+  big screen, side by side, bottom-anchored on the phone. The colours are
+  positional ONLY and must never track `correctAnswerId`; a selected answer
+  paints in the event accent exactly like multiple choice, so the colour never
+  leaks the answer. Labels default to True/False (locale-aware) and are
+  editable, so Yes/No works too.
+- **Variable answer count**, 2 to 6. Deleting the answer that held the correct
+  mark moves the mark to the first remaining answer. Switching an existing
+  question to binary resets to True/False unless it already had exactly two
+  answers, because keeping "the first two" silently discarded the correct
+  answer whenever it sat third or fourth (caught in browser QA before ship).
+- **Import from another quiz**, button beside "New question" in each round.
+  Copies get fresh ids for the question and every answer and drop `roundId`,
+  so an imported question is independent of its source from the moment it
+  lands.
+
+Facilitator console needed no change: it already lays answers out two-up.
+
+Found by review while building this, fixed in the same version:
+- Question media is stored at a path keyed by the QUESTION id and uploaded with
+  upsert, so two questions sharing a `mediaUrl` are not two copies. Import now
+  duplicates the storage object via `copyGameFile` (`src/lib/game-upload.ts`),
+  falling back to the shared URL if the copy fails, since a shared file still
+  plays and losing the attachment would be worse. Anything else that clones a
+  question must do the same; `duplicateSelected` inside one quiz still shares.
+- `validateQuizConfig` now requires text on EVERY answer row, not just two of
+  them. With rows addable and removable, a blank row otherwise reached players
+  as an unlabelled button, and could even be marked correct.
+- `removeRound` clears `rounds_enabled` when the last round goes. Rounds on
+  with zero rounds drew a placeholder round card whose id was regenerated every
+  render, so it could never be expanded and "New question" was unreachable.
+
+Known, NOT fixed (pre-existing, wider than this work): `setRoundCount` in
+`GameFields.tsx` turns rounds on without assigning existing questions to a
+round, so any question with a null `roundId` disappears from the editor the
+moment rounds are enabled. It still plays; it just cannot be seen or edited.
+
 ## FIX-ROUND-2, SHIPPED V3.28.0, 29 Aug 2026
 
 All thirteen notes from Rumen's second test pass (memory:

@@ -5,6 +5,26 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.29.0 - 2026-08-29 (quiz: two-button questions, answer count, import)
+
+- Quiz questions can now be **Two buttons** instead of multiple choice: a pair
+  of large colour-coded buttons (green and red by position, never by which one
+  is right) that fill the bottom of the player's screen and the big screen.
+  The labels default to True/False and can be typed over, so Yes/No or any
+  other pair works. Existing questions are untouched and stay multiple choice.
+- The number of answers per question is no longer fixed at four. Add up to six
+  or delete down to two; deleting the answer that was marked correct moves the
+  mark to the first remaining one.
+- **Import from another quiz** next to "New question": pick one of your other
+  quizzes, tick the questions you want (or Select all), and they are copied in.
+  Copies are independent, attached photos and audio included, so nothing you do
+  to either quiz afterwards reaches the other.
+- Saving a quiz now refuses an answer left blank, instead of shipping an
+  unlabelled button players could tap and be marked wrong on.
+- Deleting the last round of a quiz turns rounds off rather than leaving a
+  round card that could not be opened, which had made "New question"
+  unreachable.
+
 ## V3.28.0 - 2026-08-29 (fix round 2: everything from the 29 Aug test pass)
 
 All thirteen notes from the second test pass, plus two bugs found while
