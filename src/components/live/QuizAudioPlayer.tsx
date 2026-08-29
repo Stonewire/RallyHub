@@ -2,6 +2,8 @@ import { Pause, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { textOnAccent } from '@/lib/live-event'
+
 /** Bars drawn across the box; enough to read as a waveform, few enough to tap through. */
 const BAR_COUNT = 64
 
@@ -114,12 +116,14 @@ export function QuizAudioPlayer({
         onClick={toggle}
         aria-label={playing ? t('player.pause') : t('player.play')}
         className="xp-interactive flex size-16 shrink-0 items-center justify-center rounded-full shadow-lg active:scale-95 sm:size-20"
-        style={{ backgroundColor: accentColor }}
+        // The glyph is filled with currentColor, so the accent decides it the
+        // same way it decides any other ink painted on the brand.
+        style={{ backgroundColor: accentColor, color: textOnAccent(accentColor) }}
       >
         {playing ? (
-          <Pause className="size-7 fill-current text-black sm:size-9" />
+          <Pause className="size-7 fill-current sm:size-9" />
         ) : (
-          <Play className="ml-1 size-7 fill-current text-black sm:size-9" />
+          <Play className="ml-1 size-7 fill-current sm:size-9" />
         )}
       </button>
 

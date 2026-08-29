@@ -10,7 +10,7 @@ import {
   letterRowsFor,
   type KeyboardAlphabet,
 } from '@/lib/keyboard-layouts'
-import { textOnAccent } from '@/lib/live-event'
+import { LIVE_LABEL_WRAP_CLASS, textOnAccent } from '@/lib/live-event'
 import { playKeyClickSound, type KeyClickKind } from '@/lib/sounds'
 import type { WordleCellState } from '@/lib/puzzle-engine'
 
@@ -532,7 +532,7 @@ export function VirtualKeyboard({
                   backgroundColor: accentColor ?? UNUSED_KEY_COLOR,
                   color: accentColor ? textOnAccent(accentColor) : '#FFFFFF',
                 }}
-                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50 md:h-12"
+                className={`flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-bold uppercase active:scale-95 disabled:opacity-50 md:h-12 ${LIVE_LABEL_WRAP_CLASS}`}
               >
                 <CornerDownLeft className="size-4" />
                 {submitText}

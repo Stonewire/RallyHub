@@ -34,6 +34,8 @@
     font-size: 1.125rem;
     font-weight: 700;
     line-height: 1.3;
+    /* A two-line name splits evenly rather than leaving one word alone. */
+    text-wrap: balance;
   }
 
   @media (min-width: 640px) {
@@ -55,9 +57,13 @@
     }
   }
 
+  /* Long titles and team names wrap at spaces. `anywhere` used to break inside
+     a word wherever the line ran out, stranding a single letter on the next
+     row; `break-word` only splits a word that cannot fit on a line of its own. */
   .experience-scope .xp-wrap-text {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
   }
 
   .experience-scope .font-display,

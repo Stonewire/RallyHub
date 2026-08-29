@@ -324,6 +324,7 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           teams={namedTeams}
           submissions={submissions}
           accent={brandAccent}
+          soundUnlocked={soundEnabled}
           textClass={textClass}
         />
       )
@@ -599,6 +600,9 @@ export function DisplayEventPage({ embedded: embeddedProp }: DisplayEventPagePro
           type="button"
           onClick={() => {
             unlockAudioFromUserGesture('full')
+            // Also re-arms the bingo visualizer's live analysis: a display
+            // opened onto a round already in progress had its silent analyser
+            // copy refused by the autoplay policy behind this very gate.
             setSoundEnabled(true)
           }}
           className="fixed inset-0 z-[10050] flex flex-col items-center justify-center gap-6 bg-black/90 px-8 text-center text-white"

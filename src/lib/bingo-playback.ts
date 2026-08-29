@@ -102,3 +102,118 @@ export function shouldTriggerBingoLockAndReveal(
 ): boolean {
   return remainingSeconds >= 0 && remainingSeconds <= revealLeadSeconds
 }
+
+/**
+ * Where the room is in the song that is playing right now (R2.4 sync).
+ *
+ * The audible clip only ever plays on the facilitator's device, so the audience
+ * display cannot analyse it: it loads the same clip and analyses that copy
+ * silently. Without an anchor that copy starts at 0:00 whenever the display
+ * notices the state flip, which on an anonymous display can be a whole 4s poll
+ * late, and a display opened or reloaded mid-song stayed out for the rest of
+ * the track.
+ *
+ * `atMs` is the writing device's wall clock. Both ends are network-time synced
+ * in practice, and even a second of skew is far better than the seconds of
+ * drift this replaces.
+ */
+export type BingoTrackAnchor = {
+  /** The track the position belongs to. An anchor for any other track is ignored. */
+  trackId: string
+  positionSeconds: number
+  /** Epoch millis, taken on the facilitator's device at the moment of measuring. */
+  atMs: number
+  paused: boolean
+}
+
+/** Drift a display puts up with before correcting, in seconds. */
+export const BINGO_SYNC_TOLERANCE_SECONDS = 0.75
+
+/**
+ * An anchor older than this is junk rather than something to seek to: a row
+ * left over from an earlier round would otherwise send the display's copy far
+ * past the end of the clip.
+ */
+const MAX_ANCHOR_AGE_SECONDS = 900
+
+/** Read the jsonb column back, tolerating anything an older client left there. */
+export function parseBingoTrackAnchor(raw: unknown): BingoTrackAnchor | null {
+  if (!raw || typeof raw !== 'object') return null
+  const a = raw as Record<string, unknown>
+  const trackId = typeof a.trackId === 'string' ? a.trackId.trim() : ''
+  if (!trackId) return null
+  const positionSeconds = typeof a.positionSeconds === 'number' ? a.positionSeconds : Number.NaN
+  const atMs = typeof a.atMs === 'number' ? a.atMs : Number.NaN
+  if (!Number.isFinite(positionSeconds) || positionSeconds < 0) return null
+  if (!Number.isFinite(atMs) || atMs <= 0) return null
+  return { trackId, positionSeconds, atMs, paused: a.paused === true }
+}
+
+/**
+ * Stable identity for React deps and effect keys: the parsed anchor is a fresh
+ * object on every poll, so passing it around directly would churn.
+ */
+export function bingoTrackAnchorKey(anchor: BingoTrackAnchor | null): string {
+  if (!anchor) return 'none'
+  return `${anchor.trackId}|${anchor.positionSeconds}|${anchor.atMs}|${anchor.paused ? 1 : 0}`
+}
+
+export type BingoAnchorTargetParams = {
+  anchor: BingoTrackAnchor | null
+  /** The track the reader is playing. Must match, or the anchor is not ours. */
+  trackId: string | null
+  nowMs: number
+  /** Clip length when known, so an anchor past the end can be rejected. */
+  durationSeconds?: number | null
+}
+
+/** Seconds into the clip the room is at right now, or null when unusable. */
+export function bingoAnchorTargetSeconds({
+  anchor,
+  trackId,
+  nowMs,
+  durationSeconds,
+}: BingoAnchorTargetParams): number | null {
+  if (!anchor || !trackId || anchor.trackId !== trackId) return null
+  const elapsedSeconds = anchor.paused ? 0 : (nowMs - anchor.atMs) / 1000
+  // A stamp from the future by more than ordinary clock jitter, or one old
+  // enough to belong to an earlier round, says nothing useful.
+  if (elapsedSeconds < -2 || elapsedSeconds > MAX_ANCHOR_AGE_SECONDS) return null
+  const target = anchor.positionSeconds + Math.max(0, elapsedSeconds)
+  if (
+    typeof durationSeconds === 'number' &&
+    Number.isFinite(durationSeconds) &&
+    durationSeconds > 0 &&
+    target > durationSeconds
+  ) {
+    // The room is already past the end of this clip (mid-crossfade, say).
+    // Seeking to the tail would only stall the analyser.
+    return null
+  }
+  return target
+}
+
+export type BingoSyncSeekParams = BingoAnchorTargetParams & {
+  /** Where the reader's own copy currently is. */
+  currentSeconds: number
+  toleranceSeconds?: number
+}
+
+/**
+ * Where to seek the display's silent copy, or null to leave it alone.
+ *
+ * Correcting only past a tolerance matters: the copy is never heard, so a
+ * sub-second error costs nothing, while seeking on every check would make the
+ * bars stutter as the element re-buffers each time.
+ */
+export function bingoSyncSeekSeconds({
+  currentSeconds,
+  toleranceSeconds = BINGO_SYNC_TOLERANCE_SECONDS,
+  ...target
+}: BingoSyncSeekParams): number | null {
+  const seconds = bingoAnchorTargetSeconds(target)
+  if (seconds === null) return null
+  if (!Number.isFinite(currentSeconds)) return seconds
+  if (Math.abs(seconds - currentSeconds) <= toleranceSeconds) return null
+  return seconds
+}

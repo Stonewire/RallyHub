@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { bingoSyncSeekSeconds, type BingoTrackAnchor } from '@/lib/bingo-playback'
+
 /**
  * Live frequency levels for the song the room is hearing, for the display's
  * bingo visualizer (R2.4).
  *
  * The audible clip plays on the facilitator's device, so the display cannot
  * analyse it directly. It loads the same clip itself and analyses that,
- * started from the same moment the round goes to 'playing', which is close
- * enough for bars that dance to the music.
+ * following the facilitator's position anchor from event_state so the bars sit
+ * on the sound rather than on a guess. The anchor is re-read on a timer, not
+ * just at the start, because a start-only offset is the drift for the whole
+ * song: a display that missed Realtime and caught the flip on the 4s poll was
+ * four seconds behind the room for the entire track.
  *
  * The display must stay SILENT, and the way that is done matters. Muting the
  * element does not work: a muted element feeds silence into the audio graph,
@@ -18,17 +23,58 @@ import { useEffect, useRef, useState } from 'react'
  *
  * Every step is best effort: an unsupported browser, a blocked autoplay, a
  * missing CORS header (which taints the media and yields silence) all fall
- * back permanently for the session, and the caller keeps its seeded bars.
+ * back to the caller's seeded bars. That fallback is scoped to the clip and
+ * the retry key that failed, never to the whole mount: one bad track, or one
+ * play() the autoplay policy refused before the display's sound gate was
+ * tapped, used to kill live analysis for the rest of the game.
  */
 
 const SILENT_GRACE_MS = 1500
+const SYNC_CHECK_MS = 1500
 
-export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: number) {
+export type AudioLevelsOptions = {
+  clipUrl: string | null
+  /** True while the room is hearing this clip. */
+  active: boolean
+  bins: number
+  /** Track the clip belongs to. An anchor for any other track is not ours. */
+  trackId?: string | null
+  /** Where the room is in the song, straight off event_state. */
+  anchor?: BingoTrackAnchor | null
+  /**
+   * Re-arms analysis after a failure whenever it changes. The display bumps it
+   * when its sound gate is tapped: a play() the autoplay policy refused while
+   * the gate was up succeeds once the page has been touched.
+   */
+  retryKey?: string | number
+}
+
+export function useAudioLevels({
+  clipUrl,
+  active,
+  bins,
+  trackId = null,
+  anchor = null,
+  retryKey = '',
+}: AudioLevelsOptions): number[] | null {
   const [levels, setLevels] = useState<number[] | null>(null)
-  const failedRef = useRef(false)
+  const failedKeyRef = useRef<string | null>(null)
+  // Read fresh inside the animation loop rather than depended on, so a new
+  // anchor arriving every poll corrects the position instead of tearing the
+  // whole audio graph down and starting the clip again.
+  const anchorRef = useRef(anchor)
+  const trackIdRef = useRef(trackId)
+
+  // Declared before the analyser effect so a fresh anchor is in place by the
+  // time that effect (re)starts on the same render.
+  useEffect(() => {
+    anchorRef.current = anchor
+    trackIdRef.current = trackId
+  })
 
   useEffect(() => {
-    if (!clipUrl || !playing || failedRef.current) {
+    const attemptKey = `${clipUrl}|${retryKey}`
+    if (!clipUrl || !active || failedKeyRef.current === attemptKey) {
       setLevels(null)
       return
     }
@@ -37,7 +83,7 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
       webkitAudioContext?: typeof AudioContext
     }).webkitAudioContext
     if (!AudioCtx) {
-      failedRef.current = true
+      failedKeyRef.current = attemptKey
       return
     }
 
@@ -52,7 +98,7 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
     element.src = clipUrl
 
     function giveUp() {
-      failedRef.current = true
+      failedKeyRef.current = attemptKey
       if (!cancelled) setLevels(null)
     }
 
@@ -67,11 +113,59 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
       source.connect(analyser)
 
       const data = new Uint8Array(analyser.frequencyBinCount)
-      const startedAt = performance.now()
+      let graceUntil = performance.now() + SILENT_GRACE_MS
+      let nextSyncAt = 0
       let sawSound = false
+
+      /**
+       * Pull the copy back onto the room's position, and follow the room's
+       * transport. Nobody hears this element, so a correction costs nothing
+       * beyond a re-buffer, which is why it only fires past a tolerance.
+       */
+      const syncToRoom = () => {
+        const roomAnchor = anchorRef.current
+        const ourTrack = trackIdRef.current
+        const roomPaused = Boolean(
+          roomAnchor && roomAnchor.trackId === ourTrack && roomAnchor.paused,
+        )
+        if (roomPaused) {
+          if (!element.paused) element.pause()
+          // Silence with a reason: never read a deliberate pause as a failure.
+          graceUntil = performance.now() + SILENT_GRACE_MS
+        } else if (element.paused && !element.ended) {
+          void element.play().catch(() => {})
+          // Restarting re-buffers, and the last grace was set while the room
+          // was still paused. Without this the first frames after a resume
+          // read zeros and giveUp() kills live analysis for the whole mount.
+          graceUntil = performance.now() + SILENT_GRACE_MS
+        }
+        const seconds = bingoSyncSeekSeconds({
+          anchor: roomAnchor,
+          trackId: ourTrack,
+          nowMs: Date.now(),
+          durationSeconds: Number.isFinite(element.duration) ? element.duration : null,
+          currentSeconds: element.currentTime,
+        })
+        if (seconds === null) return
+        element.currentTime = seconds
+        // A seek re-buffers, so the analyser reads zeros for a moment.
+        graceUntil = performance.now() + SILENT_GRACE_MS
+      }
 
       const tick = () => {
         if (cancelled) return
+        const now = performance.now()
+        if (now >= nextSyncAt) {
+          nextSyncAt = now + SYNC_CHECK_MS
+          syncToRoom()
+        }
+        if (element.paused || element.ended) {
+          // Nothing real to show. Hand the bars back to the seeded animation
+          // rather than letting them flatten out on screen.
+          setLevels(null)
+          frame = requestAnimationFrame(tick)
+          return
+        }
         analyser.getByteFrequencyData(data)
         let total = 0
         const next: number[] = []
@@ -87,9 +181,9 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
           next.push(value)
         }
         if (total > 0) sawSound = true
-        if (!sawSound && performance.now() - startedAt > SILENT_GRACE_MS) {
+        if (!sawSound && now > graceUntil) {
           // Playing but silent: tainted media, or a browser that refuses to
-          // hand over the samples. Fall back for the rest of the session.
+          // hand over the samples. Fall back for this clip.
           giveUp()
           return
         }
@@ -102,6 +196,10 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
         .play()
         .then(() => {
           if (cancelled) return
+          // Land on the room's position before the first frame, so a display
+          // opened mid-song does not spend a second climbing back up to it.
+          syncToRoom()
+          nextSyncAt = performance.now() + SYNC_CHECK_MS
           frame = requestAnimationFrame(tick)
         })
         .catch(() => giveUp())
@@ -116,7 +214,7 @@ export function useAudioLevels(clipUrl: string | null, playing: boolean, bins: n
       element.src = ''
       void context?.close().catch(() => {})
     }
-  }, [clipUrl, playing, bins])
+  }, [clipUrl, active, bins, retryKey])
 
   return levels
 }

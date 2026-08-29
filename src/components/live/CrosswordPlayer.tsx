@@ -21,6 +21,7 @@ import {
   saveLocalPuzzleProgress,
 } from '@/lib/offline/puzzle-local'
 import type { CrosswordWord } from '@/lib/offline/scoring'
+import { textOnAccent } from '@/lib/live-event'
 import { getCurrentParticipantSession } from '@/lib/participant-session'
 import { crosswordScore, parsePuzzleProgress, type PuzzleProgress } from '@/lib/puzzle-engine'
 import { supabase } from '@/lib/supabase'
@@ -721,10 +722,15 @@ export function CrosswordPlayer({
                         type="button"
                         onClick={() => selectClue(clue)}
                         className={`rounded-full px-2.5 py-1 text-[10px] font-black whitespace-nowrap uppercase shadow-lg md:text-xs ${
-                          activeClueId === clue.id ? 'text-black' : 'bg-black/80 text-white'
+                          activeClueId === clue.id ? '' : 'bg-black/80 text-white'
                         }`}
                         style={
-                          activeClueId === clue.id ? { backgroundColor: accentColor } : undefined
+                          activeClueId === clue.id
+                            ? {
+                                backgroundColor: accentColor,
+                                color: textOnAccent(accentColor),
+                              }
+                            : undefined
                         }
                       >
                         {clue.direction === 'across' ? t('puzzle.across') : t('puzzle.down')}

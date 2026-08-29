@@ -15,15 +15,15 @@
       "macosSafari": "In Safari, choose File, then \"Add to Dock\"."
     },
     "guide": {
-      "title": "Install RallyHub on your device",
-      "introTablet": "Adds a RallyHub icon to the home screen, Dock or desktop, so staff do not have to find the link each time. Chrome and Safari are the recommended browsers.",
-      "introApp": "Adds a RallyHub icon to the home screen, Dock or desktop, and opens it in its own window without the browser around it.",
+      "title": "Install {{brand}} on your device",
+      "introTablet": "Adds a {{brand}} icon to the home screen, Dock or desktop, so staff do not have to find the link each time. Chrome and Safari are the recommended browsers.",
+      "introApp": "Adds a {{brand}} icon to the home screen, Dock or desktop, and opens it in its own window without the browser around it.",
       "gotIt": "Got it",
       "openedTablet": "the tablet link",
-      "openedApp": "RallyHub",
+      "openedApp": "{{brand}}",
       "pinStep": "Enter the 4-digit tablet password once.",
-      "resultTablet": "The device now has a RallyHub icon that opens straight to the score screen.",
-      "resultApp": "The device now has a RallyHub icon that opens in its own window, with no address bar.",
+      "resultTablet": "The device now has a {{brand}} icon that opens straight to the score screen.",
+      "resultApp": "The device now has a {{brand}} icon that opens in its own window, with no address bar.",
       "android": {
         "platform": "Android tablet or phone (Chrome)",
         "open": "Open {{target}} in Chrome.",
@@ -40,17 +40,17 @@
         "platform": "Mac (Safari)",
         "open": "Open {{target}} in Safari.",
         "addToDock": "Choose File, then \"Add to Dock\".",
-        "result": "RallyHub opens from the Dock in its own window."
+        "result": "{{brand}} opens from the Dock in its own window."
       },
       "desktop": {
         "platform": "Windows or Mac (Chrome or Edge)",
         "open": "Open {{target}} in Chrome or Edge.",
         "addressBar": "Click the install icon at the right-hand end of the address bar.",
         "menuFallback": "If it is not there, open the three dots menu, then \"Cast, save and share\", then \"Install page as app\".",
-        "result": "RallyHub opens from the desktop or taskbar in its own window."
+        "result": "{{brand}} opens from the desktop or taskbar in its own window."
       }
     },
-    "installRallyHubAsApp": "Install RallyHub as an app"
+    "installRallyHubAsApp": "Install {{brand}} as an app"
   },
   "delete": "Delete",
   "legal": {

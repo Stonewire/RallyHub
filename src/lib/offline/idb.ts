@@ -86,6 +86,20 @@ export async function idbGetAll<T>(store: StoreName): Promise<T[]> {
   }
 }
 
+/** Every key in a store. The slot-reset clear has to find records by the shape
+ *  of their key, and reading them back one by one would deserialise whole
+ *  puzzle boards to throw them away. Returns [] (never throws) when IndexedDB
+ *  is unavailable, matching idbGetAll's degradation. */
+export async function idbGetAllKeys(store: StoreName): Promise<string[]> {
+  if (!hasIndexedDB()) return []
+  try {
+    const keys = await tx<IDBValidKey[]>(store, 'readonly', (s) => s.getAllKeys())
+    return keys.filter((key): key is string => typeof key === 'string')
+  } catch {
+    return []
+  }
+}
+
 /** Whether a key exists in a store, without reading (or deserialising) the
  *  stored value: what readiness probes over large records (the bundle
  *  snapshot) want. Returns false (never throws) when IndexedDB is

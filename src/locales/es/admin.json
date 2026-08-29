@@ -1254,9 +1254,7 @@
       "ready": "Listo",
       "demo": "Demo",
       "active": "Activo",
-      "archived": "Archivado",
-      "demoHint": "¿Quieres probar el evento? Usa este estado. Lleva marca de agua y solo pueden entrar dos equipos.",
-      "activeWarning": "Se pone en directo para los participantes. El cargo del evento se aplica al activarlo y el evento permanece activo durante 24 horas."
+      "archived": "Archivado"
     },
     "deleteDialog": {
       "title": "Eliminar evento",
@@ -1511,7 +1509,7 @@
       "accountTitle": "Mi cuenta",
       "accountSubtitle": "Gestiona tu perfil personal y los ajustes de seguridad.",
       "teamTitle": "Equipo",
-      "teamSubtitle": "El personal de RallyHub y lo que puede hacer cada persona.",
+      "teamSubtitle": "Tu equipo y lo que puede hacer cada persona.",
       "facilitatorProfileTitle": "Tu perfil",
       "facilitatorProfileSubtitle": "Actualiza tu nombre, nombre de usuario, correo electrónico y contraseña."
     },
@@ -1574,7 +1572,7 @@
     "deviceAccess": "Acceso de dispositivos de la organización",
     "tabletPassword": "Contraseña de tableta (4 dígitos)",
     "tabletPasswordDefaultWarning": "Cambia la contraseña predeterminada antes de compartir el enlace de la tableta.",
-    "installInstructions": "Instrucciones para instalar RallyHub en tu dispositivo",
+    "installInstructions": "Instrucciones para instalar {{brand}} en tu dispositivo",
     "tabletQrAlt": "Código QR de la tableta",
     "tabletLink": "Enlace de la tableta",
     "tabletCopyLink": "Copiar el enlace de la tableta",
@@ -1752,7 +1750,7 @@
       "contactSupport": "Contactar con soporte"
     },
     "signOut": {
-      "title": "¿Cerrar sesión en RallyHub?",
+      "title": "¿Cerrar sesión en {{brand}}?",
       "message": "Tendrás que volver a iniciar sesión para acceder a tus eventos y juegos.",
       "confirm": "Cerrar sesión"
     }

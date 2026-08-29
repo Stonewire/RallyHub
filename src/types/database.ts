@@ -873,6 +873,8 @@ export type Database = {
           bingo_announced_winner_ids: unknown
           bingo_bonus_id: string | null
           bingo_used_bonus_ids: unknown
+          /** R2.4 sync: { trackId, positionSeconds, atMs, paused } for the playing clip. */
+          bingo_track_anchor: unknown
           announcement: string | null
           announcement_target: string | null
           winner_reveal_stage: number
@@ -903,6 +905,7 @@ export type Database = {
           bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
           bingo_used_bonus_ids?: unknown
+          bingo_track_anchor?: unknown
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number
@@ -930,6 +933,7 @@ export type Database = {
           bingo_announced_winner_ids?: unknown
           bingo_bonus_id?: string | null
           bingo_used_bonus_ids?: unknown
+          bingo_track_anchor?: unknown
           announcement?: string | null
           announcement_target?: string | null
           winner_reveal_stage?: number

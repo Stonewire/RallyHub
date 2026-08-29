@@ -21,6 +21,44 @@ const MIN_HEADROOM_BYTES = 50 * 1024 * 1024
 // Other events' undrained items older than this are pruned on load.
 const STALE_MS = 48 * 60 * 60 * 1000
 
+const belongsToSlot = (item: OutboxItem, eventId: string, teamId: string) =>
+  item.eventId === eventId && item.teamId === teamId
+
+/** The queued items sitting under one slot on one event. Pure so both the
+ *  rehydration filter and the reset discard below are testable off one rule. */
+export function queuedItemsForSlot(
+  items: OutboxItem[],
+  eventId: string,
+  teamId: string,
+): OutboxItem[] {
+  return items.filter((item) => belongsToSlot(item, eventId, teamId))
+}
+
+/** Bin every queued item this device still holds for one slot, blobs included
+ *  (R2.5).
+ *
+ *  A facilitator reset keeps the teams row id, so the OLD team's queued work
+ *  still matches the rehydration filter. Once the slot is re-claimed on this
+ *  phone the fresh token makes those items drainable again, and the old team's
+ *  submissions, puzzle results and store orders land in the clean slot. They
+ *  are dropped here, on purpose and before the queue is rebuilt, rather than
+ *  left to fail their way out through the retry cap: the error taxonomy grades
+ *  transport failures, and this is not one.
+ *
+ *  Returns how many went. Never rejects; idbDelete and deleteBlob both swallow
+ *  their own failures. */
+export async function discardQueuedItemsForTeam(
+  eventId: string,
+  teamId: string,
+): Promise<number> {
+  const doomed = queuedItemsForSlot(await idbGetAll<OutboxItem>('outbox'), eventId, teamId)
+  for (const item of doomed) {
+    await idbDelete('outbox', item.clientId)
+    if (item.blobKey) await deleteBlob(item.blobKey)
+  }
+  return doomed.length
+}
+
 export function createOutboxPersistence(eventId: string, teamId: string): OutboxPersistence {
   return {
     load: async () => {
@@ -32,8 +70,11 @@ export function createOutboxPersistence(eventId: string, teamId: string): Outbox
         // the same event as a different team, and draining the old team's
         // items with the new team's token would be rejected by the write guard
         // and destroy them. A stale own-event other-team item just waits (its
-        // token was rotated away, it can never send) until the prune.
-        if (item.eventId === eventId && item.teamId === teamId) {
+        // token was rotated away, it can never send) until the prune. A slot
+        // RESET keeps the team id, so its leftovers would match here: the
+        // claim path bins them with discardQueuedItemsForTeam before the queue
+        // is rebuilt.
+        if (belongsToSlot(item, eventId, teamId)) {
           mine.push(item)
           continue
         }

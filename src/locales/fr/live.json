@@ -93,7 +93,8 @@
       "checking": "Vérification…",
       "continue": "Continuer",
       "incorrectPassword": "Mot de passe incorrect",
-      "couldNotVerifyPassword": "Impossible de vérifier le mot de passe"
+      "couldNotVerifyPassword": "Impossible de vérifier le mot de passe",
+      "backAgainToLeave": "Appuie encore sur retour pour fermer cette page."
     },
     "back": "Retour",
     "state": {
@@ -162,18 +163,18 @@
     },
     "consent": {
       "title": "Avant de rejoindre",
-      "intro": "{{host}} organise cet événement et décide de ce qui te sera demandé. RallyHub fournit la plateforme.",
+      "intro": "{{host}} organise cet événement et décide de ce qui te sera demandé. {{brand}} fournit la plateforme.",
       "defaultHost": "L'organisateur de l'événement",
       "whatCollectedTitle": "Ce qui est collecté",
       "collectTeamName": "Le nom de l'équipe et le nom de joueur que tu saisis.",
       "collectMediaBold": "Les photos ou vidéos que tu envoies",
       "collectMediaRest": "pendant les défis. Elles peuvent te montrer, toi et d'autres personnes.",
       "collectScore": "Tes réponses et le score de ton équipe.",
-      "hostSeesEverything": "{{host}} peut voir tout ce que ton équipe envoie. RallyHub le stocke en son nom et le supprime lorsqu'il supprime l'événement.",
+      "hostSeesEverything": "{{host}} peut voir tout ce que ton équipe envoie. {{brand}} le stocke en son nom et le supprime lorsqu'il supprime l'événement.",
       "readMore": "En savoir plus",
       "notForced": "Tu n'es pas obligé de participer. Si tu préfères ne pas être photographié ou filmé, dis-le à l'organisateur, il peut organiser l'événement sans toi ou te donner un rôle qui n'implique pas d'envoyer de contenu multimédia.",
       "dataRequest": "Pour savoir ce qui est conservé à ton sujet, ou pour le faire supprimer, contacte d'abord l'organisateur de l'événement, car c'est lui qui décide de son sort. Tu peux aussi lire l'intégralité de la",
-      "privacyPolicyLink": "Politique de confidentialité RallyHub",
+      "privacyPolicyLink": "Politique de confidentialité",
       "checkboxLabel": "J'ai lu ceci et j'accepte de participer.",
       "continueButton": "Continuer vers l'événement",
       "cookieNote": "Cette application garde un peu de données sur ton téléphone pour se souvenir de ton équipe. Pas de statistiques, pas de suivi, pas de cookies facultatifs.",

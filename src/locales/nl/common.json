@@ -15,15 +15,15 @@
       "macosSafari": "Kies in Safari File en daarna \"Add to Dock\"."
     },
     "guide": {
-      "title": "RallyHub op je apparaat installeren",
-      "introTablet": "Zet een RallyHub-icoon op het beginscherm, in het Dock of op het bureaublad, zodat medewerkers de link niet elke keer hoeven te zoeken. Chrome en Safari zijn de aanbevolen browsers.",
-      "introApp": "Zet een RallyHub-icoon op het beginscherm, in het Dock of op het bureaublad, en opent de app in een eigen venster zonder de browser eromheen.",
+      "title": "{{brand}} op je apparaat installeren",
+      "introTablet": "Zet een {{brand}}-icoon op het beginscherm, in het Dock of op het bureaublad, zodat medewerkers de link niet elke keer hoeven te zoeken. Chrome en Safari zijn de aanbevolen browsers.",
+      "introApp": "Zet een {{brand}}-icoon op het beginscherm, in het Dock of op het bureaublad, en opent de app in een eigen venster zonder de browser eromheen.",
       "gotIt": "Begrepen",
       "openedTablet": "de tabletlink",
-      "openedApp": "RallyHub",
+      "openedApp": "{{brand}}",
       "pinStep": "Voer eenmalig het tabletwachtwoord van 4 cijfers in.",
-      "resultTablet": "Het apparaat heeft nu een RallyHub-icoon dat direct het scorescherm opent.",
-      "resultApp": "Het apparaat heeft nu een RallyHub-icoon dat in een eigen venster opent, zonder adresbalk.",
+      "resultTablet": "Het apparaat heeft nu een {{brand}}-icoon dat direct het scorescherm opent.",
+      "resultApp": "Het apparaat heeft nu een {{brand}}-icoon dat in een eigen venster opent, zonder adresbalk.",
       "android": {
         "platform": "Android-tablet of -telefoon (Chrome)",
         "open": "Open {{target}} in Chrome.",
@@ -40,17 +40,17 @@
         "platform": "Mac (Safari)",
         "open": "Open {{target}} in Safari.",
         "addToDock": "Kies File en daarna \"Add to Dock\".",
-        "result": "RallyHub opent vanuit het Dock in een eigen venster."
+        "result": "{{brand}} opent vanuit het Dock in een eigen venster."
       },
       "desktop": {
         "platform": "Windows of Mac (Chrome of Edge)",
         "open": "Open {{target}} in Chrome of Edge.",
         "addressBar": "Klik op het installatie-icoon helemaal rechts in de adresbalk.",
         "menuFallback": "Staat het er niet, open dan het menu met drie puntjes, dan \"Cast, save and share\" en daarna \"Install page as app\".",
-        "result": "RallyHub opent vanaf het bureaublad of de taakbalk in een eigen venster."
+        "result": "{{brand}} opent vanaf het bureaublad of de taakbalk in een eigen venster."
       }
     },
-    "installRallyHubAsApp": "RallyHub als app installeren"
+    "installRallyHubAsApp": "{{brand}} als app installeren"
   },
   "delete": "Verwijderen",
   "legal": {

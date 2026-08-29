@@ -9,6 +9,7 @@ import {
   CHALLENGE_ACTION_CLASS,
   STICKY_ACTION_SPACER,
 } from '@/components/live/StickyChallengeAction'
+import { textOnAccent } from '@/lib/live-event'
 import { youTubeEmbedUrl } from '@/lib/video-embed'
 
 type ChallengeCaptureBriefingProps = {
@@ -103,7 +104,7 @@ export function ChallengeCaptureBriefing({
                 className="xp-interactive absolute top-8 right-3 rounded-full px-3 py-1.5 text-xs font-black tabular-nums shadow-lg"
                 style={{
                   backgroundColor: fast ? accentColor : 'rgba(0,0,0,0.55)',
-                  color: fast ? '#1c1917' : '#ffffff',
+                  color: fast ? textOnAccent(accentColor) : '#ffffff',
                 }}
               >
                 {FAST_RATE}×

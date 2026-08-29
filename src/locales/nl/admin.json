@@ -1254,9 +1254,7 @@
       "ready": "Klaar",
       "demo": "Demo",
       "active": "Actief",
-      "archived": "Gearchiveerd",
-      "demoHint": "Wil je het event uitproberen? Test dan met deze status. Met watermerk, en er kunnen maar twee teams meedoen.",
-      "activeWarning": "Gaat live voor deelnemers. De eventkosten gelden zodra je activeert en het event blijft 24 uur actief."
+      "archived": "Gearchiveerd"
     },
     "deleteDialog": {
       "title": "Event verwijderen",
@@ -1511,7 +1509,7 @@
       "accountTitle": "Mijn account",
       "accountSubtitle": "Beheer je persoonlijke profiel en beveiligingsinstellingen.",
       "teamTitle": "Team",
-      "teamSubtitle": "RallyHub-medewerkers en wat ieder van hen mag doen.",
+      "teamSubtitle": "Je team en wat ieder van hen mag doen.",
       "facilitatorProfileTitle": "Je profiel",
       "facilitatorProfileSubtitle": "Werk je naam, gebruikersnaam, e-mailadres en wachtwoord bij."
     },
@@ -1574,7 +1572,7 @@
     "deviceAccess": "Apparaattoegang organisatie",
     "tabletPassword": "Tabletwachtwoord (4 cijfers)",
     "tabletPasswordDefaultWarning": "Wijzig het standaardwachtwoord voordat je de tabletlink deelt.",
-    "installInstructions": "Instructies om RallyHub op je apparaat te installeren",
+    "installInstructions": "Instructies om {{brand}} op je apparaat te installeren",
     "tabletQrAlt": "QR-code voor tablet",
     "tabletLink": "Tabletlink",
     "tabletCopyLink": "Tabletlink kopiëren",
@@ -1752,7 +1750,7 @@
       "contactSupport": "Contact met support"
     },
     "signOut": {
-      "title": "Uitloggen bij RallyHub?",
+      "title": "Uitloggen bij {{brand}}?",
       "message": "Je moet opnieuw inloggen om terug te komen bij je events en games.",
       "confirm": "Uitloggen"
     }

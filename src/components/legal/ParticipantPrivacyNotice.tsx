@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useCookieConsent } from '@/contexts/cookie-consent-context'
+import { usePlatformBrand } from '@/hooks/use-platform-brand'
 import { acknowledgeParticipantNotice } from '@/lib/legal-acceptance'
 
 /**
@@ -35,6 +36,9 @@ export function ParticipantPrivacyNotice({
   const { rejectNonEssential } = useCookieConsent()
 
   const host = organizationName?.trim() || t('join.consent.defaultHost')
+  // A white-labelled event's players have never heard of us, so the two lines
+  // that name the platform carry the organiser's brand instead.
+  const brand = usePlatformBrand()
 
   function handleAccept() {
     acknowledgeParticipantNotice(eventId)
@@ -51,7 +55,7 @@ export function ParticipantPrivacyNotice({
             {t('join.consent.title')}
           </h2>
           <p className="text-sm leading-relaxed text-black/70">
-            {t('join.consent.intro', { host })}
+            {t('join.consent.intro', { host, brand })}
           </p>
         </div>
 
@@ -71,7 +75,7 @@ export function ParticipantPrivacyNotice({
             <li>• {t('join.consent.collectScore')}</li>
           </ul>
           <p className="text-sm text-black/70">
-            {t('join.consent.hostSeesEverything', { host })}
+            {t('join.consent.hostSeesEverything', { host, brand })}
           </p>
         </div>
 

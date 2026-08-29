@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label'
 import {
   hexToRgb,
   normalizeHex,
-  readableTextOn,
   rgbToHex,
   type Rgb,
 } from '@/lib/hex-color'
+import { textOnAccent } from '@/lib/live-event'
 
 type BrandColourPickerProps = {
   id: string
@@ -121,7 +121,7 @@ export function BrandColourPicker({
               a second thing to aim at for no reason (Rumen, 9 Aug). */}
           <label
             className="relative mb-3 flex h-12 cursor-pointer items-center justify-center rounded-md font-mono text-xs font-semibold"
-            style={{ backgroundColor: value, color: readableTextOn(value) }}
+            style={{ backgroundColor: value, color: textOnAccent(value) }}
             title={t('settings.brandColour.openWheel')}
           >
             {value.toUpperCase()}

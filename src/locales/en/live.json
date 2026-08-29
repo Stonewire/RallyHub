@@ -93,7 +93,8 @@
       "checking": "Checking…",
       "continue": "Continue",
       "incorrectPassword": "Incorrect password",
-      "couldNotVerifyPassword": "Could not verify password"
+      "couldNotVerifyPassword": "Could not verify password",
+      "backAgainToLeave": "Press back again to close this page."
     },
     "back": "Back",
     "state": {
@@ -162,18 +163,18 @@
     },
     "consent": {
       "title": "Before you join",
-      "intro": "{{host}} is running this event and decides what you are asked to do. RallyHub provides the platform.",
+      "intro": "{{host}} is running this event and decides what you are asked to do. {{brand}} provides the platform.",
       "defaultHost": "The event organiser",
       "whatCollectedTitle": "What gets collected",
       "collectTeamName": "The team name and player name you type in.",
       "collectMediaBold": "Any photos or videos you submit",
       "collectMediaRest": "during challenges. These may show you and other people.",
       "collectScore": "Your answers and your team's score.",
-      "hostSeesEverything": "{{host}} can see everything your team submits. RallyHub stores it on their behalf and deletes it when they delete the event.",
+      "hostSeesEverything": "{{host}} can see everything your team submits. {{brand}} stores it on their behalf and deletes it when they delete the event.",
       "readMore": "Read more",
       "notForced": "You do not have to take part. If you would rather not be photographed or filmed, tell the organiser, they can run the event without you, or give you a role that does not involve submitting media.",
       "dataRequest": "To ask what is held about you, or to have it deleted, contact the event organiser first, as they decide what happens to it. You can also read the full",
-      "privacyPolicyLink": "RallyHub Privacy Policy",
+      "privacyPolicyLink": "Privacy Policy",
       "checkboxLabel": "I have read this and I am happy to take part.",
       "continueButton": "Continue to the event",
       "cookieNote": "This app keeps a little data on your phone so it remembers your team. No analytics, no tracking, no optional cookies.",

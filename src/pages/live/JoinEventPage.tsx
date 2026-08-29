@@ -13,6 +13,7 @@ import { EventNotLiveScreen } from '@/components/live/EventNotLiveScreen'
 import { PoweredByRallyHub } from '@/components/live/PoweredByRallyHub'
 import { JoinGameView } from '@/components/live/JoinGameView'
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
+import { useBackLayer } from '@/hooks/use-back-layer'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useChatMessages, useLiveEvent } from '@/hooks/use-live-event'
 import { useWakeLock } from '@/hooks/use-wake-lock'
@@ -26,15 +27,18 @@ import {
   brandColorsForEvent,
   displayTextColorForEvent,
   isEventLive,
+  LIVE_LABEL_WRAP_CLASS,
   PARTICIPANT_TEAM_KEY,
   logoForEvent,
   textOnAccent,
 } from '@/lib/live-event'
 import { ClientBrandingStyle } from '@/components/branding/ClientBrandingStyle'
-import { popHistoryLayer } from '@/lib/history-layers'
+import { armExitGuard, handleBackPress, nextHistoryPosition } from '@/lib/history-layers'
 import { reportClientIssue } from '@/lib/client-diagnostics'
 import { logEventActivity } from '@/lib/event-log'
 import { publishLiveBundlePatch } from '@/lib/live-broadcast'
+import { discardQueuedItemsForTeam } from '@/lib/offline/outbox-persistence'
+import { clearLocalPuzzleProgressForTeam } from '@/lib/offline/puzzle-local'
 import {
   mediaPermissionsAlreadyGranted,
   requestTeamMediaPermissions,
@@ -97,16 +101,43 @@ export function JoinEventPage() {
   // the whole event and teams had to walk over and rescan (7 Aug event,
   // Android personal phones). A guard entry keeps the page alive.
   //
-  // It used to swallow EVERY back press, which is why a player who opened a
-  // game and reached for the phone's own back button or back swipe got
-  // nothing. Now an open layer (a game, the store, chat) handles the press
-  // first and closes itself; the guard is only re-pushed once nothing of ours
-  // is open, so Back still cannot fall out of the event by accident.
+  // It used to swallow EVERY back press, which trapped the player in the event
+  // for good: re-pushing the guard on each press meant no amount of pressing
+  // ever left. Now an open layer (a game, the camera, the store, chat) handles
+  // the press first and closes itself, newest first. Once nothing of ours is
+  // open the guard is spent, with a word of warning, and the press after that
+  // one is the browser's, so back walks the app and then leaves.
+  // Deliberately NOT the shared toast queue: that shows one message at a time
+  // and holds each for 5s, so this warning could land behind an approval toast
+  // and appear after the player had already pressed back and gone. It has to
+  // be on screen before the next press, so it renders itself.
+  const [backHint, setBackHint] = useState(false)
+  const backHintTimerRef = useRef<number | null>(null)
+  const backHintRef = useRef<() => void>(() => {})
   useEffect(() => {
-    window.history.pushState({ rhBackTrap: true }, '')
+    backHintRef.current = () => {
+      setBackHint(true)
+      if (backHintTimerRef.current !== null) window.clearTimeout(backHintTimerRef.current)
+      backHintTimerRef.current = window.setTimeout(() => setBackHint(false), 3000)
+    }
+  })
+  useEffect(
+    () => () => {
+      if (backHintTimerRef.current !== null) window.clearTimeout(backHintTimerRef.current)
+    },
+    [],
+  )
+  useEffect(() => {
+    // Only the first arm pushes: a remount must not stack a second guard, or
+    // back would need one extra press for each one.
+    if (armExitGuard()) {
+      window.history.pushState({ rhBackTrap: true, rhPos: nextHistoryPosition() }, '')
+    }
     const onPop = () => {
-      if (popHistoryLayer()) return
-      window.history.pushState({ rhBackTrap: true }, '')
+      // Where the browser came to rest tells us whether the guard itself is
+      // what just went, or a spare entry sitting above it.
+      const landed = window.history.state as { rhBackTrap?: boolean } | null
+      if (handleBackPress(Boolean(landed?.rhBackTrap)) === 'warn') backHintRef.current()
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -252,6 +283,37 @@ export function JoinEventPage() {
     }
   }
 
+  // Which pre-join gate is showing, worked out up here so the back layers and
+  // the early returns further down cannot drift apart.
+  const liveEvent = bundle && isEventLive(bundle.event) ? bundle.event : null
+  const showLanguageGate = Boolean(
+    eventId && liveEvent?.multilingual && !pickedLanguage,
+  )
+  const showNoticeGate = Boolean(
+    eventId && liveEvent && !showLanguageGate && !noticeAccepted,
+  )
+
+  // R2.8: every lobby overlay holds a history entry while it is open, so the
+  // phone's back button and back swipe close the thing on top of the screen
+  // instead of doing nothing. The language picker takes none: it is the first
+  // screen a player sees, and back there is meant to leave. The privacy notice
+  // takes one only where a language pick came before it, that pick being the
+  // one step there is to go back to.
+  useBackLayer(showNoticeGate && Boolean(liveEvent?.multilingual), () => {
+    if (!eventId) return
+    localStorage.removeItem(languageKey(eventId))
+    setPickedLanguage(null)
+  })
+  useBackLayer(permissionGateOpen && Boolean(teamId), () =>
+    setPermissionGateOpen(false),
+  )
+  useBackLayer(Boolean(takeoverSlot), () => setTakeoverSlot(null))
+  useBackLayer(Boolean(claimSlot) || newTeamOpen, () => {
+    setClaimSlot(null)
+    setNewTeamOpen(false)
+  })
+  useBackLayer(joinCameraOpen && Boolean(eventId), () => setJoinCameraOpen(false))
+
   if (loading || !bundle) {
     // No event means no brand to dress this in, so it is the plain canvas with
     // the message at the size of the thing it is telling you: the code you
@@ -282,7 +344,7 @@ export function JoinEventPage() {
 
   // On a multilingual event the language comes first, before the notice: the
   // consent text below is the first thing it has to translate.
-  if (eventId && event.multilingual && !pickedLanguage) {
+  if (eventId && showLanguageGate) {
     return (
       <ParticipantLanguagePicker
         languages={event.available_languages}
@@ -298,7 +360,7 @@ export function JoinEventPage() {
   // Participants must see what is collected — above all, that they may be
   // photographed or filmed — and get a genuine chance to decline, BEFORE they can
   // enter a name or submit anything.
-  if (eventId && !noticeAccepted) {
+  if (eventId && showNoticeGate) {
     return (
       <ParticipantPrivacyNotice
         eventId={eventId}
@@ -350,6 +412,17 @@ export function JoinEventPage() {
       }
       // The epoch bump rides this patch to the old device, which logs itself out.
       void publishLiveBundlePatch(eventId, { kind: 'team', op: 'UPDATE', row: updatedTeam })
+
+      // R2.5, takeover half. This phone may already hold puzzle records under
+      // this team id from an earlier occupancy of the slot, and a reset in
+      // between would make them belong to a team that no longer exists. Puzzle
+      // progress is safe to bin because the server holds the truth and we have
+      // just proved we are online by completing the RPC above, so the boards
+      // simply re-read. The queued outbox is deliberately NOT discarded here:
+      // unlike a claim, a takeover continues the SAME team, and queued work is
+      // the one thing on the device that cannot be reconstructed.
+      await clearLocalPuzzleProgressForTeam(eventId, row.id)
+
       localStorage.setItem(teamKey(eventId), row.id)
       localStorage.setItem(epochKey(eventId), String(row.session_epoch))
       saveCurrentParticipantSession(eventId, row.id, row.inventory_purchase_token)
@@ -462,6 +535,16 @@ export function JoinEventPage() {
         p_action: 'team_joined',
         p_actor_id: claimSlot.id,
       })
+
+      // R2.5: a slot only claims while empty, so anything this device still
+      // holds under that team id was written by the slot's previous occupant.
+      // A facilitator reset clears the server rows but keeps the teams row id,
+      // so without this the old team's local puzzle boards read back as solved
+      // for the new team (which earns nothing for them), and its queued
+      // offline work drains under the freshly minted token. Awaited: the game
+      // view mounts on setTeamId below and rehydrates the queue immediately.
+      await clearLocalPuzzleProgressForTeam(eventId, claimSlot.id)
+      await discardQueuedItemsForTeam(eventId, claimSlot.id)
 
       localStorage.setItem(teamKey(eventId), claimSlot.id)
       localStorage.setItem(epochKey(eventId), String(claimSlot.session_epoch ?? 0))
@@ -635,7 +718,7 @@ export function JoinEventPage() {
           ) : null}
           <button
             type="button"
-            className="min-h-14 w-full rounded-xl text-lg font-bold text-balance disabled:opacity-60"
+            className={`min-h-14 w-full rounded-xl text-lg font-bold disabled:opacity-60 ${LIVE_LABEL_WRAP_CLASS}`}
             style={{ backgroundColor: accent, color: textOnAccent(accent) }}
             disabled={permissionRequesting}
             onClick={() => void approveCamera()}
@@ -656,6 +739,20 @@ export function JoinEventPage() {
         </div>
       </div>
     ) : null
+
+  // Rendered in BOTH branches below: a joined player is the case that matters
+  // most, and they never reach the lobby return at the bottom of this file.
+  const backHintBanner = backHint ? (
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-6 z-[10001] flex justify-center px-6"
+      role="status"
+      aria-live="polite"
+    >
+      <p className="rounded-full bg-black/80 px-4 py-2 text-center text-sm font-bold text-white">
+        {t('join.exit.backAgainToLeave')}
+      </p>
+    </div>
+  ) : null
 
   if (hasJoined && teamId && (myTeam || justJoined)) {
     const teamForView =
@@ -706,6 +803,7 @@ export function JoinEventPage() {
             : undefined
         }
         />
+        {backHintBanner}
       </>
     )
   }
@@ -776,7 +874,7 @@ export function JoinEventPage() {
                   style={{ background: team.color ?? '#888' }}
                 />
               )}
-              <span className="xp-wrap-text text-base font-bold">
+              <span className={`text-base font-bold ${LIVE_LABEL_WRAP_CLASS}`}>
                 {team.name?.trim() || t('join.claim.available')}
               </span>
             </button>
@@ -864,7 +962,7 @@ export function JoinEventPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                className="min-h-12 flex-1 rounded-lg border-2 border-black/15 text-base font-semibold text-balance"
+                className={`min-h-12 flex-1 rounded-lg border-2 border-black/15 text-base font-semibold ${LIVE_LABEL_WRAP_CLASS}`}
                 onClick={() => setTakeoverSlot(null)}
                 disabled={takeoverBusy}
               >
@@ -872,7 +970,7 @@ export function JoinEventPage() {
               </button>
               <button
                 type="button"
-                className="min-h-12 flex-1 rounded-lg text-base font-bold text-balance disabled:opacity-50"
+                className={`min-h-12 flex-1 rounded-lg text-base font-bold disabled:opacity-50 ${LIVE_LABEL_WRAP_CLASS}`}
                 style={{ backgroundColor: accent, color: textOnAccent(accent) }}
                 disabled={takeoverBusy || !takeoverPassword.trim()}
                 onClick={() => void takeoverTeam()}
@@ -982,7 +1080,7 @@ export function JoinEventPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="xp-card flex-1 border border-black/15 bg-white px-4 py-2.5 text-sm font-bold text-black"
+                className={`xp-card flex-1 border border-black/15 bg-white px-4 py-2.5 text-sm font-bold text-black ${LIVE_LABEL_WRAP_CLASS}`}
                 onClick={() => {
                   setClaimSlot(null)
                   setNewTeamOpen(false)
@@ -992,7 +1090,7 @@ export function JoinEventPage() {
               </button>
               <button
                 type="button"
-                className="xp-card flex-1 px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+                className={`xp-card flex-1 px-4 py-2.5 text-sm font-bold disabled:opacity-50 ${LIVE_LABEL_WRAP_CLASS}`}
                 style={{ backgroundColor: accent, color: textOnAccent(accent) }}
                 disabled={uploading || !claimName.trim()}
                 onClick={() => void (claimSlot ? claimTeam() : joinAsNewTeam())}
@@ -1017,6 +1115,7 @@ export function JoinEventPage() {
           }}
         />
       ) : null}
+      {backHintBanner}
     </BrandBackground>
   )
 }

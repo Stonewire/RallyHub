@@ -5,6 +5,40 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.30.0 - 2026-08-29 (round 2 gaps closed)
+
+Everything still outstanding from the 29 Aug test pass.
+
+Player app:
+- Buttons painted in an event's brand colour now work out readable text from
+  that colour everywhere, not just in the four places fixed last time. Six
+  surfaces were still hardcoding black or white, the biggest being every
+  challenge tile on a quest stage.
+- Button labels wrap properly: a word never breaks across two lines, and a
+  two-line label splits evenly instead of stranding one word. Long Bulgarian,
+  Dutch and French labels used to overflow rather than wrap at all.
+- The phone's back button and back swipe now work on everything, including the
+  camera. Back used to close the whole game instead of the camera. Pressing
+  back repeatedly walks back through the app, warns once, then leaves.
+- Resetting a team now clears the phone too. Puzzles solved by the previous
+  team no longer show as already solved to whoever takes the slot next, and the
+  old team's unsent work no longer lands in the new team's account.
+- Resetting a team also wipes its private chat with the facilitator, so the
+  next team cannot read the previous team's conversation.
+
+Big screen:
+- The music bingo visualiser now follows the actual song in the room. The
+  facilitator's device shares where it is in the track, so a screen switched on
+  or reloaded mid-song catches up instead of running from the top. A single bad
+  track can no longer leave the bars faking it for the rest of the game.
+
+Admin:
+- The status screen shown right after you create an event now colours each
+  option the way the event card will: green Active, blue Demo, gold Ready, grey
+  Draft.
+- White label now also covers the login and register pages, browser tab titles
+  and the admin copy that named RallyHub.
+
 ## V3.29.1 - 2026-08-29 (two production fixes)
 
 - **Live-event fix.** A recurring event's second run could be auto-archived

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { readableTextOn } from '@/lib/hex-color'
+import { textOnAccent } from '@/lib/live-event'
 import type { Tables } from '@/types/helpers'
 
 type LeaderboardProps = {
@@ -171,7 +171,7 @@ export function Leaderboard({
                       className="absolute -top-1.5 -left-1.5 flex items-center justify-center rounded-full font-black tabular-nums shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
                       style={{
                         background: color,
-                        color: readableTextOn(color),
+                        color: textOnAccent(color),
                         width: orbit.rank,
                         height: orbit.rank,
                         fontSize: Math.round(orbit.rank * 0.46),
@@ -217,7 +217,7 @@ export function Leaderboard({
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-base font-black tabular-nums"
             style={{
               background: team.color ?? '#888',
-              color: readableTextOn(team.color ?? '#888'),
+              color: textOnAccent(team.color ?? '#888'),
             }}
           >
             {showScores ? i + 1 : ''}

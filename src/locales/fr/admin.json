@@ -1254,9 +1254,7 @@
       "ready": "Prêt",
       "demo": "Démo",
       "active": "Actif",
-      "archived": "Archivé",
-      "demoHint": "Vous voulez essayer l'événement ? Testez avec ce statut. Avec filigrane, et seules deux équipes peuvent rejoindre.",
-      "activeWarning": "Passe en direct pour les participants. Les frais d'événement s'appliquent dès l'activation et l'événement reste actif pendant 24 heures."
+      "archived": "Archivé"
     },
     "deleteDialog": {
       "title": "Supprimer l'événement",
@@ -1511,7 +1509,7 @@
       "accountTitle": "Mon compte",
       "accountSubtitle": "Gérez votre profil personnel et vos réglages de sécurité.",
       "teamTitle": "Équipe",
-      "teamSubtitle": "L'équipe RallyHub et ce que chacun peut faire.",
+      "teamSubtitle": "Votre équipe et ce que chacun peut faire.",
       "facilitatorProfileTitle": "Votre profil",
       "facilitatorProfileSubtitle": "Modifiez votre nom, votre nom d'utilisateur, votre e-mail et votre mot de passe."
     },
@@ -1574,7 +1572,7 @@
     "deviceAccess": "Accès des appareils de l'organisation",
     "tabletPassword": "Mot de passe tablette (4 chiffres)",
     "tabletPasswordDefaultWarning": "Changez le mot de passe par défaut avant de partager le lien tablette.",
-    "installInstructions": "Comment installer RallyHub sur votre appareil",
+    "installInstructions": "Comment installer {{brand}} sur votre appareil",
     "tabletQrAlt": "QR code tablette",
     "tabletLink": "Lien tablette",
     "tabletCopyLink": "Copier le lien tablette",
@@ -1752,7 +1750,7 @@
       "contactSupport": "Contacter l'assistance"
     },
     "signOut": {
-      "title": "Se déconnecter de RallyHub ?",
+      "title": "Se déconnecter de {{brand}} ?",
       "message": "Vous devrez vous reconnecter pour retrouver vos événements et vos jeux.",
       "confirm": "Se déconnecter"
     }

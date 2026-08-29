@@ -9,7 +9,6 @@ import { FacilitatorButton, FacilitatorButtonLarge } from '@/components/admin/Fa
 import { FacilitatorToggle } from '@/components/admin/FacilitatorToggle'
 import { parseStoreConfig } from '@/lib/event-form-utils'
 import { FACILITATOR_CHAT_SENDER } from '@/lib/chat-notifications'
-import { readableTextOn } from '@/lib/hex-color'
 import { FilterChips } from '@/components/admin/FilterChips'
 import { SegmentedPill } from '@/components/neo-minimal/SegmentedPill'
 import { BingoClipPlayer, type BingoClipPlayerHandle } from '@/components/live/BingoClipPlayer'
@@ -63,7 +62,11 @@ import {
   publishLiveBundlePatch,
   publishLiveBundleReload,
 } from '@/lib/live-broadcast'
-import { bingoTrackPlaybackUrl, fetchMusicTracksForGame } from '@/lib/bingo-playback'
+import {
+  bingoTrackPlaybackUrl,
+  fetchMusicTracksForGame,
+  type BingoTrackAnchor,
+} from '@/lib/bingo-playback'
 import {
   isLastQuestionInRound,
   quizRoundForQuestionIndex,
@@ -101,6 +104,7 @@ import {
   scoreCurrentQuizQuestion,
   revealQuizAnswer,
   isEventLive,
+  textOnAccent,
 } from '@/lib/live-event'
 import { gameTypeTagClass } from '@/lib/game-type-styles'
 import { bingoRunRowFromActivation, normalizeBingoPlayOrder } from '@/lib/bingo-run-cache'
@@ -263,6 +267,11 @@ export function FacilitatorEventPage() {
   // untouched (Rumen, 9 Aug) — the redesign was only ever for touch.
   const isCompact = useIsMobile()
   const bingoAudioRef = useRef<BingoClipPlayerHandle | null>(null)
+  // Latest playback position to publish, the coalescing timer for it, and the
+  // one-strike switch that stops trying (see publishBingoTrackAnchor).
+  const bingoAnchorRef = useRef<BingoTrackAnchor | null>(null)
+  const bingoAnchorTimerRef = useRef<number | null>(null)
+  const bingoAnchorWritableRef = useRef(true)
   // True while a bingo win has halted auto-progression (cleared when facilitator continues).
   const bingoWinHaltRef = useRef(false)
   // The audio crossfade can begin before scoring has finished. Keep the reveal
@@ -395,14 +404,24 @@ export function FacilitatorEventPage() {
     if (dbRun && dbRun.id !== bingoRunOverride.id) setBingoRunOverride(null)
   }, [bingoRunQuery.data, bingoRunOverride])
 
-  async function patchState(patch: Parameters<typeof updateState>[0]) {
+  /**
+   * `quiet` is for writes the facilitator did not ask for. A failed anchor
+   * write is not something they can act on mid-song, so it must not put a red
+   * error over the panel; the caller decides what to do with the false.
+   */
+  async function patchState(
+    patch: Parameters<typeof updateState>[0],
+    options?: { quiet?: boolean },
+  ) {
     if (!controlsLiveRef.current) return false
     try {
-      setStateError(null)
+      if (!options?.quiet) setStateError(null)
       await updateState(patch)
       return true
     } catch (err) {
-      setStateError(err instanceof Error ? err.message : t('state.updateFailed'))
+      if (!options?.quiet) {
+        setStateError(err instanceof Error ? err.message : t('state.updateFailed'))
+      }
       return false
     }
   }
@@ -1204,6 +1223,28 @@ export function FacilitatorEventPage() {
     const t = resolveTrackForIndex(run, index, trackList)
     if (!t) return ''
     return bingoTrackPlaybackUrl(t)
+  }
+
+  // R2.4 sync: this is the only device the room hears, so the audience display
+  // has no way of knowing where the song is unless we say. Coalesced on a short
+  // timer for two reasons: the transport slider fires on every drag step, and
+  // landing in the same tick as another patchState would publish a row merged
+  // from a bundle ref that has not caught up yet.
+  function publishBingoTrackAnchor(anchor: BingoTrackAnchor) {
+    if (!bingoAnchorWritableRef.current) return
+    bingoAnchorRef.current = anchor
+    if (bingoAnchorTimerRef.current !== null) return
+    bingoAnchorTimerRef.current = window.setTimeout(() => {
+      bingoAnchorTimerRef.current = null
+      const latest = bingoAnchorRef.current
+      if (!latest || !controlsLiveRef.current) return
+      void patchState({ bingo_track_anchor: latest }, { quiet: true }).then((ok) => {
+        // A database that has not taken the column yet would otherwise put a
+        // write error in front of the facilitator once per song. Give up on
+        // the anchor instead: the display keeps the behaviour it had before.
+        if (!ok) bingoAnchorWritableRef.current = false
+      })
+    }, 300)
   }
 
   function handleBingoStartClick() {
@@ -2079,7 +2120,7 @@ export function FacilitatorEventPage() {
                       }`}
                       style={{
                         backgroundColor: t.color ?? '#666',
-                        color: readableTextOn(t.color ?? '#666666'),
+                        color: textOnAccent(t.color ?? '#666666'),
                       }}
                     >
                       {answered ? <Check className="size-3 shrink-0" /> : null}
@@ -2135,12 +2176,15 @@ export function FacilitatorEventPage() {
                   ref={bingoAudioRef}
                   src={trackPlaybackUrl}
                   nextSrc={nextTrackForCrossfade}
+                  trackId={track?.id ?? null}
+                  nextTrackId={bingoPlayOrder[bingoPlayIndex + 1] ?? null}
                   playKey={`${playTrackId ?? 'track'}-${bingoPlayIndex}-${audioPlayNonce}`}
                   autoPlay={false}
                   crossfadeSeconds={4}
                   onLockAndReveal={() => void handleBingoLockAndReveal()}
                   onAutoAdvance={() => void autoAdvanceBingoSong()}
                   onPlaybackError={(message) => notify(t('bingo.playbackFailed', { message }))}
+                  onPositionAnchor={publishBingoTrackAnchor}
                 />
               ) : null}
 
@@ -2197,7 +2241,7 @@ export function FacilitatorEventPage() {
                         }`}
                         style={{
                           backgroundColor: t.color ?? '#666',
-                          color: readableTextOn(t.color ?? '#666666'),
+                          color: textOnAccent(t.color ?? '#666666'),
                         }}
                       >
                         {marked ? <Check className="size-3 shrink-0" /> : null}

@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { textOnAccent } from '@/lib/live-event'
+import { LIVE_LABEL_WRAP_CLASS, textOnAccent } from '@/lib/live-event'
 import { cn } from '@/lib/utils'
 
 type LiveAccentButtonProps = ComponentProps<typeof Button> & {
@@ -20,6 +20,7 @@ export function LiveAccentButton({
     <Button
       className={cn(
         'xp-live-btn border-transparent font-semibold shadow-sm hover:brightness-95',
+        LIVE_LABEL_WRAP_CLASS,
         className,
       )}
       style={{

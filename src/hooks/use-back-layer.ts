@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import {
-  popHistoryLayer,
+  nextHistoryPosition,
   pushHistoryLayer,
   removeHistoryLayer,
 } from '@/lib/history-layers'
@@ -13,6 +13,9 @@ import {
  * holds one history entry, so back closes it instead of leaving the join link.
  * Closing from inside the app (our own back button, finishing a game) drops
  * that entry again, so the two routes never disagree about the depth.
+ *
+ * The single popstate listener the layers share lives on the join page, which
+ * also holds the floor guard underneath them.
  *
  * The pushed entry keeps the same URL, so react-router never sees a location
  * change and the surface does not re-render or re-mount.
@@ -29,7 +32,8 @@ export function useBackLayer(open: boolean, close: () => void) {
   useEffect(() => {
     if (!open) return
     const id = pushHistoryLayer(() => closeRef.current())
-    window.history.pushState({ rallyhubLayer: id }, '')
+    // rhPos lets the join page's listener tell a back press from a forward one.
+    window.history.pushState({ rallyhubLayer: id, rhPos: nextHistoryPosition() }, '')
 
     return () => {
       // Only the top layer can drop its own entry; anything else is absorbed
@@ -37,20 +41,4 @@ export function useBackLayer(open: boolean, close: () => void) {
       if (removeHistoryLayer(id)) window.history.back()
     }
   }, [open])
-}
-
-/**
- * Installs the single popstate listener the layers share. Mount once on the
- * player surface, above every layer.
- */
-export function useBackLayerHost() {
-  useEffect(() => {
-    function onPopState() {
-      // Nothing of ours open: let the browser navigation stand, which is the
-      // player leaving the event as they intended.
-      popHistoryLayer()
-    }
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [])
 }

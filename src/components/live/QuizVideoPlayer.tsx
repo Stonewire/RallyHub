@@ -2,6 +2,7 @@ import { Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { textOnAccent } from '@/lib/live-event'
 import { youtubeEmbedUrl } from '@/lib/youtube'
 
 function clock(seconds: number): string {
@@ -152,12 +153,14 @@ export function QuizVideoPlayer({
         >
           <span
             className="flex size-14 items-center justify-center rounded-full shadow-lg sm:size-16"
-            style={{ backgroundColor: accentColor }}
+            // The glyph is filled with currentColor, so the accent decides it
+            // the same way it decides any other ink painted on the brand.
+            style={{ backgroundColor: accentColor, color: textOnAccent(accentColor) }}
           >
             {playing ? (
-              <Pause className="size-6 fill-current text-black sm:size-8" />
+              <Pause className="size-6 fill-current sm:size-8" />
             ) : (
-              <Play className="ml-1 size-6 fill-current text-black sm:size-8" />
+              <Play className="ml-1 size-6 fill-current sm:size-8" />
             )}
           </span>
         </button>

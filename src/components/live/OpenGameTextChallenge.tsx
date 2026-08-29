@@ -9,7 +9,7 @@ import {
   CHALLENGE_ACTION_CLASS,
   STICKY_ACTION_SPACER,
 } from '@/components/live/StickyChallengeAction'
-import { textOnAccent } from '@/lib/live-event'
+import { LIVE_LABEL_WRAP_CLASS, textOnAccent } from '@/lib/live-event'
 import { parseTextGameConfig } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -108,7 +108,7 @@ export function OpenGameTextChallenge({
                   key={opt.id}
                   type="button"
                   disabled={disabled}
-                  className={`xp-quiz-option w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${
+                  className={`xp-quiz-option w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors ${LIVE_LABEL_WRAP_CLASS} ${
                     selected ? 'ring-2 ring-white/80' : ''
                   }`}
                   style={

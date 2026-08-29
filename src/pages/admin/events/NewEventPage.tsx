@@ -14,7 +14,11 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useNotification } from '@/contexts/notification-context'
 import { copyToClipboard } from '@/lib/clipboard'
-import { useCreateEvent, useUpdateEventStatus } from '@/hooks/use-events'
+import {
+  EVENT_STATUS_PILL_CLASS,
+  useCreateEvent,
+  useUpdateEventStatus,
+} from '@/hooks/use-events'
 import { useEventActivationFlow } from '@/hooks/use-event-activation-flow'
 import { useGameGroups } from '@/hooks/use-game-groups'
 import { useGames } from '@/hooks/use-games'
@@ -29,6 +33,7 @@ import {
   type EventFormValues,
 } from '@/lib/event-form-utils'
 import { toAppLanguage } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import type { EventStatus } from '@/types/database'
 
 export function AdminEventsNewPage() {
@@ -203,14 +208,20 @@ export function AdminEventsNewPage() {
                 key={s}
                 type="button"
                 onClick={() => void confirmStatus(s)}
-                className={`rounded-xl border-2 p-4 text-left transition-colors ${
-                  s === 'active'
-                    ? 'border-nm-yellow bg-nm-yellow/10 hover:bg-nm-yellow/20'
-                    : 'border-border hover:bg-muted/40'
-                }`}
+                className="border-border hover:border-foreground/30 hover:bg-muted/40 rounded-xl border-2 p-4 text-left transition-colors"
               >
-                <p className="text-foreground font-bold">{label}</p>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{hint}</p>
+                {/* The same solid pill the event card and the status menu use, so
+                    the colour picked here is the colour seen afterwards. Active
+                    used to get a gold frame, which read as Ready. */}
+                <span
+                  className={cn(
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                    EVENT_STATUS_PILL_CLASS[s],
+                  )}
+                >
+                  {label}
+                </span>
+                <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{hint}</p>
               </button>
             ))}
           </div>

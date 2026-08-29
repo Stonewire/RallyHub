@@ -3,11 +3,18 @@ import { Pause, Play } from 'lucide-react'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { shouldTriggerBingoLockAndReveal } from '@/lib/bingo-playback'
+import {
+  shouldTriggerBingoLockAndReveal,
+  type BingoTrackAnchor,
+} from '@/lib/bingo-playback'
 
 type BingoClipPlayerProps = {
   src: string
   nextSrc?: string
+  /** Track behind `src`, so a reported position can say which song it is for. */
+  trackId?: string | null
+  /** Track behind `nextSrc`, reported when a crossfade starts it early. */
+  nextTrackId?: string | null
   playKey: string
   className?: string
   autoPlay?: boolean
@@ -17,6 +24,12 @@ type BingoClipPlayerProps = {
   /** Fired as soon as the next deck starts; advance round only — do not crossfade again. */
   onAutoAdvance?: () => void
   onPlaybackError?: (message: string) => void
+  /**
+   * Fired on every position discontinuity: a start, a crossfade in, a scrub, a
+   * pause and a resume. This device is the only one making sound, so the
+   * audience display has no other way to know where the song is (R2.4).
+   */
+  onPositionAnchor?: (anchor: BingoTrackAnchor) => void
 }
 
 export type BingoClipPlayerHandle = {
@@ -61,6 +74,8 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     {
       src,
       nextSrc,
+      trackId = null,
+      nextTrackId = null,
       playKey,
       className,
       autoPlay = true,
@@ -68,6 +83,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       onLockAndReveal,
       onAutoAdvance,
       onPlaybackError,
+      onPositionAnchor,
     }: BingoClipPlayerProps,
     ref,
   ) {
@@ -85,9 +101,40 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     const [position, setPosition] = useState(0)
     const [duration, setDuration] = useState(0)
     const onPlaybackErrorRef = useRef(onPlaybackError)
+    const onPositionAnchorRef = useRef(onPositionAnchor)
+    const trackIdRef = useRef(trackId)
+    const nextTrackIdRef = useRef(nextTrackId)
+    const nextSrcRef = useRef(nextSrc)
     onAutoAdvanceRef.current = onAutoAdvance
     onLockAndRevealRef.current = onLockAndReveal
     onPlaybackErrorRef.current = onPlaybackError
+    onPositionAnchorRef.current = onPositionAnchor
+    trackIdRef.current = trackId
+    nextTrackIdRef.current = nextTrackId
+    nextSrcRef.current = nextSrc
+
+    /**
+     * Tell the room where this device is in the song. The anchor has to name
+     * the track it describes, because a crossfade starts the NEXT song several
+     * seconds before the round advances: a display still on the previous song
+     * must be able to ignore it. Saying nothing beats saying the wrong thing,
+     * so a caller that cannot name the track passes null.
+     */
+    function reportPosition(
+      el: HTMLAudioElement,
+      anchorTrackId: string | null | undefined,
+      paused: boolean,
+    ) {
+      const report = onPositionAnchorRef.current
+      if (!report || !anchorTrackId) return
+      const position = Number.isFinite(el.currentTime) ? el.currentTime : 0
+      report({
+        trackId: anchorTrackId,
+        positionSeconds: Math.max(0, position),
+        atMs: Date.now(),
+        paused,
+      })
+    }
 
     function currentAudio() {
       return activeRef.current === 'a' ? audioARef.current : audioBRef.current
@@ -178,12 +225,17 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       autoFadeTriggeredRef.current = false
       lockRevealTriggeredRef.current = false
       const ok = await playElement(el, 'gesture')
-      if (ok) return true
+      if (ok) {
+        reportPosition(el, trackIdRef.current, false)
+        return true
+      }
       // Source was just (re)assigned and wasn't ready yet — wait for it to buffer
       // and try once more so a single press reliably starts playback.
       const ready = await waitForReady(el)
       if (!ready) return false
-      return playElement(el, 'gesture-retry')
+      const retried = await playElement(el, 'gesture-retry')
+      if (retried) reportPosition(el, trackIdRef.current, false)
+      return retried
     }
 
     async function crossfadeTo(url: string, ms = 4000): Promise<boolean> {
@@ -211,6 +263,11 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
         crossfadeInProgressRef.current = false
         return false
       }
+      // The next song is audible from here, whole seconds before the round
+      // advances. Anchoring it now is what stops the display starting its copy
+      // at 0:00 when the room is already into the track. Only when this really
+      // is the queued next clip: an ad-hoc crossfade has no id we can trust.
+      reportPosition(to, url === nextSrcRef.current ? nextTrackIdRef.current : null, false)
 
       // The next song is already playing at this point. Finish the volume fade in
       // the background so round advancement and participant unlocking do not wait
@@ -249,8 +306,10 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       },
       isMounted: () => Boolean(audioARef.current && audioBRef.current),
       pause: () => {
+        const el = currentAudio()
         audioARef.current?.pause()
         audioBRef.current?.pause()
+        if (el) reportPosition(el, trackIdRef.current, true)
       },
     }))
 
@@ -268,7 +327,9 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       el.load()
       autoFadeTriggeredRef.current = false
       lockRevealTriggeredRef.current = false
-      void playElement(el, 'autoPlay')
+      void playElement(el, 'autoPlay').then((ok) => {
+        if (ok) reportPosition(el, trackIdRef.current, false)
+      })
     }, [src, playKey, autoPlay])
 
     useEffect(() => {
@@ -334,8 +395,14 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
     function toggle() {
       const el = currentAudio()
       if (!el) return
-      if (el.paused) void playElement(el, 'toggle')
-      else el.pause()
+      if (el.paused) {
+        void playElement(el, 'toggle').then((ok) => {
+          if (ok) reportPosition(el, trackIdRef.current, false)
+        })
+      } else {
+        el.pause()
+        reportPosition(el, trackIdRef.current, true)
+      }
     }
 
     function seekTo(seconds: number) {
@@ -343,6 +410,7 @@ export const BingoClipPlayer = forwardRef<BingoClipPlayerHandle, BingoClipPlayer
       if (!el || !Number.isFinite(el.duration)) return
       el.currentTime = Math.min(Math.max(0, seconds), el.duration)
       setPosition(el.currentTime)
+      reportPosition(el, trackIdRef.current, el.paused)
     }
 
     return (

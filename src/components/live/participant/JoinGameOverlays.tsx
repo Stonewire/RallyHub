@@ -6,7 +6,7 @@ import { X, ShoppingBag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { LiveAccentButton } from '@/components/live/LiveAccentButton'
-import { textOnAccent } from '@/lib/live-event'
+import { LIVE_LABEL_WRAP_CLASS, textOnAccent } from '@/lib/live-event'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import type { Tables } from '@/types/helpers'
@@ -187,6 +187,7 @@ export function ParticipantExitDialog({
             <Button
               type="submit"
               size="sm"
+              className={LIVE_LABEL_WRAP_CLASS}
               disabled={verifying || !passwordValue.trim()}
               style={{ backgroundColor: accent, color: textOnAccent(accent) }}
             >

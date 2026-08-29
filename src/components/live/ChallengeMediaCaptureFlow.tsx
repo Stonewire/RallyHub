@@ -6,6 +6,7 @@ import { ChallengeNativePreview } from '@/components/live/ChallengeNativePreview
 import { PhotoChallengeCapture } from '@/components/live/PhotoChallengeCapture'
 import { VideoChallengeCapture } from '@/components/live/VideoChallengeCapture'
 import { useNotification } from '@/contexts/notification-context'
+import { useBackLayer } from '@/hooks/use-back-layer'
 import {
   shouldUseNativePhotoCapture,
   shouldUseNativeVideoCapture,
@@ -172,6 +173,13 @@ export function ChallengeMediaCaptureFlow({
     if (!nativePreviewFile) return
     onFileReady(nativePreviewFile)
   }
+
+  // R2.8: the camera, the recorder and the shot-taken preview each own the
+  // whole screen, so the phone's own back must close them. Without an entry of
+  // their own the press fell through to the game's layer underneath and shut
+  // the entire challenge down mid-shot.
+  useBackLayer(!useNativeForMedia && captureOpen, closeInAppCapture)
+  useBackLayer(nativePreviewFile !== null, handleNativeClose)
 
   const nativeAccept =
     mediaType === 'photo' ? 'image/*' : 'video/quicktime,video/mp4,video/*'

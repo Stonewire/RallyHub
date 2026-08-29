@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next'
 
 import { useBingoRun } from '@/hooks/use-bingo-run'
 import { useAudioLevels } from '@/hooks/use-audio-levels'
-import { bingoTrackPlaybackUrl, musicTracksFromGameConfig } from '@/lib/bingo-playback'
+import {
+  bingoTrackPlaybackUrl,
+  musicTracksFromGameConfig,
+  parseBingoTrackAnchor,
+} from '@/lib/bingo-playback'
 import {
   bingoTeamGuessStates,
   bingoVisualizerBars,
@@ -29,6 +33,11 @@ type DisplayBingoPanelProps = {
   accent: string
   /** The bingo game row, for resolving this round's clip (R2.4). */
   game?: Tables<'games'> | null
+  /**
+   * True once the display's sound gate has been tapped. Live analysis needs a
+   * play() the autoplay policy will allow, so the tap re-arms it (R2.4).
+   */
+  soundUnlocked?: boolean
   textClass: string
 }
 
@@ -49,6 +58,7 @@ export function DisplayBingoPanel({
   submissions,
   accent,
   game = null,
+  soundUnlocked = false,
   textClass,
 }: DisplayBingoPanelProps) {
   const { t } = useTranslation('live')
@@ -59,14 +69,36 @@ export function DisplayBingoPanel({
   const playing = state.bingo_state === 'playing'
   const revealed = state.bingo_state === 'revealed'
   // R2.4: the bars follow the actual song. Null whenever live analysis is not
-  // available (no clip, not playing, or the browser refused), and the seeded
-  // animation below carries the round instead.
+  // available (no clip, no audio in the room, or the browser refused), and the
+  // seeded animation below carries the round instead.
   const clipUrl = useMemo(() => {
     if (!game || !currentTrackId) return null
     const track = musicTracksFromGameConfig(game.config).find((t) => t.id === currentTrackId)
     return track ? bingoTrackPlaybackUrl(track) : null
   }, [game, currentTrackId])
-  const levels = useAudioLevels(clipUrl, playing, BAR_COUNT)
+  // The room keeps hearing the song right through the reveal and on into the
+  // crossfade, so analysis runs through 'revealed' too. Stopping at the reveal
+  // meant the last few seconds of every single song ran on fake bars.
+  const roomHasAudio = playing || revealed
+  const levels = useAudioLevels({
+    clipUrl,
+    active: roomHasAudio,
+    bins: BAR_COUNT,
+    trackId: currentTrackId,
+    // Where the facilitator's device actually is in this song. Without it the
+    // display's silent copy starts at 0:00 however late it noticed the round.
+    anchor: parseBingoTrackAnchor(state.bingo_track_anchor),
+    retryKey: soundUnlocked ? 'unlocked' : 'locked',
+  })
+
+  // What the BARS should look like, which is not the same as whether analysis
+  // should run. On the last song of a game the reveal lands ~5s before the clip
+  // ends and 'revealed' then stands until the facilitator moves on, sometimes
+  // for minutes. Driving the visuals off roomHasAudio left the seeded bars
+  // dancing at full brightness over a silent room. Live levels prove sound;
+  // 'playing' covers the case where analysis is unavailable but the room can
+  // still hear the track.
+  const barsLookAlive = playing || levels !== null
 
   // Remember which submission row carries each team's pending mark while the
   // round is open. Scoring reuses those exact rows (pending flips to approved
@@ -124,14 +156,15 @@ export function DisplayBingoPanel({
         ) : null}
         {/* The bars follow the song the room is hearing: the display loads the
             same clip and analyses it silently (see useAudioLevels, which never
-            connects the analyser to the speakers). When live analysis is not
-            available the seeded CSS animation carries the round instead, so
-            the screen never goes still. No song title, artist or any metadata
-            is ever shown here. */}
+            connects the analyser to the speakers), seeking it to the position
+            anchor the facilitator writes so it sits on the sound. When live
+            analysis is not available the seeded CSS animation carries the
+            round instead, so the screen never goes still. No song title,
+            artist or any metadata is ever shown here. */}
         <div
           aria-hidden
           className={`flex h-[34svh] max-h-[380px] w-full max-w-4xl items-center justify-center gap-[0.45%] transition-opacity duration-500 ${
-            playing ? 'opacity-100' : 'opacity-40'
+            barsLookAlive ? 'opacity-100' : 'opacity-40'
           }`}
         >
           {bars.map((bar, i) => {
@@ -144,7 +177,7 @@ export function DisplayBingoPanel({
                     background: `linear-gradient(180deg, rgba(255,255,255,0.75), ${accent})`,
                     animationDuration: `${bar.durationMs}ms`,
                     animationDelay: `-${bar.delayMs}ms`,
-                    animationPlayState: playing ? 'running' : 'paused',
+                    animationPlayState: barsLookAlive ? 'running' : 'paused',
                     '--eq-min': String(bar.min),
                     '--eq-max': String(bar.max),
                   }

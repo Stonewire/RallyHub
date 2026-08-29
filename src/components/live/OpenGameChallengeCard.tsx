@@ -1,7 +1,7 @@
 import { Camera, FileText, Puzzle, Video, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { gamePointsDisplayKey } from '@/lib/live-event'
+import { gamePointsDisplayKey, textOnAccent } from '@/lib/live-event'
 import { isTextGame } from '@/lib/text-game'
 import type { Tables } from '@/types/helpers'
 
@@ -17,9 +17,6 @@ type OpenGameChallengeCardProps = {
   game: Tables<'games'>
   submissionStatus?: SubmissionStatus | null
   accentColor: string
-  /** The event's own text colour, so an untouched tile reads like the rest of
-   *  the screen rather than picking its own contrast against the accent. */
-  textColor: string
   canSubmit: boolean
   onSelect: () => void
 }
@@ -34,7 +31,6 @@ function challengeTypeIcon(game: Tables<'games'>): LucideIcon {
 function cardAppearance(
   status: SubmissionStatus | null | undefined,
   accentColor: string,
-  textColor: string,
 ): { backgroundColor: string; color: string; statusLabelKey: string | null } {
   if (status === 'approved') {
     return {
@@ -57,9 +53,12 @@ function cardAppearance(
       statusLabelKey: 'join.status.pending',
     }
   }
+  // The tile is filled with the accent, so its ink comes from that fill. The
+  // event's own text colour is for what sits on the background, and following
+  // it here put black on dark brands where nothing could be read.
   return {
     backgroundColor: accentColor,
-    color: textColor,
+    color: textOnAccent(accentColor),
     statusLabelKey: null,
   }
 }
@@ -68,7 +67,6 @@ export function OpenGameChallengeCard({
   game,
   submissionStatus,
   accentColor,
-  textColor,
   canSubmit,
   onSelect,
 }: OpenGameChallengeCardProps) {
@@ -76,7 +74,7 @@ export function OpenGameChallengeCard({
   const approved = submissionStatus === 'approved'
   const rejected = submissionStatus === 'rejected'
   const locked = approved || rejected
-  const appearance = cardAppearance(submissionStatus, accentColor, textColor)
+  const appearance = cardAppearance(submissionStatus, accentColor)
   const TypeIcon = challengeTypeIcon(game)
   const isPending = submissionStatus === 'pending'
   const points = gamePointsDisplayKey(game)

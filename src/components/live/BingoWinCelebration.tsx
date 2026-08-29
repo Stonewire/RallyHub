@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { textOnAccent } from '@/lib/live-event'
+import { LIVE_LABEL_WRAP_CLASS, textOnAccent } from '@/lib/live-event'
 
 const DEFAULT_ACCENT = '#FFC107'
 
@@ -138,7 +138,11 @@ export function BingoWinCelebration({
             className="size-3 shrink-0 rounded-full"
             style={{ backgroundColor: onColor, opacity: 0.5 }}
           />
-          <span className="truncate text-2xl font-extrabold sm:text-4xl">{teamName}</span>
+          {/* A long team name wraps onto a second line rather than being cut
+              off mid-word: this is the moment the room reads it out. */}
+          <span className={`min-w-0 text-center text-2xl font-extrabold sm:text-4xl ${LIVE_LABEL_WRAP_CLASS}`}>
+            {teamName}
+          </span>
         </motion.div>
 
         <motion.p

@@ -74,6 +74,7 @@ import {
   formatTimer,
   gamePointsDisplayKey,
   isEventLive,
+  LIVE_LABEL_WRAP_CLASS,
   logoForEvent,
   submissionsAllowed,
   STANDBY_ACCENT,
@@ -218,8 +219,10 @@ export function JoinGameView({
 
   const colors = brandColorsForEvent(event, organization)
   const accent = colors[2]
-  // The event picks one text colour for its whole surface. Anything sitting on
-  // the background rather than inside a filled control follows it.
+  // The organiser's "UI colour" pill, for text sitting ON the event background.
+  // Never pass it into a control filled with the accent: that ink has to come
+  // from the fill (textOnAccent), or a dark brand ends up with black on black.
+  // The challenge tiles used to take this and were unreadable because of it.
   const eventTextColor = displayTextColorForEvent(event) === 'black' ? '#000000' : '#ffffff'
   const logo = logoForEvent(event, organization)
 
@@ -276,10 +279,18 @@ export function JoinGameView({
   // before they leave the event, which is what players reach for instead of
   // our in-app back button. One history entry per open layer, newest closed
   // first; the entry keeps the same URL, so the router never sees a change.
+  // Only things the PLAYER opened take a layer. Anything that appears on its
+  // own would otherwise land on top of the stack and eat the next back press
+  // for something the player never opened, and sometimes cannot even see: an
+  // announcement arriving while the camera is up sits under it, so back would
+  // silently bin an unread announcement instead of closing the camera. The
+  // bingo win celebration is out for the same family of reason, it dismisses
+  // itself on a timer and back would look broken on the press that raced it.
   useBackLayer(Boolean(selectedGame), () => setSelectedGame(null))
   useBackLayer(storeOpen, () => setStoreOpen(false))
   useBackLayer(chatOpen, () => setChatOpen(false))
   useBackLayer(exitDialogOpen, () => setExitDialogOpen(false))
+  useBackLayer(orderSentOpen, () => setOrderSentOpen(false))
   const [chatText, setChatText] = useState('')
 
   const breakSeconds =
@@ -1686,13 +1697,13 @@ export function JoinGameView({
               items to look at, no button to puzzle over (CF6). */}
           {inventoryEnabled ? (
             <div className="mb-4 flex gap-3">
-              <Button type="button" className="flex-1 gap-2 py-5 text-base font-bold text-balance shadow-lg" style={{ backgroundColor: accent, color: textOnAccent(accent) }} onClick={openBuyItems}>
+              <Button type="button" className={`flex-1 gap-2 py-5 text-base font-bold shadow-lg ${LIVE_LABEL_WRAP_CLASS}`} style={{ backgroundColor: accent, color: textOnAccent(accent) }} onClick={openBuyItems}>
                 <QrCode className="size-5" /> {t('join.inventory.buyItems')}
               </Button>
               {hasStore ? (
                 <Button
                   type="button"
-                  className="text-nm-yellow flex-1 gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110"
+                  className={`text-nm-yellow flex-1 gap-2 border-none bg-black py-5 text-base font-bold shadow-lg hover:bg-black hover:brightness-110 ${LIVE_LABEL_WRAP_CLASS}`}
                   onClick={openMyItems}
                 >
                   <ShoppingBag className="size-5" /> {t('store.myItems')}
@@ -1711,7 +1722,6 @@ export function JoinGameView({
                   game={g}
                   submissionStatus={sub?.status}
                   accentColor={accent}
-                  textColor={eventTextColor}
                   canSubmit={canSubmit}
                   onSelect={() => setSelectedGame(g)}
                 />
@@ -1886,8 +1896,8 @@ export function JoinGameView({
               // of the colour chain below, or a selected or revealed binary
               // button would shrink and slide to the left.
               let cls = binary
-                ? 'xp-quiz-option flex min-h-28 w-full items-center justify-center px-5 py-6 text-center text-xl font-bold transition-colors sm:min-h-36 lg:text-2xl '
-                : 'xp-quiz-option flex w-full items-center px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg lg:min-h-24 lg:justify-center lg:text-center '
+                ? `xp-quiz-option flex min-h-28 w-full items-center justify-center px-5 py-6 text-center text-xl font-bold transition-colors sm:min-h-36 lg:text-2xl ${LIVE_LABEL_WRAP_CLASS} `
+                : `xp-quiz-option flex w-full items-center px-5 py-3 text-left text-base font-bold transition-colors sm:py-3.5 md:text-lg lg:min-h-24 lg:justify-center lg:text-center ${LIVE_LABEL_WRAP_CLASS} `
               let style: CSSProperties | undefined
               // Solid white answers: they are the one thing on this screen to
               // press, and a tinted panel over the event's own background read

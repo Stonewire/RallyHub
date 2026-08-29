@@ -2,6 +2,7 @@ import type { Json } from '@/types/json'
 import type { EventStage } from '@/types/game-config'
 import { musicTracksFromGameConfig } from '@/lib/bingo-playback'
 import type { GameConfig, MusicTrack, QuizQuestion } from '@/types/game-config'
+import { readableInkOn } from '@/lib/hex-color'
 import { supabase } from '@/lib/supabase'
 import type { TenantPublicOrg } from '@/lib/tenant'
 import type { Tables } from '@/types/helpers'
@@ -14,6 +15,9 @@ export type DisplayTextColor = 'black' | 'white'
 /** Quiz / bingo “stand by” highlight — not event branding. */
 export const STANDBY_ACCENT = '#FFC107'
 
+/** The charcoal the design pairs with the gold, and with every light brand. */
+const ACCENT_INK_DARK = '#3E3D3E'
+
 /**
  * Ink for anything painted in one of the event's brand colours.
  *
@@ -22,26 +26,30 @@ export const STANDBY_ACCENT = '#FFC107'
  * takeover dialog hardcoding black over a deep purple accent, which no one
  * could read.
  *
- * Uses WCAG relative luminance, not a plain channel average: a saturated green
- * and a saturated blue of the same average brightness need opposite ink, and
- * only the weighted-then-linearised version gets that right.
+ * This is NOT `events.display_text_color` (the organiser's White/Black "UI
+ * colour" pill). That one is for text sitting ON the event background, which
+ * the organiser can see and judge. Text inside a control filled with the accent
+ * has to follow the fill instead, whatever they picked for the background,
+ * because they never see the two together while choosing.
  */
 export function textOnAccent(accentHex: string | null | undefined): string {
-  const hex = (accentHex ?? '').replace('#', '').slice(0, 6)
-  if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) return '#3E3D3E'
-  const channels = [
-    parseInt(hex.slice(0, 2), 16),
-    parseInt(hex.slice(2, 4), 16),
-    parseInt(hex.slice(4, 6), 16),
-  ].map((channel) => {
-    const c = channel / 255
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  })
-  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-  // 0.32 keeps the RallyHub gold on charcoal ink (the design's own pairing)
-  // while flipping to white well before a mid-dark brand becomes unreadable.
-  return luminance > 0.32 ? '#3E3D3E' : '#ffffff'
+  return readableInkOn(accentHex ?? '', ACCENT_INK_DARK)
 }
+
+/**
+ * Label wrapping for any live control painted in a brand colour.
+ *
+ * `whitespace-normal` is the load-bearing class: the shadcn button base carries
+ * `whitespace-nowrap`, which wins in the compiled CSS, so long labels used to
+ * overflow the button instead of wrapping. Passed through `cn`, tailwind-merge
+ * drops the base class for this one.
+ *
+ * `break-words` splits inside a word only when the word alone cannot fit, so a
+ * label never strands a single letter on the second row, and `text-balance`
+ * shares a two-line label evenly instead of leaving one word on its own.
+ */
+export const LIVE_LABEL_WRAP_CLASS =
+  'whitespace-normal break-words hyphens-none text-balance'
 
 export function displayTextColorForEvent(
   event: Tables<'events'>,

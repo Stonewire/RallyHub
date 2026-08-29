@@ -93,7 +93,8 @@
       "checking": "Comprobando…",
       "continue": "Continuar",
       "incorrectPassword": "Contraseña incorrecta",
-      "couldNotVerifyPassword": "No se pudo verificar la contraseña"
+      "couldNotVerifyPassword": "No se pudo verificar la contraseña",
+      "backAgainToLeave": "Vuelve a pulsar atrás para cerrar esta página."
     },
     "back": "Atrás",
     "state": {
@@ -162,18 +163,18 @@
     },
     "consent": {
       "title": "Antes de unirte",
-      "intro": "{{host}} organiza este evento y decide qué se te pedirá hacer. RallyHub proporciona la plataforma.",
+      "intro": "{{host}} organiza este evento y decide qué se te pedirá hacer. {{brand}} proporciona la plataforma.",
       "defaultHost": "El organizador del evento",
       "whatCollectedTitle": "Qué se recopila",
       "collectTeamName": "El nombre del equipo y el nombre de jugador que introduces.",
       "collectMediaBold": "Las fotos o vídeos que envíes",
       "collectMediaRest": "durante los retos. Pueden mostrarte a ti y a otras personas.",
       "collectScore": "Tus respuestas y la puntuación de tu equipo.",
-      "hostSeesEverything": "{{host}} puede ver todo lo que envía tu equipo. RallyHub lo almacena en su nombre y lo elimina cuando el organizador elimina el evento.",
+      "hostSeesEverything": "{{host}} puede ver todo lo que envía tu equipo. {{brand}} lo almacena en su nombre y lo elimina cuando el organizador elimina el evento.",
       "readMore": "Leer más",
       "notForced": "No tienes que participar. Si prefieres que no te fotografíen ni te graben, díselo al organizador, puede llevar a cabo el evento sin ti o darte un rol que no implique enviar contenido multimedia.",
       "dataRequest": "Para saber qué se guarda sobre ti, o para que lo eliminen, contacta primero con el organizador del evento, ya que es quien decide qué ocurre con ello. También puedes leer la",
-      "privacyPolicyLink": "Política de Privacidad de RallyHub",
+      "privacyPolicyLink": "Política de Privacidad",
       "checkboxLabel": "He leído esto y estoy de acuerdo en participar.",
       "continueButton": "Continuar al evento",
       "cookieNote": "Esta aplicación guarda unos pocos datos en tu teléfono para recordar tu equipo. Sin analíticas, sin seguimiento y sin cookies opcionales.",

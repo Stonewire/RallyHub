@@ -12,7 +12,7 @@ import type { PuzzleProgress } from '@/lib/puzzle-engine'
 import type { PuzzleMatchingPair } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
-import { idbGet, idbSet } from './idb'
+import { idbDelete, idbGet, idbGetAllKeys, idbSet } from './idb'
 import type { OutboxItem } from './outbox'
 import type { OfflineAnswerKey } from './package'
 import {
@@ -24,8 +24,46 @@ import {
   type CrosswordWord,
 } from './scoring'
 
+// The content store is shared with the answer package (answers:), the bundle
+// snapshot (bundle:) and the store snapshot (store:), so local puzzle records
+// carry their own namespace and the slot clear below can match on it exactly.
+const LOCAL_PUZZLE_PREFIX = 'puzzle:'
+
 const localKey = (eventId: string, teamId: string, gameId: string) =>
-  `puzzle:${eventId}:${teamId}:${gameId}`
+  `${LOCAL_PUZZLE_PREFIX}${eventId}:${teamId}:${gameId}`
+
+/** Of the keys held in the content store, the ones that are one slot's local
+ *  puzzle play on one event. Pure so the rule is testable: the trailing colon
+ *  keeps the match exact, so it can never reach a neighbouring event, a
+ *  neighbouring slot, or the other namespaces sharing the store. */
+export function localPuzzleKeysForTeam(
+  keys: string[],
+  eventId: string,
+  teamId: string,
+): string[] {
+  const prefix = `${LOCAL_PUZZLE_PREFIX}${eventId}:${teamId}:`
+  return keys.filter((key) => key.startsWith(prefix))
+}
+
+/** Bin this device's local puzzle records for one slot (R2.5).
+ *
+ *  A facilitator reset clears event_puzzle_progress but keeps the teams row
+ *  id, so these mirrors survive it, and loadProgress prefers a completed local
+ *  record over an empty server row. Without this the next team on the phone
+ *  opens every puzzle already solved and scores nothing for it. Callers clear
+ *  at claim time: a slot only claims while empty, so anything still stored
+ *  under its team id was written by the slot's previous occupant.
+ *
+ *  Returns how many records went. Never rejects: the idb helpers swallow their
+ *  own failures, and a claim must not fail over housekeeping. */
+export async function clearLocalPuzzleProgressForTeam(
+  eventId: string,
+  teamId: string,
+): Promise<number> {
+  const keys = localPuzzleKeysForTeam(await idbGetAllKeys('content'), eventId, teamId)
+  for (const key of keys) await idbDelete('content', key)
+  return keys.length
+}
 
 // The fetch layer's own words for "no connection", per engine (Chrome: Failed
 // to fetch, Safari: Load failed, Firefox: NetworkError). Raw, they read like a

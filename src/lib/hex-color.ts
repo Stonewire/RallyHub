@@ -46,14 +46,50 @@ export function rgbToHex({ r, g, b }: Rgb): string {
     .join('')}`
 }
 
+/** WCAG relative luminance: weighted and linearised, not a channel average. */
+function relativeLuminance({ r, g, b }: Rgb): number {
+  const [rl, gl, bl] = [r, g, b].map((channel) => {
+    const c = channel / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl
+}
+
+function contrastRatio(a: number, b: number): number {
+  const [lighter, darker] = a > b ? [a, b] : [b, a]
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
 /**
- * Readable foreground for a swatch, so the hex stays legible on both a very
- * light and a very dark brand colour. Uses the standard luminance weighting
- * rather than a plain average, which would call pure blue "light".
+ * Ink that reads best on `background`: whichever of `darkInk` and white wins on
+ * contrast. Comparing the two ratios IS the threshold, so the crossover always
+ * matches the ink actually being used. A hand-picked cut-off drifts out of step
+ * with it the moment either colour changes, and a band of mid-dark brands then
+ * takes white where the dark ink was measurably better.
+ *
+ * Linearised luminance matters here: a saturated green and a saturated blue of
+ * the same average brightness need opposite ink, and only the weighted-then-
+ * linearised version gets that right.
+ */
+export function readableInkOn<T extends string>(
+  background: string,
+  darkInk: T,
+): T | '#ffffff' {
+  const bg = hexToRgb(background)
+  const ink = hexToRgb(darkInk)
+  if (!bg || !ink) return darkInk
+  const bgLuminance = relativeLuminance(bg)
+  return contrastRatio(bgLuminance, relativeLuminance(ink)) >=
+    contrastRatio(bgLuminance, 1)
+    ? darkInk
+    : '#ffffff'
+}
+
+/**
+ * @deprecated Use `textOnAccent` from `@/lib/live-event`, the one helper every
+ * brand-painted surface asks. This keeps its own darker ink so its test file
+ * still passes; delete the two together.
  */
 export function readableTextOn(value: string): '#ffffff' | '#1f2126' {
-  const rgb = hexToRgb(value)
-  if (!rgb) return '#1f2126'
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255
-  return luminance > 0.6 ? '#1f2126' : '#ffffff'
+  return readableInkOn(value, '#1f2126')
 }

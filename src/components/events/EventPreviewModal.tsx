@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { IconClose } from '@/components/icons'
 import { BrandBackground } from '@/components/live/BrandBackground'
 import { NeoButton } from '@/components/neo-minimal'
-import type { DisplayLayout, DisplayTextColor } from '@/lib/live-event'
+import { textOnAccent, type DisplayLayout, type DisplayTextColor } from '@/lib/live-event'
 import type { EventTeam } from '@/types/game-config'
 import type { Tables } from '@/types/helpers'
 
@@ -118,8 +118,8 @@ export function EventPreviewModal({
                     displayLayout === 'orbit_view' ? (
                       <span
                         key={team.id}
-                        className="flex size-9 items-center justify-center rounded-full text-[10px] font-bold text-white shadow"
-                        style={{ backgroundColor: team.color }}
+                        className="flex size-9 items-center justify-center rounded-full text-[10px] font-bold shadow"
+                        style={{ backgroundColor: team.color, color: textOnAccent(team.color) }}
                       >
                         {(team.name || t('events.preview.teamAbbrev', { index: index + 1 }))
                           .slice(0, 2)
@@ -167,8 +167,11 @@ export function EventPreviewModal({
                   {name || t('events.preview.untitled')}
                 </p>
                 <span
-                  className="mt-1 rounded-full px-3 py-1 text-[10px] font-bold text-white shadow"
-                  style={{ backgroundColor: shown[0]?.color ?? brandColors[0] }}
+                  className="mt-1 rounded-full px-3 py-1 text-[10px] font-bold shadow"
+                  style={{
+                    backgroundColor: shown[0]?.color ?? brandColors[0],
+                    color: textOnAccent(shown[0]?.color ?? brandColors[0]),
+                  }}
                 >
                   {shown[0]?.name || t('events.teamNumber', { index: 1 })}
                 </span>

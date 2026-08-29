@@ -93,7 +93,8 @@
       "checking": "Controleren…",
       "continue": "Doorgaan",
       "incorrectPassword": "Onjuist wachtwoord",
-      "couldNotVerifyPassword": "Kon het wachtwoord niet verifiëren"
+      "couldNotVerifyPassword": "Kon het wachtwoord niet verifiëren",
+      "backAgainToLeave": "Druk nogmaals op terug om deze pagina te sluiten."
     },
     "back": "Terug",
     "state": {
@@ -162,18 +163,18 @@
     },
     "consent": {
       "title": "Voordat je meedoet",
-      "intro": "{{host}} organiseert dit evenement en bepaalt wat je wordt gevraagd te doen. RallyHub levert het platform.",
+      "intro": "{{host}} organiseert dit evenement en bepaalt wat je wordt gevraagd te doen. {{brand}} levert het platform.",
       "defaultHost": "De organisator van het evenement",
       "whatCollectedTitle": "Wat er wordt verzameld",
       "collectTeamName": "De teamnaam en spelernaam die je invoert.",
       "collectMediaBold": "Alle foto's of video's die je indient",
       "collectMediaRest": "tijdens de uitdagingen. Hierop kun jij en andere mensen te zien zijn.",
       "collectScore": "Jouw antwoorden en de score van je team.",
-      "hostSeesEverything": "{{host}} kan alles zien wat je team indient. RallyHub bewaart dit namens hen en verwijdert het wanneer zij het evenement verwijderen.",
+      "hostSeesEverything": "{{host}} kan alles zien wat je team indient. {{brand}} bewaart dit namens hen en verwijdert het wanneer zij het evenement verwijderen.",
       "readMore": "Lees meer",
       "notForced": "Je hoeft niet mee te doen. Als je liever niet gefotografeerd of gefilmd wordt, zeg dit tegen de organisator, die kan het evenement zonder jou organiseren of je een rol geven waarbij je geen media hoeft in te dienen.",
       "dataRequest": "Om te vragen wat er over je wordt bewaard, of om het te laten verwijderen, neem eerst contact op met de organisator van het evenement, want die beslist wat ermee gebeurt. Je kunt ook het volledige",
-      "privacyPolicyLink": "RallyHub Privacybeleid",
+      "privacyPolicyLink": "Privacybeleid",
       "checkboxLabel": "Ik heb dit gelezen en ga akkoord met deelname.",
       "continueButton": "Doorgaan naar het evenement",
       "cookieNote": "Deze app bewaart een beetje data op je telefoon zodat je team wordt onthouden. Geen analytics, geen tracking, geen optionele cookies.",
