@@ -29,6 +29,7 @@ import {
   useEventGameIds,
   useResetEventData,
   useRestartRecurringEvent,
+  useSetEventRecurring,
   useUpdateEvent,
   useUpdateEventStatus,
 } from '@/hooks/use-events'
@@ -63,6 +64,7 @@ export function AdminEventEditPage() {
   const groupsQuery = useGameGroups(organizationId)
   const eventQuery = useEvent(eventId)
   const gameIdsQuery = useEventGameIds(eventId)
+  const setEventRecurring = useSetEventRecurring(organizationId)
   const updateEvent = useUpdateEvent(organizationId)
   const updateStatus = useUpdateEventStatus(organizationId)
   const duplicateEvent = useDuplicateEvent(organizationId)
@@ -244,10 +246,20 @@ export function AdminEventEditPage() {
     }
   }
 
-  async function handleRestartRecurring() {
+  async function handleEnableRecurring() {
     if (!eventId) return
     try {
-      await restartRecurringMutation.mutateAsync(eventId)
+      await setEventRecurring.mutateAsync({ eventId, recurring: true })
+      notify(t('events.restart.enabled'))
+    } catch (err) {
+      notify(err instanceof Error ? err.message : t('events.restart.enableError'))
+    }
+  }
+
+  async function handleRestartRecurring(nextEventDate: string | null) {
+    if (!eventId) return
+    try {
+      await restartRecurringMutation.mutateAsync({ eventId, nextEventDate })
       setRestartDialogOpen(false)
       notify(t('events.restart.success'))
     } catch (err) {
@@ -377,6 +389,34 @@ export function AdminEventEditPage() {
                     onClick={() => setRestartDialogOpen(true)}
                   >
                     {t('events.restart.action')}
+                  </NeoButton>
+                </Card>
+              ) : null}
+
+              {/* The one thing still editable once archived: whether this event
+                  repeats. It describes the NEXT run, not the finished one, and
+                  locking it meant an event archived without the box ticked could
+                  only be repeated by duplicating it, which changes the join link
+                  and kills every printed QR code. */}
+              {isArchived && activated && !eventQuery.data?.recurring ? (
+                <Card className="border-primary/40 bg-primary/5 mb-6 flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+                  <div className="min-w-0 max-w-xl">
+                    <p className="text-foreground font-medium">
+                      {t('events.restart.enableTitle')}
+                    </p>
+                    <p className="text-muted-foreground mt-1">
+                      {t('events.restart.enableHint')}
+                    </p>
+                  </div>
+                  <NeoButton
+                    type="button"
+                    variant="primary"
+                    disabled={setEventRecurring.isPending || loading}
+                    onClick={() => void handleEnableRecurring()}
+                  >
+                    {setEventRecurring.isPending
+                      ? t('events.restart.enabling')
+                      : t('events.restart.enableAction')}
                   </NeoButton>
                 </Card>
               ) : null}
@@ -616,8 +656,9 @@ export function AdminEventEditPage() {
             <RecurringRestartConfirmDialog
               eventName={eventQuery.data.name}
               confirming={restartRecurringMutation.isPending}
+              currentEventDate={eventQuery.data.event_date}
               onCancel={() => setRestartDialogOpen(false)}
-              onConfirm={() => void handleRestartRecurring()}
+              onConfirm={(nextEventDate) => void handleRestartRecurring(nextEventDate)}
             />
           ) : null}
 

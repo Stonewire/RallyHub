@@ -1211,7 +1211,16 @@
       "starting": "Starten…",
       "success": "Event gereset voor de volgende ronde. Activeer het wanneer je klaar bent om live te gaan.",
       "error": "De volgende ronde kon niet gestart worden.",
-      "unpaidError": "Betaal eerst de openstaande factuur van dit event voordat je de volgende ronde start."
+      "unpaidError": "Betaal eerst de openstaande factuur van dit event voordat je de volgende ronde start.",
+      "dateLabel": "Datum van de volgende editie",
+      "dateHint": "Laat leeg als je hem nog niet weet. Het evenement toont dan geen datum in plaats van de oude te houden.",
+      "dateHintWithCurrent": "De afgeronde editie was op {{date}}. Laat leeg als je de volgende datum nog niet weet.",
+      "enableTitle": "Dit evenement herhalen",
+      "enableHint": "Zet dit aan om het later opnieuw te draaien met dezelfde spellen, dezelfde link en dezelfde QR-codes. De rest blijft vergrendeld.",
+      "enableAction": "Maak het herhaalbaar",
+      "enabling": "Opslaan...",
+      "enabled": "Dit evenement kan nu herhaald worden.",
+      "enableError": "Herhalen kon niet worden ingeschakeld voor dit evenement."
     },
     "title": "Events",
     "subtitle": "Beheer je events.",

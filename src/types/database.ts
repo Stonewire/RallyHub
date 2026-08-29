@@ -1534,7 +1534,16 @@ export type Database = {
         }[]
       }
       restart_recurring_event: {
-        Args: { p_event_id: string }
+        /**
+         * p_set_event_date must be true for p_event_date to be written; left
+         * false the event keeps the date it had, which is what the old
+         * one-argument callers relied on.
+         */
+        Args: {
+          p_event_id: string
+          p_event_date?: string | null
+          p_set_event_date?: boolean
+        }
         Returns: undefined
       }
       wipe_event_data: {

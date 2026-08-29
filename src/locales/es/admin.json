@@ -1211,7 +1211,16 @@
       "starting": "Iniciando…",
       "success": "Evento restablecido para su siguiente edición. Actívalo cuando estés listo para empezar en directo.",
       "error": "No se pudo iniciar la siguiente edición.",
-      "unpaidError": "Liquida la factura pendiente de este evento antes de iniciar la siguiente edición."
+      "unpaidError": "Liquida la factura pendiente de este evento antes de iniciar la siguiente edición.",
+      "dateLabel": "Fecha de la próxima edición",
+      "dateHint": "Déjalo vacío si aún no la sabes. El evento aparecerá sin fecha en lugar de conservar la anterior.",
+      "dateHintWithCurrent": "La edición terminada fue el {{date}}. Déjalo vacío si aún no sabes la próxima fecha.",
+      "enableTitle": "Repetir este evento",
+      "enableHint": "Actívalo para volver a celebrarlo más adelante con los mismos juegos, el mismo enlace y los mismos códigos QR. Todo lo demás sigue bloqueado.",
+      "enableAction": "Hacerlo repetible",
+      "enabling": "Guardando...",
+      "enabled": "Este evento ya se puede repetir.",
+      "enableError": "No se pudo activar la repetición de este evento."
     },
     "title": "Eventos",
     "subtitle": "Gestiona tus eventos.",

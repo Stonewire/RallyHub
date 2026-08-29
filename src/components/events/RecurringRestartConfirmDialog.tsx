@@ -1,14 +1,21 @@
-import { IconAlert } from '@/components/icons'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { IconAlert } from '@/components/icons'
 import { NeoButton } from '@/components/neo-minimal'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toLocalDatetime } from '@/lib/event-form-utils'
 
 type RecurringRestartConfirmDialogProps = {
   eventName: string
+  /** The finished run's date, shown so it is obvious what is being replaced. */
+  currentEventDate: string | null
   confirming: boolean
   onCancel: () => void
-  onConfirm: () => void
+  /** ISO string for the next run, or null when the organiser has no date yet. */
+  onConfirm: (nextEventDate: string | null) => void
 }
 
 /**
@@ -16,14 +23,25 @@ type RecurringRestartConfirmDialogProps = {
  * the demo-clear activation dialog (use-event-activation-flow): what gets
  * wiped in plain words, plus a highlighted note that the next activation is
  * billed as a new run.
+ *
+ * The date is asked for here rather than left to a later edit. The restart used
+ * to keep the finished run's date, which sorted the re-armed event back among
+ * last month's, dropped it out of a date-filtered list, and printed the old
+ * date on the new run's invoice. Left empty the date is cleared rather than
+ * kept, so an event with no date yet reads as "date not set" instead of quietly
+ * claiming a day that has already passed.
  */
 export function RecurringRestartConfirmDialog({
   eventName,
+  currentEventDate,
   confirming,
   onCancel,
   onConfirm,
 }: RecurringRestartConfirmDialogProps) {
   const { t } = useTranslation('admin')
+  // Deliberately NOT prefilled with the old date: a prefilled field invites a
+  // straight confirm, which is exactly the stale date this asks about.
+  const [nextDate, setNextDate] = useState('')
 
   return (
     <div
@@ -57,6 +75,26 @@ export function RecurringRestartConfirmDialog({
             </p>
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="recurring-restart-date">{t('events.restart.dateLabel')}</Label>
+          <Input
+            id="recurring-restart-date"
+            type="datetime-local"
+            className="bg-background"
+            value={nextDate}
+            disabled={confirming}
+            onChange={(e) => setNextDate(e.target.value)}
+          />
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            {currentEventDate
+              ? t('events.restart.dateHintWithCurrent', {
+                  date: toLocalDatetime(currentEventDate).replace('T', ' '),
+                })
+              : t('events.restart.dateHint')}
+          </p>
+        </div>
+
         <div className="flex justify-end gap-2">
           <NeoButton type="button" variant="surface" disabled={confirming} onClick={onCancel}>
             {t('common:cancel')}
@@ -65,7 +103,11 @@ export function RecurringRestartConfirmDialog({
             type="button"
             variant="primary"
             disabled={confirming}
-            onClick={onConfirm}
+            onClick={() =>
+              // datetime-local has no timezone, so it is read in the browser's
+              // own zone, which is the organiser's. Same as the event form.
+              onConfirm(nextDate ? new Date(nextDate).toISOString() : null)
+            }
           >
             {confirming ? t('events.restart.starting') : t('events.restart.confirm')}
           </NeoButton>

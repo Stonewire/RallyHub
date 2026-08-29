@@ -169,6 +169,38 @@ export function useEventGameIds(eventId: string | undefined) {
   })
 }
 
+/**
+ * Flips events.recurring on its own.
+ *
+ * The whole event form is disabled once an event is archived, which is right
+ * for a record of what happened but wrong for this one flag: recurring is not
+ * a record of the finished run, it is an intention about the next one. Without
+ * a way to set it afterwards an event archived without the box ticked could
+ * never be re-armed, and the only route left was Duplicate, which mints a new
+ * join link and kills every printed QR code.
+ *
+ * Status is untouched, so the lifecycle guard (which only engages on a status
+ * change) stays out of the way.
+ */
+export function useSetEventRecurring(organizationId: string | null) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ eventId, recurring }: { eventId: string; recurring: boolean }) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ recurring })
+        .eq('id', eventId)
+      if (error) throw error
+      return recurring
+    },
+    onSuccess: (_data, { eventId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events(organizationId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.event(eventId) })
+    },
+  })
+}
+
 export function useUpdateEvent(organizationId: string | null) {
   const queryClient = useQueryClient()
 
@@ -389,8 +421,9 @@ export function useRestartRecurringEvent(organizationId: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (eventId: string) => restartRecurringEvent(eventId),
-    onSuccess: (_data, eventId) => {
+    mutationFn: async (input: { eventId: string; nextEventDate: string | null }) =>
+      restartRecurringEvent(input.eventId, input.nextEventDate),
+    onSuccess: (_data, { eventId }) => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.events(organizationId),
       })

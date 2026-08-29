@@ -142,7 +142,16 @@ export const RESTART_RECURRING_ERROR =
  * the same UNPAID_INVOICE tag the RPC raises so callers map both paths
  * identically.
  */
-export async function restartRecurringEvent(eventId: string): Promise<void> {
+/**
+ * `nextEventDate` is the date the NEXT run happens, asked for in the confirm
+ * dialog. It is passed explicitly (null means "not set yet") rather than left
+ * alone, because silently keeping the finished run's date put a re-armed event
+ * back among last month's events and billed the new run under the old date.
+ */
+export async function restartRecurringEvent(
+  eventId: string,
+  nextEventDate: string | null,
+): Promise<void> {
   const { data: event, error: fetchErr } = await supabase
     .from('events')
     .select('status, team_count, recurring, activated_at, open_joining')
@@ -173,6 +182,8 @@ export async function restartRecurringEvent(eventId: string): Promise<void> {
 
   const { error: rpcErr } = await supabase.rpc('restart_recurring_event', {
     p_event_id: eventId,
+    p_event_date: nextEventDate,
+    p_set_event_date: true,
   })
   if (rpcErr) throw rpcErr
 

@@ -5,6 +5,19 @@ Bump `APP_VERSION` and add an entry here on each meaningful update merged to `ma
 Numbering: first = major updates, second = bigger batches of features/redesigns,
 third = small fixes (e.g. 2.1.1).
 
+## V3.30.1 - 2026-08-30 (recurring events: date and the archived lock)
+
+- **Starting a new run now asks for the date.** It used to keep the finished
+  run's date, so a re-armed event sat among last month's events, dropped out of
+  a date-filtered list, and printed the old date on the new run's invoice. Leave
+  the field empty and the event simply shows no date, instead of quietly
+  claiming a day that has already passed.
+- **An archived event can now be marked repeatable.** Previously the tick had to
+  be on before archiving, and once archived the whole form was locked, so an
+  event you forgot to tick could never be repeated. The only way out was
+  Duplicate, which mints a new join link and kills every printed QR code. The
+  rest of an archived event stays locked as before.
+
 ## V3.30.0 - 2026-08-29 (round 2 gaps closed)
 
 Everything still outstanding from the 29 Aug test pass.

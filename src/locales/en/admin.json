@@ -1211,7 +1211,16 @@
       "starting": "Starting…",
       "success": "Event reset for its next run. Activate it when you are ready to go live.",
       "error": "Could not start the next run.",
-      "unpaidError": "Settle this event's unpaid invoice before starting the next run."
+      "unpaidError": "Settle this event's unpaid invoice before starting the next run.",
+      "dateLabel": "Date of the next run",
+      "dateHint": "Leave empty if you do not know it yet. The event will show as having no date rather than keeping the old one.",
+      "dateHintWithCurrent": "The finished run was {{date}}. Leave empty if you do not know the next date yet.",
+      "enableTitle": "Repeat this event",
+      "enableHint": "Turn this on to run it again later with the same games, the same link and the same QR codes. Everything else stays locked.",
+      "enableAction": "Make it repeatable",
+      "enabling": "Saving...",
+      "enabled": "This event can now be repeated.",
+      "enableError": "Could not turn on repeating for this event."
     },
     "title": "Events",
     "subtitle": "Manage your events.",

@@ -11,6 +11,36 @@ Workflow since 7 Aug 2026 (simplified; supersedes the 4-level flow):
 Branch `stable-2.0` is the pre-2.1.0 fallback checkpoint. The old `fixes`
 branch is historical and must not receive new work.
 
+## RECURRING-2, SHIPPED V3.30.1, 30 Aug 2026
+
+Two gaps Rumen asked about after the V3.30.0 pass.
+
+- **restart_recurring_event now sets event_date** (new params p_event_date +
+  p_set_event_date; the flag exists so a browser on the old one-argument build
+  keeps the date rather than nulling it). The old behaviour left run 2 on run
+  1's date, which is not cosmetic: event_date sorts the events list
+  (`use-events.ts`), drives the date filter (`EventsPage.tsx`), decides the
+  staff panel's "upcoming events" count (`use-rallyhub.ts`) and prints on the
+  invoice (`EventInvoiceList.tsx`). The confirm dialog asks for it and is
+  deliberately NOT prefilled, since a prefilled field invites a straight
+  confirm, which is the stale date all over again. Empty clears the date to
+  "not set" rather than keeping the old one.
+  Note: adding defaulted params creates a SECOND function, so the migration
+  drops the one-argument signature first; two candidates would make PostgREST's
+  single-argument call ambiguous.
+- **events.recurring is editable on an archived event**, via a dedicated card
+  in Settings and a recurring-only mutation (`useSetEventRecurring`), because
+  the whole form sits inside `<fieldset disabled={isArchived}>`. The flag
+  describes the NEXT run, not the finished one, so it does not belong under the
+  archived lock; without it an event archived un-ticked could only be repeated
+  by duplicating, which changes the join link and kills printed QR codes.
+  Everything else about an archived event stays read-only.
+
+Verified end to end on the Claude QA client's "QA Full Run": archived and
+un-ticked, made repeatable, restarted with a new date, and the row came back
+ready with the new date, activated_at cleared, one occurrence snapshotted, the
+invoice superseded and the team slots rebuilt.
+
 ## QUIZ-1, SHIPPED V3.29.0, 29 Aug 2026
 
 Three quiz features Rumen asked for after the fix rounds.

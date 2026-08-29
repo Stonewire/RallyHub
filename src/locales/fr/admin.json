@@ -1211,7 +1211,16 @@
       "starting": "Lancement…",
       "success": "Événement réinitialisé pour sa prochaine session. Activez-le quand vous êtes prêt à passer en direct.",
       "error": "Impossible de lancer la session suivante.",
-      "unpaidError": "Réglez la facture impayée de cet événement avant de lancer la session suivante."
+      "unpaidError": "Réglez la facture impayée de cet événement avant de lancer la session suivante.",
+      "dateLabel": "Date de la prochaine édition",
+      "dateHint": "Laissez vide si vous ne la connaissez pas encore. L’événement s’affichera sans date plutôt que de garder l’ancienne.",
+      "dateHintWithCurrent": "L’édition terminée avait lieu le {{date}}. Laissez vide si vous ne connaissez pas encore la prochaine date.",
+      "enableTitle": "Répéter cet événement",
+      "enableHint": "Activez ceci pour le rejouer plus tard avec les mêmes jeux, le même lien et les mêmes QR codes. Tout le reste reste verrouillé.",
+      "enableAction": "Le rendre répétable",
+      "enabling": "Enregistrement...",
+      "enabled": "Cet événement peut désormais être répété.",
+      "enableError": "Impossible d’activer la répétition de cet événement."
     },
     "title": "Événements",
     "subtitle": "Gérez vos événements.",
